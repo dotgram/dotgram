@@ -36,7 +36,13 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 
 		var depth = 0;
 
-		foreach (var token in SyntaxFactory.ParseTokens(text, offset: openParenthesisIndex))
+		// initialTokenPosition matters as much as offset: without it the returned spans
+		// are numbered from zero rather than from where lexing started, and every
+		// position handed back is short by openParenthesisIndex.
+		foreach (var token in SyntaxFactory.ParseTokens(
+			text,
+			offset:               openParenthesisIndex,
+			initialTokenPosition: openParenthesisIndex))
 		{
 			switch (token.Kind())
 			{
