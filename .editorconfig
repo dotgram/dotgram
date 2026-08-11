@@ -1,0 +1,48 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Strict rule for this repository: leading indentation is tabs, always.
+# Spaces are allowed only for alignment after the first non-whitespace character.
+indent_style = tab
+indent_size = 4
+tab_width = 4
+
+[*.{cs,csproj,props,targets}]
+# What Visual Studio itself writes for these.
+charset = utf-8-bom
+
+[*.slnx]
+# Visual Studio writes .slnx without a BOM; matching it keeps solution edits from
+# showing up as encoding churn.
+charset = utf-8
+
+[*.{md,markdown}]
+# Markdown keeps spaces: leading whitespace inside fenced blocks is often
+# alignment, not indentation, and tabs would destroy it.
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json}]
+indent_style = space
+indent_size = 2
+
+[*.cs]
+csharp_using_directive_placement = outside_namespace:suggestion
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# using directives: System first, groups separated by a blank line, alphabetical
+# within and between groups. Every file starts with `using System;` even when it
+# is not needed — see CLAUDE.md.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+
+# Access modifiers that merely restate the language default are noise: `private`
+# on a member, `internal` on a top-level type.
+dotnet_style_require_accessibility_modifiers = omit_if_default:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion

@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- xUnit v3 test projects are executables: they run on Microsoft.Testing.Platform
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+		<!-- Generated files land on disk so they can be read and diffed as code. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" Version="3.2.2" />
+		<!-- Test Explorer only. `dotnet test` goes through Microsoft.Testing.Platform
+		     and needs neither this nor Microsoft.NET.Test.Sdk. -->
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+		<!-- For driving the generator in memory and reading back what it produced. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Twice, deliberately: once as an analyzer so the generator actually runs over
+		     this project, once as an ordinary reference so tests can call into it
+		     directly. Without the second, only end-to-end effects are observable. -->
+		<ProjectReference Include="..\..\src\DotGram.Generator\DotGram.Generator.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\src\DotGram.Generator\DotGram.Generator.csproj"
+		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
+	</ItemGroup>
+
+</Project>

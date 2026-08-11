@@ -1,0 +1,9 @@
+# Line endings are CRLF in the working tree and in the repository — this project
+# is Windows-only in practice, and normalizing would fight the editor.
+* text eol=crlf
+
+# Binary
+*.png binary
+*.jpg binary
+*.dll binary
+*.snk binary

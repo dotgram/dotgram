@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<!-- Folders give the namespaces: Grammar/ is the Roslyn-free half,
+		     Generation/ is the shell. -->
+		<RootNamespace>DotGram</RootNamespace>
+		<PackageId>DotGram.Generator</PackageId>
+		<Description>Source generator that compiles .gram grammars into C# parsers.</Description>
+
+		<!-- Roslyn component: runs inside the compiler, ships as an analyzer. -->
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<DevelopmentDependency>true</DevelopmentDependency>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Enabled Polyfills">
+		<!-- netstandard2.0 is forced on us by Roslyn; these bring back the modern
+		     types without adding a runtime dependency — Meziantou.Polyfill is itself
+		     a generator and emits them as internal.
+		     https://github.com/meziantou/Meziantou.Polyfill -->
+		<Polyfill></Polyfill>
+		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Index</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.RequiredMemberAttribute</Polyfill>
+		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Pinned to the oldest Roslyn we intend to load into: a generator built
+		     against an older Roslyn runs on newer hosts, but not the other way round. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
+		<PackageReference Include="Meziantou.Polyfill" Version="1.0.159" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+	</ItemGroup>
+
+</Project>
