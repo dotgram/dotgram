@@ -27,10 +27,12 @@ input, it is free to be as expensive as it likes — and therefore free to look 
 depend on whether the author placed synchronization points; place them wrongly and it
 gets worse than having none.
 
-**Where a branch commits** (open in `syntax.md` §10) is a question of diagnostics, not
-of performance. Full backtracking across alternatives would produce "no alternative
-matched" instead of "unsupported symbol XYZ" pointing at the field. That is exactly
-why the question is open: its cost is measured in the quality of messages.
+**There is no commit point**, and diagnostics are why. Early commitment existed to stop
+a real error inside an alternative from being discarded in favour of "nothing matched"
+at the top; the recovery engine does that job better, from the cheapest edit. What is
+left over is smaller and still open: how an author says "this is an error, not a
+mismatch", so that a failing semantic guard can say "unsupported symbol XYZ" instead of
+letting a sibling be tried.
 
 **Position mapping is mandatory** (`syntax.md` §7.6). A type error in `=> @Add(l, r)`
 must be shown on the grammar's line. Without `#line` in the generated code every C#
@@ -145,9 +147,8 @@ when (prefixRule.LowerBound <= c && c <= prefixRule.UpperBound)
 ```
 
 Cheap, computed when the grammar is built, and it removes most of the cost of ordered
-choice. It bears directly on the open question in `syntax.md` §10 about where a branch
-commits: a large share of alternatives is filtered out before the question of
-committing can even arise.
+choice — which matters more now that ordered choice backtracks fully and there is no
+commit point to cut it short (§7). Most alternatives never get tried at all.
 
 What makes it cheap is normalization done first, and Roc's macro is where to take that
 from (`P:\OldProjects\Roc\Macros\BnfMacro.n:550-602`): single-character alternatives
@@ -178,7 +179,62 @@ was not — and picks the solution of least total cost.
 
 Proven on a C# grammar — Nitra's repository has a complete one.
 
-## 7. Incremental parsing
+## 7. Execution modes, and why there is no commit point
+
+Which mode a parse runs in is decided by the type of the input, at the call site
+(`syntax.md` §6.2). The compiler decides *how* each mode is implemented.
+
+```text
+in memory      string / ReadOnlySpan<char>
+               full backtracking, memoization over the whole input
+
+line by line   TextReader / IEnumerable<string>
+               retention is one line: read it into a reused buffer, hand the parser
+               a ReadOnlySpan<char> over it, parse, discard. No window, no
+               cross-chunk logic, no allocation per line.
+
+by window      retention bounded but not by a line — deferred, see below
+```
+
+**The line-oriented mode is not an optimization of a windowed one; it is a simpler
+implementation.** When every repeated element ends at a line boundary the parser can
+never need to look further back than the current line, so the sliding buffer, the
+release logic and the position arithmetic all collapse into one reused array.
+
+Detecting it is an analysis of the same nature as nullability: does every path through
+the repeated element end with `eol`? It is not particular to feeds — any line-oriented
+language lands in the same mode.
+
+**Whether a grammar can stream at all is the retention analysis**: how far back a
+pending alternative could return. Bounded by a line, the streaming overloads are
+emitted; bounded by the whole input, they are not, and the message names the rule
+responsible. That is what replaces a commit point: it restricts what may stream
+without changing what anything means, whereas committing would make the same
+alternative mean different things depending on where it was written.
+
+**The compiler reports the mode it picked.** Not a warning — a statement of fact, so
+that one grammar eating four kilobytes and its neighbour eating a hundred megabytes is
+never a mystery:
+
+```text
+Feed streams line by line — retention is one line
+Log  cannot stream — the alternative at Log:7 may return to the start of the input
+```
+
+**The windowed mode is deferred and may never be needed.** Source files fit in memory,
+feeds are line-oriented, and what is left — huge input that is neither — is binary
+formats, which are out of scope.
+
+Positions follow from the mode: inside a line an ordinary `int` has room to spare,
+while what crosses the publication boundary for a streamed parse is a `long`, since a
+feed of tens of gigabytes has offsets that do not fit in one.
+
+Note that §3 and §4 assume memory-sized input: a `rawTree` and a memo table indexed by
+absolute position cost forty gigabytes on a ten-gigabyte feed. In line-oriented mode
+both are per-line and are reused, which is what makes that mode cheap rather than
+merely possible.
+
+## 8. Incremental parsing
 
 `Nitra.Runtime/Parsing/IncrementalParser.n:38-57`, about thirty lines:
 
@@ -191,7 +247,7 @@ An honest limitation, visible in the code: only the **tail** is reused, the head
 recomputed (the code for the head is commented out). For an editor that is enough —
 an edit is usually in the middle, and the tail is the longer part.
 
-## 8. Operator precedence
+## 9. Operator precedence
 
 `ExtensibleRuleParser` is split into `ParsePrefix` (atoms and prefix operators) and
 `ParsePostfix` (infix and postfix), with a `BindingPower` — classic precedence
@@ -201,7 +257,7 @@ climbing.
 with no engine at all. If a precedence construct appears later, it should be lowered
 into this shape rather than into a third one.
 
-## 9. Trivia and keywords
+## 10. Trivia and keywords
 
 Nitra's whitespace insertion is in
 `Nitra.Grammar/Typing/TypingUtils-TypeRuleExpression.n:37-81`, on the invariant that
@@ -221,7 +277,7 @@ separator rule `!IdentifierPartCharacters s`, after which every string literal f
 into that class gets the boundary check automatically. For us that remains open
 (`syntax.md` §10).
 
-## 10. Order of work
+## 11. Order of work
 
 The front-end stages are hand-written and already work: the `.gram` lexer and parser in
 `Grammar/Syntax`, each with a textual dump the tests are built on. Further along the
@@ -236,10 +292,12 @@ An engine prototype has to confirm execution rather than notation, hence:
    requirement of the product.
 3. The flat representation and memoization — immediately, because they determine the
    shape of the generated code rather than optimize it afterwards.
-4. Filtering by first element — right after, since it is what tests the open question
-   in `syntax.md` §10 about where a branch commits.
+4. Filtering by first element — right after, since full backtracking makes it the main
+   thing keeping ordered choice cheap (§5).
 5. Second-tier diagnostics — the recovery engine (§6), once the fast path works.
-6. Incremental parsing last; it attaches to a finished memoization table and changes
+6. The line-oriented mode (§7) — retention analysis, then the reused buffer. Feeds do
+   not work without it, and it is far simpler than the windowed mode it replaces.
+7. Incremental parsing last; it attaches to a finished memoization table and changes
    nothing in it.
 
 Check against the three scenarios with the widest coverage: a calculator (recursion
@@ -286,7 +344,7 @@ The corpus grows by one rule: **whenever a message turns out to be unclear on a 
 grammar, that case goes into the corpus** — together with what the message should have
 said.
 
-## 11. `Gram.gram` — the grammar of `.gram` written in `.Gram`
+## 12. `Gram.gram` — the grammar of `.gram` written in `.Gram`
 
 Write the grammar of our own language and compile it with our own generator. Not to
 replace the hand-written front end, but for three things, each of which pays for
@@ -304,7 +362,7 @@ grammars by their parse trees. It catches what no snapshot will.
 An honest limit: this can compare **valid input only**. On broken input two different
 algorithms legitimately differ — the hand-written one recovers to a declaration
 boundary, the generated one looks for the cheapest edit. Diagnostics are tested by the
-corpus (§10), not by this comparison.
+corpus (§11), not by this comparison.
 
 **The most honest check on the code generator.** The diff of the generated file in
 review shows exactly what changed in the emitter — on a real grammar rather than a toy.
@@ -340,7 +398,7 @@ reasons" and gets muted. That is how dogfooding dies.
 4. Measure: speed, message quality, size of the code.
 5. Only then decide whether to commit the generated parser and switch production to it.
 
-## 12. What we do not take from Nitra
+## 13. What we do not take from Nitra
 
 - **The AST layer**: `map syntax`, `ast`, dependent properties, symbols, scopes, name
   binding. That is a second and a third language on top of the first; for us that place
@@ -349,7 +407,7 @@ reasons" and gets muted. That is how dogfooding dies.
   ambiguity between extensions. The source of most of the runtime complexity.
 - **The bootstrap machinery**: Nitra's grammar is written in Nitra, and the repository
   holds two frozen stages plus `ShiftBoot.cmd`, `RebuildBoot.cmd` and
-  `UpdateStage1Metadata.cmd`. Self-description we do take (§11), the chain of stages we
+  `UpdateStage1Metadata.cmd`. Self-description we do take (§12), the chain of stages we
   do not: the front end stays hand-written and `Gram.gram` serves as a check.
 - **Formatting markers** (`sm`, `nl`, indentation, block outlining) — one grammar
   yielding a printer and outlining as well. A good idea, but it widens the task beyond

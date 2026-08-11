@@ -255,9 +255,13 @@ Row = "D" & '|' & symbol: Text & where @IsSupportedSymbol(symbol) & ...
 a diagnostic about the unsupported symbol rather than a silent fall-through to
 another alternative.
 
-Both readings fall out of the position, with no extra notation. Where exactly "no
-match" turns into "error" is open (§10); `where` adds nothing of its own to that
-question and inherits the general answer.
+The first reading is what the language does: ordered choice backtracks fully and there
+is no commit point (§10), so a failing guard is a non-match and a sibling is tried.
+
+The second is what one would want in the `Row` case, and saying so is the one thing
+still missing — see §10. Note that it is a question about diagnostics, not about
+parsing: whichever way it is answered, the guard's position stays the author's choice
+and still decides how much work is thrown away and where the message points.
 
 ### 3.7 Construction
 
@@ -505,6 +509,27 @@ scope with non-empty `Trivia` will quietly accept `i f` as `if`. No mechanism ca
 that, but a warning does: a rule whose operands all test a single input item is
 almost certainly a mistake in such a scope.
 
+### 4.6 Keyword boundaries
+
+`KeywordBoundary` is a standard-library rule, `none` by default, naming the characters
+that continue a word:
+
+```dotgram
+KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+```
+
+Once it is not empty, every string literal **whose characters all fall in that class**
+picks up a `& ?!KeywordBoundary`, so `"if"` no longer matches the start of `iffy`.
+Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
+check, `"("` does not.
+
+Same shape as `Trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
+and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
+pays nothing; a language grammar pays one line.
+
+The boundary check goes **before** the trivia insertion. The other order would ask
+whether a letter follows the whitespace rather than whether it follows the keyword.
+
 ---
 
 ## 5. Scopes
@@ -567,9 +592,6 @@ from `int.Parse` / `int.TryParse`:
 `parse` requires the rule to match and the input to end; `match` requires a match from
 the start; `find` looks for the first occurrence.
 
-For `TIn = char` each method gains overloads for `string` and `ReadOnlySpan<char>`.
-For other `TIn`, for `ReadOnlySpan<TIn>`.
-
 ### 6.1 Why the signatures use BCL types only
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
@@ -596,6 +618,40 @@ The two modes are **strictly additive**: opting in only adds overloads and never
 changes existing ones, so code written before opting in still compiles. If two
 referenced assemblies both publish the shared types, that is compile error `GRAM0001`
 rather than a silent pick between them.
+
+### 6.2 The input type picks the execution mode
+
+Each directive gains overloads, and which one is called decides how the parse runs.
+There is no directive for this and no option: the choice belongs at the call site,
+because it is a property of the data rather than of the grammar.
+
+| Input | How it runs | Result |
+| --- | --- | --- |
+| `string`, `ReadOnlySpan<char>` | everything in memory | the result itself |
+| `IEnumerable<string>`, `TextReader` | one line at a time, buffer reused | `IEnumerable<T>` for a `T[]` rule |
+
+The same grammar serves both. `Feed : FeedItem[] = Header & Row* & Trailer & eof`
+checks that there is exactly one header, that the trailer is there and that nothing
+follows — which is precisely what is lost when the caller chops the input into records
+and parses them one by one.
+
+**The streaming overloads are emitted only when the grammar can stream.** What decides
+that is how far back the parser might have to return: a rule whose repeated element
+always ends at a line boundary need never hold more than the current line, and the
+overloads appear. A grammar where an alternative could reach back to the start of the
+input gets no streaming overload, and a message saying which rule is responsible:
+
+```text
+'Feed' has no streaming overload — the alternative at Feed:3 may return to the
+start of the input, so retention would be the whole file.
+```
+
+Which is the shared responsibility: the author picks an overload, and the compiler
+offers one only where it provably works.
+
+Positions inside a line are ordinary `int`. What crosses the publication boundary for
+a streamed parse is a `long`, so an error at offset 8,432,109,553 can be reported as
+such.
 
 ---
 
@@ -898,15 +954,48 @@ paper. None of it requires changing the notation above.
 - **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
   rule and ordinary shadowing.
 
-**Open.**
+- **There is no commit point.** Ordered choice backtracks fully, so `Call | Index`
+  sharing a leading `Identifier` simply works, and a rule means one thing everywhere.
 
-- **Keyword boundaries.** The same trick does not reach: `"if"` needs a `?!` over the
-  class of continuation characters, and that is not trivia. Either another
-  standard-library rule, empty by default, or the author writes it out.
-- **Operator precedence** as a construct of its own. For now the levels are written as
-  rules (§4.3) — that works and costs nothing.
-- **Streaming input** and the `Incomplete` outcome. The first version works with fully
-  available input; streaming is a property of a particular `IInput<T>` implementation.
-- **Where a branch commits** (when a non-match becomes an error rather than a move to
-  the next alternative). That is semantics, not notation: the syntax above is
-  unchanged by any of the answers.
+  Early commitment existed to keep a real syntax error deep inside an alternative from
+  being discarded in favour of a useless "nothing matched" at the top. That job now
+  belongs to the recovery engine, which finds the cheapest edit and reports from
+  there — so the reason is gone, while the cost of committing (the same alternative
+  meaning different things depending on where it was written) is not.
+
+  Bounded memory, the other thing a commit point would have bought, is bought instead
+  by the retention analysis of §6.2, which restricts what may stream without changing
+  what anything means.
+
+**Decided in substance, awaiting a prototype.**
+
+- **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
+  rule and ordinary shadowing.
+- **Keyword boundaries** — §4.6, the same mechanism again.
+
+**Deferred, with the reason.**
+
+- **`Incomplete`** does not exist. An outcome is `Success`, `NoMatch` or `Error`.
+  A source that cannot block — an async socket, where control has to go back to the
+  caller mid-parse — is what would need it; a file, however large, is read by a reader
+  that simply fetches the next chunk. Adding it means a rule for every construct
+  (repetition, both lookaheads, recovery, `find`, `find all`) plus a resumption model,
+  and that is a lot to carry before anything asks for it.
+- **A sliding window** over input that is neither memory-sized nor line-oriented.
+  Source files fit in memory; feeds are line-oriented; what is left is huge binary
+  input, which is out of scope. If it ever arrives, it slots in beside the two modes
+  in §6.2 without disturbing them.
+- **Operator precedence** as a construct. Levels written as rules (§4.3) work and cost
+  nothing, and no grammar has yet made that a burden. Introducing one would also mean
+  answering whether it is sugar or a privileged lowering, which is worth doing only
+  when something needs it. `implementation.md` §9 records what to lower it into.
+
+**Still open.**
+
+- **How an author says "this is an error, not a mismatch".** With full backtracking a
+  failing `where @IsSupportedSymbol(symbol)` is merely a non-match, a sibling is tried,
+  and recovery later reports that the line would not parse — it knows nothing of
+  semantic guards, so "unsupported symbol XYZ" is never said. This is a question about
+  diagnostics rather than about parsing, and much smaller than the one it is left over
+  from. Best answered against a real grammar, where it will be obvious which messages
+  are missing.
