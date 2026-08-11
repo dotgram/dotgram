@@ -6,7 +6,7 @@ namespace DotGram.Grammar.Syntax;
 
 /// <summary>Base of everything the parser produces.</summary>
 /// <remarks>
-/// One node type per production in SYNTAX.md §9. The tree is deliberately close to
+/// One node type per production in docs/syntax.md §9. The tree is deliberately close to
 /// the notation rather than to what recognition needs: normalizing into a recognition
 /// graph is a later stage with its own contract, and keeping the two apart is what
 /// lets a parsing regression be told apart from a normalization one.

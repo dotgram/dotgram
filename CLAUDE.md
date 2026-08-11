@@ -71,20 +71,21 @@ repository, and branching only adds a merge step.
 ## Repository layout
 
 ```text
-.work/                        design notes, ignored by git
-	SYNTAX.md                 the language: notation and its bond with C#
-	IMPLEMENTATION.md         engine plan
+docs/
+	syntax.md             the language: notation and its bond with C#
+	implementation.md     engine plan
 src/
 	DotGram.Generator/
-		Grammar/              pure: a function of grammar text, no Roslyn
-		Generation/           the Roslyn shell
+		Grammar/          pure: a function of grammar text, no Roslyn
+		Generation/       the Roslyn shell
 tests/
-	DotGram.Tests/            three levels: direct calls, in-memory generator driver,
-	                          and the generator attached as an analyzer
+	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
+	                      and the generator attached as an analyzer
+.work/                    scratch, ignored by git
 ```
 
 No runtime assembly ships, deliberately: everything a generated parser needs is
-emitted into the consumer's own compilation. See `.work/SYNTAX.md` §6.1.
+emitted into the consumer's own compilation. See `docs/syntax.md` §6.1.
 
 Two seams keep `Grammar/` free of Roslyn — `ISymbolResolver` for `@Name` and
 `ICSharpScanner` for `@(...)`. Both are implemented over Roslyn in `Generation/`.

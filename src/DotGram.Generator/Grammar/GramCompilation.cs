@@ -43,7 +43,7 @@ public enum GramSeverity
 	Error,
 }
 
-/// <summary>Accessibility of the emitted support types — see SYNTAX.md §6.1.</summary>
+/// <summary>Accessibility of the emitted support types — see docs/syntax.md §6.1.</summary>
 public enum SupportAccessibility
 {
 	/// <summary>Emitted internal; nothing crosses an assembly boundary.</summary>

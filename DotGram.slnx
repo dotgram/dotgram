@@ -9,6 +9,10 @@
 		<File Path=".gitignore" />
 		<File Path="Directory.Build.props" />
 	</Folder>
+	<Folder Name="/docs/">
+		<File Path="docs/implementation.md" />
+		<File Path="docs/syntax.md" />
+	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src/DotGram.Generator/DotGram.Generator.csproj" />
 	</Folder>

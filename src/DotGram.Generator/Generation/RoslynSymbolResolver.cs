@@ -49,7 +49,7 @@ public sealed class RoslynSymbolResolver(Compilation compilation) : ISymbolResol
 	}
 
 	/// <summary>
-	/// SYNTAX.md §7.1: a method taking the input and a <c>ref int pos</c> is a
+	/// docs/syntax.md §7.1: a method taking the input and a <c>ref int pos</c> is a
 	/// recognizer; anything else never touches input.
 	/// </summary>
 	static MethodRole Classify(IMethodSymbol method, int argumentCount)

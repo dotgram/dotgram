@@ -17,7 +17,7 @@ public interface ISymbolResolver
 	bool TypeExists(string qualifiedName);
 
 	/// <summary>
-	/// Classifies a C# method by its signature (SYNTAX.md §7.1): element predicate,
+	/// Classifies a C# method by its signature (docs/syntax.md §7.1): element predicate,
 	/// external recognizer, value transformation, or guard.
 	/// </summary>
 	/// <returns><c>false</c> when no such method is in scope.</returns>

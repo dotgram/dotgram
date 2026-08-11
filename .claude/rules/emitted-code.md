@@ -23,7 +23,7 @@ target framework, next to the consumer's own code. That changes the rules.
   type names may collide with ours.
 - **Public API of a generated parser uses BCL types only** in the default mode:
   `internal` support types cannot appear in a `public` signature (CS0051). See
-  `.work/SYNTAX.md` §6.1.
+  `docs/syntax.md` §6.1.
 
 Changing anything emitted here changes what every consumer compiles. Prefer adding
 over reshaping.
