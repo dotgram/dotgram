@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 
 namespace DotGram.Grammar.Syntax;
@@ -161,15 +160,15 @@ public static class GramLexer
 	/// <summary>Longest match first, so <c>..</c> never lexes as two dots.</summary>
 	static TokenKind? ReadOperator(string text, ref int position)
 	{
-		var two = position + 1 < text.Length ? text.Substring(position, 2) : null;
-
-		var kind = two switch
+		// Over a span rather than a two-character Substring: the old spelling allocated
+		// a string per operator token purely to switch on it.
+		var kind = text.AsSpan(position) switch
 		{
-			".." => TokenKind.DotDot,
-			"=>" => TokenKind.Arrow,
-			"?=" => TokenKind.PositiveLookahead,
-			"?!" => TokenKind.NegativeLookahead,
-			_    => (TokenKind?)null,
+			['.', '.', ..] => TokenKind.DotDot,
+			['=', '>', ..] => TokenKind.Arrow,
+			['?', '=', ..] => TokenKind.PositiveLookahead,
+			['?', '!', ..] => TokenKind.NegativeLookahead,
+			_              => (TokenKind?)null,
 		};
 
 		if (kind is not null)
@@ -247,14 +246,9 @@ public static class GramLexer
 				case 't':  decoded.Append('\t'); break;
 				case 'v':  decoded.Append('\v'); break;
 
-				case 'u' when position + 4 <= text.Length &&
-					int.TryParse(
-						text.Substring(position, 4),
-						NumberStyles.HexNumber,
-						CultureInfo.InvariantCulture,
-						out var scalar):
+				case 'u' when TryReadHex4(text, position, out var scalar):
 
-					decoded.Append((char)scalar);
+					decoded.Append(scalar);
 					position += 4;
 					break;
 
@@ -282,6 +276,44 @@ public static class GramLexer
 			GramSeverity.Error));
 
 		return position;
+	}
+
+	/// <summary>
+	/// Four hex digits of a <c>\uXXXX</c> escape.
+	/// </summary>
+	/// <remarks>
+	/// By hand rather than through <c>int.TryParse</c>: the span overload does not
+	/// exist on netstandard2.0, and the string overload would allocate for four
+	/// characters. Four digits are hardly worth a parser.
+	/// </remarks>
+	static bool TryReadHex4(string text, int position, out char value)
+	{
+		value = '\0';
+
+		if (position + 4 > text.Length)
+			return false;
+
+		var scalar = 0;
+
+		for (var i = position; i < position + 4; i++)
+		{
+			var digit = text[i] switch
+			{
+				>= '0' and <= '9' => text[i] - '0',
+				>= 'a' and <= 'f' => text[i] - 'a' + 10,
+				>= 'A' and <= 'F' => text[i] - 'A' + 10,
+				_                 => -1,
+			};
+
+			if (digit < 0)
+				return false;
+
+			scalar = scalar * 16 + digit;
+		}
+
+		value = (char)scalar;
+
+		return true;
 	}
 
 	/// <summary>Reads <c>\p{Category}</c>, the .NET regex spelling.</summary>
