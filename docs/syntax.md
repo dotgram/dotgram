@@ -650,9 +650,36 @@ Captures are matched to the result type by name, in a fixed order:
 3. an explicit `=> @Factory(...)` when neither fits.
 
 Names are matched by one mechanical casing transform: the capture `symbol` fits the
-parameter `symbol` and the property `Symbol`. A quantified capture (`items: Row*`)
-gives `Row[]`. A `span` or `text` capture may be declared as a parameter of type
-`SourceSpan` or `string` and will be filled automatically.
+parameter `symbol` and the property `Symbol`. A `span` or `text` capture may be
+declared as a parameter of type `SourceSpan` or `string` and will be filled
+automatically.
+
+A capture's own type follows from what it captures:
+
+| Captured | Type |
+| --- | --- |
+| a rule reference | that rule's result type |
+| a literal, an element set, or a group of those | `string` — the matched text |
+| a quantifier over something that yields text | `string`, the text joined — not `char[]` |
+| a quantifier over a rule that yields a value | `T[]` |
+
+The two quantifier rows are what makes the regex-shaped case behave:
+`scheme: ['a'..'z']+` gives `"http"`, while `items: Row*` gives `Row[]`. Both are the
+same principle as §4.1 case 4 — where nothing produces a value of its own, the value
+is the matched extent — applied one level down, at the capture.
+
+```dotgram
+Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
+```
+
+```csharp
+public sealed record Url(string Scheme, Host Host);   // generated when no C# type exists
+```
+
+This is what a regex's named group becomes: a member of a known type, checked at
+compile time, rather than `Match.Groups["scheme"].Value` looked up by string at run
+time. And it can be typed all the way — `scheme: Scheme` with `Scheme : @UriScheme`
+hands back the enum instead of the text.
 
 When no accessible C# type exists for a rule, an ordinary `public sealed record` with
 the same members is generated — not a bespoke node framework.
@@ -840,6 +867,31 @@ paper. None of it requires changing the notation above.
   recovery itself, in a separate pass, only when ordinary parsing failed, and looks
   for the cheapest edit of the input. The author writes neither policies nor
   synchronization points. Details in `implementation.md` §1 and §6.
+
+- **Alternatives are never reordered.** `|` is ordered choice and stays so, including
+  where one literal alternative is a prefix of another. `"http" | "https"` leaves
+  `"https"` unreachable, and the compiler says so:
+
+  ```text
+  alternative "https" is unreachable — "http" shadows it as a prefix
+  ```
+
+  Reordering by length looks like the obvious fix and is not one: it produces a
+  different grammar, not a corrected one. In
+
+  ```dotgram
+  Rule = part: ("x" | "xy") & 'y'?
+  ```
+
+  input `xy` gives `part = "x"` as written and `part = "xy"` reordered — both parses
+  succeed, and even full backtracking would not make them agree. Order stops being
+  incidental the moment two alternatives can match different lengths, and which of
+  "first that matches" and "longest that matches" is wanted is the author's call —
+  .NET regular expressions take the first, POSIX the longest.
+
+  Normalization does still merge alternatives automatically where order provably
+  cannot matter: single-element sets, where the match is always exactly one item, so
+  `'a' | 'b'` becomes `['a'..'b']`.
 
 **Decided in substance, awaiting a prototype.**
 

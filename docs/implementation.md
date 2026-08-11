@@ -149,6 +149,20 @@ choice. It bears directly on the open question in `syntax.md` §10 about where a
 commits: a large share of alternatives is filtered out before the question of
 committing can even arise.
 
+What makes it cheap is normalization done first, and Roc's macro is where to take that
+from (`P:\OldProjects\Roc\Macros\BnfMacro.n:550-602`): single-character alternatives
+and ranges are separated out, sorted by first character, then merged — `'a' | 'b'`
+into `'a'..'b'`, a range absorbing anything it contains, duplicates dropped. After
+that an alternative's first-character bounds are already computed.
+
+**What not to take from there is the reordering.** Roc moves the single-character
+alternatives ahead of everything else, which silently changes ordered choice:
+`"ab" | 'a'` becomes `'a' | "ab"` and the second is then unreachable. It never bit
+because Roc's structural generator was a stub (`BnfMacro.n:820`) and its character
+tests compile to `c == 'a' || …`, where order cannot matter — the multi-character case
+was never executed. Merging is safe exactly where the match length is fixed at one
+item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §10).
+
 ## 6. Recovery as the cheapest edit
 
 The slow engine enumerates edits of the input — insert what was expected, delete what
