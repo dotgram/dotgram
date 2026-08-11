@@ -1,0 +1,4 @@
+# Personal, machine-local Claude Code project settings: permission allowlists, hook
+# wiring, model and effort preferences, environment variables. Never committed.
+settings.local.json
+CLAUDE.local.md

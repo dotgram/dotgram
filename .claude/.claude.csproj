@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Machine-local and git-ignored; nothing to see in Solution Explorer. -->
+		<None Remove="settings.local.json" />
+		<None Remove="CLAUDE.local.md" />
+	</ItemGroup>
+
+</Project>

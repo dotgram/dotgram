@@ -1,7 +1,7 @@
 <Solution>
 	<Folder Name="/.agents/">
 		<File Path="CLAUDE.md" />
-		<Project Path=".claude/Claude.csproj" />
+		<Project Path=".claude/.claude.csproj" />
 	</Folder>
 	<Folder Name="/.root/">
 		<File Path=".editorconfig" />

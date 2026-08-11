@@ -13,6 +13,8 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<DevelopmentDependency>true</DevelopmentDependency>
+		<!-- Expected for an analyzer package: it carries no lib/ assemblies by design. -->
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Enabled Polyfills">
@@ -40,9 +42,22 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
-		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+		<!-- The analyzer SDK picks these up as AdditionalFiles on its own; they only
+		     need taking out of the default None glob so they appear once. -->
+		<None Remove="AnalyzerReleases.*.md" />
 	</ItemGroup>
+
+	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time
+	     target rather than a None item pointing into bin: a None item makes Solution
+	     Explorer materialise a bin node even with Visible="false". -->
+	<PropertyGroup>
+		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackGeneratorAsAnalyzer</TargetsForTfmSpecificContentInPackage>
+	</PropertyGroup>
+
+	<Target Name="PackGeneratorAsAnalyzer">
+		<ItemGroup>
+			<TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+		</ItemGroup>
+	</Target>
 
 </Project>
