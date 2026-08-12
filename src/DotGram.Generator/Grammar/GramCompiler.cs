@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Emit;
+using DotGram.Grammar.Model;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar;
 
@@ -34,15 +37,43 @@ public static class GramCompiler
 		// The pipeline, each stage its own type with its own contract so it can be
 		// exercised and diffed on its own:
 		//
-		//   GramLexer        .Tokenize  (text)            -> TokenList
-		//   GramParser       .Parse     (tokens)          -> SyntaxTree
-		//   GrammarBinder    .Bind      (tree, symbols)   -> GrammarModel
-		//   GrammarNormalizer.Normalize (model)           -> RecognitionGraph
-		//   CSharpEmitter    .Emit      (graph)           -> GeneratedSource[]
-		//
-		// None of them exists yet; this method is the shape they will be wired into.
+		//   GramLexer        .Tokenize  (text)          -> TokenList
+		//   GramParser       .Parse     (tokens)        -> ParseResult
+		//   GrammarBinder    .Bind      (file, symbols) -> GrammarModel
+		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
+		//   CSharpEmitter    .Emit      (graph)         -> C#
+
+		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarText, options.CSharpScanner));
+
+		diagnostics.AddRange(parsed.Diagnostics);
+
+		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver);
+
+		diagnostics.AddRange(model.Diagnostics);
+
+		var graph = GrammarNormalizer.Normalize(model);
+
+		diagnostics.AddRange(graph.Diagnostics);
+
+		// Every stage runs even after an earlier one failed — a grammar with one bad rule
+		// should still report what is wrong with the other twelve (implementation.md §0).
+		// Only emission is skipped, because code built from a broken grammar would bury
+		// the real message under compiler errors in the consumer's build.
+		if (!HasErrors(diagnostics))
+			sources.Add(new GeneratedSource(
+				$"{options.ClassName}.gram.g.cs",
+				CSharpEmitter.Emit(graph, options.ClassName, options.Namespace)));
 
 		return new GramCompilation(sources, diagnostics);
+	}
+
+	static bool HasErrors(List<GramDiagnostic> diagnostics)
+	{
+		foreach (var diagnostic in diagnostics)
+			if (diagnostic.Severity == GramSeverity.Error)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>

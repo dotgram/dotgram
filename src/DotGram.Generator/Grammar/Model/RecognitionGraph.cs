@@ -137,12 +137,16 @@ public sealed class RecognitionGraph(
 	IReadOnlyList<RuleSymbol>             rules,
 	IReadOnlyDictionary<RuleSymbol, Node> bodies,
 	IReadOnlyDictionary<RuleSymbol, bool> nullable,
+	IReadOnlyList<Publication>            publications,
 	IReadOnlyList<GramDiagnostic>         diagnostics)
 {
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;
 	public IReadOnlyList<GramDiagnostic>         Diagnostics { get; } = diagnostics;
+
+	/// <summary>The public API this grammar asked for — carried through unchanged (§6).</summary>
+	public IReadOnlyList<Publication> Publications { get; } = publications;
 
 	public bool HasErrors => Diagnostics.Count > 0;
 
@@ -161,6 +165,9 @@ public sealed class RecognitionGraph(
 
 		foreach (var rule in Rules)
 			text.Append(rule.Name).Append(" = ").AppendLine(Bodies[rule].ToString());
+
+		foreach (var publication in Publications)
+			text.Append("publish ").AppendLine(publication.ToString());
 
 		foreach (var diagnostic in Diagnostics)
 			text.AppendLine(diagnostic.ToString());

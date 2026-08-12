@@ -136,16 +136,39 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 	public int GetHashCode(Expr node) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
 }
 
+/// <summary>
+/// A rule a grammar asked to be reachable from C# — one <c>parse</c> / <c>match</c> /
+/// <c>find</c> / <c>find all</c> directive, resolved (§6).
+/// </summary>
+public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string MethodName)
+{
+	/// <summary>The name the directive produces when it does not give one itself.</summary>
+	public static string DefaultMethodName(PublishKind kind, string ruleName) => kind switch
+	{
+		PublishKind.Parse   => "Parse"   + ruleName,
+		PublishKind.Match   => "Match"   + ruleName,
+		PublishKind.Find    => "Find"    + ruleName,
+		PublishKind.FindAll => "FindAll" + ruleName,
+		_                   => ruleName,
+	};
+
+	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
+}
+
 /// <summary>What binding produced: a scope tree, resolved references, diagnostics.</summary>
 public sealed class GrammarModel(
 	GrammarScope                              root,
 	IReadOnlyDictionary<Expr, Symbol>   bindings,
 	IReadOnlyDictionary<GrammarScope, RuleSymbol> trivia,
+	IReadOnlyList<Publication>                publications,
 	IReadOnlyList<GramDiagnostic>             diagnostics)
 {
 	public GrammarScope                            Root        { get; } = root;
 	public IReadOnlyDictionary<Expr, Symbol> Bindings    { get; } = bindings;
 	public IReadOnlyList<GramDiagnostic>           Diagnostics { get; } = diagnostics;
+
+	/// <summary>The public API this grammar asked for, in declaration order.</summary>
+	public IReadOnlyList<Publication> Publications { get; } = publications;
 
 	/// <summary>The `Trivia` each scope sees — §4.5, resolved once per scope.</summary>
 	public IReadOnlyDictionary<GrammarScope, RuleSymbol> Trivia { get; } = trivia;
@@ -158,6 +181,9 @@ public sealed class GrammarModel(
 		var text = new StringBuilder();
 
 		Write(Root, 0);
+
+		foreach (var publication in Publications)
+			text.Append("publish ").AppendLine(publication.ToString());
 
 		foreach (var diagnostic in Diagnostics)
 			text.AppendLine(diagnostic.ToString());

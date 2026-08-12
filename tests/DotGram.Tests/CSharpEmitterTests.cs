@@ -2,10 +2,8 @@
 using System.Linq;
 
 using DotGram.Generation;
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Emit;
-using DotGram.Grammar.Model;
-using DotGram.Grammar.Parsing;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,21 +22,22 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class CSharpEmitterTests
 {
-	static string Emit(string grammar, string ruleName = "Start")
+	/// <summary>Compiles a grammar the way the generator does, and returns the C#.</summary>
+	static string Emit(string grammar)
 	{
-		var model = GrammarBinder.Bind(
-			GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File);
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		var graph = GrammarNormalizer.Normalize(model);
-		var rule  = graph.Rules.Single(r => r.Name == ruleName);
+		Assert.Empty(result.Diagnostics);
 
-		return CSharpEmitter.Emit(graph, "Grammar", [new Publication(rule, "Parse")]);
+		return Assert.Single(result.Sources).Text;
 	}
 
-	/// <summary>Compiles the emitted source and calls its TryParse.</summary>
-	static (bool Matched, string Value) Run(string grammar, string input, string ruleName = "Start")
+	/// <summary>Compiles the emitted source and calls the Try- half of a publication.</summary>
+	static (bool Matched, object Value) Invoke(string grammar, string method, string input)
 	{
-		var source      = Emit(grammar, ruleName);
+		var source      = Emit(grammar);
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Emitted",
 			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ }}\n{source}")],
@@ -59,9 +58,17 @@ public sealed class CSharpEmitterTests
 
 		var type      = System.Reflection.Assembly.Load(stream.ToArray()).GetType("Grammar")!;
 		var arguments = new object?[] { input, null, null, null };
-		var matched   = (bool)type.GetMethod("TryParse")!.Invoke(null, arguments)!;
+		var matched   = (bool)type.GetMethod("Try" + method)!.Invoke(null, arguments)!;
 
-		return (matched, (string)arguments[1]!);
+		return (matched, arguments[1]!);
+	}
+
+	/// <summary>The common case: one rule, published with <c>parse</c>.</summary>
+	static (bool Matched, string Value) Run(string grammar, string input)
+	{
+		var (matched, value) = Invoke(grammar + "\nparse Start", "ParseStart", input);
+
+		return (matched, (string)value);
 	}
 
 	[Theory]
@@ -138,5 +145,100 @@ public sealed class CSharpEmitterTests
 
 		Assert.True (Run(grammar, "12-34").Matched);
 		Assert.False(Run(grammar, "12-").Matched);
+	}
+
+	// ── Publication (§6) ─────────────────────────────────────────────────────────
+
+	const string Digits = """
+		Start = ['0'..'9']+
+
+		""";
+
+	[Fact]
+	public void Match_does_not_require_the_input_to_end()
+	{
+		var (matched, value) = Invoke(Digits + "match Start", "MatchStart", "12ab");
+
+		Assert.True(matched);
+		Assert.Equal("12", value);
+	}
+
+	[Fact]
+	public void Parse_does()
+	{
+		Assert.False(Run("Start = ['0'..'9']+", "12ab").Matched);
+	}
+
+	[Fact]
+	public void Find_takes_the_first_occurrence()
+	{
+		var (matched, value) = Invoke(Digits + "find Start", "FindStart", "ab12cd34");
+
+		Assert.True(matched);
+		Assert.Equal("12", value);
+	}
+
+	[Fact]
+	public void Find_all_takes_every_occurrence()
+	{
+		var (matched, value) = Invoke(Digits + "find all Start", "FindAllStart", "ab12cd34");
+
+		Assert.True(matched);
+		Assert.Equal(new[] { "12", "34" }, value);
+	}
+
+	[Fact]
+	public void Find_reports_no_occurrence_rather_than_matching_nothing()
+	{
+		Assert.False(Invoke(Digits + "find Start", "FindStart", "abc").Matched);
+	}
+
+	[Fact]
+	public void As_renames_the_pair() =>
+		Assert.True(Invoke(Digits + "parse Start as ReadDigits", "ReadDigits", "12").Matched);
+
+	[Fact]
+	public void One_grammar_can_publish_the_same_rule_several_ways()
+	{
+		var grammar = Digits + """
+			parse Start
+			find all Start
+			""";
+
+		Assert.True(Invoke(grammar, "ParseStart",   "12").Matched);
+		Assert.True(Invoke(grammar, "FindAllStart", "ab12").Matched);
+	}
+
+	[Fact]
+	public void Two_directives_wanting_one_name_is_a_diagnostic()
+	{
+		var result = GramCompiler.Compile("""
+			Start = 'a'
+			parse Start
+			parse Start
+			""");
+
+		Assert.Equal(GrammarBinder.DuplicatePublication, Assert.Single(result.Diagnostics).Id);
+		Assert.Empty(result.Sources);
+	}
+
+	[Fact]
+	public void A_broken_grammar_emits_nothing()
+	{
+		var result = GramCompiler.Compile("Start = Missing");
+
+		Assert.NotEmpty(result.Diagnostics);
+		Assert.Empty(result.Sources);
+	}
+
+	[Fact]
+	public void The_class_goes_where_it_was_asked_to()
+	{
+		var source = GramCompiler.Compile(
+			"Start = 'a'",
+			new GramCompilerOptions { ClassName = "Feed", Namespace = "My.App" });
+
+		Assert.Contains("namespace My.App",  Assert.Single(source.Sources).Text);
+		Assert.Contains("partial class Feed", source.Sources[0].Text);
 	}
 }

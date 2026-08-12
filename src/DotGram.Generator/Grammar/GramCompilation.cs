@@ -59,6 +59,12 @@ public sealed class GramCompilerOptions
 	/// <summary>Name of the grammar file, used in diagnostics and hint names.</summary>
 	public string FileName { get; set; } = "grammar.gram";
 
+	/// <summary>The partial class the generated members go into (§1).</summary>
+	public string ClassName { get; set; } = "Grammar";
+
+	/// <summary>Its namespace; null for the global one.</summary>
+	public string? Namespace { get; set; }
+
 	/// <summary>
 	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
 	/// that accepts everything, which is right for tests of the grammar side and wrong

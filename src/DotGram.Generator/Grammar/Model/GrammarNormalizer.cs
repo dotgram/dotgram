@@ -56,7 +56,11 @@ public sealed class GrammarNormalizer
 		normalizer.Check();
 
 		return new RecognitionGraph(
-			normalizer._rules, normalizer._bodies, normalizer._nullable, normalizer._diagnostics);
+			normalizer._rules,
+			normalizer._bodies,
+			normalizer._nullable,
+			model.Publications,
+			normalizer._diagnostics);
 	}
 
 	void Report(string id, string message, Location at) =>

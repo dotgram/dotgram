@@ -4,6 +4,7 @@ using System.Text;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Emit;
 
@@ -73,7 +74,10 @@ sealed class Writer(int depth)
 /// </remarks>
 public static class CSharpEmitter
 {
-	public static string Emit(RecognitionGraph graph, string className, IReadOnlyList<Publication> publications)
+	/// <param name="graph">The normalized grammar.</param>
+	/// <param name="className">The partial class the generated members go into.</param>
+	/// <param name="namespace">Its namespace, or null for the global one.</param>
+	public static string Emit(RecognitionGraph graph, string className, string? @namespace = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -84,9 +88,12 @@ public static class CSharpEmitter
 		file.Line("#nullable enable");
 		file.Line();
 
+		// A block namespace rather than a file-scoped one: the consumer's language
+		// version is unknown (.claude/rules/emitted-code.md).
+		using (@namespace is null ? null : file.Block($"namespace {@namespace}"))
 		using (file.Block($"partial class {className}"))
 		{
-			foreach (var publication in publications ?? [])
+			foreach (var publication in graph.Publications)
 			{
 				EmitPublication(file, publication);
 				file.Line();
@@ -102,55 +109,152 @@ public static class CSharpEmitter
 		return file.ToString();
 	}
 
+	/// <summary>
+	/// One directive, one pair of methods, in the shape of <c>int.Parse</c> /
+	/// <c>int.TryParse</c> (docs/syntax.md §6).
+	/// </summary>
+	/// <remarks>
+	/// A rule's value is still the text it matched, so everything here is <c>string</c>.
+	/// When construction lands, only these signatures change — what they are built on,
+	/// a recognizer returning an end position or -1, does not.
+	/// </remarks>
 	static void EmitPublication(Writer file, Publication publication)
 	{
-		var method = publication.MethodName;
-		var rule   = MethodOf(publication.Rule);
+		var method   = publication.MethodName;
+		var name     = publication.Rule.Name;
+		var isAll    = publication.Kind == PublishKind.FindAll;
+		var result   = isAll ? "string[]" : publication.Kind == PublishKind.Parse ? "string" : "string?";
+		var outType  = isAll ? "string[]" : "string";
+		var outName  = isAll ? "values" : "value";
 
-		file.Line($"/// <summary>Parses the whole input as <c>{publication.Rule.Name}</c>.</summary>");
+		file.Line($"/// <summary>{Summary(publication.Kind, name)}</summary>");
 
-		using (file.Block($"public static string {method}(string input)"))
+		using (file.Block($"public static {result} {method}(string input)"))
 		{
-			file.Line($"if (!Try{method}(input, out var value, out var error, out var position))");
-			file.Then("throw new global::System.FormatException($\"{error} at {position}\");");
+			file.Line($"if (Try{method}(input, out var {outName}, out var error, out var errorPosition))");
+			file.Then($"return {outName};");
 			file.Line();
-			file.Line("return value;");
+
+			// Only `parse` throws: it is the one directive that asserts the input is this
+			// rule, so failing it is an error rather than an answer of "no".
+			if (publication.Kind == PublishKind.Parse)
+				file.Line("throw new global::System.FormatException(error + \" at \" + errorPosition.ToString());");
+			else
+				file.Line(isAll ? "return new string[0];" : "return null;");
 		}
 
 		file.Line();
 
-		using (file.Block($"public static bool Try{method}(string input, out string value, out string? error, out int errorPosition)"))
+		using (file.Block(
+			$"public static bool Try{method}(string input, out {outType} {outName}, out string? error, out int errorPosition)"))
 		{
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
 			file.Line("var text = global::System.MemoryExtensions.AsSpan(input);");
-			file.Line($"var end  = {rule}(text, 0);");
 			file.Line();
-			file.Line("value         = \"\";");
+			file.Line($"{outName} = {(isAll ? "new string[0]" : "\"\"")};");
 			file.Line("error         = null;");
 			file.Line("errorPosition = 0;");
 			file.Line();
 
-			using (file.Block("if (end < 0)"))
+			switch (publication.Kind)
 			{
-				file.Line($"error = \"Input does not match '{publication.Rule.Name}'.\";");
-				file.Line("return false;");
+				case PublishKind.Parse:
+				case PublishKind.Match:
+
+					file.Line($"var end = {MethodOf(publication.Rule)}(text, 0);");
+					file.Line();
+
+					using (file.Block("if (end < 0)"))
+					{
+						file.Line($"error = \"Input does not match '{name}'.\";");
+						file.Line("return false;");
+					}
+
+					file.Line();
+
+					// The difference between the two directives, and the whole of it.
+					if (publication.Kind == PublishKind.Parse)
+					{
+						using (file.Block("if (end != input.Length)"))
+						{
+							file.Line("error         = \"Unexpected input.\";");
+							file.Line("errorPosition = end;");
+							file.Line("return false;");
+						}
+
+						file.Line();
+					}
+
+					file.Line("value = input.Substring(0, end);");
+					file.Line("return true;");
+					break;
+
+				case PublishKind.Find:
+
+					using (file.Block("for (var start = 0; start <= input.Length; start++)"))
+					{
+						file.Line($"var end = {MethodOf(publication.Rule)}(text, start);");
+						file.Line();
+
+						using (file.Block("if (end >= 0)"))
+						{
+							file.Line("value = input.Substring(start, end - start);");
+							file.Line("return true;");
+						}
+					}
+
+					file.Line();
+					file.Line($"error = \"No occurrence of '{name}'.\";");
+					file.Line("return false;");
+					break;
+
+				default:
+
+					file.Line("var found = new global::System.Collections.Generic.List<string>();");
+					file.Line();
+
+					using (file.Block("for (var start = 0; start <= input.Length; )"))
+					{
+						file.Line($"var end = {MethodOf(publication.Rule)}(text, start);");
+						file.Line();
+
+						using (file.Block("if (end < 0)"))
+						{
+							file.Line("start++;");
+							file.Line("continue;");
+						}
+
+						file.Line();
+						file.Line("found.Add(input.Substring(start, end - start));");
+						file.Line();
+						file.Line("// A rule that matches nothing would otherwise find it for ever.");
+						file.Line("start = end > start ? end : start + 1;");
+					}
+
+					file.Line();
+
+					using (file.Block("if (found.Count == 0)"))
+					{
+						file.Line($"error = \"No occurrence of '{name}'.\";");
+						file.Line("return false;");
+					}
+
+					file.Line();
+					file.Line("values = found.ToArray();");
+					file.Line("return true;");
+					break;
 			}
-
-			file.Line();
-
-			using (file.Block("if (end != input.Length)"))
-			{
-				file.Line("error         = \"Unexpected input.\";");
-				file.Line("errorPosition = end;");
-				file.Line("return false;");
-			}
-
-			file.Line();
-			file.Line("value = input.Substring(0, end);");
-			file.Line("return true;");
 		}
 	}
+
+	static string Summary(PublishKind kind, string rule) => kind switch
+	{
+		PublishKind.Parse   => $"Parses the whole input as <c>{rule}</c>.",
+		PublishKind.Match   => $"Matches <c>{rule}</c> at the start of the input.",
+		PublishKind.Find    => $"Finds the first occurrence of <c>{rule}</c>.",
+		_                   => $"Finds every non-overlapping occurrence of <c>{rule}</c>.",
+	};
 
 	static void EmitRule(Writer file, RecognitionGraph graph, RuleSymbol rule)
 	{
@@ -345,6 +449,3 @@ public static class CSharpEmitter
 		_    => $"'{value}'",
 	};
 }
-
-/// <summary>A rule a grammar asked to be reachable from C#.</summary>
-public sealed record Publication(RuleSymbol Rule, string MethodName);

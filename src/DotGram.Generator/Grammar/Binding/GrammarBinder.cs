@@ -20,6 +20,7 @@ public sealed class GrammarBinder
 	public const string UndefinedName  = "GRAM3002";
 	public const string UnknownScope   = "GRAM3003";
 	public const string UnknownCSharp  = "GRAM3004";
+	public const string DuplicatePublication = "GRAM3005";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a scope outside the
@@ -33,7 +34,8 @@ public sealed class GrammarBinder
 	readonly ISymbolResolver                      _symbols;
 	readonly Dictionary<Expr, Symbol>           _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarScope, RuleSymbol> _trivia   = [];
-	readonly List<GramDiagnostic>                 _diagnostics = [];
+	readonly List<Publication>                    _publications = [];
+	readonly List<GramDiagnostic>                 _diagnostics  = [];
 
 	GrammarBinder(ISymbolResolver symbols) => _symbols = symbols;
 
@@ -55,7 +57,8 @@ public sealed class GrammarBinder
 		binder.ResolveTrivia(global);
 		binder.Resolve(file.Decls, global);
 
-		return new GrammarModel(global, binder._bindings, binder._trivia, binder._diagnostics);
+		return new GrammarModel(
+			global, binder._bindings, binder._trivia, binder._publications, binder._diagnostics);
 	}
 
 	GrammarScope CreateStandardLibrary()
@@ -164,8 +167,27 @@ public sealed class GrammarBinder
 					Resolve(nested.Decls, child);
 					break;
 
-				case Decl.Publish publish when scope.LookupQualified(publish.RuleName) is null:
-					Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
+				case Decl.Publish publish:
+
+					if (scope.LookupQualified(publish.RuleName) is not { } published)
+					{
+						Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
+						break;
+					}
+
+					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);
+
+					// Two directives producing one name would generate two methods with the
+					// same signature — a C# error in the consumer's build, pointing at code
+					// they never wrote. Better to say it here.
+					if (_publications.Find(other => other.MethodName == method) is { } clash)
+						Report(
+							DuplicatePublication,
+							$"'{method}' is already published by '{clash.Kind} {clash.Rule.Name}'; use 'as' to give one of them another name.",
+							publish.At);
+					else
+						_publications.Add(new Publication(publish.Kind, published, method));
+
 					break;
 			}
 		}
