@@ -17,6 +17,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- The grammar the generator compiles for real, during this project's own build.
+		     The same file the snapshot is taken of and the in-memory tests compile, so
+		     all three levels are looking at one grammar. -->
+		<AdditionalFiles Include="..\Snapshots\Url.gram" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="xunit.v3" Version="3.2.2" />
 		<!-- Test Explorer only. `dotnet test` goes through Microsoft.Testing.Platform
 		     and needs neither this nor Microsoft.NET.Test.Sdk. -->
