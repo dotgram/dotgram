@@ -140,6 +140,7 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
+		// parse Feed: Header & Row* & Trailer & eof & eof
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -245,6 +246,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// the lookahead [^ ]
 		static int Recognize_Feed_Whole_Look0(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -270,6 +272,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Feed = Header & Row* & Trailer & eof
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -369,6 +372,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Header = 'H' & Sep & Date & eol
 		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -427,6 +431,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Row = 'R' & Sep & Name & Sep & Amount & eol
 		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -505,6 +510,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Trailer = 'T' & Sep & Count & eol
 		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -563,6 +569,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Sep = '|'
 		static int Recognize_Sep(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -590,6 +597,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Digit = ['0'..'9']
 		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -622,6 +630,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Count = Digit+
 		static int Recognize_Count(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -694,6 +703,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Date = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
 		static int Recognize_Date(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -874,6 +884,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Amount = '-'? & Digit+ & '.' & Digit{2}?
 		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1064,6 +1075,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Name = [^ '\n' | '\r' | '|']+
 		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1139,6 +1151,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// the lookahead [^ ]
 		static int Recognize_eof_Look0(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1164,6 +1177,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// eof = ?![^ ]
 		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1188,6 +1202,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// eol = ("\u000D\u000A" | '\n' | '\r')
 		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];

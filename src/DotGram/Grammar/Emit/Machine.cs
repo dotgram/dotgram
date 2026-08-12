@@ -102,16 +102,7 @@ sealed class Machine
 	/// </remarks>
 	static string Comment(Node? node, string? note)
 	{
-		var source = node?.ToString() ?? "";
-		var text   = new System.Text.StringBuilder(source.Length);
-
-		foreach (var c in source)
-			if (c is '\r' or '\n' or '\t' or '\u0085' or '\u2028' or '\u2029' || char.IsControl(c))
-				text.Append("\\u").Append(((int)c).ToString("X4"));
-			else
-				text.Append(c);
-
-		var one = text.ToString();
+		var one = Comment(node?.ToString() ?? "");
 
 		if (one.Length > 64)
 			one = one.Substring(0, 61) + "...";
@@ -119,8 +110,54 @@ sealed class Machine
 		return note is null ? one : one.Length == 0 ? note : $"{one} — {note}";
 	}
 
+	/// <summary>Everything C# would read as the end of the line, spelled out instead.</summary>
+	static string Comment(string source)
+	{
+		var text = new System.Text.StringBuilder(source.Length);
+
+		foreach (var c in source)
+			if (c is '\r' or '\n' or '\t' or '\u0085' or '\u2028' or '\u2029' || char.IsControl(c))
+				text.Append("\\u").Append(((int)c).ToString("X4"));
+			else
+				text.Append(c);
+
+		return text.ToString();
+	}
+
 	/// <summary>Accept and Fail take the first two numbers and are written by hand.</summary>
 	const int FirstState = 2;
+
+	/// <summary>
+	/// A pattern broken across comment lines, at spaces, never mid-token.
+	/// </summary>
+	/// <remarks>
+	/// Nothing is dropped here, unlike the note above a single state: the header is the
+	/// one place the whole rule is readable, and a rule long enough to wrap is exactly
+	/// the one worth reading.
+	/// </remarks>
+	static IEnumerable<string> Wrap(string pattern, int width = 92)
+	{
+		var line = new System.Text.StringBuilder();
+
+		foreach (var word in Comment(pattern).Split(' '))
+		{
+			if (line.Length > 0 && line.Length + 1 + word.Length > width)
+			{
+				yield return line.ToString();
+
+				line.Clear().Append("    ");            // a continuation, visibly so
+			}
+			else if (line.Length > 0)
+			{
+				line.Append(' ');
+			}
+
+			line.Append(word);
+		}
+
+		if (line.Length > 0)
+			yield return line.ToString();
+	}
 
 	string NewCounter() => "c" + _counters++;
 
@@ -371,7 +408,7 @@ sealed class Machine
 		foreach (var extra in machine.Extra)
 			_extra.Add(extra);
 
-		_extra.Add(machine.Render(entry));
+		_extra.Add(machine.Render(entry, $"the lookahead {body}"));
 
 		return machine.Name;
 	}
@@ -379,9 +416,18 @@ sealed class Machine
 	// ── Rendering ────────────────────────────────────────────────────────────────
 
 	/// <summary>The whole machine as one method.</summary>
-	public string Render(int entry)
+	/// <param name="pattern">
+	/// What it recognizes, in notation, written above it. The states below carry the
+	/// fragment each one is; this is the only place the whole of it is legible, and
+	/// after normalization — so it is what the method does rather than what was typed.
+	/// </param>
+	public string Render(int entry, string? pattern = null)
 	{
 		var file = new Writer(0);
+
+		if (pattern is not null)
+			foreach (var line in Wrap(pattern))
+				file.Line("// " + line);
 
 		using (file.Block($"static int {Name}(global::System.ReadOnlySpan<char> text, int pos)"))
 		{

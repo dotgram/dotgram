@@ -165,7 +165,9 @@ public static class CSharpEmitter
 			var whole = new Machine(WholeOf(publication.Rule));
 			var body  = new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
 
-			file.Write(whole.Render(whole.Compile(body, Machine.Accept)));
+			file.Write(whole.Render(
+				whole.Compile(body, Machine.Accept),
+				$"parse {publication.Rule.Name}: {graph.Bodies[publication.Rule]} & eof"));
 			file.Line();
 
 			foreach (var extra in whole.Extra)
@@ -336,7 +338,7 @@ public static class CSharpEmitter
 	{
 		var machine = new Machine(MethodOf(rule));
 		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);
-		var text    = machine.Render(entry);
+		var text    = machine.Render(entry, $"{rule.Name} = {graph.Bodies[rule]}");
 
 		foreach (var extra in machine.Extra)
 		{

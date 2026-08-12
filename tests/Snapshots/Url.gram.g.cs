@@ -79,6 +79,8 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
+		// parse Url: scheme: Scheme & "://" & authority: Authority & path: Path & query: Query? &
+		//     fragment: Fragment? & eof
 		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -242,6 +244,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// the lookahead [^ ]
 		static int Recognize_Url_Whole_Look0(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -267,6 +270,8 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Url = scheme: Scheme & "://" & authority: Authority & path: Path & query: Query? & fragment:
+		//     Fragment?
 		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -424,6 +429,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Scheme = ("https" | "http" | "ftp")
 		static int Recognize_Scheme(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -516,6 +522,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Authority = user: UserInfo? & host: Host & port: Port?
 		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -640,6 +647,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// UserInfo = (Unreserved | SubDelim | PctEncoded | ':')+ & '@'
 		static int Recognize_UserInfo(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -768,6 +776,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Host = (IPv4 | RegName)
 		static int Recognize_Host(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -830,6 +839,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Port = ':' & Digit+
 		static int Recognize_Port(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -911,6 +921,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// IPv4 = Octet & '.' & Octet & '.' & Octet & '.' & Octet
 		static int Recognize_IPv4(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -997,6 +1008,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Octet = Digit{1,3}
 		static int Recognize_Octet(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1075,6 +1087,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// RegName = (Unreserved | SubDelim | PctEncoded)+
 		static int Recognize_RegName(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1179,6 +1192,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Path = '/' & Segment*
 		static int Recognize_Path(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1257,6 +1271,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Segment = (Unreserved | SubDelim | PctEncoded | [':' | '@'])*
 		static int Recognize_Segment(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1378,6 +1393,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Query = '?' & Rest
 		static int Recognize_Query(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1416,6 +1432,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Fragment = '#' & Rest
 		static int Recognize_Fragment(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1454,6 +1471,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Rest = (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])*
 		static int Recognize_Rest(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1575,6 +1593,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// PctEncoded = '%' & Hex & Hex
 		static int Recognize_PctEncoded(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1623,6 +1642,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Digit = ['0'..'9']
 		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1655,6 +1675,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Hex = ['0'..'9' | 'A'..'F' | 'a'..'f']
 		static int Recognize_Hex(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1687,6 +1708,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// Unreserved = ['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']
 		static int Recognize_Unreserved(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
@@ -1719,6 +1741,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		// SubDelim = ['!' | '$' | '&'..',' | ';' | '=']
 		static int Recognize_SubDelim(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p     = pos;
