@@ -54,11 +54,11 @@ public sealed class TokenList(
 			if (token.Kind == TokenKind.EndOfFile)
 				continue;
 
-			text.AppendLine(token.ToString());
+			text.AppendEndingWith(token.ToString());
 		}
 
 		foreach (var diagnostic in Diagnostics)
-			text.AppendLine(diagnostic.ToString());
+			text.AppendEndingWith(diagnostic.ToString());
 
 		return text.ToString().TrimEnd();
 	}

@@ -164,13 +164,13 @@ public sealed class RecognitionGraph(
 		var text = new StringBuilder();
 
 		foreach (var rule in Rules)
-			text.Append(rule.Name).Append(" = ").AppendLine(Bodies[rule].ToString());
+			text.Append(rule.Name).Append(" = ").AppendEndingWith(Bodies[rule].ToString());
 
 		foreach (var publication in Publications)
-			text.Append("publish ").AppendLine(publication.ToString());
+			text.Append("publish ").AppendEndingWith(publication.ToString());
 
 		foreach (var diagnostic in Diagnostics)
-			text.AppendLine(diagnostic.ToString());
+			text.AppendEndingWith(diagnostic.ToString());
 
 		return text.ToString().TrimEnd();
 	}

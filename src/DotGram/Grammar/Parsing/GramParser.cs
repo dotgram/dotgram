@@ -629,7 +629,7 @@ public sealed class ParseResult(GrammarFile file, IReadOnlyList<GramDiagnostic> 
 		var text = new StringBuilder(File.ToString());
 
 		foreach (var diagnostic in Diagnostics)
-			text.AppendLine().Append(diagnostic);
+			text.EndLine().Append(diagnostic);
 
 		return text.ToString();
 	}

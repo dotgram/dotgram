@@ -105,7 +105,7 @@ static class Dump
 {
 	public static string Of(GrammarFile file)
 	{
-		var text = new StringBuilder().AppendLine("File");
+		var text = new StringBuilder().AppendEndingWith("File");
 
 		foreach (var import in file.Usings)
 			Write(text, 1, Label(import));
@@ -135,7 +135,7 @@ static class Dump
 	}
 
 	static void Write(StringBuilder text, int depth, string label) =>
-		text.Append('\t', depth).AppendLine(label);
+		text.Append('\t', depth).AppendEndingWith(label);
 
 	static void Write(StringBuilder text, int depth, Decl declaration)
 	{

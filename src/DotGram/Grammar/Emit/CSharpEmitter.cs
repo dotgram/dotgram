@@ -21,9 +21,9 @@ sealed class Writer(int depth)
 	public void Line(string text = "")
 	{
 		if (text.Length == 0)
-			_text.AppendLine();
+			_text.EndLine();
 		else
-			_text.Append('\t', _depth).AppendLine(text);
+			_text.Append('\t', _depth).AppendEndingWith(text);
 	}
 
 	/// <summary>A single indented line — the body of an <c>if</c> without braces.</summary>

@@ -183,28 +183,28 @@ public sealed class GrammarModel(
 		Write(Root, 0);
 
 		foreach (var publication in Publications)
-			text.Append("publish ").AppendLine(publication.ToString());
+			text.Append("publish ").AppendEndingWith(publication.ToString());
 
 		foreach (var diagnostic in Diagnostics)
-			text.AppendLine(diagnostic.ToString());
+			text.AppendEndingWith(diagnostic.ToString());
 
 		return text.ToString().TrimEnd();
 
 		void Write(GrammarScope scope, int depth)
 		{
-			text.Append('\t', depth).Append("scope ").AppendLine(scope.ToString());
+			text.Append('\t', depth).Append("scope ").AppendEndingWith(scope.ToString());
 
 			foreach (var import in scope.CSharpImports)
-				text.Append('\t', depth + 1).Append("using @").AppendLine(import);
+				text.Append('\t', depth + 1).Append("using @").AppendEndingWith(import);
 
 			foreach (var import in scope.Imports)
-				text.Append('\t', depth + 1).Append("using ").AppendLine(import.Name);
+				text.Append('\t', depth + 1).Append("using ").AppendEndingWith(import.Name);
 
 			if (Trivia.TryGetValue(scope, out var trivia))
-				text.Append('\t', depth + 1).Append("trivia = ").AppendLine(trivia.Name);
+				text.Append('\t', depth + 1).Append("trivia = ").AppendEndingWith(trivia.Name);
 
 			foreach (var rule in scope.Rules.Values)
-				text.Append('\t', depth + 1).Append("rule ").AppendLine(rule.Name);
+				text.Append('\t', depth + 1).Append("rule ").AppendEndingWith(rule.Name);
 
 			foreach (var nested in scope.Nested)
 				Write(nested, depth + 1);
