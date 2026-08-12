@@ -1,0 +1,25 @@
+// A line-oriented feed: the shape docs/syntax.md uses as its running example, and
+// the widest spread of the frozen subset that can be written without C# interop.
+//
+// This grammar exists to be looked at after it has been compiled. Its neighbour
+// Feed.gram.g.cs is what the emitter is expected to make of it, and a diff between
+// them is the review.
+
+Feed    = Header & Row* & Trailer & eof
+Header  = "H" & Sep & Date & eol
+Row     = "R" & Sep & Name & Sep & Amount & eol
+Trailer = "T" & Sep & Count & eol
+
+Sep     = '|'
+Digit   = ['0'..'9']
+Count   = Digit+
+Date    = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
+Amount  = '-'? & Digit+ & ('.' & Digit{2})?
+
+// Anything up to the next separator or the end of the line.
+Name    = [^ '|' | '\n' | '\r']+
+
+parse Feed
+match Row
+find Name
+find all Row as AllRows

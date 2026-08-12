@@ -351,12 +351,31 @@ public static class CSharpEmitter
 
 			case Node.Element element:
 
+				var test = Test(element);
+
+				// A set that admits nothing can be answered without looking at the input,
+				// and one that admits everything — `any`, and the complement of nothing —
+				// only needs there to be an item at all. Reading a character and not using
+				// it would be a warning in a build the author never asked for.
+				if (test == "false")
+				{
+					writer.Line("return -1;");
+					break;
+				}
+
 				writer.Line("if (p >= text.Length)");
 				writer.Then("return -1;");
 				writer.Line();
+
+				if (test == "true")
+				{
+					writer.Line("return p + 1;");
+					break;
+				}
+
 				writer.Line("var c = text[p];");
 				writer.Line();
-				writer.Line($"return {Test(element)} ? p + 1 : -1;");
+				writer.Line($"return {test} ? p + 1 : -1;");
 				break;
 
 			case Node.Sequence(var nodes):
@@ -393,8 +412,18 @@ public static class CSharpEmitter
 
 				var body = Compile(repeated, functions);
 
-				writer.Line("var count = 0;");
-				writer.Line();
+				// The count is there to stop the loop and to be tested at the end. A
+				// repetition bounded by neither needs it for neither, and counting anyway
+				// would be a variable the reader has to follow to find out it never
+				// mattered.
+				var bounded = min > 0;
+				var counted = bounded || max is not null;
+
+				if (counted)
+				{
+					writer.Line("var count = 0;");
+					writer.Line();
+				}
 
 				using (writer.Block(max is null ? "while (true)" : $"while (count < {max})"))
 				{
@@ -406,11 +435,13 @@ public static class CSharpEmitter
 					writer.Then("break;");
 					writer.Line();
 					writer.Line("p = next;");
-					writer.Line("count++;");
+
+					if (counted)
+						writer.Line("count++;");
 				}
 
 				writer.Line();
-				writer.Line($"return count >= {min} ? p : -1;");
+				writer.Line(bounded ? $"return count >= {min} ? p : -1;" : "return p;");
 				break;
 
 			case Node.Call(var rule, _):
@@ -429,9 +460,11 @@ public static class CSharpEmitter
 
 			case Node.Lookahead(var positive, var ahead):
 
+				// Either way the position is the one we came in with: a lookahead asks a
+				// question about the input, it does not consume any of it.
 				writer.Line($"var matched = {Compile(ahead, functions)}(text, p) >= 0;");
 				writer.Line();
-				writer.Line($"return matched == {(positive ? "true" : "false")} ? p : -1;");
+				writer.Line(positive ? "return matched ? p : -1;" : "return matched ? -1 : p;");
 				break;
 
 			// A guard tests a value, and values do not exist yet.
@@ -460,7 +493,13 @@ public static class CSharpEmitter
 				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
 				$"global::System.Globalization.UnicodeCategory.{category}");
 
-		var test = tests.Count == 0 ? "false" : string.Join(" || ", tests);
+		// An empty set admits nothing, and its complement admits everything. Said as
+		// constants rather than as `!(false)`, so the caller can drop the test — and with
+		// it the character it would otherwise read and never look at.
+		if (tests.Count == 0)
+			return element.IsNegated ? "true" : "false";
+
+		var test = string.Join(" || ", tests);
 
 		return element.IsNegated ? $"!({test})" : $"({test})";
 	}

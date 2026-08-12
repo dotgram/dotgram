@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 using Xunit;
 
@@ -37,26 +33,7 @@ public sealed class CSharpEmitterTests
 	/// <summary>Compiles the emitted source and calls the Try- half of a publication.</summary>
 	static (bool Matched, object Value) Invoke(string grammar, string method, string input)
 	{
-		var source      = Emit(grammar);
-		var compilation = CSharpCompilation.Create(
-			"DotGram.Tests.Emitted",
-			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ }}\n{source}")],
-			AppDomain.CurrentDomain.GetAssemblies()
-				.Where(static assembly => !assembly.IsDynamic && assembly.Location.Length > 0)
-				.Select(static assembly => MetadataReference.CreateFromFile(assembly.Location)),
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-		using var stream = new System.IO.MemoryStream();
-
-		var result = compilation.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
-
-		Assert.True(
-			result.Success,
-			"Emitted source did not compile:\n" +
-			string.Join("\n", result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)) +
-			"\n\n" + source);
-
-		var type      = System.Reflection.Assembly.Load(stream.ToArray()).GetType("Grammar")!;
+		var type      = EmittedCode.Compile(Emit(grammar)).GetType("Grammar")!;
 		var arguments = new object?[] { input, null, null, null };
 		var matched   = (bool)type.GetMethod("Try" + method)!.Invoke(null, arguments)!;
 

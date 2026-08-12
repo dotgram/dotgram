@@ -77,3 +77,6 @@ appsettings.*.local.json
 
 ## Scratch work
 .work/
+
+## What a snapshot test writes when it disagrees, so the diff can be taken in an editor
+*.actual
