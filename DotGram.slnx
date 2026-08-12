@@ -14,7 +14,7 @@
 		<File Path="docs/syntax.md" />
 	</Folder>
 	<Folder Name="/src/">
-		<Project Path="src/DotGram.Generator/DotGram.Generator.csproj" />
+		<Project Path="src/DotGram/DotGram.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj" />

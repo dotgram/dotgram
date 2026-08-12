@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/DotGram.Generator/Grammar/Emit/**"
+  - "src/DotGram/Grammar/Emit/**"
 ---
 
 # Emitted code lands in someone else's assembly

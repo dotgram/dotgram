@@ -2,10 +2,12 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<!-- Folders give the namespaces: Grammar/ is the Roslyn-free half,
+		<!-- Neither RootNamespace nor PackageId: both default to the project name, which
+		     is what they should be. Nothing else ships — everything a generated parser
+		     needs is emitted into the consumer's own compilation (docs/syntax.md §6.1) —
+		     so a .Generator suffix would separate this package from no other.
+		     Folders give the namespaces below it: Grammar/ is the Roslyn-free half,
 		     Generation/ is the shell. -->
-		<RootNamespace>DotGram</RootNamespace>
-		<PackageId>DotGram.Generator</PackageId>
 		<Description>Source generator that compiles .gram grammars into C# parsers.</Description>
 
 		<!-- Roslyn component: runs inside the compiler, ships as an analyzer. -->

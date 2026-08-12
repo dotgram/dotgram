@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/DotGram.Generator/Grammar/**"
+  - "src/DotGram/Grammar/**"
 ---
 
 # `Grammar/` must not know about Roslyn

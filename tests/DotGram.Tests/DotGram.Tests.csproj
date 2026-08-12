@@ -29,9 +29,9 @@
 		<!-- Twice, deliberately: once as an analyzer so the generator actually runs over
 		     this project, once as an ordinary reference so tests can call into it
 		     directly. Without the second, only end-to-end effects are observable. -->
-		<ProjectReference Include="..\..\src\DotGram.Generator\DotGram.Generator.csproj"
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\..\src\DotGram.Generator\DotGram.Generator.csproj"
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
 	</ItemGroup>
 

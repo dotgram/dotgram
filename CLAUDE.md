@@ -75,7 +75,7 @@ docs/
 	syntax.md             the language: notation and its bond with C#
 	implementation.md     engine plan
 src/
-	DotGram.Generator/
+	DotGram/              the whole product: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
 tests/
