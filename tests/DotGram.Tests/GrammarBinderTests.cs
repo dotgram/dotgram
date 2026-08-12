@@ -4,7 +4,7 @@ using System.Linq;
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Syntax;
+using DotGram.Grammar.Parsing;
 
 using Xunit;
 

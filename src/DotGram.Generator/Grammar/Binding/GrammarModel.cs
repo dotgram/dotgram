@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-using DotGram.Grammar.Syntax;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Binding;
 
@@ -14,7 +14,7 @@ public abstract record Symbol(string Name);
 /// source.
 /// </summary>
 public sealed record RuleSymbol(
-	string Name, GrammarScope Scope, RuleDeclaration? Declaration) : Symbol(Name)
+	string Name, GrammarScope Scope, Syntax.Declaration? Node, Decl.Rule? Declaration) : Symbol(Name)
 {
 	public bool IsBuiltIn => Declaration is null;
 
@@ -127,24 +127,24 @@ public sealed class GrammarScope(string name, GrammarScope? parent)
 /// as dictionary keys. netstandard2.0 has no <c>ReferenceEqualityComparer</c> of its
 /// own.
 /// </summary>
-sealed class NodeIdentityComparer : IEqualityComparer<SyntaxNode>
+sealed class NodeIdentityComparer : IEqualityComparer<Syntax>
 {
 	public static readonly NodeIdentityComparer Instance = new();
 
-	public bool Equals(SyntaxNode? x, SyntaxNode? y) => ReferenceEquals(x, y);
+	public bool Equals(Syntax? x, Syntax? y) => ReferenceEquals(x, y);
 
-	public int GetHashCode(SyntaxNode node) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
+	public int GetHashCode(Syntax node) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
 }
 
 /// <summary>What binding produced: a scope tree, resolved references, diagnostics.</summary>
 public sealed class GrammarModel(
 	GrammarScope                              root,
-	IReadOnlyDictionary<SyntaxNode, Symbol>   bindings,
+	IReadOnlyDictionary<Syntax, Symbol>   bindings,
 	IReadOnlyDictionary<GrammarScope, RuleSymbol> trivia,
 	IReadOnlyList<GramDiagnostic>             diagnostics)
 {
 	public GrammarScope                            Root        { get; } = root;
-	public IReadOnlyDictionary<SyntaxNode, Symbol> Bindings    { get; } = bindings;
+	public IReadOnlyDictionary<Syntax, Symbol> Bindings    { get; } = bindings;
 	public IReadOnlyList<GramDiagnostic>           Diagnostics { get; } = diagnostics;
 
 	/// <summary>The `Trivia` each scope sees — §4.5, resolved once per scope.</summary>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Syntax;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -23,19 +23,24 @@ namespace DotGram.Grammar.Model;
 /// and makes the second unreachable. Here only an adjacent run is merged, so nothing
 /// crosses anything else.
 /// </para>
+/// <para>
+/// Lowering walks the located tree and matches on the shape it carries. Both are to
+/// hand at once, which is the point of keeping them apart: the deep patterns below
+/// read as shapes, while a diagnostic still has a node to point at.
+/// </para>
 /// </remarks>
 public sealed class GrammarNormalizer
 {
-	public const string NullableRepetition = "GRAM4001";
-	public const string LeftRecursion      = "GRAM4002";
-	public const string TriviaNotNullable  = "GRAM4003";
+	public const string NullableRepetition  = "GRAM4001";
+	public const string LeftRecursion       = "GRAM4002";
+	public const string TriviaNotNullable   = "GRAM4003";
 	public const string ShadowedAlternative = "GRAM4004";
 
-	readonly GrammarModel                     _model;
-	readonly Dictionary<RuleSymbol, Node>     _bodies   = [];
-	readonly Dictionary<RuleSymbol, bool>     _nullable = [];
-	readonly List<GramDiagnostic>             _diagnostics = [];
-	readonly List<RuleSymbol>                 _rules = [];
+	readonly GrammarModel                 _model;
+	readonly Dictionary<RuleSymbol, Node> _bodies      = [];
+	readonly Dictionary<RuleSymbol, bool> _nullable    = [];
+	readonly List<GramDiagnostic>         _diagnostics = [];
+	readonly List<RuleSymbol>             _rules       = [];
 
 	GrammarNormalizer(GrammarModel model) => _model = model;
 
@@ -54,8 +59,8 @@ public sealed class GrammarNormalizer
 			normalizer._rules, normalizer._bodies, normalizer._nullable, normalizer._diagnostics);
 	}
 
-	void Report(string id, string message, int position, int length) =>
-		_diagnostics.Add(new GramDiagnostic(id, message, position, length, GramSeverity.Error));
+	void Report(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
 
 	// ── Lowering ─────────────────────────────────────────────────────────────────
 
@@ -74,66 +79,93 @@ public sealed class GrammarNormalizer
 			LowerAll(nested);
 	}
 
-	Node Lower(SyntaxNode node, GrammarScope scope) => node switch
+	Node Lower(Syntax.Expression node, GrammarScope scope)
 	{
-		LiteralExpression literal      => new LiteralNode(literal.Value),
-		ElementSetExpression set       => LowerElementSet(set),
-		GroupExpression group          => Lower(group.Body, scope),
-		CaptureExpression capture      => new CaptureNode(capture.Name, Lower(capture.Operand, scope)),
-		LookaheadExpression lookahead  => new LookaheadNode(lookahead.IsPositive, Lower(lookahead.Operand, scope)),
-		GuardExpression guard          => new GuardNode(guard.Value.ToString().Trim()),
-		QuantifiedExpression quantified => LowerQuantifier(quantified, scope),
-		SequenceExpression sequence    => LowerSequence(sequence, scope),
-		ChoiceExpression choice        => LowerChoice(choice, scope),
+		var children = node.Children;
 
-		AlternativeExpression alternative => new ConstructNode(
-			Lower(alternative.Pattern, scope),
-			alternative.Construction?.ToString().Trim() ?? ""),
+		return node.What switch
+		{
+			Expr.Literal(_, var value)     => new Node.Literal(value),
+			Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items),
+			Expr.Group                     => Lower(Child(0), scope),
+			Expr.Capture(var name, _)      => new Node.Capture(name, Lower(Child(0), scope)),
+			Expr.Lookahead(var positive, _) => new Node.Lookahead(positive, Lower(Child(0), scope)),
+			Expr.Guard(var value)          => new Node.Guard(Text(value)),
+			Expr.CSharp(var text)          => new Node.Guard($"@({text})"),
 
-		CallExpression call => new RuleCallNode(
-			Bound(call.Target) as RuleSymbol ?? Unresolved(call.Target.Name),
-			[.. call.Arguments.Select(argument => Lower(argument, scope))]),
+			Expr.Construct(_, var value)   => new Node.Construct(Lower(Child(0), scope), Text(value)),
 
-		ReferenceExpression reference => Bound(reference) is RuleSymbol rule
-			? new RuleCallNode(rule, [])
-			: new ElementNode(false, [], [], [Bound(reference) ?? Unresolved(reference.Name)]),
+			Expr.Quantified(_, var kind, var min, _, var max, _) =>
+				new Node.Repeat(Lower(Child(0), scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
 
-		CSharpExpression expression => new GuardNode($"@({expression.Text})"),
+			Expr.Sequence  => LowerSequence(children, scope),
+			Expr.Choice    => LowerChoice(node, children, scope),
 
-		_ => EmptyNode.Instance,
+			Expr.Call(var target, var arguments) => new Node.Call(
+				RuleOf(node, target.Name),
+				[.. children.Skip(1).Cast<Syntax.Expression>().Select(argument => Lower(argument, scope))]),
+
+			Expr.Reference(_, var name, _) => _model.Bindings.TryGetValue(node, out var symbol) && symbol is RuleSymbol rule
+				? new Node.Call(rule, [])
+				: new Node.Element(false, [], [], [_model.Bindings.TryGetValue(node, out var other) ? other : Unresolved(name)]),
+
+			_ => Node.Empty.Instance,
+		};
+
+		Syntax.Expression Child(int index) => (Syntax.Expression)children[index];
+	}
+
+	static (int Min, int? Max) Bounds(QuantifierKind kind, int? count) => kind switch
+	{
+		QuantifierKind.Optional   => (0, 1),
+		QuantifierKind.ZeroOrMore => (0, null),
+		QuantifierKind.OneOrMore  => (1, null),
+		_                         => (count ?? 0, count),
 	};
 
-	Symbol? Bound(SyntaxNode node) => _model.Bindings.TryGetValue(node, out var symbol) ? symbol : null;
+	RuleSymbol RuleOf(Syntax node, string name) =>
+		_model.Bindings.TryGetValue(node, out var symbol) && symbol is RuleSymbol rule
+			? rule
+			: Unresolved(name);
 
 	/// <summary>Binding already reported it; a placeholder keeps lowering going.</summary>
 	static RuleSymbol Unresolved(string name) =>
-		new(name, new GrammarScope("<unresolved>", null), Declaration: null);
+		new(name, new GrammarScope("<unresolved>", null), Node: null, Declaration: null);
 
-	static ElementNode LowerElementSet(ElementSetExpression set)
+	/// <summary>Values in `=&gt;` and `where` are C# text by the time they get here.</summary>
+	static string Text(Expr value) => value switch
+	{
+		Expr.CSharp(var text)         => $"@({text})",
+		Expr.Reference(_, var name, _) => name,
+		Expr.Call(var target, _)      => $"{target.Name}(…)",
+		_                             => value.ToString() ?? "",
+	};
+
+	static Node.Element LowerElementSet(bool negated, IReadOnlyList<Elem> items)
 	{
 		var ranges     = new List<CharRange>();
 		var categories = new List<string>();
 		var references = new List<Symbol>();
 
-		foreach (var item in set.Items)
+		foreach (var item in items)
 		{
 			switch (item)
 			{
-				case CharacterRangeItem range when range.From.Length > 0:
-					ranges.Add(new CharRange(range.From[0], (range.To ?? range.From)[0]));
+				case Elem.Chars(var from, var to) when from.Length > 0:
+					ranges.Add(new CharRange(from[0], (to ?? from)[0]));
 					break;
 
-				case UnicodeCategoryItem category:
-					categories.Add(category.Category);
+				case Elem.Category(var name):
+					categories.Add(name);
 					break;
 
-				case ReferenceItem reference:
-					references.Add(new RuleSymbol(reference.Reference.Name, new GrammarScope("", null), null));
+				case Elem.Ref(var reference):
+					references.Add(Unresolved(reference.Name));
 					break;
 			}
 		}
 
-		return new ElementNode(set.IsNegated, Coalesce(ranges), categories, references);
+		return new Node.Element(negated, Coalesce(ranges), categories, references);
 	}
 
 	/// <summary>
@@ -164,32 +196,17 @@ public sealed class GrammarNormalizer
 		return merged;
 	}
 
-	Node LowerQuantifier(QuantifiedExpression quantified, GrammarScope scope)
-	{
-		var body = Lower(quantified.Operand, scope);
-
-		var (min, max) = quantified.Kind switch
-		{
-			QuantifierKind.Optional   => (0, (int?)1),
-			QuantifierKind.ZeroOrMore => (0, null),
-			QuantifierKind.OneOrMore  => (1, null),
-			_                         => (quantified.Min ?? 0, quantified.Max),
-		};
-
-		return new RepeatNode(body, min, max);
-	}
-
-	Node LowerSequence(SequenceExpression sequence, GrammarScope scope)
+	Node LowerSequence(IReadOnlyList<Syntax> operands, GrammarScope scope)
 	{
 		var nodes  = new List<Node>();
 		var trivia = TriviaFor(scope);
 
-		foreach (var operand in sequence.Operands)
+		foreach (var operand in operands)
 		{
 			if (nodes.Count > 0 && trivia is not null)
 				nodes.Add(trivia);
 
-			nodes.Add(Lower(operand, scope));
+			nodes.Add(Lower((Syntax.Expression)operand, scope));
 		}
 
 		return Flatten(MergeLiterals(nodes));
@@ -201,7 +218,7 @@ public sealed class GrammarNormalizer
 	/// </summary>
 	Node? TriviaFor(GrammarScope scope) =>
 		_model.Trivia.TryGetValue(scope, out var trivia) && !MatchesNothing(trivia, [])
-			? new RuleCallNode(trivia, [])
+			? new Node.Call(trivia, [])
 			: null;
 
 	/// <summary>
@@ -216,18 +233,18 @@ public sealed class GrammarNormalizer
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch
 	{
-		EmptyNode        => true,
-		LiteralNode l    => l.Text.Length == 0,
-		RepeatNode r     => r.Max == 0 || MatchesNothing(r.Body, seen),
-		SequenceNode s   => s.Nodes.All(child => MatchesNothing(child, seen)),
-		ChoiceNode c     => c.Nodes.All(child => MatchesNothing(child, seen)),
-		CaptureNode c    => MatchesNothing(c.Body, seen),
-		ConstructNode c  => MatchesNothing(c.Body, seen),
-		RuleCallNode r   => MatchesNothing(r.Rule, seen),
-		_                => false,
+		Node.Empty          => true,
+		Node.Literal(var t) => t.Length == 0,
+		Node.Repeat(var body, _, var max) => max == 0 || MatchesNothing(body, seen),
+		Node.Sequence(var nodes)   => nodes.All(child => MatchesNothing(child, seen)),
+		Node.Choice(var nodes)     => nodes.All(child => MatchesNothing(child, seen)),
+		Node.Capture(_, var body)  => MatchesNothing(body, seen),
+		Node.Construct(var body, _) => MatchesNothing(body, seen),
+		Node.Call(var rule, _)     => MatchesNothing(rule, seen),
+		_                          => false,
 	};
 
-	/// <summary>`'a' & 'b'` is `"ab"`: a sequence of literals already means their
+	/// <summary>`'a' &amp; 'b'` is `"ab"`: a sequence of literals already means their
 	/// concatenation.</summary>
 	static List<Node> MergeLiterals(List<Node> nodes)
 	{
@@ -235,11 +252,11 @@ public sealed class GrammarNormalizer
 
 		foreach (var node in nodes)
 		{
-			if (node is LiteralNode literal &&
+			if (node is Node.Literal(var text) &&
 				merged.Count > 0 &&
-				merged[merged.Count - 1] is LiteralNode previous)
+				merged[merged.Count - 1] is Node.Literal(var previous))
 			{
-				merged[merged.Count - 1] = new LiteralNode(previous.Text + literal.Text);
+				merged[merged.Count - 1] = new Node.Literal(previous + text);
 				continue;
 			}
 
@@ -255,27 +272,29 @@ public sealed class GrammarNormalizer
 
 		foreach (var node in nodes)
 		{
-			if (node is SequenceNode nested)
-				flat.AddRange(nested.Nodes);
+			if (node is Node.Sequence(var nested))
+				flat.AddRange(nested);
 			else
 				flat.Add(node);
 		}
 
-		return flat.Count == 1 ? flat[0] : new SequenceNode(flat);
+		return flat.Count == 1 ? flat[0] : new Node.Sequence(flat);
 	}
 
-	Node LowerChoice(ChoiceExpression choice, GrammarScope scope)
+	Node LowerChoice(Syntax.Expression node, IReadOnlyList<Syntax> alternatives, GrammarScope scope)
 	{
-		var nodes = choice.Alternatives.Select(alternative => Lower(alternative, scope)).ToList();
+		var nodes = alternatives.Select(a => Lower((Syntax.Expression)a, scope)).ToList();
 
-		ReportShadowedAlternatives(nodes, choice);
+		ReportShadowedAlternatives(nodes, alternatives);
 
 		var merged = MergeAdjacentElements(nodes);
 
 		// A choice of one is that one: merging alternatives into a set routinely leaves
 		// a single node behind, and keeping a wrapper around it would show up in every
 		// dump and in every generated switch.
-		return merged.Count == 1 ? merged[0] : new ChoiceNode(merged);
+		_ = node;
+
+		return merged.Count == 1 ? merged[0] : new Node.Choice(merged);
 	}
 
 	/// <summary>
@@ -315,12 +334,12 @@ public sealed class GrammarNormalizer
 
 	static bool IsSingleItem(Node node) => node switch
 	{
-		LiteralNode literal => literal.Text.Length == 1,
-		ElementNode element => !element.IsNegated,
-		_                   => false,
+		Node.Literal(var text) => text.Length == 1,
+		Node.Element(var negated, _, _, _) => !negated,
+		_ => false,
 	};
 
-	static ElementNode Combine(List<Node> run)
+	static Node.Element Combine(List<Node> run)
 	{
 		var ranges     = new List<CharRange>();
 		var categories = new List<string>();
@@ -330,48 +349,45 @@ public sealed class GrammarNormalizer
 		{
 			switch (node)
 			{
-				case LiteralNode literal:
-					ranges.Add(new CharRange(literal.Text[0], literal.Text[0]));
+				case Node.Literal(var text):
+					ranges.Add(new CharRange(text[0], text[0]));
 					break;
 
-				case ElementNode element:
-					ranges.AddRange(element.Ranges);
-					categories.AddRange(element.Categories);
-					references.AddRange(element.References);
+				case Node.Element(_, var elementRanges, var elementCategories, var elementReferences):
+					ranges.AddRange(elementRanges);
+					categories.AddRange(elementCategories);
+					references.AddRange(elementReferences);
 					break;
 			}
 		}
 
-		return new ElementNode(false, Coalesce(ranges), categories, references);
+		return new Node.Element(false, Coalesce(ranges), categories, references);
 	}
 
 	/// <summary>
 	/// An alternative that a preceding literal shadows as a prefix can never be
 	/// reached. Diagnosed rather than repaired — see docs/syntax.md §10.
 	/// </summary>
-	void ReportShadowedAlternatives(List<Node> nodes, ChoiceExpression choice)
+	void ReportShadowedAlternatives(List<Node> nodes, IReadOnlyList<Syntax> alternatives)
 	{
 		for (var later = 1; later < nodes.Count; later++)
 		{
-			if (nodes[later] is not LiteralNode shadowed)
+			if (nodes[later] is not Node.Literal(var shadowed))
 				continue;
 
 			for (var earlier = 0; earlier < later; earlier++)
 			{
-				if (nodes[earlier] is not LiteralNode first ||
-					first.Text.Length > shadowed.Text.Length ||
-					!shadowed.Text.StartsWith(first.Text, StringComparison.Ordinal))
+				if (nodes[earlier] is not Node.Literal(var first) ||
+					first.Length > shadowed.Length ||
+					!shadowed.StartsWith(first, StringComparison.Ordinal))
 				{
 					continue;
 				}
 
-				var alternative = choice.Alternatives[later];
-
 				Report(
 					ShadowedAlternative,
-					$"Alternative \"{shadowed.Text}\" is unreachable — \"{first.Text}\" shadows it as a prefix.",
-					alternative.Position,
-					alternative.Length);
+					$"Alternative \"{shadowed}\" is unreachable — \"{first}\" shadows it as a prefix.",
+					alternatives[later].At);
 
 				break;
 			}
@@ -422,18 +438,18 @@ public sealed class GrammarNormalizer
 
 	bool IsNullable(Node node) => node switch
 	{
-		EmptyNode        => true,
-		LiteralNode l    => l.Text.Length == 0,
-		ElementNode      => false,
-		GuardNode        => true,
-		LookaheadNode    => true,
-		CaptureNode c    => IsNullable(c.Body),
-		ConstructNode c  => IsNullable(c.Body),
-		RepeatNode r     => r.Min == 0 || IsNullable(r.Body),
-		SequenceNode s   => s.Nodes.All(IsNullable),
-		ChoiceNode c     => c.Nodes.Any(IsNullable),
-		RuleCallNode r   => _nullable.TryGetValue(r.Rule, out var nullable) && nullable,
-		_                => false,
+		Node.Empty                     => true,
+		Node.Literal(var text)         => text.Length == 0,
+		Node.Element                   => false,
+		Node.Guard                     => true,
+		Node.Lookahead                 => true,
+		Node.Capture(_, var body)      => IsNullable(body),
+		Node.Construct(var body, _)    => IsNullable(body),
+		Node.Repeat(var body, var min, _) => min == 0 || IsNullable(body),
+		Node.Sequence(var nodes)       => nodes.All(IsNullable),
+		Node.Choice(var nodes)         => nodes.Any(IsNullable),
+		Node.Call(var rule, _)         => _nullable.TryGetValue(rule, out var nullable) && nullable,
+		_                              => false,
 	};
 
 	void Check()
@@ -449,14 +465,11 @@ public sealed class GrammarNormalizer
 
 	void CheckRepetitions(Node node, RuleSymbol rule)
 	{
-		if (node is RepeatNode repeat && repeat.Max != 1 && IsNullable(repeat.Body))
-		{
+		if (node is Node.Repeat(var body, _, var max) && max != 1 && IsNullable(body))
 			Report(
 				NullableRepetition,
 				$"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
-				rule.Declaration!.Position,
-				rule.Declaration.Length);
-		}
+				rule.Node!.At);
 
 		foreach (var child in Children(node))
 			CheckRepetitions(child, rule);
@@ -464,37 +477,33 @@ public sealed class GrammarNormalizer
 
 	/// <summary>
 	/// A rule that can reach itself without consuming anything first. Nullability is
-	/// what makes this more than a syntactic check: `A = B & A` is left-recursive
+	/// what makes this more than a syntactic check: `A = B &amp; A` is left-recursive
 	/// exactly when `B` is nullable.
 	/// </summary>
 	void CheckLeftRecursion(RuleSymbol start)
 	{
-		var seen = new HashSet<RuleSymbol>();
-
-		if (!Reaches(_bodies[start], start, seen))
-			return;
-
-		Report(
-			LeftRecursion,
-			$"'{start.Name}' is left-recursive; write the loop with a quantifier instead.",
-			start.Declaration!.Position,
-			start.Declaration.Length);
+		if (Reaches(_bodies[start], start, []))
+			Report(
+				LeftRecursion,
+				$"'{start.Name}' is left-recursive; write the loop with a quantifier instead.",
+				start.Node!.At);
 	}
 
 	bool Reaches(Node node, RuleSymbol target, HashSet<RuleSymbol> seen)
 	{
 		switch (node)
 		{
-			case RuleCallNode call when ReferenceEquals(call.Rule, target):
+			case Node.Call(var rule, _) when ReferenceEquals(rule, target):
 				return true;
 
-			case RuleCallNode call:
-				return seen.Add(call.Rule) &&
-					_bodies.TryGetValue(call.Rule, out var body) &&
+			case Node.Call(var rule, _):
+				return seen.Add(rule) &&
+					_bodies.TryGetValue(rule, out var body) &&
 					Reaches(body, target, seen);
 
-			case SequenceNode sequence:
-				foreach (var child in sequence.Nodes)
+			case Node.Sequence(var nodes):
+
+				foreach (var child in nodes)
 				{
 					if (Reaches(child, target, seen))
 						return true;
@@ -505,13 +514,11 @@ public sealed class GrammarNormalizer
 
 				return false;
 
-			case ChoiceNode choice:
-				return choice.Nodes.Any(child => Reaches(child, target, seen));
-
-			case CaptureNode capture:   return Reaches(capture.Body, target, seen);
-			case ConstructNode build:   return Reaches(build.Body, target, seen);
-			case RepeatNode repeat:     return Reaches(repeat.Body, target, seen);
-			case LookaheadNode look:    return Reaches(look.Body, target, seen);
+			case Node.Choice(var nodes):        return nodes.Any(child => Reaches(child, target, seen));
+			case Node.Capture(_, var captured): return Reaches(captured, target, seen);
+			case Node.Construct(var built, _):  return Reaches(built, target, seen);
+			case Node.Repeat(var repeated, _, _): return Reaches(repeated, target, seen);
+			case Node.Lookahead(_, var ahead):  return Reaches(ahead, target, seen);
 
 			default: return false;
 		}
@@ -525,26 +532,25 @@ public sealed class GrammarNormalizer
 	{
 		foreach (var trivia in _model.Trivia.Values.Distinct())
 		{
-			if (trivia.Declaration is null || IsNullable(_bodies[trivia]))
+			if (trivia.Node is null || IsNullable(_bodies[trivia]))
 				continue;
 
 			Report(
 				TriviaNotNullable,
 				"'Trivia' must accept empty input: it is inserted between every pair of operands, and a required match would demand whitespace everywhere.",
-				trivia.Declaration.Position,
-				trivia.Declaration.Length);
+				trivia.Node.At);
 		}
 	}
 
 	static IEnumerable<Node> Children(Node node) => node switch
 	{
-		SequenceNode s  => s.Nodes,
-		ChoiceNode c    => c.Nodes,
-		RepeatNode r    => [r.Body],
-		CaptureNode c   => [c.Body],
-		ConstructNode c => [c.Body],
-		LookaheadNode l => [l.Body],
-		RuleCallNode r  => r.Arguments,
-		_               => [],
+		Node.Sequence(var nodes)        => nodes,
+		Node.Choice(var nodes)          => nodes,
+		Node.Repeat(var body, _, _)     => [body],
+		Node.Capture(_, var body)       => [body],
+		Node.Construct(var body, _)     => [body],
+		Node.Lookahead(_, var body)     => [body],
+		Node.Call(_, var arguments)     => arguments,
+		_                               => [],
 	};
 }

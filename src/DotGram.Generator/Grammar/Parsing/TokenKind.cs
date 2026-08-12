@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Grammar.Syntax;
+namespace DotGram.Grammar.Parsing;
 
 /// <summary>Every lexeme `.gram` source is made of.</summary>
 public enum TokenKind

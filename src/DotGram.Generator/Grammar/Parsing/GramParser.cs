@@ -1,16 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
-namespace DotGram.Grammar.Syntax;
+namespace DotGram.Grammar.Parsing;
 
 /// <summary>
 /// Turns tokens into a syntax tree, following the productions in docs/syntax.md §9.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Diagnostics come before everything else here. The parser never stops at the first
+/// Both halves of the tree are built here at once — the shape (<see cref="Expr"/>,
+/// <see cref="Decl"/>) and the located nodes that carry it. Doing it in one place is
+/// what keeps <c>Children[i]</c> and the i-th sub-shape in step; nothing downstream
+/// has to re-establish the correspondence.
+/// </para>
+/// <para>
+/// Diagnostics come before everything else. The parser never stops at the first
 /// problem: on an error it reports it with a span pointing at the offending token,
 /// then skips to the next declaration boundary and carries on, so one broken rule
 /// costs one message rather than the rest of the file.
@@ -88,20 +95,23 @@ public sealed class GramParser
 		return true;
 	}
 
+	Location From(int start) => new(start, Current.Position - start);
+
+	Syntax.Expression Node(Expr what, int start, params Syntax[] children) =>
+		new(what, From(start), children);
+
 	void Report(string id, string message) =>
-		Report(id, message, Current.Position, Math.Max(Current.Length, 1));
+		Report(id, message, new Location(Current.Position, Math.Max(Current.Length, 1)));
 
-	void Report(string id, string message, int position, int length) =>
-		_diagnostics.Add(new GramDiagnostic(id, message, position, length, GramSeverity.Error));
+	void Report(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
 
-	Token Expect(TokenKind kind)
+	void Expect(TokenKind kind)
 	{
 		if (At(kind))
-			return Take();
-
-		Report(ExpectedToken, $"Expected '{kind.Spelling() ?? kind.ToString()}'.");
-
-		return new Token(kind, Current.Position, 0, null);
+			Take();
+		else
+			Report(ExpectedToken, $"Expected '{kind.Spelling() ?? kind.ToString()}'.");
 	}
 
 	string ExpectName()
@@ -132,8 +142,8 @@ public sealed class GramParser
 
 	GrammarFile ParseFile()
 	{
-		var usings       = new List<UsingDirective>();
-		var declarations = new List<Declaration>();
+		var usings       = new List<Using>();
+		var declarations = new List<Syntax.Declaration>();
 
 		while (AtUsing())
 			usings.Add(ParseUsing());
@@ -152,14 +162,14 @@ public sealed class GramParser
 				SkipToDeclaration();
 		}
 
-		return new GrammarFile(usings, declarations, 0, _tokens[_tokens.Count - 1].Position);
+		return new GrammarFile(usings, declarations, new Location(0, _tokens[_tokens.Count - 1].Position));
 	}
 
 	bool AtUsing() =>
 		AtKeyword("using") && Next.Kind == TokenKind.Identifier ||
 		At(TokenKind.At) && Next.Kind == TokenKind.Identifier && Next.Value == "using";
 
-	UsingDirective ParseUsing()
+	Using ParseUsing()
 	{
 		var start    = Current.Position;
 		var isCSharp = TakeIf(TokenKind.At);
@@ -170,10 +180,10 @@ public sealed class GramParser
 
 		Expect(TokenKind.Semicolon);
 
-		return new UsingDirective(isCSharp, name, start, Current.Position - start);
+		return new Using(isCSharp, name, From(start));
 	}
 
-	Declaration? ParseDeclaration()
+	Syntax.Declaration? ParseDeclaration()
 	{
 		if (AtKeyword("scope") && Next.Kind == TokenKind.Identifier && !StartsRule())
 			return ParseScope();
@@ -200,17 +210,17 @@ public sealed class GramParser
 	bool AtPublication() =>
 		!StartsRule() &&
 		(AtKeyword("parse") || AtKeyword("match") || AtKeyword("find")) &&
-		(Next.Kind == TokenKind.Identifier);
+		Next.Kind == TokenKind.Identifier;
 
-	ScopeDeclaration ParseScope()
+	Syntax.Declaration ParseScope()
 	{
 		var start = Current.Position;
 
 		Take();                                     // `scope`
 
 		var name         = ExpectName();
-		var usings       = new List<UsingDirective>();
-		var declarations = new List<Declaration>();
+		var usings       = new List<Using>();
+		var declarations = new List<Syntax.Declaration>();
 
 		Expect(TokenKind.OpenBrace);
 
@@ -231,28 +241,29 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseBrace);
 
-		return new ScopeDeclaration(name, usings, declarations, start, Current.Position - start);
+		return new Syntax.Declaration(
+			new Decl.Scope(name, usings, declarations), From(start), declarations);
 	}
 
-	PublicationDirective ParsePublication()
+	Syntax.Declaration ParsePublication()
 	{
 		var start = Current.Position;
 		var word  = Take().Value!;
 
 		var kind = word switch
 		{
-			"parse" => PublicationKind.Parse,
-			"match" => PublicationKind.Match,
-			_       => TakeIfKeyword("all") ? PublicationKind.FindAll : PublicationKind.Find,
+			"parse" => PublishKind.Parse,
+			"match" => PublishKind.Match,
+			_       => TakeIfKeyword("all") ? PublishKind.FindAll : PublishKind.Find,
 		};
 
 		var name  = ExpectQualifiedName();
 		var alias = TakeIfKeyword("as") ? ExpectName() : null;
 
-		return new PublicationDirective(kind, name, alias, start, Current.Position - start);
+		return new Syntax.Declaration(new Decl.Publish(kind, name, alias), From(start), []);
 	}
 
-	RuleDeclaration ParseRule()
+	Syntax.Declaration ParseRule()
 	{
 		_panic = false;
 
@@ -265,12 +276,13 @@ public sealed class GramParser
 
 		var body = ParseBody();
 
-		return new RuleDeclaration(name, parameters, type, body, start, Current.Position - start);
+		return new Syntax.Declaration(
+			new Decl.Rule(name, parameters, type, body), From(start), [body]);
 	}
 
-	List<ParameterDeclaration> ParseParameters()
+	List<Param> ParseParameters()
 	{
-		var parameters = new List<ParameterDeclaration>();
+		var parameters = new List<Param>();
 
 		Expect(TokenKind.OpenParen);
 
@@ -280,7 +292,7 @@ public sealed class GramParser
 			var name  = ExpectName();
 			var type  = TakeIf(TokenKind.Colon) ? ParseType() : null;
 
-			parameters.Add(new ParameterDeclaration(name, type, start, Current.Position - start));
+			parameters.Add(new Param(name, type, From(start)));
 
 			if (!TakeIf(TokenKind.Comma))
 				break;
@@ -291,7 +303,7 @@ public sealed class GramParser
 		return parameters;
 	}
 
-	TypeReference ParseType()
+	TypeRef ParseType()
 	{
 		var start    = Current.Position;
 		var isCSharp = TakeIf(TokenKind.At);
@@ -306,25 +318,25 @@ public sealed class GramParser
 			sequence = true;
 		}
 
-		return new TypeReference(isCSharp, name, sequence, start, Current.Position - start);
+		return new TypeRef(isCSharp, name, sequence, From(start));
 	}
 
 	// ── Expressions ──────────────────────────────────────────────────────────────
 
-	Expression ParseBody()
+	Syntax.Expression ParseBody()
 	{
 		var start        = Current.Position;
-		var alternatives = new List<Expression> { ParseAlternative() };
+		var alternatives = new List<Syntax.Expression> { ParseAlternative() };
 
 		while (!_panic && TakeIf(TokenKind.Bar))
 			alternatives.Add(ParseAlternative());
 
 		return alternatives.Count == 1
 			? alternatives[0]
-			: new ChoiceExpression(alternatives, start, Current.Position - start);
+			: Node(new Expr.Choice([.. alternatives.Select(a => a.What)]), start, [.. alternatives]);
 	}
 
-	Expression ParseAlternative()
+	Syntax.Expression ParseAlternative()
 	{
 		var start   = Current.Position;
 		var pattern = ParseSequence();
@@ -332,23 +344,25 @@ public sealed class GramParser
 		if (!TakeIf(TokenKind.Arrow))
 			return pattern;
 
-		return new AlternativeExpression(pattern, ParseValue(), start, Current.Position - start);
+		var value = ParseValue();
+
+		return Node(new Expr.Construct(pattern.What, value.What), start, pattern, value);
 	}
 
-	Expression ParseSequence()
+	Syntax.Expression ParseSequence()
 	{
 		var start    = Current.Position;
-		var operands = new List<Expression> { ParseOperand() };
+		var operands = new List<Syntax.Expression> { ParseOperand() };
 
 		while (!_panic && TakeIf(TokenKind.Ampersand))
 			operands.Add(ParseOperand());
 
 		return operands.Count == 1
 			? operands[0]
-			: new SequenceExpression(operands, start, Current.Position - start);
+			: Node(new Expr.Sequence([.. operands.Select(o => o.What)]), start, [.. operands]);
 	}
 
-	Expression ParseOperand()
+	Syntax.Expression ParseOperand()
 	{
 		if (!AtKeyword("where"))
 			return ParseQuantified();
@@ -357,22 +371,22 @@ public sealed class GramParser
 
 		Take();
 
-		return new GuardExpression(ParseValue(), start, Current.Position - start);
+		var value = ParseValue();
+
+		return Node(new Expr.Guard(value.What), start, value);
 	}
 
-	Expression ParseQuantified()
+	Syntax.Expression ParseQuantified()
 	{
 		var start   = Current.Position;
 		var operand = ParsePrefixed();
 
-		if (TakeIf(TokenKind.Question))
-			return new QuantifiedExpression(operand, QuantifierKind.Optional, null, null, null, null, start, Current.Position - start);
+		Syntax.Expression Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null) =>
+			Node(new Expr.Quantified(operand.What, kind, min, minName, max, maxName), start, operand);
 
-		if (TakeIf(TokenKind.Star))
-			return new QuantifiedExpression(operand, QuantifierKind.ZeroOrMore, null, null, null, null, start, Current.Position - start);
-
-		if (TakeIf(TokenKind.Plus))
-			return new QuantifiedExpression(operand, QuantifierKind.OneOrMore, null, null, null, null, start, Current.Position - start);
+		if (TakeIf(TokenKind.Question)) return Quantify(QuantifierKind.Optional);
+		if (TakeIf(TokenKind.Star))     return Quantify(QuantifierKind.ZeroOrMore);
+		if (TakeIf(TokenKind.Plus))     return Quantify(QuantifierKind.OneOrMore);
 
 		if (!At(TokenKind.OpenBrace))
 			return operand;
@@ -389,8 +403,7 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseBrace);
 
-		return new QuantifiedExpression(
-			operand, QuantifierKind.Count, min, minName, max, maxName, start, Current.Position - start);
+		return Quantify(QuantifierKind.Count, min, minName, max, maxName);
 	}
 
 	(int? Value, string? Name) ParseCount()
@@ -408,18 +421,19 @@ public sealed class GramParser
 		return (int.Parse(Take().Value!, CultureInfo.InvariantCulture), null);
 	}
 
-	Expression ParsePrefixed()
+	Syntax.Expression ParsePrefixed()
 	{
 		if (!At(TokenKind.PositiveLookahead) && !At(TokenKind.NegativeLookahead))
 			return ParseCaptured();
 
 		var start      = Current.Position;
 		var isPositive = Take().Kind == TokenKind.PositiveLookahead;
+		var operand    = ParseCaptured();
 
-		return new LookaheadExpression(isPositive, ParseCaptured(), start, Current.Position - start);
+		return Node(new Expr.Lookahead(isPositive, operand.What), start, operand);
 	}
 
-	Expression ParseCaptured()
+	Syntax.Expression ParseCaptured()
 	{
 		if (!At(TokenKind.Identifier) || Next.Kind != TokenKind.Colon)
 			return ParsePrimary();
@@ -429,10 +443,12 @@ public sealed class GramParser
 
 		Take();                                     // `:`
 
-		return new CaptureExpression(name, ParsePrimary(), start, Current.Position - start);
+		var operand = ParsePrimary();
+
+		return Node(new Expr.Capture(name, operand.What), start, operand);
 	}
 
-	Expression ParsePrimary()
+	Syntax.Expression ParsePrimary()
 	{
 		var start = Current.Position;
 
@@ -443,15 +459,11 @@ public sealed class GramParser
 			{
 				var token = Take();
 
-				return new LiteralExpression(token.Kind == TokenKind.Character, token.Value!, start, token.Length);
+				return Node(new Expr.Literal(token.Kind == TokenKind.Character, token.Value!), start);
 			}
 
 			case TokenKind.CSharpExpression:
-			{
-				var token = Take();
-
-				return new CSharpExpression(token.Value!, start, token.Length);
-			}
+				return Node(new Expr.CSharp(Take().Value!), start);
 
 			case TokenKind.OpenBracket:
 				return ParseElementSet();
@@ -464,7 +476,7 @@ public sealed class GramParser
 
 				Expect(TokenKind.CloseParen);
 
-				return new GroupExpression(body, start, Current.Position - start);
+				return Node(new Expr.Group(body.What), start, body);
 			}
 
 			case TokenKind.At:
@@ -476,19 +488,15 @@ public sealed class GramParser
 
 				_panic = true;
 
-				return new ReferenceExpression(false, "", [], start, 0);
+				return Node(new Expr.Reference(false, "", []), start);
 		}
 	}
 
 	/// <summary>A value position — <c>=&gt;</c> and <c>where</c> take these.</summary>
-	Expression ParseValue() =>
-		At(TokenKind.CSharpExpression)
-			? ParsePrimary()
-			: At(TokenKind.At) || At(TokenKind.Identifier)
-				? ParseReferenceOrCall()
-				: ParsePrimary();
+	Syntax.Expression ParseValue() =>
+		At(TokenKind.At) || At(TokenKind.Identifier) ? ParseReferenceOrCall() : ParsePrimary();
 
-	Expression ParseReferenceOrCall()
+	Syntax.Expression ParseReferenceOrCall()
 	{
 		var reference = ParseReference();
 
@@ -497,7 +505,7 @@ public sealed class GramParser
 
 		Take();
 
-		var arguments = new List<Expression>();
+		var arguments = new List<Syntax.Expression>();
 
 		while (!AtEnd && !At(TokenKind.CloseParen))
 		{
@@ -509,15 +517,21 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseParen);
 
-		return new CallExpression(reference, arguments, reference.Position, Current.Position - reference.Position);
+		var call = new Expr.Call(
+			(Expr.Reference)reference.What, [.. arguments.Select(a => a.What)]);
+
+		return new Syntax.Expression(
+			call,
+			new Location(reference.At.Position, Current.Position - reference.At.Position),
+			[reference, .. arguments]);
 	}
 
-	ReferenceExpression ParseReference()
+	Syntax.Expression ParseReference()
 	{
 		var start         = Current.Position;
 		var isCSharp      = TakeIf(TokenKind.At);
 		var name          = ExpectQualifiedName();
-		var typeArguments = new List<TypeReference>();
+		var typeArguments = new List<TypeRef>();
 
 		if (TakeIf(TokenKind.Less))
 		{
@@ -528,22 +542,20 @@ public sealed class GramParser
 			Expect(TokenKind.Greater);
 		}
 
-		return new ReferenceExpression(isCSharp, name, typeArguments, start, Current.Position - start);
+		return Node(new Expr.Reference(isCSharp, name, typeArguments), start);
 	}
 
-	ElementSetExpression ParseElementSet()
+	Syntax.Expression ParseElementSet()
 	{
 		var start = Current.Position;
 
 		Expect(TokenKind.OpenBracket);
 
 		var negated = TakeIf(TokenKind.Caret);
-		var items   = new List<ElementSetItem>();
+		var items   = new List<Elem>();
 
 		do
 		{
-			var itemStart = Current.Position;
-
 			switch (Current.Kind)
 			{
 				case TokenKind.Character:
@@ -554,17 +566,17 @@ public sealed class GramParser
 					if (TakeIf(TokenKind.DotDot))
 						to = At(TokenKind.Character) ? Take().Value : null;
 
-					items.Add(new CharacterRangeItem(from, to, itemStart, Current.Position - itemStart));
+					items.Add(new Elem.Chars(from, to));
 					break;
 				}
 
 				case TokenKind.UnicodeCategory:
-					items.Add(new UnicodeCategoryItem(Take().Value!, itemStart, Current.Position - itemStart));
+					items.Add(new Elem.Category(Take().Value!));
 					break;
 
 				case TokenKind.At:
 				case TokenKind.Identifier:
-					items.Add(new ReferenceItem(ParseReference(), itemStart, Current.Position - itemStart));
+					items.Add(new Elem.Ref((Expr.Reference)ParseReference().What));
 					break;
 
 				default:
@@ -577,7 +589,7 @@ public sealed class GramParser
 	done:
 		Expect(TokenKind.CloseBracket);
 
-		return new ElementSetExpression(negated, items, start, Current.Position - start);
+		return Node(new Expr.ElementSet(negated, items), start);
 	}
 
 	// ── Recovery ─────────────────────────────────────────────────────────────────

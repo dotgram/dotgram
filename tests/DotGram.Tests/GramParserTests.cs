@@ -2,7 +2,7 @@
 using System.Linq;
 
 using DotGram.Generation;
-using DotGram.Grammar.Syntax;
+using DotGram.Grammar.Parsing;
 
 using Xunit;
 
@@ -154,7 +154,7 @@ public sealed class GramParserTests
 
 		// The rules on either side still parse: recovery resumes at the next
 		// declaration rather than swallowing the rest of the file.
-		var rules = result.File.Declarations.OfType<RuleDeclaration>().Select(r => r.Name);
+		var rules = result.File.Decls.Select(d => d.What).OfType<Decl.Rule>().Select(r => r.Name);
 
 		Assert.Equal(["Good1", "Broken", "Good2"], rules);
 		Assert.NotEmpty(result.Diagnostics);
@@ -190,6 +190,6 @@ public sealed class GramParserTests
 			"""));
 
 		Assert.Empty(result.Diagnostics);
-		Assert.Equal(7, result.File.Declarations.Count);
+		Assert.Equal(7, result.File.Decls.Count);
 	}
 }

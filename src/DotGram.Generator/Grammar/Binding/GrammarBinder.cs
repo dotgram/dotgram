@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using DotGram.Grammar.Syntax;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Binding;
 
@@ -16,11 +16,10 @@ namespace DotGram.Grammar.Binding;
 /// </remarks>
 public sealed class GrammarBinder
 {
-	public const string DuplicateRule    = "GRAM3001";
-	public const string UndefinedName    = "GRAM3002";
-	public const string UnknownScope     = "GRAM3003";
-	public const string UnknownCSharp    = "GRAM3004";
-	public const string TriviaNotARule   = "GRAM3005";
+	public const string DuplicateRule  = "GRAM3001";
+	public const string UndefinedName  = "GRAM3002";
+	public const string UnknownScope   = "GRAM3003";
+	public const string UnknownCSharp  = "GRAM3004";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a scope outside the
@@ -32,7 +31,7 @@ public sealed class GrammarBinder
 	const string TriviaRule = "Trivia";
 
 	readonly ISymbolResolver                      _symbols;
-	readonly Dictionary<SyntaxNode, Symbol>       _bindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Syntax, Symbol>           _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarScope, RuleSymbol> _trivia   = [];
 	readonly List<GramDiagnostic>                 _diagnostics = [];
 
@@ -51,10 +50,10 @@ public sealed class GrammarBinder
 
 		// Declaring before resolving is what makes order irrelevant: a rule may refer to
 		// one declared further down, which mutual recursion requires anyway (§4.3).
-		binder.Declare(file.Usings, file.Declarations, global);
+		binder.Declare(file.Decls, global);
 		binder.ResolveImports(file.Usings, global);
 		binder.ResolveTrivia(global);
-		binder.Resolve(file.Declarations, global);
+		binder.Resolve(file.Decls, global);
 
 		return new GrammarModel(global, binder._bindings, binder._trivia, binder._diagnostics);
 	}
@@ -64,39 +63,38 @@ public sealed class GrammarBinder
 		var scope = new GrammarScope("<standard>", parent: null);
 
 		foreach (var name in StandardLibrary)
-			scope.TryDeclare(new RuleSymbol(name, scope, Declaration: null));
+			scope.TryDeclare(new RuleSymbol(name, scope, Node: null, Declaration: null));
 
 		return scope;
 	}
 
-	void Report(string id, string message, SyntaxNode node) =>
-		_diagnostics.Add(new GramDiagnostic(id, message, node.Position, node.Length, GramSeverity.Error));
+	void Report(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
-	void Declare(IReadOnlyList<UsingDirective> usings, IReadOnlyList<Declaration> declarations, GrammarScope scope)
+	void Declare(IReadOnlyList<Syntax.Declaration> declarations, GrammarScope scope)
 	{
-		_ = usings;
-
-		foreach (var declaration in declarations)
+		foreach (var node in declarations)
 		{
-			switch (declaration)
+			switch (node.What)
 			{
-				case RuleDeclaration rule when !scope.TryDeclare(new RuleSymbol(rule.Name, scope, rule)):
-					Report(
-						DuplicateRule,
-						$"'{rule.Name}' is already defined in this scope; put one of them in a nested scope to shadow the other.",
-						rule);
+				case Decl.Rule rule:
+
+					if (!scope.TryDeclare(new RuleSymbol(rule.Name, scope, node, rule)))
+						Report(
+							DuplicateRule,
+							$"'{rule.Name}' is already defined in this scope; put one of them in a nested scope to shadow the other.",
+							node.At);
+
 					break;
 
-				case RuleDeclaration:
-					break;
+				case Decl.Scope nested:
 
-				case ScopeDeclaration nested:
 					var child = new GrammarScope(nested.Name, scope);
 
 					scope.Add(child);
-					Declare(nested.Usings, nested.Declarations, child);
+					Declare(nested.Decls, child);
 					break;
 			}
 		}
@@ -104,7 +102,7 @@ public sealed class GrammarBinder
 
 	// ── Pass two: imports, trivia, references ────────────────────────────────────
 
-	void ResolveImports(IReadOnlyList<UsingDirective> usings, GrammarScope scope)
+	void ResolveImports(IReadOnlyList<Using> usings, GrammarScope scope)
 	{
 		foreach (var import in usings)
 		{
@@ -117,7 +115,7 @@ public sealed class GrammarBinder
 			var target = FindScope(scope, import.Name);
 
 			if (target is null)
-				Report(UnknownScope, $"No scope named '{import.Name}' is in view here.", import);
+				Report(UnknownScope, $"No scope named '{import.Name}' is in view here.", import.At);
 			else
 				scope.Import(target);
 		}
@@ -139,48 +137,46 @@ public sealed class GrammarBinder
 	/// </summary>
 	void ResolveTrivia(GrammarScope scope)
 	{
-		var trivia = scope.Lookup(TriviaRule);
-
-		if (trivia is not null)
+		if (scope.Lookup(TriviaRule) is { } trivia)
 			_trivia[scope] = trivia;
 
 		foreach (var nested in scope.Nested)
 			ResolveTrivia(nested);
 	}
 
-	void Resolve(IReadOnlyList<Declaration> declarations, GrammarScope scope)
+	void Resolve(IReadOnlyList<Syntax.Declaration> declarations, GrammarScope scope)
 	{
 		var nestedIndex = 0;
 
-		foreach (var declaration in declarations)
+		foreach (var node in declarations)
 		{
-			switch (declaration)
+			switch (node.What)
 			{
-				case RuleDeclaration rule:
+				case Decl.Rule rule:
 					ResolveRule(rule, scope);
 					break;
 
-				case ScopeDeclaration nested:
+				case Decl.Scope nested:
+
 					var child = scope.Nested[nestedIndex++];
 
 					ResolveImports(nested.Usings, child);
-					Resolve(nested.Declarations, child);
+					Resolve(nested.Decls, child);
 					break;
 
-				case PublicationDirective publication:
-					if (scope.LookupQualified(publication.RuleName) is null)
-						Report(UndefinedName, $"No rule named '{publication.RuleName}'.", publication);
+				case Decl.Publish publish when scope.LookupQualified(publish.RuleName) is null:
+					Report(UndefinedName, $"No rule named '{publish.RuleName}'.", node.At);
 					break;
 			}
 		}
 	}
 
-	void ResolveRule(RuleDeclaration rule, GrammarScope scope)
+	void ResolveRule(Decl.Rule rule, GrammarScope scope)
 	{
 		var owner      = scope.Rules[rule.Name];
 		var parameters = new Dictionary<string, ParameterSymbol>();
 
-		foreach (var parameter in rule.Parameters)
+		foreach (var parameter in rule.Params)
 		{
 			parameters[parameter.Name] = new ParameterSymbol(parameter.Name, owner);
 
@@ -198,30 +194,20 @@ public sealed class GrammarBinder
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
 	/// works in place of type parameters (§4.2).
 	/// </summary>
-	void ResolveType(TypeReference type, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
+	void ResolveType(TypeRef type, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
 	{
 		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
 		{
 			if (!_symbols.TypeExists(type.Name))
-				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type);
-			else
-				_bindings[type] = new CSharpSymbol(type.Name, Role: null);
+				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
 
 			return;
 		}
 
-		if (parameters.TryGetValue(type.Name, out var parameter))
-		{
-			_bindings[type] = parameter;
+		if (parameters.ContainsKey(type.Name) || scope.LookupQualified(type.Name) is not null)
 			return;
-		}
 
-		var rule = scope.LookupQualified(type.Name);
-
-		if (rule is null)
-			Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type);
-		else
-			_bindings[type] = rule;
+		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
 	}
 
 	static bool IsBuiltInCSharpType(string name) => name is
@@ -229,29 +215,34 @@ public sealed class GrammarBinder
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or
 		"object" or "void";
 
-	void ResolveExpression(SyntaxNode node, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
+	void ResolveExpression(Syntax node, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
 	{
 		switch (node)
 		{
-			case ReferenceExpression reference:
-				ResolveReference(reference, scope, parameters, argumentCount: 0);
-				break;
+			case Syntax.Expression(Expr.Reference reference, var at, _):
+				ResolveReference(reference, node, at, scope, parameters, argumentCount: 0);
+				return;
 
-			case CallExpression call:
-				ResolveReference(call.Target, scope, parameters, call.Arguments.Count);
+			case Syntax.Expression(Expr.Call(var target, var arguments), var at, var children):
 
-				foreach (var argument in call.Arguments)
-					ResolveExpression(argument, scope, parameters);
+				ResolveReference(target, node, at, scope, parameters, arguments.Count);
+
+				for (var i = 1; i < children.Count; i++)
+					ResolveExpression(children[i], scope, parameters);
 
 				return;
 
-			case TypeReference type:
-				ResolveType(type, scope, parameters);
+			case Syntax.Expression(Expr.ElementSet(_, var items), var at, _):
+
+				foreach (var item in items)
+					if (item is Elem.Ref(var reference))
+						ResolveReference(reference, node: null, at, scope, parameters, argumentCount: 0);
+
 				return;
 
 			// The text inside @(...) is C#, checked by the C# compiler where the
 			// generator puts it. Nothing here can say anything useful about it.
-			case CSharpExpression:
+			case Syntax.Expression(Expr.CSharp, _, _):
 				return;
 		}
 
@@ -260,7 +251,9 @@ public sealed class GrammarBinder
 	}
 
 	void ResolveReference(
-		ReferenceExpression                 reference,
+		Expr.Reference                      reference,
+		Syntax?                             node,
+		Location                            at,
 		GrammarScope                        scope,
 		Dictionary<string, ParameterSymbol> parameters,
 		int                                 argumentCount)
@@ -268,29 +261,33 @@ public sealed class GrammarBinder
 		foreach (var typeArgument in reference.TypeArguments)
 			ResolveType(typeArgument, scope, parameters);
 
+		void Bind(Symbol symbol)
+		{
+			if (node is not null)
+				_bindings[node] = symbol;
+		}
+
 		if (reference.IsCSharp)
 		{
 			if (_symbols.TryResolveMethod(reference.Name, argumentCount, out var role))
-				_bindings[reference] = new CSharpSymbol(reference.Name, role);
+				Bind(new CSharpSymbol(reference.Name, role));
 			else if (_symbols.TypeExists(reference.Name))
-				_bindings[reference] = new CSharpSymbol(reference.Name, Role: null);
+				Bind(new CSharpSymbol(reference.Name, Role: null));
 			else
-				Report(UnknownCSharp, $"No C# method or type named '{reference.Name}' is in view here.", reference);
+				Report(UnknownCSharp, $"No C# method or type named '{reference.Name}' is in view here.", at);
 
 			return;
 		}
 
 		if (parameters.TryGetValue(reference.Name, out var parameter))
 		{
-			_bindings[reference] = parameter;
+			Bind(parameter);
 			return;
 		}
 
-		var rule = scope.LookupQualified(reference.Name);
-
-		if (rule is null)
-			Report(UndefinedName, $"No rule or parameter named '{reference.Name}'.", reference);
+		if (scope.LookupQualified(reference.Name) is { } rule)
+			Bind(rule);
 		else
-			_bindings[reference] = rule;
+			Report(UndefinedName, $"No rule or parameter named '{reference.Name}'.", at);
 	}
 }

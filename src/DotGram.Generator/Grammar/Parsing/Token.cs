@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DotGram.Grammar.Syntax;
+namespace DotGram.Grammar.Parsing;
 
 /// <summary>
 /// One lexeme: what it is, where it came from, and — for the kinds that carry one —

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DotGram.Grammar.Syntax;
+namespace DotGram.Grammar.Parsing;
 
 /// <summary>
 /// Turns `.gram` source into tokens.
