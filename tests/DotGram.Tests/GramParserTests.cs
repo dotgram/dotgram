@@ -154,7 +154,7 @@ public sealed class GramParserTests
 
 		// The rules on either side still parse: recovery resumes at the next
 		// declaration rather than swallowing the rest of the file.
-		var rules = result.File.Decls.Select(d => d.What).OfType<Decl.Rule>().Select(r => r.Name);
+		var rules = result.File.Decls.OfType<Decl.Rule>().Select(r => r.Name);
 
 		Assert.Equal(["Good1", "Broken", "Good2"], rules);
 		Assert.NotEmpty(result.Diagnostics);

@@ -31,7 +31,7 @@ public sealed class GrammarBinder
 	const string TriviaRule = "Trivia";
 
 	readonly ISymbolResolver                      _symbols;
-	readonly Dictionary<Syntax, Symbol>           _bindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, Symbol>           _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarScope, RuleSymbol> _trivia   = [];
 	readonly List<GramDiagnostic>                 _diagnostics = [];
 
@@ -63,7 +63,7 @@ public sealed class GrammarBinder
 		var scope = new GrammarScope("<standard>", parent: null);
 
 		foreach (var name in StandardLibrary)
-			scope.TryDeclare(new RuleSymbol(name, scope, Node: null, Declaration: null));
+			scope.TryDeclare(new RuleSymbol(name, scope, Declaration: null));
 
 		return scope;
 	}
@@ -73,15 +73,15 @@ public sealed class GrammarBinder
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
-	void Declare(IReadOnlyList<Syntax.Declaration> declarations, GrammarScope scope)
+	void Declare(IReadOnlyList<Decl> declarations, GrammarScope scope)
 	{
 		foreach (var node in declarations)
 		{
-			switch (node.What)
+			switch (node)
 			{
 				case Decl.Rule rule:
 
-					if (!scope.TryDeclare(new RuleSymbol(rule.Name, scope, node, rule)))
+					if (!scope.TryDeclare(new RuleSymbol(rule.Name, scope, rule)))
 						Report(
 							DuplicateRule,
 							$"'{rule.Name}' is already defined in this scope; put one of them in a nested scope to shadow the other.",
@@ -144,13 +144,13 @@ public sealed class GrammarBinder
 			ResolveTrivia(nested);
 	}
 
-	void Resolve(IReadOnlyList<Syntax.Declaration> declarations, GrammarScope scope)
+	void Resolve(IReadOnlyList<Decl> declarations, GrammarScope scope)
 	{
 		var nestedIndex = 0;
 
 		foreach (var node in declarations)
 		{
-			switch (node.What)
+			switch (node)
 			{
 				case Decl.Rule rule:
 					ResolveRule(rule, scope);
@@ -165,7 +165,7 @@ public sealed class GrammarBinder
 					break;
 
 				case Decl.Publish publish when scope.LookupQualified(publish.RuleName) is null:
-					Report(UndefinedName, $"No rule named '{publish.RuleName}'.", node.At);
+					Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
 					break;
 			}
 		}
@@ -215,56 +215,57 @@ public sealed class GrammarBinder
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or
 		"object" or "void";
 
-	void ResolveExpression(Syntax node, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
+	void ResolveExpression(Expr expression, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
 	{
-		switch (node)
+		switch (expression)
 		{
-			case Syntax.Expression(Expr.Reference reference, var at, _):
-				ResolveReference(reference, node, at, scope, parameters, argumentCount: 0);
+			case Expr.Reference reference:
+				ResolveReference(reference, reference, scope, parameters, argumentCount: 0);
 				return;
 
-			case Syntax.Expression(Expr.Call(var target, var arguments), var at, var children):
+			case Expr.Call(var target, var arguments):
 
-				ResolveReference(target, node, at, scope, parameters, arguments.Count);
+				ResolveReference(target, expression, scope, parameters, arguments.Count);
 
-				for (var i = 1; i < children.Count; i++)
-					ResolveExpression(children[i], scope, parameters);
+				foreach (var argument in arguments)
+					ResolveExpression(argument, scope, parameters);
 
 				return;
 
-			case Syntax.Expression(Expr.ElementSet(_, var items), var at, _):
+			case Expr.ElementSet(_, var items):
 
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, node: null, at, scope, parameters, argumentCount: 0);
+						ResolveReference(reference, bind: null, scope, parameters, argumentCount: 0);
 
 				return;
 
 			// The text inside @(...) is C#, checked by the C# compiler where the
 			// generator puts it. Nothing here can say anything useful about it.
-			case Syntax.Expression(Expr.CSharp, _, _):
+			case Expr.CSharp:
 				return;
 		}
 
-		foreach (var child in node.Children)
+		foreach (var child in Dump.Children(expression))
 			ResolveExpression(child, scope, parameters);
 	}
 
 	void ResolveReference(
 		Expr.Reference                      reference,
-		Syntax?                             node,
-		Location                            at,
+		Expr?                               bind,
 		GrammarScope                        scope,
 		Dictionary<string, ParameterSymbol> parameters,
 		int                                 argumentCount)
 	{
+		var at = reference.At;
+
 		foreach (var typeArgument in reference.TypeArguments)
 			ResolveType(typeArgument, scope, parameters);
 
 		void Bind(Symbol symbol)
 		{
-			if (node is not null)
-				_bindings[node] = symbol;
+			if (bind is not null)
+				_bindings[bind] = symbol;
 		}
 
 		if (reference.IsCSharp)

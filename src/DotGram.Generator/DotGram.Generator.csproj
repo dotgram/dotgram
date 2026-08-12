@@ -28,6 +28,8 @@
 		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
 		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
 		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute</Polyfill>
+		<!-- `required` needs both of these on netstandard2.0. -->
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute</Polyfill>
 		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
 		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.RequiredMemberAttribute</Polyfill>
 		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
