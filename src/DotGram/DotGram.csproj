@@ -9,6 +9,7 @@
 		     Folders give the namespaces below it: Grammar/ is the Roslyn-free half,
 		     Generation/ is the shell. -->
 		<Description>Source generator that compiles .gram grammars into C# parsers.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 
 		<!-- Roslyn component: runs inside the compiler, ships as an analyzer. -->
 		<IsRoslynComponent>true</IsRoslynComponent>
@@ -49,6 +50,10 @@
 		<!-- The analyzer SDK picks these up as AdditionalFiles on its own; they only
 		     need taking out of the default None glob so they appear once. -->
 		<None Remove="AnalyzerReleases.*.md" />
+
+		<!-- The repository README is the package README: one text, so the two cannot
+		     drift into disagreeing about what this does. -->
+		<None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
 	</ItemGroup>
 
 	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time
