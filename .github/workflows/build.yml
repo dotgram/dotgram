@@ -23,8 +23,10 @@ jobs:
       - name: Build
         run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
 
+      # Detailed output names every test. Without it a failure here says only how many
+      # failed, and the log that says which is left behind on the runner.
       - name: Test
-        run: dotnet test DotGram.slnx --no-build --configuration Release
+        run: dotnet test DotGram.slnx --no-build --configuration Release -- --output Detailed
 
       - name: Pack
         run: dotnet pack src/DotGram/DotGram.csproj --no-build --configuration Release --output artifacts
