@@ -147,6 +147,31 @@ public sealed class CSharpEmitterTests
 		Assert.False(Run(grammar, "12-").Matched);
 	}
 
+	// ── The standard library (§3.1) ──────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("a\n",   true)]
+	[InlineData("a\r\n", true)]
+	[InlineData("a\r",   true)]
+	[InlineData("a",     false)]
+	public void Eol(string input, bool expected) =>
+		Assert.Equal(expected, Run("Start = 'a' & eol", input).Matched);
+
+	[Theory]
+	[InlineData("ab",  true)]
+	[InlineData("a\n", true)]
+	[InlineData("a",   false)]
+	public void Any_is_one_of_whatever(string input, bool expected) =>
+		Assert.Equal(expected, Run("Start = 'a' & any", input).Matched);
+
+	[Fact]
+	public void Eof_consumes_nothing_and_is_only_true_at_the_end() =>
+		Assert.True(Run("Start = 'a' & eof", "a").Matched);
+
+	[Fact]
+	public void None_matches_the_empty_sequence() =>
+		Assert.True(Run("Start = 'a' & none", "a").Matched);
+
 	// ── Publication (§6) ─────────────────────────────────────────────────────────
 
 	const string Digits = """

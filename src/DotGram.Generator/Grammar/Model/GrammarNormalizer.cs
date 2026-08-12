@@ -101,16 +101,54 @@ public sealed class GrammarNormalizer
 		Expr.Sequence(var operands)             => LowerSequence(operands, scope),
 		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope),
 
-		Expr.Call(var target, var arguments) => new Node.Call(
+		Expr.Call(var target, var arguments) => CallTo(
 			RuleOf(expression, target.Name),
 			[.. arguments.Select(argument => Lower(argument, scope))]),
 
 		Expr.Reference(_, var name, _) => _model.Bindings.TryGetValue(expression, out var symbol) && symbol is RuleSymbol rule
-			? new Node.Call(rule, [])
+			? CallTo(rule, [])
 			: new Node.Element(false, [], [], [symbol ?? Unresolved(name)]),
 
 		_ => Node.Empty.Instance,
 	};
+
+	/// <summary>
+	/// A call — and, the first time a built-in is called, the body it is a call to.
+	/// </summary>
+	/// <remarks>
+	/// §3.1 says <c>any</c>, <c>none</c>, <c>eol</c>, <c>eof</c> and <c>Trivia</c> are
+	/// ordinary standard-library rules rather than keywords. This is where that stops
+	/// being a claim: they are lowered into the same nodes a grammar could have written
+	/// itself, so every stage downstream — nullability, the checks, emission — treats
+	/// them as what they are and needs to know nothing about them.
+	/// <para>
+	/// Registered on demand, so a grammar that never says <c>eol</c> carries no
+	/// <c>eol</c>.
+	/// </para>
+	/// </remarks>
+	Node CallTo(RuleSymbol rule, IReadOnlyList<Node> arguments)
+	{
+		if (rule.IsBuiltIn && !_bodies.ContainsKey(rule))
+		{
+			_rules.Add(rule);
+			_bodies[rule] = BuiltInBody(rule.Name);
+		}
+
+		return new Node.Call(rule, arguments);
+	}
+
+	static Node BuiltInBody(string name) => name switch
+	{
+		"any" => AnyItem,
+		"eol" => new Node.Choice([new Node.Literal("\r\n"), new Node.Literal("\n"), new Node.Literal("\r")]),
+		"eof" => new Node.Lookahead(IsPositive: false, AnyItem),
+
+		// `none`, and `Trivia` until a grammar shadows it with one of its own (§4.5).
+		_     => Node.Empty.Instance,
+	};
+
+	/// <summary>The complement of nothing: one item, whatever it is.</summary>
+	static Node.Element AnyItem => new(IsNegated: true, [], [], []);
 
 	static (int Min, int? Max) Bounds(QuantifierKind kind, int? count) => kind switch
 	{
@@ -215,7 +253,7 @@ public sealed class GrammarNormalizer
 	/// </summary>
 	Node? TriviaFor(GrammarScope scope) =>
 		_model.Trivia.TryGetValue(scope, out var trivia) && !MatchesNothing(trivia, [])
-			? new Node.Call(trivia, [])
+			? CallTo(trivia, [])
 			: null;
 
 	/// <summary>

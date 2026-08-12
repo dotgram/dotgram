@@ -15,6 +15,9 @@ sealed class Writer(int depth)
 
 	int _depth = depth;
 
+	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
+	public int Depth => _depth;
+
 	public void Line(string text = "")
 	{
 		if (text.Length == 0)
@@ -267,15 +270,16 @@ public static class CSharpEmitter
 
 	static void EmitRule(Writer file, RecognitionGraph graph, RuleSymbol rule)
 	{
-		var functions = new List<Writer>();
-		var counter   = new Counter();
-		var entry     = Compile(graph.Bodies[rule], functions, counter);
-
 		using (file.Block($"static int {MethodOf(rule)}(global::System.ReadOnlySpan<char> text, int pos)"))
 		{
+			// Inside the block, so the local functions are written at the depth they will
+			// actually appear at rather than at a guess.
+			var functions = new Functions(file.Depth);
+			var entry     = Compile(graph.Bodies[rule], functions);
+
 			file.Line($"return {entry}(text, pos);");
 
-			foreach (var function in functions)
+			foreach (var function in functions.Written)
 			{
 				file.Line();
 				file.Append(function);
@@ -285,11 +289,29 @@ public static class CSharpEmitter
 
 	static string MethodOf(RuleSymbol rule) => $"Recognize_{rule.Name.Replace('.', '_')}";
 
-	sealed class Counter
+	/// <summary>The local functions of one rule, and where they are being written.</summary>
+	sealed class Functions(int depth)
 	{
+		readonly List<Writer> _written = [];
+
 		int _next;
 
-		public int Next() => _next++;
+		public IReadOnlyList<Writer> Written => _written;
+
+		/// <summary>
+		/// Takes the next name and a writer for it, before the body is written — so a
+		/// function's own children can be appended while it is still open.
+		/// </summary>
+		public Writer Reserve(out string name)
+		{
+			var writer = new Writer(depth);
+
+			name = "N" + _next++;
+
+			_written.Add(writer);
+
+			return writer;
+		}
 	}
 
 	// ── Nodes ────────────────────────────────────────────────────────────────────
@@ -297,22 +319,17 @@ public static class CSharpEmitter
 	/// <summary>
 	/// Emits one static local function for <paramref name="node"/> and returns its name.
 	/// </summary>
-	static string Compile(Node node, List<Writer> functions, Counter counter)
+	static string Compile(Node node, Functions functions)
 	{
-		var name   = $"N{counter.Next()}";
-		var writer = new Writer(1);
-
-		// Reserved before the body is written, so nested functions can be appended
-		// while this one is still open.
-		functions.Add(writer);
+		var writer = functions.Reserve(out var name);
 
 		using (writer.Block($"static int {name}(global::System.ReadOnlySpan<char> text, int p)"))
-			Write(writer, node, functions, counter);
+			Write(writer, node, functions);
 
 		return name;
 	}
 
-	static void Write(Writer writer, Node node, List<Writer> functions, Counter counter)
+	static void Write(Writer writer, Node node, Functions functions)
 	{
 		switch (node)
 		{
@@ -346,7 +363,7 @@ public static class CSharpEmitter
 
 				foreach (var child in nodes)
 				{
-					writer.Line($"p = {Compile(child, functions, counter)}(text, p);");
+					writer.Line($"p = {Compile(child, functions)}(text, p);");
 					writer.Line();
 					writer.Line("if (p < 0)");
 					writer.Then("return -1;");
@@ -362,7 +379,7 @@ public static class CSharpEmitter
 				// position and none of them commits (docs/syntax.md §10).
 				for (var i = 0; i < nodes.Count; i++)
 				{
-					writer.Line($"var r{i} = {Compile(nodes[i], functions, counter)}(text, p);");
+					writer.Line($"var r{i} = {Compile(nodes[i], functions)}(text, p);");
 					writer.Line();
 					writer.Line($"if (r{i} >= 0)");
 					writer.Then($"return r{i};");
@@ -374,7 +391,7 @@ public static class CSharpEmitter
 
 			case Node.Repeat(var repeated, var min, var max):
 
-				var body = Compile(repeated, functions, counter);
+				var body = Compile(repeated, functions);
 
 				writer.Line("var count = 0;");
 				writer.Line();
@@ -403,16 +420,16 @@ public static class CSharpEmitter
 			// Transparent for now: a rule's value is the text it matched, so a capture
 			// and its construction have nothing to do yet.
 			case Node.Capture(_, var captured):
-				writer.Line($"return {Compile(captured, functions, counter)}(text, p);");
+				writer.Line($"return {Compile(captured, functions)}(text, p);");
 				break;
 
 			case Node.Construct(var built, _):
-				writer.Line($"return {Compile(built, functions, counter)}(text, p);");
+				writer.Line($"return {Compile(built, functions)}(text, p);");
 				break;
 
 			case Node.Lookahead(var positive, var ahead):
 
-				writer.Line($"var matched = {Compile(ahead, functions, counter)}(text, p) >= 0;");
+				writer.Line($"var matched = {Compile(ahead, functions)}(text, p) >= 0;");
 				writer.Line();
 				writer.Line($"return matched == {(positive ? "true" : "false")} ? p : -1;");
 				break;
