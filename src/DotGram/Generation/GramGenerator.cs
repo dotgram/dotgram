@@ -260,16 +260,32 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		Location? Location)
 	{
-		/// <summary>The class the grammar is looked up by — the innermost one.</summary>
+		/// <summary>
+		/// The class the grammar is looked up by: the innermost one, without its type
+		/// parameters — <c>Parser&lt;T&gt;</c> looks for <c>Parser.gram</c>.
+		/// </summary>
 		public string SimpleName
 		{
 			get
 			{
-				var dot = ClassName.LastIndexOf('.');
+				// The innermost class first, then its type parameters: a type parameter
+				// list never contains a dot, but a nested name does.
+				var name = ClassName;
+				var dot  = name.LastIndexOf('.');
 
-				return dot < 0 ? ClassName : ClassName.Substring(dot + 1);
+				if (dot >= 0)
+					name = name.Substring(dot + 1);
+
+				var angle = name.IndexOf('<');
+
+				return angle < 0 ? name : name.Substring(0, angle);
 			}
 		}
+
+		static string TypeParametersOf(ClassDeclarationSyntax declaration) =>
+			declaration.TypeParameterList is { Parameters.Count: > 0 } parameters
+				? "<" + string.Join(", ", parameters.Parameters.Select(static p => p.Identifier.ValueText)) + ">"
+				: "";
 
 		public static Host From(GeneratorAttributeSyntaxContext candidate)
 		{
@@ -289,7 +305,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			for (var node = declaration; node is not null; node = node.Parent as ClassDeclarationSyntax)
 			{
-				names.Insert(0, node.Identifier.ValueText);
+				// With the type parameters: a partial declaration has to name them the
+				// same way, or it declares a different type. Their constraints do not
+				// have to be repeated, and are not.
+				names.Insert(0, node.Identifier.ValueText + TypeParametersOf(node));
 				isPartial &= node.Modifiers.Any(modifier => modifier.ValueText == "partial");
 			}
 

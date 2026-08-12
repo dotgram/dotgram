@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No version here: global.json pins it, so what CI builds with is what the
+      # repository says, and changing it is a commit rather than a workflow edit.
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore DotGram.slnx
+
+      - name: Build
+        run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
+
+      - name: Test
+        run: dotnet test DotGram.slnx --no-build --configuration Release
+
+      - name: Pack
+        run: dotnet pack src/DotGram/DotGram.csproj --no-build --configuration Release --output artifacts
+
+      # The package ships one assembly, in the analyzer folder, and nothing in lib/.
+      # A stray lib/ entry would make consumers reference the generator instead of
+      # loading it — the failure would surface as a mysterious dependency, not here.
+      - name: Check the shape of the package
+        shell: bash
+        run: |
+          cd artifacts
+          unzip -o -q *.nupkg -d contents
+          cd contents
+          test -f analyzers/dotnet/cs/DotGram.dll || { echo "analyzer assembly missing"; exit 1; }
+          test -f README.md                      || { echo "readme missing";            exit 1; }
+          if [ -d lib ]; then echo "package has a lib/ folder:"; find lib -type f; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg

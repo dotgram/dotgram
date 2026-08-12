@@ -126,6 +126,36 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void A_generic_host_keeps_its_type_parameters()
+	{
+		// Without them the generated half declares a different type, and the consumer
+		// gets an error about a partial class they did write correctly.
+		var source = GetGeneratedSource(
+			RunGenerator(
+				"public partial class Outer<T>\n" +
+				"{\n" +
+				"	[DotGram.Gram(" + DigitsLiteral + ")]\n" +
+				"	public partial class Inner<U>;\n" +
+				"}"),
+			"Outer_T_.Inner_U_.g.cs");
+
+		Assert.Contains("partial class Outer<T>", source, StringComparison.Ordinal);
+		Assert.Contains("partial class Inner<U>", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_generic_host_looks_for_the_file_named_after_the_class_alone()
+	{
+		var source = GetGeneratedSource(
+			RunGenerator(
+				"[DotGram.Gram] public partial class Numbers<T>;",
+				("/proj/Numbers.gram", Digits)),
+			"Numbers_T_.g.cs");
+
+		Assert.Contains("ParseDigits", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void A_host_that_is_not_partial_is_told_so() =>
 		AssertDiagnostic("GRAM0002", RunGenerator(
 			"[DotGram.Gram] public class Numbers { }",

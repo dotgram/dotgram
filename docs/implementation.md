@@ -6,7 +6,13 @@ something below turns out to be inconvenient, this is what changes, not the nota
 
 Almost everything here is borrowed from [Nitra](https://github.com/rsdn/nitra), a
 project of the same lineage (RSDN/Nemerle) solving a larger version of the same
-problem. File references are given so the working code can be checked against.
+problem. File references into it are paths in that repository, given so the working
+code can be checked against; it has not moved in years, so they are left unpinned.
+
+References to **Roc** are to an earlier unpublished project of my own. They are kept
+because the reasoning they carry is worth having — particularly one mistake in it that
+this design deliberately does not repeat (§5) — and they are named rather than linked
+because there is nothing to link to.
 
 ---
 
@@ -151,7 +157,7 @@ choice — which matters more now that ordered choice backtracks fully and there
 commit point to cut it short (§7). Most alternatives never get tried at all.
 
 What makes it cheap is normalization done first, and Roc's macro is where to take that
-from (`P:\OldProjects\Roc\Macros\BnfMacro.n:550-602`): single-character alternatives
+from — an unpublished Nemerle BNF macro, whose fold was: single-character alternatives
 and ranges are separated out, sorted by first character, then merged — `'a' | 'b'`
 into `'a'..'b'`, a range absorbing anything it contains, duplicates dropped. After
 that an alternative's first-character bounds are already computed.
@@ -159,7 +165,7 @@ that an alternative's first-character bounds are already computed.
 **What not to take from there is the reordering.** Roc moves the single-character
 alternatives ahead of everything else, which silently changes ordered choice:
 `"ab" | 'a'` becomes `'a' | "ab"` and the second is then unreachable. It never bit
-because Roc's structural generator was a stub (`BnfMacro.n:820`) and its character
+because Roc's structural generator was a stub and its character
 tests compile to `c == 'a' || …`, where order cannot matter — the multi-character case
 was never executed. Merging is safe exactly where the match length is fixed at one
 item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §10).

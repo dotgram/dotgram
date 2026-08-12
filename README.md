@@ -3,8 +3,11 @@
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
 > **Early work.** The pipeline runs end to end and the parsers it produces are real,
-> but a rule's value is still the text it matched — typed results are not built yet.
-> Nothing here is ready to depend on. See [Where it stands](#where-it-stands).
+> but a rule's value is still the text it matched, and backtracking is not yet as
+> complete as the language requires. Nothing here is ready to depend on.
+>
+> The language specification below describes the target language. Not every specified
+> feature is implemented — [`docs/status.md`](docs/status.md) says which are.
 
 ## What it looks like
 
@@ -68,11 +71,21 @@ Working end to end — a `.gram` file becomes a parser that runs:
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own
 - all four publication directives, and diagnostics that point into the `.gram` file
 
+Known wrong — not missing, but not matching the specification:
+
+- **backtracking is not full.** A choice retries its own alternatives, but once a
+  repetition or an alternative has returned a length, nothing later in the sequence can
+  ask it for another one. So `'a'? & 'a'` does not match `"a"`.
+  [`docs/status.md`](docs/status.md) has the detail; it is the next thing to fix, and
+  nothing that depends on execution order should be built before it.
+
 Not built yet:
 
 - **typed results** — captures and `=>` parse and normalize, but a rule's value is
   still the matched text, so every published method returns `string`
 - `where` guards and `@(...)` C# interop at run time
+- parameterized rules: `R(n)` is in the specification and does not parse
+- C# name resolution beyond "the name exists"
 - diagnostics beyond "it did not match": the furthest failure position and the set of
   what was expected are next
 - the recovery engine, streaming input, incremental parsing
@@ -83,8 +96,10 @@ Not built yet:
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | the language: the notation and its bond with C# |
 | [`docs/implementation.md`](docs/implementation.md) | the engine: what is being built, and in what order |
+| [`docs/status.md`](docs/status.md) | what actually works, feature by pipeline stage |
 
-Nothing decided in the second is a decision about the first.
+Nothing decided in the second is a decision about the first. The third is the only one
+that describes today.
 
 ## Building
 

@@ -3,6 +3,10 @@
 The engine plan lives in [`implementation.md`](implementation.md). Nothing decided
 there is a decision about the language.
 
+**This is a specification, not a report.** It says what `.Gram` is, in the present
+tense, whether or not the compiler does it yet — and today a good deal of it does not.
+[`status.md`](status.md) says which parts are real.
+
 `.Gram` is a typed recognition notation for .NET. A grammar describes how a stream
 of `TIn` input items becomes a typed `TOut` result; a source generator turns it into
 ordinary C#.
@@ -967,10 +971,6 @@ paper. None of it requires changing the notation above.
   by the retention analysis of §6.2, which restricts what may stream without changing
   what anything means.
 
-**Decided in substance, awaiting a prototype.**
-
-- **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
-  rule and ordinary shadowing.
 - **Keyword boundaries** — §4.6, the same mechanism again.
 
 **Deferred, with the reason.**
