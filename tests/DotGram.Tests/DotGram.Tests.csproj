@@ -17,14 +17,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- Snapshots are fixtures, not sources: a .g.cs in there is what the emitter is
-		     expected to produce, and compiling it into this assembly would be nonsense.
-		     Kept with the .cs extension anyway, because reading it is the point. -->
-		<Compile Remove="Snapshots\**" />
-		<None Include="Snapshots\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="xunit.v3" Version="3.2.2" />
 		<!-- Test Explorer only. `dotnet test` goes through Microsoft.Testing.Platform
 		     and needs neither this nor Microsoft.NET.Test.Sdk. -->

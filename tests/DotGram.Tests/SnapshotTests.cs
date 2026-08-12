@@ -76,10 +76,19 @@ public sealed class SnapshotTests
 	static string Normalize(string text) => text.Replace("\r\n", "\n").TrimEnd();
 
 	/// <summary>
-	/// Where the snapshots live in the source tree, not in the output directory —
-	/// updating one has to change the file that is committed.
+	/// Where the snapshots live.
 	/// </summary>
-	static string Directory => Path.Combine(Path.GetDirectoryName(ThisFile)!, "Snapshots");
+	/// <remarks>
+	/// In the source tree rather than the output directory, because updating one has to
+	/// change the file that is committed — a snapshot nobody can diff is not a snapshot.
+	/// <para>
+	/// Beside the test project rather than inside it: an expected <c>.g.cs</c> is a
+	/// fixture, and a fixture inside a compiled project has to be excluded from
+	/// compilation and told apart from the real generated files that land in
+	/// <c>obj/GeneratedFiles</c>. Out here it is neither, and no csproj has to say so.
+	/// </para>
+	/// </remarks>
+	static string Directory => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!, "Snapshots");
 
 	static string ThisFile { get; } = FilePath();
 

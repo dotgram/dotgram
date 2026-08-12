@@ -81,6 +81,8 @@ src/
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer
+	Snapshots/            a grammar and the file it must compile into, checked in so
+	                      a change to code generation shows up as a diff
 .work/                    scratch, ignored by git
 ```
 
