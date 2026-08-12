@@ -776,7 +776,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Host = (IPv4 | RegName)
+		// Host = (IPLiteral | IPv4 | RegName)
 		static int Recognize_Host(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -785,7 +785,7 @@ namespace DotGram.Snapshots
 			var saved = 0;
 			var p     = pos;
 			var r     = 0;
-			var state = 4;
+			var state = 6;
 
 			while (true)
 			{
@@ -832,6 +832,22 @@ namespace DotGram.Snapshots
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 3;
+
+					case 5:
+						// IPLiteral
+						r = Recognize_IPLiteral(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 6:
+						// IPLiteral — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 5;
 
 					default:
 						return -1;
@@ -1185,6 +1201,1291 @@ namespace DotGram.Snapshots
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 9;
+
+					default:
+						return -1;
+				}
+			}
+		}
+
+		// IPLiteral = '[' & IPv6 & ']'
+		static int Recognize_IPLiteral(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p     = pos;
+			var r     = 0;
+			var state = 4;
+
+			switch (state)
+			{
+				case 0:
+					return p;
+
+				case 1:
+					return -1;
+
+				case 2:
+					// ']'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != ']')
+						goto case 1;
+					p += 1;
+					goto case 0;
+
+				case 3:
+					// IPv6
+					r = Recognize_IPv6(text, p);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 2;
+
+				case 4:
+					// '['
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != '[')
+						goto case 1;
+					p += 1;
+					goto case 3;
+
+				default:
+					return -1;
+			}
+		}
+
+		// IPv6 = (H16 & ':'{6} & LS32 | "::" & H16 & ':'{5} & LS32 | H16? & "::" & H16 & ':'{4} & LS32
+		//     | Group? & H16? & "::" & H16 & ':'{3} & LS32 | Group{0,2} & H16? & "::" & H16 & ':'{2} &
+		//     LS32 | Group{0,3} & H16? & "::" & H16 & ':' & LS32 | Group{0,4} & H16? & "::" & LS32 |
+		//     Group{0,5} & H16? & "::" & H16 | Group{0,6} & H16? & "::")
+		static int Recognize_IPv6(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			global::System.Span<int> bt = stackalloc int[48];
+
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var c1    = 0;
+			var c2    = 0;
+			var c3    = 0;
+			var c4    = 0;
+			var c5    = 0;
+			var c6    = 0;
+			var c7    = 0;
+			var c8    = 0;
+			var c9    = 0;
+			var c10    = 0;
+			var c11    = 0;
+			var c12    = 0;
+			var c13    = 0;
+			var c14    = 0;
+			var c15    = 0;
+			var c16    = 0;
+			var c17    = 0;
+			var state = 122;
+
+			while (true)
+			{
+				switch (state)
+				{
+					case 0:
+						return p;
+
+					case 1:
+						if (sp == 0)
+							return -1;
+
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 0;
+
+					case 3:
+						// Group{0,6} & H16? — stop, and check the count
+						c0 = saved;
+
+						goto case 2;
+
+					case 4:
+						// Group{0,6} & H16? — take another, or leave stopping open
+						if (c0 >= 1)
+						{
+							saved = c0;
+							goto case 3;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 3; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 11;
+
+					case 5:
+						// Group{0,6} & H16? — one more taken
+						c0++;
+						goto case 4;
+
+					case 6:
+						// Group{0,6} & H16? — start counting
+						c0 = 0;
+						goto case 4;
+
+					case 7:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 5;
+
+					case 8:
+						// Group{0,6} — stop, and check the count
+						c1 = saved;
+
+						goto case 7;
+
+					case 9:
+						// Group{0,6} — take another, or leave stopping open
+						if (c1 >= 6)
+						{
+							saved = c1;
+							goto case 8;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 12;
+
+					case 10:
+						// Group{0,6} — one more taken
+						c1++;
+						goto case 9;
+
+					case 11:
+						// Group{0,6} — start counting
+						c1 = 0;
+						goto case 9;
+
+					case 12:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 10;
+
+					case 13:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 14:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 13;
+
+					case 15:
+						// Group{0,5} & H16? — stop, and check the count
+						c2 = saved;
+
+						goto case 14;
+
+					case 16:
+						// Group{0,5} & H16? — take another, or leave stopping open
+						if (c2 >= 1)
+						{
+							saved = c2;
+							goto case 15;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 15; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
+						goto case 23;
+
+					case 17:
+						// Group{0,5} & H16? — one more taken
+						c2++;
+						goto case 16;
+
+					case 18:
+						// Group{0,5} & H16? — start counting
+						c2 = 0;
+						goto case 16;
+
+					case 19:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 17;
+
+					case 20:
+						// Group{0,5} — stop, and check the count
+						c3 = saved;
+
+						goto case 19;
+
+					case 21:
+						// Group{0,5} — take another, or leave stopping open
+						if (c3 >= 5)
+						{
+							saved = c3;
+							goto case 20;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 20; bt[sp + 1] = p; bt[sp + 2] = c3; sp += 3;
+						goto case 24;
+
+					case 22:
+						// Group{0,5} — one more taken
+						c3++;
+						goto case 21;
+
+					case 23:
+						// Group{0,5} — start counting
+						c3 = 0;
+						goto case 21;
+
+					case 24:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 22;
+
+					case 25:
+						// Group{0,5} & H16? & "::" & H16 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 18;
+
+					case 26:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 27:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 26;
+
+					case 28:
+						// Group{0,4} & H16? — stop, and check the count
+						c4 = saved;
+
+						goto case 27;
+
+					case 29:
+						// Group{0,4} & H16? — take another, or leave stopping open
+						if (c4 >= 1)
+						{
+							saved = c4;
+							goto case 28;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 28; bt[sp + 1] = p; bt[sp + 2] = c4; sp += 3;
+						goto case 36;
+
+					case 30:
+						// Group{0,4} & H16? — one more taken
+						c4++;
+						goto case 29;
+
+					case 31:
+						// Group{0,4} & H16? — start counting
+						c4 = 0;
+						goto case 29;
+
+					case 32:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 30;
+
+					case 33:
+						// Group{0,4} — stop, and check the count
+						c5 = saved;
+
+						goto case 32;
+
+					case 34:
+						// Group{0,4} — take another, or leave stopping open
+						if (c5 >= 4)
+						{
+							saved = c5;
+							goto case 33;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 33; bt[sp + 1] = p; bt[sp + 2] = c5; sp += 3;
+						goto case 37;
+
+					case 35:
+						// Group{0,4} — one more taken
+						c5++;
+						goto case 34;
+
+					case 36:
+						// Group{0,4} — start counting
+						c5 = 0;
+						goto case 34;
+
+					case 37:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 35;
+
+					case 38:
+						// Group{0,4} & H16? & "::" & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 25; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 31;
+
+					case 39:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 40:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 39;
+
+					case 41:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 40;
+
+					case 42:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 41;
+
+					case 43:
+						// Group{0,3} & H16? — stop, and check the count
+						c6 = saved;
+
+						goto case 42;
+
+					case 44:
+						// Group{0,3} & H16? — take another, or leave stopping open
+						if (c6 >= 1)
+						{
+							saved = c6;
+							goto case 43;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 43; bt[sp + 1] = p; bt[sp + 2] = c6; sp += 3;
+						goto case 51;
+
+					case 45:
+						// Group{0,3} & H16? — one more taken
+						c6++;
+						goto case 44;
+
+					case 46:
+						// Group{0,3} & H16? — start counting
+						c6 = 0;
+						goto case 44;
+
+					case 47:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 45;
+
+					case 48:
+						// Group{0,3} — stop, and check the count
+						c7 = saved;
+
+						goto case 47;
+
+					case 49:
+						// Group{0,3} — take another, or leave stopping open
+						if (c7 >= 3)
+						{
+							saved = c7;
+							goto case 48;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 48; bt[sp + 1] = p; bt[sp + 2] = c7; sp += 3;
+						goto case 52;
+
+					case 50:
+						// Group{0,3} — one more taken
+						c7++;
+						goto case 49;
+
+					case 51:
+						// Group{0,3} — start counting
+						c7 = 0;
+						goto case 49;
+
+					case 52:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 50;
+
+					case 53:
+						// Group{0,3} & H16? & "::" & H16 & ':' & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 38; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 46;
+
+					case 54:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 55:
+						// H16 & ':'{2} — stop, and check the count
+						c8 = saved;
+
+						if (c8 < 2)
+							goto case 1;
+
+						goto case 54;
+
+					case 56:
+						// H16 & ':'{2} — take another, or leave stopping open
+						if (c8 >= 2)
+						{
+							saved = c8;
+							goto case 55;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 55; bt[sp + 1] = p; bt[sp + 2] = c8; sp += 3;
+						goto case 60;
+
+					case 57:
+						// H16 & ':'{2} — one more taken
+						c8++;
+						goto case 56;
+
+					case 58:
+						// H16 & ':'{2} — start counting
+						c8 = 0;
+						goto case 56;
+
+					case 59:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 57;
+
+					case 60:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 59;
+
+					case 61:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 58;
+
+					case 62:
+						// Group{0,2} & H16? — stop, and check the count
+						c9 = saved;
+
+						goto case 61;
+
+					case 63:
+						// Group{0,2} & H16? — take another, or leave stopping open
+						if (c9 >= 1)
+						{
+							saved = c9;
+							goto case 62;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 62; bt[sp + 1] = p; bt[sp + 2] = c9; sp += 3;
+						goto case 70;
+
+					case 64:
+						// Group{0,2} & H16? — one more taken
+						c9++;
+						goto case 63;
+
+					case 65:
+						// Group{0,2} & H16? — start counting
+						c9 = 0;
+						goto case 63;
+
+					case 66:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 64;
+
+					case 67:
+						// Group{0,2} — stop, and check the count
+						c10 = saved;
+
+						goto case 66;
+
+					case 68:
+						// Group{0,2} — take another, or leave stopping open
+						if (c10 >= 2)
+						{
+							saved = c10;
+							goto case 67;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 67; bt[sp + 1] = p; bt[sp + 2] = c10; sp += 3;
+						goto case 71;
+
+					case 69:
+						// Group{0,2} — one more taken
+						c10++;
+						goto case 68;
+
+					case 70:
+						// Group{0,2} — start counting
+						c10 = 0;
+						goto case 68;
+
+					case 71:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 69;
+
+					case 72:
+						// Group{0,2} & H16? & "::" & H16 & ':'{2} & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 53; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 65;
+
+					case 73:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 74:
+						// H16 & ':'{3} — stop, and check the count
+						c11 = saved;
+
+						if (c11 < 3)
+							goto case 1;
+
+						goto case 73;
+
+					case 75:
+						// H16 & ':'{3} — take another, or leave stopping open
+						if (c11 >= 3)
+						{
+							saved = c11;
+							goto case 74;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 74; bt[sp + 1] = p; bt[sp + 2] = c11; sp += 3;
+						goto case 79;
+
+					case 76:
+						// H16 & ':'{3} — one more taken
+						c11++;
+						goto case 75;
+
+					case 77:
+						// H16 & ':'{3} — start counting
+						c11 = 0;
+						goto case 75;
+
+					case 78:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 76;
+
+					case 79:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 78;
+
+					case 80:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 77;
+
+					case 81:
+						// Group? & H16? — stop, and check the count
+						c12 = saved;
+
+						goto case 80;
+
+					case 82:
+						// Group? & H16? — take another, or leave stopping open
+						if (c12 >= 1)
+						{
+							saved = c12;
+							goto case 81;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 81; bt[sp + 1] = p; bt[sp + 2] = c12; sp += 3;
+						goto case 89;
+
+					case 83:
+						// Group? & H16? — one more taken
+						c12++;
+						goto case 82;
+
+					case 84:
+						// Group? & H16? — start counting
+						c12 = 0;
+						goto case 82;
+
+					case 85:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 83;
+
+					case 86:
+						// Group? — stop, and check the count
+						c13 = saved;
+
+						goto case 85;
+
+					case 87:
+						// Group? — take another, or leave stopping open
+						if (c13 >= 1)
+						{
+							saved = c13;
+							goto case 86;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 86; bt[sp + 1] = p; bt[sp + 2] = c13; sp += 3;
+						goto case 90;
+
+					case 88:
+						// Group? — one more taken
+						c13++;
+						goto case 87;
+
+					case 89:
+						// Group? — start counting
+						c13 = 0;
+						goto case 87;
+
+					case 90:
+						// Group
+						r = Recognize_Group(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 88;
+
+					case 91:
+						// Group? & H16? & "::" & H16 & ':'{3} & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 72; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 84;
+
+					case 92:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 93:
+						// H16 & ':'{4} — stop, and check the count
+						c14 = saved;
+
+						if (c14 < 4)
+							goto case 1;
+
+						goto case 92;
+
+					case 94:
+						// H16 & ':'{4} — take another, or leave stopping open
+						if (c14 >= 4)
+						{
+							saved = c14;
+							goto case 93;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 93; bt[sp + 1] = p; bt[sp + 2] = c14; sp += 3;
+						goto case 98;
+
+					case 95:
+						// H16 & ':'{4} — one more taken
+						c14++;
+						goto case 94;
+
+					case 96:
+						// H16 & ':'{4} — start counting
+						c14 = 0;
+						goto case 94;
+
+					case 97:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 95;
+
+					case 98:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 97;
+
+					case 99:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 96;
+
+					case 100:
+						// H16? — stop, and check the count
+						c15 = saved;
+
+						goto case 99;
+
+					case 101:
+						// H16? — take another, or leave stopping open
+						if (c15 >= 1)
+						{
+							saved = c15;
+							goto case 100;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 100; bt[sp + 1] = p; bt[sp + 2] = c15; sp += 3;
+						goto case 104;
+
+					case 102:
+						// H16? — one more taken
+						c15++;
+						goto case 101;
+
+					case 103:
+						// H16? — start counting
+						c15 = 0;
+						goto case 101;
+
+					case 104:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 102;
+
+					case 105:
+						// H16? & "::" & H16 & ':'{4} & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 91; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 103;
+
+					case 106:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 107:
+						// H16 & ':'{5} — stop, and check the count
+						c16 = saved;
+
+						if (c16 < 5)
+							goto case 1;
+
+						goto case 106;
+
+					case 108:
+						// H16 & ':'{5} — take another, or leave stopping open
+						if (c16 >= 5)
+						{
+							saved = c16;
+							goto case 107;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 107; bt[sp + 1] = p; bt[sp + 2] = c16; sp += 3;
+						goto case 112;
+
+					case 109:
+						// H16 & ':'{5} — one more taken
+						c16++;
+						goto case 108;
+
+					case 110:
+						// H16 & ':'{5} — start counting
+						c16 = 0;
+						goto case 108;
+
+					case 111:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 109;
+
+					case 112:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 111;
+
+					case 113:
+						// "::"
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						if (text[p + 1] != ':')
+							goto case 1;
+						p += 2;
+						goto case 110;
+
+					case 114:
+						// "::" & H16 & ':'{5} & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 105; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 113;
+
+					case 115:
+						// LS32
+						r = Recognize_LS32(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 116:
+						// H16 & ':'{6} — stop, and check the count
+						c17 = saved;
+
+						if (c17 < 6)
+							goto case 1;
+
+						goto case 115;
+
+					case 117:
+						// H16 & ':'{6} — take another, or leave stopping open
+						if (c17 >= 6)
+						{
+							saved = c17;
+							goto case 116;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 116; bt[sp + 1] = p; bt[sp + 2] = c17; sp += 3;
+						goto case 121;
+
+					case 118:
+						// H16 & ':'{6} — one more taken
+						c17++;
+						goto case 117;
+
+					case 119:
+						// H16 & ':'{6} — start counting
+						c17 = 0;
+						goto case 117;
+
+					case 120:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 118;
+
+					case 121:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 120;
+
+					case 122:
+						// H16 & ':'{6} & LS32 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 114; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 119;
+
+					default:
+						return -1;
+				}
+			}
+		}
+
+		// Group = H16 & ':'
+		static int Recognize_Group(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p     = pos;
+			var r     = 0;
+			var state = 3;
+
+			switch (state)
+			{
+				case 0:
+					return p;
+
+				case 1:
+					return -1;
+
+				case 2:
+					// ':'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != ':')
+						goto case 1;
+					p += 1;
+					goto case 0;
+
+				case 3:
+					// H16
+					r = Recognize_H16(text, p);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 2;
+
+				default:
+					return -1;
+			}
+		}
+
+		// LS32 = (H16 & ':' & H16 | IPv4)
+		static int Recognize_LS32(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			global::System.Span<int> bt = stackalloc int[48];
+
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var state = 6;
+
+			while (true)
+			{
+				switch (state)
+				{
+					case 0:
+						return p;
+
+					case 1:
+						if (sp == 0)
+							return -1;
+
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						// IPv4
+						r = Recognize_IPv4(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 3:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 4:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 3;
+
+					case 5:
+						// H16
+						r = Recognize_H16(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 4;
+
+					case 6:
+						// H16 & ':' & H16 — try this one, or the next
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 5;
+
+					default:
+						return -1;
+				}
+			}
+		}
+
+		// H16 = Hex{1,4}
+		static int Recognize_H16(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			global::System.Span<int> bt = stackalloc int[48];
+
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var state = 5;
+
+			while (true)
+			{
+				switch (state)
+				{
+					case 0:
+						return p;
+
+					case 1:
+						if (sp == 0)
+							return -1;
+
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						// Hex{1,4} — stop, and check the count
+						c0 = saved;
+
+						if (c0 < 1)
+							goto case 1;
+
+						goto case 0;
+
+					case 3:
+						// Hex{1,4} — take another, or leave stopping open
+						if (c0 >= 4)
+						{
+							saved = c0;
+							goto case 2;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 6;
+
+					case 4:
+						// Hex{1,4} — one more taken
+						c0++;
+						goto case 3;
+
+					case 5:
+						// Hex{1,4} — start counting
+						c0 = 0;
+						goto case 3;
+
+					case 6:
+						// Hex
+						r = Recognize_Hex(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 4;
 
 					default:
 						return -1;

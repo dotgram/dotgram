@@ -16,12 +16,38 @@ Scheme     = "https" | "http" | "ftp"
 // whole of "is there a userinfo here" — no lookahead, no ordering trick.
 Authority  = user: UserInfo? & host: Host & port: Port?
 UserInfo   = (Unreserved | SubDelim | PctEncoded | ':')+ & '@'
-Host       = IPv4 | RegName
+Host       = IPLiteral | IPv4 | RegName
 Port       = ':' & Digit+
 
 IPv4       = Octet & '.' & Octet & '.' & Octet & '.' & Octet
 Octet      = Digit{1,3}
 RegName    = (Unreserved | SubDelim | PctEncoded)+
+
+// RFC 3986 verbatim, nine alternatives and all. It is written this way because `::`
+// stands for a run of zero groups whose length is only known from how many groups are
+// on either side — there is no way to say that except by enumerating the cases.
+//
+// Nothing here works without backtracking. Every alternative shares a prefix with the
+// ones around it, and the optional part in front of `::` is a greedy run that has to
+// hand groups back one at a time until what follows fits. Written against the previous
+// recognizer this rule would have matched almost nothing.
+//
+// (IPvFuture — `[v7.whatever]` — is left out. It has never been assigned.)
+IPLiteral  = '[' & IPv6 & ']'
+
+IPv6       =                                 (H16 & ':'){6} & LS32
+           |                          "::" & (H16 & ':'){5} & LS32
+           | H16?                   & "::" & (H16 & ':'){4} & LS32
+           | (Group{0,1} & H16)?    & "::" & (H16 & ':'){3} & LS32
+           | (Group{0,2} & H16)?    & "::" & (H16 & ':'){2} & LS32
+           | (Group{0,3} & H16)?    & "::" & (H16 & ':')    & LS32
+           | (Group{0,4} & H16)?    & "::" & LS32
+           | (Group{0,5} & H16)?    & "::" & H16
+           | (Group{0,6} & H16)?    & "::"
+
+Group      = H16 & ':'
+LS32       = (H16 & ':' & H16) | IPv4
+H16        = Hex{1,4}
 
 Path       = ('/' & Segment)*
 Segment    = (Unreserved | SubDelim | PctEncoded | ':' | '@')*

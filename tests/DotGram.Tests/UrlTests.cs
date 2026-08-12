@@ -61,6 +61,40 @@ public sealed class UrlTests
 	[InlineData("https://example.com/a#b#c", "two fragments")]
 	public void Refuses(string url, string why) => Assert.False(Match(url), why);
 
+	[Theory]
+	[InlineData("https://[2001:db8:85a3:8d3:1319:8a2e:370:7348]",   "eight groups, none elided")]
+	[InlineData("https://[2001:db8::1]",                            "a run elided in the middle")]
+	[InlineData("https://[::1]",                                    "the loopback")]
+	[InlineData("https://[::]",                                     "all of it elided")]
+	[InlineData("https://[1::]",                                    "elided at the end")]
+	[InlineData("https://[::8]",                                    "elided at the start")]
+	[InlineData("https://[1:2:3:4:5:6:7:8]",                        "the plain eight")]
+	[InlineData("https://[1:2:3:4:5:6::8]",                         "one group elided")]
+	[InlineData("https://[1:2:3:4:5::7:8]",                         "elided with groups after")]
+	[InlineData("https://[fe80::1]:8080",                           "with a port after the bracket")]
+	[InlineData("https://[::ffff:192.0.2.1]",                       "an IPv4 tail")]
+	[InlineData("https://[64:ff9b::192.0.2.33]",                    "an IPv4 tail after groups")]
+	[InlineData("https://[2001:db8::1]/a/b?q=1#f",                  "the rest of the URL still follows")]
+	public void Parses_an_address_literal(string url, string what) => Assert.True(Match(url), what);
+
+	[Theory]
+	[InlineData("https://[2001:db8:85a3:8d3:1319:8a2e:370:7348:9]", "nine groups")]
+	[InlineData("https://[1:2:3:4:5:6:7]",                          "seven groups and no elision")]
+	[InlineData("https://[12345::1]",                               "five hex digits in a group")]
+	[InlineData("https://[1:::2]",                                  "three colons")]
+	[InlineData("https://[gggg::1]",                                "not hexadecimal")]
+	[InlineData("https://[::1",                                     "no closing bracket")]
+	[InlineData("https://2001:db8::1",                              "an address literal without its brackets")]
+	public void Refuses_a_bad_address_literal(string url, string why) => Assert.False(Match(url), why);
+
+	[Fact]
+	public void The_elision_is_where_backtracking_earns_its_keep() =>
+		// `(Group{0,5} & H16)? & "::" & H16` on `1::8`: the greedy run takes `1:`, then
+		// needs another group and finds a colon, gives the group back, matches `1` as the
+		// H16 instead, and only then does `::` line up. Every alternative before this one
+		// was tried and given back whole.
+		Assert.True(Match("https://[1::8]"));
+
 	[Fact]
 	public void The_scheme_prefix_does_not_shadow_the_longer_one() =>
 		// "https" comes first in the grammar, but ordering it the other way would still
