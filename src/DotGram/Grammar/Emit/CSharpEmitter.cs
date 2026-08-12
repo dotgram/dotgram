@@ -489,9 +489,13 @@ public static class CSharpEmitter
 				: $"(c >= {Char(range.From)} && c <= {Char(range.To)})");
 
 		foreach (var category in element.Categories)
-			tests.Add(
-				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
-				$"global::System.Globalization.UnicodeCategory.{category}");
+			// `\p{Lu}` is the regular-expression spelling; the enum member is
+			// UppercaseLetter. `\p{L}` is not one category but five, so a group expands
+			// into a test for each.
+			foreach (var name in UnicodeCategories.Expand(category))
+				tests.Add(
+					"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
+					$"global::System.Globalization.UnicodeCategory.{name}");
 
 		// An empty set admits nothing, and its complement admits everything. Said as
 		// constants rather than as `!(false)`, so the caller can drop the test — and with
@@ -504,13 +508,28 @@ public static class CSharpEmitter
 		return element.IsNegated ? $"!({test})" : $"({test})";
 	}
 
+	/// <summary>
+	/// A char as a C# character literal.
+	/// </summary>
+	/// <remarks>
+	/// Everything outside plain printable ASCII goes out as <c>\uXXXX</c>. Putting the
+	/// character itself into the file would work for most of them and produce a source
+	/// file with a raw control character in it for the rest — and the emitted text is
+	/// read by people, not only by a compiler.
+	/// </remarks>
 	static string Char(char value) => value switch
 	{
-		'\n' => @"'\n'",
-		'\r' => @"'\r'",
-		'\t' => @"'\t'",
-		'\'' => @"'\''",
-		'\\' => @"'\\'",
-		_    => $"'{value}'",
+		'\''                         => @"'\''",
+		'\\'                         => @"'\\'",
+		>= ' ' and <= '~'            => $"'{value}'",
+		'\0'                         => @"'\0'",
+		'\a'                         => @"'\a'",
+		'\b'                         => @"'\b'",
+		'\f'                         => @"'\f'",
+		'\n'                         => @"'\n'",
+		'\r'                         => @"'\r'",
+		'\t'                         => @"'\t'",
+		'\v'                         => @"'\v'",
+		_                            => $@"'\u{(int)value:X4}'",
 	};
 }

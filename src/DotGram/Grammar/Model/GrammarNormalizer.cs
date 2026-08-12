@@ -35,6 +35,7 @@ public sealed class GrammarNormalizer
 	public const string LeftRecursion       = "GRAM4002";
 	public const string TriviaNotNullable   = "GRAM4003";
 	public const string ShadowedAlternative = "GRAM4004";
+	public const string UnsupportedElement  = "GRAM4005";
 
 	readonly GrammarModel                 _model;
 	readonly Dictionary<RuleSymbol, Node> _bodies      = [];
@@ -51,7 +52,8 @@ public sealed class GrammarNormalizer
 
 		var normalizer = new GrammarNormalizer(model);
 
-		normalizer.LowerAll(model.Root);
+		normalizer.Collect(model.Root);
+		normalizer.LowerAll();
 		normalizer.ComputeNullability();
 		normalizer.Check();
 
@@ -68,25 +70,51 @@ public sealed class GrammarNormalizer
 
 	// ── Lowering ─────────────────────────────────────────────────────────────────
 
-	void LowerAll(GrammarScope scope)
+	/// <summary>
+	/// Every declared rule, collected before any of them is lowered.
+	/// </summary>
+	/// <remarks>
+	/// Two passes rather than one, so that lowering may ask for another rule's body and
+	/// get it whatever the declaration order was — which a reference inside an element
+	/// set needs, since it has to be merged into the set that names it.
+	/// </remarks>
+	void Collect(GrammarScope scope)
 	{
 		foreach (var rule in scope.Rules.Values)
-		{
-			if (rule.Declaration is null)
-				continue;
-
-			_rules.Add(rule);
-			_bodies[rule] = Lower(rule.Declaration.Body, scope);
-		}
+			if (rule.Declaration is not null)
+				_rules.Add(rule);
 
 		foreach (var nested in scope.Nested)
-			LowerAll(nested);
+			Collect(nested);
+	}
+
+	void LowerAll()
+	{
+		// Indexed, because lowering registers built-ins and appends them.
+		for (var i = 0; i < _rules.Count; i++)
+			BodyOf(_rules[i]);
+	}
+
+	/// <summary>A rule's lowered body, lowering it now if that has not happened yet.</summary>
+	Node BodyOf(RuleSymbol rule)
+	{
+		if (_bodies.TryGetValue(rule, out var body))
+			return body;
+
+		if (rule.Declaration is null)
+			return Node.Empty.Instance;
+
+		// Placed before lowering: a rule whose body reaches itself would otherwise
+		// recurse for ever here rather than being reported by the left-recursion check.
+		_bodies[rule] = Node.Empty.Instance;
+
+		return _bodies[rule] = Lower(rule.Declaration.Body, rule.Scope);
 	}
 
 	Node Lower(Expr expression, GrammarScope scope) => expression switch
 	{
 		Expr.Literal(_, var value)              => new Node.Literal(value),
-		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items),
+		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
 		Expr.Group(var body)                    => Lower(body, scope),
 		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, scope)),
 		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, scope)),
@@ -176,7 +204,16 @@ public sealed class GrammarNormalizer
 		_                             => value.ToString() ?? "",
 	};
 
-	static Node.Element LowerElementSet(bool negated, IReadOnlyList<Elem> items)
+	/// <summary>
+	/// A set of one-item tests, with references to elementary rules merged into it.
+	/// </summary>
+	/// <remarks>
+	/// §3.1 allows only ranges, characters and references to other elementary rules
+	/// inside brackets, and merging is what makes that restriction mean something: a set
+	/// stays one test against one item however it was written, and nothing downstream
+	/// has to know a reference was ever there.
+	/// </remarks>
+	Node.Element LowerElementSet(bool negated, IReadOnlyList<Elem> items, Expr set)
 	{
 		var ranges     = new List<CharRange>();
 		var categories = new List<string>();
@@ -195,12 +232,48 @@ public sealed class GrammarNormalizer
 					break;
 
 				case Elem.Ref(var reference):
-					references.Add(Unresolved(reference.Name));
+					Merge(reference, ranges, categories, references);
 					break;
 			}
 		}
 
 		return new Node.Element(negated, Coalesce(ranges), categories, references);
+
+		void Merge(Expr.Reference reference, List<CharRange> into, List<string> alsoInto, List<Symbol> unresolved)
+		{
+			if (!_model.Bindings.TryGetValue(reference, out var symbol) || symbol is not RuleSymbol rule)
+			{
+				// A C# predicate — `[Letter | @IsDigit]` — needs the C# seam at run time,
+				// which does not exist yet. Named as unbuilt rather than silently dropped.
+				Report(
+					UnsupportedElement,
+					symbol is CSharpSymbol
+						? $"'@{reference.Name}' cannot be used inside an element set yet: C# predicates are not implemented."
+						: $"'{reference.Name}' is not a rule.",
+					set.At);
+
+				unresolved.Add(symbol ?? Unresolved(reference.Name));
+
+				return;
+			}
+
+			// Not a set but a call: what it refers to must be one item drawn from a set,
+			// or the brackets would be testing something that is not an item.
+			if (BodyOf(rule) is not Node.Element(false, var theirRanges, var theirCategories, var theirReferences))
+			{
+				Report(
+					UnsupportedElement,
+					$"'{rule.Name}' is not an elementary rule, so it cannot appear inside an element set. " +
+					"Only ranges, characters and rules that are themselves a single element set are allowed.",
+					set.At);
+
+				return;
+			}
+
+			into.AddRange(theirRanges);
+			alsoInto.AddRange(theirCategories);
+			unresolved.AddRange(theirReferences);
+		}
 	}
 
 	/// <summary>

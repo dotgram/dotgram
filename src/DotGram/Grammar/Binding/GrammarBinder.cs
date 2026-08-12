@@ -256,9 +256,11 @@ public sealed class GrammarBinder
 
 			case Expr.ElementSet(_, var items):
 
+				// Bound to the reference itself, not dropped: normalization has to merge
+				// what it names into the set, and for that it needs to know what it is.
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, bind: null, scope, parameters, argumentCount: 0);
+						ResolveReference(reference, bind: reference, scope, parameters, argumentCount: 0);
 
 				return;
 

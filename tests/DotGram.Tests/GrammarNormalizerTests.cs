@@ -102,8 +102,8 @@ public sealed class GrammarNormalizerTests
 			Trivia = ' '*
 			Loose = 'a' & Trivia & 'b'
 			Trivia = none
-			none = none
 			Tight = "ab"
+			none = none
 			""",
 			Normalize("""
 				Trivia = ' '*

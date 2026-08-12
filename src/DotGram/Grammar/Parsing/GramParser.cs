@@ -385,7 +385,17 @@ public sealed class GramParser
 		if (TakeIf(TokenKind.Comma))
 			(max, maxName) = At(TokenKind.CloseBrace) ? (null, null) : ParseCount();
 
+		var closeAt = Current.Position;
+
 		Expect(TokenKind.CloseBrace);
+
+		// Not caught later: a recognizer for {5,2} builds and runs, and simply never
+		// matches, which is the hardest kind of grammar bug to see.
+		if (min is { } lower && max is { } upper && lower > upper)
+			Report(
+				InvalidCount,
+				$"'{{{lower},{upper}}}' asks for at least {lower} and at most {upper}, so it can never match.",
+				new Location(start, closeAt + 1 - start));
 
 		return Quantify(QuantifierKind.Count, min, minName, max, maxName);
 	}
@@ -402,7 +412,22 @@ public sealed class GramParser
 			return (null, null);
 		}
 
-		return (int.Parse(Take().Value!, CultureInfo.InvariantCulture), null);
+		var token = Take();
+
+		// int.Parse would throw, and an exception out of here is not a grammar error any
+		// more — it is a generator crash, reported against the consumer's build as
+		// CS8785 with our stack trace in it.
+		if (!int.TryParse(token.Value!, NumberStyles.None, CultureInfo.InvariantCulture, out var count))
+		{
+			Report(
+				InvalidCount,
+				$"'{token.Value}' is too large for a repetition count.",
+				new Location(token.Position, token.Length));
+
+			return (null, null);
+		}
+
+		return (count, null);
 	}
 
 	Expr ParsePrefixed()

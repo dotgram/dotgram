@@ -31,6 +31,8 @@ public static class GramLexer
 	public const string UnterminatedExpression = "GRAM1006";
 	public const string ExpressionNeedsScanner = "GRAM1007";
 	public const string MalformedCategory      = "GRAM1008";
+	public const string UnknownCategory        = "GRAM1009";
+	public const string MalformedCharacter     = "GRAM1010";
 
 	/// <param name="scanner">
 	/// Finds where an inline <c>@(...)</c> ends. Null means the grammar may not use
@@ -117,6 +119,18 @@ public static class GramLexer
 				case '\'':
 				case '"':
 					position = ReadQuoted(text, position, current, diagnostics, out var value);
+
+					// A character literal holds one item. Letting 'ab' through would
+					// silently make it a string, in a language that spells the two
+					// differently on purpose — and '' would match nothing at all.
+					if (current == '\'' && value.Length != 1)
+						Report(
+							MalformedCharacter,
+							value.Length == 0
+								? "An empty character literal."
+								: $"'{value}' is {value.Length} characters; a character literal holds one. Write \"{value}\" for a string.",
+							start,
+							position - start);
 
 					Add(current == '\'' ? TokenKind.Character : TokenKind.String, start, position - start, value);
 					continue;
@@ -339,6 +353,20 @@ public static class GramLexer
 		}
 
 		category = text.Substring(position + 3, close - position - 3);
+
+		// Checked here rather than left to the emitter: an unknown abbreviation there
+		// becomes a C# error about a member of an enum the author never mentioned.
+		if (!UnicodeCategories.Exists(category))
+		{
+			diagnostics.Add(new GramDiagnostic(
+				UnknownCategory,
+				$@"'\p{{{category}}}' is not a Unicode category. Expected one of Lu, Ll, Nd, Zs, … or a group such as L or N.",
+				start,
+				close + 1 - start,
+				GramSeverity.Error));
+
+			category = null;
+		}
 
 		return close + 1;
 	}

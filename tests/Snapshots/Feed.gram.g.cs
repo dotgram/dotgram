@@ -214,26 +214,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			return N0(text, pos);
-
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var matched = N1(text, p) >= 0;
-
-				return matched ? -1 : p;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p >= text.Length)
-					return -1;
-
-				return p + 1;
-			}
-		}
-
 		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			return N0(text, pos);
@@ -287,66 +267,6 @@ namespace DotGram.Snapshots
 			static int N4(global::System.ReadOnlySpan<char> text, int p)
 			{
 				return Recognize_eol(text, p);
-			}
-		}
-
-		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			return N0(text, pos);
-
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var r0 = N1(text, p);
-
-				if (r0 >= 0)
-					return r0;
-
-				var r1 = N2(text, p);
-
-				if (r1 >= 0)
-					return r1;
-
-				var r2 = N3(text, p);
-
-				if (r2 >= 0)
-					return r2;
-
-				return -1;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 2 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '\r')
-					return -1;
-				if (text[p + 1] != '\n')
-					return -1;
-
-				return p + 2;
-			}
-
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '\n')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '\r')
-					return -1;
-
-				return p + 1;
 			}
 		}
 
@@ -859,6 +779,86 @@ namespace DotGram.Snapshots
 				var c = text[p];
 
 				return !(c == '\n' || c == '\r' || c == '|') ? p + 1 : -1;
+			}
+		}
+
+		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			return N0(text, pos);
+
+			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			{
+				var matched = N1(text, p) >= 0;
+
+				return matched ? -1 : p;
+			}
+
+			static int N1(global::System.ReadOnlySpan<char> text, int p)
+			{
+				if (p >= text.Length)
+					return -1;
+
+				return p + 1;
+			}
+		}
+
+		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			return N0(text, pos);
+
+			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			{
+				var r0 = N1(text, p);
+
+				if (r0 >= 0)
+					return r0;
+
+				var r1 = N2(text, p);
+
+				if (r1 >= 0)
+					return r1;
+
+				var r2 = N3(text, p);
+
+				if (r2 >= 0)
+					return r2;
+
+				return -1;
+			}
+
+			static int N1(global::System.ReadOnlySpan<char> text, int p)
+			{
+				if (p + 2 > text.Length)
+					return -1;
+
+				if (text[p + 0] != '\r')
+					return -1;
+				if (text[p + 1] != '\n')
+					return -1;
+
+				return p + 2;
+			}
+
+			static int N2(global::System.ReadOnlySpan<char> text, int p)
+			{
+				if (p + 1 > text.Length)
+					return -1;
+
+				if (text[p + 0] != '\n')
+					return -1;
+
+				return p + 1;
+			}
+
+			static int N3(global::System.ReadOnlySpan<char> text, int p)
+			{
+				if (p + 1 > text.Length)
+					return -1;
+
+				if (text[p + 0] != '\r')
+					return -1;
+
+				return p + 1;
 			}
 		}
 
