@@ -1,0 +1,41 @@
+// A URL, after RFC 3986 — the example docs/syntax.md §7.3 builds the capture rules on,
+// and the case the whole no-runtime decision was taken for: a parser that is really a
+// regular expression, in a project that should acquire no dependency for it.
+//
+// Captures are written as the specification writes them. They parse, bind and
+// normalize, and today they produce nothing: a rule's value is still the text it
+// matched (docs/status.md). When construction lands, this grammar is what it has to
+// turn into a typed result, and the diff against Url.gram.g.cs is where that shows.
+
+Url        = scheme: Scheme & "://" & authority: Authority & path: Path
+           & query: Query? & fragment: Fragment?
+
+Scheme     = "https" | "http" | "ftp"
+
+// UserInfo ends in '@'. Nothing else does, so trying it and giving it back is the
+// whole of "is there a userinfo here" — no lookahead, no ordering trick.
+Authority  = user: UserInfo? & host: Host & port: Port?
+UserInfo   = (Unreserved | SubDelim | PctEncoded | ':')+ & '@'
+Host       = IPv4 | RegName
+Port       = ':' & Digit+
+
+IPv4       = Octet & '.' & Octet & '.' & Octet & '.' & Octet
+Octet      = Digit{1,3}
+RegName    = (Unreserved | SubDelim | PctEncoded)+
+
+Path       = ('/' & Segment)*
+Segment    = (Unreserved | SubDelim | PctEncoded | ':' | '@')*
+
+Query      = '?' & Rest
+Fragment   = '#' & Rest
+Rest       = (Unreserved | SubDelim | PctEncoded | ':' | '@' | '/' | '?')*
+
+PctEncoded = '%' & Hex & Hex
+
+Digit      = ['0'..'9']
+Hex        = [Digit | 'a'..'f' | 'A'..'F']
+Unreserved = [Digit | 'a'..'z' | 'A'..'Z' | '-' | '.' | '_' | '~']
+SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
+
+parse Url
+find all Url as AllUrls

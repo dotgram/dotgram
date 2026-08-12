@@ -153,6 +153,30 @@ public static class CSharpEmitter
 
 		var needsStack = false;
 
+		// `parse` demands the input end. Asking the rule and then checking would leave it
+		// unable to go back for a longer match — the check has to be inside the machine,
+		// where failing it is an ordinary failure and the stack still has somewhere to
+		// resume. So the rule's body is compiled again, with end-of-input on the end.
+		foreach (var publication in graph.Publications)
+		{
+			if (publication.Kind != PublishKind.Parse)
+				continue;
+
+			var whole = new Machine(WholeOf(publication.Rule));
+			var body  = new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
+
+			file.Write(whole.Render(whole.Compile(body, Machine.Accept)));
+			file.Line();
+
+			foreach (var extra in whole.Extra)
+			{
+				file.Write(extra);
+				file.Line();
+			}
+
+			needsStack = true;
+		}
+
 		foreach (var rule in graph.Rules)
 		{
 			needsStack |= EmitRule(file, graph, rule);
@@ -221,7 +245,13 @@ public static class CSharpEmitter
 				case PublishKind.Parse:
 				case PublishKind.Match:
 
-					file.Line($"var end = {MethodOf(publication.Rule)}(text, 0);");
+					// The difference between the two directives, and the whole of it: one
+					// calls the recognizer that also insists the input ended.
+					var entry = publication.Kind == PublishKind.Parse
+						? WholeOf(publication.Rule)
+						: MethodOf(publication.Rule);
+
+					file.Line($"var end = {entry}(text, 0);");
 					file.Line();
 
 					using (file.Block("if (end < 0)"))
@@ -231,20 +261,6 @@ public static class CSharpEmitter
 					}
 
 					file.Line();
-
-					// The difference between the two directives, and the whole of it.
-					if (publication.Kind == PublishKind.Parse)
-					{
-						using (file.Block("if (end != input.Length)"))
-						{
-							file.Line("error         = \"Unexpected input.\";");
-							file.Line("errorPosition = end;");
-							file.Line("return false;");
-						}
-
-						file.Line();
-					}
-
 					file.Line("value = input.Substring(0, end);");
 					file.Line("return true;");
 					break;
@@ -334,6 +350,17 @@ public static class CSharpEmitter
 	}
 
 	internal static string MethodOf(RuleSymbol rule) => $"Recognize_{rule.Name.Replace('.', '_')}";
+
+	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
+	static string WholeOf(RuleSymbol rule) => MethodOf(rule) + "_Whole";
+
+	/// <summary>
+	/// End of input: the complement of everything, not present. The same node `eof`
+	/// lowers to, built here rather than looked up so that a grammar which never
+	/// mentions `eof` still gets one.
+	/// </summary>
+	static Node EndOfInput =>
+		new Node.Lookahead(IsPositive: false, new Node.Element(IsNegated: true, [], [], []));
 
 	/// <summary>
 	/// Grows the backtracking stack. Emitted once per class, next to the recognizers

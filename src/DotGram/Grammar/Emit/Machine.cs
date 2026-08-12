@@ -70,13 +70,53 @@ sealed class Machine
 	/// Takes the next state number and a writer for its body, before that body is
 	/// written — so a state may refer to states compiled after it.
 	/// </summary>
-	int Reserve(out Writer writer)
+	int Reserve(out Writer writer) => Reserve(out writer, null);
+
+	/// <param name="of">
+	/// What this state is for, written above it as the notation it came from.
+	/// </param>
+	/// <remarks>
+	/// Always, not under a switch. A comment costs nothing at run time, so there is
+	/// nothing to turn off — while generating different code in different
+	/// configurations would mean a consumer's Release build differing from the Debug
+	/// one they read, and a snapshot that depends on how it was built.
+	/// </remarks>
+	int Reserve(out Writer writer, Node? of, string? note = null)
 	{
 		writer = new Writer(0);
+
+		if (of is not null || note is not null)
+			writer.Line("// " + Comment(of, note));
 
 		_states.Add(writer);
 
 		return _states.Count - 1 + FirstState;
+	}
+
+	/// <summary>The notation a node came from, on one line and not too much of it.</summary>
+	/// <remarks>
+	/// On one line means every character C# ends a line at, not only the two obvious
+	/// ones: U+2028 and U+2029 terminate a line in C# source as surely as U+000A, so a
+	/// grammar matching one would otherwise cut its own comment in half and take the
+	/// code after it along.
+	/// </remarks>
+	static string Comment(Node? node, string? note)
+	{
+		var source = node?.ToString() ?? "";
+		var text   = new System.Text.StringBuilder(source.Length);
+
+		foreach (var c in source)
+			if (c is '\r' or '\n' or '\t' or '\u0085' or '\u2028' or '\u2029' || char.IsControl(c))
+				text.Append("\\u").Append(((int)c).ToString("X4"));
+			else
+				text.Append(c);
+
+		var one = text.ToString();
+
+		if (one.Length > 64)
+			one = one.Substring(0, 61) + "...";
+
+		return note is null ? one : one.Length == 0 ? note : $"{one} — {note}";
 	}
 
 	/// <summary>Accept and Fail take the first two numbers and are written by hand.</summary>
@@ -117,7 +157,7 @@ sealed class Machine
 
 			case Node.Literal(var value):
 			{
-				var state = Reserve(out var writer);
+				var state = Reserve(out var writer, node);
 
 				writer.Line($"if (p + {value.Length} > text.Length)");
 				writer.Then($"goto case {Fail};");
@@ -136,7 +176,7 @@ sealed class Machine
 
 			case Node.Element element:
 			{
-				var state = Reserve(out var writer);
+				var state = Reserve(out var writer, node);
 				var test  = CSharpEmitter.Test(element);
 
 				if (test == "false")
@@ -191,7 +231,7 @@ sealed class Machine
 				for (var i = alternatives.Count - 2; i >= 0; i--)
 				{
 					var entry = Compile(alternatives[i], next);
-					var state = Reserve(out var writer);
+					var state = Reserve(out var writer, alternatives[i], "try this one, or the next");
 
 					Push(writer, attempt, "0");
 					writer.Line($"goto case {entry};");
@@ -208,7 +248,7 @@ sealed class Machine
 			case Node.Lookahead(var isPositive, var body):
 			{
 				var method = CompileLookahead(body);
-				var state  = Reserve(out var writer);
+				var state  = Reserve(out var writer, node);
 
 				// Consumes nothing either way: a lookahead asks a question about the
 				// input. Its own choices cannot matter outside it — the answer is yes or
@@ -222,7 +262,7 @@ sealed class Machine
 
 			case Node.Call(var rule, _):
 			{
-				var state = Reserve(out var writer);
+				var state = Reserve(out var writer, node);
 
 				UsesResult = true;
 
@@ -274,10 +314,12 @@ sealed class Machine
 	{
 		var counter = NewCounter();
 
-		var exit  = Reserve(out var atExit);
-		var loop  = Reserve(out var atLoop);
-		var after = Reserve(out var atAfter);
-		var entry = Reserve(out var atEntry);
+		var repeat = new Node.Repeat(body, min, max);
+
+		var exit  = Reserve(out var atExit,  repeat, "stop, and check the count");
+		var loop  = Reserve(out var atLoop,  repeat, "take another, or leave stopping open");
+		var after = Reserve(out var atAfter, repeat, "one more taken");
+		var entry = Reserve(out var atEntry, repeat, "start counting");
 
 		var start = Compile(body, after);
 
@@ -368,7 +410,10 @@ sealed class Machine
 			file.Line($"var state = {entry};");
 			file.Line();
 
-			using (file.Block("while (true)"))
+			// The loop exists only for the one `continue` that resumes from the stack.
+			// Without a stack nothing leaves the switch except by returning, and wrapping
+			// it would be scaffolding around nothing.
+			using (UsesStack ? file.Block("while (true)") : null)
 			using (file.Block("switch (state)"))
 			{
 				file.Line($"case {Accept}:");

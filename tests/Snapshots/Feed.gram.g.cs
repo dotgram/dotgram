@@ -22,18 +22,11 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
-			var end = Recognize_Feed(text, 0);
+			var end = Recognize_Feed_Whole(text, 0);
 
 			if (end < 0)
 			{
 				error = "Input does not match 'Feed'.";
-				return false;
-			}
-
-			if (end != input.Length)
-			{
-				error         = "Unexpected input.";
-				errorPosition = end;
 				return false;
 			}
 
@@ -147,6 +140,136 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
+		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			global::System.Span<int> bt = stackalloc int[48];
+
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var state = 10;
+
+			while (true)
+			{
+				switch (state)
+				{
+					case 0:
+						return p;
+
+					case 1:
+						if (sp == 0)
+							return -1;
+
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						// ?![^ ]
+						if (Recognize_Feed_Whole_Look0(text, p) < 0)
+							goto case 0;
+						goto case 1;
+
+					case 3:
+						// eof
+						r = Recognize_eof(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 2;
+
+					case 4:
+						// Trailer
+						r = Recognize_Trailer(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 3;
+
+					case 5:
+						// Row* — stop, and check the count
+						c0 = saved;
+
+						goto case 4;
+
+					case 6:
+						// Row* — take another, or leave stopping open
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 5; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 9;
+
+					case 7:
+						// Row* — one more taken
+						c0++;
+						goto case 6;
+
+					case 8:
+						// Row* — start counting
+						c0 = 0;
+						goto case 6;
+
+					case 9:
+						// Row
+						r = Recognize_Row(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 7;
+
+					case 10:
+						// Header
+						r = Recognize_Header(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 8;
+
+					default:
+						return -1;
+				}
+			}
+		}
+
+		static int Recognize_Feed_Whole_Look0(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p     = pos;
+			var state = 2;
+
+			switch (state)
+			{
+				case 0:
+					return p;
+
+				case 1:
+					return -1;
+
+				case 2:
+					// [^ ]
+					if (p >= text.Length)
+						goto case 1;
+					p++;
+					goto case 0;
+
+				default:
+					return -1;
+			}
+		}
+
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -179,6 +302,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// eof
 						r = Recognize_eof(text, p);
 
 						if (r < 0)
@@ -188,6 +312,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// Trailer
 						r = Recognize_Trailer(text, p);
 
 						if (r < 0)
@@ -197,24 +322,29 @@ namespace DotGram.Snapshots
 						goto case 2;
 
 					case 4:
+						// Row* — stop, and check the count
 						c0 = saved;
 
 						goto case 3;
 
 					case 5:
+						// Row* — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
 						goto case 8;
 
 					case 6:
+						// Row* — one more taken
 						c0++;
 						goto case 5;
 
 					case 7:
+						// Row* — start counting
 						c0 = 0;
 						goto case 5;
 
 					case 8:
+						// Row
 						r = Recognize_Row(text, p);
 
 						if (r < 0)
@@ -224,6 +354,7 @@ namespace DotGram.Snapshots
 						goto case 6;
 
 					case 9:
+						// Header
 						r = Recognize_Header(text, p);
 
 						if (r < 0)
@@ -244,54 +375,55 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var state = 5;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						r = Recognize_eol(text, p);
+				case 2:
+					// eol
+					r = Recognize_eol(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 0;
+					p = r;
+					goto case 0;
 
-					case 3:
-						r = Recognize_Date(text, p);
+				case 3:
+					// Date
+					r = Recognize_Date(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 2;
+					p = r;
+					goto case 2;
 
-					case 4:
-						r = Recognize_Sep(text, p);
+				case 4:
+					// Sep
+					r = Recognize_Sep(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 3;
+					p = r;
+					goto case 3;
 
-					case 5:
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != 'H')
-							goto case 1;
-						p += 1;
-						goto case 4;
+				case 5:
+					// 'H'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != 'H')
+						goto case 1;
+					p += 1;
+					goto case 4;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -301,72 +433,75 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var state = 7;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						r = Recognize_eol(text, p);
+				case 2:
+					// eol
+					r = Recognize_eol(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 0;
+					p = r;
+					goto case 0;
 
-					case 3:
-						r = Recognize_Amount(text, p);
+				case 3:
+					// Amount
+					r = Recognize_Amount(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 2;
+					p = r;
+					goto case 2;
 
-					case 4:
-						r = Recognize_Sep(text, p);
+				case 4:
+					// Sep
+					r = Recognize_Sep(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 3;
+					p = r;
+					goto case 3;
 
-					case 5:
-						r = Recognize_Name(text, p);
+				case 5:
+					// Name
+					r = Recognize_Name(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 4;
+					p = r;
+					goto case 4;
 
-					case 6:
-						r = Recognize_Sep(text, p);
+				case 6:
+					// Sep
+					r = Recognize_Sep(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 5;
+					p = r;
+					goto case 5;
 
-					case 7:
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != 'R')
-							goto case 1;
-						p += 1;
-						goto case 6;
+				case 7:
+					// 'R'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != 'R')
+						goto case 1;
+					p += 1;
+					goto case 6;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -376,54 +511,55 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var state = 5;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						r = Recognize_eol(text, p);
+				case 2:
+					// eol
+					r = Recognize_eol(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 0;
+					p = r;
+					goto case 0;
 
-					case 3:
-						r = Recognize_Count(text, p);
+				case 3:
+					// Count
+					r = Recognize_Count(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 2;
+					p = r;
+					goto case 2;
 
-					case 4:
-						r = Recognize_Sep(text, p);
+				case 4:
+					// Sep
+					r = Recognize_Sep(text, p);
 
-						if (r < 0)
-							goto case 1;
+					if (r < 0)
+						goto case 1;
 
-						p = r;
-						goto case 3;
+					p = r;
+					goto case 3;
 
-					case 5:
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != 'T')
-							goto case 1;
-						p += 1;
-						goto case 4;
+				case 5:
+					// 'T'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != 'T')
+						goto case 1;
+					p += 1;
+					goto case 4;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -432,27 +568,25 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var state = 2;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != '|')
-							goto case 1;
-						p += 1;
-						goto case 0;
+				case 2:
+					// '|'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != '|')
+						goto case 1;
+					p += 1;
+					goto case 0;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -462,31 +596,29 @@ namespace DotGram.Snapshots
 			var c     = '\0';
 			var state = 2;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						if (p >= text.Length)
-							goto case 1;
+				case 2:
+					// ['0'..'9']
+					if (p >= text.Length)
+						goto case 1;
 
-						c = text[p];
+					c = text[p];
 
-						if (!((c >= '0' && c <= '9')))
-							goto case 1;
+					if (!((c >= '0' && c <= '9')))
+						goto case 1;
 
-						p++;
-						goto case 0;
+					p++;
+					goto case 0;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -522,6 +654,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// Digit+ — stop, and check the count
 						c0 = saved;
 
 						if (c0 < 1)
@@ -530,19 +663,23 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// Digit+ — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
 						goto case 6;
 
 					case 4:
+						// Digit+ — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
+						// Digit+ — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -591,6 +728,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// Digit{2} — stop, and check the count
 						c0 = saved;
 
 						if (c0 < 2)
@@ -599,6 +737,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// Digit{2} — take another, or leave stopping open
 						if (c0 >= 2)
 						{
 							saved = c0;
@@ -610,14 +749,17 @@ namespace DotGram.Snapshots
 						goto case 6;
 
 					case 4:
+						// Digit{2} — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
+						// Digit{2} — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -627,6 +769,7 @@ namespace DotGram.Snapshots
 						goto case 4;
 
 					case 7:
+						// '-'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '-')
@@ -635,6 +778,7 @@ namespace DotGram.Snapshots
 						goto case 5;
 
 					case 8:
+						// Digit{2} — stop, and check the count
 						c1 = saved;
 
 						if (c1 < 2)
@@ -643,6 +787,7 @@ namespace DotGram.Snapshots
 						goto case 7;
 
 					case 9:
+						// Digit{2} — take another, or leave stopping open
 						if (c1 >= 2)
 						{
 							saved = c1;
@@ -654,14 +799,17 @@ namespace DotGram.Snapshots
 						goto case 12;
 
 					case 10:
+						// Digit{2} — one more taken
 						c1++;
 						goto case 9;
 
 					case 11:
+						// Digit{2} — start counting
 						c1 = 0;
 						goto case 9;
 
 					case 12:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -671,6 +819,7 @@ namespace DotGram.Snapshots
 						goto case 10;
 
 					case 13:
+						// '-'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '-')
@@ -679,6 +828,7 @@ namespace DotGram.Snapshots
 						goto case 11;
 
 					case 14:
+						// Digit{4} — stop, and check the count
 						c2 = saved;
 
 						if (c2 < 4)
@@ -687,6 +837,7 @@ namespace DotGram.Snapshots
 						goto case 13;
 
 					case 15:
+						// Digit{4} — take another, or leave stopping open
 						if (c2 >= 4)
 						{
 							saved = c2;
@@ -698,14 +849,17 @@ namespace DotGram.Snapshots
 						goto case 18;
 
 					case 16:
+						// Digit{4} — one more taken
 						c2++;
 						goto case 15;
 
 					case 17:
+						// Digit{4} — start counting
 						c2 = 0;
 						goto case 15;
 
 					case 18:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -755,11 +909,13 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// '.' & Digit{2}? — stop, and check the count
 						c0 = saved;
 
 						goto case 0;
 
 					case 3:
+						// '.' & Digit{2}? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -771,14 +927,17 @@ namespace DotGram.Snapshots
 						goto case 11;
 
 					case 4:
+						// '.' & Digit{2}? — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
+						// '.' & Digit{2}? — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
+						// Digit{2} — stop, and check the count
 						c1 = saved;
 
 						if (c1 < 2)
@@ -787,6 +946,7 @@ namespace DotGram.Snapshots
 						goto case 4;
 
 					case 7:
+						// Digit{2} — take another, or leave stopping open
 						if (c1 >= 2)
 						{
 							saved = c1;
@@ -798,14 +958,17 @@ namespace DotGram.Snapshots
 						goto case 10;
 
 					case 8:
+						// Digit{2} — one more taken
 						c1++;
 						goto case 7;
 
 					case 9:
+						// Digit{2} — start counting
 						c1 = 0;
 						goto case 7;
 
 					case 10:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -815,6 +978,7 @@ namespace DotGram.Snapshots
 						goto case 8;
 
 					case 11:
+						// '.'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '.')
@@ -823,6 +987,7 @@ namespace DotGram.Snapshots
 						goto case 9;
 
 					case 12:
+						// Digit+ — stop, and check the count
 						c2 = saved;
 
 						if (c2 < 1)
@@ -831,19 +996,23 @@ namespace DotGram.Snapshots
 						goto case 5;
 
 					case 13:
+						// Digit+ — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 12; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
 						goto case 16;
 
 					case 14:
+						// Digit+ — one more taken
 						c2++;
 						goto case 13;
 
 					case 15:
+						// Digit+ — start counting
 						c2 = 0;
 						goto case 13;
 
 					case 16:
+						// Digit
 						r = Recognize_Digit(text, p);
 
 						if (r < 0)
@@ -853,11 +1022,13 @@ namespace DotGram.Snapshots
 						goto case 14;
 
 					case 17:
+						// '-'? — stop, and check the count
 						c3 = saved;
 
 						goto case 15;
 
 					case 18:
+						// '-'? — take another, or leave stopping open
 						if (c3 >= 1)
 						{
 							saved = c3;
@@ -869,14 +1040,17 @@ namespace DotGram.Snapshots
 						goto case 21;
 
 					case 19:
+						// '-'? — one more taken
 						c3++;
 						goto case 18;
 
 					case 20:
+						// '-'? — start counting
 						c3 = 0;
 						goto case 18;
 
 					case 21:
+						// '-'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '-')
@@ -922,6 +1096,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// [^ '\n' | '\r' | '|']+ — stop, and check the count
 						c0 = saved;
 
 						if (c0 < 1)
@@ -930,19 +1105,23 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// [^ '\n' | '\r' | '|']+ — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
 						goto case 6;
 
 					case 4:
+						// [^ '\n' | '\r' | '|']+ — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
+						// [^ '\n' | '\r' | '|']+ — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
+						// [^ '\n' | '\r' | '|']
 						if (p >= text.Length)
 							goto case 1;
 
@@ -965,25 +1144,23 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var state = 2;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						if (p >= text.Length)
-							goto case 1;
-						p++;
-						goto case 0;
+				case 2:
+					// [^ ]
+					if (p >= text.Length)
+						goto case 1;
+					p++;
+					goto case 0;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -992,24 +1169,22 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var state = 2;
 
-			while (true)
+			switch (state)
 			{
-				switch (state)
-				{
-					case 0:
-						return p;
+				case 0:
+					return p;
 
-					case 1:
-						return -1;
+				case 1:
+					return -1;
 
-					case 2:
-						if (Recognize_eof_Look0(text, p) < 0)
-							goto case 0;
-						goto case 1;
+				case 2:
+					// ?![^ ]
+					if (Recognize_eof_Look0(text, p) < 0)
+						goto case 0;
+					goto case 1;
 
-					default:
-						return -1;
-				}
+				default:
+					return -1;
 			}
 		}
 
@@ -1043,6 +1218,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
+						// '\r'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '\r')
@@ -1051,6 +1227,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// '\n'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '\n')
@@ -1059,11 +1236,13 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 4:
+						// '\n' — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 3;
 
 					case 5:
+						// "\u000D\u000A"
 						if (p + 2 > text.Length)
 							goto case 1;
 						if (text[p + 0] != '\r')
@@ -1074,6 +1253,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 6:
+						// "\u000D\u000A" — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 5;

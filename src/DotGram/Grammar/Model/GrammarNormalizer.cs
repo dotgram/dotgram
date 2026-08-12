@@ -34,7 +34,6 @@ public sealed class GrammarNormalizer
 	public const string NullableRepetition  = "GRAM4001";
 	public const string LeftRecursion       = "GRAM4002";
 	public const string TriviaNotNullable   = "GRAM4003";
-	public const string ShadowedAlternative = "GRAM4004";
 	public const string UnsupportedElement  = "GRAM4005";
 
 	readonly GrammarModel                 _model;
@@ -42,12 +41,6 @@ public sealed class GrammarNormalizer
 	readonly Dictionary<RuleSymbol, bool> _nullable    = [];
 	readonly List<GramDiagnostic>         _diagnostics = [];
 	readonly List<RuleSymbol>             _rules       = [];
-
-	/// <summary>
-	/// The expression a rule's body is, while it is being lowered — so a choice can tell
-	/// whether it is the whole rule or merely part of one.
-	/// </summary>
-	Expr? _ruleBody;
 
 	GrammarNormalizer(GrammarModel model) => _model = model;
 
@@ -114,15 +107,7 @@ public sealed class GrammarNormalizer
 		// recurse for ever here rather than being reported by the left-recursion check.
 		_bodies[rule] = Node.Empty.Instance;
 
-		var outer = _ruleBody;
-
-		_ruleBody = rule.Declaration.Body;
-
-		var lowered = Lower(rule.Declaration.Body, rule.Scope);
-
-		_ruleBody = outer;
-
-		return _bodies[rule] = lowered;
+		return _bodies[rule] = Lower(rule.Declaration.Body, rule.Scope);
 	}
 
 	Node Lower(Expr expression, GrammarScope scope) => expression switch
@@ -141,7 +126,7 @@ public sealed class GrammarNormalizer
 			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
 
 		Expr.Sequence(var operands)             => LowerSequence(operands, scope),
-		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope, expression),
+		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope),
 
 		Expr.Call(var target, var arguments) => CallTo(
 			RuleOf(expression, target.Name),
@@ -403,15 +388,9 @@ public sealed class GrammarNormalizer
 		return flat.Count == 1 ? flat[0] : new Node.Sequence(flat);
 	}
 
-	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarScope scope, Expr choice)
+	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarScope scope)
 	{
 		var nodes = alternatives.Select(a => Lower(a, scope)).ToList();
-
-		// Only when the choice is the whole rule. Anywhere else something follows it,
-		// and a later alternative sharing a prefix is reached by giving the earlier one
-		// back — which is what §10 says should happen and what the recognizer now does.
-		if (ReferenceEquals(choice, _ruleBody))
-			ReportShadowedAlternatives(nodes, alternatives);
 
 		var merged = MergeAdjacentElements(nodes);
 
@@ -492,32 +471,6 @@ public sealed class GrammarNormalizer
 	/// An alternative that a preceding literal shadows as a prefix can never be
 	/// reached. Diagnosed rather than repaired — see docs/syntax.md §10.
 	/// </summary>
-	void ReportShadowedAlternatives(List<Node> nodes, IReadOnlyList<Expr> alternatives)
-	{
-		for (var later = 1; later < nodes.Count; later++)
-		{
-			if (nodes[later] is not Node.Literal(var shadowed))
-				continue;
-
-			for (var earlier = 0; earlier < later; earlier++)
-			{
-				if (nodes[earlier] is not Node.Literal(var first) ||
-					first.Length > shadowed.Length ||
-					!shadowed.StartsWith(first, StringComparison.Ordinal))
-				{
-					continue;
-				}
-
-				Report(
-					ShadowedAlternative,
-					$"Alternative \"{shadowed}\" is unreachable — \"{first}\" shadows it as a prefix.",
-					alternatives[later].At);
-
-				break;
-			}
-		}
-	}
-
 	// ── Nullability and the checks that need it ──────────────────────────────────
 
 	/// <summary>

@@ -134,7 +134,6 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Theory]
-	[InlineData("""R = "http" | "https" """,  GrammarNormalizer.ShadowedAlternative)]
 	[InlineData("A = ('x'?)*",                GrammarNormalizer.NullableRepetition)]
 	[InlineData("A = A & 'x'",                GrammarNormalizer.LeftRecursion)]
 	[InlineData("A = B & 'x'\nB = A",         GrammarNormalizer.LeftRecursion)]
