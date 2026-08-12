@@ -929,12 +929,24 @@ paper. None of it requires changing the notation above.
   synchronization points. Details in `implementation.md` §1 and §6.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
-  where one literal alternative is a prefix of another. `"http" | "https"` leaves
-  `"https"` unreachable, and the compiler says so:
+  where one literal alternative is a prefix of another.
+
+  Where a choice is a rule's whole body, an alternative a previous one prefixes is
+  genuinely unreachable — nothing follows it that could fail and send the match back —
+  and the compiler says so:
+
+  ```dotgram
+  Scheme = "http" | "https"
+  ```
 
   ```text
   alternative "https" is unreachable — "http" shadows it as a prefix
   ```
+
+  Anywhere else the later alternative *is* reached, by giving the earlier one back:
+  `("http" | "https") & "://"` matches `https://`, because failing on `"://"` returns
+  to the choice. That is what backtracking fully means, and it is why a shadowing
+  diagnostic can only be raised in the one position where the claim holds.
 
   Reordering by length looks like the obvious fix and is not one: it produces a
   different grammar, not a corrected one. In

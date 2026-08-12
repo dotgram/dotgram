@@ -3,8 +3,7 @@
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
 > **Early work.** The pipeline runs end to end and the parsers it produces are real,
-> but a rule's value is still the text it matched, and backtracking is not yet as
-> complete as the language requires. Nothing here is ready to depend on.
+> but a rule's value is still the text it matched. Nothing here is ready to depend on.
 >
 > The language specification below describes the target language. Not every specified
 > feature is implemented — [`docs/status.md`](docs/status.md) says which are.
@@ -65,19 +64,13 @@ The two modes are strictly additive: opting in only adds overloads.
 Working end to end — a `.gram` file becomes a parser that runs:
 
 - literals, element sets with ranges and Unicode categories, complements
-- sequence, ordered choice with full backtracking, quantifiers, lookahead
+- sequence, ordered choice, quantifiers, lookahead — backtracking fully inside a rule,
+  so a greedy operand gives back what the rest of the sequence cannot use
+  ([`docs/status.md`](docs/status.md) says where that stops: at a rule boundary)
 - rules calling rules, scopes and shadowing, the standard library
   (`any`, `none`, `eol`, `eof`, `Trivia`)
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own
 - all four publication directives, and diagnostics that point into the `.gram` file
-
-Known wrong — not missing, but not matching the specification:
-
-- **backtracking is not full.** A choice retries its own alternatives, but once a
-  repetition or an alternative has returned a length, nothing later in the sequence can
-  ask it for another one. So `'a'? & 'a'` does not match `"a"`.
-  [`docs/status.md`](docs/status.md) has the detail; it is the next thing to fix, and
-  nothing that depends on execution order should be built before it.
 
 Not built yet:
 

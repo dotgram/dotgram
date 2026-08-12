@@ -43,6 +43,12 @@ public sealed class GrammarNormalizer
 	readonly List<GramDiagnostic>         _diagnostics = [];
 	readonly List<RuleSymbol>             _rules       = [];
 
+	/// <summary>
+	/// The expression a rule's body is, while it is being lowered — so a choice can tell
+	/// whether it is the whole rule or merely part of one.
+	/// </summary>
+	Expr? _ruleBody;
+
 	GrammarNormalizer(GrammarModel model) => _model = model;
 
 	public static RecognitionGraph Normalize(GrammarModel model)
@@ -108,7 +114,15 @@ public sealed class GrammarNormalizer
 		// recurse for ever here rather than being reported by the left-recursion check.
 		_bodies[rule] = Node.Empty.Instance;
 
-		return _bodies[rule] = Lower(rule.Declaration.Body, rule.Scope);
+		var outer = _ruleBody;
+
+		_ruleBody = rule.Declaration.Body;
+
+		var lowered = Lower(rule.Declaration.Body, rule.Scope);
+
+		_ruleBody = outer;
+
+		return _bodies[rule] = lowered;
 	}
 
 	Node Lower(Expr expression, GrammarScope scope) => expression switch
@@ -127,7 +141,7 @@ public sealed class GrammarNormalizer
 			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
 
 		Expr.Sequence(var operands)             => LowerSequence(operands, scope),
-		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope),
+		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope, expression),
 
 		Expr.Call(var target, var arguments) => CallTo(
 			RuleOf(expression, target.Name),
@@ -389,11 +403,15 @@ public sealed class GrammarNormalizer
 		return flat.Count == 1 ? flat[0] : new Node.Sequence(flat);
 	}
 
-	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarScope scope)
+	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarScope scope, Expr choice)
 	{
 		var nodes = alternatives.Select(a => Lower(a, scope)).ToList();
 
-		ReportShadowedAlternatives(nodes, alternatives);
+		// Only when the choice is the whole rule. Anywhere else something follows it,
+		// and a later alternative sharing a prefix is reached by giving the earlier one
+		// back — which is what §10 says should happen and what the recognizer now does.
+		if (ReferenceEquals(choice, _ruleBody))
+			ReportShadowedAlternatives(nodes, alternatives);
 
 		var merged = MergeAdjacentElements(nodes);
 

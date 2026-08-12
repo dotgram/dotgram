@@ -51,6 +51,46 @@ public sealed class SemanticTests
 				: string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString()))));
 	}
 
+	// ── Backtracking (§10) ───────────────────────────────────────────────────────
+
+	// A greedy operand that took too much has to give it back when what follows fails.
+	// Every one of these matched nothing before the recognizer became a machine with a
+	// stack of the points it could have gone another way.
+
+	[Fact] public void Optional_gives_back()  => Assert.True(Matches("Start = 'a'? & 'a'",     "a"));
+	[Fact] public void Star_gives_back()      => Assert.True(Matches("Start = 'a'* & 'a'",     "a"));
+	[Fact] public void Plus_gives_back()      => Assert.True(Matches("Start = 'a'+ & 'a'",     "aa"));
+	[Fact] public void Counted_gives_back()   => Assert.True(Matches("Start = 'a'{1,2} & 'a'", "aa"));
+
+	[Fact]
+	public void A_choice_gives_back_across_the_rest_of_the_sequence() =>
+		// The specification's own counterexample: §10 rests the rule that alternatives
+		// may never be reordered on this working.
+		Assert.True(Matches("""Start = ("x" | "xy") & 'y'""", "xy"));
+
+	[Fact]
+	public void And_keeps_giving_back_until_something_fits() =>
+		Assert.True(Matches("Start = ['a'..'z']* & 'c' & ['a'..'z']*", "abcde"));
+
+	[Theory]
+	[InlineData("aaab", true)]
+	[InlineData("aaa",  false)]
+	public void Nested_repetition_backtracks(string input, bool expected) =>
+		Assert.Equal(expected, Matches("Start = ('a'+)+ & 'b'", input));
+
+	[Fact]
+	public void Backtracking_does_not_make_a_failing_match_succeed() =>
+		Assert.False(Matches("Start = 'a'* & 'b'", "aaa"));
+
+	[Fact]
+	public void A_lookahead_leaves_nothing_behind_to_backtrack_into() =>
+		Assert.True(Matches("Start = ?=('a' | 'b') & 'a' & 'b'", "ab"));
+
+	[Fact]
+	public void Repetition_longer_than_the_first_stack_page() =>
+		// The stack starts at 48 ints and grows; this needs far more frames than that.
+		Assert.True(Matches("Start = ['a'..'z']* & 'z'", new string('a', 500) + "z"));
+
 	// ── Unicode categories (§3.1) ────────────────────────────────────────────────
 
 	[Theory]

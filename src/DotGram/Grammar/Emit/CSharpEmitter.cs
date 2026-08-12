@@ -43,7 +43,44 @@ sealed class Writer(int depth)
 		return new Closer(this);
 	}
 
+	/// <summary>Indents what follows, without braces around it — a switch section.</summary>
+	public IDisposable Indent()
+	{
+		_depth++;
+
+		return new Outdenter(this);
+	}
+
 	public void Append(Writer other) => _text.Append(other._text);
+
+	/// <summary>Writes text that is already laid out, each line at the current depth.</summary>
+	public void Write(string text)
+	{
+		var written = new Writer(0);
+
+		written._text.Append(text);
+
+		// AppendIndented reads the text as lines, each closed by an ending. Text that
+		// does not end with one — a raw string literal, say — would lose its last line.
+		if (!text.EndsWith(Lines.Ending, StringComparison.Ordinal))
+			written._text.Append(Lines.Ending);
+
+		AppendIndented(written, 0);
+	}
+
+	/// <summary>Appends another writer's text, shifted in to this one's depth.</summary>
+	public void AppendIndented(Writer other, int extra = 1)
+	{
+		var lines = other._text.ToString().Split([Lines.Ending], StringSplitOptions.None);
+
+		// The text ends with an ending, so the split leaves a final empty piece that is
+		// not a line at all.
+		for (var i = 0; i < lines.Length - 1; i++)
+			if (lines[i].Length > 0)
+				_text.Append('\t', _depth + extra).AppendEndingWith(lines[i]);
+			else
+				_text.EndLine();
+	}
 
 	public override string ToString() => _text.ToString();
 
@@ -54,6 +91,11 @@ sealed class Writer(int depth)
 			writer._depth--;
 			writer.Line("}");
 		}
+	}
+
+	sealed class Outdenter(Writer writer) : IDisposable
+	{
+		public void Dispose() => writer._depth--;
 	}
 }
 
@@ -109,11 +151,16 @@ public static class CSharpEmitter
 			file.Line();
 		}
 
+		var needsStack = false;
+
 		foreach (var rule in graph.Rules)
 		{
-			EmitRule(file, graph, rule);
+			needsStack |= EmitRule(file, graph, rule);
 			file.Line();
 		}
+
+		if (needsStack)
+			file.Write(GrowHelper);
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
@@ -268,218 +315,42 @@ public static class CSharpEmitter
 		_                   => $"Finds every non-overlapping occurrence of <c>{rule}</c>.",
 	};
 
-	static void EmitRule(Writer file, RecognitionGraph graph, RuleSymbol rule)
+	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
+	static bool EmitRule(Writer file, RecognitionGraph graph, RuleSymbol rule)
 	{
-		using (file.Block($"static int {MethodOf(rule)}(global::System.ReadOnlySpan<char> text, int pos)"))
+		var machine = new Machine(MethodOf(rule));
+		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);
+		var text    = machine.Render(entry);
+
+		foreach (var extra in machine.Extra)
 		{
-			// Inside the block, so the local functions are written at the depth they will
-			// actually appear at rather than at a guess.
-			var functions = new Functions(file.Depth);
-			var entry     = Compile(graph.Bodies[rule], functions);
-
-			file.Line($"return {entry}(text, pos);");
-
-			foreach (var function in functions.Written)
-			{
-				file.Line();
-				file.Append(function);
-			}
+			file.Write(extra);
+			file.Line();
 		}
+
+		file.Write(text);
+
+		return machine.UsesStack || machine.Extra.Count > 0;
 	}
 
-	static string MethodOf(RuleSymbol rule) => $"Recognize_{rule.Name.Replace('.', '_')}";
-
-	/// <summary>The local functions of one rule, and where they are being written.</summary>
-	sealed class Functions(int depth)
-	{
-		readonly List<Writer> _written = [];
-
-		int _next;
-
-		public IReadOnlyList<Writer> Written => _written;
-
-		/// <summary>
-		/// Takes the next name and a writer for it, before the body is written — so a
-		/// function's own children can be appended while it is still open.
-		/// </summary>
-		public Writer Reserve(out string name)
-		{
-			var writer = new Writer(depth);
-
-			name = "N" + _next++;
-
-			_written.Add(writer);
-
-			return writer;
-		}
-	}
-
-	// ── Nodes ────────────────────────────────────────────────────────────────────
+	internal static string MethodOf(RuleSymbol rule) => $"Recognize_{rule.Name.Replace('.', '_')}";
 
 	/// <summary>
-	/// Emits one static local function for <paramref name="node"/> and returns its name.
+	/// Grows the backtracking stack. Emitted once per class, next to the recognizers
+	/// that share it.
 	/// </summary>
-	static string Compile(Node node, Functions functions)
-	{
-		var writer = functions.Reserve(out var name);
-
-		using (writer.Block($"static int {name}(global::System.ReadOnlySpan<char> text, int p)"))
-			Write(writer, node, functions);
-
-		return name;
-	}
-
-	static void Write(Writer writer, Node node, Functions functions)
-	{
-		switch (node)
+	internal const string GrowHelper = """
+		static int[] Grow(global::System.Span<int> from)
 		{
-			case Node.Literal(var value):
+			var bigger = new int[from.Length * 2];
 
-				writer.Line($"if (p + {value.Length} > text.Length)");
-				writer.Then("return -1;");
-				writer.Line();
+			from.CopyTo(bigger);
 
-				for (var i = 0; i < value.Length; i++)
-				{
-					writer.Line($"if (text[p + {i}] != {Char(value[i])})");
-					writer.Then("return -1;");
-				}
-
-				writer.Line();
-				writer.Line($"return p + {value.Length};");
-				break;
-
-			case Node.Element element:
-
-				var test = Test(element);
-
-				// A set that admits nothing can be answered without looking at the input,
-				// and one that admits everything — `any`, and the complement of nothing —
-				// only needs there to be an item at all. Reading a character and not using
-				// it would be a warning in a build the author never asked for.
-				if (test == "false")
-				{
-					writer.Line("return -1;");
-					break;
-				}
-
-				writer.Line("if (p >= text.Length)");
-				writer.Then("return -1;");
-				writer.Line();
-
-				if (test == "true")
-				{
-					writer.Line("return p + 1;");
-					break;
-				}
-
-				writer.Line("var c = text[p];");
-				writer.Line();
-				writer.Line($"return {test} ? p + 1 : -1;");
-				break;
-
-			case Node.Sequence(var nodes):
-
-				foreach (var child in nodes)
-				{
-					writer.Line($"p = {Compile(child, functions)}(text, p);");
-					writer.Line();
-					writer.Line("if (p < 0)");
-					writer.Then("return -1;");
-					writer.Line();
-				}
-
-				writer.Line("return p;");
-				break;
-
-			case Node.Choice(var nodes):
-
-				// Ordered choice backtracks fully: every alternative starts from the same
-				// position and none of them commits (docs/syntax.md §10).
-				for (var i = 0; i < nodes.Count; i++)
-				{
-					writer.Line($"var r{i} = {Compile(nodes[i], functions)}(text, p);");
-					writer.Line();
-					writer.Line($"if (r{i} >= 0)");
-					writer.Then($"return r{i};");
-					writer.Line();
-				}
-
-				writer.Line("return -1;");
-				break;
-
-			case Node.Repeat(var repeated, var min, var max):
-
-				var body = Compile(repeated, functions);
-
-				// The count is there to stop the loop and to be tested at the end. A
-				// repetition bounded by neither needs it for neither, and counting anyway
-				// would be a variable the reader has to follow to find out it never
-				// mattered.
-				var bounded = min > 0;
-				var counted = bounded || max is not null;
-
-				if (counted)
-				{
-					writer.Line("var count = 0;");
-					writer.Line();
-				}
-
-				using (writer.Block(max is null ? "while (true)" : $"while (count < {max})"))
-				{
-					writer.Line($"var next = {body}(text, p);");
-					writer.Line();
-					writer.Line("// A body that matched nothing would loop for ever; the grammar is");
-					writer.Line("// checked for that, and this is the belt to its braces.");
-					writer.Line("if (next < 0 || next == p)");
-					writer.Then("break;");
-					writer.Line();
-					writer.Line("p = next;");
-
-					if (counted)
-						writer.Line("count++;");
-				}
-
-				writer.Line();
-				writer.Line(bounded ? $"return count >= {min} ? p : -1;" : "return p;");
-				break;
-
-			case Node.Call(var rule, _):
-				writer.Line($"return {MethodOf(rule)}(text, p);");
-				break;
-
-			// Transparent for now: a rule's value is the text it matched, so a capture
-			// and its construction have nothing to do yet.
-			case Node.Capture(_, var captured):
-				writer.Line($"return {Compile(captured, functions)}(text, p);");
-				break;
-
-			case Node.Construct(var built, _):
-				writer.Line($"return {Compile(built, functions)}(text, p);");
-				break;
-
-			case Node.Lookahead(var positive, var ahead):
-
-				// Either way the position is the one we came in with: a lookahead asks a
-				// question about the input, it does not consume any of it.
-				writer.Line($"var matched = {Compile(ahead, functions)}(text, p) >= 0;");
-				writer.Line();
-				writer.Line(positive ? "return matched ? p : -1;" : "return matched ? -1 : p;");
-				break;
-
-			// A guard tests a value, and values do not exist yet.
-			case Node.Guard:
-			case Node.Empty:
-				writer.Line("return p;");
-				break;
-
-			default:
-				writer.Line("return -1;");
-				break;
+			return bigger;
 		}
-	}
+		""";
 
-	static string Test(Node.Element element)
+	internal static string Test(Node.Element element)
 	{
 		var tests = new List<string>();
 
@@ -517,7 +388,7 @@ public static class CSharpEmitter
 	/// file with a raw control character in it for the rest — and the emitted text is
 	/// read by people, not only by a compiler.
 	/// </remarks>
-	static string Char(char value) => value switch
+	internal static string Char(char value) => value switch
 	{
 		'\''                         => @"'\''",
 		'\\'                         => @"'\\'",

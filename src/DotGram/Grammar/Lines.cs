@@ -19,7 +19,7 @@ namespace DotGram.Grammar;
 /// disk. Which one it is matters far less than that it is always the same one.
 /// </para>
 /// </remarks>
-static class Line
+static class Lines
 {
 	public const string Ending = "\r\n";
 

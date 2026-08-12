@@ -149,718 +149,948 @@ namespace DotGram.Snapshots
 
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var state = 9;
+
+			while (true)
 			{
-				p = N1(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N2(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N4(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N5(text, p);
-
-				if (p < 0)
-					return -1;
-
-				return p;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Header(text, p);
-			}
-
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				while (true)
+				switch (state)
 				{
-					var next = N3(text, p);
+					case 0:
+						return p;
 
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-					p = next;
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						r = Recognize_eof(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 0;
+
+					case 3:
+						r = Recognize_Trailer(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 2;
+
+					case 4:
+						c0 = saved;
+
+						goto case 3;
+
+					case 5:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 8;
+
+					case 6:
+						c0++;
+						goto case 5;
+
+					case 7:
+						c0 = 0;
+						goto case 5;
+
+					case 8:
+						r = Recognize_Row(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 6;
+
+					case 9:
+						r = Recognize_Header(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 7;
+
+					default:
+						return -1;
 				}
-
-				return p;
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Row(text, p);
-			}
-
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Trailer(text, p);
-			}
-
-			static int N5(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_eof(text, p);
 			}
 		}
 
 		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var r     = 0;
+			var state = 5;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				p = N1(text, p);
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				if (p < 0)
-					return -1;
+					case 1:
+						return -1;
 
-				p = N2(text, p);
+					case 2:
+						r = Recognize_eol(text, p);
 
-				if (p < 0)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				p = N3(text, p);
+						p = r;
+						goto case 0;
 
-				if (p < 0)
-					return -1;
+					case 3:
+						r = Recognize_Date(text, p);
 
-				p = N4(text, p);
+						if (r < 0)
+							goto case 1;
 
-				if (p < 0)
-					return -1;
+						p = r;
+						goto case 2;
 
-				return p;
-			}
+					case 4:
+						r = Recognize_Sep(text, p);
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				if (text[p + 0] != 'H')
-					return -1;
+						p = r;
+						goto case 3;
 
-				return p + 1;
-			}
+					case 5:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != 'H')
+							goto case 1;
+						p += 1;
+						goto case 4;
 
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Sep(text, p);
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Date(text, p);
-			}
-
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_eol(text, p);
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var r     = 0;
+			var state = 7;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				p = N1(text, p);
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				if (p < 0)
-					return -1;
+					case 1:
+						return -1;
 
-				p = N2(text, p);
+					case 2:
+						r = Recognize_eol(text, p);
 
-				if (p < 0)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				p = N3(text, p);
+						p = r;
+						goto case 0;
 
-				if (p < 0)
-					return -1;
+					case 3:
+						r = Recognize_Amount(text, p);
 
-				p = N4(text, p);
+						if (r < 0)
+							goto case 1;
 
-				if (p < 0)
-					return -1;
+						p = r;
+						goto case 2;
 
-				p = N5(text, p);
+					case 4:
+						r = Recognize_Sep(text, p);
 
-				if (p < 0)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				p = N6(text, p);
+						p = r;
+						goto case 3;
 
-				if (p < 0)
-					return -1;
+					case 5:
+						r = Recognize_Name(text, p);
 
-				return p;
-			}
+						if (r < 0)
+							goto case 1;
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
+						p = r;
+						goto case 4;
 
-				if (text[p + 0] != 'R')
-					return -1;
+					case 6:
+						r = Recognize_Sep(text, p);
 
-				return p + 1;
-			}
+						if (r < 0)
+							goto case 1;
 
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Sep(text, p);
-			}
+						p = r;
+						goto case 5;
 
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Name(text, p);
-			}
+					case 7:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != 'R')
+							goto case 1;
+						p += 1;
+						goto case 6;
 
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Sep(text, p);
-			}
-
-			static int N5(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Amount(text, p);
-			}
-
-			static int N6(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_eol(text, p);
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var r     = 0;
+			var state = 5;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				p = N1(text, p);
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				if (p < 0)
-					return -1;
+					case 1:
+						return -1;
 
-				p = N2(text, p);
+					case 2:
+						r = Recognize_eol(text, p);
 
-				if (p < 0)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				p = N3(text, p);
+						p = r;
+						goto case 0;
 
-				if (p < 0)
-					return -1;
+					case 3:
+						r = Recognize_Count(text, p);
 
-				p = N4(text, p);
+						if (r < 0)
+							goto case 1;
 
-				if (p < 0)
-					return -1;
+						p = r;
+						goto case 2;
 
-				return p;
-			}
+					case 4:
+						r = Recognize_Sep(text, p);
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
+						if (r < 0)
+							goto case 1;
 
-				if (text[p + 0] != 'T')
-					return -1;
+						p = r;
+						goto case 3;
 
-				return p + 1;
-			}
+					case 5:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != 'T')
+							goto case 1;
+						p += 1;
+						goto case 4;
 
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Sep(text, p);
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Count(text, p);
-			}
-
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_eol(text, p);
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_Sep(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var state = 2;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				if (p + 1 > text.Length)
-					return -1;
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				if (text[p + 0] != '|')
-					return -1;
+					case 1:
+						return -1;
 
-				return p + 1;
+					case 2:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '|')
+							goto case 1;
+						p += 1;
+						goto case 0;
+
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var c     = '\0';
+			var state = 2;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				if (p >= text.Length)
-					return -1;
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				var c = text[p];
+					case 1:
+						return -1;
 
-				return ((c >= '0' && c <= '9')) ? p + 1 : -1;
+					case 2:
+						if (p >= text.Length)
+							goto case 1;
+
+						c = text[p];
+
+						if (!((c >= '0' && c <= '9')))
+							goto case 1;
+
+						p++;
+						goto case 0;
+
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_Count(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var state = 5;
+
+			while (true)
 			{
-				var count = 0;
-
-				while (true)
+				switch (state)
 				{
-					var next = N1(text, p);
+					case 0:
+						return p;
 
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-					p = next;
-					count++;
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						c0 = saved;
+
+						if (c0 < 1)
+							goto case 1;
+
+						goto case 0;
+
+					case 3:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 6;
+
+					case 4:
+						c0++;
+						goto case 3;
+
+					case 5:
+						c0 = 0;
+						goto case 3;
+
+					case 6:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 4;
+
+					default:
+						return -1;
 				}
-
-				return count >= 1 ? p : -1;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
 			}
 		}
 
 		static int Recognize_Date(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var c1    = 0;
+			var c2    = 0;
+			var state = 17;
+
+			while (true)
 			{
-				p = N1(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N3(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N4(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N6(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N7(text, p);
-
-				if (p < 0)
-					return -1;
-
-				return p;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 4)
+				switch (state)
 				{
-					var next = N2(text, p);
+					case 0:
+						return p;
 
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-					p = next;
-					count++;
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						c0 = saved;
+
+						if (c0 < 2)
+							goto case 1;
+
+						goto case 0;
+
+					case 3:
+						if (c0 >= 2)
+						{
+							saved = c0;
+							goto case 2;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 6;
+
+					case 4:
+						c0++;
+						goto case 3;
+
+					case 5:
+						c0 = 0;
+						goto case 3;
+
+					case 6:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 4;
+
+					case 7:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '-')
+							goto case 1;
+						p += 1;
+						goto case 5;
+
+					case 8:
+						c1 = saved;
+
+						if (c1 < 2)
+							goto case 1;
+
+						goto case 7;
+
+					case 9:
+						if (c1 >= 2)
+						{
+							saved = c1;
+							goto case 8;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 12;
+
+					case 10:
+						c1++;
+						goto case 9;
+
+					case 11:
+						c1 = 0;
+						goto case 9;
+
+					case 12:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 10;
+
+					case 13:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '-')
+							goto case 1;
+						p += 1;
+						goto case 11;
+
+					case 14:
+						c2 = saved;
+
+						if (c2 < 4)
+							goto case 1;
+
+						goto case 13;
+
+					case 15:
+						if (c2 >= 4)
+						{
+							saved = c2;
+							goto case 14;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 14; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
+						goto case 18;
+
+					case 16:
+						c2++;
+						goto case 15;
+
+					case 17:
+						c2 = 0;
+						goto case 15;
+
+					case 18:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 16;
+
+					default:
+						return -1;
 				}
-
-				return count >= 4 ? p : -1;
-			}
-
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '-')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 2)
-				{
-					var next = N5(text, p);
-
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
-
-					p = next;
-					count++;
-				}
-
-				return count >= 2 ? p : -1;
-			}
-
-			static int N5(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
-			}
-
-			static int N6(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '-')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N7(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 2)
-				{
-					var next = N8(text, p);
-
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
-
-					p = next;
-					count++;
-				}
-
-				return count >= 2 ? p : -1;
-			}
-
-			static int N8(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
 			}
 		}
 
 		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var r     = 0;
+			var c0    = 0;
+			var c1    = 0;
+			var c2    = 0;
+			var c3    = 0;
+			var state = 20;
+
+			while (true)
 			{
-				p = N1(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N3(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N5(text, p);
-
-				if (p < 0)
-					return -1;
-
-				return p;
-			}
-
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 1)
+				switch (state)
 				{
-					var next = N2(text, p);
+					case 0:
+						return p;
 
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-					p = next;
-					count++;
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						c0 = saved;
+
+						goto case 0;
+
+					case 3:
+						if (c0 >= 1)
+						{
+							saved = c0;
+							goto case 2;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 11;
+
+					case 4:
+						c0++;
+						goto case 3;
+
+					case 5:
+						c0 = 0;
+						goto case 3;
+
+					case 6:
+						c1 = saved;
+
+						if (c1 < 2)
+							goto case 1;
+
+						goto case 4;
+
+					case 7:
+						if (c1 >= 2)
+						{
+							saved = c1;
+							goto case 6;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 10;
+
+					case 8:
+						c1++;
+						goto case 7;
+
+					case 9:
+						c1 = 0;
+						goto case 7;
+
+					case 10:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 8;
+
+					case 11:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '.')
+							goto case 1;
+						p += 1;
+						goto case 9;
+
+					case 12:
+						c2 = saved;
+
+						if (c2 < 1)
+							goto case 1;
+
+						goto case 5;
+
+					case 13:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 12; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
+						goto case 16;
+
+					case 14:
+						c2++;
+						goto case 13;
+
+					case 15:
+						c2 = 0;
+						goto case 13;
+
+					case 16:
+						r = Recognize_Digit(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 14;
+
+					case 17:
+						c3 = saved;
+
+						goto case 15;
+
+					case 18:
+						if (c3 >= 1)
+						{
+							saved = c3;
+							goto case 17;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 17; bt[sp + 1] = p; bt[sp + 2] = c3; sp += 3;
+						goto case 21;
+
+					case 19:
+						c3++;
+						goto case 18;
+
+					case 20:
+						c3 = 0;
+						goto case 18;
+
+					case 21:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '-')
+							goto case 1;
+						p += 1;
+						goto case 19;
+
+					default:
+						return -1;
 				}
-
-				return p;
-			}
-
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '-')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (true)
-				{
-					var next = N4(text, p);
-
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
-
-					p = next;
-					count++;
-				}
-
-				return count >= 1 ? p : -1;
-			}
-
-			static int N4(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
-			}
-
-			static int N5(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 1)
-				{
-					var next = N6(text, p);
-
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
-
-					p = next;
-					count++;
-				}
-
-				return p;
-			}
-
-			static int N6(global::System.ReadOnlySpan<char> text, int p)
-			{
-				p = N7(text, p);
-
-				if (p < 0)
-					return -1;
-
-				p = N8(text, p);
-
-				if (p < 0)
-					return -1;
-
-				return p;
-			}
-
-			static int N7(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '.')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N8(global::System.ReadOnlySpan<char> text, int p)
-			{
-				var count = 0;
-
-				while (count < 2)
-				{
-					var next = N9(text, p);
-
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
-
-					p = next;
-					count++;
-				}
-
-				return count >= 2 ? p : -1;
-			}
-
-			static int N9(global::System.ReadOnlySpan<char> text, int p)
-			{
-				return Recognize_Digit(text, p);
 			}
 		}
 
 		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var c     = '\0';
+			var c0    = 0;
+			var state = 5;
+
+			while (true)
 			{
-				var count = 0;
-
-				while (true)
+				switch (state)
 				{
-					var next = N1(text, p);
+					case 0:
+						return p;
 
-					// A body that matched nothing would loop for ever; the grammar is
-					// checked for that, and this is the belt to its braces.
-					if (next < 0 || next == p)
-						break;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-					p = next;
-					count++;
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
+
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
+
+					case 2:
+						c0 = saved;
+
+						if (c0 < 1)
+							goto case 1;
+
+						goto case 0;
+
+					case 3:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 6;
+
+					case 4:
+						c0++;
+						goto case 3;
+
+					case 5:
+						c0 = 0;
+						goto case 3;
+
+					case 6:
+						if (p >= text.Length)
+							goto case 1;
+
+						c = text[p];
+
+						if (!!(c == '\n' || c == '\r' || c == '|'))
+							goto case 1;
+
+						p++;
+						goto case 4;
+
+					default:
+						return -1;
 				}
-
-				return count >= 1 ? p : -1;
 			}
+		}
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
+		static int Recognize_eof_Look0(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p     = pos;
+			var state = 2;
+
+			while (true)
 			{
-				if (p >= text.Length)
-					return -1;
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				var c = text[p];
+					case 1:
+						return -1;
 
-				return !(c == '\n' || c == '\r' || c == '|') ? p + 1 : -1;
+					case 2:
+						if (p >= text.Length)
+							goto case 1;
+						p++;
+						goto case 0;
+
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			var p     = pos;
+			var state = 2;
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			while (true)
 			{
-				var matched = N1(text, p) >= 0;
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				return matched ? -1 : p;
-			}
+					case 1:
+						return -1;
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p >= text.Length)
-					return -1;
+					case 2:
+						if (Recognize_eof_Look0(text, p) < 0)
+							goto case 0;
+						goto case 1;
 
-				return p + 1;
+					default:
+						return -1;
+				}
 			}
 		}
 
 		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos)
 		{
-			return N0(text, pos);
+			global::System.Span<int> bt = stackalloc int[48];
 
-			static int N0(global::System.ReadOnlySpan<char> text, int p)
+			var sp    = 0;
+			var saved = 0;
+			var p     = pos;
+			var state = 6;
+
+			while (true)
 			{
-				var r0 = N1(text, p);
+				switch (state)
+				{
+					case 0:
+						return p;
 
-				if (r0 >= 0)
-					return r0;
+					case 1:
+						if (sp == 0)
+							return -1;
 
-				var r1 = N2(text, p);
+						sp    -= 3;
+						state  = bt[sp];
+						p      = bt[sp + 1];
+						saved  = bt[sp + 2];
 
-				if (r1 >= 0)
-					return r1;
+						// The one transition whose target is not known until now,
+						// and so the one that goes through the switch again.
+						continue;
 
-				var r2 = N3(text, p);
+					case 2:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '\r')
+							goto case 1;
+						p += 1;
+						goto case 0;
 
-				if (r2 >= 0)
-					return r2;
+					case 3:
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '\n')
+							goto case 1;
+						p += 1;
+						goto case 0;
 
-				return -1;
-			}
+					case 4:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 3;
 
-			static int N1(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 2 > text.Length)
-					return -1;
+					case 5:
+						if (p + 2 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '\r')
+							goto case 1;
+						if (text[p + 1] != '\n')
+							goto case 1;
+						p += 2;
+						goto case 0;
 
-				if (text[p + 0] != '\r')
-					return -1;
-				if (text[p + 1] != '\n')
-					return -1;
+					case 6:
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 5;
 
-				return p + 2;
-			}
-
-			static int N2(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '\n')
-					return -1;
-
-				return p + 1;
-			}
-
-			static int N3(global::System.ReadOnlySpan<char> text, int p)
-			{
-				if (p + 1 > text.Length)
-					return -1;
-
-				if (text[p + 0] != '\r')
-					return -1;
-
-				return p + 1;
+					default:
+						return -1;
+				}
 			}
 		}
 
+		static int[] Grow(global::System.Span<int> from)
+		{
+			var bigger = new int[from.Length * 2];
+
+			from.CopyTo(bigger);
+
+			return bigger;
+		}
 	}
 }

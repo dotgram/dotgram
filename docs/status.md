@@ -15,8 +15,8 @@ then quietly mean nothing.
 | Unicode categories `\p{Lu}`, groups `\p{L}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | references to elementary rules in a set | ✓ | ✓ | ✓ | ✓ | ✓ |
 | sequence `&` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| ordered choice `\|` | ✓ | ✓ | ✓ | ✓ | partial — see below |
-| quantifiers `? * + {n} {n,m}` | ✓ | ✓ | ✓ | ✓ | partial — see below |
+| ordered choice `\|` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| quantifiers `? * + {n} {n,m}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
 | scopes, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -35,31 +35,29 @@ then quietly mean nothing.
 | streaming input §6.2 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-## The one that is not a missing feature but a wrong one
+## Backtracking, and where it stops
 
-**Backtracking is not full, and the specification says it is.**
+Inside a rule, backtracking is full. A rule compiles to a state machine with an
+explicit stack of the points that could have gone another way: entering an alternative
+records the next one, taking one more repetition records the option of having stopped.
+Failing anywhere resumes at the most recent of them, and nothing is given up until the
+stack is empty. So `'a'? & 'a'` matches `"a"`, and `("x" | "xy") & 'y'` matches `"xy"`.
 
-`syntax.md` §10 says ordered choice backtracks fully, and rests a design decision on
-it — there is no commit point, so a rule means the same thing everywhere. The
-generated recognizer does not do this. A choice retries its own alternatives at the
-position it started from, and that is all; once an alternative or a repetition has
-returned a length, nothing later in the sequence can ask it for another one.
-
-So these fail, and should not:
+**Backtracking does not cross a rule boundary.** A call is a call: it answers once,
+with the first match it finds, and cannot be asked for another. So
 
 ```dotgram
-Start = 'a'? & 'a'          // input "a"
-Start = 'a'* & 'a'          // input "a"
-Start = ("xy" | "x") & 'y'  // input "xy"
+Start = Name & 'y'
+Name  = "x" | "xy"
 ```
 
-The last one is the specification's own counterexample, the one §10 uses to explain
-why alternatives may never be reordered.
+does not match `xy`, though the same expressions written in one rule would. Whether
+that stays this way is a language question — PEG answers once at rule boundaries by
+design, and .NET regular expressions have no rule boundaries to answer at — and it is
+not settled. What is settled is that it is written here rather than discovered.
 
-This is a property of the recognizer's shape — a function returning one end position
-has no way to be asked for the next — so fixing it is a decision about that shape, not
-a patch. Nothing that depends on execution order should be built until it is settled:
-typed values and speculative rollback designed apart do not meet in the middle.
+The same boundary shows up in publication: `parse R` asks `R` for a match and then
+checks the input ended, and cannot send `R` back for a longer one if it did not.
 
 ## What the tests cover
 
