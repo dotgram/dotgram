@@ -30,8 +30,8 @@ then quietly mean nothing.
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ignored | ✗ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types naming another rule §4.1 | ✓ | ✓ | ✗ | ✗ | ✗ |
-| guards `where` | ✓ | ✓ | ✓ | ignored | ✗ |
-| inline C# `@(...)` | ✓ | ✓ | ✓ | ignored | ✗ |
+| guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -159,6 +159,18 @@ what makes the capture names usable at all: inside a recognizer they would have 
 dodge every local it has, and a capture called `p` or `state` would collide with the
 machine itself. `text` is supplied — the matched extent, §7.3 — and a capture may take
 the name instead.
+
+## A guard asks the values
+
+`where @(…)` runs **during** the match, which is what makes it recognition: saying no
+is a non-match and a sibling alternative is tried, exactly as §8.1 has it. It becomes a
+method of its own for the same reason a `=>` does, and takes the same `text`.
+
+What it may look at is what was captured **before** it. A capture further along has not
+been written, so it is not a parameter, and naming it is an ordinary C# error about a
+name that is not there. A name captured in more than one alternative is passed as
+nullable at the guard, because only the slots behind the guard can have been written
+and the generator does not try to prove which.
 
 Three limits:
 

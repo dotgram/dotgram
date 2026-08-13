@@ -354,6 +354,34 @@ public sealed class SemanticTests
 			"b-a",
 			Built("""Start : @string = a: 'a' & b: 'b' => @(b + "-" + a)""", "ab"));
 
+	// ── `where` guards (§8.1) ───────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("12",  true)]
+	[InlineData("123", false)]
+	public void A_guard_asks_a_question_of_the_text_so_far(string input, bool expected) =>
+		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & where @(text.Length < 3)", input));
+
+	[Theory]
+	[InlineData("ab", true)]
+	[InlineData("ax", false)]
+	public void And_of_the_captures_written_before_it(string input, bool expected) =>
+		Assert.Equal(
+			expected,
+			Matches("""Start = a: 'a' & b: ['a'..'z'] & where @(b == "b")""", input));
+
+	[Fact]
+	public void A_failing_guard_is_a_non_match_and_a_sibling_is_tried() =>
+		// Recognition, not a value failure: saying no sends the match back into the choice
+		// rather than ending it. §8.1 is where the two are told apart.
+		Assert.True(Matches(
+			"""Start = (a: "ab" & where @(a == "xy") | a: "ab") & 'c'""",
+			"abc"));
+
+	[Fact]
+	public void A_guard_may_stand_where_nothing_has_been_captured() =>
+		Assert.True(Matches("Start = ['0'..'9']+ & where @(true)", "7"));
+
 	// ── Repetition counts ───────────────────────────────────────────────────────
 
 	[Fact]

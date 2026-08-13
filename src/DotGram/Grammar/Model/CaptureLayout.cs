@@ -147,6 +147,13 @@ public sealed class CaptureLayout
 
 				break;
 
+			// A guard is not a slot, but it needs a place in the numbering all the same:
+			// what it may look at is what was captured before it, and "before" is this.
+			case Node.Guard:
+
+				_before[node] = _slots.Count;
+				break;
+
 			case Node.Construct(var built, _):
 
 				Walk(built, buildsValue, repeated);

@@ -285,10 +285,12 @@ sealed class Machine
 		switch (node)
 		{
 			// Nothing to match and nothing to check: the continuation is the whole of it,
-			// so no state is spent. A guard tests a value, and values do not exist yet.
+			// so no state is spent.
 			case Node.Empty:
-			case Node.Guard:
 				return next;
+
+			case Node.Guard(var condition):
+				return CompileGuard(node, condition, next);
 
 			case Node.Literal(var value) when value.Length == 0:
 				return next;
@@ -579,6 +581,86 @@ sealed class Machine
 
 		return Compile(capture.Body, close);
 	}
+
+	/// <summary>
+	/// A <c>where</c> guard: a question asked of the values, answered in C#.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// It runs <b>during</b> the match, which is what makes it recognition — a guard that
+	/// says no is a non-match, and a sibling alternative is tried (docs/syntax.md §8.1).
+	/// So it may run more than once, and §7.2 requires the C# to bear that.
+	/// </para>
+	/// <para>
+	/// What it may look at is what was captured <b>before</b> it. A capture further along
+	/// has not been written yet, and passing it would mean handing over a slot that reads
+	/// as a negative offset; leaving it out makes naming it an ordinary C# error about a
+	/// name that is not there.
+	/// </para>
+	/// </remarks>
+	int CompileGuard(Node guard, string condition, int next)
+	{
+		var before  = Layout.Before(guard);
+		var visible = new List<ResultMember>();
+
+		foreach (var member in _builds?.Members ?? [])
+		{
+			// Only the slots this guard could have seen. A name captured in more than one
+			// alternative has one of its slots here and the rest elsewhere, and elsewhere
+			// has not happened.
+			var reachable = new List<int>();
+
+			foreach (var slot in member.Slots)
+				if (slot < before)
+					reachable.Add(slot);
+
+			if (reachable.Count == 0)
+				continue;
+
+			// Certain only when the member is written on every path *and* every path to it
+			// is behind us. Anything less is a `?`, which is the truth at this point.
+			visible.Add(member with
+			{
+				Slots      = reachable,
+				IsOptional = member.IsOptional || reachable.Count != member.Slots.Count,
+			});
+		}
+
+		var method     = $"{Name}_Guard{_guards++}";
+		var parameters = new List<string> { "string text" };
+		var arguments  = new List<string> { "text.Slice(pos, p - pos).ToString()" };
+
+		foreach (var member in visible)
+		{
+			if (member.Name == "text")
+				continue;
+
+			parameters.Add(
+				_results.ValueOf(member.Rule) +
+				(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +
+				" " + ResultTypes.ParameterOf(member));
+
+			arguments.Add(Value(member));
+		}
+
+		var body = new Writer(0);
+
+		body.Line($"// {Comment(guard, null)}");
+		body.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+		body.Line("\t" + condition + ";");
+
+		_extra.Add(body.ToString());
+
+		var state = Reserve(out var writer, guard);
+
+		writer.Line($"if (!{method}({string.Join(", ", arguments)}))");
+		writer.Then($"goto case {Fail};");
+		writer.Line($"goto case {next};");
+
+		return state;
+	}
+
+	int _guards;
 
 	string CompileLookahead(Node body)
 	{
