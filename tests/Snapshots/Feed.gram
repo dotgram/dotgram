@@ -5,10 +5,10 @@
 // Feed.gram.g.cs is what the emitter is expected to make of it, and a diff between
 // them is the review.
 
-Feed    = Header & Row* & Trailer & eof
-Header  = "H" & Sep & Date & eol
-Row     = "R" & Sep & Name & Sep & Amount & eol
-Trailer = "T" & Sep & Count & eol
+Feed    = header: Header & rows: Row* & trailer: Trailer & eof
+Header  = "H" & Sep & date: Date & eol
+Row     = "R" & Sep & name: Name & Sep & amount: Amount & eol
+Trailer = "T" & Sep & count: Count & eol
 
 Sep     = '|'
 Digit   = ['0'..'9']

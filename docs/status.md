@@ -25,7 +25,7 @@ then quietly mean nothing.
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | refused | ✗ |
+| repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` | ✓ | ✓ | ✓ | dropped | ✗ |
 | rule types `: T` | ✓ | partial | ✗ | ✗ | ✗ |
 | guards `where` | ✓ | ✓ | ✓ | ignored | ✗ |
@@ -110,18 +110,24 @@ state a match can resume at clears that suffix, as literals worked out while
 generating. There is no journal and no marks, and the path that does not backtrack pays
 nothing.
 
-Four things a capture can be that are recognized and not built, each `GRAM4006` rather
+**A repeated capture collects.** `items: Row*` is a `Row[]`, appended to where each
+value is built and truncated back when an attempt is abandoned. The length at the
+moment of a push rides on the backtracking frame, which is what makes it exact even for
+a repetition inside a repetition: giving back an outer iteration truncates to what the
+inner ones had collected before it began. No iterations is an empty array, never null.
+
+A repeated capture of **text** is a different thing and stays one: §10 binds a capture
+tighter than a quantifier, so `digits: ['0'..'9']+` is one capture repeated, and §7.3
+gives it the text joined — which it produces as the extent of the whole run.
+
+Two things a capture can still be that are recognized and not built, `GRAM4006` rather
 than a silent drop:
 
-- `items: Row*` — a repeated capture of a rule that builds. §7.3 says `Row[]`, and that
-  needs a growable slot with a mark to truncate it to on backtracking. Repeated
-  captures of *text* do work: §10 binds a capture tighter than a quantifier, so
-  `digits: ['0'..'9']+` is one capture repeated, and §7.3 gives it the text joined —
-  which is what it produces, as the extent of the whole run.
-- a capture inside a repetition without being the whole of what repeats — the text of
-  the iterations could not be told from the text between them.
+- a capture of *text* inside a repetition without being the whole of what repeats — the
+  text of the iterations could not be told from the text between them.
 - a capture inside a lookahead, which is a machine of its own that answers yes or no.
-- `GRAM4007`: one name captured twice with different types.
+
+And `GRAM4007`: one name captured twice with different types.
 
 Two deviations from §7.3, both deliberate:
 

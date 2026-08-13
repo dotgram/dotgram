@@ -342,7 +342,7 @@ public static class CSharpEmitter
 		var members = graph.Results[rule];
 
 		string Type(ResultMember member) =>
-			results.ValueOf(member.Rule) + (member.IsOptional ? "?" : "");
+			results.ValueOf(member.Rule) + (member.IsSequence ? "[]" : member.IsOptional ? "?" : "");
 
 		file.Line($"/// <summary>What the rule <c>{rule.Name}</c> recognized.</summary>");
 

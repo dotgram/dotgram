@@ -22,9 +22,10 @@ sealed class NodeIdentity : IEqualityComparer<Node>
 
 /// <summary>
 /// One capture of a rule body. <paramref name="Rule"/> is the rule whose value it takes,
-/// or null when what it captures is text.
+/// or null when what it captures is text; <paramref name="IsSequence"/> says the capture
+/// is under a repetition and so collects rather than holds.
 /// </summary>
-public sealed record CaptureSlot(int Index, string Name, RuleSymbol? Rule);
+public sealed record CaptureSlot(int Index, string Name, RuleSymbol? Rule, bool IsSequence);
 
 /// <summary>
 /// Where a rule body's captures are, numbered in the order the notation writes them.
@@ -77,30 +78,47 @@ public sealed class CaptureLayout
 	public int After(Node node) => _after.TryGetValue(node, out var count) ? count : 0;
 
 	/// <param name="buildsValue">Whether a rule has a value of its own rather than text.</param>
+	/// <summary>Every slot that collects rather than holds.</summary>
+	public IEnumerable<CaptureSlot> Sequences
+	{
+		get
+		{
+			foreach (var slot in _slots)
+				if (slot.IsSequence)
+					yield return slot;
+		}
+	}
+
 	public static CaptureLayout Of(Node body, Func<RuleSymbol, bool> buildsValue)
 	{
 		var layout = new CaptureLayout();
 
-		layout.Walk(body, buildsValue);
+		layout.Walk(body, buildsValue, repeated: false);
 
 		return layout;
 	}
 
-	void Walk(Node node, Func<RuleSymbol, bool> buildsValue)
+	/// <param name="repeated">
+	/// Whether a repetition that may run more than once encloses this node. What is
+	/// captured under one is written once per iteration, which is a sequence rather than
+	/// a value — §7.3, and the reason a bound of one does not count.
+	/// </param>
+	void Walk(Node node, Func<RuleSymbol, bool> buildsValue, bool repeated)
 	{
 		switch (node)
 		{
 			case Node.Capture(var name, var captured):
+			{
+				var called = captured is Node.Call(var rule, _) && buildsValue(rule) ? rule : null;
 
 				_slotOf[node] = _slots.Count;
 
 				_slots.Add(new CaptureSlot(
-					_slots.Count,
-					name,
-					captured is Node.Call(var called, _) && buildsValue(called) ? called : null));
+					_slots.Count, name, called, IsSequence: repeated && called is not null));
 
-				Walk(captured, buildsValue);
+				Walk(captured, buildsValue, repeated);
 				break;
+			}
 
 			// The two nodes an attempt can be abandoned at, and so the two that need to
 			// know where their slots start.
@@ -109,15 +127,15 @@ public sealed class CaptureLayout
 				_before[node] = _slots.Count;
 
 				foreach (var alternative in alternatives)
-					Walk(alternative, buildsValue);
+					Walk(alternative, buildsValue, repeated);
 
 				break;
 
-			case Node.Repeat(var repeated, _, _):
+			case Node.Repeat(var body, _, var max):
 
 				_before[node] = _slots.Count;
 
-				Walk(repeated, buildsValue);
+				Walk(body, buildsValue, repeated || max != 1);
 
 				_after[node] = _slots.Count;
 				break;
@@ -125,13 +143,13 @@ public sealed class CaptureLayout
 			case Node.Sequence(var nodes):
 
 				foreach (var child in nodes)
-					Walk(child, buildsValue);
+					Walk(child, buildsValue, repeated);
 
 				break;
 
 			case Node.Construct(var built, _):
 
-				Walk(built, buildsValue);
+				Walk(built, buildsValue, repeated);
 				break;
 
 			// A lookahead consumes nothing and is compiled as a separate machine, with its
@@ -150,4 +168,4 @@ public sealed class CaptureLayout
 /// <c>(a: X | a: Y)</c> is one member filled from whichever alternative matched.
 /// </remarks>
 public sealed record ResultMember(
-	string Name, RuleSymbol? Rule, bool IsOptional, IReadOnlyList<int> Slots);
+	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots);

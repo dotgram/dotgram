@@ -271,11 +271,51 @@ public sealed class SemanticTests
 		Assert.Equal("y", Read(Built("Start = (v: \"xy\" | v: 'y')", "y"), "V"));
 
 	[Fact]
-	public void A_repeated_capture_of_a_rule_that_builds_is_not_implemented_yet() =>
-		Refused(GrammarNormalizer.UnbuiltCapture, "Item = a: 'x'\nStart = items: Item+");
+	public void A_repeated_capture_of_a_rule_is_a_sequence_of_its_values()
+	{
+		var value = Built("Item = letter: ['a'..'z']\nStart = items: Item+", "abc");
+		var items = (Array)Read(value, "Items")!;
+
+		Assert.Equal(3, items.Length);
+		Assert.Equal(["a", "b", "c"], items.Cast<object>().Select(item => Read(item, "Letter")));
+	}
 
 	[Fact]
-	public void Nor_is_a_capture_that_is_not_the_whole_of_what_repeats() =>
+	public void An_empty_run_is_an_empty_sequence_rather_than_null() =>
+		Assert.Empty((Array)Read(
+			Built("Item = letter: 'x'\nStart = items: Item* & 'y'", "y"), "Items")!);
+
+	[Fact]
+	public void A_sequence_gives_back_what_an_abandoned_attempt_appended()
+	{
+		// `Item+` takes three, `'z'` fails, and the repetition hands one back at a time
+		// until `'c' & 'z'` fits. What it collected has to shrink with it — the length at
+		// the moment of the push is on the backtracking frame, and the resume truncates
+		// to it.
+		var items = (Array)Read(
+			Built("Item = letter: ['a'..'z']\nStart = items: Item+ & 'c' & 'z'", "abcz"), "Items")!;
+
+		Assert.Equal(["a", "b"], items.Cast<object>().Select(item => Read(item, "Letter")));
+	}
+
+	[Fact]
+	public void And_a_repetition_inside_a_repetition_gives_back_only_its_own_iteration()
+	{
+		var items = (Array)Read(
+			Built("Item = letter: ['a'..'z']\nStart = (items: Item+ & '.')* & 'x'", "ab.cd.x"),
+			"Items")!;
+
+		Assert.Equal(["a", "b", "c", "d"], items.Cast<object>().Select(item => Read(item, "Letter")));
+	}
+
+	[Fact]
+	public void A_capture_of_text_inside_a_repetition_is_still_the_run_it_matched() =>
+		// §7.3 keeps the two apart: a quantifier over text joins it, a quantifier over a
+		// rule collects. Only the second is a sequence.
+		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
+
+	[Fact]
+	public void But_text_captured_around_something_else_is_still_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCapture, "Start = (a: 'x' & 'y')+");
 
 	[Fact]

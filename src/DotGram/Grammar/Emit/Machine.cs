@@ -60,6 +60,11 @@ sealed class Machine
 		Name     = name;
 		_results = results;
 		_builds  = builds;
+
+		// Settled before anything is compiled: every frame pushed carries one length per
+		// sequence, so how wide a frame is has to be known before the first push.
+		foreach (var slot in Layout.Sequences)
+			_sequences.Add("l" + slot.Index);
 	}
 
 	/// <summary>
@@ -73,8 +78,9 @@ sealed class Machine
 	/// </remarks>
 	public bool IsLookahead { get; private set; }
 
-	readonly ResultTypes _results;
-	readonly Built?      _builds;
+	readonly ResultTypes  _results;
+	readonly Built?       _builds;
+	readonly List<string> _sequences = [];
 
 	/// <summary>The value a machine constructs, and where the parts of it are kept.</summary>
 	public sealed record Built(
@@ -189,15 +195,34 @@ sealed class Machine
 	string NewCounter() => "c" + _counters++;
 
 	/// <summary>
-	/// Records a point the match could return to: where to resume, where the input was,
-	/// and one saved value — a repetition's count, for the states that need theirs back.
+	/// How wide one backtracking frame is: where to resume, where the input was, one
+	/// saved value — a repetition's count — and the length of every sequence being
+	/// collected.
 	/// </summary>
+	/// <remarks>
+	/// A sequence cannot be forgotten by assigning a constant the way a single value can:
+	/// what an abandoned attempt appended has to be taken off, and how much it appended is
+	/// only known at run time. The length at the moment of the push is that number, and
+	/// the frame is where it belongs — it is already the record of "what was true here".
+	/// It is also why this works for a repetition inside a repetition: giving back an
+	/// outer iteration truncates to what the inner ones had collected before it began.
+	/// </remarks>
+	int Frame => 3 + _sequences.Count;
+
+	/// <summary>Records a point the match could return to.</summary>
 	void Push(Writer writer, int state, string saved)
 	{
 		UsesStack = true;
 
-		writer.Line($"if (sp + 3 > bt.Length) bt = Grow(bt);");
-		writer.Line($"bt[sp] = {state}; bt[sp + 1] = p; bt[sp + 2] = {saved}; sp += 3;");
+		writer.Line($"if (sp + {Frame} > bt.Length) bt = Grow(bt);");
+
+		var frame = new System.Text.StringBuilder(
+			$"bt[sp] = {state}; bt[sp + 1] = p; bt[sp + 2] = {saved};");
+
+		for (var i = 0; i < _sequences.Count; i++)
+			frame.Append($" bt[sp + {i + 3}] = {_sequences[i]}.Count;");
+
+		writer.Line(frame.Append($" sp += {Frame};").ToString());
 	}
 
 	/// <summary>
@@ -217,15 +242,24 @@ sealed class Machine
 	/// </remarks>
 	int Forget(int target, int first)
 	{
-		if (first >= Layout.Slots.Count)
+		// A sequence is not among them: its slot is restored from the frame, because how
+		// much to take off is not a constant.
+		var forgotten = 0;
+
+		for (var i = first; i < Layout.Slots.Count; i++)
+			if (!Layout.Slots[i].IsSequence)
+				forgotten++;
+
+		if (forgotten == 0)
 			return target;
 
 		var state = Reserve(out var writer, null, "forget what the abandoned attempt captured");
 
 		for (var i = first; i < Layout.Slots.Count; i++)
-			writer.Line(Layout.Slots[i].Rule is null
-				? $"s{i}_from = s{i}_to = -1;"
-				: $"v{i} = null;");
+			if (!Layout.Slots[i].IsSequence)
+				writer.Line(Layout.Slots[i].Rule is null
+					? $"s{i}_from = s{i}_to = -1;"
+					: $"v{i} = null;");
 
 		writer.Line($"goto case {target};");
 
@@ -367,6 +401,19 @@ sealed class Machine
 			case Node.Capture(_, var captured):
 			{
 				var slot = Layout.SlotOf(node);
+
+				// A sequence appends where a single value would have been assigned, and the
+				// append is on the successful path only — the call writes its `out` whether
+				// it matched or not, so an iteration that failed contributes nothing.
+				if (Layout.Slots[slot].IsSequence)
+				{
+					var appended = Reserve(out var atAppend, node, "one more, collected");
+
+					atAppend.Line($"l{slot}.Add(v{slot}!);");
+					atAppend.Line($"goto case {next};");
+
+					return CompileCall((Node.Call)captured, appended, slot);
+				}
 
 				if (Layout.Slots[slot].Rule is not null)
 					return CompileCall((Node.Call)captured, next, slot);
@@ -568,6 +615,11 @@ sealed class Machine
 	/// </remarks>
 	static string Value(ResultMember member)
 	{
+		// A sequence is never absent and never shared between names: no iterations is an
+		// empty array, so there is nothing to test and nothing to fall through to.
+		if (member.IsSequence)
+			return $"l{member.Slots[0]}.ToArray()";
+
 		if (member.Slots.Count == 1 && !member.IsOptional)
 			return Read(member, member.Slots[0]) + (member.Rule is null ? "" : "!");
 
@@ -649,9 +701,19 @@ sealed class Machine
 				file.Line();
 
 				foreach (var slot in Layout.Slots)
-					file.Line(slot.Rule is null
-						? $"var s{slot.Index}_from = -1; var s{slot.Index}_to = -1;"
-						: $"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null;");
+					file.Line(slot switch
+					{
+						{ Rule: null } => $"var s{slot.Index}_from = -1; var s{slot.Index}_to = -1;",
+
+						// The one the call writes into, and the one it is appended to. Two,
+						// because an `out` needs somewhere to land whether or not it matched.
+						{ IsSequence: true } =>
+							$"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null; " +
+							$"var l{slot.Index} = new global::System.Collections.Generic.List<" +
+							$"{_results.QualifiedOf(slot.Rule)}>();",
+
+						_ => $"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null;",
+					});
 			}
 
 			file.Line();
@@ -696,10 +758,22 @@ sealed class Machine
 						file.Line("if (sp == 0)");
 						file.Then("return -1;");
 						file.Line();
-						file.Line("sp    -= 3;");
+						file.Line($"sp    -= {Frame};");
 						file.Line("state  = bt[sp];");
 						file.Line("p      = bt[sp + 1];");
 						file.Line("saved  = bt[sp + 2];");
+
+						// What the abandoned attempt appended comes off. Only ever a
+						// shortening, and only of what this frame did not have.
+						for (var i = 0; i < _sequences.Count; i++)
+						{
+							var list = _sequences[i];
+
+							file.Line();
+							file.Line($"if ({list}.Count > bt[sp + {i + 3}])");
+							file.Then($"{list}.RemoveRange(bt[sp + {i + 3}], {list}.Count - bt[sp + {i + 3}]);");
+						}
+
 						file.Line();
 						file.Line("// The one transition whose target is not known until now,");
 						file.Line("// and so the one that goes through the switch again.");

@@ -555,11 +555,11 @@ public sealed class GrammarNormalizer
 				{
 					// The same name in two alternatives is one member — but only if the two
 					// agree on what it holds, since a member has one type.
-					if (sharing[0].Rule != slot.Rule)
+					if (sharing[0].Rule != slot.Rule || sharing[0].IsSequence != slot.IsSequence)
 						Report(
 							CaptureTypeMismatch,
 							$"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +
-							$"{Held(sharing[0].Rule)} and {Held(slot.Rule)}.",
+							$"{Held(sharing[0])} and {Held(slot)}.",
 							rule.Declaration!.At);
 
 					sharing.Add(slot);
@@ -569,7 +569,15 @@ public sealed class GrammarNormalizer
 
 				slots[slot.Name] = [slot];
 
-				members.Add(new ResultMember(slot.Name, slot.Rule, IsOptional: !Writes(body, slot.Name), []));
+				members.Add(new ResultMember(
+					slot.Name,
+					slot.Rule,
+					slot.IsSequence,
+
+					// A sequence is never absent: no iterations is an empty one, the same way
+					// a run of no text is "".
+					IsOptional: !slot.IsSequence && !Writes(body, slot.Name),
+					[]));
 			}
 
 			for (var i = 0; i < members.Count; i++)
@@ -582,7 +590,12 @@ public sealed class GrammarNormalizer
 		}
 	}
 
-	static string Held(RuleSymbol? rule) => rule is null ? "text" : $"the value of '{rule.Name}'";
+	static string Held(CaptureSlot slot) =>
+		slot.Rule is null
+			? "text"
+			: slot.IsSequence
+				? $"a sequence of '{slot.Rule.Name}'"
+				: $"the value of '{slot.Rule.Name}'";
 
 	/// <summary>Whether a rule has a value of its own — which is to say, any capture.</summary>
 	bool BuildsValue(RuleSymbol rule) => _bodies.TryGetValue(rule, out var body) && HasCapture(body);
@@ -635,17 +648,20 @@ public sealed class GrammarNormalizer
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// §10 binds a capture tighter than a quantifier, so <c>scheme: ['a'..'z']+</c> is a
-	/// capture repeated rather than a capture of a run. §7.3 gives it the text joined —
-	/// which is the extent from the first iteration to the last, and is exactly that only
-	/// when the capture is the whole of what repeats. Written around something else, the
-	/// text between the iterations would be swept in with them.
+	/// A repeated capture of a rule that builds is a sequence of values (§7.3), and where
+	/// it sits under the repetition does not matter: every iteration appends where its
+	/// value is built, and an abandoned attempt truncates back to the length it pushed.
 	/// </para>
 	/// <para>
-	/// A repeated capture of a rule that builds is a sequence of values (§7.3), which
-	/// needs a growable slot and a mark to truncate it to on backtracking; neither exists
-	/// yet. Inside a lookahead a capture belongs to a machine of its own that answers yes
-	/// or no and hands nothing back.
+	/// A repeated capture of <b>text</b> is not that. §10 binds a capture tighter than a
+	/// quantifier, so <c>scheme: ['a'..'z']+</c> is a capture repeated, and §7.3 gives it
+	/// the text joined — which is the extent from the first iteration to the last, and is
+	/// exactly that only when the capture is the whole of what repeats. Written around
+	/// something else, the text between the iterations would be swept in with them.
+	/// </para>
+	/// <para>
+	/// Inside a lookahead a capture belongs to a machine of its own that answers yes or no
+	/// and hands nothing back.
 	/// </para>
 	/// </remarks>
 	/// <param name="repeated">
@@ -657,6 +673,8 @@ public sealed class GrammarNormalizer
 	{
 		if (node is Node.Capture(var name, var captured))
 		{
+			var collects = captured is Node.Call(var called, _) && BuildsValue(called);
+
 			if (inLookahead)
 				Report(
 					UnbuiltCapture,
@@ -664,17 +682,10 @@ public sealed class GrammarNormalizer
 					"a lookahead consumes nothing and answers only whether it matched.",
 					rule.Declaration!.At);
 
-			else if (repeated is not null && captured is Node.Call(var called, _) && BuildsValue(called))
+			else if (repeated is not null && !collects && !ReferenceEquals(repeated, node))
 				Report(
 					UnbuiltCapture,
-					$"'{name}' repeatedly captures '{called.Name}', which is not built yet: " +
-					"that is a sequence of values, and only single-valued captures are built so far.",
-					rule.Declaration!.At);
-
-			else if (repeated is not null && !ReferenceEquals(repeated, node))
-				Report(
-					UnbuiltCapture,
-					$"'{name}' is captured inside a repetition in '{rule.Name}' without being the whole of " +
+					$"'{name}' captures text inside a repetition in '{rule.Name}' without being the whole of " +
 					"what repeats, which is not built yet: the text of the iterations cannot be told from " +
 					"the text between them. Move the quantifier inside the capture.",
 					rule.Declaration!.At);

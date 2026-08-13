@@ -9,7 +9,7 @@ namespace DotGram.Snapshots
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Feed</c>. <c>TryParseFeed</c> answers instead.
 		/// </exception>
-		public static string ParseFeed(string input)
+		public static global::DotGram.Snapshots.Feed.FeedValue ParseFeed(string input)
 		{
 			var match = TryParseFeed(input);
 
@@ -20,17 +20,17 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Parses the whole input as <c>Feed</c>, answering rather than throwing.</summary>
-		public static Match<string> TryParseFeed(string input)
+		public static Match<global::DotGram.Snapshots.Feed.FeedValue> TryParseFeed(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure();
 
-			var end = Recognize_Feed_Whole(text, 0, ref failure);
+			var end = Recognize_Feed_Whole(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
-				return Match<string>.Failed("Input does not match 'Feed'.", failure.Position);
+				return Match<global::DotGram.Snapshots.Feed.FeedValue>.Failed("Input does not match 'Feed'.", failure.Position);
 
-			return Match<string>.Success(input.Substring(0, end), 0, end);
+			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, 0, end);
 		}
 
 		/// <summary>Every occurrence of <c>Name</c>, in order, found as it is asked for.</summary>
@@ -56,13 +56,13 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Every occurrence of <c>Row</c>, in order, found as it is asked for.</summary>
-		public static global::System.Collections.Generic.IEnumerable<Match<string>> AllRows(string input)
+		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> AllRows(string input)
 		{
 			for (var start = 0; start <= input.Length; )
 			{
 				var failure = new Failure();
 
-				var end = Recognize_Row(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
+				var end = Recognize_Row(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -70,16 +70,78 @@ namespace DotGram.Snapshots
 					continue;
 				}
 
-				yield return Match<string>.Success(input.Substring(start, end - start), start, end - start);
+				yield return Match<global::DotGram.Snapshots.Feed.Row>.Success(recognized, start, end - start);
 
 				// A rule that matches nothing would otherwise find it for ever.
 				start = end > start ? end : start + 1;
 			}
 		}
 
-		// parse Feed: Header & Row* & Trailer & eof & eof
-		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		/// <summary>What the rule <c>Feed</c> recognized.</summary>
+		public sealed class FeedValue
 		{
+			public FeedValue(global::DotGram.Snapshots.Feed.Header header, global::DotGram.Snapshots.Feed.Row[] rows, global::DotGram.Snapshots.Feed.Trailer trailer)
+			{
+				Header = header;
+				Rows = rows;
+				Trailer = trailer;
+			}
+
+			/// <summary>The <c>header</c> capture.</summary>
+			public global::DotGram.Snapshots.Feed.Header Header { get; }
+
+			/// <summary>The <c>rows</c> capture.</summary>
+			public global::DotGram.Snapshots.Feed.Row[] Rows { get; }
+
+			/// <summary>The <c>trailer</c> capture.</summary>
+			public global::DotGram.Snapshots.Feed.Trailer Trailer { get; }
+		}
+
+		/// <summary>What the rule <c>Header</c> recognized.</summary>
+		public sealed class Header
+		{
+			public Header(string date)
+			{
+				Date = date;
+			}
+
+			/// <summary>The <c>date</c> capture.</summary>
+			public string Date { get; }
+		}
+
+		/// <summary>What the rule <c>Row</c> recognized.</summary>
+		public sealed class Row
+		{
+			public Row(string name, string amount)
+			{
+				Name = name;
+				Amount = amount;
+			}
+
+			/// <summary>The <c>name</c> capture.</summary>
+			public string Name { get; }
+
+			/// <summary>The <c>amount</c> capture.</summary>
+			public string Amount { get; }
+		}
+
+		/// <summary>What the rule <c>Trailer</c> recognized.</summary>
+		public sealed class Trailer
+		{
+			public Trailer(string count)
+			{
+				Count = count;
+			}
+
+			/// <summary>The <c>count</c> capture.</summary>
+			public string Count { get; }
+		}
+
+		// parse Feed: header: Header & rows: Row* & trailer: Trailer & eof & eof
+		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
+		{
+			value = null!;
+
 			global::System.Span<int> bt = stackalloc int[48];
 
 			var sp    = 0;
@@ -87,13 +149,22 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var r     = 0;
 			var c0    = 0;
-			var state = 10;
+			var state = 12;
+
+			global::DotGram.Snapshots.Feed.Header? v0 = null;
+			global::DotGram.Snapshots.Feed.Row? v1 = null; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
+			global::DotGram.Snapshots.Feed.Trailer? v2 = null;
 
 			while (true)
 			{
 				switch (state)
 				{
 					case 0:
+						value = new global::DotGram.Snapshots.Feed.FeedValue(
+							v0!,
+							l1.ToArray(),
+							v2!);
+
 						return p;
 
 					case 1:
@@ -103,10 +174,13 @@ namespace DotGram.Snapshots
 						if (sp == 0)
 							return -1;
 
-						sp    -= 3;
+						sp    -= 4;
 						state  = bt[sp];
 						p      = bt[sp + 1];
 						saved  = bt[sp + 2];
+
+						if (l1.Count > bt[sp + 3])
+							l1.RemoveRange(bt[sp + 3], l1.Count - bt[sp + 3]);
 
 						// The one transition whose target is not known until now,
 						// and so the one that goes through the switch again.
@@ -130,7 +204,7 @@ namespace DotGram.Snapshots
 
 					case 4:
 						// Trailer
-						r = Recognize_Trailer(text, p, ref failure);
+						r = Recognize_Trailer(text, p, ref failure, out v2);
 
 						if (r < 0)
 							goto case 1;
@@ -139,40 +213,50 @@ namespace DotGram.Snapshots
 						goto case 3;
 
 					case 5:
-						// Row* — stop, and check the count
+						// rows: Row* — stop, and check the count
 						c0 = saved;
 
 						goto case 4;
 
 					case 6:
-						// Row* — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 5; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 9;
+						// rows: Row* — take another, or leave stopping open
+						if (sp + 4 > bt.Length) bt = Grow(bt);
+						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
+						goto case 10;
 
 					case 7:
-						// Row* — one more taken
+						// rows: Row* — one more taken
 						c0++;
 						goto case 6;
 
 					case 8:
-						// Row* — start counting
+						// rows: Row* — start counting
 						c0 = 0;
 						goto case 6;
 
 					case 9:
+						// rows: Row — one more, collected
+						l1.Add(v1!);
+						goto case 7;
+
+					case 10:
 						// Row
-						r = Recognize_Row(text, p, ref failure);
+						r = Recognize_Row(text, p, ref failure, out v1);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 7;
+						goto case 9;
 
-					case 10:
+					case 11:
+						// forget what the abandoned attempt captured
+						v2 = null;
+						goto case 5;
+
+					case 12:
 						// Header
-						r = Recognize_Header(text, p, ref failure);
+						r = Recognize_Header(text, p, ref failure, out v0);
 
 						if (r < 0)
 							goto case 1;
@@ -212,9 +296,11 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Feed = Header & Row* & Trailer & eof
-		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		// Feed = header: Header & rows: Row* & trailer: Trailer & eof
+		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
+			value = null!;
+
 			global::System.Span<int> bt = stackalloc int[48];
 
 			var sp    = 0;
@@ -222,13 +308,22 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var r     = 0;
 			var c0    = 0;
-			var state = 9;
+			var state = 11;
+
+			global::DotGram.Snapshots.Feed.Header? v0 = null;
+			global::DotGram.Snapshots.Feed.Row? v1 = null; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
+			global::DotGram.Snapshots.Feed.Trailer? v2 = null;
 
 			while (true)
 			{
 				switch (state)
 				{
 					case 0:
+						value = new global::DotGram.Snapshots.Feed.FeedValue(
+							v0!,
+							l1.ToArray(),
+							v2!);
+
 						return p;
 
 					case 1:
@@ -238,10 +333,13 @@ namespace DotGram.Snapshots
 						if (sp == 0)
 							return -1;
 
-						sp    -= 3;
+						sp    -= 4;
 						state  = bt[sp];
 						p      = bt[sp + 1];
 						saved  = bt[sp + 2];
+
+						if (l1.Count > bt[sp + 3])
+							l1.RemoveRange(bt[sp + 3], l1.Count - bt[sp + 3]);
 
 						// The one transition whose target is not known until now,
 						// and so the one that goes through the switch again.
@@ -259,7 +357,7 @@ namespace DotGram.Snapshots
 
 					case 3:
 						// Trailer
-						r = Recognize_Trailer(text, p, ref failure);
+						r = Recognize_Trailer(text, p, ref failure, out v2);
 
 						if (r < 0)
 							goto case 1;
@@ -268,40 +366,50 @@ namespace DotGram.Snapshots
 						goto case 2;
 
 					case 4:
-						// Row* — stop, and check the count
+						// rows: Row* — stop, and check the count
 						c0 = saved;
 
 						goto case 3;
 
 					case 5:
-						// Row* — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 8;
+						// rows: Row* — take another, or leave stopping open
+						if (sp + 4 > bt.Length) bt = Grow(bt);
+						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
+						goto case 9;
 
 					case 6:
-						// Row* — one more taken
+						// rows: Row* — one more taken
 						c0++;
 						goto case 5;
 
 					case 7:
-						// Row* — start counting
+						// rows: Row* — start counting
 						c0 = 0;
 						goto case 5;
 
 					case 8:
+						// rows: Row — one more, collected
+						l1.Add(v1!);
+						goto case 6;
+
+					case 9:
 						// Row
-						r = Recognize_Row(text, p, ref failure);
+						r = Recognize_Row(text, p, ref failure, out v1);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 6;
+						goto case 8;
 
-					case 9:
+					case 10:
+						// forget what the abandoned attempt captured
+						v2 = null;
+						goto case 4;
+
+					case 11:
 						// Header
-						r = Recognize_Header(text, p, ref failure);
+						r = Recognize_Header(text, p, ref failure, out v0);
 
 						if (r < 0)
 							goto case 1;
@@ -315,16 +423,23 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Header = 'H' & Sep & Date & eol
-		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		// Header = 'H' & Sep & date: Date & eol
+		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Header value)
 		{
+			value = null!;
+
 			var p     = pos;
 			var r     = 0;
-			var state = 5;
+			var state = 7;
+
+			var s0_from = -1; var s0_to = -1;
 
 			switch (state)
 			{
 				case 0:
+					value = new global::DotGram.Snapshots.Feed.Header(
+						text.Slice(s0_from, s0_to - s0_from).ToString());
+
 					return p;
 
 				case 1:
@@ -344,6 +459,11 @@ namespace DotGram.Snapshots
 					goto case 0;
 
 				case 3:
+					// date: Date — captured to here
+					s0_to = p;
+					goto case 2;
+
+				case 4:
 					// Date
 					r = Recognize_Date(text, p, ref failure);
 
@@ -351,88 +471,11 @@ namespace DotGram.Snapshots
 						goto case 1;
 
 					p = r;
-					goto case 2;
-
-				case 4:
-					// Sep
-					r = Recognize_Sep(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
 					goto case 3;
 
 				case 5:
-					// 'H'
-					if (p + 1 > text.Length)
-						goto case 1;
-					if (text[p + 0] != 'H')
-						goto case 1;
-					p += 1;
-					goto case 4;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Row = 'R' & Sep & Name & Sep & Amount & eol
-		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 7;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// eol
-					r = Recognize_eol(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 0;
-
-				case 3:
-					// Amount
-					r = Recognize_Amount(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 2;
-
-				case 4:
-					// Sep
-					r = Recognize_Sep(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 3;
-
-				case 5:
-					// Name
-					r = Recognize_Name(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
+					// date: Date — capture starts here
+					s0_from = p;
 					goto case 4;
 
 				case 6:
@@ -446,10 +489,10 @@ namespace DotGram.Snapshots
 					goto case 5;
 
 				case 7:
-					// 'R'
+					// 'H'
 					if (p + 1 > text.Length)
 						goto case 1;
-					if (text[p + 0] != 'R')
+					if (text[p + 0] != 'H')
 						goto case 1;
 					p += 1;
 					goto case 6;
@@ -459,16 +502,25 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Trailer = 'T' & Sep & Count & eol
-		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		// Row = 'R' & Sep & name: Name & Sep & amount: Amount & eol
+		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Row value)
 		{
+			value = null!;
+
 			var p     = pos;
 			var r     = 0;
-			var state = 5;
+			var state = 11;
+
+			var s0_from = -1; var s0_to = -1;
+			var s1_from = -1; var s1_to = -1;
 
 			switch (state)
 			{
 				case 0:
+					value = new global::DotGram.Snapshots.Feed.Row(
+						text.Slice(s0_from, s0_to - s0_from).ToString(),
+						text.Slice(s1_from, s1_to - s1_from).ToString());
+
 					return p;
 
 				case 1:
@@ -488,18 +540,13 @@ namespace DotGram.Snapshots
 					goto case 0;
 
 				case 3:
-					// Count
-					r = Recognize_Count(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
+					// amount: Amount — captured to here
+					s1_to = p;
 					goto case 2;
 
 				case 4:
-					// Sep
-					r = Recognize_Sep(text, p, ref failure);
+					// Amount
+					r = Recognize_Amount(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -508,13 +555,137 @@ namespace DotGram.Snapshots
 					goto case 3;
 
 				case 5:
+					// amount: Amount — capture starts here
+					s1_from = p;
+					goto case 4;
+
+				case 6:
+					// Sep
+					r = Recognize_Sep(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 5;
+
+				case 7:
+					// name: Name — captured to here
+					s0_to = p;
+					goto case 6;
+
+				case 8:
+					// Name
+					r = Recognize_Name(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 7;
+
+				case 9:
+					// name: Name — capture starts here
+					s0_from = p;
+					goto case 8;
+
+				case 10:
+					// Sep
+					r = Recognize_Sep(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 9;
+
+				case 11:
+					// 'R'
+					if (p + 1 > text.Length)
+						goto case 1;
+					if (text[p + 0] != 'R')
+						goto case 1;
+					p += 1;
+					goto case 10;
+
+				default:
+					return -1;
+			}
+		}
+
+		// Trailer = 'T' & Sep & count: Count & eol
+		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Trailer value)
+		{
+			value = null!;
+
+			var p     = pos;
+			var r     = 0;
+			var state = 7;
+
+			var s0_from = -1; var s0_to = -1;
+
+			switch (state)
+			{
+				case 0:
+					value = new global::DotGram.Snapshots.Feed.Trailer(
+						text.Slice(s0_from, s0_to - s0_from).ToString());
+
+					return p;
+
+				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
+					return -1;
+
+				case 2:
+					// eol
+					r = Recognize_eol(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 0;
+
+				case 3:
+					// count: Count — captured to here
+					s0_to = p;
+					goto case 2;
+
+				case 4:
+					// Count
+					r = Recognize_Count(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 3;
+
+				case 5:
+					// count: Count — capture starts here
+					s0_from = p;
+					goto case 4;
+
+				case 6:
+					// Sep
+					r = Recognize_Sep(text, p, ref failure);
+
+					if (r < 0)
+						goto case 1;
+
+					p = r;
+					goto case 5;
+
+				case 7:
 					// 'T'
 					if (p + 1 > text.Length)
 						goto case 1;
 					if (text[p + 0] != 'T')
 						goto case 1;
 					p += 1;
-					goto case 4;
+					goto case 6;
 
 				default:
 					return -1;

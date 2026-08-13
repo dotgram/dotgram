@@ -2,11 +2,12 @@
 
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
-> **Early work.** The pipeline runs end to end and the parsers it produces are real,
-> but a rule's value is still the text it matched. Nothing here is ready to depend on.
+> **Early work.** The pipeline runs end to end and the parsers it produces are real and
+> typed, but the seam with C# — a rule declaring its own type, `=>`, `where` — is not
+> built. Nothing here is ready to depend on.
 >
-> The language specification below describes the target language. Not every specified
-> feature is implemented — [`docs/status.md`](docs/status.md) says which are.
+> The specification describes the target language. Not every specified feature is
+> implemented — [`docs/status.md`](docs/status.md) says which are.
 
 ## What it looks like
 
@@ -18,10 +19,10 @@ public partial class Feed;
 ```
 
 ```dotgram
-Feed    = Header & Row* & Trailer & eof
-Header  = "H" & Sep & Date & eol
-Row     = "R" & Sep & Name & Sep & Amount & eol
-Trailer = "T" & Sep & Count & eol
+Feed    = header: Header & rows: Row* & trailer: Trailer & eof
+Header  = "H" & Sep & date: Date & eol
+Row     = "R" & Sep & name: Name & Sep & amount: Amount & eol
+Trailer = "T" & Sep & count: Count & eol
 
 Sep     = '|'
 Digit   = ['0'..'9']
@@ -40,6 +41,9 @@ matches:
 
 ```csharp
 var feed = Feed.ParseFeed(text);            // the whole input is a Feed, or it throws
+
+feed.Rows[0].Name;                          // every capture is a property
+feed.Trailer.Count;
 
 if (Feed.TryParseFeed(text) is { IsSuccess: true } match)
 	…                                       // or ask, and get Value, Error, Position
@@ -99,10 +103,21 @@ Working end to end — a `.gram` file becomes a parser that runs:
   member's slot is cleared wherever an abandoned attempt is resumed from, which the
   generator works out while generating rather than the parser tracking as it runs.
 
+- **sequences** — `rows: Row*` is a `Row[]`, so a whole feed comes back from one pass:
+
+  ```dotgram
+  Feed = header: Header & rows: Row* & trailer: Trailer & eof
+  ```
+
+  ```csharp
+  var feed = FeedReader.ParseFeed(text);   // one header, a trailer, nothing after it
+
+  feed.Rows[0].Symbol;
+  feed.Trailer.Count;
+  ```
+
 Not built yet:
 
-- **repeated captures of a rule** — `items: Row*` is a `Row[]` in the specification and
-  is refused today; a repeated capture of *text* works and is the run it matched
 - rule types `: @T`, and `=>` construction — a rule's type is generated, never taken
   from C#
 - `where` guards and `@(...)` C# interop at run time
@@ -119,7 +134,7 @@ written against it, with no test framework anywhere near them.
 | | |
 | --- | --- |
 | [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
-| [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, an envelope checked as a whole |
+| [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.
 
