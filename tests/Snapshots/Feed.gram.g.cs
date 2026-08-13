@@ -22,11 +22,14 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
-			var end = Recognize_Feed_Whole(text, 0);
+			var failure = new Failure();
+
+			var end = Recognize_Feed_Whole(text, 0, ref failure);
 
 			if (end < 0)
 			{
-				error = "Input does not match 'Feed'.";
+				error         = "Input does not match 'Feed'.";
+				errorPosition = failure.Position;
 				return false;
 			}
 
@@ -51,11 +54,14 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
-			var end = Recognize_Row(text, 0);
+			var failure = new Failure();
+
+			var end = Recognize_Row(text, 0, ref failure);
 
 			if (end < 0)
 			{
-				error = "Input does not match 'Row'.";
+				error         = "Input does not match 'Row'.";
+				errorPosition = failure.Position;
 				return false;
 			}
 
@@ -80,9 +86,11 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
+			var failure = new Failure();
+
 			for (var start = 0; start <= input.Length; start++)
 			{
-				var end = Recognize_Name(text, start);
+				var end = Recognize_Name(text, start, ref failure);
 
 				if (end >= 0)
 				{
@@ -91,7 +99,8 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			error = "No occurrence of 'Name'.";
+			error         = "No occurrence of 'Name'.";
+			errorPosition = failure.Position;
 			return false;
 		}
 
@@ -112,11 +121,13 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
+			var failure = new Failure();
+
 			var found = new global::System.Collections.Generic.List<string>();
 
 			for (var start = 0; start <= input.Length; )
 			{
-				var end = Recognize_Row(text, start);
+				var end = Recognize_Row(text, start, ref failure);
 
 				if (end < 0)
 				{
@@ -132,7 +143,8 @@ namespace DotGram.Snapshots
 
 			if (found.Count == 0)
 			{
-				error = "No occurrence of 'Row'.";
+				error         = "No occurrence of 'Row'.";
+				errorPosition = failure.Position;
 				return false;
 			}
 
@@ -141,7 +153,7 @@ namespace DotGram.Snapshots
 		}
 
 		// parse Feed: Header & Row* & Trailer & eof & eof
-		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -160,6 +172,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -180,7 +195,7 @@ namespace DotGram.Snapshots
 
 					case 3:
 						// eof
-						r = Recognize_eof(text, p);
+						r = Recognize_eof(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -190,7 +205,7 @@ namespace DotGram.Snapshots
 
 					case 4:
 						// Trailer
-						r = Recognize_Trailer(text, p);
+						r = Recognize_Trailer(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -222,7 +237,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// Row
-						r = Recognize_Row(text, p);
+						r = Recognize_Row(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -232,7 +247,7 @@ namespace DotGram.Snapshots
 
 					case 10:
 						// Header
-						r = Recognize_Header(text, p);
+						r = Recognize_Header(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -273,7 +288,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Feed = Header & Row* & Trailer & eof
-		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -292,6 +307,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -306,7 +324,7 @@ namespace DotGram.Snapshots
 
 					case 2:
 						// eof
-						r = Recognize_eof(text, p);
+						r = Recognize_eof(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -316,7 +334,7 @@ namespace DotGram.Snapshots
 
 					case 3:
 						// Trailer
-						r = Recognize_Trailer(text, p);
+						r = Recognize_Trailer(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -348,7 +366,7 @@ namespace DotGram.Snapshots
 
 					case 8:
 						// Row
-						r = Recognize_Row(text, p);
+						r = Recognize_Row(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -358,7 +376,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// Header
-						r = Recognize_Header(text, p);
+						r = Recognize_Header(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -373,7 +391,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Header = 'H' & Sep & Date & eol
-		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -385,11 +403,14 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
 					// eol
-					r = Recognize_eol(text, p);
+					r = Recognize_eol(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -399,7 +420,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// Date
-					r = Recognize_Date(text, p);
+					r = Recognize_Date(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -409,7 +430,7 @@ namespace DotGram.Snapshots
 
 				case 4:
 					// Sep
-					r = Recognize_Sep(text, p);
+					r = Recognize_Sep(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -432,7 +453,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Row = 'R' & Sep & Name & Sep & Amount & eol
-		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -444,11 +465,14 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
 					// eol
-					r = Recognize_eol(text, p);
+					r = Recognize_eol(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -458,7 +482,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// Amount
-					r = Recognize_Amount(text, p);
+					r = Recognize_Amount(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -468,7 +492,7 @@ namespace DotGram.Snapshots
 
 				case 4:
 					// Sep
-					r = Recognize_Sep(text, p);
+					r = Recognize_Sep(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -478,7 +502,7 @@ namespace DotGram.Snapshots
 
 				case 5:
 					// Name
-					r = Recognize_Name(text, p);
+					r = Recognize_Name(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -488,7 +512,7 @@ namespace DotGram.Snapshots
 
 				case 6:
 					// Sep
-					r = Recognize_Sep(text, p);
+					r = Recognize_Sep(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -511,7 +535,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Trailer = 'T' & Sep & Count & eol
-		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -523,11 +547,14 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
 					// eol
-					r = Recognize_eol(text, p);
+					r = Recognize_eol(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -537,7 +564,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// Count
-					r = Recognize_Count(text, p);
+					r = Recognize_Count(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -547,7 +574,7 @@ namespace DotGram.Snapshots
 
 				case 4:
 					// Sep
-					r = Recognize_Sep(text, p);
+					r = Recognize_Sep(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -570,7 +597,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Sep = '|'
-		static int Recognize_Sep(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Sep(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var state = 2;
@@ -581,6 +608,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -598,7 +628,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Digit = ['0'..'9']
-		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var c     = '\0';
@@ -610,6 +640,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -631,7 +664,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Count = Digit+
-		static int Recognize_Count(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Count(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -650,6 +683,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -689,7 +725,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -704,7 +740,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Date = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
-		static int Recognize_Date(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Date(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -725,6 +761,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -770,7 +809,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -820,7 +859,7 @@ namespace DotGram.Snapshots
 
 					case 12:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -870,7 +909,7 @@ namespace DotGram.Snapshots
 
 					case 18:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -885,7 +924,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Amount = '-'? & Digit+ & ('.' & Digit{2})?
-		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -907,6 +946,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -980,7 +1022,7 @@ namespace DotGram.Snapshots
 
 					case 10:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1024,7 +1066,7 @@ namespace DotGram.Snapshots
 
 					case 16:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1076,7 +1118,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Name = [^ '\n' | '\r' | '|']+
-		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1095,6 +1137,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1178,7 +1223,7 @@ namespace DotGram.Snapshots
 		}
 
 		// eof = ?![^ ]
-		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var state = 2;
@@ -1189,6 +1234,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -1203,7 +1251,7 @@ namespace DotGram.Snapshots
 		}
 
 		// eol = ("\u000D\u000A" | '\n' | '\r')
-		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1220,6 +1268,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1277,6 +1328,16 @@ namespace DotGram.Snapshots
 						return -1;
 				}
 			}
+		}
+
+		/// <summary>Where a match got before it gave up, and why.</summary>
+		struct Failure
+		{
+			/// <summary>
+			/// The furthest position the input was followed to. Zero on a match that
+			/// succeeded without ever backtracking, and meaningless unless one failed.
+			/// </summary>
+			public int Position;
 		}
 
 		static int[] Grow(global::System.Span<int> from)

@@ -195,6 +195,12 @@ public static class CSharpEmitter
 			file.Line();
 		}
 
+		if (graph.Rules.Count > 0)
+		{
+			file.Write(FailureStruct);
+			file.Line();
+		}
+
 		if (needsStack)
 			file.Write(GrowHelper);
 
@@ -255,9 +261,14 @@ public static class CSharpEmitter
 			file.Line("errorPosition = 0;");
 			file.Line();
 
+			// Carried through every recognizer this call reaches, so that what comes back
+			// is the furthest the input was followed and not merely "no".
+			file.Line($"var failure = new {FailureType}();");
+			file.Line();
+
 			// A rule that builds hands its value back through the recognizer; one that does
 			// not leaves the extent it matched, and the text is cut from the input.
-			var hands = built is null ? "" : ", out var recognized";
+			var hands = built is null ? ", ref failure" : ", ref failure, out var recognized";
 
 			string Recognized(string from, string to) =>
 				built is null ? $"input.Substring({from}, {to})" : "recognized";
@@ -278,7 +289,8 @@ public static class CSharpEmitter
 
 					using (file.Block("if (end < 0)"))
 					{
-						file.Line($"error = \"Input does not match '{name}'.\";");
+						file.Line($"error         = \"Input does not match '{name}'.\";");
+						file.Line("errorPosition = failure.Position;");
 						file.Line("return false;");
 					}
 
@@ -302,7 +314,8 @@ public static class CSharpEmitter
 					}
 
 					file.Line();
-					file.Line($"error = \"No occurrence of '{name}'.\";");
+					file.Line($"error         = \"No occurrence of '{name}'.\";");
+					file.Line("errorPosition = failure.Position;");
 					file.Line("return false;");
 					break;
 
@@ -333,7 +346,8 @@ public static class CSharpEmitter
 
 					using (file.Block("if (found.Count == 0)"))
 					{
-						file.Line($"error = \"No occurrence of '{name}'.\";");
+						file.Line($"error         = \"No occurrence of '{name}'.\";");
+						file.Line("errorPosition = failure.Position;");
 						file.Line("return false;");
 					}
 
@@ -429,6 +443,37 @@ public static class CSharpEmitter
 	/// </summary>
 	static Node EndOfInput =>
 		new Node.Lookahead(IsPositive: false, new Node.Element(IsNegated: true, [], [], []));
+
+	/// <summary>
+	/// What every recognizer carries so that a failure can be described.
+	/// </summary>
+	/// <remarks>
+	/// The name a rule may not take: <see cref="ResultTypes"/> renames its own type
+	/// instead if a grammar declares a rule called this.
+	/// </remarks>
+	internal const string FailureType = "Failure";
+
+	/// <summary>
+	/// The record of the best failure a match saw, threaded through every recognizer.
+	/// </summary>
+	/// <remarks>
+	/// A struct passed by <c>ref</c> rather than more <c>out</c> parameters, and that is
+	/// the point of it: what a failure has to say is going to grow — the set of what was
+	/// expected there, an outcome that tells a malformed record from no record at all
+	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
+	/// every recognizer and another edit at every call site.
+	/// </remarks>
+	internal const string FailureStruct = """
+		/// <summary>Where a match got before it gave up, and why.</summary>
+		struct Failure
+		{
+			/// <summary>
+			/// The furthest position the input was followed to. Zero on a match that
+			/// succeeded without ever backtracking, and meaningless unless one failed.
+			/// </summary>
+			public int Position;
+		}
+		""";
 
 	/// <summary>
 	/// Grows the backtracking stack. Emitted once per class, next to the recognizers

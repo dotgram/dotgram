@@ -157,6 +157,58 @@ public sealed class SemanticTests
 	public void Control_and_non_ascii_characters_survive_emission(string literal, string input) =>
 		Assert.True(Matches($"Start = {literal}", input));
 
+	// ── Where a failure is reported ─────────────────────────────────────────────
+
+	/// <summary>The message and the position a grammar refuses an input with.</summary>
+	static (string Error, int Position) Refusal(string grammar, string input)
+	{
+		var result = Compile(grammar + "\nparse Start");
+
+		Assert.Empty(result.Diagnostics);
+
+		var type      = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
+		var arguments = new object?[] { input, null, null, null };
+
+		Assert.False((bool)type.GetMethod("TryParseStart")!.Invoke(null, arguments)!, input);
+
+		return ((string)arguments[2]!, (int)arguments[3]!);
+	}
+
+	[Fact]
+	public void A_refusal_names_the_position_the_input_stopped_making_sense_at() =>
+		Assert.Equal(2, Refusal("""Start = "ab" & ['c'] & ['d']""", "abXY").Position);
+
+	[Fact]
+	public void The_position_is_where_the_failing_operand_began_not_where_it_gave_up() =>
+		// `"abcd"` is one operand and it starts at 0, so that is what is named, though the
+		// character that did not fit is at 2. Sharpening this means recording the offset
+		// at each failing test rather than one position at the point of giving up — a
+		// refinement of what is here, not a different shape.
+		Assert.Equal(0, Refusal("""Start = "abcd" """, "abXY").Position);
+
+	[Fact]
+	public void It_is_the_furthest_reached_and_not_the_last_tried() =>
+		// The first alternative fails at 0 and the second gets to 2 before failing. What
+		// is worth reporting is how far the input could be followed, so the position only
+		// ever rises — a later, shallower failure does not overwrite a deeper one.
+		Assert.Equal(2, Refusal("""Start = ("abc" | "ab") & 'z' """, "abq").Position);
+
+	[Fact]
+	public void A_failure_inside_a_rule_is_the_caller_s_failure_too() =>
+		// The state is threaded through the call rather than returned, so a rule boundary
+		// does not flatten the position back to where the call was made.
+		Assert.Equal(
+			2,
+			Refusal("Inner = ['a'] & ['b'] & ['c']\nStart = Inner", "abq").Position);
+
+	[Fact]
+	public void A_lookahead_does_not_report_how_far_it_looked() =>
+		// It reached position 2 inside itself and consumed nothing. Naming 2 would point
+		// at input the match never needed; what failed is the lookahead, at 0.
+		Assert.Equal(
+			0,
+			Refusal("Start = ?=(['a'] & ['b'] & ['z']) & ['a']", "abq").Position);
+
 	// ── Captures, and the value they build (§7.3) ───────────────────────────────
 
 	/// <summary>Compiles and runs as <see cref="Matches"/> does, and hands back the value.</summary>

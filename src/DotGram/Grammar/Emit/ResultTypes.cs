@@ -43,8 +43,12 @@ sealed class ResultTypes
 				continue;
 
 			// A member may not be named after the type that contains it, and a host class
-			// named after the grammar's own root rule is the ordinary case.
-			_names[rule] = rule.Name == host ? rule.Name + "Value" : rule.Name;
+			// named after the grammar's own root rule is the ordinary case. The support
+			// types emitted beside the recognizers claim their names the same way: a rule
+			// called Failure gets FailureValue rather than colliding with one of ours.
+			_names[rule] = rule.Name == host || rule.Name == CSharpEmitter.FailureType
+				? rule.Name + "Value"
+				: rule.Name;
 
 			_built.Add(rule);
 		}

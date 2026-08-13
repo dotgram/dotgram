@@ -62,6 +62,17 @@ sealed class Machine
 		_builds  = builds;
 	}
 
+	/// <summary>
+	/// Whether this is the machine of a lookahead rather than of a rule.
+	/// </summary>
+	/// <remarks>
+	/// A lookahead asks a question about the input and consumes nothing, so how far it
+	/// got before answering "no" is not how far the parse got — carrying its failures
+	/// out would name a position the match never really needed. It is therefore the one
+	/// machine that does not take the state.
+	/// </remarks>
+	public bool IsLookahead { get; private set; }
+
 	readonly ResultTypes _results;
 	readonly Built?      _builds;
 
@@ -401,9 +412,12 @@ sealed class Machine
 
 		UsesResult = true;
 
+		// The state is threaded through rather than returned: a callee's failure is the
+		// caller's too, and what goes in it — the expected set, an outcome that tells a
+		// broken record from no record — arrives later without changing this line again.
 		writer.Line(value is null
-			? $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p);"
-			: $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, out {(into < 0 ? $"{value} _" : $"v{into}")});");
+			? $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, ref failure);"
+			: $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, ref failure, out {(into < 0 ? $"{value} _" : $"v{into}")});");
 
 		writer.Line();
 		writer.Line("if (r < 0)");
@@ -513,7 +527,7 @@ sealed class Machine
 
 	string CompileLookahead(Node body)
 	{
-		var machine = new Machine($"{Name}_Look{_lookaheads++}", _results);
+		var machine = new Machine($"{Name}_Look{_lookaheads++}", _results) { IsLookahead = true };
 		var entry   = machine.Compile(body, Accept);
 
 		foreach (var extra in machine.Extra)
@@ -590,8 +604,10 @@ sealed class Machine
 				file.Line("// " + line);
 
 		var built = _builds is null ? "" : $", out {_builds.TypeName} value";
+		var failure = IsLookahead ? "" : $", ref {CSharpEmitter.FailureType} failure";
 
-		using (file.Block($"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{built})"))
+		using (file.Block(
+			$"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{failure}{built})"))
 		{
 			if (_builds is not null)
 			{
@@ -664,6 +680,17 @@ sealed class Machine
 
 				using (file.Indent())
 				{
+					if (!IsLookahead)
+					{
+						// The one place the machine gives up on where it is, and so the one
+						// place worth asking how far it had got. `p` is about to be restored
+						// to an earlier position, and only rises here, so the answer at the
+						// end is the furthest the input was ever followed.
+						file.Line("if (p > failure.Position)");
+						file.Then("failure.Position = p;");
+						file.Line();
+					}
+
 					if (UsesStack)
 					{
 						file.Line("if (sp == 0)");

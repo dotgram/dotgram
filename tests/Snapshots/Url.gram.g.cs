@@ -22,11 +22,14 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
-			var end = Recognize_Url_Whole(text, 0, out var recognized);
+			var failure = new Failure();
+
+			var end = Recognize_Url_Whole(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
-				error = "Input does not match 'Url'.";
+				error         = "Input does not match 'Url'.";
+				errorPosition = failure.Position;
 				return false;
 			}
 
@@ -51,11 +54,13 @@ namespace DotGram.Snapshots
 			error         = null;
 			errorPosition = 0;
 
+			var failure = new Failure();
+
 			var found = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Url.UrlValue>();
 
 			for (var start = 0; start <= input.Length; )
 			{
-				var end = Recognize_Url(text, start, out var recognized);
+				var end = Recognize_Url(text, start, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -71,7 +76,8 @@ namespace DotGram.Snapshots
 
 			if (found.Count == 0)
 			{
-				error = "No occurrence of 'Url'.";
+				error         = "No occurrence of 'Url'.";
+				errorPosition = failure.Position;
 				return false;
 			}
 
@@ -129,7 +135,7 @@ namespace DotGram.Snapshots
 
 		// parse Url: scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)?
 		//     & ('#' & fragment: Rest)? & eof
-		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.UrlValue value)
+		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
 		{
 			value = null!;
 
@@ -164,6 +170,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -217,7 +226,7 @@ namespace DotGram.Snapshots
 
 					case 8:
 						// Rest
-						r = Recognize_Rest(text, p);
+						r = Recognize_Rest(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -279,7 +288,7 @@ namespace DotGram.Snapshots
 
 					case 17:
 						// Rest
-						r = Recognize_Rest(text, p);
+						r = Recognize_Rest(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -314,7 +323,7 @@ namespace DotGram.Snapshots
 
 					case 22:
 						// Path
-						r = Recognize_Path(text, p);
+						r = Recognize_Path(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -329,7 +338,7 @@ namespace DotGram.Snapshots
 
 					case 24:
 						// Authority
-						r = Recognize_Authority(text, p, out v1);
+						r = Recognize_Authority(text, p, ref failure, out v1);
 
 						if (r < 0)
 							goto case 1;
@@ -357,7 +366,7 @@ namespace DotGram.Snapshots
 
 					case 27:
 						// Scheme
-						r = Recognize_Scheme(text, p);
+						r = Recognize_Scheme(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -404,7 +413,7 @@ namespace DotGram.Snapshots
 
 		// Url = scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)? &
 		//     ('#' & fragment: Rest)?
-		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.UrlValue value)
+		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
 		{
 			value = null!;
 
@@ -439,6 +448,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -486,7 +498,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// Rest
-						r = Recognize_Rest(text, p);
+						r = Recognize_Rest(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -548,7 +560,7 @@ namespace DotGram.Snapshots
 
 					case 16:
 						// Rest
-						r = Recognize_Rest(text, p);
+						r = Recognize_Rest(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -583,7 +595,7 @@ namespace DotGram.Snapshots
 
 					case 21:
 						// Path
-						r = Recognize_Path(text, p);
+						r = Recognize_Path(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -598,7 +610,7 @@ namespace DotGram.Snapshots
 
 					case 23:
 						// Authority
-						r = Recognize_Authority(text, p, out v1);
+						r = Recognize_Authority(text, p, ref failure, out v1);
 
 						if (r < 0)
 							goto case 1;
@@ -626,7 +638,7 @@ namespace DotGram.Snapshots
 
 					case 26:
 						// Scheme
-						r = Recognize_Scheme(text, p);
+						r = Recognize_Scheme(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -646,7 +658,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Scheme = ("https" | "http" | "ftp")
-		static int Recognize_Scheme(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Scheme(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -663,6 +675,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -739,7 +754,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Authority = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
-		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.Authority value)
+		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Authority value)
 		{
 			value = null!;
 
@@ -771,6 +786,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -844,7 +862,7 @@ namespace DotGram.Snapshots
 
 					case 11:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -873,7 +891,7 @@ namespace DotGram.Snapshots
 
 					case 15:
 						// Host
-						r = Recognize_Host(text, p);
+						r = Recognize_Host(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -930,7 +948,7 @@ namespace DotGram.Snapshots
 
 					case 23:
 						// UserInfo
-						r = Recognize_UserInfo(text, p);
+						r = Recognize_UserInfo(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -957,7 +975,7 @@ namespace DotGram.Snapshots
 		}
 
 		// UserInfo = (Unreserved | SubDelim | PctEncoded | ':')+
-		static int Recognize_UserInfo(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -976,6 +994,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1024,7 +1045,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// PctEncoded
-						r = Recognize_PctEncoded(text, p);
+						r = Recognize_PctEncoded(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1040,7 +1061,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// SubDelim
-						r = Recognize_SubDelim(text, p);
+						r = Recognize_SubDelim(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1056,7 +1077,7 @@ namespace DotGram.Snapshots
 
 					case 11:
 						// Unreserved
-						r = Recognize_Unreserved(text, p);
+						r = Recognize_Unreserved(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1077,7 +1098,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Host = (IPLiteral | IPv4 | RegName)
-		static int Recognize_Host(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Host(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1095,6 +1116,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1109,7 +1133,7 @@ namespace DotGram.Snapshots
 
 					case 2:
 						// RegName
-						r = Recognize_RegName(text, p);
+						r = Recognize_RegName(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1119,7 +1143,7 @@ namespace DotGram.Snapshots
 
 					case 3:
 						// IPv4
-						r = Recognize_IPv4(text, p);
+						r = Recognize_IPv4(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1135,7 +1159,7 @@ namespace DotGram.Snapshots
 
 					case 5:
 						// IPLiteral
-						r = Recognize_IPLiteral(text, p);
+						r = Recognize_IPLiteral(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1156,7 +1180,7 @@ namespace DotGram.Snapshots
 		}
 
 		// IPv4 = Octet & '.' & Octet & '.' & Octet & '.' & Octet
-		static int Recognize_IPv4(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_IPv4(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -1168,11 +1192,14 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
 					// Octet
-					r = Recognize_Octet(text, p);
+					r = Recognize_Octet(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -1191,7 +1218,7 @@ namespace DotGram.Snapshots
 
 				case 4:
 					// Octet
-					r = Recognize_Octet(text, p);
+					r = Recognize_Octet(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -1210,7 +1237,7 @@ namespace DotGram.Snapshots
 
 				case 6:
 					// Octet
-					r = Recognize_Octet(text, p);
+					r = Recognize_Octet(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -1229,7 +1256,7 @@ namespace DotGram.Snapshots
 
 				case 8:
 					// Octet
-					r = Recognize_Octet(text, p);
+					r = Recognize_Octet(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -1243,7 +1270,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Octet = Digit{1,3}
-		static int Recognize_Octet(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Octet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1262,6 +1289,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1307,7 +1337,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// Digit
-						r = Recognize_Digit(text, p);
+						r = Recognize_Digit(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1322,7 +1352,7 @@ namespace DotGram.Snapshots
 		}
 
 		// RegName = (Unreserved | SubDelim | PctEncoded)+
-		static int Recognize_RegName(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_RegName(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1341,6 +1371,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1380,7 +1413,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// PctEncoded
-						r = Recognize_PctEncoded(text, p);
+						r = Recognize_PctEncoded(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1390,7 +1423,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// SubDelim
-						r = Recognize_SubDelim(text, p);
+						r = Recognize_SubDelim(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1406,7 +1439,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// Unreserved
-						r = Recognize_Unreserved(text, p);
+						r = Recognize_Unreserved(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1427,7 +1460,7 @@ namespace DotGram.Snapshots
 		}
 
 		// IPLiteral = '[' & IPv6 & ']'
-		static int Recognize_IPLiteral(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_IPLiteral(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -1439,6 +1472,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -1452,7 +1488,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// IPv6
-					r = Recognize_IPv6(text, p);
+					r = Recognize_IPv6(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -1478,7 +1514,7 @@ namespace DotGram.Snapshots
 		//     & LS32 | (Group? & H16)? & "::" & (H16 & ':'){3} & LS32 | (Group{0,2} & H16)? & "::" &
 		//     (H16 & ':'){2} & LS32 | (Group{0,3} & H16)? & "::" & H16 & ':' & LS32 | (Group{0,4} &
 		//     H16)? & "::" & LS32 | (Group{0,5} & H16)? & "::" & H16 | (Group{0,6} & H16)? & "::")
-		static int Recognize_IPv6(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_IPv6(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -1514,6 +1550,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -1567,7 +1606,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1605,7 +1644,7 @@ namespace DotGram.Snapshots
 
 					case 12:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1615,7 +1654,7 @@ namespace DotGram.Snapshots
 
 					case 13:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1664,7 +1703,7 @@ namespace DotGram.Snapshots
 
 					case 19:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1702,7 +1741,7 @@ namespace DotGram.Snapshots
 
 					case 24:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1718,7 +1757,7 @@ namespace DotGram.Snapshots
 
 					case 26:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1767,7 +1806,7 @@ namespace DotGram.Snapshots
 
 					case 32:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1805,7 +1844,7 @@ namespace DotGram.Snapshots
 
 					case 37:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1821,7 +1860,7 @@ namespace DotGram.Snapshots
 
 					case 39:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1840,7 +1879,7 @@ namespace DotGram.Snapshots
 
 					case 41:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1889,7 +1928,7 @@ namespace DotGram.Snapshots
 
 					case 47:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1927,7 +1966,7 @@ namespace DotGram.Snapshots
 
 					case 52:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1943,7 +1982,7 @@ namespace DotGram.Snapshots
 
 					case 54:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -1993,7 +2032,7 @@ namespace DotGram.Snapshots
 
 					case 60:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2042,7 +2081,7 @@ namespace DotGram.Snapshots
 
 					case 66:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2080,7 +2119,7 @@ namespace DotGram.Snapshots
 
 					case 71:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2096,7 +2135,7 @@ namespace DotGram.Snapshots
 
 					case 73:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2146,7 +2185,7 @@ namespace DotGram.Snapshots
 
 					case 79:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2195,7 +2234,7 @@ namespace DotGram.Snapshots
 
 					case 85:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2233,7 +2272,7 @@ namespace DotGram.Snapshots
 
 					case 90:
 						// Group
-						r = Recognize_Group(text, p);
+						r = Recognize_Group(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2249,7 +2288,7 @@ namespace DotGram.Snapshots
 
 					case 92:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2299,7 +2338,7 @@ namespace DotGram.Snapshots
 
 					case 98:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2348,7 +2387,7 @@ namespace DotGram.Snapshots
 
 					case 104:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2364,7 +2403,7 @@ namespace DotGram.Snapshots
 
 					case 106:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2414,7 +2453,7 @@ namespace DotGram.Snapshots
 
 					case 112:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2441,7 +2480,7 @@ namespace DotGram.Snapshots
 
 					case 115:
 						// LS32
-						r = Recognize_LS32(text, p);
+						r = Recognize_LS32(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2491,7 +2530,7 @@ namespace DotGram.Snapshots
 
 					case 121:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2512,7 +2551,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Group = H16 & ':'
-		static int Recognize_Group(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -2524,6 +2563,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -2537,7 +2579,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// H16
-					r = Recognize_H16(text, p);
+					r = Recognize_H16(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -2551,7 +2593,7 @@ namespace DotGram.Snapshots
 		}
 
 		// LS32 = (H16 & ':' & H16 | IPv4)
-		static int Recognize_LS32(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_LS32(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -2569,6 +2611,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -2583,7 +2628,7 @@ namespace DotGram.Snapshots
 
 					case 2:
 						// IPv4
-						r = Recognize_IPv4(text, p);
+						r = Recognize_IPv4(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2593,7 +2638,7 @@ namespace DotGram.Snapshots
 
 					case 3:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2612,7 +2657,7 @@ namespace DotGram.Snapshots
 
 					case 5:
 						// H16
-						r = Recognize_H16(text, p);
+						r = Recognize_H16(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2633,7 +2678,7 @@ namespace DotGram.Snapshots
 		}
 
 		// H16 = Hex{1,4}
-		static int Recognize_H16(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -2652,6 +2697,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -2697,7 +2745,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// Hex
-						r = Recognize_Hex(text, p);
+						r = Recognize_Hex(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2712,7 +2760,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Path = ('/' & Segment)*
-		static int Recognize_Path(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Path(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -2731,6 +2779,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -2767,7 +2818,7 @@ namespace DotGram.Snapshots
 
 					case 6:
 						// Segment
-						r = Recognize_Segment(text, p);
+						r = Recognize_Segment(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2791,7 +2842,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Segment = (Unreserved | SubDelim | PctEncoded | [':' | '@'])*
-		static int Recognize_Segment(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Segment(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -2811,6 +2862,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -2860,7 +2914,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// PctEncoded
-						r = Recognize_PctEncoded(text, p);
+						r = Recognize_PctEncoded(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2876,7 +2930,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// SubDelim
-						r = Recognize_SubDelim(text, p);
+						r = Recognize_SubDelim(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2892,7 +2946,7 @@ namespace DotGram.Snapshots
 
 					case 11:
 						// Unreserved
-						r = Recognize_Unreserved(text, p);
+						r = Recognize_Unreserved(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2913,7 +2967,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Rest = (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])*
-		static int Recognize_Rest(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Rest(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -2933,6 +2987,9 @@ namespace DotGram.Snapshots
 						return p;
 
 					case 1:
+						if (p > failure.Position)
+							failure.Position = p;
+
 						if (sp == 0)
 							return -1;
 
@@ -2982,7 +3039,7 @@ namespace DotGram.Snapshots
 
 					case 7:
 						// PctEncoded
-						r = Recognize_PctEncoded(text, p);
+						r = Recognize_PctEncoded(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -2998,7 +3055,7 @@ namespace DotGram.Snapshots
 
 					case 9:
 						// SubDelim
-						r = Recognize_SubDelim(text, p);
+						r = Recognize_SubDelim(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -3014,7 +3071,7 @@ namespace DotGram.Snapshots
 
 					case 11:
 						// Unreserved
-						r = Recognize_Unreserved(text, p);
+						r = Recognize_Unreserved(text, p, ref failure);
 
 						if (r < 0)
 							goto case 1;
@@ -3035,7 +3092,7 @@ namespace DotGram.Snapshots
 		}
 
 		// PctEncoded = '%' & Hex & Hex
-		static int Recognize_PctEncoded(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var r     = 0;
@@ -3047,11 +3104,14 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
 					// Hex
-					r = Recognize_Hex(text, p);
+					r = Recognize_Hex(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -3061,7 +3121,7 @@ namespace DotGram.Snapshots
 
 				case 3:
 					// Hex
-					r = Recognize_Hex(text, p);
+					r = Recognize_Hex(text, p, ref failure);
 
 					if (r < 0)
 						goto case 1;
@@ -3084,7 +3144,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Digit = ['0'..'9']
-		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var c     = '\0';
@@ -3096,6 +3156,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -3117,7 +3180,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Hex = ['0'..'9' | 'A'..'F' | 'a'..'f']
-		static int Recognize_Hex(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var c     = '\0';
@@ -3129,6 +3192,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -3150,7 +3216,7 @@ namespace DotGram.Snapshots
 		}
 
 		// Unreserved = ['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']
-		static int Recognize_Unreserved(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var c     = '\0';
@@ -3162,6 +3228,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -3183,7 +3252,7 @@ namespace DotGram.Snapshots
 		}
 
 		// SubDelim = ['!' | '$' | '&'..',' | ';' | '=']
-		static int Recognize_SubDelim(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p     = pos;
 			var c     = '\0';
@@ -3195,6 +3264,9 @@ namespace DotGram.Snapshots
 					return p;
 
 				case 1:
+					if (p > failure.Position)
+						failure.Position = p;
+
 					return -1;
 
 				case 2:
@@ -3213,6 +3285,16 @@ namespace DotGram.Snapshots
 				default:
 					return -1;
 			}
+		}
+
+		/// <summary>Where a match got before it gave up, and why.</summary>
+		struct Failure
+		{
+			/// <summary>
+			/// The furthest position the input was followed to. Zero on a match that
+			/// succeeded without ever backtracking, and meaningless unless one failed.
+			/// </summary>
+			public int Position;
 		}
 
 		static int[] Grow(global::System.Span<int> from)

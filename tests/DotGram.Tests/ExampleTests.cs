@@ -68,6 +68,25 @@ public sealed class ExampleTests
 	public void Describe_throws_the_type_int_Parse_throws() =>
 		Assert.Throws<FormatException>(static () => Links.Describe("not a url"));
 
+	[Fact]
+	public void Parse_demands_the_whole_input_and_says_where_it_stopped()
+	{
+		const string text = "https://a.io and then some prose";
+
+		// `parse` is the rule with end-of-input on the end of it, compiled into one
+		// machine — so failing to reach the end sends the match back for another way
+		// through the rule, and only then gives up.
+		Assert.False(Links.TryParseUrl(text, out _, out var error, out var position));
+
+		Assert.NotNull(error);
+		Assert.Equal(12, position);              // the space, where it stopped being a URL
+
+		// Scanning for one inside other text is what `find all` is for.
+		Assert.Equal(
+			["a.io"],
+			Array.ConvertAll(Links.AllUrls(text), url => url.Authority.Host));
+	}
+
 	// ── The feed reader ──────────────────────────────────────────────────────────
 
 	const string Text =

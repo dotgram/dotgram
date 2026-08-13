@@ -23,6 +23,7 @@ then quietly mean nothing.
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse match find find all` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the position a refusal names | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | refused | ✗ |
 | construction `=>` | ✓ | ✓ | ✓ | dropped | ✗ |
@@ -61,6 +62,28 @@ not settled. What is settled is that it is written here rather than discovered.
 
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
+
+## What a refusal says
+
+`TryParseR` and its siblings report a position, and until now it was always zero.
+It is now the furthest the input could be followed before the match gave up — which,
+for a parser that backtracks, is the only position worth naming: the last thing tried
+is usually shallower than the best thing tried.
+
+Every recognizer takes a `ref Failure` and raises `Position` at the one place a machine
+gives up on where it is. Nothing is paid on the path that matches, a rule call carries
+its callee's failure out with it, and a lookahead is the one machine that does not take
+the state — how far it looked before answering "no" is not how far the parse got.
+
+Two things it does not do yet, and both fit where it stands rather than replacing it:
+
+- **the position is where the failing operand began**, not where its first wrong
+  character is. `"abcd"` against `abXY` names 0, not 2. Sharpening it means recording an
+  offset at each failing test instead of one position at the point of giving up.
+- **nothing says what was expected there.** That is a second field on the same struct,
+  which is why the struct is threaded by `ref` rather than returned: `Expected`, and the
+  outcome that tells a malformed record from no record (§8.1), go in beside `Position`
+  without changing a single signature.
 
 ## Captures, and what they build
 
