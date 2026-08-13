@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 using DotGram.Grammar;
 
@@ -49,7 +50,7 @@ public sealed class SnapshotTests
 
 		if (!File.Exists(expected))
 		{
-			File.WriteAllText(expected, actual);
+			File.WriteAllText(expected, actual, CSharpFile);
 
 			Assert.Fail(
 				$"No snapshot for '{name}'; wrote one to {expected}. Read it, and commit it if it is right.");
@@ -62,10 +63,17 @@ public sealed class SnapshotTests
 		// next to the question and the diff is taken in the editor.
 		var rejected = expected + ".actual";
 
-		File.WriteAllText(rejected, actual);
+		File.WriteAllText(rejected, actual, CSharpFile);
 
 		Assert.Fail($"Generated code differs from the snapshot. Diff {expected} against {rejected}.");
 	}
+
+	/// <summary>
+	/// UTF-8 with a byte-order mark — what Visual Studio writes, and what CLAUDE.md
+	/// requires of every <c>.cs</c> file in the repository. A snapshot written without one
+	/// is committed as an encoding change over the whole file.
+	/// </summary>
+	static Encoding CSharpFile { get; } = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
 
 	public static TheoryData<string> Snapshots =>
 		new(System.IO.Directory

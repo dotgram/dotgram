@@ -90,13 +90,20 @@ public abstract record Node
 	{
 		public override string ToString() => (Min, Max) switch
 		{
-			(0, 1)                             => $"{Body}?",
-			(0, null)                          => $"{Body}*",
-			(1, null)                          => $"{Body}+",
-			(var min, var max) when min == max => $"{Body}{{{min}}}",
-			(var min, null)                    => $"{Body}{{{min},}}",
-			(var min, var max)                 => $"{Body}{{{min},{max}}}",
+			(0, 1)                             => $"{Repeated}?",
+			(0, null)                          => $"{Repeated}*",
+			(1, null)                          => $"{Repeated}+",
+			(var min, var max) when min == max => $"{Repeated}{{{min}}}",
+			(var min, null)                    => $"{Repeated}{{{min},}}",
+			(var min, var max)                 => $"{Repeated}{{{min},{max}}}",
 		};
+
+		/// <summary>
+		/// The body, bracketed where the quantifier would otherwise read as applying to the
+		/// last operand alone. A choice brackets itself; a capture binds tighter than a
+		/// quantifier anyway (§10), so only a sequence needs it.
+		/// </summary>
+		string Repeated => Body is Sequence ? $"({Body})" : Body.ToString();
 	}
 
 	public sealed record Lookahead(bool IsPositive, Node Body) : Node
@@ -134,16 +141,24 @@ public abstract record Node
 /// about them.
 /// </summary>
 public sealed class RecognitionGraph(
-	IReadOnlyList<RuleSymbol>             rules,
-	IReadOnlyDictionary<RuleSymbol, Node> bodies,
-	IReadOnlyDictionary<RuleSymbol, bool> nullable,
-	IReadOnlyList<Publication>            publications,
-	IReadOnlyList<GramDiagnostic>         diagnostics)
+	IReadOnlyList<RuleSymbol>                                    rules,
+	IReadOnlyDictionary<RuleSymbol, Node>                        bodies,
+	IReadOnlyDictionary<RuleSymbol, bool>                        nullable,
+	IReadOnlyDictionary<RuleSymbol, IReadOnlyList<ResultMember>> results,
+	IReadOnlyList<Publication>                                   publications,
+	IReadOnlyList<GramDiagnostic>                                diagnostics)
 {
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;
 	public IReadOnlyList<GramDiagnostic>         Diagnostics { get; } = diagnostics;
+
+	/// <summary>
+	/// What each rule's value is made of: one member per capture name, in the order the
+	/// notation writes them. Empty for a rule that captures nothing — its value is the
+	/// text it matched (§4.1 case 4).
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<ResultMember>> Results { get; } = results;
 
 	/// <summary>The public API this grammar asked for — carried through unchanged (§6).</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;

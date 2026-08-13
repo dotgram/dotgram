@@ -6,7 +6,7 @@ namespace DotGram.Snapshots
 	partial class Url
 	{
 		/// <summary>Parses the whole input as <c>Url</c>.</summary>
-		public static string ParseUrl(string input)
+		public static global::DotGram.Snapshots.Url.UrlValue ParseUrl(string input)
 		{
 			if (TryParseUrl(input, out var value, out var error, out var errorPosition))
 				return value;
@@ -14,15 +14,15 @@ namespace DotGram.Snapshots
 			throw new global::System.FormatException(error + " at " + errorPosition.ToString());
 		}
 
-		public static bool TryParseUrl(string input, out string value, out string? error, out int errorPosition)
+		public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.UrlValue value, out string? error, out int errorPosition)
 		{
 			var text = global::System.MemoryExtensions.AsSpan(input);
 
-			value = "";
+			value = null!;
 			error         = null;
 			errorPosition = 0;
 
-			var end = Recognize_Url_Whole(text, 0);
+			var end = Recognize_Url_Whole(text, 0, out var recognized);
 
 			if (end < 0)
 			{
@@ -30,32 +30,32 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			value = input.Substring(0, end);
+			value = recognized;
 			return true;
 		}
 
 		/// <summary>Finds every non-overlapping occurrence of <c>Url</c>.</summary>
-		public static string[] AllUrls(string input)
+		public static global::DotGram.Snapshots.Url.UrlValue[] AllUrls(string input)
 		{
 			if (TryAllUrls(input, out var values, out var error, out var errorPosition))
 				return values;
 
-			return new string[0];
+			return new global::DotGram.Snapshots.Url.UrlValue[0];
 		}
 
-		public static bool TryAllUrls(string input, out string[] values, out string? error, out int errorPosition)
+		public static bool TryAllUrls(string input, out global::DotGram.Snapshots.Url.UrlValue[] values, out string? error, out int errorPosition)
 		{
 			var text = global::System.MemoryExtensions.AsSpan(input);
 
-			values = new string[0];
+			values = new global::DotGram.Snapshots.Url.UrlValue[0];
 			error         = null;
 			errorPosition = 0;
 
-			var found = new global::System.Collections.Generic.List<string>();
+			var found = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Url.UrlValue>();
 
 			for (var start = 0; start <= input.Length; )
 			{
-				var end = Recognize_Url(text, start);
+				var end = Recognize_Url(text, start, out var recognized);
 
 				if (end < 0)
 				{
@@ -63,7 +63,7 @@ namespace DotGram.Snapshots
 					continue;
 				}
 
-				found.Add(input.Substring(start, end - start));
+				found.Add(recognized);
 
 				// A rule that matches nothing would otherwise find it for ever.
 				start = end > start ? end : start + 1;
@@ -79,10 +79,60 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		// parse Url: scheme: Scheme & "://" & authority: Authority & path: Path & query: Query? &
-		//     fragment: Fragment? & eof
-		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos)
+		/// <summary>What the rule <c>Url</c> recognized.</summary>
+		public sealed class UrlValue
 		{
+			public UrlValue(string scheme, global::DotGram.Snapshots.Url.Authority authority, string path, string? query, string? fragment)
+			{
+				Scheme = scheme;
+				Authority = authority;
+				Path = path;
+				Query = query;
+				Fragment = fragment;
+			}
+
+			/// <summary>The <c>scheme</c> capture.</summary>
+			public string Scheme { get; }
+
+			/// <summary>The <c>authority</c> capture.</summary>
+			public global::DotGram.Snapshots.Url.Authority Authority { get; }
+
+			/// <summary>The <c>path</c> capture.</summary>
+			public string Path { get; }
+
+			/// <summary>The <c>query</c> capture.</summary>
+			public string? Query { get; }
+
+			/// <summary>The <c>fragment</c> capture.</summary>
+			public string? Fragment { get; }
+		}
+
+		/// <summary>What the rule <c>Authority</c> recognized.</summary>
+		public sealed class Authority
+		{
+			public Authority(string? user, string host, string? port)
+			{
+				User = user;
+				Host = host;
+				Port = port;
+			}
+
+			/// <summary>The <c>user</c> capture.</summary>
+			public string? User { get; }
+
+			/// <summary>The <c>host</c> capture.</summary>
+			public string Host { get; }
+
+			/// <summary>The <c>port</c> capture.</summary>
+			public string? Port { get; }
+		}
+
+		// parse Url: scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)?
+		//     & ('#' & fragment: Rest)? & eof
+		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.UrlValue value)
+		{
+			value = null!;
+
 			global::System.Span<int> bt = stackalloc int[48];
 
 			var sp    = 0;
@@ -91,13 +141,26 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var c0    = 0;
 			var c1    = 0;
-			var state = 16;
+			var state = 28;
+
+			var s0_from = -1; var s0_to = -1;
+			global::DotGram.Snapshots.Url.Authority? v1 = null;
+			var s2_from = -1; var s2_to = -1;
+			var s3_from = -1; var s3_to = -1;
+			var s4_from = -1; var s4_to = -1;
 
 			while (true)
 			{
 				switch (state)
 				{
 					case 0:
+						value = new global::DotGram.Snapshots.Url.UrlValue(
+							text.Slice(s0_from, s0_to - s0_from).ToString(),
+							v1!,
+							text.Slice(s2_from, s2_to - s2_from).ToString(),
+							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
+							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
+
 						return p;
 
 					case 1:
@@ -120,13 +183,13 @@ namespace DotGram.Snapshots
 						goto case 1;
 
 					case 3:
-						// fragment: Fragment? — stop, and check the count
+						// ('#' & fragment: Rest)? — stop, and check the count
 						c0 = saved;
 
 						goto case 2;
 
 					case 4:
-						// fragment: Fragment? — take another, or leave stopping open
+						// ('#' & fragment: Rest)? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -134,68 +197,122 @@ namespace DotGram.Snapshots
 						}
 
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 3; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 7;
+						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 10;
 
 					case 5:
-						// fragment: Fragment? — one more taken
+						// ('#' & fragment: Rest)? — one more taken
 						c0++;
 						goto case 4;
 
 					case 6:
-						// fragment: Fragment? — start counting
+						// ('#' & fragment: Rest)? — start counting
 						c0 = 0;
 						goto case 4;
 
 					case 7:
-						// Fragment
-						r = Recognize_Fragment(text, p);
+						// fragment: Rest — captured to here
+						s4_to = p;
+						goto case 5;
+
+					case 8:
+						// Rest
+						r = Recognize_Rest(text, p);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 5;
+						goto case 7;
 
-					case 8:
-						// query: Query? — stop, and check the count
+					case 9:
+						// fragment: Rest — capture starts here
+						s4_from = p;
+						goto case 8;
+
+					case 10:
+						// '#'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '#')
+							goto case 1;
+						p += 1;
+						goto case 9;
+
+					case 11:
+						// forget what the abandoned attempt captured
+						s4_from = s4_to = -1;
+						goto case 3;
+
+					case 12:
+						// ('?' & query: Rest)? — stop, and check the count
 						c1 = saved;
 
 						goto case 6;
 
-					case 9:
-						// query: Query? — take another, or leave stopping open
+					case 13:
+						// ('?' & query: Rest)? — take another, or leave stopping open
 						if (c1 >= 1)
 						{
 							saved = c1;
-							goto case 8;
+							goto case 12;
 						}
 
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 12;
+						bt[sp] = 20; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 19;
 
-					case 10:
-						// query: Query? — one more taken
+					case 14:
+						// ('?' & query: Rest)? — one more taken
 						c1++;
-						goto case 9;
+						goto case 13;
 
-					case 11:
-						// query: Query? — start counting
+					case 15:
+						// ('?' & query: Rest)? — start counting
 						c1 = 0;
-						goto case 9;
+						goto case 13;
 
-					case 12:
-						// Query
-						r = Recognize_Query(text, p);
+					case 16:
+						// query: Rest — captured to here
+						s3_to = p;
+						goto case 14;
+
+					case 17:
+						// Rest
+						r = Recognize_Rest(text, p);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 10;
+						goto case 16;
 
-					case 13:
+					case 18:
+						// query: Rest — capture starts here
+						s3_from = p;
+						goto case 17;
+
+					case 19:
+						// '?'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '?')
+							goto case 1;
+						p += 1;
+						goto case 18;
+
+					case 20:
+						// forget what the abandoned attempt captured
+						s3_from = s3_to = -1;
+						s4_from = s4_to = -1;
+						goto case 12;
+
+					case 21:
+						// path: Path — captured to here
+						s2_to = p;
+						goto case 15;
+
+					case 22:
 						// Path
 						r = Recognize_Path(text, p);
 
@@ -203,19 +320,24 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 11;
+						goto case 21;
 
-					case 14:
+					case 23:
+						// path: Path — capture starts here
+						s2_from = p;
+						goto case 22;
+
+					case 24:
 						// Authority
-						r = Recognize_Authority(text, p);
+						r = Recognize_Authority(text, p, out v1);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 13;
+						goto case 23;
 
-					case 15:
+					case 25:
 						// "://"
 						if (p + 3 > text.Length)
 							goto case 1;
@@ -226,9 +348,14 @@ namespace DotGram.Snapshots
 						if (text[p + 2] != '/')
 							goto case 1;
 						p += 3;
-						goto case 14;
+						goto case 24;
 
-					case 16:
+					case 26:
+						// scheme: Scheme — captured to here
+						s0_to = p;
+						goto case 25;
+
+					case 27:
 						// Scheme
 						r = Recognize_Scheme(text, p);
 
@@ -236,7 +363,12 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 15;
+						goto case 26;
+
+					case 28:
+						// scheme: Scheme — capture starts here
+						s0_from = p;
+						goto case 27;
 
 					default:
 						return -1;
@@ -270,10 +402,12 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Url = scheme: Scheme & "://" & authority: Authority & path: Path & query: Query? & fragment:
-		//     Fragment?
-		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos)
+		// Url = scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)? &
+		//     ('#' & fragment: Rest)?
+		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.UrlValue value)
 		{
+			value = null!;
+
 			global::System.Span<int> bt = stackalloc int[48];
 
 			var sp    = 0;
@@ -282,13 +416,26 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var c0    = 0;
 			var c1    = 0;
-			var state = 15;
+			var state = 27;
+
+			var s0_from = -1; var s0_to = -1;
+			global::DotGram.Snapshots.Url.Authority? v1 = null;
+			var s2_from = -1; var s2_to = -1;
+			var s3_from = -1; var s3_to = -1;
+			var s4_from = -1; var s4_to = -1;
 
 			while (true)
 			{
 				switch (state)
 				{
 					case 0:
+						value = new global::DotGram.Snapshots.Url.UrlValue(
+							text.Slice(s0_from, s0_to - s0_from).ToString(),
+							v1!,
+							text.Slice(s2_from, s2_to - s2_from).ToString(),
+							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
+							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
+
 						return p;
 
 					case 1:
@@ -305,13 +452,13 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// fragment: Fragment? — stop, and check the count
+						// ('#' & fragment: Rest)? — stop, and check the count
 						c0 = saved;
 
 						goto case 0;
 
 					case 3:
-						// fragment: Fragment? — take another, or leave stopping open
+						// ('#' & fragment: Rest)? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -319,68 +466,122 @@ namespace DotGram.Snapshots
 						}
 
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 6;
+						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 9;
 
 					case 4:
-						// fragment: Fragment? — one more taken
+						// ('#' & fragment: Rest)? — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
-						// fragment: Fragment? — start counting
+						// ('#' & fragment: Rest)? — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
-						// Fragment
-						r = Recognize_Fragment(text, p);
+						// fragment: Rest — captured to here
+						s4_to = p;
+						goto case 4;
+
+					case 7:
+						// Rest
+						r = Recognize_Rest(text, p);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 4;
+						goto case 6;
 
-					case 7:
-						// query: Query? — stop, and check the count
+					case 8:
+						// fragment: Rest — capture starts here
+						s4_from = p;
+						goto case 7;
+
+					case 9:
+						// '#'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '#')
+							goto case 1;
+						p += 1;
+						goto case 8;
+
+					case 10:
+						// forget what the abandoned attempt captured
+						s4_from = s4_to = -1;
+						goto case 2;
+
+					case 11:
+						// ('?' & query: Rest)? — stop, and check the count
 						c1 = saved;
 
 						goto case 5;
 
-					case 8:
-						// query: Query? — take another, or leave stopping open
+					case 12:
+						// ('?' & query: Rest)? — take another, or leave stopping open
 						if (c1 >= 1)
 						{
 							saved = c1;
-							goto case 7;
+							goto case 11;
 						}
 
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 7; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 11;
+						bt[sp] = 19; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 18;
 
-					case 9:
-						// query: Query? — one more taken
+					case 13:
+						// ('?' & query: Rest)? — one more taken
 						c1++;
-						goto case 8;
+						goto case 12;
 
-					case 10:
-						// query: Query? — start counting
+					case 14:
+						// ('?' & query: Rest)? — start counting
 						c1 = 0;
-						goto case 8;
+						goto case 12;
 
-					case 11:
-						// Query
-						r = Recognize_Query(text, p);
+					case 15:
+						// query: Rest — captured to here
+						s3_to = p;
+						goto case 13;
+
+					case 16:
+						// Rest
+						r = Recognize_Rest(text, p);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 9;
+						goto case 15;
 
-					case 12:
+					case 17:
+						// query: Rest — capture starts here
+						s3_from = p;
+						goto case 16;
+
+					case 18:
+						// '?'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '?')
+							goto case 1;
+						p += 1;
+						goto case 17;
+
+					case 19:
+						// forget what the abandoned attempt captured
+						s3_from = s3_to = -1;
+						s4_from = s4_to = -1;
+						goto case 11;
+
+					case 20:
+						// path: Path — captured to here
+						s2_to = p;
+						goto case 14;
+
+					case 21:
 						// Path
 						r = Recognize_Path(text, p);
 
@@ -388,19 +589,24 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 10;
+						goto case 20;
 
-					case 13:
+					case 22:
+						// path: Path — capture starts here
+						s2_from = p;
+						goto case 21;
+
+					case 23:
 						// Authority
-						r = Recognize_Authority(text, p);
+						r = Recognize_Authority(text, p, out v1);
 
 						if (r < 0)
 							goto case 1;
 
 						p = r;
-						goto case 12;
+						goto case 22;
 
-					case 14:
+					case 24:
 						// "://"
 						if (p + 3 > text.Length)
 							goto case 1;
@@ -411,9 +617,14 @@ namespace DotGram.Snapshots
 						if (text[p + 2] != '/')
 							goto case 1;
 						p += 3;
-						goto case 13;
+						goto case 23;
 
-					case 15:
+					case 25:
+						// scheme: Scheme — captured to here
+						s0_to = p;
+						goto case 24;
+
+					case 26:
 						// Scheme
 						r = Recognize_Scheme(text, p);
 
@@ -421,7 +632,12 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 14;
+						goto case 25;
+
+					case 27:
+						// scheme: Scheme — capture starts here
+						s0_from = p;
+						goto case 26;
 
 					default:
 						return -1;
@@ -522,9 +738,11 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Authority = user: UserInfo? & host: Host & port: Port?
-		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos)
+		// Authority = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
+		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos, out global::DotGram.Snapshots.Url.Authority value)
 		{
+			value = null!;
+
 			global::System.Span<int> bt = stackalloc int[48];
 
 			var sp    = 0;
@@ -533,13 +751,23 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var c0    = 0;
 			var c1    = 0;
-			var state = 11;
+			var c2    = 0;
+			var state = 20;
+
+			var s0_from = -1; var s0_to = -1;
+			var s1_from = -1; var s1_to = -1;
+			var s2_from = -1; var s2_to = -1;
 
 			while (true)
 			{
 				switch (state)
 				{
 					case 0:
+						value = new global::DotGram.Snapshots.Url.Authority(
+							s0_from >= 0 ? text.Slice(s0_from, s0_to - s0_from).ToString() : null,
+							text.Slice(s1_from, s1_to - s1_from).ToString(),
+							s2_from >= 0 ? text.Slice(s2_from, s2_to - s2_from).ToString() : null);
+
 						return p;
 
 					case 1:
@@ -556,13 +784,13 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// port: Port? — stop, and check the count
+						// (':' & port: Digit+)? — stop, and check the count
 						c0 = saved;
 
 						goto case 0;
 
 					case 3:
-						// port: Port? — take another, or leave stopping open
+						// (':' & port: Digit+)? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -570,70 +798,53 @@ namespace DotGram.Snapshots
 						}
 
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 6;
+						bt[sp] = 13; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 12;
 
 					case 4:
-						// port: Port? — one more taken
+						// (':' & port: Digit+)? — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
-						// port: Port? — start counting
+						// (':' & port: Digit+)? — start counting
 						c0 = 0;
 						goto case 3;
 
 					case 6:
-						// Port
-						r = Recognize_Port(text, p);
+						// port: Digit+ — stop, and check the count
+						c1 = saved;
 
-						if (r < 0)
+						if (c1 < 1)
 							goto case 1;
 
-						p = r;
 						goto case 4;
 
 					case 7:
-						// Host
-						r = Recognize_Host(text, p);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 5;
+						// port: Digit+ — take another, or leave stopping open
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
+						goto case 11;
 
 					case 8:
-						// user: UserInfo? — stop, and check the count
-						c1 = saved;
-
+						// port: Digit+ — one more taken
+						c1++;
 						goto case 7;
 
 					case 9:
-						// user: UserInfo? — take another, or leave stopping open
-						if (c1 >= 1)
-						{
-							saved = c1;
-							goto case 8;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 12;
+						// port: Digit+ — start counting
+						c1 = 0;
+						s2_from = s2_to = p;
+						goto case 7;
 
 					case 10:
-						// user: UserInfo? — one more taken
-						c1++;
-						goto case 9;
+						// port: Digit — one more iteration is part of the run
+						s2_to = p;
+						goto case 8;
 
 					case 11:
-						// user: UserInfo? — start counting
-						c1 = 0;
-						goto case 9;
-
-					case 12:
-						// UserInfo
-						r = Recognize_UserInfo(text, p);
+						// Digit
+						r = Recognize_Digit(text, p);
 
 						if (r < 0)
 							goto case 1;
@@ -641,13 +852,111 @@ namespace DotGram.Snapshots
 						p = r;
 						goto case 10;
 
+					case 12:
+						// ':'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != ':')
+							goto case 1;
+						p += 1;
+						goto case 9;
+
+					case 13:
+						// forget what the abandoned attempt captured
+						s2_from = s2_to = -1;
+						goto case 2;
+
+					case 14:
+						// host: Host — captured to here
+						s1_to = p;
+						goto case 5;
+
+					case 15:
+						// Host
+						r = Recognize_Host(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 14;
+
+					case 16:
+						// host: Host — capture starts here
+						s1_from = p;
+						goto case 15;
+
+					case 17:
+						// (user: UserInfo & '@')? — stop, and check the count
+						c2 = saved;
+
+						goto case 16;
+
+					case 18:
+						// (user: UserInfo & '@')? — take another, or leave stopping open
+						if (c2 >= 1)
+						{
+							saved = c2;
+							goto case 17;
+						}
+
+						if (sp + 3 > bt.Length) bt = Grow(bt);
+						bt[sp] = 25; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
+						goto case 24;
+
+					case 19:
+						// (user: UserInfo & '@')? — one more taken
+						c2++;
+						goto case 18;
+
+					case 20:
+						// (user: UserInfo & '@')? — start counting
+						c2 = 0;
+						goto case 18;
+
+					case 21:
+						// '@'
+						if (p + 1 > text.Length)
+							goto case 1;
+						if (text[p + 0] != '@')
+							goto case 1;
+						p += 1;
+						goto case 19;
+
+					case 22:
+						// user: UserInfo — captured to here
+						s0_to = p;
+						goto case 21;
+
+					case 23:
+						// UserInfo
+						r = Recognize_UserInfo(text, p);
+
+						if (r < 0)
+							goto case 1;
+
+						p = r;
+						goto case 22;
+
+					case 24:
+						// user: UserInfo — capture starts here
+						s0_from = p;
+						goto case 23;
+
+					case 25:
+						// forget what the abandoned attempt captured
+						s0_from = s0_to = -1;
+						s1_from = s1_to = -1;
+						s2_from = s2_to = -1;
+						goto case 17;
+
 					default:
 						return -1;
 				}
 			}
 		}
 
-		// UserInfo = (Unreserved | SubDelim | PctEncoded | ':')+ & '@'
+		// UserInfo = (Unreserved | SubDelim | PctEncoded | ':')+
 		static int Recognize_UserInfo(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -657,7 +966,7 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var r     = 0;
 			var c0    = 0;
-			var state = 6;
+			var state = 5;
 
 			while (true)
 			{
@@ -680,49 +989,40 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// '@'
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != '@')
-							goto case 1;
-						p += 1;
-						goto case 0;
-
-					case 3:
 						// (Unreserved | SubDelim | PctEncoded | ':')+ — stop, and check the count
 						c0 = saved;
 
 						if (c0 < 1)
 							goto case 1;
 
-						goto case 2;
+						goto case 0;
 
-					case 4:
+					case 3:
 						// (Unreserved | SubDelim | PctEncoded | ':')+ — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 3; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 13;
+						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
+						goto case 12;
 
-					case 5:
+					case 4:
 						// (Unreserved | SubDelim | PctEncoded | ':')+ — one more taken
 						c0++;
-						goto case 4;
+						goto case 3;
 
-					case 6:
+					case 5:
 						// (Unreserved | SubDelim | PctEncoded | ':')+ — start counting
 						c0 = 0;
-						goto case 4;
+						goto case 3;
 
-					case 7:
+					case 6:
 						// ':'
 						if (p + 1 > text.Length)
 							goto case 1;
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
-						goto case 5;
+						goto case 4;
 
-					case 8:
+					case 7:
 						// PctEncoded
 						r = Recognize_PctEncoded(text, p);
 
@@ -730,15 +1030,15 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 5;
+						goto case 4;
 
-					case 9:
+					case 8:
 						// PctEncoded — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 7; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 8;
+						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 7;
 
-					case 10:
+					case 9:
 						// SubDelim
 						r = Recognize_SubDelim(text, p);
 
@@ -746,15 +1046,15 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 5;
+						goto case 4;
 
-					case 11:
+					case 10:
 						// SubDelim — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 9; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 10;
+						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 9;
 
-					case 12:
+					case 11:
 						// Unreserved
 						r = Recognize_Unreserved(text, p);
 
@@ -762,13 +1062,13 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 5;
+						goto case 4;
 
-					case 13:
+					case 12:
 						// Unreserved — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 12;
+						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
+						goto case 11;
 
 					default:
 						return -1;
@@ -847,88 +1147,6 @@ namespace DotGram.Snapshots
 						// IPLiteral — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 5;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Port = ':' & Digit+
-		static int Recognize_Port(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 7;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// Digit+ — stop, and check the count
-						c0 = saved;
-
-						if (c0 < 1)
-							goto case 1;
-
-						goto case 0;
-
-					case 3:
-						// Digit+ — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 6;
-
-					case 4:
-						// Digit+ — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// Digit+ — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// Digit
-						r = Recognize_Digit(text, p);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 7:
-						// ':'
-						if (p + 1 > text.Length)
-							goto case 1;
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
 						goto case 5;
 
 					default:
@@ -1256,10 +1474,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// IPv6 = (H16 & ':'{6} & LS32 | "::" & H16 & ':'{5} & LS32 | H16? & "::" & H16 & ':'{4} & LS32
-		//     | Group? & H16? & "::" & H16 & ':'{3} & LS32 | Group{0,2} & H16? & "::" & H16 & ':'{2} &
-		//     LS32 | Group{0,3} & H16? & "::" & H16 & ':' & LS32 | Group{0,4} & H16? & "::" & LS32 |
-		//     Group{0,5} & H16? & "::" & H16 | Group{0,6} & H16? & "::")
+		// IPv6 = ((H16 & ':'){6} & LS32 | "::" & (H16 & ':'){5} & LS32 | H16? & "::" & (H16 & ':'){4}
+		//     & LS32 | (Group? & H16)? & "::" & (H16 & ':'){3} & LS32 | (Group{0,2} & H16)? & "::" &
+		//     (H16 & ':'){2} & LS32 | (Group{0,3} & H16)? & "::" & H16 & ':' & LS32 | (Group{0,4} &
+		//     H16)? & "::" & LS32 | (Group{0,5} & H16)? & "::" & H16 | (Group{0,6} & H16)? & "::")
 		static int Recognize_IPv6(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -1320,13 +1538,13 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
-						// Group{0,6} & H16? — stop, and check the count
+						// (Group{0,6} & H16)? — stop, and check the count
 						c0 = saved;
 
 						goto case 2;
 
 					case 4:
-						// Group{0,6} & H16? — take another, or leave stopping open
+						// (Group{0,6} & H16)? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -1338,12 +1556,12 @@ namespace DotGram.Snapshots
 						goto case 11;
 
 					case 5:
-						// Group{0,6} & H16? — one more taken
+						// (Group{0,6} & H16)? — one more taken
 						c0++;
 						goto case 4;
 
 					case 6:
-						// Group{0,6} & H16? — start counting
+						// (Group{0,6} & H16)? — start counting
 						c0 = 0;
 						goto case 4;
 
@@ -1417,13 +1635,13 @@ namespace DotGram.Snapshots
 						goto case 13;
 
 					case 15:
-						// Group{0,5} & H16? — stop, and check the count
+						// (Group{0,5} & H16)? — stop, and check the count
 						c2 = saved;
 
 						goto case 14;
 
 					case 16:
-						// Group{0,5} & H16? — take another, or leave stopping open
+						// (Group{0,5} & H16)? — take another, or leave stopping open
 						if (c2 >= 1)
 						{
 							saved = c2;
@@ -1435,12 +1653,12 @@ namespace DotGram.Snapshots
 						goto case 23;
 
 					case 17:
-						// Group{0,5} & H16? — one more taken
+						// (Group{0,5} & H16)? — one more taken
 						c2++;
 						goto case 16;
 
 					case 18:
-						// Group{0,5} & H16? — start counting
+						// (Group{0,5} & H16)? — start counting
 						c2 = 0;
 						goto case 16;
 
@@ -1493,7 +1711,7 @@ namespace DotGram.Snapshots
 						goto case 22;
 
 					case 25:
-						// Group{0,5} & H16? & "::" & H16 — try this one, or the next
+						// (Group{0,5} & H16)? & "::" & H16 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 18;
@@ -1520,13 +1738,13 @@ namespace DotGram.Snapshots
 						goto case 26;
 
 					case 28:
-						// Group{0,4} & H16? — stop, and check the count
+						// (Group{0,4} & H16)? — stop, and check the count
 						c4 = saved;
 
 						goto case 27;
 
 					case 29:
-						// Group{0,4} & H16? — take another, or leave stopping open
+						// (Group{0,4} & H16)? — take another, or leave stopping open
 						if (c4 >= 1)
 						{
 							saved = c4;
@@ -1538,12 +1756,12 @@ namespace DotGram.Snapshots
 						goto case 36;
 
 					case 30:
-						// Group{0,4} & H16? — one more taken
+						// (Group{0,4} & H16)? — one more taken
 						c4++;
 						goto case 29;
 
 					case 31:
-						// Group{0,4} & H16? — start counting
+						// (Group{0,4} & H16)? — start counting
 						c4 = 0;
 						goto case 29;
 
@@ -1596,7 +1814,7 @@ namespace DotGram.Snapshots
 						goto case 35;
 
 					case 38:
-						// Group{0,4} & H16? & "::" & LS32 — try this one, or the next
+						// (Group{0,4} & H16)? & "::" & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 25; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 31;
@@ -1642,13 +1860,13 @@ namespace DotGram.Snapshots
 						goto case 41;
 
 					case 43:
-						// Group{0,3} & H16? — stop, and check the count
+						// (Group{0,3} & H16)? — stop, and check the count
 						c6 = saved;
 
 						goto case 42;
 
 					case 44:
-						// Group{0,3} & H16? — take another, or leave stopping open
+						// (Group{0,3} & H16)? — take another, or leave stopping open
 						if (c6 >= 1)
 						{
 							saved = c6;
@@ -1660,12 +1878,12 @@ namespace DotGram.Snapshots
 						goto case 51;
 
 					case 45:
-						// Group{0,3} & H16? — one more taken
+						// (Group{0,3} & H16)? — one more taken
 						c6++;
 						goto case 44;
 
 					case 46:
-						// Group{0,3} & H16? — start counting
+						// (Group{0,3} & H16)? — start counting
 						c6 = 0;
 						goto case 44;
 
@@ -1718,7 +1936,7 @@ namespace DotGram.Snapshots
 						goto case 50;
 
 					case 53:
-						// Group{0,3} & H16? & "::" & H16 & ':' & LS32 — try this one, or the next
+						// (Group{0,3} & H16)? & "::" & H16 & ':' & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 38; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 46;
@@ -1734,7 +1952,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 55:
-						// H16 & ':'{2} — stop, and check the count
+						// (H16 & ':'){2} — stop, and check the count
 						c8 = saved;
 
 						if (c8 < 2)
@@ -1743,7 +1961,7 @@ namespace DotGram.Snapshots
 						goto case 54;
 
 					case 56:
-						// H16 & ':'{2} — take another, or leave stopping open
+						// (H16 & ':'){2} — take another, or leave stopping open
 						if (c8 >= 2)
 						{
 							saved = c8;
@@ -1755,12 +1973,12 @@ namespace DotGram.Snapshots
 						goto case 60;
 
 					case 57:
-						// H16 & ':'{2} — one more taken
+						// (H16 & ':'){2} — one more taken
 						c8++;
 						goto case 56;
 
 					case 58:
-						// H16 & ':'{2} — start counting
+						// (H16 & ':'){2} — start counting
 						c8 = 0;
 						goto case 56;
 
@@ -1795,13 +2013,13 @@ namespace DotGram.Snapshots
 						goto case 58;
 
 					case 62:
-						// Group{0,2} & H16? — stop, and check the count
+						// (Group{0,2} & H16)? — stop, and check the count
 						c9 = saved;
 
 						goto case 61;
 
 					case 63:
-						// Group{0,2} & H16? — take another, or leave stopping open
+						// (Group{0,2} & H16)? — take another, or leave stopping open
 						if (c9 >= 1)
 						{
 							saved = c9;
@@ -1813,12 +2031,12 @@ namespace DotGram.Snapshots
 						goto case 70;
 
 					case 64:
-						// Group{0,2} & H16? — one more taken
+						// (Group{0,2} & H16)? — one more taken
 						c9++;
 						goto case 63;
 
 					case 65:
-						// Group{0,2} & H16? — start counting
+						// (Group{0,2} & H16)? — start counting
 						c9 = 0;
 						goto case 63;
 
@@ -1871,7 +2089,7 @@ namespace DotGram.Snapshots
 						goto case 69;
 
 					case 72:
-						// Group{0,2} & H16? & "::" & H16 & ':'{2} & LS32 — try this one, or the next
+						// (Group{0,2} & H16)? & "::" & (H16 & ':'){2} & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 53; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 65;
@@ -1887,7 +2105,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 74:
-						// H16 & ':'{3} — stop, and check the count
+						// (H16 & ':'){3} — stop, and check the count
 						c11 = saved;
 
 						if (c11 < 3)
@@ -1896,7 +2114,7 @@ namespace DotGram.Snapshots
 						goto case 73;
 
 					case 75:
-						// H16 & ':'{3} — take another, or leave stopping open
+						// (H16 & ':'){3} — take another, or leave stopping open
 						if (c11 >= 3)
 						{
 							saved = c11;
@@ -1908,12 +2126,12 @@ namespace DotGram.Snapshots
 						goto case 79;
 
 					case 76:
-						// H16 & ':'{3} — one more taken
+						// (H16 & ':'){3} — one more taken
 						c11++;
 						goto case 75;
 
 					case 77:
-						// H16 & ':'{3} — start counting
+						// (H16 & ':'){3} — start counting
 						c11 = 0;
 						goto case 75;
 
@@ -1948,13 +2166,13 @@ namespace DotGram.Snapshots
 						goto case 77;
 
 					case 81:
-						// Group? & H16? — stop, and check the count
+						// (Group? & H16)? — stop, and check the count
 						c12 = saved;
 
 						goto case 80;
 
 					case 82:
-						// Group? & H16? — take another, or leave stopping open
+						// (Group? & H16)? — take another, or leave stopping open
 						if (c12 >= 1)
 						{
 							saved = c12;
@@ -1966,12 +2184,12 @@ namespace DotGram.Snapshots
 						goto case 89;
 
 					case 83:
-						// Group? & H16? — one more taken
+						// (Group? & H16)? — one more taken
 						c12++;
 						goto case 82;
 
 					case 84:
-						// Group? & H16? — start counting
+						// (Group? & H16)? — start counting
 						c12 = 0;
 						goto case 82;
 
@@ -2024,7 +2242,7 @@ namespace DotGram.Snapshots
 						goto case 88;
 
 					case 91:
-						// Group? & H16? & "::" & H16 & ':'{3} & LS32 — try this one, or the next
+						// (Group? & H16)? & "::" & (H16 & ':'){3} & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 72; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 84;
@@ -2040,7 +2258,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 93:
-						// H16 & ':'{4} — stop, and check the count
+						// (H16 & ':'){4} — stop, and check the count
 						c14 = saved;
 
 						if (c14 < 4)
@@ -2049,7 +2267,7 @@ namespace DotGram.Snapshots
 						goto case 92;
 
 					case 94:
-						// H16 & ':'{4} — take another, or leave stopping open
+						// (H16 & ':'){4} — take another, or leave stopping open
 						if (c14 >= 4)
 						{
 							saved = c14;
@@ -2061,12 +2279,12 @@ namespace DotGram.Snapshots
 						goto case 98;
 
 					case 95:
-						// H16 & ':'{4} — one more taken
+						// (H16 & ':'){4} — one more taken
 						c14++;
 						goto case 94;
 
 					case 96:
-						// H16 & ':'{4} — start counting
+						// (H16 & ':'){4} — start counting
 						c14 = 0;
 						goto case 94;
 
@@ -2139,7 +2357,7 @@ namespace DotGram.Snapshots
 						goto case 102;
 
 					case 105:
-						// H16? & "::" & H16 & ':'{4} & LS32 — try this one, or the next
+						// H16? & "::" & (H16 & ':'){4} & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 91; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 103;
@@ -2155,7 +2373,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 107:
-						// H16 & ':'{5} — stop, and check the count
+						// (H16 & ':'){5} — stop, and check the count
 						c16 = saved;
 
 						if (c16 < 5)
@@ -2164,7 +2382,7 @@ namespace DotGram.Snapshots
 						goto case 106;
 
 					case 108:
-						// H16 & ':'{5} — take another, or leave stopping open
+						// (H16 & ':'){5} — take another, or leave stopping open
 						if (c16 >= 5)
 						{
 							saved = c16;
@@ -2176,12 +2394,12 @@ namespace DotGram.Snapshots
 						goto case 112;
 
 					case 109:
-						// H16 & ':'{5} — one more taken
+						// (H16 & ':'){5} — one more taken
 						c16++;
 						goto case 108;
 
 					case 110:
-						// H16 & ':'{5} — start counting
+						// (H16 & ':'){5} — start counting
 						c16 = 0;
 						goto case 108;
 
@@ -2216,7 +2434,7 @@ namespace DotGram.Snapshots
 						goto case 110;
 
 					case 114:
-						// "::" & H16 & ':'{5} & LS32 — try this one, or the next
+						// "::" & (H16 & ':'){5} & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 105; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 113;
@@ -2232,7 +2450,7 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 116:
-						// H16 & ':'{6} — stop, and check the count
+						// (H16 & ':'){6} — stop, and check the count
 						c17 = saved;
 
 						if (c17 < 6)
@@ -2241,7 +2459,7 @@ namespace DotGram.Snapshots
 						goto case 115;
 
 					case 117:
-						// H16 & ':'{6} — take another, or leave stopping open
+						// (H16 & ':'){6} — take another, or leave stopping open
 						if (c17 >= 6)
 						{
 							saved = c17;
@@ -2253,12 +2471,12 @@ namespace DotGram.Snapshots
 						goto case 121;
 
 					case 118:
-						// H16 & ':'{6} — one more taken
+						// (H16 & ':'){6} — one more taken
 						c17++;
 						goto case 117;
 
 					case 119:
-						// H16 & ':'{6} — start counting
+						// (H16 & ':'){6} — start counting
 						c17 = 0;
 						goto case 117;
 
@@ -2282,7 +2500,7 @@ namespace DotGram.Snapshots
 						goto case 120;
 
 					case 122:
-						// H16 & ':'{6} & LS32 — try this one, or the next
+						// (H16 & ':'){6} & LS32 — try this one, or the next
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 114; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
 						goto case 119;
@@ -2493,7 +2711,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Path = '/' & Segment*
+		// Path = ('/' & Segment)*
 		static int Recognize_Path(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -2526,24 +2744,24 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// '/' & Segment* — stop, and check the count
+						// ('/' & Segment)* — stop, and check the count
 						c0 = saved;
 
 						goto case 0;
 
 					case 3:
-						// '/' & Segment* — take another, or leave stopping open
+						// ('/' & Segment)* — take another, or leave stopping open
 						if (sp + 3 > bt.Length) bt = Grow(bt);
 						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
 						goto case 7;
 
 					case 4:
-						// '/' & Segment* — one more taken
+						// ('/' & Segment)* — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
-						// '/' & Segment* — start counting
+						// ('/' & Segment)* — start counting
 						c0 = 0;
 						goto case 3;
 
@@ -2691,84 +2909,6 @@ namespace DotGram.Snapshots
 					default:
 						return -1;
 				}
-			}
-		}
-
-		// Query = '?' & Rest
-		static int Recognize_Query(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 3;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					return -1;
-
-				case 2:
-					// Rest
-					r = Recognize_Rest(text, p);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 0;
-
-				case 3:
-					// '?'
-					if (p + 1 > text.Length)
-						goto case 1;
-					if (text[p + 0] != '?')
-						goto case 1;
-					p += 1;
-					goto case 2;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Fragment = '#' & Rest
-		static int Recognize_Fragment(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 3;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					return -1;
-
-				case 2:
-					// Rest
-					r = Recognize_Rest(text, p);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 0;
-
-				case 3:
-					// '#'
-					if (p + 1 > text.Length)
-						goto case 1;
-					if (text[p + 0] != '#')
-						goto case 1;
-					p += 1;
-					goto case 2;
-
-				default:
-					return -1;
 			}
 		}
 

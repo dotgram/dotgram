@@ -51,7 +51,7 @@ public sealed class SemanticTests
 				: string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString()))));
 	}
 
-	// ── Backtracking (§10) ───────────────────────────────────────────────────────
+	// ── Backtracking (§11) ───────────────────────────────────────────────────────
 
 	// A greedy operand that took too much has to give it back when what follows fails.
 	// Every one of these matched nothing before the recognizer became a machine with a
@@ -64,7 +64,7 @@ public sealed class SemanticTests
 
 	[Fact]
 	public void A_choice_gives_back_across_the_rest_of_the_sequence() =>
-		// The specification's own counterexample: §10 rests the rule that alternatives
+		// The specification's own counterexample: §11 rests the rule that alternatives
 		// may never be reordered on this working.
 		Assert.True(Matches("""Start = ("x" | "xy") & 'y'""", "xy"));
 
@@ -156,6 +156,95 @@ public sealed class SemanticTests
 	[InlineData("'\u2028'", "\u2028")]     // a line separator: legal in a grammar, not in C# source
 	public void Control_and_non_ascii_characters_survive_emission(string literal, string input) =>
 		Assert.True(Matches($"Start = {literal}", input));
+
+	// ── Captures, and the value they build (§7.3) ───────────────────────────────
+
+	/// <summary>Compiles and runs as <see cref="Matches"/> does, and hands back the value.</summary>
+	static object? Built(string grammar, string input)
+	{
+		var result = Compile(grammar + "\nparse Start");
+
+		Assert.Empty(result.Diagnostics);
+
+		var type      = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
+		var arguments = new object?[] { input, null, null, null };
+
+		Assert.True((bool)type.GetMethod("TryParseStart")!.Invoke(null, arguments)!, input);
+
+		return arguments[1];
+	}
+
+	/// <summary>A member of a built value, by name — the type did not exist to compile against.</summary>
+	static object? Read(object? value, params string[] path)
+	{
+		foreach (var name in path)
+			value = value?.GetType().GetProperty(name)?.GetValue(value);
+
+		return value;
+	}
+
+	[Fact]
+	public void Each_capture_is_a_member_named_after_it()
+	{
+		var value = Built("Start = scheme: \"ab\" & rest: 'c'", "abc");
+
+		Assert.Equal("ab", Read(value, "Scheme"));
+		Assert.Equal("c",  Read(value, "Rest"));
+	}
+
+	[Fact]
+	public void A_repeated_capture_is_the_text_of_the_whole_run() =>
+		// §10 binds a capture tighter than a quantifier, so this is one capture repeated.
+		// §7.3 gives it the text joined, which is the run rather than its last iteration.
+		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
+
+	[Fact]
+	public void A_run_that_matched_nothing_is_empty_rather_than_absent() =>
+		Assert.Equal("", Read(Built("Start = digits: ['0'..'9']* & 'x'", "x"), "Digits"));
+
+	[Fact]
+	public void An_option_that_was_not_taken_is_absent_rather_than_empty() =>
+		Assert.Null(Read(Built("Start = (sign: '-')? & 'x'", "x"), "Sign"));
+
+	[Fact]
+	public void A_capture_of_a_rule_that_builds_holds_its_value() =>
+		Assert.Equal(
+			"x",
+			Read(Built("Inner = letter: 'x'\nStart = inner: Inner", "x"), "Inner", "Letter"));
+
+	[Fact]
+	public void A_capture_the_match_gave_back_is_not_in_the_value()
+	{
+		// The first alternative matches 'a' and then fails on 'c', so the match resumes in
+		// the second — where nothing was captured, and `a` must be as unwritten as if the
+		// first alternative had never been tried.
+		var value = Built("Start = (a: 'x' & 'y' | 'x' & b: 'z')", "xz");
+
+		Assert.Null(Read(value, "A"));
+		Assert.Equal("z", Read(value, "B"));
+	}
+
+	[Fact]
+	public void The_same_name_in_two_alternatives_is_one_member() =>
+		Assert.Equal("y", Read(Built("Start = (v: \"xy\" | v: 'y')", "y"), "V"));
+
+	[Fact]
+	public void A_repeated_capture_of_a_rule_that_builds_is_not_implemented_yet() =>
+		Refused(GrammarNormalizer.UnbuiltCapture, "Item = a: 'x'\nStart = items: Item+");
+
+	[Fact]
+	public void Nor_is_a_capture_that_is_not_the_whole_of_what_repeats() =>
+		Refused(GrammarNormalizer.UnbuiltCapture, "Start = (a: 'x' & 'y')+");
+
+	[Fact]
+	public void Nor_is_one_inside_a_lookahead() =>
+		Refused(GrammarNormalizer.UnbuiltCapture, "Start = ?=(a: 'x') & 'x'");
+
+	[Fact]
+	public void One_name_cannot_hold_two_different_things() =>
+		Refused(
+			GrammarNormalizer.CaptureTypeMismatch,
+			"Item = a: 'x'\nStart = (v: Item | v: 'y')");
 
 	// ── Repetition counts ───────────────────────────────────────────────────────
 

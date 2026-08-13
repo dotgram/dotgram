@@ -15,7 +15,7 @@ namespace DotGram.Grammar.Emit;
 /// here, and how far" — and having answered, could not be asked again. That is enough
 /// for ordered choice on its own and not enough for anything after it: <c>'a'? &amp;
 /// 'a'</c> would take the <c>a</c> greedily, fail on the second operand, and have no
-/// way back. §10 of the language says ordered choice backtracks fully, and rests the
+/// way back. §11 of the language says ordered choice backtracks fully, and rests the
 /// absence of a commit point on it.
 /// </para>
 /// <para>
@@ -53,7 +53,23 @@ sealed class Machine
 	int _counters;
 	int _lookaheads;
 
-	public Machine(string name) => Name = name;
+	/// <param name="results">What every rule's value is called; nothing may be null.</param>
+	/// <param name="builds">What this machine builds, or null when it only recognizes.</param>
+	public Machine(string name, ResultTypes results, Built? builds = null)
+	{
+		Name     = name;
+		_results = results;
+		_builds  = builds;
+	}
+
+	readonly ResultTypes _results;
+	readonly Built?      _builds;
+
+	/// <summary>The value a machine constructs, and where the parts of it are kept.</summary>
+	public sealed record Built(
+		string TypeName, IReadOnlyList<ResultMember> Members, CaptureLayout Layout);
+
+	CaptureLayout Layout => _builds?.Layout ?? CaptureLayout.None;
 
 	public string Name { get; }
 
@@ -173,6 +189,38 @@ sealed class Machine
 		writer.Line($"bt[sp] = {state}; bt[sp + 1] = p; bt[sp + 2] = {saved}; sp += 3;");
 	}
 
+	/// <summary>
+	/// The state to resume at instead of <paramref name="target"/>, having first forgotten
+	/// everything the attempt that is being abandoned could have captured.
+	/// </summary>
+	/// <remarks>
+	/// Slots are numbered in the order the notation writes them, so "everything written
+	/// since <paramref name="from"/> began" is a suffix of them, and which suffix is known
+	/// while generating. That is the whole of the bookkeeping: no journal, no marks, and
+	/// nothing at all on the path that does not backtrack.
+	/// <para>
+	/// A state of its own rather than the first lines of the target, because a target is
+	/// not always reached by resuming — a repetition falls through to its exit when the
+	/// upper bound is met, and an empty alternative's entry is the continuation itself.
+	/// </para>
+	/// </remarks>
+	int Forget(int target, int first)
+	{
+		if (first >= Layout.Slots.Count)
+			return target;
+
+		var state = Reserve(out var writer, null, "forget what the abandoned attempt captured");
+
+		for (var i = first; i < Layout.Slots.Count; i++)
+			writer.Line(Layout.Slots[i].Rule is null
+				? $"s{i}_from = s{i}_to = -1;"
+				: $"v{i} = null;");
+
+		writer.Line($"goto case {target};");
+
+		return state;
+	}
+
 	// ── Compilation ──────────────────────────────────────────────────────────────
 
 	/// <summary>
@@ -270,7 +318,7 @@ sealed class Machine
 					var entry = Compile(alternatives[i], next);
 					var state = Reserve(out var writer, alternatives[i], "try this one, or the next");
 
-					Push(writer, attempt, "0");
+					Push(writer, Forget(attempt, Layout.Before(node)), "0");
 					writer.Line($"goto case {entry};");
 
 					attempt = state;
@@ -279,8 +327,8 @@ sealed class Machine
 				return attempt;
 			}
 
-			case Node.Repeat(var body, var min, var max):
-				return CompileRepeat(body, min, max, next);
+			case Node.Repeat repeat:
+				return CompileRepeat(repeat, next);
 
 			case Node.Lookahead(var isPositive, var body):
 			{
@@ -297,26 +345,34 @@ sealed class Machine
 				return state;
 			}
 
-			case Node.Call(var rule, _):
-			{
-				var state = Reserve(out var writer, node);
+			case Node.Call call:
+				return CompileCall(call, next, into: -1);
 
-				UsesResult = true;
-
-				writer.Line($"r = {CSharpEmitter.MethodOf(rule)}(text, p);");
-				writer.Line();
-				writer.Line("if (r < 0)");
-				writer.Then($"goto case {Fail};");
-				writer.Line();
-				writer.Line("p = r;");
-				writer.Line($"goto case {next};");
-
-				return state;
-			}
-
-			// Transparent while a rule's value is the text it matched.
-			case Node.Capture(_, var captured):
+			// A capture of a rule that builds a value keeps the value; anything else is
+			// text, and what is kept is the extent it covered.
+			case Node.Capture(_, var captured) when _builds is null:
 				return Compile(captured, next);
+
+			case Node.Capture(_, var captured):
+			{
+				var slot = Layout.SlotOf(node);
+
+				if (Layout.Slots[slot].Rule is not null)
+					return CompileCall((Node.Call)captured, next, slot);
+
+				var close = Reserve(out var atClose, node, "captured to here");
+
+				atClose.Line($"s{slot}_to = p;");
+				atClose.Line($"goto case {next};");
+
+				var inner = Compile(captured, close);
+				var open  = Reserve(out var atOpen, node, "capture starts here");
+
+				atOpen.Line($"s{slot}_from = p;");
+				atOpen.Line($"goto case {inner};");
+
+				return open;
+			}
 
 			case Node.Construct(var built, _):
 				return Compile(built, next);
@@ -330,6 +386,33 @@ sealed class Machine
 				return state;
 			}
 		}
+	}
+
+	/// <summary>
+	/// A call to another rule. Still a call, and still the boundary backtracking does not
+	/// cross (docs/status.md) — what is new is that a rule which builds a value hands it
+	/// back, into <paramref name="into"/> when a capture asked for it and nowhere
+	/// otherwise.
+	/// </summary>
+	int CompileCall(Node.Call call, int next, int into)
+	{
+		var state = Reserve(out var writer, call);
+		var value = _results.QualifiedOf(call.Rule);
+
+		UsesResult = true;
+
+		writer.Line(value is null
+			? $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p);"
+			: $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, out {(into < 0 ? $"{value} _" : $"v{into}")});");
+
+		writer.Line();
+		writer.Line("if (r < 0)");
+		writer.Then($"goto case {Fail};");
+		writer.Line();
+		writer.Line("p = r;");
+		writer.Line($"goto case {next};");
+
+		return state;
 	}
 
 	/// <summary>
@@ -347,20 +430,34 @@ sealed class Machine
 	/// costs a comparison per iteration.
 	/// </para>
 	/// </remarks>
-	int CompileRepeat(Node body, int min, int? max, int next)
+	int CompileRepeat(Node.Repeat repeat, int next)
 	{
-		var counter = NewCounter();
+		var (body, min, max) = repeat;
 
-		var repeat = new Node.Repeat(body, min, max);
+		var counter = NewCounter();
 
 		var exit  = Reserve(out var atExit,  repeat, "stop, and check the count");
 		var loop  = Reserve(out var atLoop,  repeat, "take another, or leave stopping open");
 		var after = Reserve(out var atAfter, repeat, "one more taken");
 		var entry = Reserve(out var atEntry, repeat, "start counting");
 
-		var start = Compile(body, after);
+		// A capture that is the whole of what repeats spans the run rather than the last
+		// iteration of it (§7.3): opened once, before counting, and closed again by every
+		// iteration that succeeds. An iteration that fails never reaches the close, so the
+		// extent at the exit is the one the successful iterations left — which is why the
+		// exit forgets only what was captured after the repetition, and not the run.
+		var run = _builds is not null && max != 1 && body is Node.Capture &&
+			Layout.Slots[Layout.SlotOf(body)].Rule is null
+				? Layout.SlotOf(body)
+				: -1;
+
+		var start = run < 0 ? Compile(body, after) : CompileRun((Node.Capture)body, run, after);
 
 		atEntry.Line($"{counter} = 0;");
+
+		if (run >= 0)
+			atEntry.Line($"s{run}_from = s{run}_to = p;");
+
 		atEntry.Line($"goto case {loop};");
 
 		if (max is { } limit)
@@ -376,7 +473,10 @@ sealed class Machine
 			atLoop.Line();
 		}
 
-		Push(atLoop, exit, counter);
+		// An option either happened or did not, so returning to its exit means it did not,
+		// and what it captured goes with it. A run returns to its exit having done one
+		// iteration fewer, and what the earlier ones captured stands.
+		Push(atLoop, Forget(exit, max == 1 ? Layout.Before(repeat) : Layout.After(repeat)), counter);
 		atLoop.Line($"goto case {start};");
 
 		atAfter.Line($"{counter}++;");
@@ -400,9 +500,20 @@ sealed class Machine
 		return entry;
 	}
 
+	/// <summary>One iteration of a captured run: match it, and move the end of the run.</summary>
+	int CompileRun(Node.Capture capture, int slot, int next)
+	{
+		var close = Reserve(out var atClose, capture, "one more iteration is part of the run");
+
+		atClose.Line($"s{slot}_to = p;");
+		atClose.Line($"goto case {next};");
+
+		return Compile(capture.Body, close);
+	}
+
 	string CompileLookahead(Node body)
 	{
-		var machine = new Machine($"{Name}_Look{_lookaheads++}");
+		var machine = new Machine($"{Name}_Look{_lookaheads++}", _results);
 		var entry   = machine.Compile(body, Accept);
 
 		foreach (var extra in machine.Extra)
@@ -414,6 +525,55 @@ sealed class Machine
 	}
 
 	// ── Rendering ────────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// The value, built once, where the match is known to have succeeded.
+	/// </summary>
+	/// <remarks>
+	/// One expression and one place. Everything before this point only recorded where
+	/// things were, so an attempt that is abandoned costs nothing to undo — and the C# a
+	/// grammar supplies runs once, on the parse that actually happened, rather than once
+	/// per attempt (§7.2).
+	/// </remarks>
+	static void Construct(Writer file, Built built)
+	{
+		file.Line($"value = new {built.TypeName}(");
+
+		using (file.Indent())
+			for (var i = 0; i < built.Members.Count; i++)
+				file.Line(Value(built.Members[i]) + (i < built.Members.Count - 1 ? "," : ");"));
+	}
+
+	/// <summary>
+	/// One member: the slot that was written, or null when none of them was.
+	/// </summary>
+	/// <remarks>
+	/// More than one slot when the same name is captured in more than one alternative.
+	/// They are tried in the order the notation writes them, which is the order in which
+	/// at most one of them can have been reached.
+	/// </remarks>
+	static string Value(ResultMember member)
+	{
+		if (member.Slots.Count == 1 && !member.IsOptional)
+			return Read(member, member.Slots[0]) + (member.Rule is null ? "" : "!");
+
+		var expression = "null";
+
+		for (var i = member.Slots.Count - 1; i >= 0; i--)
+			expression = $"{Written(member, member.Slots[i])} ? {Read(member, member.Slots[i])} : {expression}";
+
+		// The member is written on every path, so one of the tests holds — which the
+		// compiler has no way of knowing.
+		return member.IsOptional ? expression : $"({expression})!";
+	}
+
+	static string Read(ResultMember member, int slot) =>
+		member.Rule is null
+			? $"text.Slice(s{slot}_from, s{slot}_to - s{slot}_from).ToString()"
+			: $"v{slot}";
+
+	static string Written(ResultMember member, int slot) =>
+		member.Rule is null ? $"s{slot}_from >= 0" : $"v{slot} != null";
 
 	/// <summary>The whole machine as one method.</summary>
 	/// <param name="pattern">
@@ -429,8 +589,18 @@ sealed class Machine
 			foreach (var line in Wrap(pattern))
 				file.Line("// " + line);
 
-		using (file.Block($"static int {Name}(global::System.ReadOnlySpan<char> text, int pos)"))
+		var built = _builds is null ? "" : $", out {_builds.TypeName} value";
+
+		using (file.Block($"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{built})"))
 		{
+			if (_builds is not null)
+			{
+				// Assigned before anything can fail, so every way out of the method has it
+				// assigned — including the ones that report no match at all.
+				file.Line("value = null!;");
+				file.Line();
+			}
+
 			if (UsesStack)
 			{
 				// Enough for the great majority of matches; Grow takes over when it is
@@ -454,6 +624,20 @@ sealed class Machine
 				file.Line($"var c{i}    = 0;");
 
 			file.Line($"var state = {entry};");
+
+			// One pair of positions per text capture, one reference per captured value.
+			// Unwritten is -1 and null, which is what tells "matched nothing here" from
+			// "was never reached" — an optional capture is the difference.
+			if (Layout.Slots.Count > 0)
+			{
+				file.Line();
+
+				foreach (var slot in Layout.Slots)
+					file.Line(slot.Rule is null
+						? $"var s{slot.Index}_from = -1; var s{slot.Index}_to = -1;"
+						: $"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null;");
+			}
+
 			file.Line();
 
 			// The loop exists only for the one `continue` that resumes from the stack.
@@ -465,7 +649,15 @@ sealed class Machine
 				file.Line($"case {Accept}:");
 
 				using (file.Indent())
+				{
+					if (_builds is not null)
+					{
+						Construct(file, _builds);
+						file.Line();
+					}
+
 					file.Line("return p;");
+				}
 
 				file.Line();
 				file.Line($"case {Fail}:");

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 using DotGram.Generation;
@@ -111,9 +112,52 @@ public sealed class UrlTests
 	[Fact]
 	public void Finding_urls_inside_other_text()
 	{
-		var found = (string[])Invoke("AllUrls", "see http://a.io and https://b.io/c okay").Value;
+		var found = ((Array)Invoke("AllUrls", "see http://a.io and https://b.io/c okay").Value)
+			.Cast<object>()
+			.Select(url => Read(url, "Authority", "Host"));
 
-		Assert.Equal(["http://a.io", "https://b.io/c"], found);
+		Assert.Equal(["a.io", "b.io"], found);
+	}
+
+	/// <summary>
+	/// The captures of §7.3, read off the value the parser hands back.
+	/// </summary>
+	/// <remarks>
+	/// By reflection here, because this file compiles the grammar at run time and the
+	/// types did not exist when the test itself was compiled. <c>GeneratedApiTests</c>
+	/// asks the same question of the compiler instead, over the same grammar.
+	/// </remarks>
+	[Theory]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Scheme",         "https")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.User", "user:secret")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.Host", "example.com")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.Port", "8080")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Path",           "/a/b")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Query",          "q=1")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Fragment",       "top")]
+	[InlineData("ftp://example.com",                                "Authority.Host", "example.com")]
+	[InlineData("ftp://example.com",                                "Path",           "")]
+	[InlineData("ftp://example.com",                                "Authority.User", null)]
+	[InlineData("ftp://example.com",                                "Authority.Port", null)]
+	[InlineData("ftp://example.com",                                "Query",          null)]
+	[InlineData("https://[2001:db8::1]:99/x",                       "Authority.Host", "[2001:db8::1]")]
+	[InlineData("https://192.168.0.1:443/x",                        "Authority.Port", "443")]
+	public void The_parts_of_a_url_are_members_of_the_result(string url, string member, string? expected) =>
+		Assert.Equal(expected, Read(Invoke("ParseUrl", url).Value, member.Split('.')));
+
+	[Fact]
+	public void A_capture_the_parser_gave_back_is_not_in_the_result() =>
+		// UserInfo eats "example.com" looking for an '@' that is not there. Giving the
+		// characters back has to give the capture back with them — the state the match
+		// resumes at clears every slot the abandoned attempt could have written.
+		Assert.Null(Read(Invoke("ParseUrl", "https://example.com").Value, "Authority", "User"));
+
+	static object? Read(object? value, params string[] path)
+	{
+		foreach (var name in path)
+			value = value?.GetType().GetProperty(name)?.GetValue(value);
+
+		return value;
 	}
 
 	[Fact]

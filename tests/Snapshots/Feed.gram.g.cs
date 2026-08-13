@@ -884,7 +884,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Amount = '-'? & Digit+ & '.' & Digit{2}?
+		// Amount = '-'? & Digit+ & ('.' & Digit{2})?
 		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			global::System.Span<int> bt = stackalloc int[48];
@@ -920,13 +920,13 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// '.' & Digit{2}? — stop, and check the count
+						// ('.' & Digit{2})? — stop, and check the count
 						c0 = saved;
 
 						goto case 0;
 
 					case 3:
-						// '.' & Digit{2}? — take another, or leave stopping open
+						// ('.' & Digit{2})? — take another, or leave stopping open
 						if (c0 >= 1)
 						{
 							saved = c0;
@@ -938,12 +938,12 @@ namespace DotGram.Snapshots
 						goto case 11;
 
 					case 4:
-						// '.' & Digit{2}? — one more taken
+						// ('.' & Digit{2})? — one more taken
 						c0++;
 						goto case 3;
 
 					case 5:
-						// '.' & Digit{2}? — start counting
+						// ('.' & Digit{2})? — start counting
 						c0 = 0;
 						goto case 3;
 

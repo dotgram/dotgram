@@ -71,11 +71,32 @@ Working end to end — a `.gram` file becomes a parser that runs:
   (`any`, `none`, `eol`, `eof`, `Trivia`)
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own
 - all four publication directives, and diagnostics that point into the `.gram` file
+- **typed results** — a rule with captures gets a type of its own, generated beside the
+  parser, and every published method hands it back:
+
+  ```dotgram
+  Url       = scheme: Scheme & "://" & authority: Authority & path: Path
+  Authority = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
+  ```
+
+  ```csharp
+  var url = UrlGrammar.ParseUrl("https://user@example.com:8080/a");
+
+  url.Authority.Host;   // "example.com"
+  url.Authority.Port;   // "8080"
+  url.Authority.User;   // "user", and null when there is none
+  ```
+
+  A capture the parser gave back on the way to a match is not in the result — a
+  member's slot is cleared wherever an abandoned attempt is resumed from, which the
+  generator works out while generating rather than the parser tracking as it runs.
 
 Not built yet:
 
-- **typed results** — captures and `=>` parse and normalize, but a rule's value is
-  still the matched text, so every published method returns `string`
+- **repeated captures of a rule** — `items: Row*` is a `Row[]` in the specification and
+  is refused today; a repeated capture of *text* works and is the run it matched
+- rule types `: @T`, and `=>` construction — a rule's type is generated, never taken
+  from C#
 - `where` guards and `@(...)` C# interop at run time
 - parameterized rules: `R(n)` is in the specification and does not parse
 - C# name resolution beyond "the name exists"

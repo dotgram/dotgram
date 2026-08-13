@@ -75,7 +75,7 @@ public sealed class CSharpEmitterTests
 	public void Ordered_choice_backtracks_across_a_shared_prefix()
 	{
 		// The case a commit point would have broken: both alternatives begin with the
-		// same rule and diverge only after it (docs/syntax.md §10).
+		// same rule and diverge only after it (docs/syntax.md §11).
 		var grammar = """
 			Start = Call | Index
 			Call  = Name & '(' & ')'

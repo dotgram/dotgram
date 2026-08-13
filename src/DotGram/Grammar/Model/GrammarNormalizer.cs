@@ -35,12 +35,15 @@ public sealed class GrammarNormalizer
 	public const string LeftRecursion       = "GRAM4002";
 	public const string TriviaNotNullable   = "GRAM4003";
 	public const string UnsupportedElement  = "GRAM4005";
+	public const string UnbuiltCapture      = "GRAM4006";
+	public const string CaptureTypeMismatch = "GRAM4007";
 
-	readonly GrammarModel                 _model;
-	readonly Dictionary<RuleSymbol, Node> _bodies      = [];
-	readonly Dictionary<RuleSymbol, bool> _nullable    = [];
-	readonly List<GramDiagnostic>         _diagnostics = [];
-	readonly List<RuleSymbol>             _rules       = [];
+	readonly GrammarModel                                      _model;
+	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
+	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
+	readonly Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> _results   = [];
+	readonly List<GramDiagnostic>                              _diagnostics = [];
+	readonly List<RuleSymbol>                                  _rules       = [];
 
 	GrammarNormalizer(GrammarModel model) => _model = model;
 
@@ -54,12 +57,14 @@ public sealed class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 		normalizer.ComputeNullability();
+		normalizer.ComputeResults();
 		normalizer.Check();
 
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,
 			normalizer._nullable,
+			normalizer._results,
 			model.Publications,
 			normalizer._diagnostics);
 	}
@@ -469,7 +474,7 @@ public sealed class GrammarNormalizer
 
 	/// <summary>
 	/// An alternative that a preceding literal shadows as a prefix can never be
-	/// reached. Diagnosed rather than repaired — see docs/syntax.md §10.
+	/// reached. Diagnosed rather than repaired — see docs/syntax.md §11.
 	/// </summary>
 	// ── Nullability and the checks that need it ──────────────────────────────────
 
@@ -529,15 +534,157 @@ public sealed class GrammarNormalizer
 		_                              => false,
 	};
 
+	// ── Results ──────────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// What each rule's value is made of. A rule that captures nothing has no members and
+	/// keeps the value it always had — the text it matched.
+	/// </summary>
+	void ComputeResults()
+	{
+		foreach (var rule in _rules)
+		{
+			var body    = _bodies[rule];
+			var layout  = CaptureLayout.Of(body, BuildsValue);
+			var members = new List<ResultMember>();
+			var slots   = new Dictionary<string, List<CaptureSlot>>(StringComparer.Ordinal);
+
+			foreach (var slot in layout.Slots)
+			{
+				if (slots.TryGetValue(slot.Name, out var sharing))
+				{
+					// The same name in two alternatives is one member — but only if the two
+					// agree on what it holds, since a member has one type.
+					if (sharing[0].Rule != slot.Rule)
+						Report(
+							CaptureTypeMismatch,
+							$"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +
+							$"{Held(sharing[0].Rule)} and {Held(slot.Rule)}.",
+							rule.Declaration!.At);
+
+					sharing.Add(slot);
+
+					continue;
+				}
+
+				slots[slot.Name] = [slot];
+
+				members.Add(new ResultMember(slot.Name, slot.Rule, IsOptional: !Writes(body, slot.Name), []));
+			}
+
+			for (var i = 0; i < members.Count; i++)
+				members[i] = members[i] with
+				{
+					Slots = slots[members[i].Name].Select(slot => slot.Index).ToList(),
+				};
+
+			_results[rule] = members;
+		}
+	}
+
+	static string Held(RuleSymbol? rule) => rule is null ? "text" : $"the value of '{rule.Name}'";
+
+	/// <summary>Whether a rule has a value of its own — which is to say, any capture.</summary>
+	bool BuildsValue(RuleSymbol rule) => _bodies.TryGetValue(rule, out var body) && HasCapture(body);
+
+	static bool HasCapture(Node node) => node switch
+	{
+		Node.Capture                       => true,
+		Node.Sequence(var nodes)           => nodes.Any(HasCapture),
+		Node.Choice(var nodes)             => nodes.Any(HasCapture),
+		Node.Repeat(var body, _, _)        => HasCapture(body),
+		Node.Construct(var built, _)       => HasCapture(built),
+
+		// Not across a call — that is another rule's result — and not into a lookahead,
+		// which consumes nothing and is compiled with its captures stripped.
+		_                                  => false,
+	};
+
+	/// <summary>
+	/// Whether every way through this node writes <paramref name="name"/>. What decides
+	/// whether the member can be null, and so whether the generated property is nullable.
+	/// </summary>
+	static bool Writes(Node node, string name) => node switch
+	{
+		Node.Capture(var captured, var body) => captured == name || Writes(body, name),
+		Node.Sequence(var nodes)             => nodes.Any(child => Writes(child, name)),
+		Node.Choice(var nodes)               => nodes.All(child => Writes(child, name)),
+		Node.Construct(var built, _)         => Writes(built, name),
+
+		// A run that may be empty still writes: the text of no iterations is "". Only a
+		// genuine option — `X?`, which either happened or did not — leaves it unwritten.
+		Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
+
+		_                                    => false,
+	};
+
 	void Check()
 	{
 		foreach (var rule in _rules)
 		{
 			CheckRepetitions(_bodies[rule], rule);
+			CheckCaptures(_bodies[rule], rule, repeated: null);
 			CheckLeftRecursion(rule);
 		}
 
 		CheckTrivia();
+	}
+
+	/// <summary>
+	/// What a capture under a repetition is allowed to be, and what it is not yet.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §10 binds a capture tighter than a quantifier, so <c>scheme: ['a'..'z']+</c> is a
+	/// capture repeated rather than a capture of a run. §7.3 gives it the text joined —
+	/// which is the extent from the first iteration to the last, and is exactly that only
+	/// when the capture is the whole of what repeats. Written around something else, the
+	/// text between the iterations would be swept in with them.
+	/// </para>
+	/// <para>
+	/// A repeated capture of a rule that builds is a sequence of values (§7.3), which
+	/// needs a growable slot and a mark to truncate it to on backtracking; neither exists
+	/// yet. Inside a lookahead a capture belongs to a machine of its own that answers yes
+	/// or no and hands nothing back.
+	/// </para>
+	/// </remarks>
+	/// <param name="repeated">
+	/// What the innermost enclosing repetition repeats, or null when there is none. A
+	/// repetition bounded at one iteration does not count: what is under it is written at
+	/// most once, which is an option rather than a run.
+	/// </param>
+	void CheckCaptures(Node node, RuleSymbol rule, Node? repeated, bool inLookahead = false)
+	{
+		if (node is Node.Capture(var name, var captured))
+		{
+			if (inLookahead)
+				Report(
+					UnbuiltCapture,
+					$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
+					"a lookahead consumes nothing and answers only whether it matched.",
+					rule.Declaration!.At);
+
+			else if (repeated is not null && captured is Node.Call(var called, _) && BuildsValue(called))
+				Report(
+					UnbuiltCapture,
+					$"'{name}' repeatedly captures '{called.Name}', which is not built yet: " +
+					"that is a sequence of values, and only single-valued captures are built so far.",
+					rule.Declaration!.At);
+
+			else if (repeated is not null && !ReferenceEquals(repeated, node))
+				Report(
+					UnbuiltCapture,
+					$"'{name}' is captured inside a repetition in '{rule.Name}' without being the whole of " +
+					"what repeats, which is not built yet: the text of the iterations cannot be told from " +
+					"the text between them. Move the quantifier inside the capture.",
+					rule.Declaration!.At);
+		}
+
+		var inside   = node is Node.Repeat(var body, _, not 1) ? body : repeated;
+		var lookings = inLookahead || node is Node.Lookahead;
+
+		foreach (var child in Children(node))
+			CheckCaptures(child, rule, inside, lookings);
 	}
 
 	void CheckRepetitions(Node node, RuleSymbol rule)

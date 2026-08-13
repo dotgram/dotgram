@@ -12,10 +12,11 @@ namespace DotGram.Tests.Generated;
 /// </summary>
 /// <remarks>
 /// <para>
-/// [Gram] with no argument looks for the file named after the class, and finds
-/// ../Snapshots/Url.gram because the project lists it as an additional file. Nothing
-/// below uses reflection: <c>ParseUrl</c> is resolved by the compiler, and if the
-/// generator stopped producing it this file would not build.
+/// The class is named for the grammar rather than for the rule, the way docs/syntax.md
+/// §9 names one: the rule <c>Url</c> becomes a type, and a type may not be named after
+/// the class that contains it. Nothing below uses reflection — <c>ParseUrl</c> and
+/// every property it hands back are resolved by the compiler, and if the generator
+/// stopped producing one of them this file would not build.
 /// </para>
 /// <para>
 /// That is the point of it. The other levels compile a grammar by calling into the
@@ -23,46 +24,88 @@ namespace DotGram.Tests.Generated;
 /// a consumer would — at their build, not in an assertion.
 /// </para>
 /// </remarks>
-[Gram]
-public partial class Url;
+[Gram("Url.gram")]
+public partial class UrlGrammar;
 
 public sealed class GeneratedApiTests
 {
 	[Fact]
 	public void The_generated_api_exists_and_is_callable() =>
-		Assert.Equal("https://example.com/a", Url.ParseUrl("https://example.com/a"));
+		Assert.Equal("example.com", UrlGrammar.ParseUrl("https://example.com/a").Authority.Host);
 
 	[Fact]
 	public void Parse_throws_the_type_int_Parse_throws() =>
-		Assert.Throws<FormatException>(static () => Url.ParseUrl("not a url"));
+		Assert.Throws<FormatException>(static () => UrlGrammar.ParseUrl("not a url"));
 
 	[Fact]
 	public void Try_parse_answers_instead_of_throwing()
 	{
-		Assert.False(Url.TryParseUrl("not a url", out _, out var error, out _));
+		Assert.False(UrlGrammar.TryParseUrl("not a url", out _, out var error, out _));
 		Assert.NotNull(error);
 	}
 
 	[Fact]
-	public void Find_all_returns_an_array_of_what_it_found() =>
-		Assert.Equal(
-			["http://a.io", "https://b.io/c"],
-			Url.AllUrls("see http://a.io and https://b.io/c okay"));
+	public void Find_all_returns_an_array_of_what_it_found()
+	{
+		var found = UrlGrammar.AllUrls("see http://a.io and https://b.io/c okay");
+
+		Assert.Equal(["a.io", "b.io"], Array.ConvertAll(found, url => url.Authority.Host));
+		Assert.Equal(["",     "/c"],   Array.ConvertAll(found, url => url.Path));
+	}
+
+	/// <summary>
+	/// Every part of a URL, read off the result by name. This is the question a named
+	/// group in a regular expression answers with <c>Groups["scheme"].Value</c>, and the
+	/// difference is that a wrong name here does not compile.
+	/// </summary>
+	[Fact]
+	public void Every_capture_is_a_property_of_the_declared_type()
+	{
+		var url = UrlGrammar.ParseUrl("https://user:secret@example.com:8080/a/b?q=1#top");
+
+		Assert.Equal("https",       url.Scheme);
+		Assert.Equal("/a/b",        url.Path);
+		Assert.Equal("q=1",         url.Query);
+		Assert.Equal("top",         url.Fragment);
+		Assert.Equal("user:secret", url.Authority.User);
+		Assert.Equal("example.com", url.Authority.Host);
+		Assert.Equal("8080",        url.Authority.Port);
+	}
+
+	/// <summary>
+	/// A capture that was never reached is null, not empty: the two are different
+	/// answers, and only the grammar knows which one it gave.
+	/// </summary>
+	[Fact]
+	public void What_did_not_match_is_null()
+	{
+		var url = UrlGrammar.ParseUrl("http://example.com");
+
+		Assert.Null(url.Query);
+		Assert.Null(url.Fragment);
+		Assert.Null(url.Authority.User);
+		Assert.Null(url.Authority.Port);
+
+		// Path is not optional — `('/' & Segment)*` matches, having consumed nothing.
+		Assert.Equal("", url.Path);
+	}
 
 	[Fact]
-	public void The_signatures_are_bcl_types_only()
+	public void The_signatures_are_bcl_types_only_but_for_the_grammar_s_own_types()
 	{
-		// docs/syntax.md §6.1: support types are emitted internal, so nothing of ours
-		// may appear in a public signature. Checked by asking the compiler — every type
-		// named here comes from the BCL, and the call would not bind otherwise.
-		string   parsed = Url.ParseUrl("ftp://example.com");
-		string[] found  = Url.AllUrls("ftp://example.com");
-		bool     ok     = Url.TryParseUrl("ftp://example.com", out string value, out string? error, out int position);
+		// docs/syntax.md §6.1: the shared support types are emitted internal, so none of
+		// them may appear in a public signature. A rule's own type is generated into this
+		// assembly from this grammar and has no version to skew, so it can — and the rest
+		// is BCL. Checked by asking the compiler: the call would not bind otherwise.
+		UrlGrammar.Url   parsed = UrlGrammar.ParseUrl("ftp://example.com");
+		UrlGrammar.Url[] found  = UrlGrammar.AllUrls("ftp://example.com");
+		bool             ok     = UrlGrammar.TryParseUrl(
+			"ftp://example.com", out UrlGrammar.Url value, out string? error, out int position);
 
 		Assert.True(ok);
 		Assert.Null(error);
 		Assert.Equal(0, position);
-		Assert.Equal(parsed, value);
+		Assert.Equal(parsed.Authority.Host, value.Authority.Host);
 		Assert.Single(found);
 	}
 }
