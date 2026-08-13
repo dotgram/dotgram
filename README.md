@@ -2,9 +2,9 @@
 
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
-> **Early work.** The pipeline runs end to end and the parsers it produces are real and
-> typed, but the seam with C# — a rule declaring its own type, `=>`, `where` — is not
-> built. Nothing here is ready to depend on.
+> **Early work.** The pipeline runs end to end, the parsers it produces are real and
+> typed, and a grammar can compute — but recovery, streaming and a good deal of the
+> diagnostics are not built. Nothing here is ready to depend on.
 >
 > The specification describes the target language. Not every specified feature is
 > implemented — [`docs/status.md`](docs/status.md) says which are.
@@ -116,13 +116,24 @@ Working end to end — a `.gram` file becomes a parser that runs:
   feed.Trailer.Count;
   ```
 
+- **the seam with C#** — a rule names its own type and says how to build it, and a
+  `where` guard asks a question of the values while matching:
+
+  ```dotgram
+  Sum   : @int = left: Sum & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
+               | value: Product                             => @(value)
+  ```
+
+- **left recursion**, which is how associativity is said: `1-2-3` is -4 because `Sum`
+  recurses on the left. A calculator with precedence, parentheses and unary minus is
+  in `examples/`
+
 Not built yet:
 
-- rule types `: @T`, and `=>` construction — a rule's type is generated, never taken
-  from C#
-- `where` guards and `@(...)` C# interop at run time
+- binding powers `<< n` `>> n` (§4.3.1) — specified, parsed, and refused with the
+  reason; they need a precedence-climbing engine
+- `: T` naming another rule, and matching captures to a constructor by name
 - parameterized rules: `R(n)` is in the specification and does not parse
-- C# name resolution beyond "the name exists"
 - diagnostics beyond a position: the set of what was expected there is next
 - `recover`, the recovery engine, streaming input, incremental parsing
 
@@ -135,6 +146,7 @@ written against it, with no test framework anywhere near them.
 | --- | --- |
 | [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
+| [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.
 

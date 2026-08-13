@@ -196,7 +196,11 @@ public static class CSharpEmitter
 			var whole = new Machine(
 				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule));
 
-			var body = new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
+			// The two ends normalization cannot reach: it inserts Trivia between operands,
+			// and a whole parse has an outside (§4.5).
+			var body = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
+				? new Node.Sequence([trivia, graph.Bodies[publication.Rule], trivia, EndOfInput])
+				: new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
 
 			file.Write(whole.Render(
 				whole.Compile(body, Machine.Accept),

@@ -160,6 +160,17 @@ public sealed class RecognitionGraph(
 	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
 
 	/// <summary>
+	/// The <c>Trivia</c> each rule sees, where it matches anything at all (§4.5).
+	/// </summary>
+	/// <remarks>
+	/// Normalization inserts it between operands, which leaves the two ends of a whole
+	/// parse: nothing precedes the first operand and nothing follows the last. Publication
+	/// is where those are, so publication is where this is needed.
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, Node> Trivia { get; set; } =
+		new Dictionary<RuleSymbol, Node>();
+
+	/// <summary>
 	/// What a left-recursive rule was rewritten into (§4.3), for the rules that were.
 	/// </summary>
 	public IReadOnlyDictionary<RuleSymbol, Fold> Folds { get; set; } =

@@ -75,7 +75,8 @@ public sealed class GrammarNormalizer
 			model.Publications,
 			normalizer._diagnostics)
 		{
-			Folds = normalizer._folds,
+			Folds  = normalizer._folds,
+			Trivia = normalizer._trivia,
 		};
 	}
 
@@ -107,6 +108,10 @@ public sealed class GrammarNormalizer
 		// Indexed, because lowering registers built-ins and appends them.
 		for (var i = 0; i < _rules.Count; i++)
 			BodyOf(_rules[i]);
+
+		foreach (var rule in _rules)
+			if (rule.Declaration is not null && TriviaFor(rule.Scope) is { } trivia)
+				_trivia[rule] = trivia;
 	}
 
 	/// <summary>A rule's lowered body, lowering it now if that has not happened yet.</summary>
@@ -586,7 +591,8 @@ public sealed class GrammarNormalizer
 	/// </summary>
 	// ── Left recursion (§4.3) ────────────────────────────────────────────────────
 
-	readonly Dictionary<RuleSymbol, Fold> _folds = [];
+	readonly Dictionary<RuleSymbol, Fold> _folds  = [];
+	readonly Dictionary<RuleSymbol, Node> _trivia = [];
 
 	/// <summary>
 	/// Turns a left-recursive rule into a base and a loop of tails.

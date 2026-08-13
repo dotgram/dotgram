@@ -86,6 +86,27 @@ public sealed class ExampleTests
 		Assert.Equal(["a.io"], Links.AllUrls(text).Select(m => m.Value!.Authority.Host));
 	}
 
+	// ── The calculator ───────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("1+2+3",         6)]
+	[InlineData("1-2-3",        -4)]     // (1-2)-3, because Sum recurses on the left
+	[InlineData("2+3*4",        14)]
+	[InlineData("(2+3)*4",      20)]
+	[InlineData("100/5/2",      10)]
+	[InlineData("-3*-4",        12)]
+	[InlineData(" 1 + 2 * 3 ",   7)]     // Trivia is shadowed, so spaces do not matter
+	public void The_calculator_computes(string expression, int expected) =>
+		Assert.Equal(expected, Calculator.Evaluate(expression));
+
+	[Fact]
+	public void And_says_where_an_expression_stops_being_one()
+	{
+		Assert.Equal("2*3 = 6", Calculator.Explain("2*3"));
+		Assert.StartsWith("Input does not match", Calculator.Explain("2*"));
+		Assert.Throws<FormatException>(static () => Calculator.Evaluate("2*"));
+	}
+
 	// ── The feed reader ──────────────────────────────────────────────────────────
 
 	const string Text =
