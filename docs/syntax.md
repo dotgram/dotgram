@@ -432,9 +432,23 @@ costs exactly what calling the rule directly costs. A recursive parameterized ca
 that would spawn an unbounded number of specializations is rejected when the grammar
 is built.
 
-### 4.3 Recursion, and what it says about associativity
+### 4.3 Precedence and associativity
 
-**Precedence is levels.** One rule per level, each calling the next:
+There are two ways, and which to use is a real choice rather than a fallback.
+
+**Levels as rules** is the default. It needs no engine, no notation and no annotation —
+a grammar written this way compiles to the same recursive descent as everything else,
+and for the handful of levels most notations have it is the faster of the two as well:
+an operator costs one iteration of an ordinary repetition. Use it unless something
+below says you cannot.
+
+**Binding powers** (§4.3.1) buy the two things levels cannot: an expression language
+with many levels written as one rule, and the shapes ordered choice cannot settle. They
+cost a precedence-climbing engine at run time, which is why they are not the default.
+
+#### Levels as rules
+
+One rule per level, each calling the next:
 
 ```dotgram
 Expr   = Term & (['+' | '-'] & Term)*
@@ -476,16 +490,55 @@ that code in these positions bear being invoked more than once, so nothing furth
 asked of the author — but it is worth knowing which `=>` this is. What a step built is
 given back with it, so the value is always the one the accepted parse produced.
 
-Two things are rejected when the grammar is built:
+Three things are rejected when the grammar is built:
 
 - **indirect left recursion** — `A` reaching itself through `B` without consuming.
   Direct recursion has one shape to rewrite and indirect has arbitrarily many, so it
   is a diagnostic rather than a half-working transform.
+- **a rule whose every alternative is left-recursive.** There is nothing to start from.
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one
   would take everything to the right, so what is written left-associative would parse
-  right-associative. This is what a precedence table's `%left` is for, and this
-  language has levels instead.
+  right-associative. Write the operands at the next level down, or say what you mean
+  with §4.3.1.
+
+#### 4.3.1 Binding powers, when levels are not enough
+
+An alternative may state its own strength instead:
+
+```dotgram
+Expr : @int = left: Expr & '+' & right: Expr   << 1  => @(left + right)
+            | left: Expr & '-' & right: Expr   << 1  => @(left - right)
+            | left: Expr & '*' & right: Expr   << 2  => @(left * right)
+            | left: Expr & '^' & right: Expr   >> 3  => @Pow(left, right)
+            | '-' & operand: Expr              >> 4  => @(-operand)
+            | '(' & inner: Expr & ')'                => @(inner)
+            | digits: ['0'..'9']+                    => @int.Parse(digits)
+```
+
+One expression language, one rule, and `-1-2` is `-3` because unary minus is stronger
+than binary minus — which is said here rather than arranged by how the rules are
+stacked.
+
+**`<<` and `>>` mean one thing: at what strength the operand to the right is parsed.**
+`<< n` parses it one level tighter, which makes the operator left-associative; `>> n`
+parses it at `n`, which makes it right-associative. A prefix operator is the same
+statement with no left operand, which is why it needs no third marker.
+
+| Written | Is |
+| --- | --- |
+| `left: E & op & right: E << n` | infix, left-associative, level `n` |
+| `left: E & op & right: E >> n` | infix, right-associative, level `n` |
+| `op & operand: E >> n` | prefix, level `n` |
+| `left: E & op << n` | postfix, level `n` |
+| no marker | an atom — a literal, a group, a call |
+
+Higher binds tighter. The numbers are the author's and need not be contiguous: gaps are
+where a level is inserted later without renumbering the rest.
+
+A rule uses one convention or the other. Levels as rules and binding powers in one rule
+would be two answers to the same question, and the compiler refuses it rather than
+choosing.
 
 ### 4.4 Rule separator
 
@@ -1138,7 +1191,8 @@ Parameter   = Identifier & (':' & Type)?
 Type        = Reference & "[]"?
 
 Body        = Alternative & ('|' & Alternative)*
-Alternative = Sequence & ("=>" & Value)?
+Alternative = Sequence & Binding? & ("=>" & Value)?
+Binding     = ("<<" | ">>") & Int
 Sequence    = Operand & ('&' & Operand)*
 Operand     = Guard | Quantified
 Guard       = "where" & Value
@@ -1265,13 +1319,9 @@ paper. None of it requires changing the notation above.
   Source files fit in memory; feeds are line-oriented; what is left is huge binary
   input, which is out of scope. If it ever arrives, it slots in beside the two modes
   in §6.3 without disturbing them.
-- **A precedence table** as a construct — operators declared with a level and an
-  associativity, the way `yacc` does it. Levels are rules and associativity is which
-  side the recursion is on (§4.3), and neither costs anything to write. What a table
-  would buy is compactness where the levels are many — C# has some fifteen — and the
-  one shape §4.3 cannot express, `E = E & '+' & E`, which needs a precedence-climbing
-  engine rather than a rewrite. Worth doing when a grammar makes the levels a burden,
-  and not before; `implementation.md` §9 records what to lower it into.
+- **A precedence table** separate from the rules, the way `yacc` declares one. What it
+  would buy is in §4.3.1 instead, written on the alternatives themselves — an operator
+  and its strength in one place rather than two that must be kept in step.
 
 **Answered, and where.**
 

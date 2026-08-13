@@ -34,6 +34,7 @@ then quietly mean nothing.
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| binding powers `<< n` `>> n` §4.3.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -91,8 +92,15 @@ later given back. §7.2 already requires C# in these positions to bear being inv
 more than once, so nothing new is asked of an author — but it is the one `=>` that does
 not wait for the match to succeed.
 
-Still refused: indirect left recursion, which has arbitrarily many shapes to rewrite,
-and a rule whose every alternative is left-recursive, which has nothing to start from.
+Refused: indirect left recursion, which has arbitrarily many shapes to rewrite; a rule
+whose every alternative is left-recursive, which has nothing to start from; and an
+alternative recursive on both sides, which ordered choice cannot settle — `-1-2` under
+`E = E & '-' & E` answered 1 rather than -3 until that was checked.
+
+Binding powers (§4.3.1) are specified and not built. They are what a grammar reaches
+for when levels as rules cannot say it: an expression language written as one rule, and
+the shapes ordered choice refuses. They need a precedence-climbing engine, which is why
+levels are the default rather than the fallback.
 
 ## What a publication answers with
 

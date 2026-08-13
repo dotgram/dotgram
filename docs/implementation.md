@@ -273,13 +273,17 @@ enough — an edit is usually in the middle, and the tail is the longer part.
 Precedence climbing: atoms and prefix operators in one loop, infix and postfix in
 another, with a binding power per level.
 
-`syntax.md` §4.3 has the levels written out as rules, which works with no engine at
-all, and associativity carried by which side a rule recurses on. Direct left recursion
-is rewritten into a repetition plus a fold, which needs no engine either.
+`syntax.md` §4.3 has two ways to say precedence, and only one of them needs this.
 
-The engine is what a precedence *table* would need — and only because a table admits
-`E = E & '+' & E`, which the rewrite cannot take. If such a construct appears later it
-should be lowered into this shape rather than into a third one.
+**Levels as rules** needs no engine: direct left recursion is rewritten into a
+repetition plus a fold, and an operator costs one iteration of an ordinary repetition.
+That is the default, and for the handful of levels most notations have it is also the
+faster of the two — nothing to climb, no binding power to compare.
+
+**Binding powers** (§4.3.1) are what this section is for. They admit `E = E & '+' & E`
+and an expression language written as one rule, neither of which a rewrite can take,
+and they pay for it here: one loop with a binding power rather than a ladder of calls,
+which is the trade that wins once the levels are many.
 
 ## 10. Trivia and keywords
 
