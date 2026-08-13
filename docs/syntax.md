@@ -432,16 +432,54 @@ costs exactly what calling the rule directly costs. A recursive parameterized ca
 that would spawn an unbounded number of specializations is rejected when the grammar
 is built.
 
-### 4.3 Recursion
+### 4.3 Recursion, and what it says about associativity
 
-Direct and indirect left recursion is rejected when the grammar is built. Loops are
-written with quantifiers:
+**Precedence is levels.** One rule per level, each calling the next:
 
 ```dotgram
-Expr = Term & (['+' | '-'] & Term)*
-Term = Factor & (['*' | '/'] & Factor)*
+Expr   = Term & (['+' | '-'] & Term)*
+Term   = Factor & (['*' | '/'] & Factor)*
 Factor = Number | '(' & Expr & ')'
 ```
+
+**Associativity is which side the recursion is on**, and there is no notation for it
+because there does not need to be: a grammar that recurses on the left is
+left-associative and one that recurses on the right is right-associative, which is
+what those shapes have meant since BNF.
+
+```dotgram
+Sum   = left: Sum   & op: ['+' | '-'] & right: Product  => @Apply(left, op, right)
+      | value: Product                                  => value
+
+Power = left: Unary & '^' & right: Power                => @Raise(left, right)
+      | value: Unary                                    => value
+```
+
+`1-2-3` groups as `(1-2)-3` and `2^3^2` as `2^(3^2)`, because that is how they are
+written.
+
+Associativity therefore belongs to an **alternative**, not to a rule — that is where
+the recursion is. A rule ends up with one because a level of precedence is a rule, and
+mixing two in one rule is legal and a bad idea, the same way it is in any grammar.
+
+**In a left-recursive alternative, the leading capture is the accumulator.** `left:
+Sum` is not a fresh parse of `Sum`; it is the value built so far — the first time from
+the alternatives that are not left-recursive, and afterwards from the previous
+application of this one. Which is to say `=>` is a fold, and both `=>` in the rule
+above are used: the base builds the first value, the recursive alternative applies once
+per operator. Nothing is built while matching (§7.2); the fold happens where all
+construction happens, once the match has succeeded.
+
+Two things are rejected when the grammar is built:
+
+- **indirect left recursion** — `A` reaching itself through `B` without consuming.
+  Direct recursion has one shape to rewrite and indirect has arbitrarily many, so it
+  is a diagnostic rather than a half-working transform.
+- **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
+  cannot settle it: the leading `E` would be the accumulator and the trailing one
+  would take everything to the right, so what is written left-associative would parse
+  right-associative. This is what a precedence table's `%left` is for, and this
+  language has levels instead.
 
 ### 4.4 Rule separator
 
@@ -1221,10 +1259,13 @@ paper. None of it requires changing the notation above.
   Source files fit in memory; feeds are line-oriented; what is left is huge binary
   input, which is out of scope. If it ever arrives, it slots in beside the two modes
   in §6.3 without disturbing them.
-- **Operator precedence** as a construct. Levels written as rules (§4.3) work and cost
-  nothing, and no grammar has yet made that a burden. Introducing one would also mean
-  answering whether it is sugar or a privileged lowering, which is worth doing only
-  when something needs it. `implementation.md` §9 records what to lower it into.
+- **A precedence table** as a construct — operators declared with a level and an
+  associativity, the way `yacc` does it. Levels are rules and associativity is which
+  side the recursion is on (§4.3), and neither costs anything to write. What a table
+  would buy is compactness where the levels are many — C# has some fifteen — and the
+  one shape §4.3 cannot express, `E = E & '+' & E`, which needs a precedence-climbing
+  engine rather than a rewrite. Worth doing when a grammar makes the levels a burden,
+  and not before; `implementation.md` §9 records what to lower it into.
 
 **Answered, and where.**
 

@@ -720,7 +720,8 @@ public sealed class GrammarNormalizer
 		if (Reaches(_bodies[start], start, []))
 			Report(
 				LeftRecursion,
-				$"'{start.Name}' is left-recursive; write the loop with a quantifier instead.",
+				$"'{start.Name}' is left-recursive, which is not built yet (docs/syntax.md §4.3); " +
+				"write the loop with a quantifier instead.",
 				start.Declaration!.At);
 	}
 

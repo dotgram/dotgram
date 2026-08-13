@@ -273,9 +273,13 @@ enough — an edit is usually in the middle, and the tail is the longer part.
 Precedence climbing: atoms and prefix operators in one loop, infix and postfix in
 another, with a binding power per level.
 
-`syntax.md` §4.3 currently has the levels written out as rules by hand, which works
-with no engine at all. If a precedence construct appears later, it should be lowered
-into this shape rather than into a third one.
+`syntax.md` §4.3 has the levels written out as rules, which works with no engine at
+all, and associativity carried by which side a rule recurses on. Direct left recursion
+is rewritten into a repetition plus a fold, which needs no engine either.
+
+The engine is what a precedence *table* would need — and only because a table admits
+`E = E & '+' & E`, which the rewrite cannot take. If such a construct appears later it
+should be lowered into this shape rather than into a third one.
 
 ## 10. Trivia and keywords
 

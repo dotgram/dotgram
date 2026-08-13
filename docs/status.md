@@ -31,6 +31,7 @@ then quietly mean nothing.
 | guards `where` | ✓ | ✓ | ✓ | ignored | ✗ |
 | inline C# `@(...)` | ✓ | ✓ | ✓ | ignored | ✗ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
+| direct left recursion §4.3 | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition §8.2 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -62,6 +63,14 @@ not settled. What is settled is that it is written here rather than discovered.
 
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
+
+## Associativity is not built
+
+§4.3 says direct left recursion is legal and means left-associative, rewritten into a
+repetition and a fold. `GRAM4002` still refuses all left recursion, direct or not, so
+today a left-associative level is written as a loop and folded by hand in C# — which
+also is not built, since it needs `=>`. Right associativity works now: right recursion
+is not left recursion, and nothing has to be rewritten.
 
 ## What a publication answers with
 
