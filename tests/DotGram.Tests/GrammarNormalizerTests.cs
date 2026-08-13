@@ -165,6 +165,26 @@ public sealed class GrammarNormalizerTests
 		Assert.Empty(Diagnostics("""R = "https" | "http" """));
 	}
 
+	/// <summary>
+	/// What a <c>=&gt;</c> or a <c>where</c> carries is C# to be pasted into the
+	/// generated file, so it is rendered rather than described.
+	/// </summary>
+	[Fact]
+	public void C_sharp_values_come_through_as_C_sharp() =>
+		Assert.Equal(
+			"""
+			N = ['0'..'9']+ => int.Parse(text, CultureInfo.InvariantCulture)
+			P = ['a'..'z']+ & where IsKnown(text, "prefix")
+			Q = ['a'..'z']+ => Make<Row, int>(text)
+			R = ['a'..'z']+ => (text.Length * 2)
+			""",
+			Normalize("""
+				N = ['0'..'9']+ => @int.Parse(text, CultureInfo.InvariantCulture)
+				P = ['a'..'z']+ & where @IsKnown(text, "prefix")
+				Q = ['a'..'z']+ => @Make<@Row, @int>(text)
+				R = ['a'..'z']+ => @(text.Length * 2)
+				""").ToString());
+
 	[Fact]
 	public void A_correct_grammar_normalizes_without_complaint()
 	{

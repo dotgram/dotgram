@@ -199,14 +199,33 @@ public sealed class GrammarNormalizer
 	static RuleSymbol Unresolved(string name) =>
 		new(name, new GrammarScope("<unresolved>", null), Declaration: null);
 
-	/// <summary>Values in `=&gt;` and `where` are C# text by the time they get here.</summary>
+	/// <summary>
+	/// Values in `=&gt;` and `where` are C# by the time they get here — and are rendered
+	/// as C#, not described.
+	/// </summary>
+	/// <remarks>
+	/// What comes out is pasted into the generated file and compiled by C#, so a name
+	/// that resolves to nothing is C#'s error to report, on the grammar's line (§7.6).
+	/// The `@` is not part of it: it marks the crossing into C# and does not survive it.
+	/// </remarks>
 	static string Text(Expr value) => value switch
 	{
-		Expr.CSharp(var text)         => $"@({text})",
-		Expr.Reference(_, var name, _) => name,
-		Expr.Call(var target, _)      => $"{target.Name}(…)",
-		_                             => value.ToString() ?? "",
+		Expr.CSharp(var text)                   => $"({text})",
+		Expr.Reference(_, var name, var types)  => name + TypeArguments(types),
+		Expr.Call(var target, var arguments)    =>
+			Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+
+		Expr.Literal(true,  var text)           => CharRange.Quote(text[0]),
+		Expr.Literal(false, var text)           => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
+
+		_                                       => value.ToString() ?? "",
 	};
+
+	static string TypeArguments(IReadOnlyList<TypeRef> types) =>
+		types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(TypeName)) + ">";
+
+	/// <summary>A type as it is written in C#, which is as the grammar wrote it.</summary>
+	internal static string TypeName(TypeRef type) => type.Name + (type.IsSequence ? "[]" : "");
 
 	/// <summary>
 	/// A set of one-item tests, with references to elementary rules merged into it.
