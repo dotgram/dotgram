@@ -16,6 +16,12 @@ namespace DotGram.Examples;
 // its value rather than its text — so row.Date.Year is three rules deep and still
 // checked by the compiler.
 
+/// <summary>One record, in the shape the rest of an application wants.</summary>
+public sealed record Trade(string Symbol, int Quantity, DateOnly TradedOn);
+
+/// <summary>A whole feed, read and checked.</summary>
+public sealed record Feed(DateOnly Date, string Source, IReadOnlyList<Trade> Trades);
+
 [Gram("""
 	Feed    = Header & Row* & Trailer & eof
 
@@ -34,16 +40,11 @@ namespace DotGram.Examples;
 	find all Row as AllRows
 	find Trailer
 	""")]
-public partial class FeedGrammar;
-
-/// <summary>One record, in the shape the rest of an application wants.</summary>
-public sealed record Trade(string Symbol, int Quantity, DateOnly TradedOn);
-
-/// <summary>A whole feed, read and checked.</summary>
-public sealed record Feed(DateOnly Date, string Source, IReadOnlyList<Trade> Trades);
-
-public static class FeedReader
+public static partial class FeedReader
 {
+	// ParseFeed, MatchHeader, AllRows, FindTrailer and the types Header, Row, Trailer
+	// and Date are generated into this class.
+
 	/// <summary>Reads a feed, refusing anything malformed.</summary>
 	/// <exception cref="FormatException">
 	/// A missing header or trailer, a bad record, anything after the trailer, or a
@@ -53,17 +54,17 @@ public static class FeedReader
 	{
 		// Checks what no per-record reader can: exactly one header, a trailer, and
 		// nothing after it. Nothing is read out of the result — its job is to refuse.
-		FeedGrammar.ParseFeed(text);
+		ParseFeed(text);
 
-		var header  = FeedGrammar.MatchHeader(text)!;
-		var trailer = FeedGrammar.FindTrailer(text)!;
+		var header  = MatchHeader(text)!;
+		var trailer = FindTrailer(text)!;
 		var trades  = ReadRecords(text);
 
 		if (Number(trailer.Count) != trades.Count)
 			throw new FormatException(
 				$"The trailer declares {trailer.Count} records and the feed has {trades.Count}.");
 
-		return new Feed(Date(header.Date), header.Source, trades);
+		return new Feed(ToDate(header.Date), header.Source, trades);
 	}
 
 	/// <summary>Every record, whether or not the feed as a whole is well formed.</summary>
@@ -71,8 +72,8 @@ public static class FeedReader
 	{
 		var trades = new List<Trade>();
 
-		foreach (var row in FeedGrammar.AllRows(text))
-			trades.Add(new Trade(row.Symbol, Number(row.Qty), Date(row.Date)));
+		foreach (var row in AllRows(text))
+			trades.Add(new Trade(row.Symbol, Number(row.Qty), ToDate(row.Date)));
 
 		return trades;
 	}
@@ -80,6 +81,6 @@ public static class FeedReader
 	// The grammar has already said these are digits, so neither can fail.
 	static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 
-	static DateOnly Date(FeedGrammar.Date date) =>
+	static DateOnly ToDate(Date date) =>
 		new(Number(date.Year), Number(date.Month), Number(date.Day));
 }

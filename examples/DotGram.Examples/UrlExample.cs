@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 using DotGram;
@@ -44,20 +45,23 @@ namespace DotGram.Examples;
 	parse Url
 	find all Url as AllUrls
 	""")]
-public partial class UrlGrammar;
-
-public static class Links
+public static partial class Links
 {
+	// ParseUrl, TryParseUrl, AllUrls and the types Url and Authority are generated into
+	// this class: the attribute goes on the class the parser is wanted in, and there is
+	// nothing else to wire up. (Give the grammar a class of its own when the generated
+	// methods should not be part of your API — see examples/README.md.)
+
 	/// <summary>Whether the whole input is a URL.</summary>
-	public static bool IsUrl(string text) => UrlGrammar.TryParseUrl(text, out _, out _, out _);
+	public static bool IsUrl(string text) => TryParseUrl(text, out _, out _, out _);
 
 	/// <summary>The port, or 443 for https and 80 for the rest.</summary>
 	public static int PortOf(string url)
 	{
-		var parsed = UrlGrammar.ParseUrl(url);
+		var parsed = ParseUrl(url);
 
 		return parsed.Authority.Port is { } port
-			? int.Parse(port, System.Globalization.CultureInfo.InvariantCulture)
+			? int.Parse(port, CultureInfo.InvariantCulture)
 			: parsed.Scheme == "https" ? 443 : 80;
 	}
 
@@ -67,7 +71,7 @@ public static class Links
 		var seen  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		var hosts = new List<string>();
 
-		foreach (var url in UrlGrammar.AllUrls(prose))
+		foreach (var url in AllUrls(prose))
 			if (seen.Add(url.Authority.Host))
 				hosts.Add(url.Authority.Host);
 
@@ -78,7 +82,7 @@ public static class Links
 	/// <exception cref="FormatException">The input is not a URL.</exception>
 	public static string Describe(string url)
 	{
-		var parsed = UrlGrammar.ParseUrl(url);
+		var parsed = ParseUrl(url);
 		var text   = new StringBuilder();
 
 		Line("scheme",   parsed.Scheme);

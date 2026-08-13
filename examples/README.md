@@ -23,12 +23,21 @@ Two things, and nothing else:
     Digits = ['0'..'9']+
     parse Digits
     """)]
-public partial class Numbers;
+public static partial class Numbers
+{
+    public static int Sum(string text) => ParseDigits(text).Length;   // ParseDigits is generated here
+}
 ```
 
-The class must be `partial`, and every class around it too. That is all: no runtime
-assembly is referenced, because there is none — everything the parser needs is
-generated into your own compilation.
+The attribute goes on the class you want the parser in, and the methods and types
+appear in it — there is nothing to wire up and nothing to name twice. The class must
+be `partial`, and every class around it too; `static` is fine. No runtime assembly is
+referenced, because there is none: everything the parser needs is generated into your
+own compilation.
+
+Give the grammar a class of its own when the generated methods should not be part of
+your API — an `internal partial class` beside your public one, which is also the only
+way to keep `ParseX` and `TryParseX` out of it.
 
 A grammar long enough to want its own place goes in a `.gram` file instead, named
 after the class or given to the attribute, and listed so the generator can see it:
