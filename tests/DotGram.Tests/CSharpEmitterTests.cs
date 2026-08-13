@@ -30,14 +30,13 @@ public sealed class CSharpEmitterTests
 		return Assert.Single(result.Sources).Text;
 	}
 
-	/// <summary>Compiles the emitted source and calls the Try- half of a publication.</summary>
-	static (bool Matched, object Value) Invoke(string grammar, string method, string input)
+	/// <summary>Compiles the emitted source and calls the asking half of a publication.</summary>
+	static (bool Matched, object? Value) Invoke(string grammar, string method, string input)
 	{
-		var type      = EmittedCode.Compile(Emit(grammar)).GetType("Grammar")!;
-		var arguments = new object?[] { input, null, null, null };
-		var matched   = (bool)type.GetMethod("Try" + method)!.Invoke(null, arguments)!;
+		var (isSuccess, value, _, _) =
+			EmittedCode.Match(EmittedCode.Compile(Emit(grammar)), "Grammar", "Try" + method, input);
 
-		return (matched, arguments[1]!);
+		return (isSuccess, value);
 	}
 
 	/// <summary>The common case: one rule, published with <c>parse</c>.</summary>
@@ -45,7 +44,7 @@ public sealed class CSharpEmitterTests
 	{
 		var (matched, value) = Invoke(grammar + "\nparse Start", "ParseStart", input);
 
-		return (matched, (string)value);
+		return (matched, (string)(value ?? ""));
 	}
 
 	[Theory]
@@ -156,59 +155,42 @@ public sealed class CSharpEmitterTests
 
 		""";
 
-	[Fact]
-	public void Match_does_not_require_the_input_to_end()
-	{
-		var (matched, value) = Invoke(Digits + "match Start", "MatchStart", "12ab");
-
-		Assert.True(matched);
-		Assert.Equal("12", value);
-	}
+	/// <summary>Compiles the emitted source and walks a <c>find</c>.</summary>
+	static object?[] Occurrences(string grammar, string method, string input) =>
+		EmittedCode.Found(EmittedCode.Compile(Emit(grammar)), "Grammar", method, input);
 
 	[Fact]
-	public void Parse_does()
-	{
+	public void Parse_requires_the_input_to_end() =>
 		Assert.False(Run("Start = ['0'..'9']+", "12ab").Matched);
-	}
 
 	[Fact]
-	public void Find_takes_the_first_occurrence()
-	{
-		var (matched, value) = Invoke(Digits + "find Start", "FindStart", "ab12cd34");
-
-		Assert.True(matched);
-		Assert.Equal("12", value);
-	}
+	public void Find_takes_every_occurrence() =>
+		Assert.Equal(
+			new object?[] { "12", "34" },
+			Occurrences(Digits + "find Start", "FindStart", "ab12cd34"));
 
 	[Fact]
-	public void Find_all_takes_every_occurrence()
-	{
-		var (matched, value) = Invoke(Digits + "find all Start", "FindAllStart", "ab12cd34");
-
-		Assert.True(matched);
-		Assert.Equal(new[] { "12", "34" }, value);
-	}
+	public void And_the_first_one_is_LINQ_s_business_rather_than_a_directive_s() =>
+		Assert.Equal("12", Occurrences(Digits + "find Start", "FindStart", "ab12cd34")[0]);
 
 	[Fact]
-	public void Find_reports_no_occurrence_rather_than_matching_nothing()
-	{
-		Assert.False(Invoke(Digits + "find Start", "FindStart", "abc").Matched);
-	}
+	public void Find_yields_nothing_rather_than_matching_nothing() =>
+		Assert.Empty(Occurrences(Digits + "find Start", "FindStart", "abc"));
 
 	[Fact]
 	public void As_renames_the_pair() =>
 		Assert.True(Invoke(Digits + "parse Start as ReadDigits", "ReadDigits", "12").Matched);
 
 	[Fact]
-	public void One_grammar_can_publish_the_same_rule_several_ways()
+	public void One_grammar_can_publish_the_same_rule_both_ways()
 	{
 		var grammar = Digits + """
 			parse Start
-			find all Start
+			find Start
 			""";
 
-		Assert.True(Invoke(grammar, "ParseStart",   "12").Matched);
-		Assert.True(Invoke(grammar, "FindAllStart", "ab12").Matched);
+		Assert.True(Invoke(grammar, "ParseStart", "12").Matched);
+		Assert.Single(Occurrences(grammar, "FindStart", "ab12"));
 	}
 
 	[Fact]

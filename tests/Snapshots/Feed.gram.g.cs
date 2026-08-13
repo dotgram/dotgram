@@ -6,128 +6,41 @@ namespace DotGram.Snapshots
 	partial class Feed
 	{
 		/// <summary>Parses the whole input as <c>Feed</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The input is not <c>Feed</c>. <c>TryParseFeed</c> answers instead.
+		/// </exception>
 		public static string ParseFeed(string input)
 		{
-			if (TryParseFeed(input, out var value, out var error, out var errorPosition))
-				return value;
+			var match = TryParseFeed(input);
 
-			throw new global::System.FormatException(error + " at " + errorPosition.ToString());
+			if (match.IsSuccess)
+				return match.Value!;
+
+			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
 		}
 
-		public static bool TryParseFeed(string input, out string value, out string? error, out int errorPosition)
+		/// <summary>Parses the whole input as <c>Feed</c>, answering rather than throwing.</summary>
+		public static Match<string> TryParseFeed(string input)
 		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			value = "";
-			error         = null;
-			errorPosition = 0;
-
+			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure();
 
 			var end = Recognize_Feed_Whole(text, 0, ref failure);
 
 			if (end < 0)
-			{
-				error         = "Input does not match 'Feed'.";
-				errorPosition = failure.Position;
-				return false;
-			}
+				return Match<string>.Failed("Input does not match 'Feed'.", failure.Position);
 
-			value = input.Substring(0, end);
-			return true;
+			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
-		/// <summary>Matches <c>Row</c> at the start of the input.</summary>
-		public static string? MatchRow(string input)
+		/// <summary>Every occurrence of <c>Name</c>, in order, found as it is asked for.</summary>
+		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(string input)
 		{
-			if (TryMatchRow(input, out var value, out var error, out var errorPosition))
-				return value;
-
-			return null;
-		}
-
-		public static bool TryMatchRow(string input, out string value, out string? error, out int errorPosition)
-		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			value = "";
-			error         = null;
-			errorPosition = 0;
-
-			var failure = new Failure();
-
-			var end = Recognize_Row(text, 0, ref failure);
-
-			if (end < 0)
-			{
-				error         = "Input does not match 'Row'.";
-				errorPosition = failure.Position;
-				return false;
-			}
-
-			value = input.Substring(0, end);
-			return true;
-		}
-
-		/// <summary>Finds the first occurrence of <c>Name</c>.</summary>
-		public static string? FindName(string input)
-		{
-			if (TryFindName(input, out var value, out var error, out var errorPosition))
-				return value;
-
-			return null;
-		}
-
-		public static bool TryFindName(string input, out string value, out string? error, out int errorPosition)
-		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			value = "";
-			error         = null;
-			errorPosition = 0;
-
-			var failure = new Failure();
-
-			for (var start = 0; start <= input.Length; start++)
-			{
-				var end = Recognize_Name(text, start, ref failure);
-
-				if (end >= 0)
-				{
-					value = input.Substring(start, end - start);
-					return true;
-				}
-			}
-
-			error         = "No occurrence of 'Name'.";
-			errorPosition = failure.Position;
-			return false;
-		}
-
-		/// <summary>Finds every non-overlapping occurrence of <c>Row</c>.</summary>
-		public static string[] AllRows(string input)
-		{
-			if (TryAllRows(input, out var values, out var error, out var errorPosition))
-				return values;
-
-			return new string[0];
-		}
-
-		public static bool TryAllRows(string input, out string[] values, out string? error, out int errorPosition)
-		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			values = new string[0];
-			error         = null;
-			errorPosition = 0;
-
-			var failure = new Failure();
-
-			var found = new global::System.Collections.Generic.List<string>();
-
 			for (var start = 0; start <= input.Length; )
 			{
-				var end = Recognize_Row(text, start, ref failure);
+				var failure = new Failure();
+
+				var end = Recognize_Name(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
 
 				if (end < 0)
 				{
@@ -135,21 +48,33 @@ namespace DotGram.Snapshots
 					continue;
 				}
 
-				found.Add(input.Substring(start, end - start));
+				yield return Match<string>.Success(input.Substring(start, end - start), start, end - start);
 
 				// A rule that matches nothing would otherwise find it for ever.
 				start = end > start ? end : start + 1;
 			}
+		}
 
-			if (found.Count == 0)
+		/// <summary>Every occurrence of <c>Row</c>, in order, found as it is asked for.</summary>
+		public static global::System.Collections.Generic.IEnumerable<Match<string>> AllRows(string input)
+		{
+			for (var start = 0; start <= input.Length; )
 			{
-				error         = "No occurrence of 'Row'.";
-				errorPosition = failure.Position;
-				return false;
-			}
+				var failure = new Failure();
 
-			values = found.ToArray();
-			return true;
+				var end = Recognize_Row(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
+
+				if (end < 0)
+				{
+					start++;
+					continue;
+				}
+
+				yield return Match<string>.Success(input.Substring(start, end - start), start, end - start);
+
+				// A rule that matches nothing would otherwise find it for ever.
+				start = end > start ? end : start + 1;
+			}
 		}
 
 		// parse Feed: Header & Row* & Trailer & eof & eof
@@ -1327,6 +1252,45 @@ namespace DotGram.Snapshots
 					default:
 						return -1;
 				}
+			}
+		}
+
+		/// <summary>What a publication answers with: the value, or why there is none.</summary>
+		public readonly struct Match<T>
+			where T : class
+		{
+			private Match(bool isSuccess, T? value, string? error, int position, int length)
+			{
+				IsSuccess = isSuccess;
+				Value     = value;
+				Error     = error;
+				Position  = position;
+				Length    = length;
+			}
+
+			/// <summary>Whether there is a value.</summary>
+			public bool IsSuccess { get; }
+
+			/// <summary>What was recognized, or null.</summary>
+			public T? Value { get; }
+
+			/// <summary>Why nothing was recognized, or null.</summary>
+			public string? Error { get; }
+
+			/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
+			public int Position { get; }
+
+			/// <summary>How much was matched. Zero when nothing was.</summary>
+			public int Length { get; }
+
+			internal static Match<T> Success(T value, int position, int length)
+			{
+				return new Match<T>(true, value, null, position, length);
+			}
+
+			internal static Match<T> Failed(string error, int position)
+			{
+				return new Match<T>(false, null, error, position, 0);
 			}
 		}
 

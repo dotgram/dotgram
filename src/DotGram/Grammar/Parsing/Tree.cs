@@ -38,7 +38,11 @@ public sealed record TypeRef(bool IsCSharp, string Name, bool IsSequence, Locati
 
 // ── Sums: flat, one level of alternatives each ───────────────────────────────────
 
-public enum PublishKind { Parse, Match, Find, FindAll }
+/// <summary>
+/// The two directives of §6, and the whole of the difference between them: whether
+/// input that does not match may sit between the matches.
+/// </summary>
+public enum PublishKind { Parse, Find }
 
 /// <summary>What a grammar file declares.</summary>
 public abstract record Decl : ILocated

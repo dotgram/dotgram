@@ -195,6 +195,12 @@ public static class CSharpEmitter
 			file.Line();
 		}
 
+		if (graph.Publications.Count > 0)
+		{
+			file.Write(MatchStruct);
+			file.Line();
+		}
+
 		if (graph.Rules.Count > 0)
 		{
 			file.Write(FailureStruct);
@@ -211,161 +217,114 @@ public static class CSharpEmitter
 	}
 
 	/// <summary>
-	/// One directive, one pair of methods, in the shape of <c>int.Parse</c> /
-	/// <c>int.TryParse</c> (docs/syntax.md §6).
+	/// One directive (docs/syntax.md §6). <c>parse</c> makes an asserting method and an
+	/// asking one; <c>find</c> makes a sequence.
 	/// </summary>
 	/// <remarks>
-	/// What a rule yields is either its captures, built into a type of its own, or — when
-	/// it captures nothing — the text it matched. Only these signatures know the
-	/// difference; what they are built on, a recognizer returning an end position or -1,
-	/// does not change either way.
+	/// No <c>out</c> parameters anywhere: what a match has to say goes in
+	/// <see cref="MatchType"/>, where the next thing it has to say is a field rather than
+	/// another parameter on every signature.
 	/// </remarks>
 	static void EmitPublication(Writer file, Publication publication, ResultTypes results)
 	{
-		var method   = publication.MethodName;
-		var name     = publication.Rule.Name;
-		var isAll    = publication.Kind == PublishKind.FindAll;
-		var built    = results.QualifiedOf(publication.Rule);
-		var value    = built ?? "string";
-		var result   = isAll ? value + "[]" : publication.Kind == PublishKind.Parse ? value : value + "?";
-		var outType  = isAll ? value + "[]" : value;
-		var outName  = isAll ? "values" : "value";
+		var method = publication.MethodName;
+		var name   = publication.Rule.Name;
+		var built  = results.QualifiedOf(publication.Rule);
+		var value  = built ?? "string";
+		var match  = $"{MatchType}<{value}>";
 
-		file.Line($"/// <summary>{Summary(publication.Kind, name)}</summary>");
+		// A rule that builds hands its value back through the recognizer; one that does
+		// not leaves the extent it matched, and the text is cut from the input.
+		var hands = built is null ? ", ref failure" : ", ref failure, out var recognized";
 
-		using (file.Block($"public static {result} {method}(string input)"))
+		string Recognized(string from, string to) =>
+			built is null ? $"input.Substring({from}, {to})" : "recognized";
+
+		if (publication.Kind == PublishKind.Find)
 		{
-			file.Line($"if (Try{method}(input, out var {outName}, out var error, out var errorPosition))");
-			file.Then($"return {outName};");
-			file.Line();
+			EmitFind(file, publication, method, name, value, match, hands, Recognized);
 
-			// Only `parse` throws: it is the one directive that asserts the input is this
-			// rule, so failing it is an error rather than an answer of "no".
-			if (publication.Kind == PublishKind.Parse)
-				file.Line("throw new global::System.FormatException(error + \" at \" + errorPosition.ToString());");
-			else
-				file.Line(isAll ? $"return new {value}[0];" : "return null;");
+			return;
+		}
+
+		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
+		file.Line("/// <exception cref=\"global::System.FormatException\">");
+		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
+		file.Line("/// </exception>");
+
+		using (file.Block($"public static {value} {method}(string input)"))
+		{
+			file.Line($"var match = Try{method}(input);");
+			file.Line();
+			file.Line("if (match.IsSuccess)");
+			file.Then("return match.Value!;");
+			file.Line();
+			file.Line("throw new global::System.FormatException(match.Error + \" at \" + match.Position.ToString());");
 		}
 
 		file.Line();
+		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		using (file.Block(
-			$"public static bool Try{method}(string input, out {outType} {outName}, out string? error, out int errorPosition)"))
+		using (file.Block($"public static {match} Try{method}(string input)"))
 		{
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
-			file.Line("var text = global::System.MemoryExtensions.AsSpan(input);");
-			file.Line();
-			file.Line($"{outName} = {(isAll ? $"new {value}[0]" : built is null ? "\"\"" : "null!")};");
-			file.Line("error         = null;");
-			file.Line("errorPosition = 0;");
-			file.Line();
+			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
 
 			// Carried through every recognizer this call reaches, so that what comes back
 			// is the furthest the input was followed and not merely "no".
 			file.Line($"var failure = new {FailureType}();");
 			file.Line();
-
-			// A rule that builds hands its value back through the recognizer; one that does
-			// not leaves the extent it matched, and the text is cut from the input.
-			var hands = built is null ? ", ref failure" : ", ref failure, out var recognized";
-
-			string Recognized(string from, string to) =>
-				built is null ? $"input.Substring({from}, {to})" : "recognized";
-
-			switch (publication.Kind)
-			{
-				case PublishKind.Parse:
-				case PublishKind.Match:
-
-					// The difference between the two directives, and the whole of it: one
-					// calls the recognizer that also insists the input ended.
-					var entry = publication.Kind == PublishKind.Parse
-						? WholeOf(publication.Rule)
-						: MethodOf(publication.Rule);
-
-					file.Line($"var end = {entry}(text, 0{hands});");
-					file.Line();
-
-					using (file.Block("if (end < 0)"))
-					{
-						file.Line($"error         = \"Input does not match '{name}'.\";");
-						file.Line("errorPosition = failure.Position;");
-						file.Line("return false;");
-					}
-
-					file.Line();
-					file.Line($"value = {Recognized("0", "end")};");
-					file.Line("return true;");
-					break;
-
-				case PublishKind.Find:
-
-					using (file.Block("for (var start = 0; start <= input.Length; start++)"))
-					{
-						file.Line($"var end = {MethodOf(publication.Rule)}(text, start{hands});");
-						file.Line();
-
-						using (file.Block("if (end >= 0)"))
-						{
-							file.Line($"value = {Recognized("start", "end - start")};");
-							file.Line("return true;");
-						}
-					}
-
-					file.Line();
-					file.Line($"error         = \"No occurrence of '{name}'.\";");
-					file.Line("errorPosition = failure.Position;");
-					file.Line("return false;");
-					break;
-
-				default:
-
-					file.Line($"var found = new global::System.Collections.Generic.List<{value}>();");
-					file.Line();
-
-					using (file.Block("for (var start = 0; start <= input.Length; )"))
-					{
-						file.Line($"var end = {MethodOf(publication.Rule)}(text, start{hands});");
-						file.Line();
-
-						using (file.Block("if (end < 0)"))
-						{
-							file.Line("start++;");
-							file.Line("continue;");
-						}
-
-						file.Line();
-						file.Line($"found.Add({Recognized("start", "end - start")});");
-						file.Line();
-						file.Line("// A rule that matches nothing would otherwise find it for ever.");
-						file.Line("start = end > start ? end : start + 1;");
-					}
-
-					file.Line();
-
-					using (file.Block("if (found.Count == 0)"))
-					{
-						file.Line($"error         = \"No occurrence of '{name}'.\";");
-						file.Line("errorPosition = failure.Position;");
-						file.Line("return false;");
-					}
-
-					file.Line();
-					file.Line("values = found.ToArray();");
-					file.Line("return true;");
-					break;
-			}
+			file.Line($"var end = {WholeOf(publication.Rule)}(text, 0{hands});");
+			file.Line();
+			file.Line("if (end < 0)");
+			file.Then($"return {match}.Failed(\"Input does not match '{name}'.\", failure.Position);");
+			file.Line();
+			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
 		}
 	}
 
-	static string Summary(PublishKind kind, string rule) => kind switch
+	/// <summary>
+	/// <c>find</c>: every occurrence, one at a time.
+	/// </summary>
+	/// <remarks>
+	/// An iterator rather than an array, so that a document with a million occurrences
+	/// costs one at a time — and so that "the first one" and "the ones that satisfy this"
+	/// are LINQ's rather than three more directives. The span is made where it is passed
+	/// and never held in a local, which is what lets this be an iterator at all.
+	/// </remarks>
+	static void EmitFind(
+		Writer file, Publication publication, string method, string name,
+		string value, string match, string hands, Func<string, string, string> recognized)
 	{
-		PublishKind.Parse   => $"Parses the whole input as <c>{rule}</c>.",
-		PublishKind.Match   => $"Matches <c>{rule}</c> at the start of the input.",
-		PublishKind.Find    => $"Finds the first occurrence of <c>{rule}</c>.",
-		_                   => $"Finds every non-overlapping occurrence of <c>{rule}</c>.",
-	};
+		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
+
+		using (file.Block(
+			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input)"))
+		{
+			using (file.Block("for (var start = 0; start <= input.Length; )"))
+			{
+				file.Line($"var failure = new {FailureType}();");
+				file.Line();
+				file.Line(
+					$"var end = {MethodOf(publication.Rule)}(" +
+					$"global::System.MemoryExtensions.AsSpan(input), start{hands});");
+				file.Line();
+
+				using (file.Block("if (end < 0)"))
+				{
+					file.Line("start++;");
+					file.Line("continue;");
+				}
+
+				file.Line();
+				file.Line($"yield return {match}.Success({recognized("start", "end - start")}, start, end - start);");
+				file.Line();
+				file.Line("// A rule that matches nothing would otherwise find it for ever.");
+				file.Line("start = end > start ? end : start + 1;");
+			}
+		}
+	}
 
 	/// <summary>
 	/// The type a rule's captures are built into: a constructor and a get-only property
@@ -443,6 +402,65 @@ public static class CSharpEmitter
 	/// </summary>
 	static Node EndOfInput =>
 		new Node.Lookahead(IsPositive: false, new Node.Element(IsNegated: true, [], [], []));
+
+	/// <summary>What a publication answers with. The name a rule may not take.</summary>
+	internal const string MatchType = "Match";
+
+	/// <summary>
+	/// One answer from a publication: what was recognized, or why nothing was.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Constrained to a class because that is what a rule's value always is — a generated
+	/// type, or the text it matched — and because an unconstrained <c>T?</c> needs a
+	/// language version this generator may not assume (.claude/rules/emitted-code.md).
+	/// </para>
+	/// <para>
+	/// One type for the whole grammar rather than one per rule: only the value differs,
+	/// and a per-rule copy of the same four members would be noise in every generated
+	/// file.
+	/// </para>
+	/// </remarks>
+	internal const string MatchStruct = """
+		/// <summary>What a publication answers with: the value, or why there is none.</summary>
+		public readonly struct Match<T>
+			where T : class
+		{
+			private Match(bool isSuccess, T? value, string? error, int position, int length)
+			{
+				IsSuccess = isSuccess;
+				Value     = value;
+				Error     = error;
+				Position  = position;
+				Length    = length;
+			}
+
+			/// <summary>Whether there is a value.</summary>
+			public bool IsSuccess { get; }
+
+			/// <summary>What was recognized, or null.</summary>
+			public T? Value { get; }
+
+			/// <summary>Why nothing was recognized, or null.</summary>
+			public string? Error { get; }
+
+			/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
+			public int Position { get; }
+
+			/// <summary>How much was matched. Zero when nothing was.</summary>
+			public int Length { get; }
+
+			internal static Match<T> Success(T value, int position, int length)
+			{
+				return new Match<T>(true, value, null, position, length);
+			}
+
+			internal static Match<T> Failed(string error, int position)
+			{
+				return new Match<T>(false, null, error, position, 0);
+			}
+		}
+		""";
 
 	/// <summary>
 	/// What every recognizer carries so that a failure can be described.

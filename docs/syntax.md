@@ -577,26 +577,62 @@ A rule on its own creates no public API. A directive does:
 
 ```dotgram
 parse Feed
-match Row
 find Row
-find all Row
 parse Feed as ReadFeed          // an explicit name instead of ParseFeed
 ```
 
-Each directive produces a pair of methods in the style a .NET developer already knows
-from `int.Parse` / `int.TryParse`:
+**There are two, and the whole of the difference is whether input that does not match
+is allowed to sit between the matches.**
 
-| Directive | Generated |
-| --- | --- |
-| `parse R` | `R ParseR(input)` — throws `FormatException`<br>`bool TryParseR(input, out R value, out string? error, out int errorPos)` |
-| `match R` | `R? MatchR(input)` — `null` when it did not match<br>`bool TryMatchR(input, out R value, out string? error, out int errorPos)` |
-| `find R` | `R? FindR(input)` — first occurrence<br>`bool TryFindR(input, out R value, out string? error, out int errorPos)` |
-| `find all R` | `R[] FindAllR(input)`<br>`bool TryFindAllR(input, out R[] values, out string? error, out int errorPos)` |
+| Directive | What it says | Generated |
+| --- | --- | --- |
+| `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)` |
+| `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
 
-`parse` requires the rule to match and the input to end; `match` requires a match from
-the start; `find` looks for the first occurrence.
+`find` is a sequence and needs no companion for "all of them" or "the first one":
+`First()`, `Where()`, `Take()` are LINQ's job and it would be strange to reinvent
+three of them. It yields occurrences as it finds them, so a document with a million
+matches costs one at a time rather than an array of a million.
 
-### 6.1 Why the signatures use BCL types only
+A rule whose value is a sequence — `Feed : FeedItem[]` — is published with `parse`
+like any other, and what comes back is that sequence. Reading a feed is not a third
+directive: it is one `parse` of a rule that happens to be a list, and §6.3 decides
+whether the list is materialized or walked.
+
+Anything else is a consequence rather than a directive. Where a match may sit is the
+grammar's business, how much is held is the input's (§6.3), and picking things out of
+a sequence is the caller's.
+
+### 6.1 The result
+
+```csharp
+public readonly struct Match<T>
+{
+    public T?      Value    { get; }   // null when it did not match
+    public string? Error    { get; }
+    public int     Position { get; }   // where it matched, or where it gave up
+    public int     Length   { get; }
+
+    public bool IsSuccess { get; }
+}
+```
+
+**No `out` parameters anywhere.** `int.Parse` and `int.TryParse` are a pair because an
+`int` has no room to carry a failure; a result that has room does not need a second
+shape for it, and every later thing a match might want to say — what was expected,
+which record it was, whether the record was broken rather than absent — is a field
+here instead of another parameter on every signature.
+
+What is left of the pair is a real choice, and it stays: `ParseR` asserts that the
+input is an `R` and throws when it is not, `TryParseR` asks and answers. Assertion is
+the common case in application code and deserves to stay one line.
+
+`Position` is not only for failures. On a match it is where the match began, which is
+what `find` is usually asked for; on a failure it is the furthest the input could be
+followed before the match gave up, which for a parser that backtracks is the only
+position worth naming.
+
+### 6.2 Why the signatures use BCL types only
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
 beside it, `internal`. A consumer therefore takes one analyzer package, acquires no
@@ -607,6 +643,11 @@ The shape of the public API follows: an `internal` type cannot appear in the sig
 of a public method. So by default only BCL types face outward — `string`, `int`,
 `FormatException` (the very type `int.Parse` throws).
 
+`Match<T>` and a rule's own type are not exceptions to this. They are generated from
+one grammar into the assembly that uses it, so there are no two versions of them to
+skew, and nothing crosses an assembly boundary. What §6.2 is about is the types that
+*would* be shared.
+
 **Shared types on demand.** When typed diagnostics are wanted, or when a parser is
 exposed in a library's public API, one assembly declares:
 
@@ -616,23 +657,27 @@ exposed in a library's public API, one assembly declares:
 
 and the generator emits `Diagnostic`, `SourceSpan`, `RecognitionResult<T>` and
 `Outcome` into it as `public`, while assemblies referencing it bind to those instead
-of emitting their own. Publication gains extra overloads taking `out Diagnostic? error`.
+of emitting their own. `Match<T>` gains a typed `Diagnostic` beside its `Error`, additively.
 
 The two modes are **strictly additive**: opting in only adds overloads and never
 changes existing ones, so code written before opting in still compiles. If two
 referenced assemblies both publish the shared types, that is compile error `GRAM0001`
 rather than a silent pick between them.
 
-### 6.2 The input type picks the execution mode
+### 6.3 The input type picks the execution mode
 
 Each directive gains overloads, and which one is called decides how the parse runs.
 There is no directive for this and no option: the choice belongs at the call site,
 because it is a property of the data rather than of the grammar.
 
-| Input | How it runs | Result |
+| Input | How it runs | Retains |
 | --- | --- | --- |
-| `string`, `ReadOnlySpan<char>` | everything in memory | the result itself |
-| `IEnumerable<string>`, `TextReader` | one line at a time, buffer reused | `IEnumerable<T>` for a `T[]` rule |
+| `string`, `ReadOnlySpan<char>` | everything in memory | all of it, and the result may be walked again |
+| `IEnumerable<string>`, `TextReader` | one line at a time, buffer reused | one line, and the result is walked once |
+
+The shape of what comes back does not change with the input: `parse` of a sequence
+rule yields a sequence either way, and `find` yields one either way. What changes is
+how much is held while it is walked.
 
 The same grammar serves both. `Feed : FeedItem[] = Header & Row* & Trailer & eof`
 checks that there is exactly one header, that the trailer is there and that nothing
@@ -684,7 +729,7 @@ recognizer position is an element predicate and the same method in `where` is a 
 the positions do not overlap.
 
 The external recognizer's signature is deliberately built from BCL types only: it is
-the same whether or not shared mode is on (§6.1), and it needs no interface dispatch.
+the same whether or not shared mode is on (§6.2), and it needs no interface dispatch.
 
 An inline `@(...)` expression plays the same role as a value transformation, only
 without a name: it receives no input, sees captures as local variables, and is checked
@@ -791,7 +836,7 @@ This is the mechanism `[GeneratedRegex]` already uses.
 ### 7.5 Recognition outcomes
 
 Inside the language an outcome is an ordinary value, never an exception. The type is
-emitted by the generator into the assembly itself (§6.1), `internal` by default:
+emitted by the generator into the assembly itself (§6.2), `internal` by default:
 
 ```csharp
 readonly struct RecognitionResult<T>
@@ -889,7 +934,7 @@ a rule still means one thing everywhere it is called.
 
 **The synchronization expression is also the retention bound.** An element of a marked
 repetition cannot reach back past the previous synchronization point, so a streamed
-parse holds one element and not the file. This is what §6.2 promises to prove before
+parse holds one element and not the file. This is what §6.3 promises to prove before
 emitting a streaming overload; `recover eol` proves it by construction.
 
 #### The failure factory
@@ -969,7 +1014,7 @@ can offer.
 `RowOutcome` is generated per grammar, `public`, with members drawn from the BCL and
 from the grammar's own types. It follows the rule of §7.3 rather than being an
 exception to it: no C# type declared, so one is generated. Nothing is shared between
-assemblies, so §6.1 does not apply and `[assembly: GramRuntime]` is not needed; under
+assemblies, so §6.2 does not apply and `[assembly: GramRuntime]` is not needed; under
 it, the outcome gains a typed `Diagnostic`, additively.
 
 **A rejection carries the text it was rejected from.** A position alone is useless in a
@@ -1041,8 +1086,7 @@ Using       = ("@using" | "using") & QualifiedName & ';'
 
 Declaration = Scope | Publication | Rule
 Scope       = "scope" & Identifier & '{' & Using* & Declaration* & '}'
-Publication = ("find" & "all" | "find" | "parse" | "match") & QualifiedName
-            & ("as" & Identifier)?
+Publication = ("parse" | "find") & QualifiedName & ("as" & Identifier)?
 
 Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body
 Parameters  = '(' & (Parameter & (',' & Parameter)*)? & ')'
@@ -1171,12 +1215,12 @@ paper. None of it requires changing the notation above.
   A source that cannot block — an async socket, where control has to go back to the
   caller mid-parse — is what would need it; a file, however large, is read by a reader
   that simply fetches the next chunk. Adding it means a rule for every construct
-  (repetition, both lookaheads, recovery, `find`, `find all`) plus a resumption model,
+  (repetition, both lookaheads, recovery, `find`) plus a resumption model,
   and that is a lot to carry before anything asks for it.
 - **A sliding window** over input that is neither memory-sized nor line-oriented.
   Source files fit in memory; feeds are line-oriented; what is left is huge binary
   input, which is out of scope. If it ever arrives, it slots in beside the two modes
-  in §6.2 without disturbing them.
+  in §6.3 without disturbing them.
 - **Operator precedence** as a construct. Levels written as rules (§4.3) work and cost
   nothing, and no grammar has yet made that a burden. Introducing one would also mean
   answering whether it is sugar or a privileged lowering, which is worth doing only

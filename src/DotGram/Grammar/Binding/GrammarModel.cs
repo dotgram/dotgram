@@ -143,14 +143,8 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string MethodName)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
-	public static string DefaultMethodName(PublishKind kind, string ruleName) => kind switch
-	{
-		PublishKind.Parse   => "Parse"   + ruleName,
-		PublishKind.Match   => "Match"   + ruleName,
-		PublishKind.Find    => "Find"    + ruleName,
-		PublishKind.FindAll => "FindAll" + ruleName,
-		_                   => ruleName,
-	};
+	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
+		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;
 
 	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
 }

@@ -20,6 +20,5 @@ Amount  = '-'? & Digit+ & ('.' & Digit{2})?
 Name    = [^ '|' | '\n' | '\r']+
 
 parse Feed
-match Row
 find Name
-find all Row as AllRows
+find Row as AllRows

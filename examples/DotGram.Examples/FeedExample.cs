@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 using DotGram;
 
@@ -36,14 +37,15 @@ public sealed record Feed(DateOnly Date, string Source, IReadOnlyList<Trade> Tra
 	Digit   = ['0'..'9']
 
 	parse Feed
-	match Header
-	find all Row as AllRows
+	find Header
+	find Row as AllRows
 	find Trailer
 	""")]
 public static partial class FeedReader
 {
-	// ParseFeed, MatchHeader, AllRows, FindTrailer and the types Header, Row, Trailer
-	// and Date are generated into this class.
+	// ParseFeed, FindHeader, AllRows, FindTrailer and the types Header, Row, Trailer
+	// and Date are generated into this class. `find` hands back a lazy sequence, so
+	// picking one out of it is LINQ's job rather than another directive's.
 
 	/// <summary>
 	/// Reads a feed, refusing anything malformed.
@@ -74,11 +76,11 @@ public static partial class FeedReader
 		// nothing after it. Nothing is read out of the result — its job is to refuse.
 		ParseFeed(text);
 
-		// Safe only because of the line above: `find` returns the first occurrence of
-		// something trailer-shaped, which is the trailer only in a feed already known to
-		// have exactly one.
-		var header  = MatchHeader(text)!;
-		var trailer = FindTrailer(text)!;
+		// Safe only because of the line above: these are the first line shaped like a
+		// header and the first shaped like a trailer, which are the header and the trailer
+		// only in a feed already known to have exactly one of each.
+		var header  = FindHeader(text).First().Value!;
+		var trailer = FindTrailer(text).First().Value!;
 		var trades  = ReadRecords(text);
 
 		if (Number(trailer.Count) != trades.Count)
@@ -92,7 +94,7 @@ public static partial class FeedReader
 	/// Every record, whether or not the feed as a whole is well formed. One pass.
 	/// </summary>
 	/// <remarks>
-	/// It cannot say what it skipped: <c>find all</c> passes over anything that is not a
+	/// It cannot say what it skipped: <c>find</c> passes over anything that is not a
 	/// record without a word, so a line broken in the middle is indistinguishable from a
 	/// blank one. Saying which line was wrong and why, and going on, is <c>recover</c>
 	/// (docs/syntax.md §8.2).
@@ -101,8 +103,12 @@ public static partial class FeedReader
 	{
 		var trades = new List<Trade>();
 
-		foreach (var row in AllRows(text))
+		foreach (var found in AllRows(text))
+		{
+			var row = found.Value!;
+
 			trades.Add(new Trade(row.Symbol, Number(row.Qty), ToDate(row.Date)));
+		}
 
 		return trades;
 	}

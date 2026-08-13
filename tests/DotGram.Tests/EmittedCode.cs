@@ -57,6 +57,39 @@ static class EmittedCode
 		return Assembly.Load(stream.ToArray());
 	}
 
+	/// <summary>
+	/// Calls a generated <c>Try…</c> method and reads the <c>Match&lt;T&gt;</c> it hands
+	/// back.
+	/// </summary>
+	/// <remarks>
+	/// By reflection because the types did not exist when this was compiled.
+	/// <c>GeneratedApiTests</c> and <c>ExampleTests</c> ask the compiler the same
+	/// questions instead, over grammars the generator ran on during this build.
+	/// </remarks>
+	public static (bool IsSuccess, object? Value, string? Error, int Position) Match(
+		Assembly assembly, string className, string method, string input)
+	{
+		var type  = assembly.GetType(className)!;
+		var match = type.GetMethod(method)!.Invoke(null, [input])!;
+
+		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
+
+		return ((bool)Read("IsSuccess")!, Read("Value"), (string?)Read("Error"), (int)Read("Position")!);
+	}
+
+	/// <summary>Calls a generated <c>find</c> method and reads the values it yields.</summary>
+	public static object?[] Found(Assembly assembly, string className, string method, string input)
+	{
+		var type  = assembly.GetType(className)!;
+		var found = (System.Collections.IEnumerable)type.GetMethod(method)!.Invoke(null, [input])!;
+		var values = new System.Collections.Generic.List<object?>();
+
+		foreach (var match in found)
+			values.Add(match!.GetType().GetProperty("Value")!.GetValue(match));
+
+		return [.. values];
+	}
+
 	static ImmutableArray<MetadataReference> References { get; } =
 	[
 		.. AppDomain.CurrentDomain

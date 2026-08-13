@@ -6,61 +6,41 @@ namespace DotGram.Snapshots
 	partial class Url
 	{
 		/// <summary>Parses the whole input as <c>Url</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The input is not <c>Url</c>. <c>TryParseUrl</c> answers instead.
+		/// </exception>
 		public static global::DotGram.Snapshots.Url.UrlValue ParseUrl(string input)
 		{
-			if (TryParseUrl(input, out var value, out var error, out var errorPosition))
-				return value;
+			var match = TryParseUrl(input);
 
-			throw new global::System.FormatException(error + " at " + errorPosition.ToString());
+			if (match.IsSuccess)
+				return match.Value!;
+
+			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
 		}
 
-		public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.UrlValue value, out string? error, out int errorPosition)
+		/// <summary>Parses the whole input as <c>Url</c>, answering rather than throwing.</summary>
+		public static Match<global::DotGram.Snapshots.Url.UrlValue> TryParseUrl(string input)
 		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			value = null!;
-			error         = null;
-			errorPosition = 0;
-
+			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure();
 
 			var end = Recognize_Url_Whole(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
-			{
-				error         = "Input does not match 'Url'.";
-				errorPosition = failure.Position;
-				return false;
-			}
+				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed("Input does not match 'Url'.", failure.Position);
 
-			value = recognized;
-			return true;
+			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, 0, end);
 		}
 
-		/// <summary>Finds every non-overlapping occurrence of <c>Url</c>.</summary>
-		public static global::DotGram.Snapshots.Url.UrlValue[] AllUrls(string input)
+		/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
+		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> AllUrls(string input)
 		{
-			if (TryAllUrls(input, out var values, out var error, out var errorPosition))
-				return values;
-
-			return new global::DotGram.Snapshots.Url.UrlValue[0];
-		}
-
-		public static bool TryAllUrls(string input, out global::DotGram.Snapshots.Url.UrlValue[] values, out string? error, out int errorPosition)
-		{
-			var text = global::System.MemoryExtensions.AsSpan(input);
-
-			values = new global::DotGram.Snapshots.Url.UrlValue[0];
-			error         = null;
-			errorPosition = 0;
-
-			var failure = new Failure();
-
-			var found = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Url.UrlValue>();
-
 			for (var start = 0; start <= input.Length; )
 			{
-				var end = Recognize_Url(text, start, ref failure, out var recognized);
+				var failure = new Failure();
+
+				var end = Recognize_Url(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -68,21 +48,11 @@ namespace DotGram.Snapshots
 					continue;
 				}
 
-				found.Add(recognized);
+				yield return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, start, end - start);
 
 				// A rule that matches nothing would otherwise find it for ever.
 				start = end > start ? end : start + 1;
 			}
-
-			if (found.Count == 0)
-			{
-				error         = "No occurrence of 'Url'.";
-				errorPosition = failure.Position;
-				return false;
-			}
-
-			values = found.ToArray();
-			return true;
 		}
 
 		/// <summary>What the rule <c>Url</c> recognized.</summary>
@@ -3284,6 +3254,45 @@ namespace DotGram.Snapshots
 
 				default:
 					return -1;
+			}
+		}
+
+		/// <summary>What a publication answers with: the value, or why there is none.</summary>
+		public readonly struct Match<T>
+			where T : class
+		{
+			private Match(bool isSuccess, T? value, string? error, int position, int length)
+			{
+				IsSuccess = isSuccess;
+				Value     = value;
+				Error     = error;
+				Position  = position;
+				Length    = length;
+			}
+
+			/// <summary>Whether there is a value.</summary>
+			public bool IsSuccess { get; }
+
+			/// <summary>What was recognized, or null.</summary>
+			public T? Value { get; }
+
+			/// <summary>Why nothing was recognized, or null.</summary>
+			public string? Error { get; }
+
+			/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
+			public int Position { get; }
+
+			/// <summary>How much was matched. Zero when nothing was.</summary>
+			public int Length { get; }
+
+			internal static Match<T> Success(T value, int position, int length)
+			{
+				return new Match<T>(true, value, null, position, length);
+			}
+
+			internal static Match<T> Failed(string error, int position)
+			{
+				return new Match<T>(false, null, error, position, 0);
 			}
 		}
 

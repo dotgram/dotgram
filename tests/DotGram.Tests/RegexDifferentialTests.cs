@@ -98,15 +98,9 @@ public sealed class RegexDifferentialTests
 
 		Assert.Empty(result.Diagnostics);
 
-		var type   = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
-		var method = type.GetMethod("TryParseStart")!;
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
-		return input =>
-		{
-			var arguments = new object?[] { input, null, null, null };
-
-			return (bool)method.Invoke(null, arguments)!;
-		};
+		return input => EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).IsSuccess;
 	}
 
 	/// <summary>Every string over the alphabet, shortest first, up to the length limit.</summary>

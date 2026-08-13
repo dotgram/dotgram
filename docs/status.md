@@ -22,7 +22,7 @@ then quietly mean nothing.
 | scopes, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
-| publication `parse match find find all` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | refused | ✗ |
@@ -63,12 +63,18 @@ not settled. What is settled is that it is written here rather than discovered.
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
 
-## What a refusal says
+## What a publication answers with
 
-`TryParseR` and its siblings report a position, and until now it was always zero.
-It is now the furthest the input could be followed before the match gave up — which,
-for a parser that backtracks, is the only position worth naming: the last thing tried
-is usually shallower than the best thing tried.
+`TryParseR` hands back a `Match<T>` — value, error, position, length — and takes no
+`out` parameters. `FindR` hands back a lazy `IEnumerable<Match<T>>`, so "the first
+one" and "the ones that satisfy this" are LINQ's rather than more directives.
+`match` and `find all` are gone: one word meant three different things across
+ecosystems, and the other was a sequence method wearing a directive's clothes.
+
+The position it reports was always zero until now. It is now the furthest the input
+could be followed before the match gave up — which, for a parser that backtracks, is
+the only position worth naming: the last thing tried is usually shallower than the
+best thing tried. On a match it is instead where the match began.
 
 Every recognizer takes a `ref Failure` and raises `Position` at the one place a machine
 gives up on where it is. Nothing is paid on the path that matches, a rule call carries

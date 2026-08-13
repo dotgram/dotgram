@@ -23,16 +23,16 @@ namespace DotGram.Tests;
 public sealed class SemanticTests
 {
 	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
-	static bool Matches(string grammar, string input)
+	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
+
+	static (bool IsSuccess, object? Value, string? Error, int Position) Parsed(string grammar, string input)
 	{
 		var result = Compile(grammar + "\nparse Start");
 
 		Assert.Empty(result.Diagnostics);
 
-		var type      = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
-		var arguments = new object?[] { input, null, null, null };
-
-		return (bool)type.GetMethod("TryParseStart")!.Invoke(null, arguments)!;
+		return EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
 	}
 
 	static GramCompilation Compile(string grammar) => GramCompiler.Compile(
@@ -162,16 +162,11 @@ public sealed class SemanticTests
 	/// <summary>The message and the position a grammar refuses an input with.</summary>
 	static (string Error, int Position) Refusal(string grammar, string input)
 	{
-		var result = Compile(grammar + "\nparse Start");
+		var (isSuccess, _, error, position) = Parsed(grammar, input);
 
-		Assert.Empty(result.Diagnostics);
+		Assert.False(isSuccess, input);
 
-		var type      = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
-		var arguments = new object?[] { input, null, null, null };
-
-		Assert.False((bool)type.GetMethod("TryParseStart")!.Invoke(null, arguments)!, input);
-
-		return ((string)arguments[2]!, (int)arguments[3]!);
+		return (error!, position);
 	}
 
 	[Fact]
@@ -214,16 +209,11 @@ public sealed class SemanticTests
 	/// <summary>Compiles and runs as <see cref="Matches"/> does, and hands back the value.</summary>
 	static object? Built(string grammar, string input)
 	{
-		var result = Compile(grammar + "\nparse Start");
+		var (isSuccess, value, _, _) = Parsed(grammar, input);
 
-		Assert.Empty(result.Diagnostics);
+		Assert.True(isSuccess, input);
 
-		var type      = EmittedCode.Compile(result.Sources[0].Text).GetType("Grammar")!;
-		var arguments = new object?[] { input, null, null, null };
-
-		Assert.True((bool)type.GetMethod("TryParseStart")!.Invoke(null, arguments)!, input);
-
-		return arguments[1];
+		return value;
 	}
 
 	/// <summary>A member of a built value, by name — the type did not exist to compile against.</summary>

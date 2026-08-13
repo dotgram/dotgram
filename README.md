@@ -31,18 +31,25 @@ Amount  = '-'? & Digit+ & ('.' & Digit{2})?
 Name    = [^ '|' | '\n' | '\r']+
 
 parse Feed
-find all Row as AllRows
+find Row as AllRows
 ```
 
-A rule on its own creates no public API — a directive does, and it produces the pair
-of methods a .NET developer already knows from `int.Parse` and `int.TryParse`:
+A rule on its own creates no public API — a directive does. There are two, and the
+whole of the difference is whether input that does not match may sit between the
+matches:
 
 ```csharp
-var feed = Feed.ParseFeed(text);                    // throws FormatException
+var feed = Feed.ParseFeed(text);            // the whole input is a Feed, or it throws
 
-if (Feed.TryAllRows(text, out var rows, out var error, out var position))
+if (Feed.TryParseFeed(text) is { IsSuccess: true } match)
+	…                                       // or ask, and get Value, Error, Position
+
+foreach (var row in Feed.AllRows(text))     // occurrences, found as they are asked for
 	…
 ```
+
+No `out` parameters: what a match has to say is a value, and the next thing it has to
+say is a field on it rather than another parameter on every signature.
 
 ## The two ideas
 
@@ -70,7 +77,8 @@ Working end to end — a `.gram` file becomes a parser that runs:
 - rules calling rules, scopes and shadowing, the standard library
   (`any`, `none`, `eol`, `eof`, `Trivia`)
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own
-- all four publication directives, and diagnostics that point into the `.gram` file
+- both publication directives, and diagnostics that point into the `.gram` file — and
+  a refusal names the furthest position the input could be followed to
 - **typed results** — a rule with captures gets a type of its own, generated beside the
   parser, and every published method hands it back:
 
@@ -100,9 +108,8 @@ Not built yet:
 - `where` guards and `@(...)` C# interop at run time
 - parameterized rules: `R(n)` is in the specification and does not parse
 - C# name resolution beyond "the name exists"
-- diagnostics beyond "it did not match": the furthest failure position and the set of
-  what was expected are next
-- the recovery engine, streaming input, incremental parsing
+- diagnostics beyond a position: the set of what was expected there is next
+- `recover`, the recovery engine, streaming input, incremental parsing
 
 ## Examples
 
@@ -111,7 +118,7 @@ written against it, with no test framework anywhere near them.
 
 | | |
 | --- | --- |
-| [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find all` |
+| [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, an envelope checked as a whole |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.

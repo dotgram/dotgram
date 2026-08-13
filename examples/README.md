@@ -6,7 +6,7 @@ against it. `DotGram.Tests` runs them; nothing here knows that.
 
 | | |
 | --- | --- |
-| [`UrlExample.cs`](DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find all` |
+| [`UrlExample.cs`](DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, an envelope checked as a whole |
 
 ## Taking one

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using DotGram;
 
@@ -40,17 +42,28 @@ public sealed class GeneratedApiTests
 	[Fact]
 	public void Try_parse_answers_instead_of_throwing()
 	{
-		Assert.False(UrlGrammar.TryParseUrl("not a url", out _, out var error, out _));
-		Assert.NotNull(error);
+		var match = UrlGrammar.TryParseUrl("not a url");
+
+		Assert.False(match.IsSuccess);
+		Assert.Null(match.Value);
+		Assert.NotNull(match.Error);
 	}
 
 	[Fact]
-	public void Find_all_returns_an_array_of_what_it_found()
+	public void Find_hands_back_a_sequence_and_leaves_the_picking_to_linq()
 	{
-		var found = UrlGrammar.AllUrls("see http://a.io and https://b.io/c okay");
+		var found = UrlGrammar.AllUrls("see http://a.io and https://b.io/c okay").ToList();
 
-		Assert.Equal(["a.io", "b.io"], Array.ConvertAll(found, url => url.Authority.Host));
-		Assert.Equal(["",     "/c"],   Array.ConvertAll(found, url => url.Path));
+		Assert.Equal(["a.io", "b.io"], found.Select(m => m.Value!.Authority.Host));
+		Assert.Equal(["",     "/c"],   found.Select(m => m.Value!.Path));
+
+		// Where each one was, which is most of what anybody finds things for.
+		Assert.Equal([4, 20], found.Select(m => m.Position));
+		Assert.Equal([11, 14], found.Select(m => m.Length));
+
+		Assert.Equal(
+			"a.io",
+			UrlGrammar.AllUrls("see http://a.io and more").First().Value!.Authority.Host);
 	}
 
 	/// <summary>
@@ -93,19 +106,23 @@ public sealed class GeneratedApiTests
 	[Fact]
 	public void The_signatures_are_bcl_types_only_but_for_the_grammar_s_own_types()
 	{
-		// docs/syntax.md §6.1: the shared support types are emitted internal, so none of
-		// them may appear in a public signature. A rule's own type is generated into this
-		// assembly from this grammar and has no version to skew, so it can — and the rest
-		// is BCL. Checked by asking the compiler: the call would not bind otherwise.
-		UrlGrammar.Url   parsed = UrlGrammar.ParseUrl("ftp://example.com");
-		UrlGrammar.Url[] found  = UrlGrammar.AllUrls("ftp://example.com");
-		bool             ok     = UrlGrammar.TryParseUrl(
-			"ftp://example.com", out UrlGrammar.Url value, out string? error, out int position);
+		// docs/syntax.md §6.2: the shared support types are emitted internal, so none of
+		// them may appear in a public signature. A rule's own type and Match<T> are
+		// generated into this assembly from this grammar and have no version to skew, so
+		// they can — and the rest is BCL. Checked by asking the compiler: the call would
+		// not bind otherwise.
+		UrlGrammar.Url                             parsed = UrlGrammar.ParseUrl("ftp://example.com");
+		UrlGrammar.Match<UrlGrammar.Url>           match  = UrlGrammar.TryParseUrl("ftp://example.com");
+		IEnumerable<UrlGrammar.Match<UrlGrammar.Url>> found = UrlGrammar.AllUrls("ftp://example.com");
+
+		bool    ok       = match.IsSuccess;
+		string? error    = match.Error;
+		int     position = match.Position;
 
 		Assert.True(ok);
 		Assert.Null(error);
 		Assert.Equal(0, position);
-		Assert.Equal(parsed.Authority.Host, value.Authority.Host);
+		Assert.Equal(parsed.Authority.Host, match.Value!.Authority.Host);
 		Assert.Single(found);
 	}
 }

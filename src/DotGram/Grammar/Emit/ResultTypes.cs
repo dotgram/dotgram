@@ -46,9 +46,12 @@ sealed class ResultTypes
 			// named after the grammar's own root rule is the ordinary case. The support
 			// types emitted beside the recognizers claim their names the same way: a rule
 			// called Failure gets FailureValue rather than colliding with one of ours.
-			_names[rule] = rule.Name == host || rule.Name == CSharpEmitter.FailureType
-				? rule.Name + "Value"
-				: rule.Name;
+			_names[rule] =
+				rule.Name == host ||
+				rule.Name == CSharpEmitter.FailureType ||
+				rule.Name == CSharpEmitter.MatchType
+					? rule.Name + "Value"
+					: rule.Name;
 
 			_built.Add(rule);
 		}

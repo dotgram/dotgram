@@ -112,8 +112,8 @@ public sealed class UrlTests
 	[Fact]
 	public void Finding_urls_inside_other_text()
 	{
-		var found = ((Array)Invoke("AllUrls", "see http://a.io and https://b.io/c okay").Value)
-			.Cast<object>()
+		var found = EmittedCode
+			.Found(Compiled.Value, "Url", "AllUrls", "see http://a.io and https://b.io/c okay")
 			.Select(url => Read(url, "Authority", "Host"));
 
 		Assert.Equal(["a.io", "b.io"], found);
@@ -173,15 +173,13 @@ public sealed class UrlTests
 		Assert.True(Match("https://1.2.3.4"));
 	}
 
-	static bool Match(string url) => (bool)Invoke("ParseUrl", url).Matched;
+	static bool Match(string url) => Invoke("ParseUrl", url).Matched;
 
-	static (bool Matched, object Value) Invoke(string method, string input)
+	static (bool Matched, object? Value) Invoke(string method, string input)
 	{
-		var type      = Compiled.Value.GetType("Url")!;
-		var arguments = new object?[] { input, null, null, null };
-		var matched   = (bool)type.GetMethod("Try" + method)!.Invoke(null, arguments)!;
+		var (isSuccess, value, _, _) = EmittedCode.Match(Compiled.Value, "Url", "Try" + method, input);
 
-		return (matched, arguments[1]!);
+		return (isSuccess, value);
 	}
 
 	/// <summary>Compiled once: the grammar is the same for every case in the file.</summary>

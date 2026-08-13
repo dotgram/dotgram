@@ -105,7 +105,7 @@ public sealed class GramParserTests
 					Using "Common"
 					Rule "Token"
 						Reference "A"
-				Publication FindAll "Row" as "ReadRows"
+				Publication Find "Row" as "ReadRows"
 			""",
 			Parse("""
 				@using System.Text;
@@ -117,7 +117,7 @@ public sealed class GramParserTests
 					Token = A
 				}
 
-				find all Row as ReadRows
+				find Row as ReadRows
 				"""));
 	}
 

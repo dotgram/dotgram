@@ -76,15 +76,14 @@ public sealed class ExampleTests
 		// `parse` is the rule with end-of-input on the end of it, compiled into one
 		// machine — so failing to reach the end sends the match back for another way
 		// through the rule, and only then gives up.
-		Assert.False(Links.TryParseUrl(text, out _, out var error, out var position));
+		var match = Links.TryParseUrl(text);
 
-		Assert.NotNull(error);
-		Assert.Equal(12, position);              // the space, where it stopped being a URL
+		Assert.False(match.IsSuccess);
+		Assert.NotNull(match.Error);
+		Assert.Equal(12, match.Position);         // the space, where it stopped being a URL
 
-		// Scanning for one inside other text is what `find all` is for.
-		Assert.Equal(
-			["a.io"],
-			Array.ConvertAll(Links.AllUrls(text), url => url.Authority.Host));
+		// Scanning for one inside other text is what `find` is for.
+		Assert.Equal(["a.io"], Links.AllUrls(text).Select(m => m.Value!.Authority.Host));
 	}
 
 	// ── The feed reader ──────────────────────────────────────────────────────────

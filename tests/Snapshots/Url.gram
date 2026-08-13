@@ -61,4 +61,4 @@ Unreserved = [Digit | 'a'..'z' | 'A'..'Z' | '-' | '.' | '_' | '~']
 SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 parse Url
-find all Url as AllUrls
+find Url as AllUrls

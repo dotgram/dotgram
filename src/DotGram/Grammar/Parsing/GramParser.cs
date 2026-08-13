@@ -199,7 +199,7 @@ public sealed class GramParser
 
 	bool AtPublication() =>
 		!StartsRule() &&
-		(AtKeyword("parse") || AtKeyword("match") || AtKeyword("find")) &&
+		(AtKeyword("parse") || AtKeyword("find")) &&
 		Next.Kind == TokenKind.Identifier;
 
 	Decl ParseScope()
@@ -238,14 +238,7 @@ public sealed class GramParser
 	{
 		var start = Current.Position;
 		var word  = Take().Value!;
-
-		var kind = word switch
-		{
-			"parse" => PublishKind.Parse,
-			"match" => PublishKind.Match,
-			_       => TakeIfKeyword("all") ? PublishKind.FindAll : PublishKind.Find,
-		};
-
+		var kind  = word == "parse" ? PublishKind.Parse : PublishKind.Find;
 		var name  = ExpectQualifiedName();
 		var alias = TakeIfKeyword("as") ? ExpectName() : null;
 

@@ -43,7 +43,7 @@ namespace DotGram.Examples;
 	SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 	parse Url
-	find all Url as AllUrls
+	find Url as AllUrls
 	""")]
 public static partial class Links
 {
@@ -53,7 +53,7 @@ public static partial class Links
 	// methods should not be part of your API — see examples/README.md.)
 
 	/// <summary>Whether the whole input is a URL.</summary>
-	public static bool IsUrl(string text) => TryParseUrl(text, out _, out _, out _);
+	public static bool IsUrl(string text) => TryParseUrl(text).IsSuccess;
 
 	/// <summary>The port, or 443 for https and 80 for the rest.</summary>
 	public static int PortOf(string url)
@@ -71,9 +71,11 @@ public static partial class Links
 		var seen  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		var hosts = new List<string>();
 
-		foreach (var url in AllUrls(prose))
-			if (seen.Add(url.Authority.Host))
-				hosts.Add(url.Authority.Host);
+		// AllUrls is lazy — occurrences are found as they are asked for, so this reads a
+		// hundred-megabyte document one match at a time rather than as an array of them.
+		foreach (var found in AllUrls(prose))
+			if (seen.Add(found.Value!.Authority.Host))
+				hosts.Add(found.Value!.Authority.Host);
 
 		return hosts;
 	}
