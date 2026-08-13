@@ -83,8 +83,16 @@ sealed class Machine
 	readonly List<string> _sequences = [];
 
 	/// <summary>The value a machine constructs, and where the parts of it are kept.</summary>
+	/// <param name="Factory">
+	/// The method that turns the captures into the value, when the rule said how with
+	/// <c>=&gt;</c>. Null when the value is the generated type, which is built by calling
+	/// its constructor with the same arguments.
+	/// </param>
 	public sealed record Built(
-		string TypeName, IReadOnlyList<ResultMember> Members, CaptureLayout Layout);
+		string TypeName,
+		IReadOnlyList<ResultMember> Members,
+		CaptureLayout Layout,
+		string? Factory = null);
 
 	CaptureLayout Layout => _builds?.Layout ?? CaptureLayout.None;
 
@@ -598,11 +606,24 @@ sealed class Machine
 	/// </remarks>
 	static void Construct(Writer file, Built built)
 	{
-		file.Line($"value = new {built.TypeName}(");
+		// The matched extent, which §7.3 supplies under the name `text`. Always passed to
+		// a factory: what the C# does with it is the C# compiler's business, and an
+		// argument nobody reads costs nothing.
+		var arguments = new List<string>();
+
+		if (built.Factory is not null)
+			arguments.Add("text.Slice(pos, p - pos).ToString()");
+
+		foreach (var member in built.Members)
+			arguments.Add(Value(member));
+
+		file.Line(built.Factory is null
+			? $"value = new {built.TypeName}("
+			: $"value = {built.Factory}(");
 
 		using (file.Indent())
-			for (var i = 0; i < built.Members.Count; i++)
-				file.Line(Value(built.Members[i]) + (i < built.Members.Count - 1 ? "," : ");"));
+			for (var i = 0; i < arguments.Count; i++)
+				file.Line(arguments[i] + (i < arguments.Count - 1 ? "," : ");"));
 	}
 
 	/// <summary>
@@ -665,7 +686,7 @@ sealed class Machine
 			{
 				// Assigned before anything can fail, so every way out of the method has it
 				// assigned — including the ones that report no match at all.
-				file.Line("value = null!;");
+				file.Line("value = default!;");
 				file.Line();
 			}
 

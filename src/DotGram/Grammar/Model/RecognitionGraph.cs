@@ -145,9 +145,20 @@ public sealed class RecognitionGraph(
 	IReadOnlyDictionary<RuleSymbol, Node>                        bodies,
 	IReadOnlyDictionary<RuleSymbol, bool>                        nullable,
 	IReadOnlyDictionary<RuleSymbol, IReadOnlyList<ResultMember>> results,
+	IReadOnlyDictionary<RuleSymbol, string>                      types,
+	IReadOnlyList<string>                                        cSharpImports,
 	IReadOnlyList<Publication>                                   publications,
 	IReadOnlyList<GramDiagnostic>                                diagnostics)
 {
+	/// <summary>
+	/// The C# type a rule declared for itself with <c>: @T</c>, where one did. Written as
+	/// the grammar wrote it: what it resolves to is C#'s business (§7.4).
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, string> Types { get; } = types;
+
+	/// <summary>The grammar's <c>@using</c> directives, which the generated file needs.</summary>
+	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

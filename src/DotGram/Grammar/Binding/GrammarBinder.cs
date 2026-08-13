@@ -209,7 +209,26 @@ public sealed class GrammarBinder
 		if (rule.Type is not null)
 			ResolveType(rule.Type, scope, parameters);
 
+		// `where` and `=>` see the rule's captures as values, so they have to be in view
+		// before its body is resolved — and the whole body's, since a `=>` at the end
+		// names what the front of it captured.
+		_captures.Clear();
+		_captures.Add("text");
+
+		Captures(rule.Body);
+
 		ResolveExpression(rule.Body, scope, parameters);
+	}
+
+	readonly HashSet<string> _captures = new(StringComparer.Ordinal);
+
+	void Captures(Expr expression)
+	{
+		if (expression is Expr.Capture(var name, _))
+			_captures.Add(name);
+
+		foreach (var child in Dump.Children(expression))
+			Captures(child);
 	}
 
 	/// <summary>
@@ -310,9 +329,18 @@ public sealed class GrammarBinder
 			return;
 		}
 
+		// A capture of the rule being resolved, or one of the names §7.3 supplies. What
+		// they are is settled at emission, where they become the parameters of the method
+		// a `=>` becomes; here it is enough that they are not undefined.
+		if (_captures.Contains(reference.Name))
+			return;
+
 		if (scope.LookupQualified(reference.Name) is { } rule)
 			Bind(rule);
 		else
-			Report(UndefinedName, $"No rule or parameter named '{reference.Name}'.", at);
+			Report(
+				UndefinedName,
+				$"No rule, parameter or capture named '{reference.Name}'.",
+				at);
 	}
 }

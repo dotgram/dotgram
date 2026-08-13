@@ -14,7 +14,7 @@ namespace DotGram.Snapshots
 			var match = TryParseFeed(input);
 
 			if (match.IsSuccess)
-				return match.Value!;
+				return match.Value;
 
 			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
 		}
@@ -140,7 +140,7 @@ namespace DotGram.Snapshots
 		// parse Feed: header: Header & rows: Row* & trailer: Trailer & eof & eof
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
-			value = null!;
+			value = default!;
 
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -299,7 +299,7 @@ namespace DotGram.Snapshots
 		// Feed = header: Header & rows: Row* & trailer: Trailer & eof
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
-			value = null!;
+			value = default!;
 
 			global::System.Span<int> bt = stackalloc int[48];
 
@@ -426,7 +426,7 @@ namespace DotGram.Snapshots
 		// Header = 'H' & Sep & date: Date & eol
 		static int Recognize_Header(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Header value)
 		{
-			value = null!;
+			value = default!;
 
 			var p     = pos;
 			var r     = 0;
@@ -505,7 +505,7 @@ namespace DotGram.Snapshots
 		// Row = 'R' & Sep & name: Name & Sep & amount: Amount & eol
 		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Row value)
 		{
-			value = null!;
+			value = default!;
 
 			var p     = pos;
 			var r     = 0;
@@ -616,7 +616,7 @@ namespace DotGram.Snapshots
 		// Trailer = 'T' & Sep & count: Count & eol
 		static int Recognize_Trailer(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Trailer value)
 		{
-			value = null!;
+			value = default!;
 
 			var p     = pos;
 			var r     = 0;
@@ -1427,61 +1427,60 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
-		public readonly struct Match<T>
-			where T : class
-		{
-			private Match(bool isSuccess, T? value, string? error, int position, int length)
-			{
-				IsSuccess = isSuccess;
-				Value     = value;
-				Error     = error;
-				Position  = position;
-				Length    = length;
-			}
+public readonly struct Match<T>
+{
+	private Match(bool isSuccess, T value, string? error, int position, int length)
+	{
+		IsSuccess = isSuccess;
+		Value     = value;
+		Error     = error;
+		Position  = position;
+		Length    = length;
+	}
 
-			/// <summary>Whether there is a value.</summary>
-			public bool IsSuccess { get; }
+	/// <summary>Whether there is a value.</summary>
+	public bool IsSuccess { get; }
 
-			/// <summary>What was recognized, or null.</summary>
-			public T? Value { get; }
+	/// <summary>What was recognized. Meaningless unless <c>IsSuccess</c>.</summary>
+	public T Value { get; }
 
-			/// <summary>Why nothing was recognized, or null.</summary>
-			public string? Error { get; }
+	/// <summary>Why nothing was recognized, or null.</summary>
+	public string? Error { get; }
 
-			/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
-			public int Position { get; }
+	/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
+	public int Position { get; }
 
-			/// <summary>How much was matched. Zero when nothing was.</summary>
-			public int Length { get; }
+	/// <summary>How much was matched. Zero when nothing was.</summary>
+	public int Length { get; }
 
-			internal static Match<T> Success(T value, int position, int length)
-			{
-				return new Match<T>(true, value, null, position, length);
-			}
+	internal static Match<T> Success(T value, int position, int length)
+	{
+		return new Match<T>(true, value, null, position, length);
+	}
 
-			internal static Match<T> Failed(string error, int position)
-			{
-				return new Match<T>(false, null, error, position, 0);
-			}
-		}
+	internal static Match<T> Failed(string error, int position)
+	{
+		return new Match<T>(false, default!, error, position, 0);
+	}
+}
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
-		struct Failure
-		{
-			/// <summary>
-			/// The furthest position the input was followed to. Zero on a match that
-			/// succeeded without ever backtracking, and meaningless unless one failed.
-			/// </summary>
-			public int Position;
-		}
+struct Failure
+{
+	/// <summary>
+	/// The furthest position the input was followed to. Zero on a match that
+	/// succeeded without ever backtracking, and meaningless unless one failed.
+	/// </summary>
+	public int Position;
+}
 
 		static int[] Grow(global::System.Span<int> from)
-		{
-			var bigger = new int[from.Length * 2];
+{
+	var bigger = new int[from.Length * 2];
 
-			from.CopyTo(bigger);
+	from.CopyTo(bigger);
 
-			return bigger;
-		}
+	return bigger;
+}
 	}
 }

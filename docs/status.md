@@ -26,8 +26,10 @@ then quietly mean nothing.
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| construction `=>` | ✓ | ✓ | ✓ | dropped | ✗ |
-| rule types `: T` | ✓ | partial | ✗ | ✗ | ✗ |
+| construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
+| construction `=>` per alternative | ✓ | ✓ | ✓ | ignored | ✗ |
+| rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| rule types naming another rule §4.1 | ✓ | ✓ | ✗ | ✗ | ✗ |
 | guards `where` | ✓ | ✓ | ✓ | ignored | ✗ |
 | inline C# `@(...)` | ✓ | ✓ | ✓ | ignored | ✗ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
@@ -138,13 +140,45 @@ than a silent drop:
 
 And `GRAM4007`: one name captured twice with different types.
 
-Two deviations from §7.3, both deliberate:
+## A rule that names its own type
+
+`R : @T = … => @Expression` works. The type is written into the generated file exactly
+as the grammar wrote it, the grammar's `@using` directives are carried in beside it,
+and whether the name resolves is C#'s question to answer on the grammar's line — which
+is why none of this needed symbol resolution.
+
+The `=>` becomes a method, and the captures are its parameters:
+
+```csharp
+static int Construct_Number(string text, string digits) =>
+    int.Parse(digits, CultureInfo.InvariantCulture);
+```
+
+A method rather than an expression written where the value is assigned, and that is
+what makes the capture names usable at all: inside a recognizer they would have to
+dodge every local it has, and a capture called `p` or `state` would collide with the
+machine itself. `text` is supplied — the matched extent, §7.3 — and a capture may take
+the name instead.
+
+Three limits:
+
+- **only a `=>` at the end of a rule.** One per alternative is what a left fold needs
+  (§4.3) and what a rule with alternatives of different shapes needs; it is ignored
+  today rather than refused, which is the one place this section is not honest yet.
+- **`: T` naming another rule** (§4.1 case 3) is not wired: only `: @T` and the C#
+  keywords count as a declared type.
+- **a declared type with no `=>`** builds `default!`. §7.3 says the captures should be
+  matched to a constructor by name, and that does need symbol resolution.
+
+## Two deviations from §7.3, both deliberate
 
 - the generated type is a `sealed class`, not a `record`. A positional record needs
   `IsExternalInit`, which lives in a namespace this generator must not emit into, and
   the consumer's language version is not ours to assume.
-- a rule's type is always generated. `: @T` — naming a C# type for a rule to build —
-  parses and is not wired up, and neither is `=>`. Both wait on C# name resolution.
+- `Match<T>.Value` is `T` rather than `T?`, so a failed match holds `default` and
+  `IsSuccess` is what says so. An unconstrained `T?` needs a language version this
+  generator may not assume, and `T` has to be unconstrained now that a rule may declare
+  itself `: @int`.
 
 ## What the tests cover
 

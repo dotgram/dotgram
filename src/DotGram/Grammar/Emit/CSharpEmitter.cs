@@ -144,6 +144,17 @@ public static class CSharpEmitter
 		if (@namespace is not null)
 			scope.Push(file.Block($"namespace {@namespace}"));
 
+		// The grammar's own `@using` directives and no others. Everything this file
+		// generates is written with `global::`; these are here for the C# the grammar
+		// supplied, which was written expecting them (§1).
+		if (graph.CSharpImports.Count > 0)
+		{
+			foreach (var import in graph.CSharpImports)
+				file.Line($"using {import};");
+
+			file.Line();
+		}
+
 		foreach (var name in className.Split('.'))
 			scope.Push(file.Block($"partial class {name}"));
 
@@ -156,6 +167,15 @@ public static class CSharpEmitter
 		foreach (var rule in results.Built)
 		{
 			EmitResultType(file, graph, results, rule);
+			file.Line();
+		}
+
+		foreach (var rule in graph.Rules)
+		{
+			if (!graph.Types.ContainsKey(rule))
+				continue;
+
+			EmitFactory(file, graph, results, rule);
 			file.Line();
 		}
 
@@ -257,7 +277,7 @@ public static class CSharpEmitter
 			file.Line($"var match = Try{method}(input);");
 			file.Line();
 			file.Line("if (match.IsSuccess)");
-			file.Then("return match.Value!;");
+			file.Then("return match.Value;");
 			file.Line();
 			file.Line("throw new global::System.FormatException(match.Error + \" at \" + match.Position.ToString());");
 		}
@@ -365,12 +385,48 @@ public static class CSharpEmitter
 
 	/// <summary>What a rule's machine builds, or null when its value is the text.</summary>
 	static Machine.Built? BuiltBy(RecognitionGraph graph, ResultTypes results, RuleSymbol rule) =>
-		results.NameOf(rule) is null
+		results.QualifiedOf(rule) is not { } type
 			? null
 			: new Machine.Built(
-				results.QualifiedOf(rule)!,
+				type,
 				graph.Results[rule],
-				CaptureLayout.Of(graph.Bodies[rule], other => results.NameOf(other) is not null));
+				CaptureLayout.Of(graph.Bodies[rule], other => results.QualifiedOf(other) is not null),
+				graph.Types.ContainsKey(rule) ? FactoryOf(rule) : null);
+
+	/// <summary>
+	/// The method a rule's <c>=&gt;</c> becomes: the C# it named, with the captures as
+	/// parameters.
+	/// </summary>
+	/// <remarks>
+	/// A method rather than an expression written where the value is assigned, and that
+	/// is what makes the capture names usable at all — inside the machine they would have
+	/// to dodge every local it has, and a capture called <c>p</c> or <c>state</c> would
+	/// collide with the recognizer itself. Here they are parameters, in a scope of their
+	/// own, named exactly as the grammar named them.
+	/// </remarks>
+	static string FactoryOf(RuleSymbol rule) => $"Construct_{rule.Name.Replace('.', '_')}";
+
+	static void EmitFactory(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		var members    = graph.Results[rule];
+		var parameters = new List<string> { "string text" };
+
+		foreach (var member in members)
+			if (member.Name != "text")
+				parameters.Add(
+					results.ValueOf(member.Rule) +
+					(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +
+					" " + ResultTypes.ParameterOf(member));
+
+		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
+		file.Line(
+			$"static {graph.Types[rule]} {FactoryOf(rule)}({string.Join(", ", parameters)}) =>");
+		file.Line("\t" + ConstructionOf(graph.Bodies[rule]) + ";");
+	}
+
+	/// <summary>The C# a rule's <c>=&gt;</c> carries, or a placeholder when it has none.</summary>
+	static string ConstructionOf(Node body) =>
+		body is Node.Construct(_, var expression) ? expression : "default!";
 
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
 	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
@@ -411,9 +467,10 @@ public static class CSharpEmitter
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Constrained to a class because that is what a rule's value always is — a generated
-	/// type, or the text it matched — and because an unconstrained <c>T?</c> needs a
-	/// language version this generator may not assume (.claude/rules/emitted-code.md).
+	/// Unconstrained, because a rule may declare itself <c>: @int</c>. <c>Value</c> is
+	/// therefore <c>T</c> and not <c>T?</c> — an unconstrained <c>T?</c> needs a language
+	/// version this generator may not assume — and <c>IsSuccess</c> is what says whether
+	/// there is one. On a failure it is <c>default</c>.
 	/// </para>
 	/// <para>
 	/// One type for the whole grammar rather than one per rule: only the value differs,
@@ -424,9 +481,8 @@ public static class CSharpEmitter
 	internal const string MatchStruct = """
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
-			where T : class
 		{
-			private Match(bool isSuccess, T? value, string? error, int position, int length)
+			private Match(bool isSuccess, T value, string? error, int position, int length)
 			{
 				IsSuccess = isSuccess;
 				Value     = value;
@@ -438,8 +494,8 @@ public static class CSharpEmitter
 			/// <summary>Whether there is a value.</summary>
 			public bool IsSuccess { get; }
 
-			/// <summary>What was recognized, or null.</summary>
-			public T? Value { get; }
+			/// <summary>What was recognized. Meaningless unless <c>IsSuccess</c>.</summary>
+			public T Value { get; }
 
 			/// <summary>Why nothing was recognized, or null.</summary>
 			public string? Error { get; }
@@ -457,7 +513,7 @@ public static class CSharpEmitter
 
 			internal static Match<T> Failed(string error, int position)
 			{
-				return new Match<T>(false, null, error, position, 0);
+				return new Match<T>(false, default!, error, position, 0);
 			}
 		}
 		""";

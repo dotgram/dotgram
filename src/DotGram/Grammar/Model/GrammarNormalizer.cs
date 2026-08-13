@@ -42,6 +42,7 @@ public sealed class GrammarNormalizer
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> _results   = [];
+	readonly Dictionary<RuleSymbol, string>                    _types       = [];
 	readonly List<GramDiagnostic>                              _diagnostics = [];
 	readonly List<RuleSymbol>                                  _rules       = [];
 
@@ -57,6 +58,7 @@ public sealed class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 		normalizer.ComputeNullability();
+		normalizer.ComputeTypes();
 		normalizer.ComputeResults();
 		normalizer.Check();
 
@@ -65,6 +67,8 @@ public sealed class GrammarNormalizer
 			normalizer._bodies,
 			normalizer._nullable,
 			normalizer._results,
+			normalizer._types,
+			Imports(model.Root),
 			model.Publications,
 			normalizer._diagnostics);
 	}
@@ -559,6 +563,38 @@ public sealed class GrammarNormalizer
 	/// What each rule's value is made of. A rule that captures nothing has no members and
 	/// keeps the value it always had — the text it matched.
 	/// </summary>
+	/// <summary>Every <c>@using</c> in the grammar, outermost scope first.</summary>
+	static IReadOnlyList<string> Imports(GrammarScope scope)
+	{
+		var imports = new List<string>(scope.CSharpImports);
+
+		foreach (var nested in scope.Nested)
+			foreach (var import in Imports(nested))
+				if (!imports.Contains(import))
+					imports.Add(import);
+
+		return imports;
+	}
+
+	/// <summary>
+	/// The C# type a rule declared for itself, if it declared one.
+	/// </summary>
+	/// <remarks>
+	/// Only a C# type: <c>: @T</c> and the keywords that are always C# (§2). A type that
+	/// names a rule is §4.1 case 3 and is not built, so it is left for the rule's own
+	/// value to be worked out from its captures.
+	/// </remarks>
+	void ComputeTypes()
+	{
+		foreach (var rule in _rules)
+			if (rule.Declaration?.Type is { } type && (type.IsCSharp || IsCSharpKeyword(type.Name)))
+				_types[rule] = TypeName(type);
+	}
+
+	static bool IsCSharpKeyword(string name) => name is
+		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
+		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
+
 	void ComputeResults()
 	{
 		foreach (var rule in _rules)

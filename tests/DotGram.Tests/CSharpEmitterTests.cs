@@ -206,6 +206,31 @@ public sealed class CSharpEmitterTests
 		Assert.Empty(result.Sources);
 	}
 
+	/// <summary>
+	/// A rule that named its own type gets a method to build it with, and the captures
+	/// are its parameters — which is what lets a <c>=&gt;</c> use their names without
+	/// dodging every local the recognizer has.
+	/// </summary>
+	[Fact]
+	public void A_declared_type_is_built_by_a_method_of_its_own()
+	{
+		var source = Emit("""
+			@using System.Globalization;
+
+			Start : @int = digits: ['0'..'9']+ => @int.Parse(digits, @CultureInfo.InvariantCulture)
+			parse Start
+			""");
+
+		Assert.Contains("using System.Globalization;", source);
+		Assert.Contains(
+			"static int Construct_Start(string text, string digits) =>",
+			source);
+		Assert.Contains("int.Parse(digits, CultureInfo.InvariantCulture);", source);
+
+		// And the publication hands back that type rather than the matched text.
+		Assert.Contains("public static int ParseStart(string input)", source);
+	}
+
 	[Fact]
 	public void A_broken_grammar_emits_nothing()
 	{

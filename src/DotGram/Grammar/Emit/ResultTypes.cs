@@ -26,8 +26,9 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 sealed class ResultTypes
 {
-	readonly Dictionary<RuleSymbol, string> _names = [];
-	readonly List<RuleSymbol>               _built = [];
+	readonly Dictionary<RuleSymbol, string> _names    = [];
+	readonly Dictionary<RuleSymbol, string> _declared = [];
+	readonly List<RuleSymbol>               _built    = [];
 	readonly string                         _prefix;
 
 	/// <param name="className">The host class, as a chain — <c>Outer.Inner</c>.</param>
@@ -39,6 +40,15 @@ sealed class ResultTypes
 
 		foreach (var rule in graph.Rules)
 		{
+			// A rule that named its own type gets that one; nothing is generated for it,
+			// and what its captures are for is the `=>` that builds it.
+			if (graph.Types.TryGetValue(rule, out var declared))
+			{
+				_declared[rule] = declared;
+
+				continue;
+			}
+
 			if (graph.Results[rule].Count == 0)
 				continue;
 
@@ -60,12 +70,21 @@ sealed class ResultTypes
 	/// <summary>Every rule that has a type of its own, in declaration order.</summary>
 	public IReadOnlyList<RuleSymbol> Built => _built;
 
-	/// <summary>The type's own name, or null when the rule yields text.</summary>
+	/// <summary>The generated type's own name, or null when none is generated for it.</summary>
 	public string? NameOf(RuleSymbol rule) => _names.TryGetValue(rule, out var name) ? name : null;
 
-	/// <summary>The type as it is written where the host class is not in scope.</summary>
+	/// <summary>
+	/// The type of a value of this rule, or null when its value is the text it matched.
+	/// </summary>
+	/// <remarks>
+	/// A generated type is written from where the host class is not in scope; a declared
+	/// one is written exactly as the grammar wrote it, and the <c>@using</c> directives
+	/// carried into the generated file are what make it resolve.
+	/// </remarks>
 	public string? QualifiedOf(RuleSymbol rule) =>
-		_names.TryGetValue(rule, out var name) ? _prefix + name : null;
+		_declared.TryGetValue(rule, out var declared) ? declared :
+		_names.TryGetValue(rule, out var name)       ? _prefix + name :
+		null;
 
 	/// <summary>
 	/// The type of a value of this rule, text included. Null is the text case too: it is

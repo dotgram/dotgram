@@ -328,6 +328,32 @@ public sealed class SemanticTests
 			GrammarNormalizer.CaptureTypeMismatch,
 			"Item = a: 'x'\nStart = (v: Item | v: 'y')");
 
+	// ── A rule that declares its own type and builds it (§7.3) ──────────────────
+
+	[Fact]
+	public void A_rule_may_name_a_C_sharp_type_and_say_how_to_build_it() =>
+		Assert.Equal(
+			42,
+			Built(
+				"""
+				@using System.Globalization;
+
+				Start : @int = ['0'..'9']+ => @int.Parse(text, @CultureInfo.InvariantCulture)
+				""",
+				"42"));
+
+	[Fact]
+	public void The_matched_text_is_supplied_under_the_name_text() =>
+		Assert.Equal(
+			3,
+			Built("Start : @int = ['a'..'z']+ => @(text.Length)", "abc"));
+
+	[Fact]
+	public void Captures_reach_the_expression_by_their_own_names() =>
+		Assert.Equal(
+			"b-a",
+			Built("""Start : @string = a: 'a' & b: 'b' => @(b + "-" + a)""", "ab"));
+
 	// ── Repetition counts ───────────────────────────────────────────────────────
 
 	[Fact]
