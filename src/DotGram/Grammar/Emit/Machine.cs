@@ -66,12 +66,37 @@ sealed class Machine
 		foreach (var slot in Layout.Sequences)
 			_sequences.Add("l" + slot.Index);
 
-		// The values the alternatives built, in the order they matched. The last one is
-		// the answer, and the frame truncates it like any other sequence — so an
-		// alternative given back takes its value with it, and so does a fold step.
-		if (Factories.Count > 1)
-			_sequences.Add(Accumulator);
+		// Which fold step matched, in order. Numbers rather than values: a value built
+		// while matching is a value built on a parse that may not happen, so the
+		// factories run at the accepting state and read this (§4.3).
+		if (Folding)
+			_sequences.Add(Steps);
+	}
 
+	/// <summary>Which alternative built the value, and which fold steps followed it.</summary>
+	const string Chosen = "built";
+	const string Steps  = "steps";
+
+	int IndexOf(Factory factory)
+	{
+		for (var i = 0; i < Factories.Count; i++)
+			if (ReferenceEquals(Factories[i], factory))
+				return i;
+
+		return -1;
+	}
+
+	/// <summary>Whether any alternative of this rule is a fold step.</summary>
+	bool Folding
+	{
+		get
+		{
+			foreach (var factory in Factories)
+				if (factory.Accumulator is not null)
+					return true;
+
+			return false;
+		}
 	}
 
 	/// <summary>
@@ -293,6 +318,19 @@ sealed class Machine
 	readonly List<(Writer Writer, int First, int Target)> _forgets = [];
 	readonly List<(Writer Writer, int Slot, int Target)>  _marks   = [];
 
+	/// <summary>How many slots belong to the alternatives that start a fold, if it folds.</summary>
+	int BaseSlots
+	{
+		get
+		{
+			foreach (var factory in Factories)
+				if (factory.Accumulator is not null)
+					return Layout.Before(factory.Of);
+
+			return Layout.Slots.Count;
+		}
+	}
+
 	/// <summary>
 	/// The states whose bodies wait on what the rest of the machine turned out to need.
 	/// </summary>
@@ -308,6 +346,12 @@ sealed class Machine
 
 		foreach (var (writer, first, target) in _forgets)
 		{
+			// Which alternative built the value goes back with the slots, but only where
+			// the alternative itself is being abandoned: a fold step given back does not
+			// unmake the base that started the chain.
+			if (Factories.Count > 1 && first <= BaseSlots)
+				writer.Line($"{Chosen} = -1;");
+
 			for (var i = first; i < Layout.Slots.Count; i++)
 				if (!Layout.Slots[i].IsSequence)
 					writer.Line(Layout.Slots[i].Rule is null
@@ -459,7 +503,7 @@ sealed class Machine
 				// A sequence appends where a single value would have been assigned, and the
 				// append is on the successful path only — the call writes its `out` whether
 				// it matched or not, so an iteration that failed contributes nothing.
-				if (Layout.Slots[slot].IsSequence)
+				if (Layout.Slots[slot] is { IsSequence: true, Rule: not null })
 				{
 					var appended = Reserve(out var atAppend, node, "one more, collected");
 
@@ -482,7 +526,10 @@ sealed class Machine
 
 				var close = Reserve(out var atClose, node, "captured to here");
 
-				atClose.Line($"s{slot}_to = p;");
+				atClose.Line(Layout.Slots[slot].IsSequence
+					? $"l{slot}.Add(text.Slice(s{slot}_from, p - s{slot}_from).ToString());"
+					: $"s{slot}_to = p;");
+
 				atClose.Line($"goto case {next};");
 
 				var inner = Compile(captured, close);
@@ -512,9 +559,15 @@ sealed class Machine
 				if (chosen is null || Factories.Count < 2)
 					return Compile(pattern, next);
 
-				var state = Reserve(out var writer, node, "this alternative built the value");
+				var which = IndexOf(chosen);
+				var state = Reserve(out var writer, node, "this alternative matched");
 
-				writer.Line($"{Accumulator}.Add({Apply(chosen)});");
+				// The number, not the value. Building here would build on attempts that
+				// are given back; the accepting state builds from what is left of this.
+				writer.Line(chosen.Accumulator is null
+					? $"{Chosen} = {which};"
+					: $"{Steps}.Add({which});");
+
 				writer.Line($"goto case {next};");
 
 				return Compile(pattern, state);
@@ -762,14 +815,16 @@ sealed class Machine
 	/// grammar supplies runs once, on the parse that actually happened, rather than once
 	/// per attempt (§7.2).
 	/// </remarks>
-	/// <summary>The name of the list the alternatives of a rule build into.</summary>
-	const string Accumulator = "acc";
-
 	/// <summary>
-	/// A call to one alternative's factory. A fold step takes the value built so far as
-	/// its first argument, which is the last thing appended (§4.3).
+	/// A call to one alternative's factory, made where the match is known to have
+	/// succeeded.
 	/// </summary>
-	string Apply(Factory factory)
+	/// <param name="into">What is being assigned — the value, or the fold's running one.</param>
+	/// <param name="step">
+	/// The iteration a fold step is being applied for, which is what indexes its
+	/// captures: each of them collected one entry per iteration.
+	/// </param>
+	string Apply(Factory factory, string into, string? step)
 	{
 		// The matched extent, which §7.3 supplies under the name `text`. Always passed:
 		// what the C# does with it is the C# compiler's business, and an argument nobody
@@ -777,42 +832,87 @@ sealed class Machine
 		var arguments = new List<string> { "text.Slice(pos, p - pos).ToString()" };
 
 		if (factory.Accumulator is not null)
-			arguments.Add($"{Accumulator}[{Accumulator}.Count - 1]");
+			arguments.Add(into);
 
 		foreach (var member in factory.Members)
-			arguments.Add(Value(member));
+			arguments.Add(step is null || !member.IsSequence
+				? Value(member)
+				: $"l{member.Slots[0]}[{step}]");
 
-		return $"{factory.Method}({string.Join(", ", arguments)})";
+		return $"{into} = {factory.Method}({string.Join(", ", arguments)});";
 	}
 
 	void Construct(Writer file, Built built)
 	{
 		var factories = built.Factories ?? [];
 
-		// More than one alternative builds, so each appended as it matched and the last
-		// one standing is the answer. A fold leaves the whole chain behind it here.
-		if (factories.Count > 1)
+		if (factories.Count == 0)
 		{
-			file.Line($"value = {Accumulator}[{Accumulator}.Count - 1];");
+			var arguments = new List<string>();
+
+			foreach (var member in built.Members)
+				arguments.Add(Value(member));
+
+			file.Line($"value = new {built.TypeName}(");
+
+			using (file.Indent())
+				for (var i = 0; i < arguments.Count; i++)
+					file.Line(arguments[i] + (i < arguments.Count - 1 ? "," : ");"));
 
 			return;
 		}
 
-		var arguments = new List<string>();
-
 		if (factories.Count == 1)
-			arguments.Add("text.Slice(pos, p - pos).ToString()");
+		{
+			file.Line(Apply(factories[0], "value", null));
 
-		foreach (var member in factories.Count == 1 ? factories[0].Members : built.Members)
-			arguments.Add(Value(member));
+			return;
+		}
 
-		file.Line(factories.Count == 1
-			? $"value = {factories[0].Method}("
-			: $"value = new {built.TypeName}(");
+		// Which alternative matched was recorded while matching; the value is built from
+		// it now, so the C# runs on the parse that happened and on no other.
+		Switch(file, Chosen, factories, (_, factory) => factory.Accumulator is null, "value", null);
 
-		using (file.Indent())
-			for (var i = 0; i < arguments.Count; i++)
-				file.Line(arguments[i] + (i < arguments.Count - 1 ? "," : ");"));
+		if (!Folding)
+			return;
+
+		// Then the chain, in the order the steps matched, each applied to what the ones
+		// before it built.
+		foreach (var factory in factories)
+			if (factory.Accumulator is not null)
+				file.Line($"var n{IndexOf(factory)} = 0;");
+
+		file.Line();
+
+		using (file.Block($"for (var i = 0; i < {Steps}.Count; i++)"))
+			Switch(file, $"{Steps}[i]", factories, (_, factory) => factory.Accumulator is not null, "value", true);
+	}
+
+	/// <summary>One <c>switch</c> over the alternatives that answer to a recorded number.</summary>
+	void Switch(
+		Writer file, string on, IReadOnlyList<Factory> factories,
+		Func<int, Factory, bool> wanted, string into, bool? counting)
+	{
+		using (file.Block($"switch ({on})"))
+			for (var i = 0; i < factories.Count; i++)
+			{
+				if (!wanted(i, factories[i]))
+					continue;
+
+				file.Line($"case {i}:");
+
+				using (file.Indent())
+				{
+					file.Line(Apply(factories[i], into, counting is null ? null : $"n{i}"));
+
+					if (counting is not null)
+						file.Line($"n{i}++;");
+
+					file.Line("break;");
+				}
+
+				file.Line();
+			}
 	}
 
 	/// <summary>
@@ -936,9 +1036,11 @@ sealed class Machine
 			if (Factories.Count > 1)
 			{
 				file.Line();
-				file.Line(
-					$"var {Accumulator} = new global::System.Collections.Generic.List<" +
-					$"{_builds!.TypeName}>();");
+				file.Line($"var {Chosen} = -1;");
+
+				if (Folding)
+					file.Line(
+						$"var {Steps} = new global::System.Collections.Generic.List<int>();");
 			}
 
 			if (Layout.Slots.Count > 0)
@@ -948,6 +1050,12 @@ sealed class Machine
 				foreach (var slot in Layout.Slots)
 					file.Line(slot switch
 					{
+							// A fold step's text captures collect too: its `=>` is applied once
+						// per iteration and wants that iteration's text.
+						{ Rule: null, IsSequence: true } =>
+							$"var s{slot.Index}_from = -1; " +
+							$"var l{slot.Index} = new global::System.Collections.Generic.List<string>();",
+
 						{ Rule: null } => $"var s{slot.Index}_from = -1; var s{slot.Index}_to = -1;",
 
 						// The one the call writes into, and the one it is appended to. Two,

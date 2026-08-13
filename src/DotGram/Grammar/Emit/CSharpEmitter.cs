@@ -483,7 +483,13 @@ public static class CSharpEmitter
 			if (member.Name != "text" && member.Name != factory.Accumulator)
 				parameters.Add(
 					results.ValueOf(member.Rule) +
-					(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +
+
+					// A fold step is applied once per iteration and is handed that
+					// iteration's captures, so what collects for the rule arrives here as
+					// one of what it collected.
+					(member.IsSequence && factory.Accumulator is null ? "[]" :
+						member.IsOptional ? "?" : "") +
+
 					" " + ResultTypes.ParameterOf(member));
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");

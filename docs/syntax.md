@@ -483,12 +483,10 @@ application of this one. Which is to say `=>` is a fold, and both `=>` in the ru
 above are used: the base builds the first value, the recursive alternative applies once
 per operator.
 
-**A fold is the one construction that does not wait for the match to succeed.** Every
-other `=>` runs once, at the end, on the alternative that matched; a fold applies as
-the chain grows, so a step the match later gives back will have run. §7.2 already asks
-that code in these positions bear being invoked more than once, so nothing further is
-asked of the author — but it is worth knowing which `=>` this is. What a step built is
-given back with it, so the value is always the one the accepted parse produced.
+A fold is no exception to §7.2: nothing is built while matching. What the match records
+is which alternative it came through and, for a chain, which step followed which; the
+`=>` of each is applied once the whole match has succeeded, in that order. So a step
+tried and given back never ran at all.
 
 Three things are rejected when the grammar is built:
 

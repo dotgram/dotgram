@@ -454,6 +454,26 @@ public sealed class SemanticTests
 				""",
 				input));
 
+	[Theory]
+	[InlineData("a.b.c",      "((a.b).c)")]
+	[InlineData("a(b)[c].d",  "(((a(b))[c]).d)")]
+	[InlineData("a",          "a")]
+	public void A_rule_may_have_as_many_recursive_alternatives_as_it_likes(string input, string expected) =>
+		// A postfix chain wants three, each with captures of its own. Nothing is built
+		// while matching, so nothing has to hold them all in one type.
+		Assert.Equal(
+			expected,
+			Built(
+				"""
+				Start : @string = target: Start & '.' & name: Name        => @("(" + target + "." + name + ")")
+				                | target: Start & '(' & arg: Name & ')'   => @("(" + target + "(" + arg + "))")
+				                | target: Start & '[' & index: Name & ']' => @("(" + target + "[" + index + "])")
+				                | atom: Name                              => @(atom)
+
+				Name : @string  = letters: ['a'..'z']+                    => @(letters)
+				""",
+				input));
+
 	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");

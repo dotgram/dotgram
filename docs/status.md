@@ -79,18 +79,17 @@ receives.
 The loop is an ordinary repetition, so backtracking, forgetting and the rest apply to
 it unchanged. Right associativity needs nothing: right recursion is not left recursion.
 
-One place §4.3 had to be corrected by the building of it. It said the fold happens
-where all construction happens, after the match — which would mean accumulating the
-tails and folding at the end, and tails of different shapes would then need a common
-type, which would have capped a rule at one recursive alternative. Postfix chains —
-member access, call, index — want three. So the fold runs as the loop turns, and its
-intermediate values are kept in a list the backtracking frame truncates, exactly as a
-sequence capture is. A fold step given back takes its value with it.
+**Nothing is built while matching, folds included.** What a match records is a number:
+which alternative it came through, and — for a chain — which step followed which. Both
+ride on the backtracking frame, so an alternative or a step given back is forgotten with
+everything else it did, and the factories run at the accepting state in the recorded
+order.
 
-What that costs is one sentence of honesty: a fold's `=>` may run on a step that is
-later given back. §7.2 already requires C# in these positions to bear being invoked
-more than once, so nothing new is asked of an author — but it is the one `=>` that does
-not wait for the match to succeed.
+That is what lets a rule have as many recursive alternatives as it likes. Accumulating
+built values instead would need one type to hold them all, which would have capped a
+rule at one — and a postfix chain wants three: member access, call, index. What is
+collected instead is each alternative's own captures, one entry per iteration, which
+needs no common type at all.
 
 Refused: indirect left recursion, which has arbitrarily many shapes to rewrite; a rule
 whose every alternative is left-recursive, which has nothing to start from; and an

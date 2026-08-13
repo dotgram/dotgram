@@ -90,15 +90,16 @@ public sealed class CaptureLayout
 	}
 
 	/// <param name="fold">
-	/// The loop a left-recursive rule was rewritten into, if it was. What is captured
-	/// under it is written once per fold step and consumed there, so it is a value and
-	/// not a sequence — the repetition is the generator's, not the author's.
+	/// The loop a left-recursive rule was rewritten into, if it was. Everything captured
+	/// under it collects — text as well as values — because a fold step's <c>=&gt;</c> is
+	/// applied once per iteration and needs that iteration's captures, not the last
+	/// one's.
 	/// </param>
 	public static CaptureLayout Of(Node body, Func<RuleSymbol, bool> buildsValue, Node? fold = null)
 	{
 		var layout = new CaptureLayout { _fold = fold };
 
-		layout.Walk(body, buildsValue, repeated: false);
+		layout.Walk(body, buildsValue, repeated: false, inFold: false);
 
 		return layout;
 	}
@@ -110,7 +111,7 @@ public sealed class CaptureLayout
 	/// captured under one is written once per iteration, which is a sequence rather than
 	/// a value — §7.3, and the reason a bound of one does not count.
 	/// </param>
-	void Walk(Node node, Func<RuleSymbol, bool> buildsValue, bool repeated)
+	void Walk(Node node, Func<RuleSymbol, bool> buildsValue, bool repeated, bool inFold)
 	{
 		switch (node)
 		{
@@ -121,9 +122,9 @@ public sealed class CaptureLayout
 				_slotOf[node] = _slots.Count;
 
 				_slots.Add(new CaptureSlot(
-					_slots.Count, name, called, IsSequence: repeated && called is not null));
+					_slots.Count, name, called, IsSequence: inFold || (repeated && called is not null)));
 
-				Walk(captured, buildsValue, repeated);
+				Walk(captured, buildsValue, repeated, inFold);
 				break;
 			}
 
@@ -134,7 +135,7 @@ public sealed class CaptureLayout
 				_before[node] = _slots.Count;
 
 				foreach (var alternative in alternatives)
-					Walk(alternative, buildsValue, repeated);
+					Walk(alternative, buildsValue, repeated, inFold);
 
 				break;
 
@@ -142,7 +143,7 @@ public sealed class CaptureLayout
 
 				_before[node] = _slots.Count;
 
-				Walk(body, buildsValue, !ReferenceEquals(node, _fold) && (repeated || max != 1));
+				Walk(body, buildsValue, repeated || max != 1, inFold || ReferenceEquals(node, _fold));
 
 				_after[node] = _slots.Count;
 				break;
@@ -150,7 +151,7 @@ public sealed class CaptureLayout
 			case Node.Sequence(var nodes):
 
 				foreach (var child in nodes)
-					Walk(child, buildsValue, repeated);
+					Walk(child, buildsValue, repeated, inFold);
 
 				break;
 
@@ -167,7 +168,7 @@ public sealed class CaptureLayout
 
 				_before[node] = _slots.Count;
 
-				Walk(built, buildsValue, repeated);
+				Walk(built, buildsValue, repeated, inFold);
 
 				_after[node] = _slots.Count;
 				break;
