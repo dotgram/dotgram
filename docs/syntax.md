@@ -260,10 +260,10 @@ a diagnostic about the unsupported symbol rather than a silent fall-through to
 another alternative.
 
 The first reading is what the language does: ordered choice backtracks fully and there
-is no commit point (§10), so a failing guard is a non-match and a sibling is tried.
+is no commit point (§11), so a failing guard is a non-match and a sibling is tried.
 
 The second is what one would want in the `Row` case, and saying so is the one thing
-still missing — see §10. Note that it is a question about diagnostics, not about
+still missing — see §11. Note that it is a question about diagnostics, not about
 parsing: whichever way it is answered, the guard's position stays the author's choice
 and still decides how much work is thrown away and where the message points.
 
@@ -674,6 +674,7 @@ the position it is called from:
 | `bool M(char c)` | element predicate | `@M` in recognizer position |
 | `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer | `@M` in recognizer position |
 | `T M(args…)` | value transformation | `=> @M(a, b)` |
+| `bool M(args…, out T value)` | value transformation that may fail | `=> @M(a, b)` |
 | `bool M(args…)` | guard | `where @M(a)` |
 | — | inline expression | `=> @(expr)`, `where @(expr)` |
 
@@ -700,6 +701,11 @@ ordinary C# rules.
 - Code in `@Method`, `@(...)`, `where` and `=>` must be safe to invoke more than once:
   ordered choice and lookahead may call it repeatedly or discard its result. This is
   not a demand for mathematical purity — it is a ban on irreversible side effects.
+- The same code must not depend on *when* it runs. A capture records where it matched
+  and nothing more; the result is built once, after the match is known to have
+  succeeded, from the alternative that actually matched. So `=>` and `@(...)` see the
+  parse that happened, never a parse that was tried and given back — and how many
+  attempts it took to get there is not observable from inside them.
 
 ### 7.3 Captures and building the result
 
@@ -710,9 +716,12 @@ Captures are matched to the result type by name, in a fixed order:
 3. an explicit `=> @Factory(...)` when neither fits.
 
 Names are matched by one mechanical casing transform: the capture `symbol` fits the
-parameter `symbol` and the property `Symbol`. A `span` or `text` capture may be
-declared as a parameter of type `SourceSpan` or `string` and will be filled
-automatically.
+parameter `symbol` and the property `Symbol`.
+
+A handful of names are **supplied rather than captured**: declare a parameter with one
+of them and the generator fills it in. They are listed in §8.2, where the same names
+serve a rejected element — `span` and `text` for the extent and the input it covers,
+`ordinal`, `line`, `column` and `position` for where it was.
 
 A capture's own type follows from what it captures:
 
@@ -727,6 +736,14 @@ The two quantifier rows are what makes the regex-shaped case behave:
 `scheme: ['a'..'z']+` gives `"http"`, while `items: Row*` gives `Row[]`. Both are the
 same principle as §4.1 case 4 — where nothing produces a value of its own, the value
 is the matched extent — applied one level down, at the capture.
+
+A capture binds tighter than a quantifier (§10), so `scheme: ['a'..'z']+` is one capture
+repeated rather than a capture of a run — and the two rows above are how that is read:
+repeated text is the text joined, a repeated rule is an array of its values.
+
+An optional capture and an empty run are different answers and stay different: `(sign:
+'-')?` that did not match is null, while `digits: ['0'..'9']*` that matched nothing is
+`""` — the text of no iterations.
 
 ```dotgram
 Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
@@ -801,7 +818,173 @@ breakpoints and for "go to definition" in both directions.
 
 ---
 
-## 8. A complete example
+## 8. Failure, recovery and streaming
+
+A grammar that reads a feed has a requirement a grammar that reads a source file does
+not: a million records, one of them malformed, and the answer must be a message about
+that record and a parse that keeps going. Everything in this section is inert in a
+grammar that does not ask for it.
+
+### 8.1 Two kinds of failure, told apart by when they happen
+
+The seam already exists — §7.2: `where` runs **during** the match, `=>` runs **after**
+it, once the match is final and from the alternative that actually matched.
+
+- **A recognition failure** is a shape the grammar does not describe. It happens during
+  the match, and ordered choice may undo it and try something else. Only past a commit
+  point (§8.2) does it stop being "try something else" and become an error.
+- **A value failure** is a shape the grammar does describe holding a value it does not
+  accept. It happens at construction, after the match is settled, and never backtracks.
+
+`2026-02-31` is both, depending on where the work is done: a recognition failure if
+`Date` cannot match it by shape, a value failure if it matches and `DateOnly` refuses
+it. Which one an author gets is a design choice, and the second is cheaper — see §8.2.
+
+A value failure is reported without an exception, by the same signature-reading rule as
+everything else in §7.1: a transformation that may fail is written `bool M(args…, out T
+value)` — the shape the BCL's own `int.TryParse` and `DateOnly.TryParse` already have.
+
+There is a third kind that belongs to neither, and to no single record: the **envelope**
+— a missing `Trailer`, input that did not end, a declared count that does not match.
+It is settled when the whole parse finishes, which for a streamed parse is after the
+records have long since been handed out.
+
+### 8.2 `recover` — a repetition that survives a bad element
+
+```dotgram
+Feed : FeedItem[] = Header
+                  & Row* recover eol
+                  & Trailer & eof
+```
+
+`recover` marks one repetition and says three things about it:
+
+1. **Inside it, consuming and then failing is an error, not a non-match.** That is the
+   commit point, and it is what makes "this record is malformed" expressible at all:
+   without it, a bad row is merely a row that did not match, the repetition ends, and
+   the failure surfaces at the top of the file as "the feed does not parse".
+2. **On an error the parser skips past the next match of the synchronization
+   expression** — `eol` here — and starts the next iteration there. The ordinal
+   advances, so a rejected record still occupies its place in the numbering.
+3. **What follows the repetition is not tried on the error path.** An error means the
+   element was there and was broken, not that the repetition ended.
+
+A value failure inside a marked repetition is recovered from too, and more cheaply: the
+element was recognized whole, so the position is already past it and there is nothing
+to skip. Inside a marked repetition an exception thrown by `=>` is caught and treated
+as a value failure; outside one, nothing is caught.
+
+**It is opt-in because it cannot be the default.** The rule "consumed something, then
+failed, therefore malformed" is wrong for ordinary grammars, and this language's own
+example proves it:
+
+```dotgram
+IPv6 = (H16 & ':'){6} & LS32 | …
+```
+
+An iteration matches `H16` and fails on `':'` having consumed four characters. That is
+a healthy backtrack, not a broken address. Marking the repetition is how an author says
+which reading applies, and it changes nothing outside the repetition it is written on —
+a rule still means one thing everywhere it is called.
+
+**The synchronization expression is also the retention bound.** An element of a marked
+repetition cannot reach back past the previous synchronization point, so a streamed
+parse holds one element and not the file. This is what §6.2 promises to prove before
+emitting a streaming overload; `recover eol` proves it by construction.
+
+#### The failure factory
+
+With a `=>`, a failed element becomes an element of the sequence instead of vanishing
+from it:
+
+```dotgram
+Row* recover eol => @BadRow(ordinal, line, text, message)
+```
+
+The factory's result must fit the sequence's element type, exactly as a successful
+element must — so this form needs a declared `: T[]` whose type can hold both. Failure
+then needs no channel of its own: it arrives in the stream, in its place, and the
+question of matching a rejection to the record it came from does not arise.
+
+Without a `=>` the failed element is dropped and reported out of band (§8.3), which is
+what a grammar that has no type to spare should do.
+
+#### Positions, and the names that are filled in
+
+The factory's arguments are matched by name, the way §7.3 matches captures, and these
+names are supplied rather than captured:
+
+| | |
+| --- | --- |
+| `ordinal` | which element of the repetition this is, counting rejected ones, from 0 |
+| `line`, `column` | where it starts, for a person, from 1 |
+| `position` | absolute offset, `long` — for a machine |
+| `span`, `text` | its extent, and the input it covers |
+| `message` | why it was rejected — only here, never in a capture |
+
+`ordinal` and `line` are not the same number and neither substitutes for the other: a
+header shifts the first record off line one, a record may span lines, `Trivia` swallows
+blank ones, and a recovery skips an unknown number of them. The first is the key a
+downstream system joins on, the second is what a person opens the file at.
+
+The same names may be captured on a successful element, which is what lets a record
+carry its own position without the grammar saying anything else:
+
+```csharp
+public sealed record Row(string Symbol, int Qty, long Ordinal, int Line);
+```
+
+Counting lines costs a scan of the text an element consumed, and is done only when a
+name that needs it was asked for.
+
+### 8.3 What a parse hands back
+
+One driver, four surfaces over it. None of them requires the author to declare
+anything; declaring is how control is taken, never how it is obtained.
+
+| Wanted | Shape | Declared |
+| --- | --- | --- |
+| most control, no allocation per record | `Read()` and properties | nothing |
+| failures in the stream, LINQ over it | `IEnumerable<RowOutcome>` | nothing |
+| failures in the stream as the author's own types | `IEnumerable<FeedItem>` with a factory | `: T[]` |
+| successful records only, failures to a log | `IEnumerable<Row>` and a sink | nothing |
+
+The first is the primitive and the other three are built from it:
+
+```csharp
+var feed = FeedGrammar.ReadFeed(input);
+
+while (feed.Read())
+{
+    if (feed.HasError) reject.WriteLine($"{feed.Line}\t{feed.Error}\t{feed.Text}");
+    else               Handle(feed.Current);
+}
+```
+
+Success and failure are the same iteration here, so nothing has to be matched up
+afterwards, and there is no element to allocate. It is also the shape a reused record
+needs — `Current` valid until the next `Read` — which no compiler-generated iterator
+can offer.
+
+`RowOutcome` is generated per grammar, `public`, with members drawn from the BCL and
+from the grammar's own types. It follows the rule of §7.3 rather than being an
+exception to it: no C# type declared, so one is generated. Nothing is shared between
+assemblies, so §6.1 does not apply and `[assembly: GramRuntime]` is not needed; under
+it, the outcome gains a typed `Diagnostic`, additively.
+
+**A rejection carries the text it was rejected from.** A position alone is useless in a
+streamed parse — a `TextReader` cannot be wound back and the buffer has been reused —
+so the text of a failed element is materialized. Only of a failed one: the premise is
+that failures are rare, and a grammar that fails on every record has a different
+problem.
+
+Exceptions appear only where §7.5 puts them: in the published methods without a `Try`
+prefix. `ParseFeed(string)` throws on the first failure of any kind; everything else
+answers.
+
+---
+
+## 9. A complete example
 
 ```dotgram
 @using System;
@@ -847,7 +1030,7 @@ if (!FeedGrammar.TryParseFeed(text, out var value, out var error, out var pos))
 
 ---
 
-## 9. The grammar of `.gram` itself
+## 10. The grammar of `.gram` itself
 
 A consistency check: all the notation above is parsed by this grammar with no more
 than two tokens of lookahead.
@@ -872,8 +1055,9 @@ Sequence    = Operand & ('&' & Operand)*
 Operand     = Guard | Quantified
 Guard       = "where" & Value
 
-Quantified  = Prefixed & Quantifier?
+Quantified  = Prefixed & Quantifier? & Recovery?
 Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
+Recovery    = "recover" & Prefixed & ("=>" & Value)?
 Count       = Int | Identifier
 Prefixed    = ("?=" | "?!")? & Captured
 Captured    = (Identifier & ':')? & Primary
@@ -916,17 +1100,25 @@ the grammar has no comparison operators.
 
 ---
 
-## 10. Deliberately out of scope
+## 11. Deliberately out of scope
 
 Below is what needs a working prototype rather than another round of argument on
 paper. None of it requires changing the notation above.
 
 **Decided: there will be no notation for it.**
 
-- **Error recovery.** No construct will appear in the language: the engine runs
-  recovery itself, in a separate pass, only when ordinary parsing failed, and looks
-  for the cheapest edit of the input. The author writes neither policies nor
-  synchronization points. Details in `implementation.md` §1 and §6.
+- **Repairing a document.** When a whole input is one construct — a source file in an
+  editor — recovery needs no notation: the engine runs a pass of its own, only after
+  ordinary parsing failed, and looks for the cheapest edit that makes the input parse.
+  The author writes nothing. Details in `implementation.md` §1 and §6.
+
+  This was once written here as covering error recovery entirely, and it does not.
+  Cheapest-edit repair answers "what did the author most likely mean", which is the
+  right question for one document and the wrong one for a feed of a hundred million
+  records: there the answer wanted is "this record is bad, say why and go on", which is
+  a policy rather than a repair, and it must hold nothing but the current record. That
+  case has notation, and it is §8.2. The two do not overlap — one runs after a failed
+  parse over the whole input, the other during a successful one, per element.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
   where one literal alternative is a prefix of another. `"http" | "https"` matches
@@ -957,18 +1149,19 @@ paper. None of it requires changing the notation above.
 - **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
   rule and ordinary shadowing.
 
-- **There is no commit point.** Ordered choice backtracks fully, so `Call | Index`
-  sharing a leading `Identifier` simply works, and a rule means one thing everywhere.
+- **There is no commit point in an expression.** Ordered choice backtracks fully, so
+  `Call | Index` sharing a leading `Identifier` simply works, and a rule means one thing
+  everywhere it is called. There is no cut operator, and an alternative cannot be
+  written so as to mean something different from where it sits.
 
-  Early commitment existed to keep a real syntax error deep inside an alternative from
-  being discarded in favour of a useless "nothing matched" at the top. That job now
-  belongs to the recovery engine, which finds the cheapest edit and reports from
-  there — so the reason is gone, while the cost of committing (the same alternative
-  meaning different things depending on where it was written) is not.
-
-  Bounded memory, the other thing a commit point would have bought, is bought instead
-  by the retention analysis of §6.2, which restricts what may stream without changing
-  what anything means.
+  What was rejected here is a commit point an author scatters through expressions,
+  whose cost is exactly that a rule stops meaning one thing. `recover` (§8.2) commits
+  too, and pays none of it: it is written on one repetition, it says that *that*
+  repetition's elements are records rather than alternatives to try, and the rules it
+  calls are unchanged everywhere including inside it. The reason it exists at all is
+  the one early commitment was originally wanted for and the recovery engine cannot
+  serve — a semantic guard failing on record 12 of a hundred million, where cheapest-edit
+  repair is neither affordable nor an answer.
 
 - **Keyword boundaries** — §4.6, the same mechanism again.
 
@@ -989,12 +1182,13 @@ paper. None of it requires changing the notation above.
   answering whether it is sugar or a privileged lowering, which is worth doing only
   when something needs it. `implementation.md` §9 records what to lower it into.
 
-**Still open.**
+**Answered, and where.**
 
-- **How an author says "this is an error, not a mismatch".** With full backtracking a
-  failing `where @IsSupportedSymbol(symbol)` is merely a non-match, a sibling is tried,
-  and recovery later reports that the line would not parse — it knows nothing of
-  semantic guards, so "unsupported symbol XYZ" is never said. This is a question about
-  diagnostics rather than about parsing, and much smaller than the one it is left over
-  from. Best answered against a real grammar, where it will be obvious which messages
-  are missing.
+- **How an author says "this is an error, not a mismatch"** was open here, on the
+  observation that a failing `where @IsSupportedSymbol(symbol)` is merely a non-match
+  and "unsupported symbol XYZ" is therefore never said. It was answered by splitting
+  the question in two (§8.1). A guard is recognition and stays a non-match — that was
+  never the part that needed changing. What was missing is that most of the checks
+  people write are not recognition at all: they run on values, after the match, and
+  belong in a transformation that may fail. §7.1 gives that a signature, `recover`
+  (§8.2) gives the failure somewhere to go, and neither touches what a guard means.

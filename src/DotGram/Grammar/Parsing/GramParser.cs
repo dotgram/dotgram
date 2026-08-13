@@ -6,7 +6,7 @@ using System.Text;
 namespace DotGram.Grammar.Parsing;
 
 /// <summary>
-/// Turns tokens into a syntax tree, following the productions in docs/syntax.md §9.
+/// Turns tokens into a syntax tree, following the productions in docs/syntax.md §10.
 /// </summary>
 /// <remarks>
 /// <para>
