@@ -34,7 +34,7 @@ then quietly mean nothing.
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| binding powers `<< n` `>> n` §4.3.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -96,10 +96,15 @@ whose every alternative is left-recursive, which has nothing to start from; and 
 alternative recursive on both sides, which ordered choice cannot settle — `-1-2` under
 `E = E & '-' & E` answered 1 rather than -3 until that was checked.
 
-Binding powers (§4.3.1) are specified and not built. They are what a grammar reaches
-for when levels as rules cannot say it: an expression language written as one rule, and
-the shapes ordered choice refuses. They need a precedence-climbing engine, which is why
-levels are the default rather than the fallback.
+Binding powers (§4.3.1) are what a grammar reaches for when levels as rules cannot say
+it: an expression language written as one rule, and the shapes ordered choice refuses.
+They need a precedence-climbing engine, which is why levels are the default rather than
+the fallback, and that engine is not built.
+
+They do parse, and are refused with `GRAM4009` naming §4.3.1. Parsing something the
+compiler cannot honour is deliberate: `<< 2` would otherwise be a syntax error about an
+unexpected `<`, which tells an author nothing about what is missing. The tests that pin
+this are the ones that will stop passing, for the right reason, when the engine lands.
 
 ## What a publication answers with
 

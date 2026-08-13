@@ -474,6 +474,18 @@ public sealed class SemanticTests
 				""",
 				input));
 
+	/// <summary>
+	/// §4.3.1 is specified and not built. It parses, so a grammar that uses it is told
+	/// what is wrong rather than handed a syntax error — and the day the engine lands,
+	/// these are the tests that stop passing for the right reason.
+	/// </summary>
+	[Theory]
+	[InlineData("""Start : @int = left: Start & '+' & right: Start << 1 => @(left + right) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
+	[InlineData("""Start : @int = left: Start & '^' & right: Start >> 3 => @(left - right) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
+	[InlineData("""Start : @int = '-' & operand: Start >> 4 => @(-operand) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
+	public void A_binding_power_parses_and_says_it_is_not_built(string grammar) =>
+		Refused(GrammarNormalizer.UnbuiltBinding, grammar);
+
 	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");

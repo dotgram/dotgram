@@ -320,12 +320,44 @@ public sealed class GramParser
 	Expr ParseAlternative()
 	{
 		var start   = Current.Position;
-		var pattern = ParseSequence();
+		var pattern = ParseBound(ParseSequence(), start);
 
 		if (!TakeIf(TokenKind.Arrow))
 			return pattern;
 
 		return new Expr.Construct(pattern, ParseValue()) { At = From(start) };
+	}
+
+	/// <summary>
+	/// A binding power on an alternative — <c>&lt;&lt; 2</c> or <c>&gt;&gt; 3</c> (§4.3.1).
+	/// </summary>
+	/// <remarks>
+	/// Two tokens rather than one, which costs nothing and keeps <c>&gt;&gt;</c> from
+	/// having to be told apart from the end of a nested type argument list. Neither can
+	/// appear where an alternative has just ended, so a doubled one here is unambiguous.
+	/// </remarks>
+	Expr ParseBound(Expr pattern, int start)
+	{
+		var isLeft = At(TokenKind.Less)    && Next.Kind == TokenKind.Less;
+		var isDown = At(TokenKind.Greater) && Next.Kind == TokenKind.Greater;
+
+		if (!isLeft && !isDown)
+			return pattern;
+
+		Take();
+		Take();
+
+		var level = Current.Kind == TokenKind.Integer && Current.Value is { } text &&
+			int.TryParse(text, out var parsed)
+				? parsed
+				: -1;
+
+		if (level < 0)
+			Report(InvalidCount, "A binding power is a whole number: '<< 2', '>> 3'.");
+		else
+			Take();
+
+		return new Expr.Bound(pattern, isLeft, level) { At = From(start) };
 	}
 
 	Expr ParseSequence()
@@ -527,7 +559,9 @@ public sealed class GramParser
 		var name          = ExpectQualifiedName();
 		var typeArguments = new List<TypeRef>();
 
-		if (TakeIf(TokenKind.Less))
+		// `<<` is a binding power (§4.3.1) and never the start of a type argument list:
+		// nothing may follow the first `<` but a type, and a type never begins with `<`.
+		if (Next.Kind != TokenKind.Less && TakeIf(TokenKind.Less))
 		{
 			do
 				typeArguments.Add(ParseType());

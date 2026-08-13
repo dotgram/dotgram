@@ -75,6 +75,10 @@ public abstract record Expr : ILocated
 	public sealed record Choice    (IReadOnlyList<Expr> Alternatives)          : Expr;
 	public sealed record Sequence  (IReadOnlyList<Expr> Operands)              : Expr;
 	public sealed record Construct (Expr Pattern, Expr Value)                  : Expr;
+
+	/// <summary>An alternative that states its own binding power (§4.3.1).</summary>
+	public sealed record Bound     (Expr Body, bool IsLeft, int Level)         : Expr;
+
 	public sealed record Guard     (Expr Value)                                : Expr;
 	public sealed record Capture   (string Name, Expr Operand)                 : Expr;
 	public sealed record Group     (Expr Body)                                 : Expr;
@@ -203,6 +207,7 @@ static class Dump
 		Expr.Construct(var pattern, var value) => [pattern, value],
 		Expr.Guard(var value)               => [value],
 		Expr.Capture(_, var operand)        => [operand],
+		Expr.Bound(var body, _, _)          => [body],
 		Expr.Group(var body)                => [body],
 		Expr.Lookahead(_, var operand)      => [operand],
 		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
@@ -222,6 +227,7 @@ static class Dump
 	{
 		Expr.Choice                               => "Choice",
 		Expr.Construct                            => "Alternative",
+		Expr.Bound(_, var isLeft, var level)      => (isLeft ? "Left " : "Right ") + level,
 		Expr.Sequence                             => "Sequence",
 		Expr.Guard                                => "Guard",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",

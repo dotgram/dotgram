@@ -38,6 +38,7 @@ public sealed class GrammarNormalizer
 	public const string UnbuiltCapture      = "GRAM4006";
 	public const string CaptureTypeMismatch = "GRAM4007";
 	public const string UnbuiltConstruction = "GRAM4008";
+	public const string UnbuiltBinding      = "GRAM4009";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -136,6 +137,10 @@ public sealed class GrammarNormalizer
 
 		Expr.Construct(var pattern, var value)  => new Node.Construct(Lower(pattern, scope), Text(value)),
 
+		// Parsed and refused rather than parsed and ignored: a binding power that means
+		// nothing would give an answer, and the wrong one.
+		Expr.Bound(var body, _, _)              => Bound(body, scope, expression),
+
 		Expr.Quantified(var operand, var kind, var min, _, var max, _) =>
 			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
 
@@ -152,6 +157,17 @@ public sealed class GrammarNormalizer
 
 		_ => Node.Empty.Instance,
 	};
+
+	Node Bound(Expr body, GrammarScope scope, Expr at)
+	{
+		Report(
+			UnbuiltBinding,
+			"Binding powers are specified and not built (docs/syntax.md §4.3.1). They need a " +
+			"precedence-climbing engine; until it exists, write the levels as rules — §4.3.",
+			at.At);
+
+		return Lower(body, scope);
+	}
 
 	/// <summary>
 	/// A call — and, the first time a built-in is called, the body it is a call to.
