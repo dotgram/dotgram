@@ -393,7 +393,7 @@ public static class CSharpEmitter
 			: new Machine.Built(
 				type,
 				graph.Results[rule],
-				CaptureLayout.Of(graph.Bodies[rule], other => results.QualifiedOf(other) is not null),
+				LayoutOf(graph, results, rule),
 				FactoriesOf(graph, results, rule));
 
 	/// <summary>
@@ -417,11 +417,15 @@ public static class CSharpEmitter
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
 		var name   = "Construct_" + rule.Name.Replace('.', '_');
-		var layout = CaptureLayout.Of(graph.Bodies[rule], other => results.QualifiedOf(other) is not null);
+		var fold   = graph.Folds.TryGetValue(rule, out var found0) ? found0 : null;
+		var layout = LayoutOf(graph, results, rule);
 		var found  = new List<Machine.Factory>();
 
-		foreach (var node in Constructions(graph.Bodies[rule]))
+		foreach (var node in Fold.Of(graph.Bodies[rule], fold))
 		{
+			if (node is not Node.Construct)
+				continue;
+
 			var from    = layout.Before(node);
 			var to      = layout.After(node);
 			var visible = new List<ResultMember>();
@@ -446,44 +450,37 @@ public static class CSharpEmitter
 			}
 
 			found.Add(new Machine.Factory(
-				node, found.Count == 0 ? name : name + "_" + found.Count, visible));
+				node,
+				found.Count == 0 ? name : name + "_" + found.Count,
+				visible,
+				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
+					? accumulator
+					: null));
 		}
 
 		return found;
 	}
 
-	/// <summary>
-	/// The <c>=&gt;</c> of a rule: the body itself, or the alternatives it offers.
-	/// </summary>
-	/// <remarks>
-	/// No deeper. A <c>=&gt;</c> builds the rule's value, and a group inside the body is
-	/// not the rule — what one would mean there is undefined, so the normalizer refuses it
-	/// rather than this quietly ignoring it.
-	/// </remarks>
-	internal static IEnumerable<Node> Constructions(Node body)
-	{
-		if (body is Node.Construct)
-		{
-			yield return body;
-
-			yield break;
-		}
-
-		if (body is not Node.Choice(var alternatives))
-			yield break;
-
-		foreach (var alternative in alternatives)
-			if (alternative is Node.Construct)
-				yield return alternative;
-	}
+	/// <summary>Where a rule's captures are, with its fold loop known for what it is.</summary>
+	static CaptureLayout LayoutOf(RecognitionGraph graph, ResultTypes results, RuleSymbol rule) =>
+		CaptureLayout.Of(
+			graph.Bodies[rule],
+			other => results.QualifiedOf(other) is not null,
+			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 
 	static void EmitFactory(
 		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results)
 	{
 		var parameters = new List<string> { "string text" };
 
+		// A fold step is handed the value built so far under the name it captured the
+		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
+		// away — so it is written in here rather than found among the members.
+		if (factory.Accumulator is { Length: > 0 } accumulator)
+			parameters.Add($"{graph.Types[rule]} {accumulator}");
+
 		foreach (var member in factory.Members)
-			if (member.Name != "text")
+			if (member.Name != "text" && member.Name != factory.Accumulator)
 				parameters.Add(
 					results.ValueOf(member.Rule) +
 					(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +

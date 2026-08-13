@@ -159,6 +159,12 @@ public sealed class RecognitionGraph(
 	/// <summary>The grammar's <c>@using</c> directives, which the generated file needs.</summary>
 	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
 
+	/// <summary>
+	/// What a left-recursive rule was rewritten into (§4.3), for the rules that were.
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, Fold> Folds { get; set; } =
+		new Dictionary<RuleSymbol, Fold>();
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

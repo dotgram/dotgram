@@ -117,10 +117,10 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var c0    = 0;
 			var c1    = 0;
-			var state = 28;
+			var state = 29;
 
 			var s0_from = -1; var s0_to = -1;
-			global::DotGram.Snapshots.Url.Authority? v1 = null;
+			global::DotGram.Snapshots.Url.Authority v1 = default!;
 			var s2_from = -1; var s2_to = -1;
 			var s3_from = -1; var s3_to = -1;
 			var s4_from = -1; var s4_to = -1;
@@ -132,7 +132,7 @@ namespace DotGram.Snapshots
 					case 0:
 						value = new global::DotGram.Snapshots.Url.UrlValue(
 							text.Slice(s0_from, s0_to - s0_from).ToString(),
-							v1!,
+							v1,
 							text.Slice(s2_from, s2_to - s2_from).ToString(),
 							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
 							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
@@ -307,6 +307,10 @@ namespace DotGram.Snapshots
 						goto case 22;
 
 					case 24:
+						// authority: Authority — captured
+						goto case 23;
+
+					case 25:
 						// Authority
 						r = Recognize_Authority(text, p, ref failure, out v1);
 
@@ -314,9 +318,9 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 23;
+						goto case 24;
 
-					case 25:
+					case 26:
 						// "://"
 						if (p + 3 > text.Length)
 							goto case 1;
@@ -327,14 +331,14 @@ namespace DotGram.Snapshots
 						if (text[p + 2] != '/')
 							goto case 1;
 						p += 3;
-						goto case 24;
-
-					case 26:
-						// scheme: Scheme — captured to here
-						s0_to = p;
 						goto case 25;
 
 					case 27:
+						// scheme: Scheme — captured to here
+						s0_to = p;
+						goto case 26;
+
+					case 28:
 						// Scheme
 						r = Recognize_Scheme(text, p, ref failure);
 
@@ -342,12 +346,12 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 26;
+						goto case 27;
 
-					case 28:
+					case 29:
 						// scheme: Scheme — capture starts here
 						s0_from = p;
-						goto case 27;
+						goto case 28;
 
 					default:
 						return -1;
@@ -395,10 +399,10 @@ namespace DotGram.Snapshots
 			var r     = 0;
 			var c0    = 0;
 			var c1    = 0;
-			var state = 27;
+			var state = 28;
 
 			var s0_from = -1; var s0_to = -1;
-			global::DotGram.Snapshots.Url.Authority? v1 = null;
+			global::DotGram.Snapshots.Url.Authority v1 = default!;
 			var s2_from = -1; var s2_to = -1;
 			var s3_from = -1; var s3_to = -1;
 			var s4_from = -1; var s4_to = -1;
@@ -410,7 +414,7 @@ namespace DotGram.Snapshots
 					case 0:
 						value = new global::DotGram.Snapshots.Url.UrlValue(
 							text.Slice(s0_from, s0_to - s0_from).ToString(),
-							v1!,
+							v1,
 							text.Slice(s2_from, s2_to - s2_from).ToString(),
 							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
 							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
@@ -579,6 +583,10 @@ namespace DotGram.Snapshots
 						goto case 21;
 
 					case 23:
+						// authority: Authority — captured
+						goto case 22;
+
+					case 24:
 						// Authority
 						r = Recognize_Authority(text, p, ref failure, out v1);
 
@@ -586,9 +594,9 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 22;
+						goto case 23;
 
-					case 24:
+					case 25:
 						// "://"
 						if (p + 3 > text.Length)
 							goto case 1;
@@ -599,14 +607,14 @@ namespace DotGram.Snapshots
 						if (text[p + 2] != '/')
 							goto case 1;
 						p += 3;
-						goto case 23;
-
-					case 25:
-						// scheme: Scheme — captured to here
-						s0_to = p;
 						goto case 24;
 
 					case 26:
+						// scheme: Scheme — captured to here
+						s0_to = p;
+						goto case 25;
+
+					case 27:
 						// Scheme
 						r = Recognize_Scheme(text, p, ref failure);
 
@@ -614,12 +622,12 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 25;
+						goto case 26;
 
-					case 27:
+					case 28:
 						// scheme: Scheme — capture starts here
 						s0_from = p;
-						goto case 26;
+						goto case 27;
 
 					default:
 						return -1;

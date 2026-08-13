@@ -89,14 +89,21 @@ public sealed class CaptureLayout
 		}
 	}
 
-	public static CaptureLayout Of(Node body, Func<RuleSymbol, bool> buildsValue)
+	/// <param name="fold">
+	/// The loop a left-recursive rule was rewritten into, if it was. What is captured
+	/// under it is written once per fold step and consumed there, so it is a value and
+	/// not a sequence — the repetition is the generator's, not the author's.
+	/// </param>
+	public static CaptureLayout Of(Node body, Func<RuleSymbol, bool> buildsValue, Node? fold = null)
 	{
-		var layout = new CaptureLayout();
+		var layout = new CaptureLayout { _fold = fold };
 
 		layout.Walk(body, buildsValue, repeated: false);
 
 		return layout;
 	}
+
+	Node? _fold;
 
 	/// <param name="repeated">
 	/// Whether a repetition that may run more than once encloses this node. What is
@@ -135,7 +142,7 @@ public sealed class CaptureLayout
 
 				_before[node] = _slots.Count;
 
-				Walk(body, buildsValue, repeated || max != 1);
+				Walk(body, buildsValue, !ReferenceEquals(node, _fold) && (repeated || max != 1));
 
 				_after[node] = _slots.Count;
 				break;
@@ -182,3 +189,34 @@ public sealed class CaptureLayout
 /// </remarks>
 public sealed record ResultMember(
 	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots);
+
+/// <summary>
+/// What a left-recursive rule became: the loop of its tails, and which capture of each
+/// tail is the value built so far (§4.3).
+/// </summary>
+/// <remarks>
+/// The loop is an ordinary repetition and compiles as one. It is named here for the two
+/// things that must know it is not the author's: a capture under it is written once per
+/// fold step and consumed there, so it is a value and not a sequence; and the
+/// alternatives under it take the accumulator as their first argument.
+/// </remarks>
+public sealed record Fold(Node Loop, IReadOnlyDictionary<Node, string> Accumulators)
+{
+	/// <summary>
+	/// The alternatives a rule offers — the bases and the fold steps once it has been
+	/// rewritten, and the plain ones when it has not.
+	/// </summary>
+	public static IReadOnlyList<Node> Of(Node body, Fold? fold)
+	{
+		if (fold is null)
+			return body is Node.Choice(var alternatives) ? alternatives : [body];
+
+		var offered = new List<Node>();
+
+		// The rewrite made the body a sequence of the bases and the loop over the tails.
+		foreach (var part in ((Node.Sequence)body).Nodes)
+			offered.AddRange(Of(part is Node.Repeat(var repeated, _, _) ? repeated : part, null));
+
+		return offered;
+	}
+}

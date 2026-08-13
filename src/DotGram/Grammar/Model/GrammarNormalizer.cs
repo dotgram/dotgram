@@ -58,6 +58,7 @@ public sealed class GrammarNormalizer
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
+		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 		normalizer.ComputeTypes();
 		normalizer.ComputeResults();
@@ -71,7 +72,10 @@ public sealed class GrammarNormalizer
 			normalizer._types,
 			Imports(model.Root),
 			model.Publications,
-			normalizer._diagnostics);
+			normalizer._diagnostics)
+		{
+			Folds = normalizer._folds,
+		};
 	}
 
 	void Report(string id, string message, Location at) =>
@@ -564,6 +568,99 @@ public sealed class GrammarNormalizer
 	/// What each rule's value is made of. A rule that captures nothing has no members and
 	/// keeps the value it always had — the text it matched.
 	/// </summary>
+	// ── Left recursion (§4.3) ────────────────────────────────────────────────────
+
+	readonly Dictionary<RuleSymbol, Fold> _folds = [];
+
+	/// <summary>
+	/// Turns a left-recursive rule into a base and a loop of tails.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>R = left: R &amp; op &amp; right | base</c> becomes <c>base &amp; (op &amp;
+	/// right)*</c>. The leading self-call is what makes an alternative recursive and what
+	/// the rewrite removes; <c>left</c> stops being a capture and becomes the value built
+	/// so far, which the alternative's own <c>=&gt;</c> receives.
+	/// </para>
+	/// <para>
+	/// The loop is an ordinary repetition, so backtracking, forgetting and everything
+	/// else apply to it unchanged. What is different is only that a capture under it is
+	/// consumed by the fold on the same iteration that wrote it, so it is a value rather
+	/// than a sequence.
+	/// </para>
+	/// </remarks>
+	void RewriteLeftRecursion()
+	{
+		foreach (var rule in _rules)
+		{
+			var alternatives = Alternatives(_bodies[rule]);
+			var bases        = new List<Node>();
+			var tails        = new List<Node>();
+			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
+
+			foreach (var alternative in alternatives)
+				if (Tail(alternative, rule) is var (tail, accumulator))
+				{
+					tails.Add(tail);
+					accumulators[tail] = accumulator;
+				}
+				else
+				{
+					bases.Add(alternative);
+				}
+
+			if (tails.Count == 0)
+				continue;
+
+			if (bases.Count == 0)
+			{
+				Report(
+					LeftRecursion,
+					$"Every alternative of '{rule.Name}' is left-recursive, so there is nothing to start from.",
+					rule.Declaration!.At);
+
+				continue;
+			}
+
+			var loop = new Node.Repeat(
+				tails.Count == 1 ? tails[0] : new Node.Choice(tails), 0, null);
+
+			_bodies[rule] = new Node.Sequence(
+				[bases.Count == 1 ? bases[0] : new Node.Choice(bases), loop]);
+
+			_folds[rule] = new Fold(loop, accumulators);
+		}
+	}
+
+	/// <summary>
+	/// An alternative with its leading call to <paramref name="rule"/> taken off, and the
+	/// name that call was captured under — or null when it does not begin with one.
+	/// </summary>
+	static (Node Tail, string Accumulator)? Tail(Node alternative, RuleSymbol rule)
+	{
+		var built = alternative as Node.Construct;
+		var body  = built?.Body ?? alternative;
+
+		if (body is not Node.Sequence(var operands) || operands.Count < 2)
+			return null;
+
+		var head = operands[0];
+		var name = head is Node.Capture(var captured, var inner) ? captured : null;
+
+		if ((head is Node.Capture(_, var call) ? call : head) is not Node.Call(var called, _) ||
+			!ReferenceEquals(called, rule))
+			return null;
+
+		var rest = new List<Node>(operands.Count - 1);
+
+		for (var i = 1; i < operands.Count; i++)
+			rest.Add(operands[i]);
+
+		Node tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
+
+		return (built is null ? tail : built with { Body = tail }, name ?? "");
+	}
+
 	/// <summary>Every <c>@using</c> in the grammar, outermost scope first.</summary>
 	static IReadOnlyList<string> Imports(GrammarScope scope)
 	{
@@ -601,7 +698,7 @@ public sealed class GrammarNormalizer
 		foreach (var rule in _rules)
 		{
 			var body    = _bodies[rule];
-			var layout  = CaptureLayout.Of(body, BuildsValue);
+			var layout  = CaptureLayout.Of(body, BuildsValue, _folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 			var members = new List<ResultMember>();
 			var slots   = new Dictionary<string, List<CaptureSlot>>(StringComparer.Ordinal);
 
@@ -734,7 +831,7 @@ public sealed class GrammarNormalizer
 	{
 		var body     = _bodies[rule];
 		var declared = _types.ContainsKey(rule);
-		var offered  = Alternatives(body);
+		var offered  = Fold.Of(body, _folds.TryGetValue(rule, out var fold) ? fold : null);
 		var building = 0;
 
 		foreach (var alternative in offered)
@@ -769,6 +866,9 @@ public sealed class GrammarNormalizer
 				"Matching captures to a constructor by name (§7.3) is not implemented yet.",
 				rule.Declaration!.At);
 	}
+
+	bool IsFoldLoop(RuleSymbol rule, Node node) =>
+		_folds.TryGetValue(rule, out var fold) && ReferenceEquals(fold.Loop, node);
 
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
 	static IReadOnlyList<Node> Alternatives(Node body) =>
@@ -806,7 +906,12 @@ public sealed class GrammarNormalizer
 					rule.Declaration!.At);
 		}
 
-		var inside   = node is Node.Repeat(var body, _, not 1) ? body : repeated;
+		// The fold loop is the generator's, not the author's: a capture under it is
+		// consumed by the fold on the iteration that wrote it (§4.3).
+		var inside = node is Node.Repeat(var body, _, not 1) && !IsFoldLoop(rule, node)
+			? body
+			: repeated;
+
 		var lookings = inLookahead || node is Node.Lookahead;
 
 		foreach (var child in Children(node))
@@ -832,6 +937,8 @@ public sealed class GrammarNormalizer
 	/// </summary>
 	void CheckLeftRecursion(RuleSymbol start)
 	{
+		// Direct left recursion is rewritten (§4.3), so what is left to refuse is what the
+		// rewrite cannot take: a rule reaching itself through another one.
 		if (Reaches(_bodies[start], start, []))
 			Report(
 				LeftRecursion,

@@ -65,6 +65,13 @@ sealed class Machine
 		// sequence, so how wide a frame is has to be known before the first push.
 		foreach (var slot in Layout.Sequences)
 			_sequences.Add("l" + slot.Index);
+
+		// The values the alternatives built, in the order they matched. The last one is
+		// the answer, and the frame truncates it like any other sequence — so an
+		// alternative given back takes its value with it, and so does a fold step.
+		if (Factories.Count > 1)
+			_sequences.Add(Accumulator);
+
 	}
 
 	/// <summary>
@@ -98,7 +105,12 @@ sealed class Machine
 	/// One <c>=&gt;</c>: the alternative it is on, the method it became, and the members
 	/// that alternative can have captured — which are its parameters.
 	/// </summary>
-	public sealed record Factory(Node Of, string Method, IReadOnlyList<ResultMember> Members);
+	/// <param name="Accumulator">
+	/// The name a fold step's <c>=&gt;</c> knows the value built so far by, or null when
+	/// this alternative is not a fold step (§4.3).
+	/// </param>
+	public sealed record Factory(
+		Node Of, string Method, IReadOnlyList<ResultMember> Members, string? Accumulator = null);
 
 	IReadOnlyList<Factory> Factories => _builds?.Factories ?? [];
 
@@ -266,26 +278,44 @@ sealed class Machine
 			if (!Layout.Slots[i].IsSequence)
 				forgotten++;
 
-		if (forgotten == 0 && Factories.Count <= 1)
+		if (forgotten == 0)
 			return target;
 
 		var state = Reserve(out var writer, null, "forget what the abandoned attempt captured");
 
-		// Which `=>` fired goes with it. A `=>` covers a whole alternative, so nothing
-		// follows it within the rule and the only way back past one is through the choice
-		// that offered it — here.
-		if (Factories.Count > 1)
-			writer.Line("built = -1;");
-
-		for (var i = first; i < Layout.Slots.Count; i++)
-			if (!Layout.Slots[i].IsSequence)
-				writer.Line(Layout.Slots[i].Rule is null
-					? $"s{i}_from = s{i}_to = -1;"
-					: $"v{i} = null;");
-
-		writer.Line($"goto case {target};");
+		// Written at the end rather than here: which value slots carry a flag is only
+		// known once every alternative has been compiled.
+		_forgets.Add((writer, first, target));
 
 		return state;
+	}
+
+	readonly List<(Writer Writer, int First, int Target)> _forgets = [];
+	readonly List<(Writer Writer, int Slot, int Target)>  _marks   = [];
+
+	/// <summary>
+	/// The states whose bodies wait on what the rest of the machine turned out to need.
+	/// </summary>
+	void WriteDeferred()
+	{
+		foreach (var (writer, slot, target) in _marks)
+		{
+			if (_flagged.Contains(slot))
+				writer.Line($"v{slot}_set = true;");
+
+			writer.Line($"goto case {target};");
+		}
+
+		foreach (var (writer, first, target) in _forgets)
+		{
+			for (var i = first; i < Layout.Slots.Count; i++)
+				if (!Layout.Slots[i].IsSequence)
+					writer.Line(Layout.Slots[i].Rule is null
+						? $"s{i}_from = s{i}_to = -1;"
+						: _flagged.Contains(i) ? $"v{i}_set = false;" : $"v{i} = default!;");
+
+			writer.Line($"goto case {target};");
+		}
 	}
 
 	// ── Compilation ──────────────────────────────────────────────────────────────
@@ -433,14 +463,22 @@ sealed class Machine
 				{
 					var appended = Reserve(out var atAppend, node, "one more, collected");
 
-					atAppend.Line($"l{slot}.Add(v{slot}!);");
+					atAppend.Line($"l{slot}.Add(v{slot});");
 					atAppend.Line($"goto case {next};");
 
 					return CompileCall((Node.Call)captured, appended, slot);
 				}
 
 				if (Layout.Slots[slot].Rule is not null)
-					return CompileCall((Node.Call)captured, next, slot);
+				{
+					// Written afterwards, because whether this slot carries a flag at all
+					// is only settled once every member has been read.
+					var marked = Reserve(out var atMark, node, "captured");
+
+					_marks.Add((atMark, slot, next));
+
+					return CompileCall((Node.Call)captured, marked, slot);
+				}
 
 				var close = Reserve(out var atClose, node, "captured to here");
 
@@ -461,23 +499,25 @@ sealed class Machine
 			// there keeps the promise of §7.2: the C# runs on the parse that happened.
 			case Node.Construct(var pattern, _):
 			{
-				var which = -1;
+				Factory? chosen = null;
 
-				for (var i = 0; i < Factories.Count; i++)
-					if (ReferenceEquals(Factories[i].Of, node))
-						which = i;
+				foreach (var factory in Factories)
+					if (ReferenceEquals(factory.Of, node))
+						chosen = factory;
 
-				if (which < 0)
+				// The one factory of a rule builds at the accepting state, where nothing
+				// can still be given back. More than one, and which fired has to be
+				// recorded — as the value itself, appended to a list the backtracking
+				// frame truncates, so an abandoned alternative takes its value with it.
+				if (chosen is null || Factories.Count < 2)
 					return Compile(pattern, next);
 
-				var chosen = Reserve(out var writer, node, "this is the one that matched");
+				var state = Reserve(out var writer, node, "this alternative built the value");
 
-				if (Factories.Count > 1)
-					writer.Line($"built = {which};");
-
+				writer.Line($"{Accumulator}.Add({Apply(chosen)});");
 				writer.Line($"goto case {next};");
 
-				return Compile(pattern, chosen);
+				return Compile(pattern, state);
 			}
 
 			default:
@@ -515,6 +555,7 @@ sealed class Machine
 		writer.Line("if (r < 0)");
 		writer.Then($"goto case {Fail};");
 		writer.Line();
+
 		writer.Line("p = r;");
 		writer.Line($"goto case {next};");
 
@@ -721,49 +762,53 @@ sealed class Machine
 	/// grammar supplies runs once, on the parse that actually happened, rather than once
 	/// per attempt (§7.2).
 	/// </remarks>
-	static void Construct(Writer file, Built built)
+	/// <summary>The name of the list the alternatives of a rule build into.</summary>
+	const string Accumulator = "acc";
+
+	/// <summary>
+	/// A call to one alternative's factory. A fold step takes the value built so far as
+	/// its first argument, which is the last thing appended (§4.3).
+	/// </summary>
+	string Apply(Factory factory)
+	{
+		// The matched extent, which §7.3 supplies under the name `text`. Always passed:
+		// what the C# does with it is the C# compiler's business, and an argument nobody
+		// reads costs nothing.
+		var arguments = new List<string> { "text.Slice(pos, p - pos).ToString()" };
+
+		if (factory.Accumulator is not null)
+			arguments.Add($"{Accumulator}[{Accumulator}.Count - 1]");
+
+		foreach (var member in factory.Members)
+			arguments.Add(Value(member));
+
+		return $"{factory.Method}({string.Join(", ", arguments)})";
+	}
+
+	void Construct(Writer file, Built built)
 	{
 		var factories = built.Factories ?? [];
 
-		if (factories.Count <= 1)
+		// More than one alternative builds, so each appended as it matched and the last
+		// one standing is the answer. A fold leaves the whole chain behind it here.
+		if (factories.Count > 1)
 		{
-			Assign(file, built, factories.Count == 1 ? factories[0] : null);
+			file.Line($"value = {Accumulator}[{Accumulator}.Count - 1];");
 
 			return;
 		}
 
-		// One `=>` per alternative, and `built` says which of them the match came through.
-		using (file.Block("switch (built)"))
-			for (var i = 0; i < factories.Count; i++)
-			{
-				file.Line($"case {i}:");
-
-				using (file.Indent())
-				{
-					Assign(file, built, factories[i]);
-					file.Line("break;");
-				}
-
-				file.Line();
-			}
-	}
-
-	static void Assign(Writer file, Built built, Factory? factory)
-	{
-		// The matched extent, which §7.3 supplies under the name `text`. Always passed to
-		// a factory: what the C# does with it is the C# compiler's business, and an
-		// argument nobody reads costs nothing.
 		var arguments = new List<string>();
 
-		if (factory is not null)
+		if (factories.Count == 1)
 			arguments.Add("text.Slice(pos, p - pos).ToString()");
 
-		foreach (var member in factory?.Members ?? built.Members)
+		foreach (var member in factories.Count == 1 ? factories[0].Members : built.Members)
 			arguments.Add(Value(member));
 
-		file.Line(factory is null
-			? $"value = new {built.TypeName}("
-			: $"value = {factory.Method}(");
+		file.Line(factories.Count == 1
+			? $"value = {factories[0].Method}("
+			: $"value = new {built.TypeName}(");
 
 		using (file.Indent())
 			for (var i = 0; i < arguments.Count; i++)
@@ -778,7 +823,7 @@ sealed class Machine
 	/// They are tried in the order the notation writes them, which is the order in which
 	/// at most one of them can have been reached.
 	/// </remarks>
-	static string Value(ResultMember member)
+	string Value(ResultMember member)
 	{
 		// A sequence is never absent and never shared between names: no iterations is an
 		// empty array, so there is nothing to test and nothing to fall through to.
@@ -786,25 +831,49 @@ sealed class Machine
 			return $"l{member.Slots[0]}.ToArray()";
 
 		if (member.Slots.Count == 1 && !member.IsOptional)
-			return Read(member, member.Slots[0]) + (member.Rule is null ? "" : "!");
+			return Read(member, member.Slots[0]);
 
-		var expression = "null";
+		var expression = member.IsOptional ? "null" : $"default({Type(member)})!";
 
 		for (var i = member.Slots.Count - 1; i >= 0; i--)
 			expression = $"{Written(member, member.Slots[i])} ? {Read(member, member.Slots[i])} : {expression}";
 
-		// The member is written on every path, so one of the tests holds — which the
-		// compiler has no way of knowing.
-		return member.IsOptional ? expression : $"({expression})!";
+		return expression;
 	}
+
+	string Type(ResultMember member) => _results.ValueOf(member.Rule);
 
 	static string Read(ResultMember member, int slot) =>
 		member.Rule is null
 			? $"text.Slice(s{slot}_from, s{slot}_to - s{slot}_from).ToString()"
 			: $"v{slot}";
 
-	static string Written(ResultMember member, int slot) =>
-		member.Rule is null ? $"s{slot}_from >= 0" : $"v{slot} != null";
+	/// <summary>
+	/// Whether a slot was written. A pair of positions says so by itself; a value needs a
+	/// flag beside it, because a rule may declare itself <c>: @int</c> and a value type
+	/// has no null to mean "not written".
+	/// </summary>
+	/// <remarks>
+	/// Which slots need one is only known once everything is compiled, so it is recorded
+	/// here and the declarations are written afterwards — a flag nobody reads is a
+	/// warning in the consumer's build, and warnings there are ours to prevent.
+	/// </remarks>
+	string Written(ResultMember member, int slot)
+	{
+		if (member.Rule is null)
+			return $"s{slot}_from >= 0";
+
+		_flagged.Add(slot);
+
+		return $"v{slot}_set";
+	}
+
+	/// <summary>
+	/// The value slots whose written-ness is ever asked about — a member that may be
+	/// absent, or one filled from more than one place. Anywhere else the value is simply
+	/// there, and a flag nobody reads is a warning in the consumer's build.
+	/// </summary>
+	readonly HashSet<int> _flagged = [];
 
 	/// <summary>The whole machine as one method.</summary>
 	/// <param name="pattern">
@@ -814,6 +883,8 @@ sealed class Machine
 	/// </param>
 	public string Render(int entry, string? pattern = null)
 	{
+		WriteDeferred();
+
 		var file = new Writer(0);
 
 		if (pattern is not null)
@@ -858,12 +929,18 @@ sealed class Machine
 
 			file.Line($"var state = {entry};");
 
-			if (Factories.Count > 1)
-				file.Line("var built = -1;");
 
 			// One pair of positions per text capture, one reference per captured value.
 			// Unwritten is -1 and null, which is what tells "matched nothing here" from
 			// "was never reached" — an optional capture is the difference.
+			if (Factories.Count > 1)
+			{
+				file.Line();
+				file.Line(
+					$"var {Accumulator} = new global::System.Collections.Generic.List<" +
+					$"{_builds!.TypeName}>();");
+			}
+
 			if (Layout.Slots.Count > 0)
 			{
 				file.Line();
@@ -876,11 +953,15 @@ sealed class Machine
 						// The one the call writes into, and the one it is appended to. Two,
 						// because an `out` needs somewhere to land whether or not it matched.
 						{ IsSequence: true } =>
-							$"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null; " +
+							$"{_results.QualifiedOf(slot.Rule)} v{slot.Index} = default!; " +
 							$"var l{slot.Index} = new global::System.Collections.Generic.List<" +
 							$"{_results.QualifiedOf(slot.Rule)}>();",
 
-						_ => $"{_results.QualifiedOf(slot.Rule)}? v{slot.Index} = null;",
+						// A flag rather than null, because a rule may declare itself
+						// `: @int` and a value type has no null to mean "not written".
+						_ =>
+							$"{_results.QualifiedOf(slot.Rule)} v{slot.Index} = default!;" +
+							(_flagged.Contains(slot.Index) ? $" var v{slot.Index}_set = false;" : ""),
 					});
 			}
 

@@ -467,8 +467,14 @@ Sum` is not a fresh parse of `Sum`; it is the value built so far — the first t
 the alternatives that are not left-recursive, and afterwards from the previous
 application of this one. Which is to say `=>` is a fold, and both `=>` in the rule
 above are used: the base builds the first value, the recursive alternative applies once
-per operator. Nothing is built while matching (§7.2); the fold happens where all
-construction happens, once the match has succeeded.
+per operator.
+
+**A fold is the one construction that does not wait for the match to succeed.** Every
+other `=>` runs once, at the end, on the alternative that matched; a fold applies as
+the chain grows, so a step the match later gives back will have run. §7.2 already asks
+that code in these positions bear being invoked more than once, so nothing further is
+asked of the author — but it is worth knowing which `=>` this is. What a step built is
+given back with it, so the value is always the one the accepted parse produced.
 
 Two things are rejected when the grammar is built:
 

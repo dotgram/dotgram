@@ -397,6 +397,44 @@ public sealed class SemanticTests
 			GrammarNormalizer.UnbuiltConstruction,
 			"""Start : @int = ("a" => @(1) | "b" => @(2)) & 'c' => @(3)""");
 
+	// ── Left recursion, and what it says about associativity (§4.3) ─────────────
+
+	const string Calculator = """
+		Sum     : @int = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
+		               | value: Product                                   => @(value)
+
+		Product : @int = left: Product & op: ['*' | '/'] & right: Primary => @(op == "*" ? left * right : left / right)
+		               | value: Primary                                   => @(value)
+
+		Primary : @int = '(' & inner: Sum & ')'                           => @(inner)
+		               | digits: ['0'..'9']+                              => @int.Parse(digits)
+
+		""";
+
+	[Theory]
+	[InlineData("1+2+3",       6)]
+	[InlineData("1-2-3",      -4)]     // (1-2)-3, not 1-(2-3)
+	[InlineData("2*3+4",      10)]
+	[InlineData("2+3*4",      14)]
+	[InlineData("(2+3)*4",    20)]
+	[InlineData("100/5/2",    10)]     // (100/5)/2, not 100/(5/2)
+	[InlineData("7",           7)]
+	public void A_calculator(string input, int expected) =>
+		Assert.Equal(expected, Built(Calculator + "Start : @int = value: Sum => @(value)", input));
+
+	[Fact]
+	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
+		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
+
+	[Fact]
+	public void Indirect_left_recursion_is_still_refused() =>
+		Refused(
+			GrammarNormalizer.LeftRecursion,
+			"""
+			Start = Other & 'x'
+			Other = Start | 'y'
+			""");
+
 	// ── `where` guards (§8.1) ───────────────────────────────────────────────────
 
 	[Theory]

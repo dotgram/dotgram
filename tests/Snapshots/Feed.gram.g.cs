@@ -149,11 +149,11 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var r     = 0;
 			var c0    = 0;
-			var state = 12;
+			var state = 14;
 
-			global::DotGram.Snapshots.Feed.Header? v0 = null;
-			global::DotGram.Snapshots.Feed.Row? v1 = null; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
-			global::DotGram.Snapshots.Feed.Trailer? v2 = null;
+			global::DotGram.Snapshots.Feed.Header v0 = default!;
+			global::DotGram.Snapshots.Feed.Row v1 = default!; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
+			global::DotGram.Snapshots.Feed.Trailer v2 = default!;
 
 			while (true)
 			{
@@ -161,9 +161,9 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 						value = new global::DotGram.Snapshots.Feed.FeedValue(
-							v0!,
+							v0,
 							l1.ToArray(),
-							v2!);
+							v2);
 
 						return p;
 
@@ -203,6 +203,10 @@ namespace DotGram.Snapshots
 						goto case 2;
 
 					case 4:
+						// trailer: Trailer — captured
+						goto case 3;
+
+					case 5:
 						// Trailer
 						r = Recognize_Trailer(text, p, ref failure, out v2);
 
@@ -210,36 +214,36 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 3;
-
-					case 5:
-						// rows: Row* — stop, and check the count
-						c0 = saved;
-
 						goto case 4;
 
 					case 6:
-						// rows: Row* — take another, or leave stopping open
-						if (sp + 4 > bt.Length) bt = Grow(bt);
-						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
-						goto case 10;
+						// rows: Row* — stop, and check the count
+						c0 = saved;
+
+						goto case 5;
 
 					case 7:
-						// rows: Row* — one more taken
-						c0++;
-						goto case 6;
+						// rows: Row* — take another, or leave stopping open
+						if (sp + 4 > bt.Length) bt = Grow(bt);
+						bt[sp] = 12; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
+						goto case 11;
 
 					case 8:
-						// rows: Row* — start counting
-						c0 = 0;
-						goto case 6;
+						// rows: Row* — one more taken
+						c0++;
+						goto case 7;
 
 					case 9:
-						// rows: Row — one more, collected
-						l1.Add(v1!);
+						// rows: Row* — start counting
+						c0 = 0;
 						goto case 7;
 
 					case 10:
+						// rows: Row — one more, collected
+						l1.Add(v1);
+						goto case 8;
+
+					case 11:
 						// Row
 						r = Recognize_Row(text, p, ref failure, out v1);
 
@@ -247,14 +251,18 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 9;
-
-					case 11:
-						// forget what the abandoned attempt captured
-						v2 = null;
-						goto case 5;
+						goto case 10;
 
 					case 12:
+						// forget what the abandoned attempt captured
+						v2 = default!;
+						goto case 6;
+
+					case 13:
+						// header: Header — captured
+						goto case 9;
+
+					case 14:
 						// Header
 						r = Recognize_Header(text, p, ref failure, out v0);
 
@@ -262,7 +270,7 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 8;
+						goto case 13;
 
 					default:
 						return -1;
@@ -308,11 +316,11 @@ namespace DotGram.Snapshots
 			var p     = pos;
 			var r     = 0;
 			var c0    = 0;
-			var state = 11;
+			var state = 13;
 
-			global::DotGram.Snapshots.Feed.Header? v0 = null;
-			global::DotGram.Snapshots.Feed.Row? v1 = null; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
-			global::DotGram.Snapshots.Feed.Trailer? v2 = null;
+			global::DotGram.Snapshots.Feed.Header v0 = default!;
+			global::DotGram.Snapshots.Feed.Row v1 = default!; var l1 = new global::System.Collections.Generic.List<global::DotGram.Snapshots.Feed.Row>();
+			global::DotGram.Snapshots.Feed.Trailer v2 = default!;
 
 			while (true)
 			{
@@ -320,9 +328,9 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 						value = new global::DotGram.Snapshots.Feed.FeedValue(
-							v0!,
+							v0,
 							l1.ToArray(),
-							v2!);
+							v2);
 
 						return p;
 
@@ -356,6 +364,10 @@ namespace DotGram.Snapshots
 						goto case 0;
 
 					case 3:
+						// trailer: Trailer — captured
+						goto case 2;
+
+					case 4:
 						// Trailer
 						r = Recognize_Trailer(text, p, ref failure, out v2);
 
@@ -363,36 +375,36 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 2;
-
-					case 4:
-						// rows: Row* — stop, and check the count
-						c0 = saved;
-
 						goto case 3;
 
 					case 5:
-						// rows: Row* — take another, or leave stopping open
-						if (sp + 4 > bt.Length) bt = Grow(bt);
-						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
-						goto case 9;
+						// rows: Row* — stop, and check the count
+						c0 = saved;
+
+						goto case 4;
 
 					case 6:
-						// rows: Row* — one more taken
-						c0++;
-						goto case 5;
+						// rows: Row* — take another, or leave stopping open
+						if (sp + 4 > bt.Length) bt = Grow(bt);
+						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = c0; bt[sp + 3] = l1.Count; sp += 4;
+						goto case 10;
 
 					case 7:
-						// rows: Row* — start counting
-						c0 = 0;
-						goto case 5;
+						// rows: Row* — one more taken
+						c0++;
+						goto case 6;
 
 					case 8:
-						// rows: Row — one more, collected
-						l1.Add(v1!);
+						// rows: Row* — start counting
+						c0 = 0;
 						goto case 6;
 
 					case 9:
+						// rows: Row — one more, collected
+						l1.Add(v1);
+						goto case 7;
+
+					case 10:
 						// Row
 						r = Recognize_Row(text, p, ref failure, out v1);
 
@@ -400,14 +412,18 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 8;
-
-					case 10:
-						// forget what the abandoned attempt captured
-						v2 = null;
-						goto case 4;
+						goto case 9;
 
 					case 11:
+						// forget what the abandoned attempt captured
+						v2 = default!;
+						goto case 5;
+
+					case 12:
+						// header: Header — captured
+						goto case 8;
+
+					case 13:
 						// Header
 						r = Recognize_Header(text, p, ref failure, out v0);
 
@@ -415,7 +431,7 @@ namespace DotGram.Snapshots
 							goto case 1;
 
 						p = r;
-						goto case 7;
+						goto case 12;
 
 					default:
 						return -1;

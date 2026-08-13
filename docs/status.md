@@ -33,7 +33,8 @@ then quietly mean nothing.
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
-| direct left recursion §4.3 | ✓ | ✓ | refused | ✗ | ✗ |
+| direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition §8.2 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -66,13 +67,32 @@ not settled. What is settled is that it is written here rather than discovered.
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
 
-## Associativity is not built
+## Associativity
 
-§4.3 says direct left recursion is legal and means left-associative, rewritten into a
-repetition and a fold. `GRAM4002` still refuses all left recursion, direct or not, so
-today a left-associative level is written as a loop and folded by hand in C# — which
-also is not built, since it needs `=>`. Right associativity works now: right recursion
-is not left recursion, and nothing has to be rewritten.
+Direct left recursion works and means left-associative, as §4.3 says. `R = left: R & op
+& right | base` is rewritten into `base & (op & right)*`: the leading self-call is what
+makes an alternative recursive and what the rewrite takes away, and `left` stops being
+a capture and becomes the value built so far, which that alternative's own `=>`
+receives.
+
+The loop is an ordinary repetition, so backtracking, forgetting and the rest apply to
+it unchanged. Right associativity needs nothing: right recursion is not left recursion.
+
+One place §4.3 had to be corrected by the building of it. It said the fold happens
+where all construction happens, after the match — which would mean accumulating the
+tails and folding at the end, and tails of different shapes would then need a common
+type, which would have capped a rule at one recursive alternative. Postfix chains —
+member access, call, index — want three. So the fold runs as the loop turns, and its
+intermediate values are kept in a list the backtracking frame truncates, exactly as a
+sequence capture is. A fold step given back takes its value with it.
+
+What that costs is one sentence of honesty: a fold's `=>` may run on a step that is
+later given back. §7.2 already requires C# in these positions to bear being invoked
+more than once, so nothing new is asked of an author — but it is the one `=>` that does
+not wait for the match to succeed.
+
+Still refused: indirect left recursion, which has arbitrarily many shapes to rewrite,
+and a rule whose every alternative is left-recursive, which has nothing to start from.
 
 ## What a publication answers with
 
