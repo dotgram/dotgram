@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Examples</RootNamespace>
+		<IsPackable>false</IsPackable>
+
+		<!-- An example that does not compile is not an example. This project is built by
+		     the solution and exercised by DotGram.Tests, which is the only thing that
+		     runs it: the code here is what a consumer would write, with no test framework
+		     mixed into it. -->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!-- Generated files land on disk so a reader can open what the grammars became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else. A consumer takes one analyzer package and
+		     acquires no dependency (docs/syntax.md §6.1); so does this project, which is
+		     the point of it being a separate one. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>

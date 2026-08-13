@@ -13,7 +13,12 @@
 	</Folder>
 	<Folder Name="/docs/">
 		<File Path="docs/implementation.md" />
+		<File Path="docs/status.md" />
 		<File Path="docs/syntax.md" />
+	</Folder>
+	<Folder Name="/examples/">
+		<File Path="examples/README.md" />
+		<Project Path="examples/DotGram.Examples/DotGram.Examples.csproj" />
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src/DotGram/DotGram.csproj" />

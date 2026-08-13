@@ -40,6 +40,10 @@
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
+
+		<!-- The examples carry no test framework so they can be copied as they stand;
+		     this project is what runs them. -->
+		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
 	</ItemGroup>
 
 </Project>

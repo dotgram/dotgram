@@ -104,6 +104,18 @@ Not built yet:
   what was expected are next
 - the recovery engine, streaming input, incremental parsing
 
+## Examples
+
+Whole parsers, meant to be copied — a grammar, the class it attaches to, and the code
+written against it, with no test framework anywhere near them.
+
+| | |
+| --- | --- |
+| [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find all` |
+| [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, an envelope checked as a whole |
+
+[`examples/README.md`](examples/README.md) says what to add to a project to take one.
+
 ## Documentation
 
 | | |
@@ -124,7 +136,8 @@ dotnet test  DotGram.slnx
 
 Tests run at three levels: direct calls into each stage, the generator driven in
 memory, and the generator attached as an analyzer. `tests/Snapshots` holds a grammar
-and the file it must compile into, so a change to code generation shows up as a diff.
+and the file it must compile into, so a change to code generation shows up as a diff,
+and `examples/` is compiled and run by the same command.
 
 ## License
 

@@ -78,6 +78,10 @@ src/
 	DotGram/              the whole product: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
+examples/
+	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
+	                      attaches to, and the code written against it. No test
+	                      framework and no scaffolding — DotGram.Tests runs them
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer
@@ -85,6 +89,10 @@ tests/
 	                      a change to code generation shows up as a diff
 .work/                    scratch, ignored by git
 ```
+
+Nothing under `examples/` may reference a test framework or be written for one. An
+example that needs a fixture to make sense is not an example; assertions about it
+belong in `tests/DotGram.Tests/ExampleTests.cs`.
 
 No runtime assembly ships, deliberately: everything a generated parser needs is
 emitted into the consumer's own compilation. See `docs/syntax.md` §6.1.
