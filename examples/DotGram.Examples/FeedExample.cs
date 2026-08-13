@@ -45,7 +45,25 @@ public static partial class FeedReader
 	// ParseFeed, MatchHeader, AllRows, FindTrailer and the types Header, Row, Trailer
 	// and Date are generated into this class.
 
-	/// <summary>Reads a feed, refusing anything malformed.</summary>
+	/// <summary>
+	/// Reads a feed, refusing anything malformed.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <b>Four passes over the text, and the text has to be a string.</b> Checking the
+	/// shape and reading the records are separate directives today, and there is nothing
+	/// to join them by — so the feed is parsed once to be refused, and scanned again for
+	/// each part of it. Fine for a feed of a few megabytes and wrong for one of a few
+	/// gigabytes, which cannot be a string at all.
+	/// </para>
+	/// <para>
+	/// Use <see cref="ReadRecords"/> instead when the feed is large: one pass, and no
+	/// check of the envelope. What replaces both is <c>Feed : FeedItem[]</c> with
+	/// <c>recover</c> over a <c>TextReader</c> — one pass, memory bounded by a line,
+	/// header, records and trailer arriving in order (docs/syntax.md §8). This method
+	/// becomes a <c>foreach</c> when it lands.
+	/// </para>
+	/// </remarks>
 	/// <exception cref="FormatException">
 	/// A missing header or trailer, a bad record, anything after the trailer, or a
 	/// declared count that does not match the records.
@@ -56,6 +74,9 @@ public static partial class FeedReader
 		// nothing after it. Nothing is read out of the result — its job is to refuse.
 		ParseFeed(text);
 
+		// Safe only because of the line above: `find` returns the first occurrence of
+		// something trailer-shaped, which is the trailer only in a feed already known to
+		// have exactly one.
 		var header  = MatchHeader(text)!;
 		var trailer = FindTrailer(text)!;
 		var trades  = ReadRecords(text);
@@ -67,7 +88,15 @@ public static partial class FeedReader
 		return new Feed(ToDate(header.Date), header.Source, trades);
 	}
 
-	/// <summary>Every record, whether or not the feed as a whole is well formed.</summary>
+	/// <summary>
+	/// Every record, whether or not the feed as a whole is well formed. One pass.
+	/// </summary>
+	/// <remarks>
+	/// It cannot say what it skipped: <c>find all</c> passes over anything that is not a
+	/// record without a word, so a line broken in the middle is indistinguishable from a
+	/// blank one. Saying which line was wrong and why, and going on, is <c>recover</c>
+	/// (docs/syntax.md §8.2).
+	/// </remarks>
 	public static IReadOnlyList<Trade> ReadRecords(string text)
 	{
 		var trades = new List<Trade>();
