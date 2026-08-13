@@ -354,6 +354,49 @@ public sealed class SemanticTests
 			"b-a",
 			Built("""Start : @string = a: 'a' & b: 'b' => @(b + "-" + a)""", "ab"));
 
+	[Theory]
+	[InlineData("12",  24)]
+	[InlineData("abc", 3)]
+	public void Each_alternative_may_build_the_value_its_own_way(string input, int expected) =>
+		Assert.Equal(
+			expected,
+			Built(
+				"""
+				Start : @int = digits: ['0'..'9']+   => @(int.Parse(digits) * 2)
+				             | letters: ['a'..'z']+  => @(letters.Length)
+				""",
+				input));
+
+	[Fact]
+	public void An_alternative_that_was_tried_and_given_back_does_not_build_the_value() =>
+		// The first alternative matches "ab" and then `eof` fails, so the match returns
+		// and the second builds instead. Which `=>` fired is undone with everything else
+		// the abandoned attempt did.
+		Assert.Equal(
+			2,
+			Built(
+				"""
+				Start : @int = a: "ab"        => @(1)
+				             | b: ['a'..'z']+ => @(2)
+				""",
+				"abc"));
+
+	[Fact]
+	public void A_construction_needs_a_type_to_build() =>
+		Refused(GrammarNormalizer.UnbuiltConstruction, "Start = ['0'..'9']+ => @(1)");
+
+	[Fact]
+	public void And_a_type_needs_every_alternative_to_build_it() =>
+		Refused(
+			GrammarNormalizer.UnbuiltConstruction,
+			"""Start : @int = "a" => @(1) | "b" """);
+
+	[Fact]
+	public void A_construction_belongs_on_an_alternative_of_the_rule() =>
+		Refused(
+			GrammarNormalizer.UnbuiltConstruction,
+			"""Start : @int = ("a" => @(1) | "b" => @(2)) & 'c' => @(3)""");
+
 	// ── `where` guards (§8.1) ───────────────────────────────────────────────────
 
 	[Theory]

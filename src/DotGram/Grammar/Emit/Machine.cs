@@ -83,16 +83,24 @@ sealed class Machine
 	readonly List<string> _sequences = [];
 
 	/// <summary>The value a machine constructs, and where the parts of it are kept.</summary>
-	/// <param name="Factory">
-	/// The method that turns the captures into the value, when the rule said how with
-	/// <c>=&gt;</c>. Null when the value is the generated type, which is built by calling
-	/// its constructor with the same arguments.
+	/// <param name="Factories">
+	/// One method per <c>=&gt;</c> the rule wrote, in the order the alternatives are
+	/// written. Empty when the value is the generated type, which is built by calling its
+	/// constructor with the same arguments.
 	/// </param>
 	public sealed record Built(
 		string TypeName,
 		IReadOnlyList<ResultMember> Members,
 		CaptureLayout Layout,
-		string? Factory = null);
+		IReadOnlyList<Factory>? Factories = null);
+
+	/// <summary>
+	/// One <c>=&gt;</c>: the alternative it is on, the method it became, and the members
+	/// that alternative can have captured — which are its parameters.
+	/// </summary>
+	public sealed record Factory(Node Of, string Method, IReadOnlyList<ResultMember> Members);
+
+	IReadOnlyList<Factory> Factories => _builds?.Factories ?? [];
 
 	CaptureLayout Layout => _builds?.Layout ?? CaptureLayout.None;
 
@@ -258,10 +266,16 @@ sealed class Machine
 			if (!Layout.Slots[i].IsSequence)
 				forgotten++;
 
-		if (forgotten == 0)
+		if (forgotten == 0 && Factories.Count <= 1)
 			return target;
 
 		var state = Reserve(out var writer, null, "forget what the abandoned attempt captured");
+
+		// Which `=>` fired goes with it. A `=>` covers a whole alternative, so nothing
+		// follows it within the rule and the only way back past one is through the choice
+		// that offered it — here.
+		if (Factories.Count > 1)
+			writer.Line("built = -1;");
 
 		for (var i = first; i < Layout.Slots.Count; i++)
 			if (!Layout.Slots[i].IsSequence)
@@ -442,8 +456,29 @@ sealed class Machine
 				return open;
 			}
 
-			case Node.Construct(var built, _):
-				return Compile(built, next);
+			// Which `=>` fired is which alternative matched, and the value is built from it
+			// once the whole match has succeeded. Recording the number rather than building
+			// there keeps the promise of §7.2: the C# runs on the parse that happened.
+			case Node.Construct(var pattern, _):
+			{
+				var which = -1;
+
+				for (var i = 0; i < Factories.Count; i++)
+					if (ReferenceEquals(Factories[i].Of, node))
+						which = i;
+
+				if (which < 0)
+					return Compile(pattern, next);
+
+				var chosen = Reserve(out var writer, node, "this is the one that matched");
+
+				if (Factories.Count > 1)
+					writer.Line($"built = {which};");
+
+				writer.Line($"goto case {next};");
+
+				return Compile(pattern, chosen);
+			}
 
 			default:
 			{
@@ -688,20 +723,47 @@ sealed class Machine
 	/// </remarks>
 	static void Construct(Writer file, Built built)
 	{
+		var factories = built.Factories ?? [];
+
+		if (factories.Count <= 1)
+		{
+			Assign(file, built, factories.Count == 1 ? factories[0] : null);
+
+			return;
+		}
+
+		// One `=>` per alternative, and `built` says which of them the match came through.
+		using (file.Block("switch (built)"))
+			for (var i = 0; i < factories.Count; i++)
+			{
+				file.Line($"case {i}:");
+
+				using (file.Indent())
+				{
+					Assign(file, built, factories[i]);
+					file.Line("break;");
+				}
+
+				file.Line();
+			}
+	}
+
+	static void Assign(Writer file, Built built, Factory? factory)
+	{
 		// The matched extent, which §7.3 supplies under the name `text`. Always passed to
 		// a factory: what the C# does with it is the C# compiler's business, and an
 		// argument nobody reads costs nothing.
 		var arguments = new List<string>();
 
-		if (built.Factory is not null)
+		if (factory is not null)
 			arguments.Add("text.Slice(pos, p - pos).ToString()");
 
-		foreach (var member in built.Members)
+		foreach (var member in factory?.Members ?? built.Members)
 			arguments.Add(Value(member));
 
-		file.Line(built.Factory is null
+		file.Line(factory is null
 			? $"value = new {built.TypeName}("
-			: $"value = {built.Factory}(");
+			: $"value = {factory.Method}(");
 
 		using (file.Indent())
 			for (var i = 0; i < arguments.Count; i++)
@@ -795,6 +857,9 @@ sealed class Machine
 				file.Line($"var c{i}    = 0;");
 
 			file.Line($"var state = {entry};");
+
+			if (Factories.Count > 1)
+				file.Line("var built = -1;");
 
 			// One pair of positions per text capture, one reference per captured value.
 			// Unwritten is -1 and null, which is what tells "matched nothing here" from

@@ -179,10 +179,10 @@ public sealed class GrammarNormalizerTests
 			R = ['a'..'z']+ => (text.Length * 2)
 			""",
 			Normalize("""
-				N = ['0'..'9']+ => @int.Parse(text, CultureInfo.InvariantCulture)
-				P = ['a'..'z']+ & where @IsKnown(text, "prefix")
-				Q = ['a'..'z']+ => @Make<@Row, @int>(text)
-				R = ['a'..'z']+ => @(text.Length * 2)
+				N : @int = ['0'..'9']+ => @int.Parse(text, CultureInfo.InvariantCulture)
+				P        = ['a'..'z']+ & where @IsKnown(text, "prefix")
+				Q : @Row = ['a'..'z']+ => @Make<@Row, @int>(text)
+				R : @int = ['a'..'z']+ => @(text.Length * 2)
 				""").ToString());
 
 	[Fact]

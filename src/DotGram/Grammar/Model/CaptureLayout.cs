@@ -154,9 +154,15 @@ public sealed class CaptureLayout
 				_before[node] = _slots.Count;
 				break;
 
+			// An alternative that builds needs its own range: what its `=>` may name is
+			// what that alternative captured, not what a sibling did.
 			case Node.Construct(var built, _):
 
+				_before[node] = _slots.Count;
+
 				Walk(built, buildsValue, repeated);
+
+				_after[node] = _slots.Count;
 				break;
 
 			// A lookahead consumes nothing and is compiled as a separate machine, with its

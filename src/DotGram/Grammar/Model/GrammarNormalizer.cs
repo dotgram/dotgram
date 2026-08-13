@@ -37,6 +37,7 @@ public sealed class GrammarNormalizer
 	public const string UnsupportedElement  = "GRAM4005";
 	public const string UnbuiltCapture      = "GRAM4006";
 	public const string CaptureTypeMismatch = "GRAM4007";
+	public const string UnbuiltConstruction = "GRAM4008";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -672,7 +673,7 @@ public sealed class GrammarNormalizer
 	/// Whether every way through this node writes <paramref name="name"/>. What decides
 	/// whether the member can be null, and so whether the generated property is nullable.
 	/// </summary>
-	static bool Writes(Node node, string name) => node switch
+	internal static bool Writes(Node node, string name) => node switch
 	{
 		Node.Capture(var captured, var body) => captured == name || Writes(body, name),
 		Node.Sequence(var nodes)             => nodes.Any(child => Writes(child, name)),
@@ -692,6 +693,7 @@ public sealed class GrammarNormalizer
 		{
 			CheckRepetitions(_bodies[rule], rule);
 			CheckCaptures(_bodies[rule], rule, repeated: null);
+			CheckConstruction(rule);
 			CheckLeftRecursion(rule);
 		}
 
@@ -724,6 +726,64 @@ public sealed class GrammarNormalizer
 	/// repetition bounded at one iteration does not count: what is under it is written at
 	/// most once, which is an option rather than a run.
 	/// </param>
+	/// <summary>
+	/// A <c>=&gt;</c> builds the rule's value, so it has to be somewhere that is the
+	/// rule's value and there has to be a type for it to build.
+	/// </summary>
+	void CheckConstruction(RuleSymbol rule)
+	{
+		var body     = _bodies[rule];
+		var declared = _types.ContainsKey(rule);
+		var offered  = Alternatives(body);
+		var building = 0;
+
+		foreach (var alternative in offered)
+			if (alternative is Node.Construct)
+				building++;
+
+		// Anywhere else it would be building the value of a group, and a group has no
+		// value — the rule does.
+		foreach (var construct in Constructs(body))
+			if (!offered.Contains(construct))
+			{
+				Report(
+					UnbuiltConstruction,
+					$"A '=>' in '{rule.Name}' is not on an alternative of the rule. It builds the rule's " +
+					"value, so it belongs at the end of one.",
+					rule.Declaration!.At);
+
+				return;
+			}
+
+		if (building > 0 && !declared)
+			Report(
+				UnbuiltConstruction,
+				$"'{rule.Name}' says how to build its value with '=>' but does not say what type that is. " +
+				"Declare one with ': @T'.",
+				rule.Declaration!.At);
+
+		else if (declared && building < offered.Count)
+			Report(
+				UnbuiltConstruction,
+				$"'{rule.Name}' declares a type, so every alternative needs a '=>' to build it. " +
+				"Matching captures to a constructor by name (§7.3) is not implemented yet.",
+				rule.Declaration!.At);
+	}
+
+	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
+	static IReadOnlyList<Node> Alternatives(Node body) =>
+		body is Node.Choice(var alternatives) ? alternatives : [body];
+
+	static IEnumerable<Node> Constructs(Node node)
+	{
+		if (node is Node.Construct)
+			yield return node;
+
+		foreach (var child in Children(node))
+			foreach (var found in Constructs(child))
+				yield return found;
+	}
+
 	void CheckCaptures(Node node, RuleSymbol rule, Node? repeated, bool inLookahead = false)
 	{
 		if (node is Node.Capture(var name, var captured))

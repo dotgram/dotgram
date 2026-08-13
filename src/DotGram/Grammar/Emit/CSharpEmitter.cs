@@ -175,8 +175,11 @@ public static class CSharpEmitter
 			if (!graph.Types.ContainsKey(rule))
 				continue;
 
-			EmitFactory(file, graph, results, rule);
-			file.Line();
+			foreach (var factory in FactoriesOf(graph, results, rule))
+			{
+				EmitFactory(file, graph, rule, factory, results);
+				file.Line();
+			}
 		}
 
 		var needsStack = false;
@@ -391,27 +394,95 @@ public static class CSharpEmitter
 				type,
 				graph.Results[rule],
 				CaptureLayout.Of(graph.Bodies[rule], other => results.QualifiedOf(other) is not null),
-				graph.Types.ContainsKey(rule) ? FactoryOf(rule) : null);
+				FactoriesOf(graph, results, rule));
 
 	/// <summary>
-	/// The method a rule's <c>=&gt;</c> becomes: the C# it named, with the captures as
-	/// parameters.
+	/// The methods a rule's <c>=&gt;</c> expressions become: the C# they named, with the
+	/// captures as parameters.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// A method rather than an expression written where the value is assigned, and that
 	/// is what makes the capture names usable at all — inside the machine they would have
 	/// to dodge every local it has, and a capture called <c>p</c> or <c>state</c> would
 	/// collide with the recognizer itself. Here they are parameters, in a scope of their
 	/// own, named exactly as the grammar named them.
+	/// </para>
+	/// <para>
+	/// One per alternative that carries a <c>=&gt;</c>, in the order they are written,
+	/// which is the order the machine numbers them by.
+	/// </para>
 	/// </remarks>
-	static string FactoryOf(RuleSymbol rule) => $"Construct_{rule.Name.Replace('.', '_')}";
-
-	static void EmitFactory(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	static IReadOnlyList<Machine.Factory> FactoriesOf(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		var members    = graph.Results[rule];
+		var name   = "Construct_" + rule.Name.Replace('.', '_');
+		var layout = CaptureLayout.Of(graph.Bodies[rule], other => results.QualifiedOf(other) is not null);
+		var found  = new List<Machine.Factory>();
+
+		foreach (var node in Constructions(graph.Bodies[rule]))
+		{
+			var from    = layout.Before(node);
+			var to      = layout.After(node);
+			var visible = new List<ResultMember>();
+
+			// Only what this alternative could have captured, and optional only where this
+			// alternative may skip it. A sibling's captures are neither its business nor
+			// ever written when it is the one that matched.
+			foreach (var member in graph.Results[rule])
+			{
+				var mine = new List<int>();
+
+				foreach (var slot in member.Slots)
+					if (slot >= from && slot < to)
+						mine.Add(slot);
+
+				if (mine.Count > 0)
+					visible.Add(member with
+					{
+						Slots      = mine,
+						IsOptional = !GrammarNormalizer.Writes(node, member.Name),
+					});
+			}
+
+			found.Add(new Machine.Factory(
+				node, found.Count == 0 ? name : name + "_" + found.Count, visible));
+		}
+
+		return found;
+	}
+
+	/// <summary>
+	/// The <c>=&gt;</c> of a rule: the body itself, or the alternatives it offers.
+	/// </summary>
+	/// <remarks>
+	/// No deeper. A <c>=&gt;</c> builds the rule's value, and a group inside the body is
+	/// not the rule — what one would mean there is undefined, so the normalizer refuses it
+	/// rather than this quietly ignoring it.
+	/// </remarks>
+	internal static IEnumerable<Node> Constructions(Node body)
+	{
+		if (body is Node.Construct)
+		{
+			yield return body;
+
+			yield break;
+		}
+
+		if (body is not Node.Choice(var alternatives))
+			yield break;
+
+		foreach (var alternative in alternatives)
+			if (alternative is Node.Construct)
+				yield return alternative;
+	}
+
+	static void EmitFactory(
+		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results)
+	{
 		var parameters = new List<string> { "string text" };
 
-		foreach (var member in members)
+		foreach (var member in factory.Members)
 			if (member.Name != "text")
 				parameters.Add(
 					results.ValueOf(member.Rule) +
@@ -419,14 +490,9 @@ public static class CSharpEmitter
 					" " + ResultTypes.ParameterOf(member));
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
-		file.Line(
-			$"static {graph.Types[rule]} {FactoryOf(rule)}({string.Join(", ", parameters)}) =>");
-		file.Line("\t" + ConstructionOf(graph.Bodies[rule]) + ";");
+		file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
+		file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
 	}
-
-	/// <summary>The C# a rule's <c>=&gt;</c> carries, or a placeholder when it has none.</summary>
-	static string ConstructionOf(Node body) =>
-		body is Node.Construct(_, var expression) ? expression : "default!";
 
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
 	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)

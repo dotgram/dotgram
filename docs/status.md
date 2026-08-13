@@ -27,7 +27,7 @@ then quietly mean nothing.
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
-| construction `=>` per alternative | ✓ | ✓ | ✓ | ignored | ✗ |
+| construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types naming another rule §4.1 | ✓ | ✓ | ✗ | ✗ | ✗ |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -172,15 +172,27 @@ name that is not there. A name captured in more than one alternative is passed a
 nullable at the guard, because only the slots behind the guard can have been written
 and the generator does not try to prove which.
 
-Three limits:
+## Every alternative may build its own way
 
-- **only a `=>` at the end of a rule.** One per alternative is what a left fold needs
-  (§4.3) and what a rule with alternatives of different shapes needs; it is ignored
-  today rather than refused, which is the one place this section is not honest yet.
-- **`: T` naming another rule** (§4.1 case 3) is not wired: only `: @T` and the C#
-  keywords count as a declared type.
-- **a declared type with no `=>`** builds `default!`. §7.3 says the captures should be
-  matched to a constructor by name, and that does need symbol resolution.
+Which `=>` fired is remembered while matching and undone with everything else an
+abandoned attempt did — a `=>` covers a whole alternative, so the only way back past
+one is through the choice that offered it, which is where it is forgotten.
+
+A factory sees only what **its own** alternative can have captured. A sibling's
+captures are not its parameters, and its own are optional only where that alternative
+may skip them — so `digits: […]+ => @(int.Parse(digits))` does not warn about a null
+that the alternative it belongs to cannot produce.
+
+Three things are refused rather than quietly ignored, all `GRAM4008`:
+
+- a `=>` on a rule that declares no type. There would be nothing to build.
+- a declared type where some alternative has no `=>`. §7.3 would fill that by matching
+  captures to a constructor by name, and that does need symbol resolution.
+- a `=>` anywhere but on an alternative of the rule — inside a group, say. It builds
+  the rule's value, and a group has none.
+
+`: T` naming another rule (§4.1 case 3) is not wired either: only `: @T` and the C#
+keywords count as a declared type.
 
 ## Two deviations from §7.3, both deliberate
 
