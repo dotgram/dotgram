@@ -598,9 +598,27 @@ public sealed class GrammarNormalizer
 			var tails        = new List<Node>();
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
 
+			var ambiguous = false;
+
 			foreach (var alternative in alternatives)
 				if (Tail(alternative, rule) is var (tail, accumulator))
 				{
+					// Recursive on both sides. The leading call is the accumulator and the
+					// trailing one would take everything to the right, so what is written
+					// left-associative would parse right-associative — §4.3 refuses it
+					// rather than answer differently from how it reads.
+					if (EndsWith(tail, rule))
+					{
+						Report(
+							LeftRecursion,
+							$"An alternative of '{rule.Name}' is recursive on both sides. Ordered choice cannot " +
+							"settle which way it groups: the trailing call would take everything to the right. " +
+							"Write the operands at the next level of precedence down (docs/syntax.md §4.3).",
+							rule.Declaration!.At);
+
+						ambiguous = true;
+					}
+
 					tails.Add(tail);
 					accumulators[tail] = accumulator;
 				}
@@ -609,7 +627,7 @@ public sealed class GrammarNormalizer
 					bases.Add(alternative);
 				}
 
-			if (tails.Count == 0)
+			if (tails.Count == 0 || ambiguous)
 				continue;
 
 			if (bases.Count == 0)
@@ -659,6 +677,20 @@ public sealed class GrammarNormalizer
 		Node tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
 
 		return (built is null ? tail : built with { Body = tail }, name ?? "");
+	}
+
+	/// <summary>Whether the last thing an alternative matches is a call to this rule.</summary>
+	static bool EndsWith(Node node, RuleSymbol rule)
+	{
+		while (true)
+			switch (node)
+			{
+				case Node.Construct(var built, _):    node = built; break;
+				case Node.Capture(_, var captured):   node = captured; break;
+				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
+				case Node.Call(var called, _):        return ReferenceEquals(called, rule);
+				default:                              return false;
+			}
 	}
 
 	/// <summary>Every <c>@using</c> in the grammar, outermost scope first.</summary>

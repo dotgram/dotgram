@@ -423,6 +423,38 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Built(Calculator + "Start : @int = value: Sum => @(value)", input));
 
 	[Fact]
+	public void An_alternative_recursive_on_both_sides_is_refused() =>
+		// `-1-2` would answer 1 rather than -3: the trailing call takes everything to the
+		// right, so what is written left-associative parses right-associative. Ordered
+		// choice cannot settle it, and a wrong answer is worse than a refusal.
+		Refused(
+			GrammarNormalizer.LeftRecursion,
+			"""
+			Start : @int = left: Start & '-' & right: Start => @(left - right)
+			             | '-' & operand: Start             => @(-operand)
+			             | digits: ['0'..'9']+              => @int.Parse(digits)
+			""");
+
+	[Theory]
+	[InlineData("-1-2", -3)]
+	[InlineData("1--2",  3)]
+	[InlineData("-1",   -1)]
+	public void A_unary_operator_written_at_its_own_level(string input, int expected) =>
+		// The same operators, said properly: unary binds tighter, so it is a level of its
+		// own and the binary one takes operands from it.
+		Assert.Equal(
+			expected,
+			Built(
+				"""
+				Start : @int = left: Start & '-' & right: Unary => @(left - right)
+				             | value: Unary                     => @(value)
+
+				Unary : @int = '-' & operand: Unary             => @(-operand)
+				             | digits: ['0'..'9']+              => @int.Parse(digits)
+				""",
+				input));
+
+	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
 
