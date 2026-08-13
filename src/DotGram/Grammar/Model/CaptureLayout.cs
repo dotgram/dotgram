@@ -192,6 +192,12 @@ public sealed record ResultMember(
 	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots);
 
 /// <summary>
+/// What a repetition marked <c>recover</c> was told (§8.2): where to resume after a
+/// broken element, and how to turn it into one of the sequence.
+/// </summary>
+public sealed record Recovery(Node Sync, string? Factory);
+
+/// <summary>
 /// What a left-recursive rule became: the loop of its tails, and which capture of each
 /// tail is the value built so far (§4.3).
 /// </summary>

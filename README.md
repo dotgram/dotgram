@@ -3,8 +3,9 @@
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
 > **Early work.** The pipeline runs end to end, the parsers it produces are real and
-> typed, and a grammar can compute — but recovery, streaming and a good deal of the
-> diagnostics are not built. Nothing here is ready to depend on.
+> typed, a grammar can compute, and a marked repetition survives a bad element — but
+> streaming and a good deal of the diagnostics are not built. Nothing here is ready to
+> depend on.
 >
 > The specification describes the target language. Not every specified feature is
 > implemented — [`docs/status.md`](docs/status.md) says which are.
@@ -128,6 +129,18 @@ Working end to end — a `.gram` file becomes a parser that runs:
   recurses on the left. A calculator with precedence, parentheses and unary minus is
   in `examples/`
 
+- **`recover`**, which is how a feed survives a bad record. The mark says that inside
+  this repetition an element that starts and then fails is an error rather than the end
+  of the sequence; the parser skips to the next synchronization point and reads on, and
+  the `=>` puts what it skipped into the same sequence as the records:
+
+  ```dotgram
+  lines: Row* recover eol => @(new RejectedLine(ordinal, position, text.Trim()))
+  ```
+
+  A rejection arrives in its place, carrying which record it was, so nothing has to be
+  joined back up afterwards
+
 Not built yet:
 
 - binding powers `<< n` `>> n` (§4.3.1) — specified, parsed, and refused with the
@@ -135,7 +148,9 @@ Not built yet:
 - `: T` naming another rule, and matching captures to a constructor by name
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- `recover`, the recovery engine, streaming input, incremental parsing
+- `recover` without a `=>`, reporting broken elements out of band rather than in the
+  sequence; and the names `line`, `column`, `span` and `message` a rejection may ask for
+- streaming input, incremental parsing
 
 ## Examples
 
@@ -146,6 +161,7 @@ written against it, with no test framework anywhere near them.
 | --- | --- |
 | [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
+| [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
 | [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.

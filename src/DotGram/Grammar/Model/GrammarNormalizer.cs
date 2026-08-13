@@ -76,8 +76,9 @@ public sealed class GrammarNormalizer
 			model.Publications,
 			normalizer._diagnostics)
 		{
-			Folds  = normalizer._folds,
-			Trivia = normalizer._trivia,
+			Folds      = normalizer._folds,
+			Trivia     = normalizer._trivia,
+			Recoveries = normalizer._recoveries,
 		};
 	}
 
@@ -150,9 +151,8 @@ public sealed class GrammarNormalizer
 			"Binding powers are specified and not built (docs/syntax.md §4.3.1). They need a " +
 			"precedence-climbing engine; until it exists, write the levels as rules — §4.3."),
 
-		Expr.Recovering(var body, _, _)         => Unbuilt(body, scope, expression, UnbuiltRecovery,
-			"'recover' is specified and not built (docs/syntax.md §8.2). Until it exists a bad " +
-			"element ends the repetition rather than being reported and stepped over."),
+		Expr.Recovering(var body, var sync, var factory) =>
+			LowerRecovery(body, sync, factory, scope, expression),
 
 		Expr.Quantified(var operand, var kind, var min, _, var max, _) =>
 			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
@@ -170,6 +170,52 @@ public sealed class GrammarNormalizer
 
 		_ => Node.Empty.Instance,
 	};
+
+	readonly Dictionary<Node, Recovery> _recoveries = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// <c>R* recover eol</c> — the repetition, with what to do about a broken element
+	/// recorded beside it (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// The repetition itself is left an ordinary one, so backtracking, forgetting and
+	/// collecting apply to it unchanged. What recovery adds is one more way out of the
+	/// loop, taken where the ordinary one would have ended it.
+	/// </remarks>
+	Node LowerRecovery(Expr body, Expr sync, Expr? factory, GrammarScope scope, Expr at)
+	{
+		var repetition = Lower(body, scope);
+
+		if (repetition is not Node.Repeat)
+		{
+			Report(
+				UnbuiltRecovery,
+				"'recover' belongs on a repetition: it says what to do about one bad element " +
+				"among many (docs/syntax.md §8.2).",
+				at.At);
+
+			return repetition;
+		}
+
+		// Without a `=>` the broken element is dropped and reported out of band (§8.3), and
+		// the channel it would be reported on does not exist yet. Emitting the rest of it
+		// would step over bad elements in silence, which is worse than not compiling.
+		if (factory is null)
+		{
+			Report(
+				UnbuiltRecovery,
+				"'recover' needs a '=>' for now: what it makes of a broken element goes into " +
+				"the sequence beside the good ones. Reporting them out of band is docs/syntax.md " +
+				"§8.3, which is not built yet.",
+				at.At);
+
+			return repetition;
+		}
+
+		_recoveries[repetition] = new Recovery(Lower(sync, scope), Text(factory));
+
+		return repetition;
+	}
 
 	/// <summary>Something the notation says and the compiler cannot do yet.</summary>
 	Node Unbuilt(Expr body, GrammarScope scope, Expr at, string id, string message)
@@ -851,6 +897,7 @@ public sealed class GrammarNormalizer
 			CheckCaptures(_bodies[rule], rule, repeated: null);
 			CheckConstruction(rule);
 			CheckLeftRecursion(rule);
+			CheckRecovery(rule);
 		}
 
 		CheckTrivia();
@@ -924,6 +971,39 @@ public sealed class GrammarNormalizer
 				$"'{rule.Name}' declares a type, so every alternative needs a '=>' to build it. " +
 				"Matching captures to a constructor by name (§7.3) is not implemented yet.",
 				rule.Declaration!.At);
+	}
+
+	/// <summary>
+	/// One <c>recover</c> per rule, for now.
+	/// </summary>
+	/// <remarks>
+	/// The machine keeps one recovering repetition and would ignore a second — and a
+	/// <c>recover</c> that is quietly not there is exactly the failure recovery exists to
+	/// prevent. Two of them is a rule that wants splitting in two anyway.
+	/// </remarks>
+	void CheckRecovery(RuleSymbol rule)
+	{
+		var found = 0;
+
+		foreach (var node in Everything(_bodies[rule]))
+			if (_recoveries.ContainsKey(node))
+				found++;
+
+		if (found > 1)
+			Report(
+				UnbuiltRecovery,
+				$"'{rule.Name}' marks {found} repetitions with 'recover' and only one may be marked. " +
+				"Give the other its own rule.",
+				rule.Declaration!.At);
+	}
+
+	static IEnumerable<Node> Everything(Node node)
+	{
+		yield return node;
+
+		foreach (var child in Children(node))
+			foreach (var inside in Everything(child))
+				yield return inside;
 	}
 
 	bool IsFoldLoop(RuleSymbol rule, Node node) =>

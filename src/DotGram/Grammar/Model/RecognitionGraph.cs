@@ -176,6 +176,10 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<RuleSymbol, Fold> Folds { get; set; } =
 		new Dictionary<RuleSymbol, Fold>();
 
+	/// <summary>The repetitions marked <c>recover</c>, by the repetition (§8.2).</summary>
+	public IReadOnlyDictionary<Node, Recovery> Recoveries { get; set; } =
+		new Dictionary<Node, Recovery>();
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

@@ -8,6 +8,7 @@ against it. `DotGram.Tests` runs them; nothing here knows that.
 | --- | --- |
 | [`UrlExample.cs`](DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
+| [`RecoveringFeedExample.cs`](DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
 | [`CalculatorExample.cs`](DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 
 ## Taking one
@@ -60,7 +61,8 @@ After a build it is under `obj/GeneratedFiles/DotGram/DotGram.Generation.GramGen
 
 ## What these deliberately do not show
 
-Things the specification describes and the compiler does not do yet — a rule
-converting its own fields with `: @int` and `=>`, a bad record reported and stepped
-over with `recover`, a feed read as one typed sequence. [`docs/status.md`](../docs/status.md)
-is the list; where an example works around a gap, it says so at that line.
+Things the specification describes and the compiler does not do yet — a rejection that
+knows its line and column rather than its offset, a broken record reported out of band
+instead of in the sequence, a feed read from a `TextReader` rather than a string.
+[`docs/status.md`](../docs/status.md) is the list; where an example works around a gap,
+it says so at that line.

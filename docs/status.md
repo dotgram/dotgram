@@ -38,7 +38,12 @@ then quietly mean nothing.
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
-| `recover` on a repetition §8.2 | ✓ | ✓ | refused | ✗ | ✗ |
+| `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `recover` names `text position ordinal` §8.2 | — | — | — | ✓ | ✓ |
+| `recover` names `line column span message` §8.2 | — | — | — | ✗ | ✗ |
+| `recover` without `=>`, dropped and reported | ✓ | ✓ | refused | ✗ | ✗ |
+| a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
+| value failures recovered from §8.2 | — | — | ✗ | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
@@ -68,6 +73,23 @@ not settled. What is settled is that it is written here rather than discovered.
 
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
+
+**A repetition marked `recover` is possessive.** §8.2 calls the mark a commit point,
+and this is what that costs: the elements it took are not on offer to what follows.
+
+```dotgram
+Row   = name: ['a'..'z']+ & eol
+Start = rows: Row*                        & tail: ['a'..'z']+ & eol   // matches "aa\nbb\n"
+Start = rows: Row* recover eol => @(…)    & tail: ['a'..'z']+ & eol   // does not
+```
+
+Unmarked, the repetition takes both lines, fails on `tail`, and hands the second one
+back. Marked, it does not: an element it took was either read or explicitly rejected,
+and there is no shorter reading to come back for. That is also what keeps *did an
+element begin here* answerable — the question is asked where the repetition would
+otherwise have ended, and it is answered by how far the attempt starting there reached.
+With the iterations still on the stack, a failure after the repetition would resume at a
+position whose element had matched and be told one broke there.
 
 ## Associativity
 

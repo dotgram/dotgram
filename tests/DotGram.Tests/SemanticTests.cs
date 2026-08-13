@@ -486,16 +486,106 @@ public sealed class SemanticTests
 	public void A_binding_power_parses_and_says_it_is_not_built(string grammar) =>
 		Refused(GrammarNormalizer.UnbuiltBinding, grammar);
 
-	/// <summary>
-	/// §8.2 is specified and not built, and the same reasoning applies as for §4.3.1: a
-	/// word the parser has never heard of gives an author a syntax error about `recover`
-	/// being an unknown rule, which says nothing about what is missing.
-	/// </summary>
-	[Theory]
-	[InlineData("""Row = 'R' & eol         Start = Row* recover eol""")]
-	[InlineData("""Row = 'R' & eol         Start = Row* recover eol => @Bad(text)""")]
-	public void Recover_parses_and_says_it_is_not_built(string grammar) =>
-		Refused(GrammarNormalizer.UnbuiltRecovery, grammar);
+	// ── `recover` (§8.2) ────────────────────────────────────────────────────────
+
+	const string Records = """
+		Row   = name: ['a'..'z']+ & eol
+		Start = rows: Row* recover eol => @(new Row("!" + text))
+		""";
+
+	[Fact]
+	public void A_broken_element_is_stepped_over_and_the_rest_are_read() =>
+		// The second line begins a Row and breaks in the middle of one, which is an error
+		// rather than the end of the sequence. What follows is read.
+		Assert.Equal(
+			["aa", "!b1b", "cc"],
+			((Array)Read(Built(Records, "aa\nb1b\ncc\n"), "Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void What_never_began_still_ends_the_sequence() =>
+		// `Trailer` is not a Row and does not start like one, so the repetition ends
+		// rather than recovering — the difference §8.2 rests on.
+		Assert.Equal(
+			["aa"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol => @(new Row("!" + text)) & '.' & eol
+					""",
+					"aa\n.\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void A_broken_element_at_the_end_takes_what_is_left() =>
+		Assert.Equal(
+			["aa", "!b1b"],
+			((Array)Read(Built(Records, "aa\nb1b"), "Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void A_recovered_element_is_told_where_it_was_and_which_one_it_is() =>
+		// `text`, `position` and `ordinal` are supplied rather than captured (§8.2), and
+		// the ordinal counts the rejected element too — it holds its place.
+		Assert.Equal(
+			["aa", "!3:1", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol => @(new Row($"!{position}:{ordinal}"))
+					""",
+					"aa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void An_ordinary_repetition_hands_an_element_back() =>
+		// One row, and `tail` gets the other — the repetition took both and gave one up.
+		Assert.True(
+			Matches("""
+				Row   = name: ['a'..'z']+ & eol
+				Start = rows: Row* & tail: ['a'..'z']+ & eol
+				""",
+				"aa\nbb\n"));
+
+	[Fact]
+	public void A_recovering_repetition_gives_nothing_back() =>
+		// The same grammar, marked. §8.2 calls the mark a commit point: an element it took
+		// was either good or explicitly rejected, so there is no shorter reading to come
+		// back for, and `tail` is left with nothing.
+		Assert.False(
+			Matches("""
+				Row   = name: ['a'..'z']+ & eol
+				Start = rows: Row* recover eol => @(new Row("!" + text)) & tail: ['a'..'z']+ & eol
+				""",
+				"aa\nbb\n"));
+
+	[Fact]
+	public void Recover_belongs_on_a_repetition() =>
+		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = 'a' recover eol");
+
+	[Fact]
+	public void Only_one_repetition_of_a_rule_recovers() =>
+		// The second would be ignored, and a `recover` that is quietly not there is the
+		// failure recovery exists to prevent.
+		Refused(
+			GrammarNormalizer.UnbuiltRecovery,
+			"""
+			Row   = name: ['a'..'z']+ & eol
+			Start = rows: Row* recover eol => @(new Row("!" + text))
+			      & more: Row* recover eol => @(new Row("?" + text))
+			""");
+
+	[Fact]
+	public void Recover_without_a_factory_says_it_is_not_built() =>
+		// Dropping the element and reporting it elsewhere is §8.3, which has no channel
+		// yet — so it is refused rather than stepped over in silence.
+		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = rows: ['a']* recover eol");
 
 	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>

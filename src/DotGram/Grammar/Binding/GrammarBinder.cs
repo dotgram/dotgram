@@ -239,7 +239,7 @@ public sealed class GrammarBinder
 	{
 		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
 		{
-			if (!_symbols.TypeExists(type.Name))
+			if (!TypeInView(type.Name, scope))
 				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
 
 			return;
@@ -249,6 +249,30 @@ public sealed class GrammarBinder
 			return;
 
 		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
+	}
+
+	/// <summary>
+	/// A C# type as C# itself would find it: by the name written, then under each
+	/// <c>@using</c> in view, outwards.
+	/// </summary>
+	/// <remarks>
+	/// The search is here rather than in the resolver because what is imported is the
+	/// grammar's business — the host is asked only whether one whole name exists, which
+	/// is all <see cref="ISymbolResolver"/> knows how to answer. A name that resolves
+	/// through an import is emitted as it was written, and the generated file carries the
+	/// same <c>using</c> directives, so it stands there too.
+	/// </remarks>
+	bool TypeInView(string name, GrammarScope scope)
+	{
+		if (_symbols.TypeExists(name))
+			return true;
+
+		for (var at = scope; at is not null; at = at.Parent)
+			foreach (var import in at.CSharpImports)
+				if (_symbols.TypeExists(import + "." + name))
+					return true;
+
+		return false;
 	}
 
 	static bool IsBuiltInCSharpType(string name) => name is
@@ -315,7 +339,7 @@ public sealed class GrammarBinder
 		{
 			if (_symbols.TryResolveMethod(reference.Name, argumentCount, out var role))
 				Bind(new CSharpSymbol(reference.Name, role));
-			else if (_symbols.TypeExists(reference.Name))
+			else if (TypeInView(reference.Name, scope))
 				Bind(new CSharpSymbol(reference.Name, Role: null));
 			else
 				Report(UnknownCSharp, $"No C# method or type named '{reference.Name}' is in view here.", at);

@@ -194,7 +194,16 @@ public static class CSharpEmitter
 				continue;
 
 			var whole = new Machine(
-				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule));
+				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule))
+			{
+				Reaches = graph.Recoveries.Count > 0,
+			};
+
+			// A rule that recovers recovers however it is entered. The whole-input machine is
+			// the same body compiled a second time, so it is told the same thing — and calls
+			// the one factory, which the rule's own machine emits.
+			if (RecoveryIn(graph, results, publication.Rule) is var (repeats, recovers, into))
+				whole.Recovers(repeats, recovers, into, MethodOf(publication.Rule) + "_Recover");
 
 			// The two ends normalization cannot reach: it inserts Trivia between operands,
 			// and a whole parse has an outside (§4.5).
@@ -230,7 +239,7 @@ public static class CSharpEmitter
 
 		if (graph.Rules.Count > 0)
 		{
-			file.Write(FailureStruct);
+			file.Write(FailureStructWith(graph.Recoveries.Count > 0));
 			file.Line();
 		}
 
@@ -501,10 +510,80 @@ public static class CSharpEmitter
 		file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
 	}
 
+	/// <summary>
+	/// The repetition of a rule that was marked <c>recover</c>, the slot its elements
+	/// collect into, and what it was told (§8.2).
+	/// </summary>
+	static (Node Repetition, Recovery Recovery, int Slot)? RecoveryIn(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		if (graph.Recoveries.Count == 0)
+			return null;
+
+		var layout = LayoutOf(graph, results, rule);
+
+		return Find(graph.Bodies[rule], -1);
+
+		// The capture is where a recovered element goes: the same sequence its successful
+		// siblings collect into. It may be either side of the quantifier — `rows: Row*` is
+		// `(rows: Row)*`, because a capture binds tighter (§10) — so both are looked at.
+		(Node, Recovery, int)? Find(Node node, int slot)
+		{
+			if (node is Node.Repeat(var repeated, _, _) && graph.Recoveries.TryGetValue(node, out var recovery))
+				return (node, recovery, slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1);
+
+			if (node is Node.Capture(_, var captured))
+				return Find(captured, layout.SlotOf(node));
+
+			foreach (var child in Children(node))
+				if (Find(child, -1) is { } found)
+					return found;
+
+			return null;
+		}
+	}
+
+	static IEnumerable<Node> Children(Node node) => node switch
+	{
+		Node.Sequence(var nodes)     => nodes,
+		Node.Choice(var nodes)       => nodes,
+		Node.Repeat(var body, _, _)  => [body],
+		Node.Construct(var body, _)  => [body],
+		_                            => [],
+	};
+
+	/// <summary>
+	/// What a broken element becomes: the C# the <c>recover</c> named, with the extent it
+	/// covered and where in the sequence it was.
+	/// </summary>
+	static void EmitRecoveryFactory(
+		Writer file, ResultTypes results, RuleSymbol rule, string owner, string factory,
+		RecognitionGraph graph, int slot)
+	{
+		var element = LayoutOf(graph, results, rule).Slots[slot].Rule;
+
+		file.Line($"/// <summary>What <c>{rule.Name}</c> makes of an element it could not read.</summary>");
+		file.Line($"static {results.ValueOf(element)} {owner}_Recover(string text, int position, int ordinal) =>");
+		file.Line("\t" + factory + ";");
+		file.Line();
+	}
+
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
 	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		var machine = new Machine(MethodOf(rule), results, BuiltBy(graph, results, rule));
+		var machine = new Machine(MethodOf(rule), results, BuiltBy(graph, results, rule))
+		{
+			Reaches = graph.Recoveries.Count > 0,
+		};
+
+		if (RecoveryIn(graph, results, rule) is var (repetition, recovery, slot))
+		{
+			machine.Recovers(repetition, recovery, slot, MethodOf(rule) + "_Recover");
+
+			if (recovery.Factory is not null && slot >= 0)
+				EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery.Factory, graph, slot);
+		}
+
 		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);
 		var text    = machine.Render(entry, $"{rule.Name} = {graph.Bodies[rule]}");
 
@@ -610,7 +689,9 @@ public static class CSharpEmitter
 	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
 	/// every recognizer and another edit at every call site.
 	/// </remarks>
-	internal const string FailureStruct = """
+	internal static string FailureStructWith(bool reach) => FailureStruct.Replace("{{reach}}", reach ? ReachField : "");
+
+	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
 		{
@@ -619,8 +700,23 @@ public static class CSharpEmitter
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
-		}
+		{{reach}}}
 		""";
+
+	/// <summary>
+	/// The field a recovering grammar needs beside <c>Position</c>, and one that does not
+	/// use recovery does not carry.
+	/// </summary>
+	/// <remarks>
+	/// <c>Position</c> is the whole parse's furthest and something further along may
+	/// already have raised it, so it cannot say whether <b>this</b> element began. This
+	/// one is reset where each element begins, which is exactly the question §8.2 asks.
+	/// </remarks>
+	const string ReachField = """
+
+			/// <summary>How far the element a recovering repetition last began got.</summary>
+			public int Reach;
+	""";
 
 	/// <summary>
 	/// Grows the backtracking stack. Emitted once per class, next to the recognizers

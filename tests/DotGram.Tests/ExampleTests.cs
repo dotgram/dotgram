@@ -145,6 +145,40 @@ public sealed class ExampleTests
 			Record.Exception(() => FeedReader.Read(text)) is FormatException,
 			$"A feed with {why} should have been refused.");
 
+	// ── The feed reader that recovers ────────────────────────────────────────────
+
+	const string Broken =
+		"H|2026-08-13|ACME\n" +
+		"R|AAPL|100|2026-08-12\n" +
+		"R|MSFT|two hundred|2026-08-12\n" +
+		"R|NVDA|75|2026-08-11\n" +
+		"T|3\n";
+
+	[Fact]
+	public void A_bad_record_does_not_cost_the_feed()
+	{
+		var lines = RecoveringFeedReader.Read(Broken);
+
+		Assert.Equal(
+			[
+				new TradeLine("AAPL", 100, new DateOnly(2026, 8, 12)),
+				new RejectedLine(1, 40, "R|MSFT|two hundred|2026-08-12"),
+				new TradeLine("NVDA",  75, new DateOnly(2026, 8, 11)),
+			],
+			lines);
+	}
+
+	[Fact]
+	public void And_the_rejection_says_which_record_it_was() =>
+		// The ordinal counts rejected records too, so it is the record's place in the file
+		// and not the place it happened to end up in among the good ones.
+		Assert.Equal([1], Array.ConvertAll([.. RecoveringFeedReader.Rejected(Broken)], line => line.Ordinal));
+
+	[Fact]
+	public void But_the_frame_around_the_records_still_has_to_be_there() =>
+		Assert.Throws<FormatException>(
+			static () => RecoveringFeedReader.Read("R|AAPL|100|2026-08-12\n"));
+
 	[Fact]
 	public void Records_can_be_read_out_of_a_feed_that_is_not_whole() =>
 		// No header, no trailer, and a line that is not a record at all — `find all`

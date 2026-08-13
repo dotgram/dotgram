@@ -653,10 +653,19 @@ sealed class Machine
 
 		var start = run < 0 ? Compile(body, after) : CompileRun((Node.Capture)body, run, after);
 
+		var recovers = _recovery is not null && ReferenceEquals(_recovering, repeat);
+
 		atEntry.Line($"{counter} = 0;");
 
 		if (run >= 0)
 			atEntry.Line($"s{run}_from = s{run}_to = p;");
+
+		if (recovers)
+		{
+			_marked = true;
+
+			atEntry.Line($"{Mark} = sp;");
+		}
 
 		atEntry.Line($"goto case {loop};");
 
@@ -676,7 +685,35 @@ sealed class Machine
 		// An option either happened or did not, so returning to its exit means it did not,
 		// and what it captured goes with it. A run returns to its exit having done one
 		// iteration fewer, and what the earlier ones captured stands.
-		Push(atLoop, Forget(exit, max == 1 ? Layout.Before(repeat) : Layout.After(repeat)), counter);
+		var giveUp = Forget(exit, max == 1 ? Layout.Before(repeat) : Layout.After(repeat));
+
+		// A recovering repetition has one more way out of the loop, taken exactly where
+		// the ordinary one would have ended it: an element that began and broke is an
+		// error, and an element that never began is the end of the sequence (§8.2).
+		if (recovers)
+		{
+			var broken = CompileRecovery(repeat, loop, counter);
+			var asked  = Reserve(out var atAsked, repeat, "was there an element here, or not?");
+
+			atAsked.Line("if (failure.Reach > p)");
+			atAsked.Then($"goto case {broken};");
+			atAsked.Line($"goto case {giveUp};");
+
+			// How far the attempt starting here reached — read at `asked`, which is entered
+			// only by that attempt failing, because the repetition gives nothing back.
+			atLoop.Line("failure.Reach = p;");
+
+			// Possessive: an element it took was either good or explicitly rejected, so
+			// there is no shorter reading of it to come back for. Dropping what the
+			// iterations recorded is what keeps `asked` answerable — with the frames left
+			// in place, a failure after the repetition would resume inside it, at a
+			// position whose element had matched, and be told an element broke there.
+			atExit.Line($"sp = {Mark};");
+
+			giveUp = asked;
+		}
+
+		Push(atLoop, giveUp, counter);
 		atLoop.Line($"goto case {start};");
 
 		atAfter.Line($"{counter}++;");
@@ -698,6 +735,103 @@ sealed class Machine
 		atExit.Line($"goto case {next};");
 
 		return entry;
+	}
+
+	/// <summary>Where the stack stood when the recovering repetition began.</summary>
+	const string Mark = "spr";
+
+	Node?     _recovering;
+	Recovery? _recovery;
+	string    _recoverMaker = "";
+	int       _syncs;
+	int       _recoverySlot = -1;
+	bool      _marked;
+
+	/// <summary>
+	/// Whether this machine records how far an attempt reached.
+	/// </summary>
+	/// <remarks>
+	/// Set on every machine of a grammar that recovers anywhere, and not only on the one
+	/// that does the recovering: the question "did an element begin here, or was there
+	/// none" is answered by how far the rule that failed had got, and that rule knows
+	/// nothing about the repetition calling it.
+	/// </remarks>
+	public bool Reaches { get; set; }
+
+	/// <summary>What the repetition of this rule was told to do about a bad element.</summary>
+	public void Recovers(Node repetition, Recovery recovery, int into, string factory)
+	{
+		_recovering   = repetition;
+		_recovery     = recovery;
+		_recoverySlot = into;
+		_recoverMaker = factory;
+		Reaches       = true;
+	}
+
+	/// <summary>
+	/// The way out of a repetition that an element took by beginning and breaking (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// It does not fail. The extent from where the element began to where the parse can
+	/// pick up again is handed to the factory, the result takes its place in the
+	/// sequence, and the loop goes round — which is the whole of "report it and carry
+	/// on".
+	/// </remarks>
+	int CompileRecovery(Node.Repeat repeat, int loop, string counter)
+	{
+		var sync  = CompileSync(_recovery!.Sync);
+		var state = Reserve(out var writer, repeat, "this element began and broke");
+
+		UsesResult = true;
+
+		writer.Line("var from = p;");
+		writer.Line("var to   = p;");
+		writer.Line("r        = -1;");
+		writer.Line();
+
+		using (writer.Block("while (to <= text.Length)"))
+		{
+			writer.Line($"r = {sync}(text, to);");
+			writer.Line();
+
+			// A synchronization point that consumed nothing would leave the loop where it
+			// started, so it is not one.
+			writer.Line("if (r > to)");
+			writer.Then("break;");
+			writer.Line();
+			writer.Line("r = -1;");
+			writer.Line("to++;");
+		}
+
+		writer.Line();
+		writer.Line("if (r < 0)");
+		writer.Then("to = r = text.Length;");
+		writer.Line();
+
+		if (_recoverySlot >= 0 && _recovery.Factory is not null)
+			writer.Line(
+				$"l{_recoverySlot}.Add({_recoverMaker}(" +
+				$"text.Slice(from, to - from).ToString(), from, {counter}));");
+
+		writer.Line($"{counter}++;");
+		writer.Line("p = r;");
+		writer.Line($"goto case {loop};");
+
+		return state;
+	}
+
+	/// <summary>Where the parse may pick up again — a machine of its own, like a lookahead.</summary>
+	string CompileSync(Node sync)
+	{
+		var machine = new Machine($"{Name}_Sync{_syncs++}", _results) { IsLookahead = true };
+		var entry   = machine.Compile(sync, Accept);
+
+		foreach (var extra in machine.Extra)
+			_extra.Add(extra);
+
+		_extra.Add(machine.Render(entry, $"where {Name} picks up again: {sync}"));
+
+		return machine.Name;
 	}
 
 	/// <summary>One iteration of a captured run: match it, and move the end of the run.</summary>
@@ -1014,12 +1148,21 @@ sealed class Machine
 				file.Line();
 				file.Line("var sp    = 0;");
 				file.Line("var saved = 0;");
+
+				if (_marked)
+					file.Line($"var {Mark}   = 0;");
 			}
 
 			file.Line("var p     = pos;");
 
 			if (UsesResult)
 				file.Line("var r     = 0;");
+
+			// A lookahead takes no failure of its own and must still call rules, which do.
+			// One of its own, thrown away with it: how far it looked before answering "no"
+			// is not how far the parse got, and this is what keeps that true.
+			if (IsLookahead && UsesResult)
+				file.Line($"var failure = new {CSharpEmitter.FailureType}();");
 
 			if (UsesChar)
 				file.Line("var c     = '\\0';");
@@ -1108,6 +1251,13 @@ sealed class Machine
 						file.Line("if (p > failure.Position)");
 						file.Then("failure.Position = p;");
 						file.Line();
+
+						if (Reaches)
+						{
+							file.Line("if (p > failure.Reach)");
+							file.Then("failure.Reach = p;");
+							file.Line();
+						}
 					}
 
 					if (UsesStack)
