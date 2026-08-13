@@ -486,6 +486,17 @@ public sealed class SemanticTests
 	public void A_binding_power_parses_and_says_it_is_not_built(string grammar) =>
 		Refused(GrammarNormalizer.UnbuiltBinding, grammar);
 
+	/// <summary>
+	/// §8.2 is specified and not built, and the same reasoning applies as for §4.3.1: a
+	/// word the parser has never heard of gives an author a syntax error about `recover`
+	/// being an unknown rule, which says nothing about what is missing.
+	/// </summary>
+	[Theory]
+	[InlineData("""Row = 'R' & eol         Start = Row* recover eol""")]
+	[InlineData("""Row = 'R' & eol         Start = Row* recover eol => @Bad(text)""")]
+	public void Recover_parses_and_says_it_is_not_built(string grammar) =>
+		Refused(GrammarNormalizer.UnbuiltRecovery, grammar);
+
 	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");

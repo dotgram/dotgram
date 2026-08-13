@@ -38,7 +38,7 @@ then quietly mean nothing.
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
-| `recover` on a repetition §8.2 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `recover` on a repetition §8.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |

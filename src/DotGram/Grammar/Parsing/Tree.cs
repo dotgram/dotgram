@@ -79,6 +79,9 @@ public abstract record Expr : ILocated
 	/// <summary>An alternative that states its own binding power (§4.3.1).</summary>
 	public sealed record Bound     (Expr Body, bool IsLeft, int Level)         : Expr;
 
+	/// <summary>A repetition that survives a bad element (§8.2).</summary>
+	public sealed record Recovering(Expr Body, Expr Sync, Expr? Factory)       : Expr;
+
 	public sealed record Guard     (Expr Value)                                : Expr;
 	public sealed record Capture   (string Name, Expr Operand)                 : Expr;
 	public sealed record Group     (Expr Body)                                 : Expr;
@@ -208,6 +211,8 @@ static class Dump
 		Expr.Guard(var value)               => [value],
 		Expr.Capture(_, var operand)        => [operand],
 		Expr.Bound(var body, _, _)          => [body],
+		Expr.Recovering(var body, var sync, null)         => [body, sync],
+		Expr.Recovering(var body, var sync, var factory)  => [body, sync, factory],
 		Expr.Group(var body)                => [body],
 		Expr.Lookahead(_, var operand)      => [operand],
 		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
@@ -228,6 +233,7 @@ static class Dump
 		Expr.Choice                               => "Choice",
 		Expr.Construct                            => "Alternative",
 		Expr.Bound(_, var isLeft, var level)      => (isLeft ? "Left " : "Right ") + level,
+		Expr.Recovering                           => "Recovering",
 		Expr.Sequence                             => "Sequence",
 		Expr.Guard                                => "Guard",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",

@@ -39,6 +39,7 @@ public sealed class GrammarNormalizer
 	public const string CaptureTypeMismatch = "GRAM4007";
 	public const string UnbuiltConstruction = "GRAM4008";
 	public const string UnbuiltBinding      = "GRAM4009";
+	public const string UnbuiltRecovery     = "GRAM4010";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -143,8 +144,15 @@ public sealed class GrammarNormalizer
 		Expr.Construct(var pattern, var value)  => new Node.Construct(Lower(pattern, scope), Text(value)),
 
 		// Parsed and refused rather than parsed and ignored: a binding power that means
-		// nothing would give an answer, and the wrong one.
-		Expr.Bound(var body, _, _)              => Bound(body, scope, expression),
+		// nothing would give an answer, and the wrong one; a `recover` that means nothing
+		// would swallow a bad record in silence, which is worse.
+		Expr.Bound(var body, _, _)              => Unbuilt(body, scope, expression, UnbuiltBinding,
+			"Binding powers are specified and not built (docs/syntax.md §4.3.1). They need a " +
+			"precedence-climbing engine; until it exists, write the levels as rules — §4.3."),
+
+		Expr.Recovering(var body, _, _)         => Unbuilt(body, scope, expression, UnbuiltRecovery,
+			"'recover' is specified and not built (docs/syntax.md §8.2). Until it exists a bad " +
+			"element ends the repetition rather than being reported and stepped over."),
 
 		Expr.Quantified(var operand, var kind, var min, _, var max, _) =>
 			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
@@ -163,13 +171,10 @@ public sealed class GrammarNormalizer
 		_ => Node.Empty.Instance,
 	};
 
-	Node Bound(Expr body, GrammarScope scope, Expr at)
+	/// <summary>Something the notation says and the compiler cannot do yet.</summary>
+	Node Unbuilt(Expr body, GrammarScope scope, Expr at, string id, string message)
 	{
-		Report(
-			UnbuiltBinding,
-			"Binding powers are specified and not built (docs/syntax.md §4.3.1). They need a " +
-			"precedence-climbing engine; until it exists, write the levels as rules — §4.3.",
-			at.At);
+		Report(id, message, at.At);
 
 		return Lower(body, scope);
 	}

@@ -391,14 +391,14 @@ public sealed class GramParser
 		var operand = ParsePrefixed();
 
 		Expr Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null) =>
-			new Expr.Quantified(operand, kind, min, minName, max, maxName) { At = From(start) };
+			Recovering(new Expr.Quantified(operand, kind, min, minName, max, maxName) { At = From(start) }, start);
 
 		if (TakeIf(TokenKind.Question)) return Quantify(QuantifierKind.Optional);
 		if (TakeIf(TokenKind.Star))     return Quantify(QuantifierKind.ZeroOrMore);
 		if (TakeIf(TokenKind.Plus))     return Quantify(QuantifierKind.OneOrMore);
 
 		if (!At(TokenKind.OpenBrace))
-			return operand;
+			return Recovering(operand, start);
 
 		Take();
 
@@ -423,6 +423,26 @@ public sealed class GramParser
 				new Location(start, closeAt + 1 - start));
 
 		return Quantify(QuantifierKind.Count, min, minName, max, maxName);
+	}
+
+	/// <summary>
+	/// <c>recover eol</c>, or <c>recover eol =&gt; @Bad(…)</c> — a repetition that
+	/// survives a bad element (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// The synchronization expression is a prefixed operand rather than a whole sequence:
+	/// anything larger would swallow the <c>&amp;</c> that ends the repetition's place in
+	/// the sequence it sits in.
+	/// </remarks>
+	Expr Recovering(Expr repetition, int start)
+	{
+		if (!TakeIfKeyword("recover"))
+			return repetition;
+
+		var sync    = ParsePrefixed();
+		var factory = TakeIf(TokenKind.Arrow) ? ParseValue() : null;
+
+		return new Expr.Recovering(repetition, sync, factory) { At = From(start) };
 	}
 
 	(int? Value, string? Name) ParseCount()
