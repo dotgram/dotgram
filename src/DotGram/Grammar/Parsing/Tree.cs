@@ -17,9 +17,8 @@ public readonly record struct Location(int Position, int Length)
 /// </summary>
 /// <remarks>
 /// The one thing the otherwise unrelated trees have in common, and the only reason
-/// they would ever need a common view — Nitra carries exactly this and calls it
-/// <c>ILocated</c>. Uniform traversal across kinds, should it ever be wanted, is
-/// written against this rather than bought with a base class.
+/// they would ever need a common view. Uniform traversal across kinds, should it ever
+/// be wanted, is written against this rather than bought with a base class.
 /// </remarks>
 public interface ILocated
 {

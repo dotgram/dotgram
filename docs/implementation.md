@@ -4,15 +4,16 @@ Companion to [`syntax.md`](syntax.md). That document describes the language, thi
 how to execute it. Nothing decided here is a decision about the language: if
 something below turns out to be inconvenient, this is what changes, not the notation.
 
-Almost everything here is borrowed from [Nitra](https://github.com/rsdn/nitra), a
-project of the same lineage (RSDN/Nemerle) solving a larger version of the same
-problem. File references into it are paths in that repository, given so the working
-code can be checked against; it has not moved in years, so they are left unpinned.
+Most of it is a plan rather than a report. [`status.md`](status.md) says which parts
+are real; of the engines described below, today, none.
 
-References to **Roc** are to an earlier unpublished project of my own. They are kept
-because the reasoning they carry is worth having — particularly one mistake in it that
-this design deliberately does not repeat (§5) — and they are named rather than linked
-because there is nothing to link to.
+References to **Roc** are to an earlier unpublished project of my own, a BNF macro for
+Nemerle. Most of what is in the code today came from there — normalization done before
+anything else, the normalized grammar rendered back as text so that a change to a fold
+shows up as a diff, the element-set merge of §5 — along with two of its mistakes, which
+are here as deliberate non-features: alternatives are never reordered (§5), and rule
+references are never inlined. It is named rather than linked because there is nothing
+to link to.
 
 ---
 
@@ -29,16 +30,19 @@ path is there so the slow one can be afforded: since recovery runs only on broke
 input, it is free to be as expensive as it likes — and therefore free to look for the
 *right* answer rather than the first one.
 
-**Recovery has no notation** for the same reason. The quality of messages must not
-depend on whether the author placed synchronization points; place them wrongly and it
-gets worse than having none.
+**Repairing a document has no notation** for the same reason. The quality of messages
+about a source file must not depend on whether the author placed synchronization
+points; place them wrongly and it gets worse than having none. A feed is the other
+case and does have notation — `recover`, `syntax.md` §8.2 — because there the answer
+wanted is not a repair.
 
-**There is no commit point**, and diagnostics are why. Early commitment existed to stop
-a real error inside an alternative from being discarded in favour of "nothing matched"
-at the top; the recovery engine does that job better, from the cheapest edit. What is
-left over is smaller and still open: how an author says "this is an error, not a
-mismatch", so that a failing semantic guard can say "unsupported symbol XYZ" instead of
-letting a sibling be tried.
+**There is no commit point in an expression**, and diagnostics are why. Early
+commitment existed to stop a real error inside an alternative from being discarded in
+favour of "nothing matched" at the top; the recovery engine does that job better, from
+the cheapest edit, and an operator scattered through expressions costs more than it is
+worth — the same alternative would mean different things depending on where it sits.
+`recover` commits on one repetition instead, which is the case the recovery engine
+cannot serve: a hundred million records, of which one is bad.
 
 **Position mapping is mandatory** (`syntax.md` §7.6). A type error in `=> @Add(l, r)`
 must be shown on the grammar's line. Without `#line` in the generated code every C#
@@ -71,35 +75,41 @@ error path     a separate engine over a state machine built from the same
                grammar, looking for the cheapest edit of the input
 ```
 
-`ParseResult.Parse()` (`Nitra.Runtime/Parsing/ParseResult.n:124`) starts the second
-engine only if the first returned a negative result or stopped short. On correct input
-recovery costs nothing.
+The second engine starts only if the first returned a negative result or stopped short.
+On correct input recovery costs nothing.
 
-The consequence for the language: **error recovery needs no notation**. The author
-writes neither `Recover` nor synchronization points — the open item in `syntax.md`
-§10 is settled by dropping the construct rather than inventing it.
+The consequence for the language: **repairing a document needs no notation**. The
+author writes neither policies nor synchronization points, and the second engine is
+reached only when the first has already failed over the whole input.
+
+That covers a source file and not a feed. A hundred million records cannot be held
+while the cheapest edit is searched for, and "what did the author most likely mean" is
+not the answer wanted for record twelve of them — "it is bad, here is why, carry on"
+is. That case is `recover` (`syntax.md` §8.2): it runs inside a **successful** parse,
+per element, and never reaches this engine. The two share the word and nothing else.
 
 Both engines are built from one description of the grammar: the fast one as generated
-code, the slow one as a state machine (`ParsingSequence` with `States`, `StartStates`,
-`EndStates`).
+code, the slow one as a state machine.
 
 ## 2. The fast path: the shape of generated code
 
-The parse method's signature
-(`Nitra.Compiler/Generation/Parser/ParseMethodEmitter/CompileSequence.n:34`):
+One recognizer per rule, with one signature:
 
 ```csharp
-int Parse(int pos, ReadOnlySpan<char> text, ParseState state);   // new position, or -1
+static int Recognize_R(ReadOnlySpan<char> text, int pos);   // new position, or -1
 ```
 
-Flat, no exceptions, no objects, no delegates. Exactly what `syntax.md` promises with
-the words "code comparable to a careful hand-written parser".
+Flat, no exceptions, no objects, no delegates — what `syntax.md` promises with the
+words "code comparable to a careful hand-written parser". That flatness is the idea
+worth taking from a generated parser; the shape that achieves it here is our own.
 
-Where we differ from Nitra:
+Inside a recognizer there are no nested calls but a state machine: states are `switch`
+sections, transitions are `goto case`, and the points a match could have gone another
+way are an explicit stack of three-int frames. That is what makes backtracking full
+inside a rule, and it is the one part of the engine that is built (`status.md`).
 
-- `ReadOnlySpan<TIn>` instead of `string`, with no interface over the input;
-- `-1` as the failure signal is replaced by an outcome that tells "no match" from
-  "error" — a requirement of the language, not of the implementation.
+`-1` as the failure signal is a placeholder: the language needs an outcome that tells
+"no match" from "error" (`syntax.md` §8.1), and that is what it becomes.
 
 **There is no runtime assembly.** Everything a generated parser needs is emitted into
 the same assembly, `internal` (`syntax.md` §6.1). A consumer takes one analyzer
@@ -110,23 +120,22 @@ here — and if something does, it goes into the optional shared mode
 Parameterized rules are specialized per call site (`syntax.md` §4.2), so a recognizer
 parameter disappears during generation and becomes a direct call.
 
-## 3. The parse result: a flat `int[]`
+## 3. Nothing is built while matching
 
-```nemerle
-public mutable rawTree : array[int];   // (text.Length + 1) * 10
-public mutable memoize : array[int];   // indexed by position in the input
-```
+**One idea, taken and worth stating on its own: a match allocates nothing, and the
+typed result is materialized once it has succeeded.** Speculative parsing then costs
+almost nothing — backtracking restores a position and has nothing to undo — which is
+what makes ordered choice affordable without a commit point.
 
-(`Nitra.Runtime/Parsing/ParseResult.n:33-34`, `:102-103`)
+It is in the code, in a shape of its own. A capture records a pair of positions into
+the input; every state a match can resume at clears the slots an abandoned attempt
+could have written, as literals worked out while generating; and the value is built by
+one expression at the accepting state. `RecognitionResult<T>` is a struct with a
+discriminant field, and records are built on the way out rather than along the way.
 
-Not one object is allocated while parsing: a node is an offset into `int[]`, and the
-links between nodes are offsets too. The typed result is materialized lazily, after
-parsing has succeeded.
-
-For us that means `RecognitionResult<T>` is a struct with a discriminant field, and
-records are built on the way out rather than along the way. As a side effect
-speculative parsing becomes cheap: backtracking is just restoring a position, with
-nothing to undo.
+The alternative — a flat `int[]` holding the whole raw tree as offsets, materialized
+lazily — buys the same property and costs memory proportional to the input, which
+line-oriented streaming cannot afford (§7). Not taken.
 
 The recovery engine is the one piece that is both grammar-independent and large enough
 for duplicating it into every assembly to be noticeable. It is also the only candidate
@@ -134,9 +143,9 @@ for someday justifying the shared mode of §6.1 by volume of code rather than by
 
 ## 4. Memoization
 
-The table is indexed by **position in the input**; each position holds a linked list
-of results for different rules (`memoize[pos]` is the head, the `Next` field the
-successor; `ParsePrefix.n:75-77`).
+The table is indexed by **position in the input**; each position holds a linked list of
+results for different rules, the head in the table and a `Next` field for the
+successor.
 
 This stays an execution strategy rather than a guarantee of the language (`syntax.md`
 §7.2: code in `@(...)`, `where` and `=>` must be safe to invoke repeatedly whether or
@@ -145,16 +154,15 @@ not anything is cached).
 ## 5. Filtering alternatives by their first element
 
 Each alternative has the bounds of its first character computed, and an alternative is
-not tried at all when the current character falls outside them
-(`ParsePrefix.n:85-95`):
+not tried at all when the current character falls outside them:
 
-```nemerle
-when (prefixRule.LowerBound <= c && c <= prefixRule.UpperBound)
+```csharp
+if (lower <= c && c <= upper)
 ```
 
 Cheap, computed when the grammar is built, and it removes most of the cost of ordered
-choice — which matters more now that ordered choice backtracks fully and there is no
-commit point to cut it short (§7). Most alternatives never get tried at all.
+choice — which matters more now that ordered choice backtracks fully and no operator
+cuts it short (§7). Most alternatives never get tried at all.
 
 What makes it cheap is normalization done first, and Roc's macro is where to take that
 from — an unpublished Nemerle BNF macro, whose fold was: single-character alternatives
@@ -168,24 +176,24 @@ alternatives ahead of everything else, which silently changes ordered choice:
 because Roc's structural generator was a stub and its character
 tests compile to `c == 'a' || …`, where order cannot matter — the multi-character case
 was never executed. Merging is safe exactly where the match length is fixed at one
-item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §10).
+item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §11).
 
 ## 6. Recovery as the cheapest edit
 
 The slow engine enumerates edits of the input — insert what was expected, delete what
-was not — and picks the solution of least total cost.
+was not — and picks the solution of least total cost. Minimum-distance error correction
+is old (Aho and Peterson, 1972); what has to be got right is the bookkeeping.
 
-- the cost is a pair, inserted and deleted (`TokenChanges`);
-- a priority queue on cost, then on position
-  (`Internal/Recovery/RecoveryParser/RecoveryParser.n:27-40`);
+- the cost is a pair, inserted and deleted;
+- a priority queue on cost, then on position;
 - the loop: parse to the point of failure → try insertions → try deletions → repeat
-  until a solution is found (`:74-97`);
+  until a solution is found;
 - a timeout with graceful degradation: if it does not finish in time, delete the rest
-  and stop (`:92-96`).
+  and stop.
 
-Proven on a C# grammar — Nitra's repository has a complete one.
+To be judged on a grammar the size of C#, not on the corpus of §11.
 
-## 7. Execution modes, and why there is no commit point
+## 7. Execution modes, and what bounds retention
 
 Which mode a parse runs in is decided by the type of the input, at the call site
 (`syntax.md` §6.2). The compiler decides *how* each mode is implemented.
@@ -214,9 +222,17 @@ language lands in the same mode.
 **Whether a grammar can stream at all is the retention analysis**: how far back a
 pending alternative could return. Bounded by a line, the streaming overloads are
 emitted; bounded by the whole input, they are not, and the message names the rule
-responsible. That is what replaces a commit point: it restricts what may stream
-without changing what anything means, whereas committing would make the same
-alternative mean different things depending on where it was written.
+responsible. Note what this does and does not do — it restricts what may stream, and
+changes the meaning of nothing.
+
+`recover` (`syntax.md` §8.2) reaches the same bound from the other side, by being told
+rather than by inference: its synchronization expression is a point the parse cannot
+return past, so a marked repetition streams by construction and the analysis has
+nothing to prove. It commits as well, which the analysis does not — but on one
+repetition, named in the notation, and the rules it calls mean the same thing inside it
+as anywhere else. That is the whole difference from the commit point `syntax.md` §11
+refuses: an operator scattered through expressions would make one alternative mean
+different things depending on where it was written.
 
 **The compiler reports the mode it picked.** Not a warning — a statement of fact, so
 that one grammar eating four kilobytes and its neighbour eating a hundred megabytes is
@@ -235,29 +251,27 @@ Positions follow from the mode: inside a line an ordinary `int` has room to spar
 while what crosses the publication boundary for a streamed parse is a `long`, since a
 feed of tens of gigabytes has offsets that do not fit in one.
 
-Note that §3 and §4 assume memory-sized input: a `rawTree` and a memo table indexed by
-absolute position cost forty gigabytes on a ten-gigabyte feed. In line-oriented mode
+Note that §4 assumes memory-sized input: a memo table indexed by absolute position
+costs tens of gigabytes on a ten-gigabyte feed. In line-oriented mode
 both are per-line and are reused, which is what makes that mode cheap rather than
 merely possible.
 
 ## 8. Incremental parsing
 
-`Nitra.Runtime/Parsing/IncrementalParser.n:38-57`, about thirty lines:
+Thirty lines over the memo table of §4:
 
 1. compare old and new text from the start — the length of the common prefix;
 2. compare from the end — the length of the common suffix;
 3. copy the tail of the memoization table, shifted by the difference in lengths;
 4. parse again, landing in ready entries past the edit.
 
-An honest limitation, visible in the code: only the **tail** is reused, the head is
-recomputed (the code for the head is commented out). For an editor that is enough —
-an edit is usually in the middle, and the tail is the longer part.
+Only the **tail** is worth reusing; the head is recomputed. For an editor that is
+enough — an edit is usually in the middle, and the tail is the longer part.
 
 ## 9. Operator precedence
 
-`ExtensibleRuleParser` is split into `ParsePrefix` (atoms and prefix operators) and
-`ParsePostfix` (infix and postfix), with a `BindingPower` — classic precedence
-climbing.
+Precedence climbing: atoms and prefix operators in one loop, infix and postfix in
+another, with a binding power per level.
 
 `syntax.md` §4.3 currently has the levels written out as rules by hand, which works
 with no engine at all. If a precedence construct appears later, it should be lowered
@@ -265,23 +279,20 @@ into this shape rather than into a third one.
 
 ## 10. Trivia and keywords
 
-Nitra's whitespace insertion is in
-`Nitra.Grammar/Typing/TypingUtils-TypeRuleExpression.n:37-81`, on the invariant that
-**every rule consumes the whitespace after itself, not before**. Hence: insert `s`
-after a literal and after a call to a lexical rule; do not after a structural rule,
-which has eaten its own; leading whitespace once, in the start rule; plus attributes
-to override either way.
+The usual way to place whitespace is an invariant — every rule consumes the whitespace
+after itself and never before — plus rules for where to insert accordingly: after a
+literal and after a lexical rule, not after a structural one, once at the start, and
+attributes to override either way.
 
-**We do not need any of that.** `syntax.md` §4.5 requires `Trivia` to be nullable, and
-from that condition unconditional insertion is safe: a second application consumes
-nothing, so nothing is ever doubled. The whole rule collapses into "insert
-everywhere", with one insertion at the start of a published rule for leading
-whitespace, and normalization drops the insertions entirely when `Trivia` is empty.
+**We need none of it.** `syntax.md` §4.5 requires `Trivia` to be nullable, and from
+that condition unconditional insertion is safe: a second application consumes nothing,
+so nothing is ever doubled. The whole rule collapses into "insert everywhere", with one
+insertion at the start of a published rule for leading whitespace, and normalization
+drops the insertions entirely when `Trivia` is empty.
 
-Keyword boundaries are declarative in Nitra too — a class of keyword characters plus a
-separator rule `!IdentifierPartCharacters s`, after which every string literal falling
-into that class gets the boundary check automatically. For us that remains open
-(`syntax.md` §10).
+Keyword boundaries want to be declarative in the same way — a class of keyword
+characters plus a separator rule, after which every string literal falling into that
+class gets the boundary check automatically. That remains open (`syntax.md` §11).
 
 ## 11. Order of work
 
@@ -314,11 +325,11 @@ and levels), a feed (sequence results and recovery), a URL (shared literal prefi
 The recovery engine does not have to be pulled forward whole — message quality comes
 in two tiers of very different cost, and the first is nearly free.
 
-**The first comes out of the fast path.** Remember the furthest position of failure
-reached and the set of what was expected there. In Nitra that is `MaxFailPos` plus
-`GetParsingFailureError` (`ParseResult.n:181-205`): at the failure position it tries
-every token of the grammar and keeps those that would have fit. That yields a message
-of the form "expected `)`" with an exact place.
+**The first comes out of the fast path**, and it is the standard answer for a parser
+that backtracks: remember the furthest position of failure reached and the set of what
+was expected there — at that position, try every terminal of the grammar and keep those
+that would have fitted. That yields a message of the form "expected `)`" with an exact
+place.
 
 It costs almost nothing: the position is tracked anyway, and the expected set is known
 from the grammar at build time. But it yields **one** message per run — parsing was
@@ -381,9 +392,9 @@ hand-written one, so there are two options:
 - generate on every build — then the hand-written parser ships anyway;
 - **keep the generated source in the repository** and refresh it with a command.
 
-The second is Nitra's bootstrap in its mildest form: one generated `.cs` and a refresh
-script, rather than two frozen stages and three `.cmd` files. Manageable, but the cost
-should be admitted up front.
+The second is bootstrapping in its mildest form: one generated `.cs` and a refresh
+script, rather than a chain of frozen stages. Manageable, but the cost should be
+admitted up front.
 
 ### The rule to hold from day one
 
@@ -404,17 +415,20 @@ reasons" and gets muted. That is how dogfooding dies.
 4. Measure: speed, message quality, size of the code.
 5. Only then decide whether to commit the generated parser and switch production to it.
 
-## 13. What we do not take from Nitra
+## 13. What this engine is not for
 
-- **The AST layer**: `map syntax`, `ast`, dependent properties, symbols, scopes, name
-  binding. That is a second and a third language on top of the first; for us that place
-  is taken by C# (`syntax.md` §7).
-- **Language composition**: `extend syntax`, dynamic extension points, resolving
-  ambiguity between extensions. The source of most of the runtime complexity.
-- **The bootstrap machinery**: Nitra's grammar is written in Nitra, and the repository
-  holds two frozen stages plus `ShiftBoot.cmd`, `RebuildBoot.cmd` and
-  `UpdateStage1Metadata.cmd`. Self-description we do take (§12), the chain of stages we
-  do not: the front end stays hand-written and `Gram.gram` serves as a check.
-- **Formatting markers** (`sm`, `nl`, indentation, block outlining) — one grammar
-  yielding a printer and outlining as well. A good idea, but it widens the task beyond
-  the current one.
+Things a grammar engine can reasonably grow, each a good answer to a question this
+project is not asking. Listed so that not having them reads as a decision.
+
+- **An AST layer of its own**: a second notation mapping the parse tree onto typed
+  nodes, with dependent properties, symbols, scopes and name binding. That is a second
+  and a third language on top of the first; here that place is taken by C#
+  (`syntax.md` §7).
+- **Language composition**: grammars extending other grammars, dynamic extension
+  points, resolving ambiguity between extensions. Where most of the runtime complexity
+  of such engines comes from.
+- **A chain of bootstrap stages.** Self-description is taken (§12), the chain is not:
+  the front end stays hand-written and `Gram.gram` serves as a check against it.
+- **Formatting markers** — soft breaks, indentation, block outlining, so that one
+  grammar yields a printer and code folding as well. A good idea that widens the task
+  well beyond the current one.
