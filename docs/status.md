@@ -394,6 +394,31 @@ inside one — `@int.Parse` and the like — resolve against the host compilatio
   generator may not assume, and `T` has to be unconstrained now that a rule may declare
   itself `: @int`.
 
+## Where the author's C# actually runs
+
+Not inside the machine. Every `=>`, every `where` and every recovery factory becomes a
+**method of its own**, and the names it can use — the captures, and the supplied `text`,
+`line`, `column`, `ordinal`, `message` — are that method's **parameters**:
+
+```csharp
+static FeedLine Recognize_Feed_Recover(string text, int ordinal, int line, string message) =>
+    new RejectedLine(ordinal, line, text, message);
+
+static decimal Construct_Expr(string text, decimal operand) =>
+    (-operand);
+```
+
+That is what makes the names usable at all. Written where the value is assigned they would
+have to dodge every local the recognizer has — `p`, `state`, `r`, `saved`, `sp`, `bt`,
+`value`, `failure` — and a capture called `p` would collide with the machine itself. As
+parameters they are in a scope of their own, named exactly as the grammar named them, and
+the machine's internals cannot leak in either direction.
+
+It also means a capture may not be called `text`: the parameter is already taken. That is
+now `GRAM4012` and says so. Before it was refused, the generated code simply did not
+compile — "no overload takes 2 arguments", in a file the author never wrote, about a
+grammar it did not mention.
+
 ## Value failures
 
 `=> @TryTiny(digits)` where the C# is `bool TryTiny(string digits, out int value)` is

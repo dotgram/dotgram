@@ -890,6 +890,16 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.UnsupportedElement, "Start = @MyScanner & 'x'");
 
 	[Fact]
+	public void A_capture_may_not_take_a_name_that_is_supplied() =>
+		// The supplied names become parameters of the method a `=>` turns into, so a
+		// capture called `text` wants one that is already taken. Before it was refused the
+		// generated code simply did not compile, with an error pointing at a file the
+		// author never wrote and saying nothing about the grammar.
+		Refused(
+			GrammarNormalizer.ReservedCaptureName,
+			"Start : @string = text: ['a'..'z']+ => @(text)");
+
+	[Fact]
 	public void A_rule_typed_as_another_rule_says_it_is_not_built() =>
 		// §4.1 case 3. Before it was refused the declaration was dropped in silence and the
 		// rule got a type generated from its own captures — so `A : B` compiled, ran, and

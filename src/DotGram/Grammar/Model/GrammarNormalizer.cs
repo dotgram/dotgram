@@ -41,6 +41,7 @@ public sealed class GrammarNormalizer
 	public const string UnbuiltBinding      = "GRAM4009";
 	public const string UnbuiltRecovery     = "GRAM4010";
 	public const string UnbuiltRuleType     = "GRAM4011";
+	public const string ReservedCaptureName = "GRAM4012";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -1289,6 +1290,20 @@ public sealed class GrammarNormalizer
 		if (node is Node.Capture(var name, var captured))
 		{
 			var collects = captured is Node.Call(var called, _) && BuildsValue(called);
+
+			// The supplied names of §7.3 and §8.2 become parameters of the method a `=>`
+			// turns into, so a capture of the same name wants a parameter that is already
+			// taken. Refused rather than resolved either way round: `text` would otherwise
+			// mean the matched extent in one rule and something else in the next, and the
+			// alternative — generated code that does not compile — points at a file the
+			// author did not write.
+			if (name == "text")
+				Report(
+					ReservedCaptureName,
+					$"'{name}' is supplied to every '=>' as the extent that matched " +
+					"(docs/syntax.md §7.3), so a capture may not take that name. Call it " +
+					"something else.",
+					rule.Declaration!.At);
 
 			if (inLookahead)
 				Report(
