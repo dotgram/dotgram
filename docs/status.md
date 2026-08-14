@@ -44,14 +44,14 @@ then quietly mean nothing.
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | `position` is `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
+| a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
 | retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
-| retention: where the window may move §6.3 | — | — | ✗ | ✗ | ✗ |
+| retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | streaming input §6.2, §8.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
@@ -530,13 +530,34 @@ A Unicode category is not looked into and is assumed to admit a terminator. That
 in the safe direction: a rule wrongly said to take one loses an overload it could have
 had, and one wrongly said not to would lose data.
 
-**Where the window may move** is the other half and is not built. Knowing a rule stays on
-its line says what may be held; it does not say when what came before may be let go. That
-needs the commit points, which today means `recover` — its synchronization expression is a
-position the parse cannot return past (§8.2), and therefore the one place a buffer can
-advance. Nothing is emitted from any of this until that exists; the analysis is tested on
-its own, because one only exercised through the feature it gates is one nobody can tell is
-wrong.
+**Where the window may move** — `Retention.PlanFor`. A published rule breaks into stages,
+one per operand of its body, and each is either a piece that fits the window or a
+committed repetition of pieces that do. A committed run is measured by **one element**
+rather than by the run, because the run's length is what streaming is for.
+
+Two things must hold, and each is a different failure:
+
+```dotgram
+Feed = Header & Row* recover eol & Trailer & eof   // streams
+Feed = Header & Row*             & Trailer & eof   // 'Row*' may take more than one line
+Pair = Header & Trailer & eof                      // every stage fits, none commits
+```
+
+The second is not a measuring failure dressed up: with the mark off, the run stops being a
+stage boundary and is measured as what it is, every row at once — so it names itself. The
+third is the one measuring alone would miss, where each stage fits the window and there is
+still no point at which the first may be let go.
+
+Written as a decomposition rather than as "find the recovering repetition" because that
+generalizes. Two committed runs in one rule are an ordinary feed —
+`Header & Trades* recover eol & Separator & Adjustments* recover eol & Trailer` — and a
+stage may itself be a rule with stages of its own. **Neither is built**: one `recover` per
+rule is still refused, which is an implementation limit that this shape makes visible, and
+it will bite exactly when multi-stage feeds become worth writing.
+
+Nothing is emitted from any of this yet — no overloads, no diagnostic. The analysis is
+tested on its own, because one only exercised through the feature it gates is one nobody
+can tell is wrong.
 
 ## What has been measured
 

@@ -78,6 +78,91 @@ public static class Retention
 		return extents;
 	}
 
+	/// <summary>One part of a published rule, and what it costs to hold.</summary>
+	/// <param name="Committed">
+	/// A repetition marked <c>recover</c>: the window may move at each element, because
+	/// the synchronization point is one the parse cannot return past (§8.2).
+	/// </param>
+	public sealed record Stage(Node Body, LineExtent Extent, bool Committed);
+
+	/// <summary>
+	/// How a published rule breaks into stages, and whether every one of them fits.
+	/// </summary>
+	/// <param name="Reason">Why it cannot stream, or null when it can.</param>
+	public sealed record Plan(IReadOnlyList<Stage> Stages, string? Reason)
+	{
+		public bool CanStream => Reason is null;
+	}
+
+	/// <summary>
+	/// Whether a published rule can be read from a window, and where the window moves.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The shape a streamable grammar has is a sequence of stages, each of which either
+	/// fits the window or is a committed repetition of things that do. A feed is the
+	/// ordinary case — a header, a run of records, a trailer — and what makes it streamable
+	/// is not its length but that the run in the middle commits, so what came before it can
+	/// be let go.
+	/// </para>
+	/// <para>
+	/// Written as a decomposition rather than as "find the recovering repetition" because
+	/// that generalizes: two committed runs in one rule are a perfectly ordinary feed, and
+	/// a stage may itself be a rule with stages of its own. Neither is built — one
+	/// <c>recover</c> per rule is still refused — but the shape does not have to change
+	/// when they are.
+	/// </para>
+	/// </remarks>
+	public static Plan PlanFor(RecognitionGraph graph, RuleSymbol rule)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		var extents   = ExtentOf(graph);
+		var consuming = Consuming(graph);
+		var body      = graph.Bodies[rule];
+
+		var parts  = body is Node.Sequence(var sequence) ? sequence : [body];
+		var stages = new List<Stage>(parts.Count);
+
+		foreach (var part in parts)
+		{
+			var committed = part is Node.Repeat && graph.Recoveries.ContainsKey(part);
+
+			// A committed run is measured by one element, not by the run: the window moves
+			// between elements, so the run's own length is what streaming is *for*.
+			var measured = committed && part is Node.Repeat(var element, _, _)
+				? Extent(element, extents, consuming)
+				: Extent(part, extents, consuming);
+
+			stages.Add(new Stage(part, measured, committed));
+		}
+
+		foreach (var stage in stages)
+			if (stage.Extent == LineExtent.Beyond)
+				return new Plan(
+					stages,
+					$"'{rule.Name}' has no streaming overload — {Describe(stage)} may take more " +
+					"than one line, so retention would grow with the input.");
+
+		// Every stage fits, and still nothing may be let go unless one of them says so.
+		foreach (var stage in stages)
+			if (stage.Committed)
+				return new Plan(stages, null);
+
+		return new Plan(
+			stages,
+			$"'{rule.Name}' has no streaming overload — every part of it fits a line, but " +
+			"none of them commits, so the window could never move. Mark the repetition that " +
+			"reads the body of the input with 'recover' (docs/syntax.md §8.2).");
+	}
+
+	static string Describe(Stage stage) =>
+		stage.Committed ? "an element of " + stage.Body : stage.Body.ToString();
+
 	/// <summary>
 	/// Every rule that can take at least one input item.
 	/// </summary>

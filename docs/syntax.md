@@ -1091,6 +1091,23 @@ a healthy backtrack, not a broken address. Marking the repetition is how an auth
 which reading applies, and it changes nothing outside the repetition it is written on —
 a rule still means one thing everywhere it is called.
 
+**The synchronization expression is one operand, so a choice needs brackets.**
+
+```dotgram
+fields: Field* recover ('|' | eol)      // either separator, whichever comes first
+fields: Field* recover  '|' | eol       // (fields: Field* recover '|') | eol
+```
+
+`recover` binds tighter than `|`, the same way `&` does (§3.8), so the second line is a
+choice between a recovering repetition and `eol` rather than a recovery with two ways to
+resume. Both are legitimate things to write, which is why this is precedence rather than
+an error.
+
+A choice is worth having. Resuming at the next field separator rather than the next line
+keeps the rest of a record instead of throwing it away, which is what a recovery *inside*
+a record wants — `eol` in the same choice is then the backstop for a record so broken
+that no separator is left in it.
+
 **The synchronization expression is also the retention bound.** An element of a marked
 repetition cannot reach back past the previous synchronization point, so a streamed
 parse holds one element and not the file. This is what §6.3 promises to prove before

@@ -801,6 +801,35 @@ public sealed class SemanticTests
 		Assert.DoesNotContain("OnRecovered", Emitted(Records));
 
 	[Fact]
+	public void A_synchronization_point_may_be_a_choice_when_it_is_bracketed()
+	{
+		// Recovering to the next separator *or* the end of the line, whichever comes
+		// first — which is what a field-level recovery wants, rather than throwing the
+		// rest of the record away.
+		var rows = (Array)Read(
+			Built("""
+				Field = name: ['a'..'z']+ & '|'
+				Start = fields: Field* recover ('|' | eol) => @(new Field("!" + text))
+				""",
+				"aa|b1b|cc|"),
+			"Fields")!;
+
+		Assert.Equal(["aa", "!b1b", "cc"], rows.Cast<object>().Select(field => Read(field, "Name")));
+	}
+
+	[Fact]
+	public void Without_the_brackets_it_binds_tighter_than_the_choice() =>
+		// `recover` takes one operand, so the `|` belongs to the enclosing expression:
+		// this is `(fields: Field* recover '|') | eol`, not a choice of two sync points.
+		// Precedence, the same as `a & b | c` — and the reason the brackets are not
+		// optional.
+		Assert.Contains(
+			"Recovering",
+			GramParser.Parse(GramLexer.Tokenize(
+				"Start = fields: Field* recover '|' | eol\nField = ['a'..'z']+",
+				RoslynCSharpScanner.Instance)).File.ToString());
+
+	[Fact]
 	public void Only_one_repetition_of_a_rule_recovers() =>
 		// The second would be ignored, and a `recover` that is quietly not there is the
 		// failure recovery exists to prevent.

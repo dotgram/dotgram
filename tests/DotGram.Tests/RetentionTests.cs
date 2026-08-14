@@ -111,6 +111,95 @@ public sealed class RetentionTests
 		// lose data.
 		Assert.Equal(LineExtent.Beyond, ExtentOf(@"Any = [\p{L}]+", "Any"));
 
+	// ── Stages: whether a published rule can be read from a window ───────────────
+
+	static Retention.Plan PlanFor(string grammar, string rule)
+	{
+		var graph = GrammarNormalizer.Normalize(GrammarBinder.Bind(
+			GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
+
+		Assert.Empty(graph.Diagnostics);
+
+		return Retention.PlanFor(graph, graph.Rules.First(r => r.Name == rule));
+	}
+
+	const string Streamable = """
+		Feed    = Header & Row* recover eol & Trailer & eof
+		Header  = "H" & '|' & Text & eol
+		Row     = "R" & '|' & Text & eol
+		Trailer = "T" & '|' & Text & eol
+		Text    = [^ '|' | '\r' | '\n']+
+		""";
+
+	[Fact]
+	public void A_feed_with_a_committed_run_can_be_read_from_a_window()
+	{
+		var plan = PlanFor(Streamable, "Feed");
+
+		Assert.True(plan.CanStream, plan.Reason);
+		Assert.Null(plan.Reason);
+
+		// Header, the run, Trailer, eof — and the window moves at the one that commits.
+		Assert.Equal(4, plan.Stages.Count);
+		Assert.Single(plan.Stages, stage => stage.Committed);
+	}
+
+	[Fact]
+	public void The_committed_run_is_measured_by_one_element_and_not_by_the_run()
+	{
+		// The run itself takes the whole file, which is the point of streaming it. What
+		// has to fit the window is one `Row`.
+		var run = plan().Stages.Single(stage => stage.Committed);
+
+		Assert.Equal(LineExtent.AtEnd, run.Extent);
+		Assert.Equal(LineExtent.Beyond, ExtentOf(Streamable, "Feed"));
+
+		Retention.Plan plan() => PlanFor(Streamable, "Feed");
+	}
+
+	[Fact]
+	public void An_uncommitted_run_is_measured_whole_and_names_itself()
+	{
+		// Take the mark off and the run stops being a stage boundary, so it is measured as
+		// what it is — every row at once.
+		var plan = PlanFor(Streamable.Replace(" recover eol", "", StringComparison.Ordinal), "Feed");
+
+		Assert.False(plan.CanStream);
+		Assert.Contains("Row*", plan.Reason, StringComparison.Ordinal);
+		Assert.Contains("may take more than one line", plan.Reason);
+	}
+
+	[Fact]
+	public void And_stages_that_all_fit_still_need_one_to_commit()
+	{
+		// Two lines and no run between them: each stage fits the window on its own, and
+		// there is still no point at which the first may be let go.
+		var plan = PlanFor(
+			"""
+			Pair    = Header & Trailer & eof
+			Header  = "H" & eol
+			Trailer = "T" & eol
+			""",
+			"Pair");
+
+		Assert.False(plan.CanStream);
+		Assert.Contains("none of them commits", plan.Reason);
+	}
+
+	[Fact]
+	public void A_stage_that_takes_more_than_a_line_is_named()
+	{
+		// The message §6.3 promises: which part is responsible, not merely that something
+		// is.
+		var plan = PlanFor(
+			Streamable.Replace("Text    = [^ '|' | '\\r' | '\\n']+", "Text    = [^ '|']+", StringComparison.Ordinal),
+			"Feed");
+
+		Assert.False(plan.CanStream);
+		Assert.Contains("may take more than one line", plan.Reason);
+		Assert.Contains("Header", plan.Reason);
+	}
+
 	[Fact]
 	public void The_feed_of_the_examples_measures_as_it_reads()
 	{
