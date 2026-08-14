@@ -279,7 +279,31 @@ public static class CSharpEmitter
 					parts.Add(part.Name);
 				}
 
-				EmitStreamingParse(file, graph, publication, results, stages, parts);
+				// What the repetition was told to do about a bad element, and where the
+				// parse may pick up again — compiled here rather than inside a machine,
+				// because in a stream it is the driver that steps over one.
+				var found   = RecoveryIn(graph, results, publication.Rule);
+				var sync    = (string?)null;
+				var factory = MethodOf(publication.Rule) + "_Recover";
+
+				if (found is var (_, recovered, _) && recovered.Sync is { } expression)
+				{
+					var machine = new Machine($"{WholeOf(publication.Rule)}_Sync", results)
+					{
+						IsLookahead = true,
+					};
+
+					file.Write(machine.Render(
+						machine.Compile(expression, Machine.Accept),
+						$"where a streamed {publication.Rule.Name} picks up again: {expression}"));
+
+					file.Line();
+					sync = machine.Name;
+				}
+
+				EmitStreamingParse(
+					file, graph, publication, results, stages, parts,
+					found?.Recovery, sync, factory);
 				file.Line();
 			}
 
@@ -560,7 +584,8 @@ public static class CSharpEmitter
 	/// </remarks>
 	static void EmitStreamingParse(
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
-		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts)
+		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
+		Recovery? recovery, string? sync, string factory)
 	{
 		var element = graph.Types[publication.Rule];
 
@@ -588,6 +613,11 @@ public static class CSharpEmitter
 
 				file.Line();
 				file.Line("// " + Comment(stage));
+
+				// Outside the loop, because it counts the elements of the whole repetition
+				// and a rejected one holds its place in the numbering (§8.2).
+				if (stage.Repeated && recovery is not null)
+					file.Line($"var ordinal{i} = 0;");
 
 				var loop = stage.Repeated ? file.Block("while (true)") : null;
 
@@ -631,7 +661,63 @@ public static class CSharpEmitter
 
 				file.Line();
 
-				if (stage.Repeated)
+				if (stage.Repeated && recovery is not null)
+				{
+					// §8.2 in a stream. An element that never began ends the repetition; one
+					// that began and broke is an error to step over, and where to pick up
+					// again is the synchronization expression — looked for in the window,
+					// reading more of it when the search runs out of what is held.
+					using (file.Block($"if (end{i} < 0)"))
+					{
+						file.Line($"if (failure{i}.Reach <= start)");
+						file.Then("break;");
+						file.Line();
+						file.Line("var from = start;");
+						file.Line("var to   = start;");
+						file.Line("var at   = -1;");
+						file.Line();
+
+						using (file.Block("while (true)"))
+						{
+							using (file.Block("while (to <= window.Length)"))
+							{
+								file.Line($"at = {sync}(window.Span(), to);");
+								file.Line();
+								file.Line("if (at > to)");
+								file.Then("break;");
+								file.Line();
+								file.Line("at = -1;");
+								file.Line("to++;");
+							}
+
+							file.Line();
+							file.Line("if (at >= 0 || window.Ended)");
+							file.Then("break;");
+							file.Line();
+
+							// Reading more moves the window under `from` and `to`, so they
+							// move with it. `start` is what Extend adjusts.
+							file.Line("var back = start - from;");
+							file.Line();
+							file.Line("window.Extend(ref start);");
+							file.Line();
+							file.Line("from = start - back;");
+							file.Line("to   = window.Length;");
+						}
+
+						file.Line();
+						file.Line("if (at < 0)");
+						file.Then("to = at = window.Length;");
+						file.Line();
+
+						EmitStreamedRejection(
+							file, graph, publication, recovery, factory, i, Named(stage));
+
+						file.Line("start = at;");
+						file.Line("continue;");
+					}
+				}
+				else if (stage.Repeated)
 				{
 					file.Line($"if (end{i} < 0)");
 					file.Then("break;");
@@ -651,6 +737,9 @@ public static class CSharpEmitter
 				if (built is not null)
 					file.Line($"yield return value{i};");
 
+				if (stage.Repeated && recovery is not null)
+					file.Line($"ordinal{i}++;");
+
 				file.Line($"start = end{i};");
 			}
 		}
@@ -662,6 +751,54 @@ public static class CSharpEmitter
 			: stage.Node.ToString();
 
 	static string Named(Stage stage) => stage.Rule?.Name ?? stage.Node.ToString();
+
+	/// <summary>
+	/// What a streamed parse does with an element it could not read (§8.2, §8.3).
+	/// </summary>
+	/// <remarks>
+	/// The same two answers as over a string, reached the same way: with a <c>=&gt;</c> the
+	/// rejection takes its place in the sequence, and without one it is dropped and told to
+	/// the hook. The names are supplied from the window rather than from a span, because
+	/// only the window knows how far into the whole input it is — a line number counted
+	/// inside the buffer would restart every time the buffer moved.
+	/// </remarks>
+	static void EmitStreamedRejection(
+		Writer file, RecognitionGraph graph, Publication publication, Recovery recovery,
+		string factory, int stage, string element)
+	{
+		string Supplied(string name) => name switch
+		{
+			"parserText"     => "window.Text(from, to - from)",
+			"parserPosition" => "window.Offset + from",
+			"parserOrdinal"  => $"ordinal{stage}",
+			"parserLine"     => "window.LineAt(from)",
+			"parserColumn"   => "window.ColumnAt(from)",
+			"parserSpan"     => "new global::DotGram.SourceSpan((int)(window.Offset + from), to - from)",
+			"parserMessage"  => $"\"Input does not match '{element}' at \" + " +
+				$"(window.Offset + failure{stage}.Reach).ToString(" +
+				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+			_                => "default",
+		};
+
+		if (recovery.Factory is null)
+		{
+			file.Line(
+				$"{RecoveredMethod}(\"{element}\", {Supplied("parserText")}, " +
+				$"{Supplied("parserPosition")}, {Supplied("parserLine")}, " +
+				$"{Supplied("parserColumn")}, ordinal{stage}, {Supplied("parserMessage")});");
+		}
+		else
+		{
+			var arguments = new List<string>();
+
+			foreach (var name in recovery.Asks)
+				arguments.Add(Supplied(name));
+
+			file.Line($"yield return {factory}({string.Join(", ", arguments)});");
+		}
+
+		file.Line($"ordinal{stage}++;");
+	}
 
 	/// <summary>
 	/// One part of a streamed <c>parse</c>: what to recognize, and what becomes of it.
@@ -1195,6 +1332,12 @@ public static class CSharpEmitter
 			private long   _offset;
 			private bool   _ended;
 
+			/// <summary>Line terminators dropped with what the window no longer holds.</summary>
+			private int _lines;
+
+			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
+			private long _break = -1;
+
 			public Window(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
@@ -1238,6 +1381,41 @@ public static class CSharpEmitter
 			}
 
 			/// <summary>
+			/// Which line of the whole input a position in the window is on, from 1.
+			/// </summary>
+			/// <remarks>
+			/// The window's own contents plus what was dropped before it. Counting only
+			/// what is held would restart the numbering every time the buffer moved.
+			/// </remarks>
+			public int LineAt(int position)
+			{
+				var line = _lines + 1;
+
+				for (var at = 0; at < position; at++)
+					if (_buffer[at] == '\n')
+						line++;
+
+				return line;
+			}
+
+			/// <summary>How far into its line a position is, from 1.</summary>
+			public int ColumnAt(int position)
+			{
+				var start = -1;
+
+				for (var at = 0; at < position; at++)
+					if (_buffer[at] == '\n')
+						start = at;
+
+				// The line began before the window did, so the length of what is held is
+				// only part of the answer and the rest is where the last dropped
+				// terminator was.
+				return start < 0
+					? (int)(_offset + position - _break)
+					: position - start;
+			}
+
+			/// <summary>
 			/// Reads more of the input, dropping what is before <paramref name="from"/> to
 			/// make room for it and moving <paramref name="from"/> with what is kept.
 			/// </summary>
@@ -1251,6 +1429,16 @@ public static class CSharpEmitter
 				{
 					if (from > 0)
 					{
+						// What is about to be dropped is where a line number comes from, so
+						// it is counted on the way out. Without this a position past the
+						// first window would be reported as a line near the top of the file.
+						for (var at = 0; at < from; at++)
+							if (_buffer[at] == '\n')
+							{
+								_lines++;
+								_break = _offset + at;
+							}
+
 						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
 						_filled -= from;

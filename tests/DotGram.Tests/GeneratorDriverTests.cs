@@ -496,30 +496,97 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_broken_record_is_not_yet_stepped_over_in_a_stream()
+	public void A_broken_record_is_stepped_over_in_a_stream_too()
 	{
-		// The mark is required for what it guarantees — that an element handed over is
-		// never wanted back — and its other half, stepping over a broken element, is not
-		// built for the streamed parse. So the two overloads disagree here, and this test
-		// is what says so out loud rather than leaving it to be discovered.
+		// The two overloads have to agree, and this is where they most easily would not:
+		// over a string the repetition backtracks out of a bad element and the machine
+		// steps over it, while in a stream the driver has to do the stepping itself.
 		var assembly = Build(Stream);
 		var text     = "H\naa\nb1b\ncc\nT\n";
 
-		// Over a string the bad record is stepped over and the rest are read. Four and not
-		// five: there is no `=>` on the recovery, so the rejection is dropped rather than
-		// taking its place in the sequence (§8.3).
-		Assert.Equal(4, ((Array)assembly
+		var whole = ((Array)assembly
 			.GetType("Streamed")!
 			.GetMethod("ParseFeed", [typeof(string)])!
-			.Invoke(null, [text])!).Length);
+			.Invoke(null, [text])!)
+			.Cast<object>()
+			.Select(static item => item.GetType().Name + Named(item));
 
-		// Over a reader the repetition ends there, and `Trailer` is not what follows. The
-		// exception is not wrapped, because a lazy sequence throws where it is walked
-		// rather than where it was asked for.
-		Assert.Equal(
-			"Input does not match 'Trailer' at 5.",
-			Assert.Throws<FormatException>(
-				() => Read(assembly, "Streamed", "ParseFeed", new StringReader(text))).Message);
+		// Four and not five: there is no `=>` on the recovery, so the rejection is dropped
+		// rather than taking its place in the sequence (§8.3).
+		Assert.Equal(["Head", "Line:aa", "Line:cc", "Tail"], whole);
+
+		Assert.Equal(whole, Read(assembly, "Streamed", "ParseFeed", new StringReader(text)));
+	}
+
+	[Fact]
+	public void A_rejection_can_take_its_place_in_the_stream()
+	{
+		// §8.2's other form: with a `=>` the rejection is an element of the sequence, and
+		// in a stream it arrives between the records it sat between.
+		var assembly = Build(Stream.Replace(
+			"Row* recover eol",
+			"Row* recover eol => @(new Bad(parserLine, parserText))",
+			StringComparison.Ordinal)
+			.Replace(
+				"public sealed class Tail : Item { }",
+				"public sealed class Tail : Item { }\n" +
+				"public sealed class Bad : Item\n" +
+				"{\n" +
+				"	public Bad(int line, string text) { Line = line; Text = text; }\n" +
+				"	public int Line { get; }\n" +
+				"	public string Text { get; }\n" +
+				"}",
+				StringComparison.Ordinal));
+
+		var read = (System.Collections.IEnumerable)assembly
+			.GetType("Streamed")!
+			.GetMethod("ParseFeed", [typeof(TextReader)])!
+			.Invoke(null, [new StringReader("H\naa\nb1b\ncc\nT\n")])!;
+
+		var bad = read.Cast<object>().Single(static item => item.GetType().Name == "Bad");
+
+		// The line is counted from the start of the file, not from the start of the window
+		// — the third line, which is where a person would open it.
+		Assert.Equal(3, bad.GetType().GetProperty("Line")!.GetValue(bad));
+
+		// Without the terminator: `eol` separates the elements and is not part of one, so
+		// the rejected extent stops where the synchronization point begins (§8.2).
+		Assert.Equal("b1b", bad.GetType().GetProperty("Text")!.GetValue(bad));
+	}
+
+	[Fact]
+	public void And_is_placed_by_a_line_number_that_survives_the_window_moving()
+	{
+		// The defect this is here for: a line number counted inside the buffer restarts
+		// every time the buffer moves, so a bad record deep in a large feed would be
+		// reported near the top of the file. Two thousand records is well past the 4096
+		// characters the window starts at.
+		var assembly = Build(Stream.Replace(
+			"Row* recover eol",
+			"Row* recover eol => @(new Bad(parserLine, parserText))",
+			StringComparison.Ordinal)
+			.Replace(
+				"public sealed class Tail : Item { }",
+				"public sealed class Tail : Item { }\n" +
+				"public sealed class Bad : Item\n" +
+				"{\n" +
+				"	public Bad(int line, string text) { Line = line; Text = text; }\n" +
+				"	public int Line { get; }\n" +
+				"	public string Text { get; }\n" +
+				"}",
+				StringComparison.Ordinal));
+
+		var text = "H\n" + string.Concat(Enumerable.Repeat("aa\n", 2000)) + "b1b\ncc\nT\n";
+
+		var read = (System.Collections.IEnumerable)assembly
+			.GetType("Streamed")!
+			.GetMethod("ParseFeed", [typeof(TextReader)])!
+			.Invoke(null, [new StringReader(text)])!;
+
+		var bad = read.Cast<object>().Single(static item => item.GetType().Name == "Bad");
+
+		// One header plus two thousand records, so the bad line is 2002.
+		Assert.Equal(2002, bad.GetType().GetProperty("Line")!.GetValue(bad));
 	}
 
 	[Fact]

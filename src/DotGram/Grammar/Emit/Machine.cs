@@ -108,7 +108,7 @@ sealed class Machine
 	/// out would name a position the match never really needed. It is therefore the one
 	/// machine that does not take the state.
 	/// </remarks>
-	public bool IsLookahead { get; private set; }
+	public bool IsLookahead { get; set; }
 
 	readonly ResultTypes  _results;
 	readonly Built?       _builds;

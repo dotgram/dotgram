@@ -3371,6 +3371,12 @@ namespace DotGram.Snapshots
 			private long   _offset;
 			private bool   _ended;
 
+			/// <summary>Line terminators dropped with what the window no longer holds.</summary>
+			private int _lines;
+
+			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
+			private long _break = -1;
+
 			public Window(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
@@ -3414,6 +3420,41 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>
+			/// Which line of the whole input a position in the window is on, from 1.
+			/// </summary>
+			/// <remarks>
+			/// The window's own contents plus what was dropped before it. Counting only
+			/// what is held would restart the numbering every time the buffer moved.
+			/// </remarks>
+			public int LineAt(int position)
+			{
+				var line = _lines + 1;
+
+				for (var at = 0; at < position; at++)
+					if (_buffer[at] == '\n')
+						line++;
+
+				return line;
+			}
+
+			/// <summary>How far into its line a position is, from 1.</summary>
+			public int ColumnAt(int position)
+			{
+				var start = -1;
+
+				for (var at = 0; at < position; at++)
+					if (_buffer[at] == '\n')
+						start = at;
+
+				// The line began before the window did, so the length of what is held is
+				// only part of the answer and the rest is where the last dropped
+				// terminator was.
+				return start < 0
+					? (int)(_offset + position - _break)
+					: position - start;
+			}
+
+			/// <summary>
 			/// Reads more of the input, dropping what is before <paramref name="from"/> to
 			/// make room for it and moving <paramref name="from"/> with what is kept.
 			/// </summary>
@@ -3427,6 +3468,16 @@ namespace DotGram.Snapshots
 				{
 					if (from > 0)
 					{
+						// What is about to be dropped is where a line number comes from, so
+						// it is counted on the way out. Without this a position past the
+						// first window would be reported as a line near the top of the file.
+						for (var at = 0; at < from; at++)
+							if (_buffer[at] == '\n')
+							{
+								_lines++;
+								_break = _offset + at;
+							}
+
 						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
 						_filled -= from;

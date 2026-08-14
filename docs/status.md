@@ -57,7 +57,7 @@ then quietly mean nothing.
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
-| `recover` stepping over a bad record in a stream | — | — | — | ✗ | ✗ |
+| `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
 | a diagnostic for an ambiguous grammar | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `IEnumerable<string>` input §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -551,10 +551,19 @@ A grammar that declares a sequence and does not get the overload is told why
 (`GRAM5001`). One that declares no sequence is told nothing: most grammars are not feeds,
 and a note on every build of every one of them is noise.
 
-Not built for the streamed parse: `recover`'s own recovery. The mark is required for what
-it guarantees, and a broken element inside a streamed repetition ends the repetition
-rather than being stepped over. Over a string it is stepped over, so the two disagree,
-and that is the next thing to do here.
+**A broken record is stepped over in a stream too**, both ways §8.2 offers: with a `=>`
+the rejection takes its place in the sequence, and without one it is dropped and told to
+the `OnRecovered` hook. Over a string the repetition backtracks out of the bad element
+and the machine steps over it; in a stream the driver does the stepping itself, scanning
+for the synchronization expression through the window and reading more of it when the
+search runs out of what is held.
+
+The names §8.2 supplies come from the window rather than from a span, and that is not
+tidiness: a line number counted inside the buffer restarts every time the buffer moves,
+so a bad record deep in a large feed would be reported near the top of the file. The
+window counts the terminators it drops and where the last one was, which is what makes
+`parserLine` and `parserColumn` mean the same thing in both modes. There is a test at two
+thousand records — well past the first window — that says so.
 
 ## A rule can be a sequence of what it is made of
 
