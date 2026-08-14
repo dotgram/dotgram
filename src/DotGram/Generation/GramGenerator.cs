@@ -198,7 +198,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
-			reports.Add(Report.Of(diagnostic, grammar.Path, text, host.Location));
+			reports.Add(Report.Of(
+				diagnostic, grammar.Path, text, host.Location, host.Literal, host.LiteralAt));
 
 		return new Parser(
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
@@ -295,13 +296,23 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// each step produced to decide whether the next one must run again, and a symbol
 	/// compares equal to nothing across compilations.
 	/// </remarks>
+	/// <param name="Literal">
+	/// The grammar exactly as the attribute spells it — quotes, escapes, indentation and
+	/// all — or null when the grammar came from a file.
+	/// </param>
+	/// <param name="LiteralAt">
+	/// Where that spelling begins in the C# file, so a position in the grammar can be put
+	/// back where the author wrote it.
+	/// </param>
 	readonly record struct Host(
 		string    ClassName,
 		string?   Namespace,
 		string    HintName,
 		bool      IsPartial,
 		string?   Source,
-		Location? Location)
+		Location? Location,
+		string?   Literal    = null,
+		int       LiteralAt  = 0)
 	{
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
@@ -362,6 +373,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
 
+			// The literal as written, kept beside the value it decodes to. A diagnostic
+			// carries an offset into the value; putting it where the author can see it
+			// means finding that place in the spelling, and the spelling is the only thing
+			// that knows where the escapes and the indentation went.
+			var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
+				syntax.ArgumentList?.Arguments is [{ Expression: LiteralExpressionSyntax spelled }]
+					? spelled.Token
+					: default;
+
 			// A nested host is written back out nested, so every enclosing class has to be
 			// partial too. Checking here says so at the class; leaving it says so at
 			// generated code the author never wrote.
@@ -387,7 +407,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Source:    source,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
-					: declaration.Identifier.GetLocation());
+					: declaration.Identifier.GetLocation(),
+				Literal:   written == default ? null : written.Text,
+				LiteralAt: written == default ? 0    : written.SpanStart);
 		}
 	}
 }

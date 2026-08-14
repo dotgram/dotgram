@@ -37,7 +37,10 @@ readonly record struct Report(
 	int              Length,
 	LinePositionSpan Lines,
 	Location?        Fallback,
-	EquatableArray<string> Arguments)
+	EquatableArray<string> Arguments,
+	string?          Written   = null,
+	int              WrittenAt = 0,
+	string?          Grammar   = null)
 {
 	/// <summary>A diagnostic the shell raises about the host, from a fixed descriptor.</summary>
 	public static Report Of(DiagnosticDescriptor descriptor, Location? at, params string[] arguments) =>
@@ -54,8 +57,13 @@ readonly record struct Report(
 			Arguments: new EquatableArray<string>([.. arguments]));
 
 	/// <summary>A diagnostic the grammar half raised, placed in the grammar it came from.</summary>
+	/// <param name="written">
+	/// The attribute's string as the author spelled it, when the grammar came from one.
+	/// </param>
+	/// <param name="writtenAt">Where that spelling begins in the C# file.</param>
 	public static Report Of(
-		GramDiagnostic diagnostic, string? filePath, string grammarText, Location? fallback)
+		GramDiagnostic diagnostic, string? filePath, string grammarText, Location? fallback,
+		string? written = null, int writtenAt = 0)
 	{
 		var span = new TextSpan(diagnostic.Position, diagnostic.Length);
 
@@ -74,16 +82,59 @@ readonly record struct Report(
 			Length:    diagnostic.Length,
 			Lines:     filePath is null ? default : Diagnostics.LinesOf(grammarText, span),
 			Fallback:  fallback,
-			Arguments: new EquatableArray<string>([diagnostic.Message]));
+			Arguments: new EquatableArray<string>([diagnostic.Message]),
+			Written:   written,
+			WrittenAt: writtenAt,
+			Grammar:   filePath is null ? grammarText : null);
+	}
+
+	/// <summary>
+	/// Where in the attribute's own string the author wrote this, or null.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// By looking for the text rather than by decoding the literal. A C# string knows how
+	/// to turn its spelling into a value and not the other way round, and reversing it
+	/// means re-implementing escapes, verbatim doubling and raw-string indent stripping —
+	/// three sets of rules, each with corners, all to place a squiggle.
+	/// </para>
+	/// <para>
+	/// So: take the line of the grammar the diagnostic is on and find it in the spelling.
+	/// Found once, the offset is known exactly. Found twice or not at all — a line
+	/// repeated, or one whose escapes were written differently from what they decode to —
+	/// the answer is no answer, and the message lands on the attribute as it did before.
+	/// Never wrong, sometimes silent.
+	/// </para>
+	/// </remarks>
+	Location? Inline()
+	{
+		if (Written is not { } spelling || Grammar is not { } grammar || Fallback?.SourceTree is not { } tree)
+			return null;
+
+		var from = grammar.LastIndexOf('\n', Math.Min(Position, grammar.Length - 1)) + 1;
+		var to   = grammar.IndexOf('\n', from);
+		var line = grammar.Substring(from, (to < 0 ? grammar.Length : to) - from).TrimEnd('\r');
+
+		if (line.Length == 0)
+			return null;
+
+		var at = spelling.IndexOf(line, StringComparison.Ordinal);
+
+		if (at < 0 || spelling.IndexOf(line, at + 1, StringComparison.Ordinal) >= 0)
+			return null;
+
+		var start = WrittenAt + at + (Position - from);
+
+		return Location.Create(tree, new TextSpan(start, Math.Max(Length, 1)));
 	}
 
 	public Diagnostic ToRoslyn()
 	{
-		// An inline grammar has no file to point into, so the message lands on the
-		// attribute that carries it — still the right place to look, if not the right
-		// character.
+		// A grammar in a file points into that file. One written into the attribute points
+		// as far into the attribute's own string as it can be placed — and at the whole
+		// attribute when it cannot, which is still the right place to look.
 		var location = FilePath is null
-			? Fallback ?? Location.None
+			? Inline() ?? Fallback ?? Location.None
 			: Location.Create(FilePath, new TextSpan(Position, Length), Lines);
 
 		return Diagnostic.Create(

@@ -682,14 +682,21 @@ it is one. `GRAM0001` and `GRAM4004` are retired.
 
 ### How a message arrives, rather than what it says
 
-Three of these, of which one is now fixed. They are here and not against a particular
+Three of these, of which two are now fixed. They are here and not against a particular
 number because none of them is about a particular number.
 
-- **A position in an inline grammar does not land in the attribute's string.** A grammar
-  written in a `.gram` file gets a location the editor can open; the same grammar written
-  in `[Gram("""…""")]` reports against the attribute as a whole, because the offset is
-  into the grammar text and nothing maps it back through the string literal's own
-  escaping and indentation. The message is right and the squiggle is in the wrong place.
+- **A position in an inline grammar now lands inside the attribute's string**, where it
+  can be placed at all. The offset is into the grammar and what the author looks at is
+  the spelling of it, so the two have to be lined up — and a C# string knows how to turn
+  its spelling into a value, not the other way round. Reversing that properly means
+  re-implementing escapes, verbatim doubling and raw-string indent stripping: three sets
+  of rules, each with corners, all to place a squiggle.
+
+  So it is done by looking rather than by decoding. Take the line of the grammar the
+  diagnostic sits on, find it in the spelling, offset within it. Found once, the place is
+  exact. Found twice or not at all — a repeated line, or one whose escapes were written
+  differently from what they decode to — there is no answer, and the message lands on the
+  attribute as it always did. Never wrong, sometimes silent.
 - **An unrecognized character no longer induces a crowd.** A stray `~` used to be
   reported seven times: by the lexer, then by the parser about the same character, twice
   more about where it ended up, and then by the binder and the normalizer describing the

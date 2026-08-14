@@ -199,6 +199,45 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void And_a_grammar_in_the_attribute_points_inside_its_string()
+	{
+		// It used to point at the whole attribute — the right place to look, and not the
+		// right character. The offset is into the grammar, and what the author sees is the
+		// spelling of it, so the two have to be lined up.
+		var source =
+			"[DotGram.Gram(\"\"\"\n" +
+			"	Digits = ['0'..'9']+\n" +
+			"	Start  = Missing\n" +
+			"	\"\"\")]\n" +
+			"public partial class Numbers;";
+
+		var diagnostic = Assert.Single(RunGenerator(source).Diagnostics.Where(d => d.Id == "GRAM3002"));
+		var at         = diagnostic.Location.GetLineSpan();
+
+		// The third line of the file, where `Missing` is written — not the first, where the
+		// attribute begins.
+		Assert.Equal(2, at.StartLinePosition.Line);
+
+		Assert.Equal(
+			"Missing",
+			source.Substring(diagnostic.Location.SourceSpan.Start, diagnostic.Location.SourceSpan.Length));
+	}
+
+	[Fact]
+	public void But_falls_back_to_the_attribute_when_it_cannot_be_placed()
+	{
+		// The line is written one way and decodes to another, so looking for it in the
+		// spelling finds nothing. Silence beats a squiggle in the wrong place.
+		var run = RunGenerator("[DotGram.Gram(\"Start\\u0020= Missing\")] public partial class Numbers;");
+
+		var diagnostic = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM3002"));
+
+		Assert.Contains("DotGram.Gram", diagnostic.Location.SourceTree!.ToString()
+			.Substring(diagnostic.Location.SourceSpan.Start, diagnostic.Location.SourceSpan.Length),
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void A_generated_parser_compiles()
 	{
 		RunGenerator(
