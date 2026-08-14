@@ -238,16 +238,32 @@ public sealed class GrammarNormalizer
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule, []);
 
-		if (symbol is CSharpSymbol)
+		// §7.1: `bool M(char c)` tests one input item, which is exactly what an element set
+		// does, so it lowers to one — a set of no ranges and one predicate. Anything else
+		// a C# name could be here consumes input on its own terms, and the seam for that
+		// does not exist.
+		if (symbol is CSharpSymbol { Role: not MethodRole.ElementPredicate } other)
 			Report(
 				UnsupportedElement,
-				$"'@{name}' stands where an operand goes, which is docs/syntax.md §7.1 — a C# method " +
-				"that consumes input — and is not built. Only '@(...)' inside a 'where' or a '=>' " +
-				"calls C# today.",
+				$"'@{name}' stands where an operand goes. A C# method may be one — docs/syntax.md " +
+				$"§7.1 — but only as 'bool {name}(char c)', which tests one input item. " +
+				(other.Role is null
+					? "This name is not a method in view."
+					: $"This one is a {Described(other.Role.Value)}, which consumes input on its own " +
+						"terms, and that is not built."),
 				expression.At);
 
 		return new Node.Element(false, [], [], [symbol]);
 	}
+
+	/// <summary>What a method's shape makes it, in words a message can use.</summary>
+	static string Described(MethodRole role) => role switch
+	{
+		MethodRole.ExternalRecognizer     => "recognizer over a span",
+		MethodRole.ValueTransformation    => "transformation",
+		MethodRole.FallibleTransformation => "transformation that may refuse",
+		_                                 => "guard",
+	};
 
 	/// <summary>What <c>&lt;&lt; n</c> or <c>&gt;&gt; n</c> said, by the alternative it was said on.</summary>
 	readonly Dictionary<Node, (bool IsLeft, int Level)> _bounds = new(NodeIdentity.Instance);

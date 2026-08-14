@@ -946,12 +946,8 @@ public sealed class SemanticTests
 	public void A_guard_may_stand_where_nothing_has_been_captured() =>
 		Assert.True(Matches("Start = ['0'..'9']+ & where @(true)", "7"));
 
-	[Fact]
-	public void A_C_sharp_name_standing_as_an_operand_says_it_is_not_built() =>
-		// §7.1: `@Recognizer` as an operand is a C# method that consumes input. The seam
-		// for calling one does not exist, and what happened before this was an element set
-		// with nothing in it — a rule that compiled and matched nothing at all.
-		Refused(GrammarNormalizer.UnsupportedElement, "Start = @MyScanner & 'x'");
+	// §7.1's `@Name` as an operand is decided by the shape of the C# method it names, so
+	// it is tested where there is a compilation to ask: GeneratorDriverTests.
 
 	[Fact]
 	public void A_capture_may_not_take_a_name_that_is_supplied() =>

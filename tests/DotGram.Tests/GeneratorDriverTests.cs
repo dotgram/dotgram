@@ -290,6 +290,54 @@ public sealed class GeneratorDriverTests
 			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
 	}
 
+	// ── A C# name as an operand (§7.1) ───────────────────────────────────────────
+
+	[Fact]
+	public void A_C_sharp_predicate_tests_one_input_item()
+	{
+		// §7.1's first row: `bool M(char c)` asks the same question about one item that a
+		// range does, so it stands where an element does — on its own, and merged into a
+		// set beside ranges of characters.
+		var parse = Build("""
+			[DotGram.Gram("Start = (@IsVowel | ['0'..'9'])+ & @IsStop\nparse Start")]
+			public partial class Predicates
+			{
+				static bool IsVowel(char c) => "aeiou".IndexOf(c) >= 0;
+				static bool IsStop(char c)  => c == '.';
+			}
+			""")
+			.GetType("Predicates")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("ae1i.", parse.Invoke(null, ["ae1i."]));
+		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["aexi."]));
+	}
+
+	[Fact]
+	public void And_a_method_of_another_shape_says_what_it_is_instead()
+	{
+		// The other rows of §7.1 consume input on their own terms, and the seam for that
+		// does not exist. Before this the message said only "not built"; now it says what
+		// the method actually is, which is what tells an author whether they meant this
+		// method or another one.
+		var run = RunGenerator("""
+			[DotGram.Gram("Start = @Scan & 'x'\nparse Start")]
+			public partial class Scanning
+			{
+				static bool Scan(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+					return false;
+				}
+			}
+			""");
+
+		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM4005"));
+
+		Assert.Contains("recognizer over a span", told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("bool Scan(char c)",      told.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── Value failures (§8.1) ────────────────────────────────────────────────────
 
 	/// <summary>

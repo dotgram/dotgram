@@ -157,6 +157,14 @@ Working end to end — a `.gram` file becomes a parser that runs:
   A rejection arrives in its place, carrying which record it was, where a person would
   open the file, and why — so nothing has to be joined back up afterwards
 
+- **a C# predicate where an element goes** — `bool M(char c)` asks the same question
+  about one input item that a range does, so it stands where one does and merges into a
+  set beside them:
+
+  ```dotgram
+  Start = (@IsVowel | ['0'..'9'])+ & @IsStop
+  ```
+
 - **a rule that is a sequence of what it is made of** — the envelope and the records in
   one result, in the order they were read, with no `=>` anywhere:
 
@@ -205,8 +213,8 @@ Each of these is refused with the reason where it can be — a construct that pa
 then quietly means nothing is the failure this project is most careful about:
 
 - `: T` naming another rule, and matching captures to a constructor by name
-- `@Name` standing as an operand or an element predicate — only `@(...)` inside a
-  `where` or a `=>` calls C# today
+- `@Name` as a recognizer over a span (§7.1's second row) — a C# predicate over one
+  input item works, one that consumes input on its own terms does not
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
 - `IEnumerable<string>` input, and the §8.3 surfaces over a streamed parse

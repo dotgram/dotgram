@@ -35,7 +35,8 @@ then quietly mean nothing.
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `@Name` as an operand or predicate §7.1 | ✓ | partial | refused | ✗ | ✗ |
+| `@Name` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
@@ -588,6 +589,28 @@ The sets are approximate and in the safe direction: a complement, a Unicode cate
 a C# predicate answers "anything", two of those overlap, and the result is a note rather
 than a refusal. Being told about an overlap that is not real costs a sentence; missing
 one costs the thing this exists to prevent.
+
+## A C# predicate stands where an element does
+
+§7.1's first row works: `bool M(char c)` asks the same question about one input item that
+a range does, so `@IsVowel` lowers to an element set — no ranges, one predicate — and
+merges into one beside characters and categories:
+
+```dotgram
+Start = (@IsVowel | ['0'..'9'])+ & @IsStop
+```
+
+The name is written into the generated code as the grammar wrote it, unqualified. The
+grammar's own `@using` directives are in that file, which is what they are there for.
+
+The other rows of §7.1 — a recognizer taking a span and a position — are still refused,
+and the message now says *what the method it found actually is* rather than only that
+something is not built: `This one is a recognizer over a span, which consumes input on
+its own terms`. Which method an author meant is the thing they need told, and "not
+implemented" does not tell them.
+
+Decided by the shape of the C# signature, so it is tested where there is a compilation to
+ask. The permissive resolver the grammar half falls back to calls everything a predicate.
 
 ## A rule can be a sequence of what it is made of
 

@@ -1723,6 +1723,14 @@ public static class CSharpEmitter
 					"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
 					$"global::System.Globalization.UnicodeCategory.{name}");
 
+		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
+		// that a range does, so it joins the set as one more test. Written as the grammar
+		// wrote it — the grammar's own `@using` directives are in the file, which is what
+		// they are there for — rather than qualified, which nothing here could do.
+		foreach (var reference in element.References)
+			if (reference is CSharpSymbol predicate)
+				tests.Add($"{predicate.Name}(c)");
+
 		// An empty set admits nothing, and its complement admits everything. Said as
 		// constants rather than as `!(false)`, so the caller can drop the test — and with
 		// it the character it would otherwise read and never look at.
