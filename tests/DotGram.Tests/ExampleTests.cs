@@ -154,27 +154,39 @@ public sealed class ExampleTests
 	public void One_rule_holds_a_whole_expression_language(string expression, string expected) =>
 		Assert.Equal(expected, Strength(expression));
 
+	/// <summary>
+	/// One corpus, used by every test that says two of these examples agree.
+	/// </summary>
+	/// <remarks>
+	/// Written once because the claim is only worth as much as the expressions it is made
+	/// over, and a claim made over three of them is not worth much.
+	/// </remarks>
+	public static TheoryData<string> Expressions =>
+	[
+		"1+2+3",
+		"1-2-3",        // (1-2)-3 — `<< 1` reads its right operand at 2
+		"2+3*4",
+		"2*3+4",
+		"(2+3)*4",
+		"100/5/2",
+		"2^3^2",        // 2^(3^2) — `>> 3` reads it at 3
+		"(2^3)^2",
+		"1/8",
+		"1.5*2",
+		" 1 + 2 * 3 ",
+		"-1-2",         // -(1) - 2: unary minus is stronger than binary
+		"-1*2",
+		"-(1-2)",
+		"--1",
+		"-2*3",
+		"2*3^2",
+		"(2+3)*-4",
+		"-2^2",         // -(2^2): `^` is stronger than unary minus on its left
+		"2^-2",         // 2^(-2): and weaker on its right
+	];
+
 	[Theory]
-	[InlineData("1+2+3")]
-	[InlineData("1-2-3")]        // (1-2)-3 — `<< 1` reads its right operand at 2
-	[InlineData("2+3*4")]
-	[InlineData("2*3+4")]
-	[InlineData("(2+3)*4")]
-	[InlineData("100/5/2")]
-	[InlineData("2^3^2")]        // 2^(3^2) — `>> 3` reads it at 3
-	[InlineData("(2^3)^2")]
-	[InlineData("1/8")]
-	[InlineData("1.5*2")]
-	[InlineData(" 1 + 2 * 3 ")]
-	[InlineData("-1-2")]         // -(1) - 2: unary minus is stronger than binary
-	[InlineData("-1*2")]
-	[InlineData("-(1-2)")]
-	[InlineData("--1")]
-	[InlineData("-2*3")]
-	[InlineData("2*3^2")]
-	[InlineData("(2+3)*-4")]
-	[InlineData("-2^2")]         // -(2^2): `^` is stronger than unary minus on its left
-	[InlineData("2^-2")]         // 2^(-2): and weaker on its right
+	[MemberData(nameof(Expressions))]
 	public void One_rule_of_strengths_means_what_the_five_rules_of_levels_mean(string expression) =>
 		// The two calculators, expression by expression. The last pair is the one that
 		// looked as though it could not translate: levels say the asymmetry by naming two
@@ -241,13 +253,14 @@ public sealed class ExampleTests
 		Assert.Equal(expected, ExpressionParser.Print(ExpressionParser.Read(expression)));
 
 	[Theory]
-	[InlineData("1-2-3",    "-4")]
-	[InlineData("2^3^2",   "512")]
-	[InlineData("1/8",   "0.125")]
-	public void And_a_walk_over_it_gets_the_same_answers_as_the_calculator(
-		string expression, string expected) =>
+	[MemberData(nameof(Expressions))]
+	public void And_a_walk_over_it_gets_the_same_answers_as_the_calculator(string expression) =>
+		// The tree is built by a grammar of levels, like DecimalCalculatorExample and
+		// unlike StrengthCalculatorExample. All three answer the same, which is the point:
+		// the two conventions are two ways of saying one language, and what a `=>` builds
+		// — a number or a node — is a separate question from how the grammar is written.
 		Assert.Equal(
-			expected,
+			Decimal(expression),
 			ExpressionParser.Evaluate(ExpressionParser.Read(expression))
 				.ToString(CultureInfo.InvariantCulture));
 

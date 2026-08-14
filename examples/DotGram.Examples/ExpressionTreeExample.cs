@@ -78,20 +78,20 @@ public sealed record Pow(Expression Left, Expression Right) : Expression;
 	// they need no common type to be collected in.
 	Sum     : @Expression = left: Sum     & '+' & right: Product => @(new Add(left, right))
 	                      | left: Sum     & '-' & right: Product => @(new Sub(left, right))
-	                      | value: Product                        => @(value)
+	                      | value: Product                       => @(value)
 
 	Product : @Expression = left: Product & '*' & right: Unary   => @(new Mul(left, right))
 	                      | left: Product & '/' & right: Unary   => @(new Div(left, right))
-	                      | value: Unary                          => @(value)
+	                      | value: Unary                         => @(value)
 
 	Unary   : @Expression = '-' & operand: Unary                 => @(new Negate(operand))
-	                      | value: Power                          => @(value)
+	                      | value: Power                         => @(value)
 
 	Power   : @Expression = left: Primary & '^' & right: Unary   => @(new Pow(left, right))
-	                      | value: Primary                        => @(value)
+	                      | value: Primary                       => @(value)
 
 	Primary : @Expression = '(' & inner: Sum & ')'               => @(inner)
-	                      | digits: Digits                        => @(new Number(decimal.Parse(digits, CultureInfo.InvariantCulture)))
+	                      | digits: Digits                       => @(new Number(decimal.Parse(digits, CultureInfo.InvariantCulture)))
 
 	parse Sum as Read
 	""")]
