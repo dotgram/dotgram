@@ -264,6 +264,22 @@ public sealed class ExampleTests
 			ExpressionParser.Evaluate(ExpressionParser.Read(expression))
 				.ToString(CultureInfo.InvariantCulture));
 
+	[Theory]
+	[MemberData(nameof(Expressions))]
+	public void And_one_rule_of_strengths_builds_the_very_same_tree(string expression) =>
+		// Not "the same answer" — the same tree, node for node, by record equality. Five
+		// rules of levels and one rule of strengths are two ways of writing one language,
+		// and this is as close as a test can get to saying so.
+		Assert.Equal(ExpressionParser.Read(expression), OneRuleParser.Read(expression));
+
+	[Fact]
+	public void And_the_walks_do_not_know_which_grammar_built_it() =>
+		// `Evaluate` and `Print` take an `Expression`. Nothing about them mentions a
+		// parser, which is why one set of them serves both grammars.
+		Assert.Equal(
+			"((1 - 2) - -3)",
+			ExpressionParser.Print(OneRuleParser.Read("1-2--3")));
+
 	[Fact]
 	public void And_a_tree_can_be_rewritten_before_it_is_walked()
 	{
