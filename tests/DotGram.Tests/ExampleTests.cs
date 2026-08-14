@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 
 using DotGram.Examples;
 
@@ -412,6 +414,54 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_whole_feed_reports_nothing() =>
 		Assert.Empty(LoggingFeedReader.Read(Text).Rejected);
+
+	// ── The feed read from a reader ──────────────────────────────────────────────
+
+	[Fact]
+	public void A_feed_can_be_read_from_a_reader_a_part_at_a_time() =>
+		// The envelope and the records in one sequence, in the order they were read —
+		// which is what makes the trailer checkable at all without holding the file.
+		Assert.Equal(
+			["FeedOpening", "FeedTrade", "FeedTrade", "FeedTrade", "FeedClosing"],
+			[.. StreamingFeedReader.Read(new StringReader(Text))
+				.Select(part => part.GetType().Name)]);
+
+	[Fact]
+	public void And_adds_up_without_ever_holding_it() =>
+		Assert.Equal((3, 425L), StreamingFeedReader.Total(new StringReader(Text)));
+
+	[Fact]
+	public void And_the_trailer_is_checked_against_what_came_before_it()
+	{
+		Assert.True(StreamingFeedReader.Balances(new StringReader(Text)));
+
+		Assert.False(StreamingFeedReader.Balances(new StringReader(
+			Text.Replace("T|3", "T|9", StringComparison.Ordinal))));
+	}
+
+	[Fact]
+	public void And_reads_more_records_than_it_could_hold()
+	{
+		// The claim streaming exists to make, at a size where holding the input would be a
+		// choice rather than an accident: a megabyte of records through a 4 KB window.
+		var records = string.Concat(Enumerable.Repeat("R|AAPL|2|2026-08-12\n", 50_000));
+
+		Assert.Equal(
+			(50_000, 100_000L),
+			StreamingFeedReader.Total(new StringReader(
+				"H|2026-08-13|ACME\n" + records + "T|50000\n")));
+	}
+
+	[Fact]
+	public void And_the_reader_is_only_read_as_the_sequence_is_walked()
+	{
+		// Lazy, which is what "the result is walked once" in §6.3 means. Nothing is read
+		// until the first `MoveNext`, so a malformed feed does not throw where it was
+		// asked for.
+		var sequence = StreamingFeedReader.Read(new StringReader("nonsense\n"));
+
+		Assert.Throws<FormatException>(() => sequence.ToArray());
+	}
 
 	[Fact]
 	public void Records_can_be_read_out_of_a_feed_that_is_not_whole() =>
