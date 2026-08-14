@@ -64,7 +64,8 @@ sealed class ResultTypes
 			_names[rule] =
 				name == host ||
 				name == CSharpEmitter.FailureType ||
-				name == CSharpEmitter.MatchType
+				name == CSharpEmitter.MatchType ||
+				name == CSharpEmitter.WindowType
 					? name + "Value"
 					: name;
 

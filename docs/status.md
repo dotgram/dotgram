@@ -54,7 +54,10 @@ then quietly mean nothing.
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
 | retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
-| streaming input §6.2, §8.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
+| `parse` over a `TextReader` §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `IEnumerable<string>` input §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 ## Backtracking, and where it stops
@@ -463,6 +466,41 @@ The message differs too, because §8.1 makes the failures different things: `'Pa
 was recognized and its value was not accepted.` rather than `Input does not match 'Pair'
 at 0.` — saying "does not match" of a record that matched sends a reader at the half of
 the problem that was fine.
+
+## `find` reads from a reader
+
+`find R` now has a second overload taking a `TextReader`, and it is the first thing the
+retention analysis actually decides rather than merely computes: a rule gets one when a
+single occurrence of it fits in a window, which is `LineExtent` anything but `Beyond`.
+`Start = any* & 'z'` gets none — it can give back any of the file, so the window would
+be the file.
+
+The window is a buffer that is reused: what is before where the parse is now can never
+be returned to (§4, and §6.3 rests on it), so it is dropped by moving what is left to the
+front of the same array. A feed of a million occurrences reads through one allocation.
+It grows only for an occurrence longer than 4096 characters, which the analysis has
+already established is bounded by the grammar.
+
+**It is not a line reader**, and that is the part worth knowing. The analysis measures in
+lines because that is what bounds a feed, but nothing in the window knows what a line is:
+two occurrences may share one, one may span three, and a grammar with no line terminators
+in it streams exactly as well.
+
+**A result that ran into the end of the window is not an answer yet.** This is the whole
+of what makes a windowed parse correct rather than nearly correct. `['0'..'9']+` stopped
+at a buffer boundary looks exactly like `['0'..'9']+` stopped by a letter, and a failure
+that reached the end could have matched with more input. So anything touching the end is
+provisional while the reader has more: read, and ask again from the same place. Without
+it, digits straddling the boundary come back as two occurrences — or, since the parse
+then resumes mid-number, as none at all, which is what the test saw.
+
+It is also what keeps `eof` honest. The end of a full buffer is indistinguishable from
+the end of the input to a recognizer, and the only thing that can tell them apart is
+whether the reader is finished.
+
+`parse` has no reader overload yet: what would let its window move is a committed
+repetition inside it, which means the decomposition `Retention.PlanFor` does rather than
+the single question `find` asks.
 
 ## An offset is a `long`, a length is an `int`
 

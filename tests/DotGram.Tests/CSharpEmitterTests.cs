@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -279,6 +280,118 @@ public sealed class CSharpEmitterTests
 
 		// And publication asks at 0, which admits everything.
 		Assert.Contains("Recognize_E_Whole(text, 0, 0, ref failure, out var recognized);", source);
+	}
+
+	// ── Streaming (§6.3) ─────────────────────────────────────────────────────────
+
+	/// <summary>What the emitted window holds before it has to grow.</summary>
+	/// <remarks>
+	/// The generator's own constant, and the tests below are about what happens at its
+	/// edge — so they read it rather than restating it, and a change to it moves them.
+	/// </remarks>
+	const int Buffer = 4096;
+
+	/// <summary>An input whose only occurrence straddles the end of the first window.</summary>
+	static string AcrossTheBoundary(string occurrence, int before = 6) =>
+		new string('x', Buffer - before) + occurrence + new string('x', 16);
+
+	[Fact]
+	public void A_find_over_a_reader_takes_the_same_occurrences()
+	{
+		var assembly = EmittedCode.Compile(Emit(Digits + "find Start"));
+
+		Assert.Equal(
+			EmittedCode.Found(assembly, "Grammar", "FindStart", "ab12cd34"),
+			EmittedCode.Found(assembly, "Grammar", "FindStart", "ab12cd34", typeof(TextReader)));
+	}
+
+	[Fact]
+	public void An_occurrence_that_straddles_the_buffer_is_one_occurrence()
+	{
+		// The defect a windowed parse has if it believes what a full buffer tells it: the
+		// digits stop at the edge of what is held, which looks exactly like the input
+		// stopping. Read naively this is "123456" and "7890" — two occurrences where the
+		// input has one.
+		var input = AcrossTheBoundary("1234567890");
+
+		Assert.Equal(
+			new object?[] { "1234567890" },
+			EmittedCode.Found(
+				EmittedCode.Compile(Emit(Digits + "find Start")),
+				"Grammar",
+				"FindStart",
+				input,
+				typeof(TextReader)));
+	}
+
+	[Fact]
+	public void And_is_reported_at_its_place_in_the_whole_input()
+	{
+		// The offset is into the input and not into the buffer, which is the whole reason
+		// §6.3 makes it a `long`. This one is past the first window, so a position measured
+		// from the buffer would be a small number that means nothing.
+		Assert.Equal(
+			[Buffer - 6],
+			EmittedCode.FoundAt(
+				EmittedCode.Compile(Emit(Digits + "find Start")),
+				"Grammar",
+				"FindStart",
+				AcrossTheBoundary("1234567890"),
+				typeof(TextReader)));
+	}
+
+	[Fact]
+	public void An_occurrence_longer_than_the_window_grows_it()
+	{
+		// The analysis bounds retention by the grammar, not by a constant: an element that
+		// does not fit is a long record rather than a runaway, and the window grows for it.
+		var digits = new string('7', Buffer * 3);
+
+		Assert.Equal(
+			new object?[] { digits },
+			EmittedCode.Found(
+				EmittedCode.Compile(Emit(Digits + "find Start")),
+				"Grammar",
+				"FindStart",
+				"ab" + digits + "cd",
+				typeof(TextReader)));
+	}
+
+	[Fact]
+	public void A_reader_that_gives_nothing_yields_nothing() =>
+		Assert.Empty(
+			EmittedCode.Found(
+				EmittedCode.Compile(Emit(Digits + "find Start")),
+				"Grammar",
+				"FindStart",
+				"",
+				typeof(TextReader)));
+
+	[Fact]
+	public void Only_find_gets_a_reader_so_far()
+	{
+		// `parse` needs the decomposition of Retention.PlanFor — what lets its window move
+		// is a committed repetition inside it — and that is not built yet. Pinned so that
+		// the day it is, this test is what says so.
+		var source = Emit(Digits + "parse Start\nfind Start");
+
+		Assert.Contains(
+			"IEnumerable<Match<string>> FindStart(global::System.IO.TextReader input)",
+			source,
+			StringComparison.Ordinal);
+
+		Assert.DoesNotContain("TryParseStart(global::System.IO.TextReader", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_rule_that_would_hold_the_input_gets_no_reader_overload()
+	{
+		// `any*` reads to the end of the file and can give any of it back, so the window
+		// would be the input and streaming would be a word rather than a property (§6.3).
+		var source = Emit("Start = any* & 'z'\nfind Start");
+
+		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("class Window", source, StringComparison.Ordinal);
 	}
 
 	[Fact]

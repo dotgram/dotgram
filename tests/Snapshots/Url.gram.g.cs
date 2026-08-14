@@ -55,6 +55,47 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		/// <summary>Every occurrence of <c>Url</c> in a reader, read as it is asked for.</summary>
+		/// <remarks>
+		/// The input is read through a buffer that is reused, so what is held is what the
+		/// occurrence being read needs and not the input (docs/syntax.md §6.3).
+		/// </remarks>
+		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> AllUrls(global::System.IO.TextReader input)
+		{
+			var window = new Window(input, 4096);
+			var start  = 0;
+
+			while (true)
+			{
+				var failure = new Failure();
+
+				var end = Recognize_Url(window.Span(), start, ref failure, out var recognized);
+
+				if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)
+				{
+					window.Extend(ref start);
+					continue;
+				}
+
+				if (end < 0)
+				{
+					if (start >= window.Length)
+						yield break;
+
+					start++;
+					continue;
+				}
+
+				yield return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, window.Offset + start, end - start);
+
+				// A rule that matches nothing would otherwise find it for ever.
+				start = end > start ? end : start + 1;
+
+				if (start > window.Length)
+					yield break;
+			}
+		}
+
 		/// <summary>What the rule <c>Url</c> recognized.</summary>
 		public sealed class UrlValue
 		{
@@ -3318,6 +3359,103 @@ namespace DotGram.Snapshots
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+		}
+
+		/// <summary>A reader, read through a buffer that is reused.</summary>
+		sealed class Window
+		{
+			private readonly global::System.IO.TextReader _input;
+
+			private char[] _buffer;
+			private int    _filled;
+			private long   _offset;
+			private bool   _ended;
+
+			public Window(global::System.IO.TextReader input, int capacity)
+			{
+				_input  = input;
+				_buffer = new char[capacity];
+			}
+
+			/// <summary>How much of the input the window is holding.</summary>
+			public int Length
+			{
+				get { return _filled; }
+			}
+
+			/// <summary>Whether the reader has been read to its end.</summary>
+			public bool Ended
+			{
+				get { return _ended; }
+			}
+
+			/// <summary>Where the window begins in the whole input.</summary>
+			public long Offset
+			{
+				get { return _offset; }
+			}
+
+			/// <summary>
+			/// What the window holds.
+			/// </summary>
+			/// <remarks>
+			/// Called where it is passed and never kept in a local: a span cannot live in
+			/// an iterator's state, and every published streaming method is an iterator.
+			/// </remarks>
+			public global::System.ReadOnlySpan<char> Span()
+			{
+				return new global::System.ReadOnlySpan<char>(_buffer, 0, _filled);
+			}
+
+			/// <summary>A stretch of the window, as a string.</summary>
+			public string Text(int from, int length)
+			{
+				return new string(_buffer, from, length);
+			}
+
+			/// <summary>
+			/// Reads more of the input, dropping what is before <paramref name="from"/> to
+			/// make room for it and moving <paramref name="from"/> with what is kept.
+			/// </summary>
+			/// <returns>Whether anything new arrived.</returns>
+			public bool Extend(ref int from)
+			{
+				if (_ended)
+					return false;
+
+				if (_filled == _buffer.Length)
+				{
+					if (from > 0)
+					{
+						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
+
+						_filled -= from;
+						_offset += from;
+						from     = 0;
+					}
+					else
+					{
+						var grown = new char[_buffer.Length * 2];
+
+						global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
+
+						_buffer = grown;
+					}
+				}
+
+				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);
+
+				if (read <= 0)
+				{
+					_ended = true;
+
+					return false;
+				}
+
+				_filled += read;
+
+				return true;
+			}
 		}
 
 		static int[] Grow(global::System.Span<int> from)

@@ -86,16 +86,46 @@ static class EmittedCode
 	}
 
 	/// <summary>Calls a generated <c>find</c> method and reads the values it yields.</summary>
-	public static object?[] Found(Assembly assembly, string className, string method, string input)
+	/// <param name="over">
+	/// Which overload to call: the whole input at once, or a reader read through a window
+	/// (§6.3). Named rather than inferred from the argument, because both are asked the
+	/// same question and the point of the pair is that they answer it the same way.
+	/// </param>
+	public static object?[] Found(
+		Assembly assembly, string className, string method, string input, Type? over = null)
 	{
-		var type  = assembly.GetType(className)!;
-		var found = (System.Collections.IEnumerable)type.GetMethod(method)!.Invoke(null, [input])!;
+		var type   = assembly.GetType(className)!;
+		var taking = over ?? typeof(string);
+
+		var found = (System.Collections.IEnumerable)type
+			.GetMethod(method, [taking])!
+			.Invoke(null, [over is null ? input : new StringReader(input)])!;
+
 		var values = new System.Collections.Generic.List<object?>();
 
 		foreach (var match in found)
 			values.Add(match!.GetType().GetProperty("Value")!.GetValue(match));
 
 		return [.. values];
+	}
+
+	/// <summary>Where a generated <c>find</c> says each of its occurrences was.</summary>
+	public static long[] FoundAt(
+		Assembly assembly, string className, string method, string input, Type? over = null)
+	{
+		var type   = assembly.GetType(className)!;
+		var taking = over ?? typeof(string);
+
+		var found = (System.Collections.IEnumerable)type
+			.GetMethod(method, [taking])!
+			.Invoke(null, [over is null ? input : new StringReader(input)])!;
+
+		var positions = new System.Collections.Generic.List<long>();
+
+		foreach (var match in found)
+			positions.Add((long)match!.GetType().GetProperty("Position")!.GetValue(match)!);
+
+		return [.. positions];
 	}
 
 	static ImmutableArray<MetadataReference> References { get; } =

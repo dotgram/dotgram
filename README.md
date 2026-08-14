@@ -157,6 +157,21 @@ Working end to end — a `.gram` file becomes a parser that runs:
   A rejection arrives in its place, carrying which record it was, where a person would
   open the file, and why — so nothing has to be joined back up afterwards
 
+- **`find` over a `TextReader`**, which is the first half of streaming. The input is read
+  through a buffer that is reused, so what is held is the occurrence being read and not
+  the file:
+
+  ```csharp
+  using var file = File.OpenText("huge.log");
+
+  foreach (var match in LogGrammar.AllUrls(file))   // the same occurrences, one at a time
+      Handle(match.Value, match.Position);          // Position is a long, into the input
+  ```
+
+  The overload appears only where the grammar provably works with a reused buffer — a
+  rule that could give back any of the file gets none — and an occurrence straddling a
+  buffer boundary is still one occurrence, which is the part that has to be got right
+
 Not built yet:
 
 Each of these is refused with the reason where it can be — a construct that parses and
@@ -168,7 +183,9 @@ then quietly means nothing is the failure this project is most careful about:
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
 - a `=>` that throws inside a `recover`, which §8.2 says is caught and is not
-- streaming input, incremental parsing
+- streaming a `parse` — `find` reads from a `TextReader` already, through a buffer that
+  is reused; `parse` needs a committed repetition inside it before its window can move
+- incremental parsing
 
 ## Examples
 

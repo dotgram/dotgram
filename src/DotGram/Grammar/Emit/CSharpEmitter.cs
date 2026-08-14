@@ -174,7 +174,13 @@ public static class CSharpEmitter
 
 		foreach (var publication in graph.Publications)
 		{
-			EmitPublication(file, publication, results, graph.Climbing.ContainsKey(publication.Rule));
+			EmitPublication(
+				file,
+				publication,
+				results,
+				graph.Climbing.ContainsKey(publication.Rule),
+				Streams(graph, publication));
+
 			file.Line();
 		}
 
@@ -268,6 +274,12 @@ public static class CSharpEmitter
 			file.Line();
 		}
 
+		if (Streaming(graph))
+		{
+			file.Write(WindowClass);
+			file.Line();
+		}
+
 		if (Reporting(graph))
 		{
 			file.Write(RecoveredHook);
@@ -299,7 +311,7 @@ public static class CSharpEmitter
 	/// another parameter on every signature.
 	/// </remarks>
 	static void EmitPublication(
-		Writer file, Publication publication, ResultTypes results, bool climbs)
+		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams)
 	{
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
@@ -319,6 +331,13 @@ public static class CSharpEmitter
 		if (publication.Kind == PublishKind.Find)
 		{
 			EmitFind(file, publication, method, name, value, match, hands, Recognized);
+
+			if (streams)
+			{
+				file.Line();
+
+				EmitStreamingFind(file, publication, method, name, match, hands, built is not null);
+			}
 
 			return;
 		}
@@ -401,6 +420,110 @@ public static class CSharpEmitter
 			}
 		}
 	}
+
+	/// <summary>
+	/// <c>find</c> over a reader: the same occurrences, out of input that is never all
+	/// there at once.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same loop as the one over a string, with one thing added: a result that ran
+	/// into the end of the window is not an answer yet. The input could have carried it
+	/// further — <c>['0'..'9']+</c> stopped at a buffer boundary is two occurrences where
+	/// there is one — and a failure that reached the end could have matched. So anything
+	/// that touches the end is provisional while the reader has more, and the window is
+	/// read into and the question asked again from the same place.
+	/// </para>
+	/// <para>
+	/// That is also what keeps <c>eof</c> honest: the end of a full buffer looks exactly
+	/// like the end of the input to a recognizer, and the only thing that can tell them
+	/// apart is whether the reader is finished.
+	/// </para>
+	/// </remarks>
+	static void EmitStreamingFind(
+		Writer file, Publication publication, string method, string name,
+		string match, string hands, bool builds)
+	{
+		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
+
+		file.Line($"/// <summary>Every occurrence of <c>{name}</c> in a reader, read as it is asked for.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// The input is read through a buffer that is reused, so what is held is what the");
+		file.Line($"/// occurrence being read needs and not the input (docs/syntax.md §6.3).");
+		file.Line("/// </remarks>");
+
+		using (file.Block(
+			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
+			"global::System.IO.TextReader input)"))
+		{
+			file.Line($"var window = new {WindowType}(input, {WindowSize});");
+			file.Line("var start  = 0;");
+			file.Line();
+
+			using (file.Block("while (true)"))
+			{
+				file.Line($"var failure = new {FailureType}();");
+				file.Line();
+				file.Line($"var end = {MethodOf(publication.Rule)}(window.Span(), start{hands});");
+				file.Line();
+
+				// Reaching the end of what is held is not the same as reaching the end of the
+				// input, and only the reader knows which one it was.
+				using (file.Block(
+					"if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)"))
+				{
+					file.Line("window.Extend(ref start);");
+					file.Line("continue;");
+				}
+
+				file.Line();
+
+				using (file.Block("if (end < 0)"))
+				{
+					file.Line("if (start >= window.Length)");
+					file.Then("yield break;");
+					file.Line();
+					file.Line("start++;");
+					file.Line("continue;");
+				}
+
+				file.Line();
+				file.Line(
+					$"yield return {match}.Success({recognized}, window.Offset + start, end - start);");
+				file.Line();
+				file.Line("// A rule that matches nothing would otherwise find it for ever.");
+				file.Line("start = end > start ? end : start + 1;");
+				file.Line();
+				file.Line("if (start > window.Length)");
+				file.Then("yield break;");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether this publication gets a reader overload (§6.3).
+	/// </summary>
+	/// <remarks>
+	/// <c>find</c> only, for now. It is the directive the analysis has least to prove
+	/// about: an occurrence is looked for and then handed over, so the window may move at
+	/// every one of them, and all that is left to ask is whether one occurrence fits in a
+	/// window at all. <c>parse</c> needs the decomposition <see cref="Retention.PlanFor"/>
+	/// does, because what lets it move is a committed repetition in the middle of it.
+	/// </remarks>
+	/// <summary>Whether anything in this grammar reads through a window.</summary>
+	static bool Streaming(RecognitionGraph graph)
+	{
+		foreach (var publication in graph.Publications)
+			if (Streams(graph, publication))
+				return true;
+
+		return false;
+	}
+
+	static bool Streams(RecognitionGraph graph, Publication publication) =>
+		publication.Kind == PublishKind.Find &&
+		Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
+		extent != LineExtent.Beyond;
 
 	/// <summary>
 	/// The type a rule's captures are built into: a constructor and a get-only property
@@ -768,6 +891,144 @@ public static class CSharpEmitter
 
 	/// <summary>What a publication answers with. The name a rule may not take.</summary>
 	internal const string MatchType = "Match";
+
+	/// <summary>What a streamed parse reads through. The name a rule may not take.</summary>
+	internal const string WindowType = "Window";
+
+	/// <summary>
+	/// How much of a reader a window holds before it has to grow.
+	/// </summary>
+	/// <remarks>
+	/// A page. Small enough that a short input costs one allocation of no consequence,
+	/// large enough that a line-oriented feed never grows it — and where an element is
+	/// longer than this, growing is what the retention analysis promised would be
+	/// bounded, not what it promised would not happen.
+	/// </remarks>
+	const int WindowSize = 4096;
+
+	/// <summary>
+	/// A reader read through a buffer that is reused, and the reason streaming works at
+	/// all.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §6.3 fixes what has to be held: a call reaches back not at all and a rule reaches
+	/// back exactly as far as it has consumed, so what the window must keep is the extent
+	/// of the outermost rule still in progress. Everything before where the parse is now
+	/// can be dropped, and this drops it — by moving what is left to the front of the same
+	/// buffer, so a feed of a million records reads through one array.
+	/// </para>
+	/// <para>
+	/// It is not a line reader, deliberately. The retention analysis measures in lines
+	/// because that is what bounds a feed, but nothing here knows what a line is: two
+	/// records may share one, one record may span three, and a grammar with no line
+	/// terminators anywhere streams exactly as well. What the window answers is "how much
+	/// can still be seen", which is the only question the machine asks of it.
+	/// </para>
+	/// <para>
+	/// Growing rather than failing when an element does not fit: the analysis has already
+	/// refused the grammars whose elements are unbounded (§6.3), so a grow here is a long
+	/// record rather than a runaway.
+	/// </para>
+	/// </remarks>
+	internal const string WindowClass = """
+		/// <summary>A reader, read through a buffer that is reused.</summary>
+		sealed class Window
+		{
+			private readonly global::System.IO.TextReader _input;
+
+			private char[] _buffer;
+			private int    _filled;
+			private long   _offset;
+			private bool   _ended;
+
+			public Window(global::System.IO.TextReader input, int capacity)
+			{
+				_input  = input;
+				_buffer = new char[capacity];
+			}
+
+			/// <summary>How much of the input the window is holding.</summary>
+			public int Length
+			{
+				get { return _filled; }
+			}
+
+			/// <summary>Whether the reader has been read to its end.</summary>
+			public bool Ended
+			{
+				get { return _ended; }
+			}
+
+			/// <summary>Where the window begins in the whole input.</summary>
+			public long Offset
+			{
+				get { return _offset; }
+			}
+
+			/// <summary>
+			/// What the window holds.
+			/// </summary>
+			/// <remarks>
+			/// Called where it is passed and never kept in a local: a span cannot live in
+			/// an iterator's state, and every published streaming method is an iterator.
+			/// </remarks>
+			public global::System.ReadOnlySpan<char> Span()
+			{
+				return new global::System.ReadOnlySpan<char>(_buffer, 0, _filled);
+			}
+
+			/// <summary>A stretch of the window, as a string.</summary>
+			public string Text(int from, int length)
+			{
+				return new string(_buffer, from, length);
+			}
+
+			/// <summary>
+			/// Reads more of the input, dropping what is before <paramref name="from"/> to
+			/// make room for it and moving <paramref name="from"/> with what is kept.
+			/// </summary>
+			/// <returns>Whether anything new arrived.</returns>
+			public bool Extend(ref int from)
+			{
+				if (_ended)
+					return false;
+
+				if (_filled == _buffer.Length)
+				{
+					if (from > 0)
+					{
+						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
+
+						_filled -= from;
+						_offset += from;
+						from     = 0;
+					}
+					else
+					{
+						var grown = new char[_buffer.Length * 2];
+
+						global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
+
+						_buffer = grown;
+					}
+				}
+
+				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);
+
+				if (read <= 0)
+				{
+					_ended = true;
+
+					return false;
+				}
+
+				_filled += read;
+
+				return true;
+			}
+		}
+		""";
 
 	/// <summary>
 	/// One answer from a publication: what was recognized, or why nothing was.
