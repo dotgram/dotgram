@@ -789,7 +789,7 @@ public static class CSharpEmitter
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
 		{
-			private Match(bool isSuccess, T value, string? error, int position, int length)
+			private Match(bool isSuccess, T value, string? error, long position, int length)
 			{
 				IsSuccess = isSuccess;
 				Value     = value;
@@ -807,18 +807,25 @@ public static class CSharpEmitter
 			/// <summary>Why nothing was recognized, or null.</summary>
 			public string? Error { get; }
 
-			/// <summary>Where the match began, or how far the input could be followed before it failed.</summary>
-			public int Position { get; }
+			/// <summary>
+			/// Where the match began, or how far the input could be followed before it
+			/// failed. An offset into the whole input, so a <c>long</c>: an input may be a
+			/// file larger than an <c>int</c> can index (docs/syntax.md §6.3).
+			/// </summary>
+			public long Position { get; }
 
-			/// <summary>How much was matched. Zero when nothing was.</summary>
+			/// <summary>
+			/// How much was matched, in input items, and zero when nothing was. An extent
+			/// into a buffer rather than an offset into the input, so an <c>int</c>.
+			/// </summary>
 			public int Length { get; }
 
-			internal static Match<T> Success(T value, int position, int length)
+			internal static Match<T> Success(T value, long position, int length)
 			{
 				return new Match<T>(true, value, null, position, length);
 			}
 
-			internal static Match<T> Failed(string error, int position)
+			internal static Match<T> Failed(string error, long position)
 			{
 				return new Match<T>(false, default!, error, position, 0);
 			}

@@ -42,7 +42,7 @@ then quietly mean nothing.
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
-| `position` is `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
+| offsets are `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
@@ -463,6 +463,19 @@ The message differs too, because §8.1 makes the failures different things: `'Pa
 was recognized and its value was not accepted.` rather than `Input does not match 'Pair'
 at 0.` — saying "does not match" of a record that matched sends a reader at the half of
 the problem that was fine.
+
+## An offset is a `long`, a length is an `int`
+
+§6.3 draws the line and the generated API now sits on the right side of it:
+`Match<T>.Position` is a `long`, because it is an offset into the whole input and an
+input may be a file no `int` can index, while `Match<T>.Length` beside it stays an `int`,
+because it is an extent into a buffer and a buffer never is. `parserPosition` and the
+`OnRecovered` hook were already `long`; the published match was the one place still
+saying `int`, and streaming is what makes the difference something other than pedantry.
+
+Widening rather than narrowing, so nothing written against it breaks: an `int` variable
+reading `match.Position` is the one thing that stops compiling, and `long` is what it
+should have said.
 
 ## Nothing is shared between assemblies
 

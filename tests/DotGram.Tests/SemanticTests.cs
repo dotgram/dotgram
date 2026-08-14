@@ -25,7 +25,7 @@ public sealed class SemanticTests
 	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
-	static (bool IsSuccess, object? Value, string? Error, int Position) Parsed(string grammar, string input)
+	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
 	{
 		var result = Compile(grammar + "\nparse Start");
 
@@ -198,7 +198,7 @@ public sealed class SemanticTests
 	// ── Where a failure is reported ─────────────────────────────────────────────
 
 	/// <summary>The message and the position a grammar refuses an input with.</summary>
-	static (string Error, int Position) Refusal(string grammar, string input)
+	static (string Error, long Position) Refusal(string grammar, string input)
 	{
 		var (isSuccess, _, error, position) = Parsed(grammar, input);
 

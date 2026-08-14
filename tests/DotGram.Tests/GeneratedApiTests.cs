@@ -117,11 +117,17 @@ public sealed class GeneratedApiTests
 
 		bool    ok       = match.IsSuccess;
 		string? error    = match.Error;
-		int     position = match.Position;
+		int     length   = match.Length;
+
+		// A `long`, and it is the compiler saying so: an offset is into the whole input,
+		// which may be a file no `int` can index, while the length beside it is into a
+		// buffer and never is (§6.3).
+		long    position = match.Position;
 
 		Assert.True(ok);
 		Assert.Null(error);
-		Assert.Equal(0, position);
+		Assert.Equal(0,  position);
+		Assert.Equal(17, length);
 		Assert.Equal(parsed.Authority.Host, match.Value!.Authority.Host);
 		Assert.Single(found);
 	}

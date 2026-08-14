@@ -74,7 +74,7 @@ static class EmittedCode
 	/// <c>GeneratedApiTests</c> and <c>ExampleTests</c> ask the compiler the same
 	/// questions instead, over grammars the generator ran on during this build.
 	/// </remarks>
-	public static (bool IsSuccess, object? Value, string? Error, int Position) Match(
+	public static (bool IsSuccess, object? Value, string? Error, long Position) Match(
 		Assembly assembly, string className, string method, string input)
 	{
 		var type  = assembly.GetType(className)!;
@@ -82,7 +82,7 @@ static class EmittedCode
 
 		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
 
-		return ((bool)Read("IsSuccess")!, Read("Value"), (string?)Read("Error"), (int)Read("Position")!);
+		return ((bool)Read("IsSuccess")!, Read("Value"), (string?)Read("Error"), (long)Read("Position")!);
 	}
 
 	/// <summary>Calls a generated <c>find</c> method and reads the values it yields.</summary>
