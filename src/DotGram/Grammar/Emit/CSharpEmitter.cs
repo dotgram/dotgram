@@ -211,6 +211,7 @@ public static class CSharpEmitter
 				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule))
 			{
 				Reaches    = graph.Recoveries.Count > 0,
+				Refuses    = Refusing(graph),
 				TakesPower = graph.Climbing.ContainsKey(publication.Rule),
 			};
 
@@ -263,7 +264,7 @@ public static class CSharpEmitter
 
 		if (graph.Rules.Count > 0)
 		{
-			file.Write(FailureStructWith(graph.Recoveries.Count > 0));
+			file.Write(FailureStructWith(graph.Recoveries.Count > 0, Refusing(graph)));
 			file.Line();
 		}
 
@@ -648,6 +649,13 @@ public static class CSharpEmitter
 		return false;
 	}
 
+	/// <summary>
+	/// Whether recovery in this grammar ever has a refused value to tell from a shape that
+	/// did not match (§8.1).
+	/// </summary>
+	static bool Refusing(RecognitionGraph graph) =>
+		graph.Recoveries.Count > 0 && graph.Fallible.Count > 0;
+
 	/// <summary>Whether any <c>recover</c> in this grammar reports out of band (§8.3).</summary>
 	static bool Reporting(RecognitionGraph graph)
 	{
@@ -682,6 +690,7 @@ public static class CSharpEmitter
 		var machine = new Machine(MethodOf(rule), results, BuiltBy(graph, results, rule))
 		{
 			Reaches    = graph.Recoveries.Count > 0,
+			Refuses    = Refusing(graph),
 			TakesPower = graph.Climbing.ContainsKey(rule),
 		};
 
@@ -835,10 +844,14 @@ public static class CSharpEmitter
 	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
 	/// every recognizer and another edit at every call site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach) =>
-		Lines.Normalize(FailureStruct).Replace(
-			"\t{{reach}}" + Lines.Ending,
-			reach ? Lines.Normalize(ReachField) + Lines.Ending : "");
+	internal static string FailureStructWith(bool reach, bool refused = false) =>
+		Lines.Normalize(FailureStruct)
+			.Replace(
+				"\t{{reach}}" + Lines.Ending,
+				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
+			.Replace(
+				"\t{{refused}}" + Lines.Ending,
+				refused ? Lines.Normalize(RefusedField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -850,22 +863,40 @@ public static class CSharpEmitter
 			/// </summary>
 			public int Position;
 			{{reach}}
+			{{refused}}
 		}
 		""";
 
 	/// <summary>
-	/// The field a recovering grammar needs beside <c>Position</c>, and one that does not
-	/// use recovery does not carry.
+	/// The field a recovering grammar needs beside <c>Position</c>, and one that a grammar
+	/// not using recovery does not carry.
 	/// </summary>
 	/// <remarks>
 	/// <c>Position</c> is the whole parse's furthest and something further along may
-	/// already have raised it, so it cannot say whether <b>this</b> element began. This
-	/// one is reset where each element begins, which is exactly the question §8.2 asks.
+	/// already have raised it, so it cannot say whether <b>this</b> element began. This one
+	/// is reset where each element begins, which is exactly the question §8.2 asks.
 	/// </remarks>
 	const string ReachField = """
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
+		""";
+
+	/// <summary>
+	/// What tells the two failures of §8.1 apart, in a grammar that has both kinds.
+	/// </summary>
+	/// <remarks>
+	/// Carried only where the grammar both recovers and can refuse a value. Without a
+	/// <c>bool M(…, out T)</c> anywhere it would be a field that is always -1, and the
+	/// branches reading it would be branches never taken.
+	/// </remarks>
+	const string RefusedField = """
+
+			/// <summary>
+			/// Where an element ended that matched and whose value was refused (§8.1), or
+			/// -1 for one that did not match at all. Cleared where each element begins.
+			/// </summary>
+			public int Refused;
 		""";
 
 	/// <summary>

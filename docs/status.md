@@ -47,6 +47,7 @@ then quietly mean nothing.
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a refused value recovered without a rescan §8.2 | — | — | — | ✓ | ✓ |
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -445,10 +446,23 @@ the one place unreachable. `@int.Parse` worked and `@TryTiny` did not, which is 
 An unqualified name is now looked for in the host first, the way C# resolves one inside a
 class.
 
-Not built: a value failure still costs a rescan. §8.2 says it should be cheaper than a
-recognition failure — the element was recognized whole, so the position is already past it
-and there is nothing to skip — and today the recovering repetition scans forward from the
-element's start as it would for any break. Correct, just not yet cheap.
+**And it is the cheaper of the two failures, as §8.2 says it should be.** A recognition
+failure has to be scanned forward from where the element began, looking for the
+synchronization point; a value failure does not, because the element was recognized whole
+and the parse is already past it. `Failure` carries a `Refused` field beside `Reach`, set
+where the factory answered no and cleared where each element begins, and the recovering
+repetition reads it instead of scanning.
+
+That is not only a saving. On an element longer than the synchronization point — a record
+of two lines with `recover eol` — the scan finds the terminator *inside* the element, so
+the parse used to pick up in its own middle and read every record after it off by one.
+The rejected extent is now the whole element, which is also what makes `parserText` the
+record a reader would have to go and look at.
+
+The message differs too, because §8.1 makes the failures different things: `'Pair' at 0
+was recognized and its value was not accepted.` rather than `Input does not match 'Pair'
+at 0.` — saying "does not match" of a record that matched sends a reader at the half of
+the problem that was fine.
 
 ## Nothing is shared between assemblies
 

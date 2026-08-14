@@ -727,7 +727,17 @@ sealed class Machine
 
 			// How far the attempt starting here reached — read at `asked`, which is entered
 			// only by that attempt failing, because the repetition gives nothing back.
-			atLoop.Line("failure.Reach = p;");
+			// `Refused` goes with it where the grammar has one at all: both answer a
+			// question about *this* element, so both are cleared where this element begins.
+			if (Refuses)
+			{
+				atLoop.Line("failure.Reach   = p;");
+				atLoop.Line("failure.Refused = -1;");
+			}
+			else
+			{
+				atLoop.Line("failure.Reach = p;");
+			}
 
 			// Possessive: an element it took was either good or explicitly rejected, so
 			// there is no shorter reading of it to come back for. Dropping what the
@@ -842,6 +852,18 @@ sealed class Machine
 	/// </remarks>
 	public bool Reaches { get; set; }
 
+	/// <summary>
+	/// Whether this grammar can fail a value at all, and so whether the cheap recovery of
+	/// §8.2 has anything to be cheap about.
+	/// </summary>
+	/// <remarks>
+	/// A grammar that recovers but has no <c>bool M(…, out T)</c> anywhere would carry a
+	/// field that is always -1, a branch never taken and a message with a condition that
+	/// is always false. Emitted code lands in someone else's build, and the shortest
+	/// version of what it does is the one worth reading there.
+	/// </remarks>
+	public bool Refuses { get; set; }
+
 	/// <summary>What the repetition of this rule was told to do about a bad element.</summary>
 	public void Recovers(Node repetition, Recovery recovery, int into, string factory)
 	{
@@ -873,23 +895,24 @@ sealed class Machine
 		writer.Line("r        = -1;");
 		writer.Line();
 
-		using (writer.Block("while (to <= text.Length)"))
+		// §8.1's value failure, and why §8.2 calls it the cheaper one: the element matched
+		// and only its value was refused, so it was recognized whole and the parse is
+		// already past it. Where the next one begins is known rather than looked for, and
+		// the scan — which would re-read the element it just read, and on an element longer
+		// than the synchronization point would stop inside it — does not run.
+		if (Refuses)
 		{
-			writer.Line($"r = {sync}(text, to);");
-			writer.Line();
+			using (writer.Block("if (failure.Refused >= 0)"))
+				writer.Line("to = r = failure.Refused;");
 
-			// A synchronization point that consumed nothing would leave the loop where it
-			// started, so it is not one.
-			writer.Line("if (r > to)");
-			writer.Then("break;");
-			writer.Line();
-			writer.Line("r = -1;");
-			writer.Line("to++;");
+			using (writer.Block("else"))
+				Scan(writer, sync);
+		}
+		else
+		{
+			Scan(writer, sync);
 		}
 
-		writer.Line();
-		writer.Line("if (r < 0)");
-		writer.Then("to = r = text.Length;");
 		writer.Line();
 
 		if (_recovery.Factory is null)
@@ -920,15 +943,45 @@ sealed class Machine
 		return state;
 	}
 
+	/// <summary>Looks forward for the point the parse may pick up again at.</summary>
+	static void Scan(Writer writer, string sync)
+	{
+		using (writer.Block("while (to <= text.Length)"))
+		{
+			writer.Line($"r = {sync}(text, to);");
+			writer.Line();
+
+			// A synchronization point that consumed nothing would leave the loop where it
+			// started, so it is not one.
+			writer.Line("if (r > to)");
+			writer.Then("break;");
+			writer.Line();
+			writer.Line("r = -1;");
+			writer.Line("to++;");
+		}
+
+		writer.Line();
+		writer.Line("if (r < 0)");
+		writer.Then("to = r = text.Length;");
+	}
+
 	/// <summary>
 	/// What one of the names §8.2 supplies is, where a broken element is being made into
 	/// one of the sequence.
 	/// </summary>
 	/// <remarks>
-	/// <c>message</c> is the one that has to be built rather than read. What is known about
-	/// a broken element is which rule it should have been and how far into it the input
-	/// stopped being that — <c>failure.Reach</c>, which is what said the element began at
-	/// all. The set of what was expected there would say more and is not carried yet.
+	/// <para>
+	/// <c>parserMessage</c> is the one that has to be built rather than read. What is known
+	/// about a broken element is which rule it should have been and how far into it the
+	/// input stopped being that — <c>failure.Reach</c>, which is what said the element began
+	/// at all. The set of what was expected there would say more and is not carried yet.
+	/// </para>
+	/// <para>
+	/// It also has to say which kind of failure this was, because §8.1 makes them different
+	/// things: a shape the grammar does not describe, or a shape it does holding a value
+	/// that was not accepted. Saying "does not match" of a record that matched perfectly
+	/// well would send a reader looking at the wrong half of the problem.
+	/// </para>
 	/// </remarks>
 	string Supplied(string name, string counter) => name switch
 	{
@@ -938,10 +991,17 @@ sealed class Machine
 		"parserLine"     => "LineAt(text, from)",
 		"parserColumn"   => "ColumnAt(text, from)",
 		"parserSpan"     => "new global::DotGram.SourceSpan(from, to - from)",
-		"parserMessage"  => $"\"Input does not match '{Element}' at \" + " +
-			"failure.Reach.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
-		_          => "default",
+		"parserMessage"  => Refuses
+			? "(failure.Refused >= 0 " +
+				$"? \"'{Element}' at \" + {Number("from")} + \" was recognized and its value was not accepted.\" " +
+				$": \"Input does not match '{Element}' at \" + {Number("failure.Reach")} + \".\")"
+			: $"\"Input does not match '{Element}' at \" + {Number("failure.Reach")} + \".\"",
+		_                => "default",
 	};
+
+	/// <summary>A number in a message, spelled the same wherever it is read.</summary>
+	static string Number(string expression) =>
+		$"{expression}.ToString(global::System.Globalization.CultureInfo.InvariantCulture)";
 
 	/// <summary>
 	/// What the broken element should have been, for the message and for the hook.
@@ -1110,10 +1170,15 @@ sealed class Machine
 		// §8.1: it answers whether it produced a value, and "no" is a value failure — the
 		// shape matched and what it held was not accepted, so the rule does not match. The
 		// failure position is the end of what did match, which is what tells a caller's
-		// recovering repetition that an element was there and was refused.
-		return factory.Fallible
-			? $"if (!{factory.Method}({string.Join(", ", arguments)}, out {into})) goto case {Fail};"
-			: $"{into} = {factory.Method}({string.Join(", ", arguments)});";
+		// recovering repetition that an element was there and was refused — and, because it
+		// was recognized whole, exactly where it ends.
+		if (!factory.Fallible)
+			return $"{into} = {factory.Method}({string.Join(", ", arguments)});";
+
+		var refused = Refuses ? "failure.Refused = p; " : "";
+
+		return $"if (!{factory.Method}({string.Join(", ", arguments)}, out {into})) " +
+			$"{{ {refused}goto case {Fail}; }}";
 	}
 
 	void Construct(Writer file, Built built)

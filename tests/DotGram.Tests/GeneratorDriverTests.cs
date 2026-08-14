@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 using DotGram.Generation;
@@ -321,6 +323,87 @@ public sealed class GeneratorDriverTests
 			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
 	}
 
+	/// <summary>
+	/// An element that spans two lines and whose value may be refused, in a repetition
+	/// that recovers at one line.
+	/// </summary>
+	/// <remarks>
+	/// The shape that tells the two recoveries apart, and the reason §8.2 calls one of
+	/// them cheaper. A recognition failure has to be scanned forward from where the
+	/// element began, and the first <c>eol</c> that scan finds is the one *inside* the
+	/// element — so the parse picks up in the middle of it and every pair after that is
+	/// read off by one. A value failure needs no scan: the element matched, so the parse
+	/// is already past it and where the next one begins is known.
+	/// </remarks>
+	const string Pairs = """
+		[DotGram.Gram("Pair : @string = a: ['0'..'9']+ & eol & b: ['0'..'9']+ & eol => @TryJoin(a, b)\nFeed = pairs: Pair* recover eol => @(parserText) & eof\nparse Feed")]
+		public partial class PairFeed
+		{
+			static bool TryJoin(string a, string b, out string value)
+			{
+				value = a + "+" + b;
+
+				return int.Parse(a) + int.Parse(b) < 10;
+			}
+		}
+		""";
+
+	[Fact]
+	public void A_refused_value_resumes_past_the_element_rather_than_scanning_it_again()
+	{
+		var feed = Build(Pairs)
+			.GetType("PairFeed")!
+			.GetMethod("ParseFeed")!
+			.Invoke(null, ["1\n2\n5\n6\n3\n4\n"])!;
+
+		var parsed = (string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!;
+
+		// The middle pair is refused whole — both its lines are what was rejected — and
+		// the pair after it is read as a pair rather than as the tail of the one before.
+		Assert.Equal(["1+2", "5\n6\n", "3+4"], parsed);
+	}
+
+	[Fact]
+	public void A_grammar_that_cannot_refuse_a_value_carries_nothing_that_tells_one()
+	{
+		// The field would always be -1, the branch reading it never taken and the message's
+		// condition always false. Emitted code is read in someone else's build, where the
+		// shortest version of what it does is the one that belongs.
+		var refusing = GetGeneratedSource(RunGenerator(Pairs), "PairFeed.g.cs");
+
+		var recognizing = GetGeneratedSource(
+			RunGenerator("""
+				[DotGram.Gram("Row = name: ['a'..'z']+ & eol\nFeed = rows: Row* recover eol => @(parserText) & eof\nparse Feed")]
+				public partial class PlainFeed { }
+				"""),
+			"PlainFeed.g.cs");
+
+		Assert.Contains("public int Refused;",    refusing,    StringComparison.Ordinal);
+		Assert.DoesNotContain("Refused",          recognizing, StringComparison.Ordinal);
+
+		// And the one that keeps the difference honest: both still recover.
+		Assert.Contains("failure.Reach", refusing,    StringComparison.Ordinal);
+		Assert.Contains("failure.Reach", recognizing, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_says_so_rather_than_calling_a_record_that_matched_malformed()
+	{
+		// §8.1 makes the two failures different things, so the message has to be a
+		// different message. "Does not match" of a record that matched perfectly well
+		// sends a reader looking at the shape, which is the half that was fine.
+		var reported = Pairs.Replace("@(parserText)", "@(parserMessage)", StringComparison.Ordinal);
+
+		var feed = Build(reported)
+			.GetType("PairFeed")!
+			.GetMethod("ParseFeed")!
+			.Invoke(null, ["5\n6\n"])!;
+
+		Assert.Equal(
+			["'Pair' at 0 was recognized and its value was not accepted."],
+			(string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!);
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>
@@ -484,6 +567,33 @@ public sealed class GeneratorDriverTests
 			.RunGeneratorsAndUpdateCompilation(compilation, out output, out _);
 
 		return driver.GetRunResult();
+	}
+
+	/// <summary>
+	/// Runs the generator and loads what it and the host wrote together.
+	/// </summary>
+	/// <remarks>
+	/// For the claims that are about a parser running rather than about the text of one.
+	/// Through the driver and not <c>EmittedCode</c> because these grammars name C# in the
+	/// host class, and what that C# is — a guard, a transformation, one that may refuse —
+	/// is a question only a real compilation answers (§8.1).
+	/// </remarks>
+	static Assembly Build(string source)
+	{
+		var run = RunGenerator(source, out var output);
+
+		Assert.Empty(run.Diagnostics);
+
+		using var stream = new MemoryStream();
+
+		var emitted = output.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(
+			emitted.Success,
+			string.Join("\n", emitted.Diagnostics.Where(
+				static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+
+		return Assembly.Load(stream.ToArray());
 	}
 
 	/// <summary>A .gram file that never touched a disk.</summary>
