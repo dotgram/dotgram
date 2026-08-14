@@ -168,8 +168,7 @@ then quietly means nothing is the failure this project is most careful about:
   `where` or a `=>` calls C# today
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- `recover` without a `=>`, reporting broken elements out of band rather than in the
-  sequence; and a `=>` that throws inside one, which §8.2 says is caught and is not
+- a `=>` that throws inside a `recover`, which §8.2 says is caught and is not
 - streaming input, incremental parsing
 
 ## Examples
@@ -182,6 +181,7 @@ written against it, with no test framework anywhere near them.
 | [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
 | [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
 | [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
+| [`LoggingFeedExample.cs`](examples/DotGram.Examples/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and the `partial void` that vanishes when nobody implements it |
 | [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 | [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a scope that shadows `Trivia` back off |
 | [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |

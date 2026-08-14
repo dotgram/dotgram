@@ -42,7 +42,7 @@ then quietly mean nothing.
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
-| `recover` without `=>`, dropped and reported | ✓ | ✓ | refused | ✗ | ✗ |
+| `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -112,6 +112,33 @@ a whole-word search over the text, so it over-approximates: `line` inside a stri
 literal counts as asked for. That direction is the safe one — a name that was written is
 always found, and a name that was not costs an unused parameter. Reading it exactly means
 lexing C#, which is the host's job and not the grammar half's.
+
+**Without a `=>` the element is dropped and reported to a `partial void`**, which is
+§8.3's fourth row — successful records only, failures to a log, nothing declared. The
+generated class declares the channel and the consumer may implement it:
+
+```csharp
+static partial void OnRecovered(
+    string rule, string text, int position, int line, int column, int ordinal, string message);
+```
+
+The classic C# 3 form, not the C# 9 one: an implementation is optional, and where there
+is none the compiler removes the declaration, every call to it, **and everything in the
+argument lists**. So the element's text is never materialized and its line never counted
+unless somebody is listening — which is why every argument is an expression and none is
+computed into a local first, and why `LineAt` and `ColumnAt` are two functions rather
+than one method with two `out` parameters. A test compiles a grammar with no implementing
+half and asserts the method cannot be found on the type at all, so the erasure is checked
+rather than assumed.
+
+It is also why this is a `partial void` and not an event, a delegate or an `ILogger`:
+those cost something even when null, and the premise of a streamed feed is that nobody is
+usually listening.
+
+The cost is that the hook is static and per host class, so what it reports cannot be
+scoped to one call, and one hook serves every recovering rule in the grammar — hence the
+`rule` parameter. `LoggingFeedExample` shows the ordinary way round the first: gather into
+a `[ThreadStatic]` for the duration of a read.
 
 **A `=>` that throws inside a recovering repetition is not caught.** §8.2 says it is, and
 treats the throw as a value failure to be recovered from — the element was recognized

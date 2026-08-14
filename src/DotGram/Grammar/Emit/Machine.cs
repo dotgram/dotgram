@@ -885,26 +885,22 @@ sealed class Machine
 		writer.Then("to = r = text.Length;");
 		writer.Line();
 
-		if (_recoverySlot >= 0 && _recovery.Factory is not null)
+		if (_recovery.Factory is null)
 		{
-			var asked = _recovery.Asks;
-
-			// §8.2: counting lines costs a scan of what came before, so it is done only
-			// where a factory asked to be told the line — and each half of the answer is
-			// discarded unless it was one of the halves asked for.
-			if (asked.Contains("line") || asked.Contains("column"))
-			{
-				writer.Line(
-					$"{CSharpEmitter.LocateMethod}(text, from, " +
-					$"out {(asked.Contains("line") ? "var line" : "_")}, " +
-					$"out {(asked.Contains("column") ? "var column" : "_")});");
-
-				writer.Line();
-			}
-
+			// §8.3: no `=>`, so the element is dropped rather than collected, and what it
+			// was goes to the hook instead. Everything here is an argument and nothing is a
+			// statement, which is what lets the whole line — the substring and both scans
+			// included — be removed when nobody implements it.
+			writer.Line(
+				$"{CSharpEmitter.RecoveredMethod}(\"{Element}\", {Supplied("text", counter)}, " +
+				$"{Supplied("position", counter)}, {Supplied("line", counter)}, " +
+				$"{Supplied("column", counter)}, {counter}, {Supplied("message", counter)});");
+		}
+		else if (_recoverySlot >= 0)
+		{
 			var arguments = new List<string>();
 
-			foreach (var name in asked)
+			foreach (var name in _recovery.Asks)
 				arguments.Add(Supplied(name, counter));
 
 			writer.Line($"l{_recoverySlot}.Add({_recoverMaker}({string.Join(", ", arguments)}));");
@@ -932,13 +928,24 @@ sealed class Machine
 		"text"     => "text.Slice(from, to - from).ToString()",
 		"position" => "from",
 		"ordinal"  => counter,
-		"line"     => "line",
-		"column"   => "column",
+		"line"     => "LineAt(text, from)",
+		"column"   => "ColumnAt(text, from)",
 		"span"     => "new global::DotGram.SourceSpan(from, to - from)",
-		"message"  => $"\"Input does not match '{Layout.Slots[_recoverySlot].Rule?.Name}' at \" + " +
+		"message"  => $"\"Input does not match '{Element}' at \" + " +
 			"failure.Reach.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		_          => "default",
 	};
+
+	/// <summary>
+	/// What the broken element should have been, for the message and for the hook.
+	/// </summary>
+	/// <remarks>
+	/// The rule the repetition collects, which is only known when the elements are captured
+	/// — <c>rows: Row*</c> and not a bare <c>Row*</c>. Without a capture there is no slot to
+	/// read it from and the element is described by the repetition instead.
+	/// </remarks>
+	string Element =>
+		_recoverySlot >= 0 && Layout.Slots[_recoverySlot].Rule is { } rule ? rule.Name : "an element";
 
 	/// <summary>Where the parse may pick up again — a machine of its own, like a lookahead.</summary>
 	string CompileSync(Node sync)

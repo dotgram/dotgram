@@ -706,6 +706,78 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = 'a' recover eol");
 
 	[Fact]
+	public void Recover_without_a_factory_drops_the_element_and_reports_it()
+	{
+		// §8.3: no `=>`, so the broken element does not join the sequence — the good ones
+		// are all that come back — and what it was goes to a `partial void` the class
+		// declares for the consumer to implement.
+		var source = Emitted("""
+			Row   = name: ['a'..'z']+ & eol
+			Start = rows: Row* recover eol
+			""");
+
+		Assert.Contains("static partial void OnRecovered(", source);
+
+		// Everything the hook is told is an argument. Nothing is computed into a local
+		// first, because a statement would survive the erasure and the scan would happen
+		// whether or not anybody is listening.
+		Assert.Contains("OnRecovered(\"Row\", text.Slice(from, to - from).ToString(), from, LineAt(text, from), ColumnAt(text, from), c", source);
+
+		// The elements that did match still collect — it is only the broken one that is
+		// dropped — so what must be absent is a factory, not the collecting.
+		Assert.Contains("l0.Add(v0);",  source);
+		Assert.DoesNotContain("_Recover(", source);
+	}
+
+	/// <summary>The C# a grammar compiles to, when what is under test is the code itself.</summary>
+	static string Emitted(string grammar)
+	{
+		var result = Compile(grammar + "\nparse Start");
+
+		Assert.Empty(result.Diagnostics);
+
+		return result.Sources[0].Text;
+	}
+
+	[Fact]
+	public void And_with_nobody_listening_the_hook_is_not_there_at_all()
+	{
+		// The claim the whole design rests on, checked against the compiler rather than
+		// assumed: with no implementing half, C# removes the declaration itself — so it
+		// cannot be found on the compiled type, and the calls and their arguments went
+		// with it. Nothing is materialized, nothing is scanned, nothing is paid.
+		var assembly = EmittedCode.Compile(Emitted("""
+			Row   = name: ['a'..'z']+ & eol
+			Start = rows: Row* recover eol
+			"""));
+
+		Assert.Null(assembly.GetType("Grammar")!.GetMethod(
+			"OnRecovered",
+			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
+	}
+
+	[Fact]
+	public void And_the_parse_still_steps_over_the_broken_one() =>
+		// Dropped from the sequence, and the rest read — which is what §8.3 promises a
+		// grammar that has no type to spare.
+		Assert.Equal(
+			["aa", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol
+					""",
+					"aa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void And_a_grammar_that_recovers_with_a_factory_declares_no_hook() =>
+		// The channel is emitted for the grammars that report on it and no others.
+		Assert.DoesNotContain("OnRecovered", Emitted(Records));
+
+	[Fact]
 	public void Only_one_repetition_of_a_rule_recovers() =>
 		// The second would be ignored, and a `recover` that is quietly not there is the
 		// failure recovery exists to prevent.
@@ -716,12 +788,6 @@ public sealed class SemanticTests
 			Start = rows: Row* recover eol => @(new Row("!" + text))
 			      & more: Row* recover eol => @(new Row("?" + text))
 			""");
-
-	[Fact]
-	public void Recover_without_a_factory_says_it_is_not_built() =>
-		// Dropping the element and reporting it elsewhere is §8.3, which has no channel
-		// yet — so it is refused rather than stepped over in silence.
-		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = rows: ['a']* recover eol");
 
 	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>

@@ -247,22 +247,11 @@ public sealed class GrammarNormalizer
 			return repetition;
 		}
 
-		// Without a `=>` the broken element is dropped and reported out of band (§8.3), and
-		// the channel it would be reported on does not exist yet. Emitting the rest of it
-		// would step over bad elements in silence, which is worse than not compiling.
-		if (factory is null)
-		{
-			Report(
-				UnbuiltRecovery,
-				"'recover' needs a '=>' for now: what it makes of a broken element goes into " +
-				"the sequence beside the good ones. Reporting them out of band is docs/syntax.md " +
-				"§8.3, which is not built yet.",
-				at.At);
-
-			return repetition;
-		}
-
-		_recoveries[repetition] = new Recovery(Lower(sync, scope), Text(factory));
+		// Without a `=>` the broken element is dropped and reported out of band (§8.3) —
+		// to a `partial void` the generated class declares and the consumer may implement.
+		_recoveries[repetition] = new Recovery(
+			Lower(sync, scope),
+			factory is null ? null : Text(factory));
 
 		return repetition;
 	}

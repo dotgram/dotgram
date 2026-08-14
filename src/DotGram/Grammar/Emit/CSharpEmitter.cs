@@ -263,6 +263,12 @@ public static class CSharpEmitter
 			file.Line();
 		}
 
+		if (Reporting(graph))
+		{
+			file.Write(RecoveredHook);
+			file.Line();
+		}
+
 		if (Locating(graph))
 		{
 			file.Write(LocateHelper);
@@ -603,15 +609,32 @@ public static class CSharpEmitter
 	}
 
 	/// <summary>Whether any <c>recover</c> in this grammar asked where its element was.</summary>
+	/// <remarks>
+	/// A <c>recover</c> without a <c>=&gt;</c> always asks: the hook it reports on takes
+	/// the line and the column whether or not anybody implements it.
+	/// </remarks>
 	static bool Locating(RecognitionGraph graph)
 	{
 		foreach (var recovery in graph.Recoveries.Values)
 		{
+			if (recovery.Factory is null)
+				return true;
+
 			var asked = recovery.Asks;
 
 			if (asked.Contains("line") || asked.Contains("column"))
 				return true;
 		}
+
+		return false;
+	}
+
+	/// <summary>Whether any <c>recover</c> in this grammar reports out of band (§8.3).</summary>
+	static bool Reporting(RecognitionGraph graph)
+	{
+		foreach (var recovery in graph.Recoveries.Values)
+			if (recovery.Factory is null)
+				return true;
 
 		return false;
 	}
@@ -831,35 +854,85 @@ public static class CSharpEmitter
 		}
 		""";
 
-	/// <summary>The method a factory asking for <c>line</c> or <c>column</c> is served by.</summary>
-	internal const string LocateMethod = "Locate";
+	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
+	internal const string RecoveredMethod = "OnRecovered";
+
+	/// <summary>
+	/// What §8.3 promises a grammar that has no type to spare: the broken element is
+	/// dropped from the sequence and reported here instead.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A <c>partial void</c> of the classic kind — C# 3, so nothing is assumed about the
+	/// consumer's language version, and unlike the C# 9 form an implementation is
+	/// optional. Where there is none the compiler removes the declaration, every call to
+	/// it, <b>and everything in the argument lists</b>: the element's text is never
+	/// materialized, its line is never counted, and a feed of a hundred million records
+	/// pays nothing for a channel nobody listens on.
+	/// </para>
+	/// <para>
+	/// One hook per host class rather than per rule, which is why it is told which rule
+	/// rejected the element. Emitted always for a grammar that recovers without a
+	/// <c>=&gt;</c>, so what the consumer compiles never depends on how it was built.
+	/// </para>
+	/// </remarks>
+	internal const string RecoveredHook = """
+		/// <summary>
+		/// Called for each element a recovering repetition could not read (docs/syntax.md
+		/// §8.3). Implement it in your own half of this class to be told; leave it alone
+		/// and every call to it, arguments included, is removed at compile time.
+		/// </summary>
+		/// <param name="rule">The rule the element should have been.</param>
+		/// <param name="text">The input it covered, up to where the parse picked up again.</param>
+		/// <param name="position">Where it started, as an offset from the beginning.</param>
+		/// <param name="line">Which line it started on, counting from 1.</param>
+		/// <param name="column">How far into that line, counting from 1.</param>
+		/// <param name="ordinal">Which element of the repetition it was, counting rejected ones, from 0.</param>
+		/// <param name="message">Why it was rejected.</param>
+		static partial void OnRecovered(
+			string rule, string text, int position, int line, int column, int ordinal, string message);
+		""";
 
 	/// <summary>
 	/// Where a position is, for a person. Emitted once per class, and only for a grammar
 	/// whose <c>recover</c> asked to be told (§8.2).
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// Both from 1, which is where an editor starts counting and therefore where a message
 	/// a person will act on has to. <c>\r\n</c> needs no case of its own: the line ends at
 	/// the <c>\n</c>, and the <c>\r</c> before it is the last column of the line it ends.
+	/// </para>
+	/// <para>
+	/// Two functions rather than one method with two <c>out</c> parameters, because both
+	/// are used as <b>arguments</b>. A call to an unimplemented <c>partial void</c> is
+	/// removed along with everything in its argument list, so an out-of-band report nobody
+	/// listens for costs neither of these scans. A statement before the call would have
+	/// survived the erasure and scanned anyway.
+	/// </para>
 	/// </remarks>
 	internal const string LocateHelper = """
-		/// <summary>Which line and column a position is on, both counting from 1.</summary>
-		static void Locate(global::System.ReadOnlySpan<char> text, int position, out int line, out int column)
+		/// <summary>Which line a position is on, counting from 1.</summary>
+		static int LineAt(global::System.ReadOnlySpan<char> text, int position)
 		{
-			line   = 1;
-			column = 1;
+			var line = 1;
 
 			for (var at = 0; at < position; at++)
 				if (text[at] == '\n')
-				{
 					line++;
-					column = 1;
-				}
-				else
-				{
-					column++;
-				}
+
+			return line;
+		}
+
+		/// <summary>How far into its line a position is, counting from 1.</summary>
+		static int ColumnAt(global::System.ReadOnlySpan<char> text, int position)
+		{
+			var column = 1;
+
+			for (var at = 0; at < position; at++)
+				column = text[at] == '\n' ? 1 : column + 1;
+
+			return column;
 		}
 		""";
 

@@ -390,6 +390,29 @@ public sealed class ExampleTests
 		Assert.Throws<FormatException>(
 			static () => RecoveringFeedReader.Read("R|AAPL|100|2026-08-12\n"));
 
+	// ── The feed that logs its rejections instead ────────────────────────────────
+
+	[Fact]
+	public void A_rejection_can_leave_by_another_door()
+	{
+		// §8.3's fourth row: only the good records come back, and the bad ones went to the
+		// hook. The array holds `Row` and nothing else — no caller has to filter.
+		var (rows, rejected) = LoggingFeedReader.Read(Broken);
+
+		Assert.Equal(["AAPL", "NVDA"], Array.ConvertAll([.. rows], row => row.Symbol));
+
+		var one = Assert.Single(rejected);
+
+		Assert.Equal("Row", one.Rule);
+		Assert.Equal(3,     one.Line);
+		Assert.Equal("R|MSFT|two hundred|2026-08-12", one.Text);
+		Assert.StartsWith("Input does not match 'Row'", one.Message);
+	}
+
+	[Fact]
+	public void And_a_whole_feed_reports_nothing() =>
+		Assert.Empty(LoggingFeedReader.Read(Text).Rejected);
+
 	[Fact]
 	public void Records_can_be_read_out_of_a_feed_that_is_not_whole() =>
 		// No header, no trailer, and a line that is not a record at all — `find all`
