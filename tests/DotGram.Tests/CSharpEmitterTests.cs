@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 
 using Xunit;
 
@@ -26,7 +28,11 @@ public sealed class CSharpEmitterTests
 			grammar,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.Empty(result.Diagnostics);
+		// Anything but information. A grammar is allowed to be told what it did not get and
+		// still be a grammar the emitter should be asked about — that is what `Info` is
+		// for, and §6.3's "no reader overload" is one.
+		Assert.Empty(result.Diagnostics.Where(
+			static diagnostic => diagnostic.Severity != GramSeverity.Info));
 
 		return Assert.Single(result.Sources).Text;
 	}
@@ -393,6 +399,45 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("class Window", source, StringComparison.Ordinal);
 	}
+
+	[Fact]
+	public void And_is_told_so_where_it_asked()
+	{
+		// The alternative is what the author actually meets: a call that does not bind,
+		// naming neither the rule responsible nor anything they could do about it.
+		var result = GramCompiler.Compile(
+			"Start = any* & 'z'\nfind Start",
+			new GramCompilerOptions { ClassName = "Grammar" });
+
+		var told = Assert.Single(result.Diagnostics);
+
+		Assert.Equal(Retention.NotStreamable, told.Id);
+		Assert.Equal(GramSeverity.Info,       told.Severity);
+
+		// The innermost part that does not fit, rather than the whole body it sits in.
+		Assert.Contains("any*",   told.Message, StringComparison.Ordinal);
+		Assert.Contains("§6.3",   told.Message, StringComparison.Ordinal);
+		Assert.Contains("FindStart", told.Message, StringComparison.Ordinal);
+
+		// Information, so the parser is still generated: what it did not get is an
+		// overload, not a method.
+		Assert.NotEmpty(result.Sources);
+	}
+
+	[Fact]
+	public void A_rule_that_streams_is_told_nothing() =>
+		Assert.Empty(GramCompiler.Compile(
+			"Start = ['0'..'9']+\nfind Start",
+			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
+
+	[Fact]
+	public void And_neither_is_a_parse_that_has_no_reader_overload_yet() =>
+		// The reason there is a fact about this compiler rather than about the grammar in
+		// front of it. Saying it on every build of every grammar would be noise, and
+		// docs/status.md is where it belongs.
+		Assert.Empty(GramCompiler.Compile(
+			"Start = any* & 'z'\nparse Start",
+			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
 
 	[Fact]
 	public void The_class_goes_where_it_was_asked_to()

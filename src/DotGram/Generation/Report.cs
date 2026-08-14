@@ -63,9 +63,12 @@ readonly record struct Report(
 			diagnostic.Id,
 			diagnostic.Id,
 			"{0}",
-			diagnostic.Severity == GramSeverity.Error
-				? DiagnosticSeverity.Error
-				: DiagnosticSeverity.Warning,
+			diagnostic.Severity switch
+			{
+				GramSeverity.Error => DiagnosticSeverity.Error,
+				GramSeverity.Info  => DiagnosticSeverity.Info,
+				_                  => DiagnosticSeverity.Warning,
+			},
 			FilePath:  filePath,
 			Position:  diagnostic.Position,
 			Length:    diagnostic.Length,

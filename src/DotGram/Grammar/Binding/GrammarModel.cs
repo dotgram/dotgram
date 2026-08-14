@@ -140,7 +140,11 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// A rule a grammar asked to be reachable from C# — one <c>parse</c> / <c>match</c> /
 /// <c>find</c> / <c>find all</c> directive, resolved (§6).
 /// </summary>
-public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string MethodName)
+/// <param name="At">
+/// Where the directive is written, which is where anything said about what it did or did
+/// not produce belongs — the rule is fine, the directive is what asked for the method.
+/// </param>
+public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string MethodName, Location At)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>

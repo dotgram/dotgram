@@ -186,7 +186,7 @@ public sealed class GrammarBinder
 							$"'{method}' is already published by '{clash.Kind} {clash.Rule.Name}'; use 'as' to give one of them another name.",
 							publish.At);
 					else
-						_publications.Add(new Publication(publish.Kind, published, method));
+						_publications.Add(new Publication(publish.Kind, published, method, publish.At));
 
 					break;
 			}

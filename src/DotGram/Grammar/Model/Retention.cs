@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -158,6 +159,95 @@ public static class Retention
 			$"'{rule.Name}' has no streaming overload — every part of it fits a line, but " +
 			"none of them commits, so the window could never move. Mark the repetition that " +
 			"reads the body of the input with 'recover' (docs/syntax.md §8.2).");
+	}
+
+	/// <summary>
+	/// A publication that would have got a reader overload if the grammar let it.
+	/// </summary>
+	public const string NotStreamable = "GRAM5001";
+
+	/// <summary>
+	/// What each publication did not get, and why.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Said rather than left to be discovered, because the alternative is what the author
+	/// actually meets: a call that does not bind, `cannot convert from TextReader to
+	/// string`, naming neither the rule responsible nor anything they could do about it.
+	/// The overload is missing on purpose and the purpose is worth a sentence.
+	/// </para>
+	/// <para>
+	/// Only where the grammar is the reason. A <c>parse</c> has no reader overload today
+	/// because the windowed driver for it is not built, which is a fact about this
+	/// compiler rather than about the grammar in front of it — reporting that on every
+	/// build of every grammar would be noise, and it belongs in docs/status.md where it
+	/// is.
+	/// </para>
+	/// </remarks>
+	public static IReadOnlyList<GramDiagnostic> Check(RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var reported  = new List<GramDiagnostic>();
+		var extents   = ExtentOf(graph);
+		var consuming = Consuming(graph);
+
+		foreach (var publication in graph.Publications)
+		{
+			if (publication.Kind != PublishKind.Find)
+				continue;
+
+			if (!extents.TryGetValue(publication.Rule, out var extent) || extent != LineExtent.Beyond)
+				continue;
+
+			var culprit = Culprit(graph.Bodies[publication.Rule], extents, consuming);
+
+			reported.Add(new GramDiagnostic(
+				NotStreamable,
+				$"'{publication.MethodName}' gets no overload taking a reader: {culprit} may take " +
+				$"more than one line, so reading '{publication.Rule.Name}' from one would have to " +
+				"hold the input rather than one occurrence. docs/syntax.md §6.3 says which rules " +
+				"get one, and why.",
+				publication.At.Position,
+				publication.At.Length,
+				GramSeverity.Info));
+		}
+
+		return reported;
+	}
+
+	/// <summary>
+	/// The smallest part of a rule that takes more than a line.
+	/// </summary>
+	/// <remarks>
+	/// The innermost one, so that a message names <c>any*</c> rather than the whole body
+	/// it is buried in. A node all of whose children fit is itself the answer, because
+	/// then what does not fit is the composition and there is nothing smaller to point at.
+	/// </remarks>
+	static string Culprit(
+		Node                                        node,
+		IReadOnlyDictionary<RuleSymbol, LineExtent> rules,
+		ICollection<RuleSymbol>                     consuming)
+	{
+		foreach (var child in Children(node))
+			if (Extent(child, rules, consuming) == LineExtent.Beyond)
+				return Culprit(child, rules, consuming);
+
+		return "'" + node + "'";
+	}
+
+	static IEnumerable<Node> Children(Node node)
+	{
+		switch (node)
+		{
+			case Node.Sequence(var parts):        return parts;
+			case Node.Choice(var alternatives):   return alternatives;
+			case Node.Repeat(var body, _, _):     return [body];
+			case Node.Capture(_, var captured):   return [captured];
+			case Node.Construct(var built, _):    return [built];
+			default:                              return [];
+		}
 	}
 
 	static string Describe(Stage stage) =>

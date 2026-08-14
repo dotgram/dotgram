@@ -55,6 +55,13 @@ public static class GramCompiler
 
 		diagnostics.AddRange(graph.Diagnostics);
 
+		// What the grammar asked for and cannot have, said where the asking is (§6.3).
+		// After normalization because it is a question about the graph, and only when the
+		// grammar is otherwise sound: telling an author what a broken rule will not get is
+		// answering a question they are not asking yet.
+		if (!HasErrors(diagnostics))
+			diagnostics.AddRange(Retention.Check(graph));
+
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule
 		// should still report what is wrong with the other twelve (implementation.md §0).
 		// Only emission is skipped, because code built from a broken grammar would bury

@@ -39,6 +39,12 @@ public sealed record GramDiagnostic(string Id, string Message, int Position, int
 
 public enum GramSeverity
 {
+	/// <summary>
+	/// Something worth knowing about a grammar that is perfectly correct — what it did
+	/// not get, and why. Never a reason to change anything.
+	/// </summary>
+	Info,
+
 	Warning,
 	Error,
 }

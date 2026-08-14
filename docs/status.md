@@ -498,9 +498,20 @@ It is also what keeps `eof` honest. The end of a full buffer is indistinguishabl
 the end of the input to a recognizer, and the only thing that can tell them apart is
 whether the reader is finished.
 
-`parse` has no reader overload yet: what would let its window move is a committed
-repetition inside it, which means the decomposition `Retention.PlanFor` does rather than
-the single question `find` asks.
+**A grammar that does not get one is told so**, as `GRAM5001`, at the directive that
+asked — `'FindStart' gets no overload taking a reader: 'any*' may take more than one
+line, …`, naming the innermost part that does not fit rather than the whole body it sits
+in, and pointing at §6.3. Information rather than a warning: the grammar is correct and
+there is nothing to fix. Without it the author meets a call that does not bind and a
+message about converting `TextReader` to `string`, which names neither the rule
+responsible nor anything they could do about it.
+
+Only where the grammar is the reason. A `parse` gets no reader overload because the
+windowed driver for it is not built, which is a fact about this compiler rather than
+about the grammar in front of it — saying that on every build of every grammar would be
+noise, and this file is where it belongs. What would let a `parse` window move is a
+committed repetition inside it, which means the decomposition `Retention.PlanFor` does
+rather than the single question `find` asks.
 
 ## An offset is a `long`, a length is an `int`
 
@@ -539,6 +550,27 @@ ordinary way of holding a plan.
 `GRAM0001` went with it — it reported two assemblies both publishing — so diagnostic
 numbering starts at `GRAM0002`. A retired number is not reused: a suppression written
 against the old meaning would silently acquire a new one.
+
+Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn shell,
+`GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx` the binder, `GRAM4xxx` the
+normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
+it is one. `GRAM0001` and `GRAM4004` are retired.
+
+### Two things wrong with diagnostics, neither fixed
+
+Both are about how a message arrives rather than about what any one of them says, which
+is why they are here and not against a particular number.
+
+- **A position in an inline grammar does not land in the attribute's string.** A grammar
+  written in a `.gram` file gets a location the editor can open; the same grammar written
+  in `[Gram("""…""")]` reports against the attribute as a whole, because the offset is
+  into the grammar text and nothing maps it back through the string literal's own
+  escaping and indentation. The message is right and the squiggle is in the wrong place.
+- **One unrecognized character induces a crowd.** A single symbol the lexer cannot place
+  is reported once and then reported again by every stage that tries to make sense of
+  what it left behind — twenty messages of which nineteen are consequences. What is
+  missing is the ordinary compiler discipline of a first error suppressing the errors
+  derived from it.
 
 ## What re-runs, and when
 
