@@ -182,7 +182,6 @@ then quietly means nothing is the failure this project is most careful about:
   `where` or a `=>` calls C# today
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- a `=>` that throws inside a `recover`, which §8.2 says is caught and is not
 - streaming a `parse` — `find` reads from a `TextReader` already, through a buffer that
   is reused; `parse` needs a committed repetition inside it before its window can move
 - incremental parsing

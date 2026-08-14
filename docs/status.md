@@ -45,7 +45,7 @@ then quietly mean nothing.
 | offsets are `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
-| a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
+| a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
 | value failures `bool M(…, out T)` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a refused value recovered without a rescan §8.2 | — | — | — | ✓ | ✓ |
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -512,6 +512,18 @@ about the grammar in front of it — saying that on every build of every grammar
 noise, and this file is where it belongs. What would let a `parse` window move is a
 committed repetition inside it, which means the decomposition `Retention.PlanFor` does
 rather than the single question `find` asks.
+
+## A recovery that builds needs a sequence to build into
+
+`rows: Row*` where `Row` captures nothing is one string — the run joined, §7.3 — not a
+sequence of values, so a `=>` on the recovery has nowhere to put the rejection. It used
+to emit a factory call against a list that does not exist, which the consumer's compiler
+reported as an undefined name in a file they never wrote. Now `GRAM4010`, saying which
+of the two fixes applies: give the repeated rule a capture, or drop the `=>` and report
+out of band (§8.3).
+
+Found by writing a test about something else — that an exception out of a `=>` leaves
+the parse, which §8.2 decided and nothing had checked. It does.
 
 ## An offset is a `long`, a length is an `int`
 

@@ -1257,6 +1257,41 @@ public sealed class GrammarNormalizer
 				$"'{rule.Name}' marks {found} repetitions with 'recover' and only one may be marked. " +
 				"Give the other its own rule.",
 				rule.Declaration!.At);
+
+		foreach (var node in Everything(_bodies[rule]))
+			if (_recoveries.TryGetValue(node, out var recovery) && recovery.Factory is not null)
+				CheckRecoveredElement(rule, node);
+	}
+
+	/// <summary>
+	/// A <c>recover</c> with a <c>=&gt;</c> needs a sequence to put the result in.
+	/// </summary>
+	/// <remarks>
+	/// §8.2's whole design is that a rejection arrives in the same sequence as the records,
+	/// in its place — which presumes there is one. A repetition of something that builds no
+	/// value collects text rather than values: <c>rows: Row*</c> where <c>Row</c> has no
+	/// captures is one string, the run joined (§7.3), and there is nowhere for a rejection
+	/// to go. Left alone it emitted a factory call against a list that does not exist,
+	/// which the consumer's compiler reported as an undefined name in a file they never
+	/// wrote.
+	/// </remarks>
+	void CheckRecoveredElement(RuleSymbol rule, Node repetition)
+	{
+		if (repetition is not Node.Repeat(var repeated, _, _))
+			return;
+
+		var element = repeated is Node.Capture(_, var captured) ? captured : repeated;
+
+		if (element is Node.Call(var called, _) && BuildsValue(called))
+			return;
+
+		Report(
+			UnbuiltRecovery,
+			$"'{rule.Name}' recovers with a '=>', which puts the rejected element in the same " +
+			"sequence as the ones that were read — but this repetition collects text rather " +
+			"than values, so there is no sequence to put it in. Give the repeated rule a " +
+			"capture of its own, or drop the '=>' and report out of band (docs/syntax.md §8.3).",
+			rule.Declaration!.At);
 	}
 
 	static IEnumerable<Node> Everything(Node node)

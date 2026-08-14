@@ -843,6 +843,29 @@ public sealed class SemanticTests
 			""");
 
 	[Fact]
+	public void A_recovery_that_builds_needs_a_sequence_to_build_into() =>
+		// `Row` captures nothing, so `rows: Row*` is one string — the run joined (§7.3) —
+		// and a rejection has nowhere to arrive. Found by writing a test about something
+		// else: it emitted a factory call against a list that does not exist, which the
+		// consumer's compiler reports as an undefined name in a file they never wrote.
+		Refused(
+			GrammarNormalizer.UnbuiltRecovery,
+			"""
+			Row   = ['a'..'z']+ & eol
+			Start = rows: Row* recover eol => @(parserText)
+			""");
+
+	[Fact]
+	public void And_the_same_repetition_without_one_is_fine() =>
+		// §8.3: no `=>`, so nothing is collected and the rejection goes to the hook. The
+		// sequence that is not there is not needed.
+		Assert.Empty(Compile("""
+			Row   = ['a'..'z']+ & eol
+			Start = rows: Row* recover eol
+			parse Start
+			""").Diagnostics);
+
+	[Fact]
 	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
 

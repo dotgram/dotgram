@@ -364,6 +364,35 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void An_exception_out_of_a_factory_leaves_the_parse()
+	{
+		// §8.2 decided this rather than left it: catching would mean catching `Exception`,
+		// there being no type that tells "this record's quantity is not a number" from
+		// `NullReferenceException`, and a parser that reports a bug in the author's own C#
+		// as "row 400 was malformed" is worse than one that stops. A conversion that can
+		// fail says so by its shape instead (§8.1) — that is the difference between a
+		// rejection and a defect, and this is the test that the defect still gets out.
+		var parse = Build("""
+			[DotGram.Gram("Row = name: ['a'..'z']+ & eol\nFeed = rows: Row* recover eol => @Boom(parserText) & eof\nparse Feed")]
+			public partial class BoomingFeed
+			{
+				static Row Boom(string parserText) =>
+					throw new System.InvalidOperationException("a defect, not a rejection");
+			}
+			""")
+			.GetType("BoomingFeed")!
+			.GetMethod("ParseFeed")!;
+
+		// The middle line begins a Row and breaks inside one, which is what recovery is
+		// for — a line that never began one would simply end the repetition (§8.2).
+		var thrown = Assert.Throws<TargetInvocationException>(
+			() => parse.Invoke(null, ["aa\nb1b\ncc\n"]));
+
+		Assert.IsType<InvalidOperationException>(thrown.InnerException);
+		Assert.Equal("a defect, not a rejection", thrown.InnerException!.Message);
+	}
+
+	[Fact]
 	public void A_grammar_that_cannot_refuse_a_value_carries_nothing_that_tells_one()
 	{
 		// The field would always be -1, the branch reading it never taken and the message's
