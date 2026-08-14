@@ -51,20 +51,35 @@ public sealed class GrammarNormalizer
 	readonly List<GramDiagnostic>                              _diagnostics = [];
 	readonly List<RuleSymbol>                                  _rules       = [];
 
-	GrammarNormalizer(GrammarModel model) => _model = model;
+	readonly ISymbolResolver _resolver;
 
-	public static RecognitionGraph Normalize(GrammarModel model)
+	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver)
+	{
+		_model    = model;
+		_resolver = resolver;
+	}
+
+	/// <param name="resolver">
+	/// Asked one thing only: whether one C# type fits into another, which is what §4.1
+	/// case 2 needs and nothing here can work out for itself.
+	/// </param>
+	public static RecognitionGraph Normalize(GrammarModel model, ISymbolResolver? resolver = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		var normalizer = new GrammarNormalizer(model);
+		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance);
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 		normalizer.ComputeTypes();
+
+		// After the types and before the results: it reads what each rule's type is and
+		// writes captures the results are then computed from (§4.1 case 2).
+		normalizer.CollectSequences();
+
 		normalizer.ComputeResults();
 		normalizer.Check();
 
@@ -1056,6 +1071,110 @@ public sealed class GrammarNormalizer
 		}
 	}
 
+	/// <summary>
+	/// The text a <c>=&gt;</c> carries when the grammar wrote none and the result is a
+	/// sequence — the emitter builds the body rather than compiling an expression.
+	/// </summary>
+	public const string SequenceMarker = "<sequence>";
+
+	/// <summary>
+	/// §4.1 case 2: a rule whose type is <c>T[]</c> collects the operands that fit.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Rewritten into what already works rather than given machinery of its own. Each
+	/// operand whose value is assignable to <c>T</c> becomes an ordinary capture, and the
+	/// alternative gets a <c>=&gt;</c> whose text is <see cref="SequenceMarker"/> — so the
+	/// captures are numbered, given up and rebuilt by exactly the code that does it for a
+	/// capture the author wrote, and the only new thing is what the factory's body says.
+	/// </para>
+	/// <para>
+	/// Only the operands of the alternative itself. Reaching inside a group would collect
+	/// what a nested rule already collected — the sequence is what this rule is made of,
+	/// and what its parts are made of is their own business (§4.1).
+	/// </para>
+	/// </remarks>
+	void CollectSequences()
+	{
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration?.Type is not { IsSequence: true } declared)
+				continue;
+
+			// A rule that says how to build its value has said it; this is for the one that
+			// left it to the shape of the rule.
+			if (Alternatives(_bodies[rule]).Any(static alternative => alternative is Node.Construct))
+				continue;
+
+			var rewritten = new List<Node>();
+			var taken     = 0;
+
+			foreach (var alternative in Alternatives(_bodies[rule]))
+			{
+				var parts = alternative is Node.Sequence(var sequence) ? sequence : [alternative];
+				var built = new List<Node>(parts.Count);
+
+				foreach (var part in parts)
+					built.Add(Fits(part, declared.Name) ? Collected(part, ref taken) : part);
+
+				rewritten.Add(new Node.Construct(
+					built.Count == 1 ? built[0] : new Node.Sequence(built),
+					SequenceMarker));
+			}
+
+			if (taken == 0)
+			{
+				Report(
+					UnbuiltConstruction,
+					$"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and no " +
+					"operand of it produces one — every part either builds no value or builds a type " +
+					$"that is not a '{declared.Name}'. §4.1 case 2 says which operands join a sequence.",
+					declared.At);
+
+				continue;
+			}
+
+			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+		}
+	}
+
+	/// <summary>
+	/// An operand wrapped in the capture that puts it in the sequence.
+	/// </summary>
+	/// <remarks>
+	/// Inside a repetition rather than around it, which is where a capture the author
+	/// wrote ends up: <c>rows: Row*</c> parses as <c>(rows: Row)*</c>, because a capture
+	/// binds tighter than a quantifier (§10). Written the other way round the slot holds
+	/// the text of the whole run instead of collecting the values.
+	/// </remarks>
+	static Node Collected(Node part, ref int taken) =>
+		part is Node.Repeat(var body, var min, var max)
+			? new Node.Repeat(new Node.Capture("item" + taken++, body), min, max)
+			: new Node.Capture("item" + taken++, part);
+
+	/// <summary>
+	/// Whether this operand's value belongs in a sequence of <paramref name="element"/>.
+	/// </summary>
+	/// <remarks>
+	/// A call to a rule that declared a C# type, or a repetition of one. A rule with no
+	/// declared type builds a type generated from its captures, which is nobody's
+	/// ancestor and so fits nothing but a sequence of <c>@object</c> — it is left out
+	/// rather than guessed at.
+	/// </remarks>
+	bool Fits(Node part, string element)
+	{
+		var called = part switch
+		{
+			Node.Call(var rule, _)                     => rule,
+			Node.Repeat(Node.Call(var rule, _), _, _)  => rule,
+			_                                          => null,
+		};
+
+		return called is not null &&
+			_types.TryGetValue(called, out var type) &&
+			_resolver.IsAssignable(type, element);
+	}
+
 	static bool IsCSharpKeyword(string name) => name is
 		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
@@ -1118,7 +1237,17 @@ public sealed class GrammarNormalizer
 				: $"the value of '{slot.Rule.Name}'";
 
 	/// <summary>Whether a rule has a value of its own — which is to say, any capture.</summary>
-	bool BuildsValue(RuleSymbol rule) => _bodies.TryGetValue(rule, out var body) && HasCapture(body);
+	/// <summary>
+	/// Whether a rule has a value of its own, rather than the text it matched.
+	/// </summary>
+	/// <remarks>
+	/// Captures give a rule a generated type; a declared type with a <c>=&gt;</c> gives it
+	/// the author's own. The second was missing, so <c>Header : @Item = 'H' &amp; eol =&gt;
+	/// @(new Head())</c> — a rule that plainly has a value and no captures — was treated as
+	/// text, and a capture of it held the characters instead of the <c>Item</c>.
+	/// </remarks>
+	bool BuildsValue(RuleSymbol rule) =>
+		_types.ContainsKey(rule) || (_bodies.TryGetValue(rule, out var body) && HasCapture(body));
 
 	static bool HasCapture(Node node) => node switch
 	{

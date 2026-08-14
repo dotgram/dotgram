@@ -31,6 +31,7 @@ then quietly mean nothing.
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
+| a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -512,6 +513,42 @@ about the grammar in front of it — saying that on every build of every grammar
 noise, and this file is where it belongs. What would let a `parse` window move is a
 committed repetition inside it, which means the decomposition `Retention.PlanFor` does
 rather than the single question `find` asks.
+
+## A rule can be a sequence of what it is made of
+
+§4.1 case 2 works: `Feed : @FeedItem[] = Header & Row* & Trailer & eof` hands back the
+envelope and the records in one array, in the order they were read, with no `=>`
+anywhere in `Feed`. Every operand whose value is assignable to `FeedItem` joins;
+`Row*` contributes all of its elements; `eof` and anything else that builds no value
+contributes nothing. A rule that declares a sequence and has no operand that fits is
+refused (`GRAM4008`) rather than generating a method that returns an always-empty array.
+
+**Rewritten into what already worked.** Each operand that fits becomes an ordinary
+capture and the alternative gets a `=>` whose text is a marker, so the captures are
+numbered, given up on backtracking and rebuilt by exactly the code that does it for a
+capture the author wrote. The only new thing is what the factory's body says — a body
+rather than an expression, because a repetition contributes an unknown number of
+elements and an optional operand contributes none.
+
+The capture goes *inside* a repetition, not around it, which is where one the author
+wrote ends up: `rows: Row*` parses as `(rows: Row)*` (§10). The other way round the slot
+holds the text of the whole run.
+
+**Assignability is a question for the host**, so `ISymbolResolver` gained `IsAssignable`
+— the third thing the grammar half asks about C#, alongside "does this type exist" and
+"what shape is this method". It is asked through the same question-and-answer list as
+the other two, so nothing downstream of it holds a `Compilation`, and the pairings are
+collected as a superset from the grammar's syntax the way §7.1's names are. Roslyn's own
+conversion classification answers it, minus numeric widening and user-defined operators:
+what joins a sequence is what already *is* the element type.
+
+This is also the shape a streamed `parse` needs, since a sequence is the only result
+that can be handed over one element at a time.
+
+**It fixed something else on the way.** `BuildsValue` asked only whether a rule had
+captures, so `Header : @Item = 'H' & eol => @(new Head())` — a rule that plainly has a
+value and no captures — counted as text, and a capture of it held the characters instead
+of the `Item`.
 
 ## A recovery that builds needs a sequence to build into
 

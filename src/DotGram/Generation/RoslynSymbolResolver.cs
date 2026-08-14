@@ -31,6 +31,30 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 	public bool TypeExists(string qualifiedName) => TypeNamed(qualifiedName) is not null;
 
 	/// <summary>
+	/// Whether a value of one type may be put where the other is expected.
+	/// </summary>
+	/// <remarks>
+	/// Roslyn's own conversion classification, minus the two kinds §4.1 case 2 does not
+	/// want: a numeric widening would put an <c>@int</c> rule into a sequence of
+	/// <c>@long</c> and a user-defined conversion would run somebody's operator while
+	/// matching. What is left is identity, reference and boxing — the operands that
+	/// already <i>are</i> the element type, which is why a sequence of <c>@object</c>
+	/// takes everything.
+	/// </remarks>
+	public bool IsAssignable(string from, string to)
+	{
+		if (string.Equals(from, to, StringComparison.Ordinal))
+			return true;
+
+		if (TypeNamed(from) is not { } source || TypeNamed(to) is not { } target)
+			return false;
+
+		var conversion = _compilation.ClassifyCommonConversion(source, target);
+
+		return conversion.IsImplicit && !conversion.IsNumeric && !conversion.IsUserDefined;
+	}
+
+	/// <summary>
 	/// A type by the name a grammar writes, keyword or otherwise.
 	/// </summary>
 	/// <remarks>

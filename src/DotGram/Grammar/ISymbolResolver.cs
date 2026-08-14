@@ -22,6 +22,19 @@ public interface ISymbolResolver
 	/// </summary>
 	/// <returns><c>false</c> when no such method is in scope.</returns>
 	bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role);
+
+	/// <summary>
+	/// Whether a value of one C# type may be put where the other is expected.
+	/// </summary>
+	/// <remarks>
+	/// What §4.1 case 2 rests on: <c>Feed : FeedItem[] = Header &amp; Row* &amp; Trailer</c>
+	/// takes the operands assignable to <c>FeedItem</c> and leaves the rest, and only the
+	/// host knows which those are — assignability is inheritance, interfaces and
+	/// conversions, none of which a grammar can see.
+	/// </remarks>
+	/// <param name="from">The type a rule's value has, as the grammar declared it.</param>
+	/// <param name="to">The element type of the sequence being built.</param>
+	bool IsAssignable(string from, string to);
 }
 
 /// <summary>Role a C# method plays, decided by its signature and call position.</summary>
@@ -64,4 +77,6 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		role = argumentCount == 0 ? MethodRole.ElementPredicate : MethodRole.ValueTransformation;
 		return true;
 	}
+
+	public bool IsAssignable(string from, string to) => true;
 }

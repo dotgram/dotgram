@@ -13,7 +13,17 @@ namespace DotGram.Generation;
 /// The number of arguments a method was called with, or -1 when the question is whether a
 /// type of this name exists.
 /// </param>
-readonly record struct Question(string Name, int Arity);
+/// <param name="Against">
+/// The type <paramref name="Name"/> is being asked to fit into, for an assignability
+/// question (§4.1 case 2), and null for every other kind.
+/// </param>
+readonly record struct Question(string Name, int Arity, string? Against = null)
+{
+	/// <summary>The arity that marks a question about types rather than about a name.</summary>
+	public const int Assignability = -2;
+
+	public static Question Fits(string from, string to) => new(from, Assignability, to);
+}
 
 /// <param name="Yes">Whether the host has it.</param>
 /// <param name="Role">What kind of method it is, meaningless unless the question was one.</param>
@@ -45,12 +55,22 @@ static class Questions
 	/// <summary>Every question the grammar's C# names could give rise to.</summary>
 	public static ImmutableArray<Question> Of(GrammarFile file)
 	{
-		var imports = new List<string>();
-		var names   = new List<Question>();
+		var imports   = new List<string>();
+		var names     = new List<Question>();
+		var declared  = new List<string>();
+		var sequences = new List<string>();
 
 		Collect(file.Usings, file.Decls);
 
 		var questions = ImmutableHashSet.CreateBuilder<Question>();
+
+		// §4.1 case 2 asks which of the grammar's own result types fit into a sequence's
+		// element type, and it asks after binding — so every pairing is asked for here.
+		// The same superset as everywhere in this file: a grammar declaring five types and
+		// one sequence asks five questions, of which the ones that matter are a subset.
+		foreach (var element in sequences)
+			foreach (var type in declared)
+				questions.Add(Question.Fits(type, element));
 
 		foreach (var name in names)
 		{
@@ -91,8 +111,17 @@ static class Questions
 
 		void Type(TypeRef? type)
 		{
-			if (type is not null)
-				names.Add(new Question(type.Name, -1));
+			if (type is null)
+				return;
+
+			names.Add(new Question(type.Name, -1));
+
+			(type.IsSequence ? sequences : declared).Add(type.Name);
+
+			// A sequence's element type is a type in its own right, and a rule declaring
+			// `: T[]` may itself be an element of another sequence.
+			if (type.IsSequence && !declared.Contains(type.Name))
+				declared.Add(type.Name);
 		}
 
 		void Walk(Expr expression)
@@ -131,12 +160,18 @@ static class Questions
 		var answers = ImmutableArray.CreateBuilder<Answer>(questions.Length);
 
 		foreach (var question in questions)
-			answers.Add(question.Arity < 0
-				? new Answer(question, resolver.TypeExists(question.Name), default)
-				: new Answer(
+			answers.Add(question.Arity switch
+			{
+				Question.Assignability =>
+					new Answer(question, resolver.IsAssignable(question.Name, question.Against!), default),
+
+				< 0 => new Answer(question, resolver.TypeExists(question.Name), default),
+
+				_ => new Answer(
 					question,
 					resolver.TryResolveMethod(question.Name, question.Arity, out var role),
-					role));
+					role),
+			});
 
 		return answers.ToImmutable();
 	}
@@ -166,6 +201,9 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	}
 
 	public bool TypeExists(string qualifiedName) => Look(new Question(qualifiedName, -1)).Yes;
+
+	public bool IsAssignable(string from, string to) =>
+		string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
 
 	public bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role)
 	{

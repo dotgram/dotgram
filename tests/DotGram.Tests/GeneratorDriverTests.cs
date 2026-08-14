@@ -363,6 +363,81 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(["1+2", "5\n6\n", "3+4"], parsed);
 	}
 
+	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
+
+	/// <summary>
+	/// A rule whose result is a sequence of a type its operands share.
+	/// </summary>
+	/// <remarks>
+	/// The envelope and the records in one result, in the order they were read, which is
+	/// what §4.1 case 2 is for — and what makes a streamed <c>parse</c> possible later,
+	/// since a sequence is the only shape that can be handed over one element at a time.
+	/// </remarks>
+	const string Items = """
+		[DotGram.Gram("Feed : @Item[] = Header & Row* & Trailer & eof\nHeader : @Item = 'H' & eol => @(new Head())\nRow : @Item = name: ['a'..'z']+ & eol => @(new Line(name))\nTrailer : @Item = 'T' & eol => @(new Tail())\nparse Feed")]
+		public partial class Items { }
+
+		public abstract class Item { }
+		public sealed class Head : Item { }
+		public sealed class Tail : Item { }
+		public sealed class Line : Item
+		{
+			public Line(string name) { Name = name; }
+			public string Name { get; }
+		}
+		""";
+
+	[Fact]
+	public void A_rule_of_a_sequence_type_collects_the_operands_that_fit()
+	{
+		var items = (Array)Build(Items)
+			.GetType("Items")!
+			.GetMethod("ParseFeed")!
+			.Invoke(null, ["H\naa\nbb\nT\n"])!;
+
+		// Header, two rows and the trailer, in the order the grammar reads them. Nothing
+		// says `=>` anywhere in `Feed` — what it is made of is the shape of the rule.
+		Assert.Equal(
+			["Head", "Line:aa", "Line:bb", "Tail"],
+			items.Cast<object>().Select(static item => item.GetType().Name + Named(item)));
+	}
+
+	static string Named(object item) =>
+		item.GetType().GetProperty("Name") is { } name ? ":" + name.GetValue(item) : "";
+
+	[Fact]
+	public void An_operand_that_does_not_fit_the_element_type_is_left_out()
+	{
+		// `Sep` builds no value at all, so there is nothing of it to collect — and that is
+		// not an error, it is what "every operand whose value is assignable" means.
+		var items = (Array)Build(Items.Replace(
+				"Row : @Item = name: ['a'..'z']+ & eol",
+				"Sep = '-' & eol\\nRow : @Item = name: ['a'..'z']+ & eol",
+				StringComparison.Ordinal)
+			.Replace("= Header & Row*", "= Header & Sep & Row*", StringComparison.Ordinal))
+			.GetType("Items")!
+			.GetMethod("ParseFeed")!
+			.Invoke(null, ["H\n-\naa\nT\n"])!;
+
+		Assert.Equal(["Head", "Line:aa", "Tail"], items.Cast<object>().Select(static item => item.GetType().Name + Named(item)));
+	}
+
+	[Fact]
+	public void A_sequence_of_nothing_that_fits_is_refused()
+	{
+		// The grammar says its result is a sequence and then nothing joins it. Left alone
+		// it would generate a method returning an always-empty array, which is a rule that
+		// compiles and means nothing.
+		var run = RunGenerator("""
+			[DotGram.Gram("Feed : @Item[] = 'H' & eol & eof\nparse Feed")]
+			public partial class Empty { }
+
+			public abstract class Item { }
+			""");
+
+		Assert.Contains(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM4008");
+	}
+
 	[Fact]
 	public void An_exception_out_of_a_factory_leaves_the_parse()
 	{
@@ -617,10 +692,17 @@ public sealed class GeneratorDriverTests
 
 		var emitted = output.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
 
+		// The generated source with the message, because the message names a line in a file
+		// that exists only in this process — without it there is nothing to look at.
 		Assert.True(
 			emitted.Success,
 			string.Join("\n", emitted.Diagnostics.Where(
-				static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+				static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)) +
+			"\n\n" + string.Join(
+				"\n",
+				run.Results.SelectMany(static r => r.GeneratedSources)
+					.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+					.Select(static s => s.SourceText.ToString())));
 
 		return Assembly.Load(stream.ToArray());
 	}

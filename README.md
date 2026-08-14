@@ -157,6 +157,17 @@ Working end to end — a `.gram` file becomes a parser that runs:
   A rejection arrives in its place, carrying which record it was, where a person would
   open the file, and why — so nothing has to be joined back up afterwards
 
+- **a rule that is a sequence of what it is made of** — the envelope and the records in
+  one result, in the order they were read, with no `=>` anywhere:
+
+  ```dotgram
+  Feed : @FeedItem[] = Header & Row* & Trailer & eof
+  ```
+
+  Every operand whose value fits `FeedItem` joins; `Row*` contributes all of its
+  elements; `eof` contributes nothing. It is also the shape a streamed parse needs,
+  since a sequence is the only result that can be handed over one element at a time
+
 - **`find` over a `TextReader`**, which is the first half of streaming. The input is read
   through a buffer that is reused, so what is held is the occurrence being read and not
   the file:

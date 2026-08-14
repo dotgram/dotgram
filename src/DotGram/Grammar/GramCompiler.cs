@@ -51,7 +51,7 @@ public static class GramCompiler
 
 		diagnostics.AddRange(model.Diagnostics);
 
-		var graph = GrammarNormalizer.Normalize(model);
+		var graph = GrammarNormalizer.Normalize(model, options.SymbolResolver);
 
 		diagnostics.AddRange(graph.Diagnostics);
 

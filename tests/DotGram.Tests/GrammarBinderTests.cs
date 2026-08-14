@@ -208,5 +208,7 @@ public sealed class GrammarBinderTests
 
 			return false;
 		}
+
+		public bool IsAssignable(string from, string to) => false;
 	}
 }

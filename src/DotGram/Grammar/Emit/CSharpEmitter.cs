@@ -683,6 +683,45 @@ public static class CSharpEmitter
 			return;
 		}
 
+		// §4.1 case 2: the grammar wrote no expression, so there is none to write out. What
+		// the rule is made of is its operands, in order, and the body says so — a body and
+		// not an expression because a repetition contributes an unknown number of elements
+		// and an optional operand contributes none, so the length is not known in advance.
+		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.SequenceMarker)
+		{
+			var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
+
+			file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
+
+			using (file.Block($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})"))
+			{
+				file.Line($"var items = new global::System.Collections.Generic.List<{element}>();");
+				file.Line();
+
+				foreach (var member in factory.Members)
+				{
+					var value = ResultTypes.ParameterOf(member);
+
+					// Null where the alternative that captured it was not the one that
+					// matched, and an empty run is an empty array that adds nothing.
+					if (member.IsSequence || member.IsOptional)
+					{
+						file.Line($"if ({value} != null)");
+						file.Then($"items.{(member.IsSequence ? "AddRange" : "Add")}({value});");
+					}
+					else
+					{
+						file.Line($"items.Add({value});");
+					}
+				}
+
+				file.Line();
+				file.Line("return items.ToArray();");
+			}
+
+			return;
+		}
+
 		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
 		file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
 		file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
