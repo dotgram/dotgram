@@ -166,6 +166,25 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void Binding_powers_become_the_same_loop_the_levels_do()
+	{
+		// §4.3.1 written out and folded: the alternatives that begin with a call to the
+		// rule are the tails, the rest are the bases, and the numbers ride beside them.
+		Assert.Equal(
+			"E = ('-' & operand: E => (-operand) | digits: ['0'..'9']+ => int.Parse(digits))" +
+			" & ('+' & right: E => (left + right)" +
+			" | '*' & right: E => (left * right)" +
+			" | '^' & right: E => (left - right))*",
+			Normalize("""
+				E : @int = left: E & '+' & right: E << 1 => @(left + right)
+				         | left: E & '*' & right: E << 2 => @(left * right)
+				         | left: E & '^' & right: E >> 3 => @(left - right)
+				         | '-' & operand: E         >> 4 => @(-operand)
+				         | digits: ['0'..'9']+           => @int.Parse(digits)
+				""").ToString().Split('\n')[0].TrimEnd());
+	}
+
+	[Fact]
 	public void Only_a_leading_self_call_is_rewritten()
 	{
 		// How left is told from right: it is not. The one question asked is whether an

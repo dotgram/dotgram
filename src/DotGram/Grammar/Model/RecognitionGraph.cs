@@ -180,6 +180,30 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<Node, Recovery> Recoveries { get; set; } =
 		new Dictionary<Node, Recovery>();
 
+	/// <summary>
+	/// The rules written with binding powers (§4.3.1), and the strength each alternative
+	/// of such a rule may be entered at.
+	/// </summary>
+	/// <remarks>
+	/// Being in here is the one thing that decides whether a rule's recognizer takes a
+	/// strength to parse at. A rule of levels does not, which is every rule that does not
+	/// say <c>&lt;&lt;</c> or <c>&gt;&gt;</c> — so a grammar that never reaches for
+	/// binding powers is generated exactly as it was before they existed.
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> Climbing { get; set; } =
+		new Dictionary<RuleSymbol, IReadOnlyDictionary<Node, int>>();
+
+	/// <summary>
+	/// The strength each call to a climbing rule's own self parses its operand at.
+	/// </summary>
+	/// <remarks>
+	/// The whole of the difference between the two markers: <c>&lt;&lt; n</c> records
+	/// <c>n + 1</c>, so the same operator cannot appear in its own right operand and the
+	/// grouping goes left; <c>&gt;&gt; n</c> records <c>n</c>, so it can, and the grouping
+	/// goes right.
+	/// </remarks>
+	public IReadOnlyDictionary<Node, int> Powers { get; set; } = new Dictionary<Node, int>();
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

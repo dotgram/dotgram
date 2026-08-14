@@ -260,6 +260,28 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Only_a_rule_of_strengths_takes_one()
+	{
+		var source = Emit("""
+			E : @int = left: E & '+' & right: E << 1 => @(left + right)
+			         | digits: D+                    => @int.Parse(digits)
+			D        = ['0'..'9']
+			parse E
+			""");
+
+		// The rule that climbs takes the strength; the one beside it is untouched, which is
+		// the whole of what variant A buys.
+		Assert.Contains("static int Recognize_E(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
+		Assert.Contains("static int Recognize_D(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)", source);
+
+		// `<< 1` reads its right operand at 2 — one tighter, so a `+` cannot appear in it.
+		Assert.Contains("Recognize_E(text, p, 2, ref failure, out v1);", source);
+
+		// And publication asks at 0, which admits everything.
+		Assert.Contains("Recognize_E_Whole(text, 0, 0, ref failure, out var recognized);", source);
+	}
+
+	[Fact]
 	public void The_class_goes_where_it_was_asked_to()
 	{
 		var source = GramCompiler.Compile(

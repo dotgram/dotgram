@@ -479,12 +479,84 @@ public sealed class SemanticTests
 	/// what is wrong rather than handed a syntax error — and the day the engine lands,
 	/// these are the tests that stop passing for the right reason.
 	/// </summary>
+	// ── Binding powers (§4.3.1) ─────────────────────────────────────────────────
+
+	/// <summary>§4.3.1 as written there: one rule, a whole expression language.</summary>
+	const string Powers = """
+		Start : @int = left: Start & '+' & right: Start << 1 => @(left + right)
+		             | left: Start & '-' & right: Start << 1 => @(left - right)
+		             | left: Start & '*' & right: Start << 2 => @(left * right)
+		             | '-' & operand: Start              >> 4 => @(-operand)
+		             | '(' & inner: Start & ')'               => @(inner)
+		             | digits: ['0'..'9']+                    => @int.Parse(digits)
+		""";
+
 	[Theory]
-	[InlineData("""Start : @int = left: Start & '+' & right: Start << 1 => @(left + right) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
-	[InlineData("""Start : @int = left: Start & '^' & right: Start >> 3 => @(left - right) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
-	[InlineData("""Start : @int = '-' & operand: Start >> 4 => @(-operand) | digits: ['0'..'9']+ => @int.Parse(digits)""")]
-	public void A_binding_power_parses_and_says_it_is_not_built(string grammar) =>
-		Refused(GrammarNormalizer.UnbuiltBinding, grammar);
+	[InlineData("1+2",       3)]
+	[InlineData("1-2-3",    -4)]    // << is left-associative: (1-2)-3
+	[InlineData("2+3*4",    14)]    // 3*4 is stronger, so it is taken first
+	[InlineData("2*3+4",    10)]
+	[InlineData("(2+3)*4",  20)]
+	[InlineData("-1-2",     -3)]    // §4.3.1's own example: unary is stronger than binary
+	[InlineData("-(1-2)",    1)]
+	public void One_rule_of_strengths_parses_a_whole_expression_language(string input, int expected) =>
+		Assert.Equal(expected, Built(Powers, input));
+
+	/// <summary>The same operator both ways round — the whole of what the markers say.</summary>
+	static string Associates(string marker) => $"""
+		Start : @int = left: Start & '-' & right: Start {marker} => @(left - right)
+		             | digits: ['0'..'9']+                       => @int.Parse(digits)
+		""";
+
+	[Fact]
+	public void Left_is_one_strength_tighter_and_right_is_the_same_one()
+	{
+		// `<<` parses the right operand at n + 1, so the operator cannot appear in it and
+		// 1-2-3 groups as (1-2)-3 = -4. `>>` parses it at n, so it can, and the same input
+		// groups as 1-(2-3) = 2. One character of difference, one number of difference.
+		Assert.Equal(-4, Built(Associates("<< 1"), "1-2-3"));
+		Assert.Equal( 2, Built(Associates(">> 1"), "1-2-3"));
+	}
+
+	[Fact]
+	public void An_alternative_recursive_on_both_sides_is_what_a_strength_settles() =>
+		// Refused without a strength (ordered choice cannot say which way it groups), and
+		// the ordinary case with one. The refusal and the feature are the same shape.
+		Assert.Equal(2, Built(Associates(">> 1"), "1-2-3"));
+
+	[Fact]
+	public void A_prefix_needs_no_loop_and_gets_none() =>
+		// Nothing but a prefix and an atom: every alternative is a base, so the rule climbs
+		// without ever looping. `--1` works because the operand is parsed at 4, where the
+		// prefix itself still lives.
+		Assert.Equal(1, Built(
+			"""
+			Start : @int = '-' & operand: Start >> 4 => @(-operand)
+			             | digits: ['0'..'9']+       => @int.Parse(digits)
+			""",
+			"--1"));
+
+	[Fact]
+	public void A_recursive_alternative_without_a_strength_among_ones_that_have_it_is_refused() =>
+		// §4.3.1: a rule uses one convention or the other. Half of each would be two
+		// answers to the same question.
+		Refused(
+			GrammarNormalizer.UnbuiltBinding,
+			"""
+			Start : @int = left: Start & '+' & right: Start << 1 => @(left + right)
+			             | left: Start & '-' & right: Start      => @(left - right)
+			             | digits: ['0'..'9']+                   => @int.Parse(digits)
+			""");
+
+	[Fact]
+	public void A_strength_on_something_with_no_operand_is_refused() =>
+		// A strength says how tightly the operand to the right is read, and there is none.
+		Refused(
+			GrammarNormalizer.UnbuiltBinding,
+			"""
+			Start : @int = left: Start & '+' & right: Start << 1 => @(left + right)
+			             | digits: ['0'..'9']+              >> 9 => @int.Parse(digits)
+			""");
 
 	// ── `recover` (§8.2) ────────────────────────────────────────────────────────
 

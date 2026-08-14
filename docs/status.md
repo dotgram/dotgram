@@ -35,7 +35,7 @@ then quietly mean nothing.
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | refused | ✗ | ✗ |
+| binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -156,10 +156,33 @@ whose every alternative is left-recursive, which has nothing to start from; and 
 alternative recursive on both sides, which ordered choice cannot settle — `-1-2` under
 `E = E & '-' & E` answered 1 rather than -3 until that was checked.
 
-Binding powers (§4.3.1) are what a grammar reaches for when levels as rules cannot say
-it: an expression language written as one rule, and the shapes ordered choice refuses.
-They need a precedence-climbing engine, which is why levels are the default rather than
-the fallback, and that engine is not built.
+## Binding powers
+
+Built, and they are the same rewrite. `E << 1 | E >> 3 | …` folds into `bases &
+(tails)*` exactly as §4.3 does, and two numbers ride beside it: which strength a tail may
+be entered at, and which strength its own operand is parsed at. The recognizer takes the
+first as a parameter and tests it before matching anything of an alternative; the second
+is a constant at the call site, `n + 1` for `<<` and `n` for `>>`. That difference of one
+is the whole of left against right.
+
+Only a rule that says `<<` or `>>` takes the parameter. A grammar that never reaches for
+them is generated exactly as it was before they existed, which is why no snapshot moved.
+
+**An alternative recursive on both sides is the ordinary case here**, and refused under
+levels. The refusal is not about the shape — it is that ordered choice has nothing to
+settle the grouping with. A strength is exactly the missing information, so the same
+`left: E & op & right: E` is a diagnostic in one convention and the point of the other.
+
+**What levels can say and strengths cannot.** A strength is one number, so it says the
+same thing about both sides of an operator. Python's `**` binds tighter than unary minus
+on its left (`-2**2` is `-4`) and looser on its right (`2**-1` parses); levels say that
+by naming two different rules either side of it, `left: Primary & '^' & right: Unary`. A
+grammar of strengths picks one or the other. Both example calculators are in `examples/`
+and a test states the one expression they answer differently.
+
+Refused: a rule with a strength on one recursive alternative and none on another (§4.3.1
+— one convention or the other), and a strength on an alternative with no operand of its
+own to read at it.
 
 They do parse, and are refused with `GRAM4009` naming §4.3.1. Parsing something the
 compiler cannot honour is deliberate: `<< 2` would otherwise be a syntax error about an

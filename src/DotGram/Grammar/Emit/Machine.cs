@@ -370,6 +370,17 @@ sealed class Machine
 	/// </summary>
 	public int Compile(Node node, int next)
 	{
+		// An alternative of a climbing rule's loop is guarded by its own strength before
+		// anything of it is matched. Ahead of the dispatch because it applies whatever the
+		// alternative turns out to be made of.
+		if (_levels.TryGetValue(node, out var level))
+			return CompileLevel(node, level, CompileUnguarded(node, next));
+
+		return CompileUnguarded(node, next);
+	}
+
+	int CompileUnguarded(Node node, int next)
+	{
 		switch (node)
 		{
 			// Nothing to match and nothing to check: the continuation is the whole of it,
@@ -597,12 +608,20 @@ sealed class Machine
 
 		UsesResult = true;
 
+		// A rule of binding powers is asked at a strength (§4.3.1). What that strength is
+		// was worked out where the alternative was rewritten; anywhere else — a call from
+		// outside, a call this rule makes to a different one — it is 0, which admits
+		// everything.
+		var strength = Climbs(call.Rule)
+			? ", " + (_powers.TryGetValue(call, out var power) ? power.ToString() : "0")
+			: "";
+
 		// The state is threaded through rather than returned: a callee's failure is the
 		// caller's too, and what goes in it — the expected set, an outcome that tells a
 		// broken record from no record — arrives later without changing this line again.
 		writer.Line(value is null
-			? $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, ref failure);"
-			: $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p, ref failure, out {(into < 0 ? $"{value} _" : $"v{into}")});");
+			? $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p{strength}, ref failure);"
+			: $"r = {CSharpEmitter.MethodOf(call.Rule)}(text, p{strength}, ref failure, out {(into < 0 ? $"{value} _" : $"v{into}")});");
 
 		writer.Line();
 		writer.Line("if (r < 0)");
@@ -735,6 +754,64 @@ sealed class Machine
 		atExit.Line($"goto case {next};");
 
 		return entry;
+	}
+
+	// ── Binding powers (§4.3.1) ──────────────────────────────────────────────────
+
+	/// <summary>The strength a climbing rule is being parsed at, in the generated code.</summary>
+	const string Power = "power";
+
+	IReadOnlyDictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> _climbing =
+		new Dictionary<RuleSymbol, IReadOnlyDictionary<Node, int>>();
+
+	IReadOnlyDictionary<Node, int> _powers = new Dictionary<Node, int>();
+	IReadOnlyDictionary<Node, int> _levels = new Dictionary<Node, int>();
+
+	/// <summary>
+	/// What this machine needs to know about binding powers, anywhere in the grammar.
+	/// </summary>
+	/// <param name="climbing">
+	/// Every rule whose recognizer takes a strength — needed at every call site, not only
+	/// in the rule that climbs.
+	/// </param>
+	/// <param name="powers">At what strength each self-call parses its operand.</param>
+	/// <param name="levels">
+	/// At what strength each alternative of this rule's loop may be entered, empty for a
+	/// rule that does not climb.
+	/// </param>
+	public void Climbs(
+		IReadOnlyDictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> climbing,
+		IReadOnlyDictionary<Node, int>                                  powers,
+		IReadOnlyDictionary<Node, int>                                  levels)
+	{
+		_climbing = climbing;
+		_powers   = powers;
+		_levels   = levels;
+	}
+
+	bool Climbs(RuleSymbol rule) => _climbing.ContainsKey(rule);
+
+	/// <summary>Whether this machine's own rule is one of them.</summary>
+	public bool TakesPower { get; set; }
+
+	/// <summary>
+	/// The one test that turns a fold into precedence climbing: an alternative weaker than
+	/// what the caller asked for is not this call's to take (§4.3.1).
+	/// </summary>
+	/// <remarks>
+	/// Weaker and not weaker-or-equal, so that an operator can appear again at its own
+	/// strength — which is what makes <c>&gt;&gt; n</c>, recording <c>n</c> rather than
+	/// <c>n + 1</c>, group to the right.
+	/// </remarks>
+	int CompileLevel(Node alternative, int level, int next)
+	{
+		var state = Reserve(out var writer, alternative, $"only at strength {level} or weaker");
+
+		writer.Line($"if ({level} < {Power})");
+		writer.Then($"goto case {Fail};");
+		writer.Line($"goto case {next};");
+
+		return state;
 	}
 
 	/// <summary>Where the stack stood when the recovering repetition began.</summary>
@@ -1171,8 +1248,13 @@ sealed class Machine
 		var built = _builds is null ? "" : $", out {_builds.TypeName} value";
 		var failure = IsLookahead ? "" : $", ref {CSharpEmitter.FailureType} failure";
 
+		// Only a rule of binding powers takes one (§4.3.1). Every other recognizer keeps
+		// the shape it has always had, so a grammar that never reaches for them is
+		// generated exactly as it was.
+		var strength = TakesPower ? $", int {Power}" : "";
+
 		using (file.Block(
-			$"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{failure}{built})"))
+			$"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{strength}{failure}{built})"))
 		{
 			if (_builds is not null)
 			{

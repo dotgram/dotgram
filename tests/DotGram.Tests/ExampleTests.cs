@@ -140,6 +140,59 @@ public sealed class ExampleTests
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
 	}
 
+	// ── The calculator of one rule ───────────────────────────────────────────────
+
+	static string Strength(string expression) =>
+		StrengthCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+
+	[Theory]
+	[InlineData("1+2+3",          "6")]
+	[InlineData("1-2-3",         "-4")]     // << 1 reads its right operand at 2, so it groups left
+	[InlineData("2+3*4",         "14")]
+	[InlineData("(2+3)*4",       "20")]
+	[InlineData("2^3^2",        "512")]     // >> 3 reads it at 3, so it groups right
+	[InlineData("1/8",        "0.125")]
+	[InlineData(" 1 + 2 * 3 ",    "7")]
+	public void One_rule_does_what_the_five_did(string expression, string expected) =>
+		Assert.Equal(expected, Strength(expression));
+
+	[Theory]
+	[InlineData("-1-2",          "-3")]     // the reason the example exists
+	[InlineData("-1*2",          "-2")]
+	[InlineData("-(1-2)",         "1")]
+	[InlineData("2^-2",        "0.25")]
+	[InlineData("--1",            "1")]
+	public void And_a_prefix_can_be_stronger_than_a_binary_sharing_its_character(
+		string expression, string expected) =>
+		// `-1-2` is -3 because unary minus is 4 and binary minus is 1. Stacking rules
+		// cannot say this: it would need one rule both above and below another.
+		Assert.Equal(expected, Strength(expression));
+
+	[Fact]
+	public void And_the_two_conventions_agree_where_both_can_speak() =>
+		// The same expressions through the five-rule calculator and the one-rule one.
+		Assert.All(
+			new[] { "1-2-3", "2+3*4", "(2+3)*4", "2^3^2", "1/8", "2^-2", "1.5*2" },
+			expression => Assert.Equal(Decimal(expression), Strength(expression)));
+
+	[Fact]
+	public void But_one_number_per_alternative_cannot_say_what_two_levels_can()
+	{
+		// The one place they differ, and it is not an accident of either grammar.
+		//
+		// Python has `**` bind tighter than unary minus on its left (-2**2 is -4) and
+		// looser on its right (2**-1 parses). Levels say that by naming two different
+		// rules — `left: Primary` and `right: Unary` — one either side of the operator.
+		// A single strength is one number for both sides, so a grammar of strengths picks
+		// one: unary at 4 and `^` at 3 keeps 2^-2 working and makes -2^2 read as (-2)^2.
+		Assert.Equal("-4", Decimal("-2^2"));      // levels: -(2^2)
+		Assert.Equal("4",  Strength("-2^2"));     // strengths: (-2)^2
+
+		// Both grammars agree the other way round, because that side needs only one number.
+		Assert.Equal("0.25", Decimal("2^-2"));
+		Assert.Equal("0.25", Strength("2^-2"));
+	}
+
 	// ── The calculator that builds a tree instead ────────────────────────────────
 
 	[Fact]

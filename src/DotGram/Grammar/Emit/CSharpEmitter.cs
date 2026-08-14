@@ -170,7 +170,7 @@ public static class CSharpEmitter
 
 		foreach (var publication in graph.Publications)
 		{
-			EmitPublication(file, publication, results);
+			EmitPublication(file, publication, results, graph.Climbing.ContainsKey(publication.Rule));
 			file.Line();
 		}
 
@@ -206,8 +206,18 @@ public static class CSharpEmitter
 			var whole = new Machine(
 				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule))
 			{
-				Reaches = graph.Recoveries.Count > 0,
+				Reaches    = graph.Recoveries.Count > 0,
+				TakesPower = graph.Climbing.ContainsKey(publication.Rule),
 			};
+
+			// The same body compiled a second time, so it climbs the same way. Publication
+			// asks at strength 0, which admits every alternative.
+			whole.Climbs(
+				graph.Climbing,
+				graph.Powers,
+				graph.Climbing.TryGetValue(publication.Rule, out var climbed)
+					? climbed
+					: new Dictionary<Node, int>());
 
 			// A rule that recovers recovers however it is entered. The whole-input machine is
 			// the same body compiled a second time, so it is told the same thing — and calls
@@ -277,7 +287,8 @@ public static class CSharpEmitter
 	/// <see cref="MatchType"/>, where the next thing it has to say is a field rather than
 	/// another parameter on every signature.
 	/// </remarks>
-	static void EmitPublication(Writer file, Publication publication, ResultTypes results)
+	static void EmitPublication(
+		Writer file, Publication publication, ResultTypes results, bool climbs)
 	{
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
@@ -287,7 +298,9 @@ public static class CSharpEmitter
 
 		// A rule that builds hands its value back through the recognizer; one that does
 		// not leaves the extent it matched, and the text is cut from the input.
-		var hands = built is null ? ", ref failure" : ", ref failure, out var recognized";
+		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
+		var hands = (climbs ? ", 0" : "") +
+			(built is null ? ", ref failure" : ", ref failure, out var recognized");
 
 		string Recognized(string from, string to) =>
 			built is null ? $"input.Substring({from}, {to})" : "recognized";
@@ -616,8 +629,14 @@ public static class CSharpEmitter
 	{
 		var machine = new Machine(MethodOf(rule), results, BuiltBy(graph, results, rule))
 		{
-			Reaches = graph.Recoveries.Count > 0,
+			Reaches    = graph.Recoveries.Count > 0,
+			TakesPower = graph.Climbing.ContainsKey(rule),
 		};
+
+		machine.Climbs(
+			graph.Climbing,
+			graph.Powers,
+			graph.Climbing.TryGetValue(rule, out var levels) ? levels : new Dictionary<Node, int>());
 
 		if (RecoveryIn(graph, results, rule) is var (repetition, recovery, slot))
 		{

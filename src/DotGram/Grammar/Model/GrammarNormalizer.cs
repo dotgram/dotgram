@@ -79,6 +79,8 @@ public sealed class GrammarNormalizer
 			Folds      = normalizer._folds,
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
+			Climbing   = normalizer._climbing,
+			Powers     = normalizer._powers,
 		};
 	}
 
@@ -144,13 +146,10 @@ public sealed class GrammarNormalizer
 
 		Expr.Construct(var pattern, var value)  => new Node.Construct(Lower(pattern, scope), Text(value)),
 
-		// Parsed and refused rather than parsed and ignored: a binding power that means
-		// nothing would give an answer, and the wrong one; a `recover` that means nothing
-		// would swallow a bad record in silence, which is worse.
-		Expr.Bound(var body, _, _)              => Unbuilt(body, scope, expression, UnbuiltBinding,
-			"Binding powers are specified and not built (docs/syntax.md §4.3.1). They need a " +
-			"precedence-climbing engine; until it exists, write the levels as rules — §4.3."),
+		Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, scope),
 
+		// Parsed and refused rather than parsed and ignored: a `recover` that means
+		// nothing would swallow a bad record in silence.
 		Expr.Recovering(var body, var sync, var factory) =>
 			LowerRecovery(body, sync, factory, scope, expression),
 
@@ -170,6 +169,30 @@ public sealed class GrammarNormalizer
 
 		_ => Node.Empty.Instance,
 	};
+
+	/// <summary>What <c>&lt;&lt; n</c> or <c>&gt;&gt; n</c> said, by the alternative it was said on.</summary>
+	readonly Dictionary<Node, (bool IsLeft, int Level)> _bounds = new(NodeIdentity.Instance);
+
+	readonly Dictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> _climbing = [];
+	readonly Dictionary<Node, int>                                  _powers   = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// <c>… &lt;&lt; 2</c> — the alternative, with what it said about its own strength
+	/// recorded beside it (§4.3.1).
+	/// </summary>
+	/// <remarks>
+	/// Beside rather than inside, like <c>recover</c>: the alternative is an ordinary one
+	/// and everything that reads a body — nullability, captures, results — must go on
+	/// reading it without knowing about this.
+	/// </remarks>
+	Node LowerBound(Expr body, bool isLeft, int level, GrammarScope scope)
+	{
+		var alternative = Lower(body, scope);
+
+		_bounds[alternative] = (isLeft, level);
+
+		return alternative;
+	}
 
 	readonly Dictionary<Node, Recovery> _recoveries = new(NodeIdentity.Instance);
 
@@ -671,6 +694,11 @@ public sealed class GrammarNormalizer
 			var tails        = new List<Node>();
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
 
+			// A rule that states its own strengths is climbed rather than folded: the same
+			// loop over the same tails, entered on a comparison instead of unconditionally.
+			if (RewriteBindingPowers(rule, alternatives))
+				continue;
+
 			var ambiguous = false;
 
 			foreach (var alternative in alternatives)
@@ -721,6 +749,168 @@ public sealed class GrammarNormalizer
 
 			_folds[rule] = new Fold(loop, accumulators);
 		}
+	}
+
+	/// <summary>
+	/// <c>E &lt;&lt; 1 | E &gt;&gt; 3 | …</c> — one rule holding a whole expression
+	/// language (§4.3.1). Returns whether this rule was one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The rewrite is the one §4.3 already does: the alternatives that begin with a call
+	/// to the rule itself become the tails of a loop over the ones that do not. What
+	/// binding powers add is two numbers on top of that shape — which strength a tail may
+	/// be entered at, and which strength its own operand is parsed at — and those are what
+	/// turn a fold into precedence climbing.
+	/// </para>
+	/// <para>
+	/// So an alternative recursive on both sides, which §4.3 refuses because ordered
+	/// choice cannot settle it, is exactly what this accepts: <c>&lt;&lt; n</c> and
+	/// <c>&gt;&gt; n</c> are the settling. <c>&lt;&lt;</c> parses the operand one strength
+	/// tighter, so the same operator cannot appear in it and the grouping goes left;
+	/// <c>&gt;&gt;</c> parses it at the same strength, so it can, and the grouping goes
+	/// right.
+	/// </para>
+	/// </remarks>
+	bool RewriteBindingPowers(RuleSymbol rule, IReadOnlyList<Node> alternatives)
+	{
+		var bound = 0;
+
+		foreach (var alternative in alternatives)
+			if (BoundOn(alternative) is not null)
+				bound++;
+
+		if (bound == 0)
+			return false;
+
+		var bases        = new List<Node>();
+		var tails        = new List<Node>();
+		var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
+		var levels       = new Dictionary<Node, int>(NodeIdentity.Instance);
+		var powers       = new Dictionary<Node, int>(NodeIdentity.Instance);
+		var refused      = false;
+
+		foreach (var alternative in alternatives)
+		{
+			var bind     = BoundOn(alternative);
+			var known    = bind is not null;
+			var strength = bind ?? default;
+			var head     = Tail(alternative, rule);
+
+			// An operand of the rule itself, at the end: the right side of an infix or the
+			// operand of a prefix. `<<` parses it one tighter, `>>` at the same strength —
+			// which is the whole of what the two markers say.
+			if (known && SelfCallAt(head is var (tail0, _) ? tail0 : alternative, rule) is { } operand)
+				powers[operand] = strength.IsLeft ? strength.Level + 1 : strength.Level;
+
+			if (head is var (tail, accumulator))
+			{
+				if (!known)
+				{
+					Report(
+						UnbuiltBinding,
+						$"An alternative of '{rule.Name}' is recursive but states no strength, and its " +
+						"siblings do. A rule uses one convention or the other — levels as rules, or " +
+						"'<<' and '>>' on every recursive alternative (docs/syntax.md §4.3.1).",
+						rule.Declaration!.At);
+
+					refused = true;
+				}
+
+				tails.Add(tail);
+				accumulators[tail] = accumulator;
+				levels[tail]       = strength.Level;
+			}
+			else
+			{
+				// A strength on something with no operand of its own says nothing: there is
+				// nothing for it to be parsed at.
+				if (known && !powers.ContainsKey(alternative) && SelfCallAt(alternative, rule) is null)
+				{
+					Report(
+						UnbuiltBinding,
+						$"An alternative of '{rule.Name}' states a strength and has no operand of its own " +
+						"to parse at it. A strength says how tightly the operand to the right is read " +
+						"(docs/syntax.md §4.3.1).",
+						rule.Declaration!.At);
+
+					refused = true;
+				}
+
+				bases.Add(alternative);
+			}
+		}
+
+		if (refused)
+			return true;
+
+		if (bases.Count == 0)
+		{
+			Report(
+				LeftRecursion,
+				$"Every alternative of '{rule.Name}' is recursive on the left, so there is nothing to " +
+				"start from.",
+				rule.Declaration!.At);
+
+			return true;
+		}
+
+		var start = bases.Count == 1 ? bases[0] : new Node.Choice(bases);
+
+		// A rule of nothing but prefixes and atoms — all strength, no infix — climbs
+		// without looping, and an empty repetition would only be a nullable one to refuse.
+		if (tails.Count > 0)
+		{
+			var loop = new Node.Repeat(
+				tails.Count == 1 ? tails[0] : new Node.Choice(tails), 0, null);
+
+			_bodies[rule] = new Node.Sequence([start, loop]);
+			_folds[rule]  = new Fold(loop, accumulators);
+		}
+		else
+		{
+			_bodies[rule] = start;
+		}
+
+		_climbing[rule] = levels;
+
+		foreach (var power in powers)
+			_powers[power.Key] = power.Value;
+
+		return true;
+	}
+
+	/// <summary>
+	/// What <c>&lt;&lt;</c> or <c>&gt;&gt;</c> said on this alternative, or null.
+	/// </summary>
+	/// <remarks>
+	/// The marker binds to the pattern and the <c>=&gt;</c> wraps that, so the alternative
+	/// the body holds is the construct and the strength was recorded against what is
+	/// inside it.
+	/// </remarks>
+	(bool IsLeft, int Level)? BoundOn(Node alternative) =>
+		_bounds.TryGetValue(alternative is Node.Construct(var built, _) ? built : alternative, out var found)
+			? found
+			: null;
+
+	/// <summary>
+	/// The call to <paramref name="rule"/> that an alternative ends with, or null.
+	/// </summary>
+	/// <remarks>
+	/// The node itself and not merely whether there is one: it is what the strength is
+	/// recorded against, and what the machine reads when it emits the call.
+	/// </remarks>
+	static Node.Call? SelfCallAt(Node node, RuleSymbol rule)
+	{
+		while (true)
+			switch (node)
+			{
+				case Node.Construct(var built, _):    node = built; break;
+				case Node.Capture(_, var captured):   node = captured; break;
+				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
+				case Node.Call(var called, _):        return ReferenceEquals(called, rule) ? (Node.Call)node : null;
+				default:                              return null;
+			}
 	}
 
 	/// <summary>
