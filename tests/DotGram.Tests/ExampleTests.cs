@@ -114,11 +114,12 @@ public sealed class ExampleTests
 		DecimalCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
 
 	[Theory]
-	[InlineData("1-2-3",         "-4")]     // (1-2)-3 — Sum recurses on the left
+	[InlineData("1-2-3",         "-4")]     // (1-2)-3 — Sum takes its left operand at its own level
 	[InlineData("100/5/2",       "10")]     // (100/5)/2, the same reason
-	[InlineData("2^3^2",        "512")]     // 2^(3^2) — Power recurses on the right
+	[InlineData("2^3^2",        "512")]     // 2^(3^2) — Power takes its right one there instead
 	[InlineData("(2^3)^2",       "64")]     // and this is what the other grouping means
-	public void Each_operator_groups_the_way_its_rule_recurses(string expression, string expected) =>
+	public void Each_operator_groups_by_which_side_is_parsed_at_its_own_level(
+		string expression, string expected) =>
 		Assert.Equal(expected, Decimal(expression));
 
 	[Theory]
@@ -173,8 +174,8 @@ public sealed class ExampleTests
 			ExpressionParser.Read("1 + 2 - -3"));
 
 	[Theory]
-	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum recurses on the left
-	[InlineData("2^3^2",   "(2 ^ (3 ^ 2))")]      // Power recurses on the right
+	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum's left operand is at Sum's level
+	[InlineData("2^3^2",   "(2 ^ (3 ^ 2))")]      // Power's right operand is at Power's
 	[InlineData("-2^2",    "-(2 ^ 2)")]           // `^` binds tighter than unary minus
 	[InlineData("2*3+4",   "((2 * 3) + 4)")]
 	[InlineData("2*(3+4)", "(2 * (3 + 4))")]

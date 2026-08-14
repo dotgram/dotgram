@@ -165,6 +165,22 @@ public sealed class GrammarNormalizerTests
 		Assert.Empty(Diagnostics("""R = "https" | "http" """));
 	}
 
+	[Fact]
+	public void Only_a_leading_self_call_is_rewritten()
+	{
+		// How left is told from right: it is not. The one question asked is whether an
+		// alternative begins with a call to its own rule, because that one cannot be
+		// compiled as written. A self-call anywhere else is an ordinary call, left where
+		// the author put it, and nothing anywhere records that the rule was recursive.
+		Assert.Equal(
+			"R = 'x' & ('+' & R2)*",
+			Normalize("R = R & '+' & R2 | 'x'\nR2 = 'x'").ToString().Split('\n')[0].TrimEnd());
+
+		Assert.Equal(
+			"R = (R2 & '+' & R | 'x')",
+			Normalize("R = R2 & '+' & R | 'x'\nR2 = 'x'").ToString().Split('\n')[0].TrimEnd());
+	}
+
 	/// <summary>
 	/// What a <c>=&gt;</c> or a <c>where</c> carries is C# to be pasted into the
 	/// generated file, so it is rendered rather than described.

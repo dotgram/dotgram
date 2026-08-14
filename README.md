@@ -125,9 +125,11 @@ Working end to end — a `.gram` file becomes a parser that runs:
                | value: Product                             => @(value)
   ```
 
-- **left recursion**, which is how associativity is said: `1-2-3` is -4 because `Sum`
-  recurses on the left. A calculator with precedence, parentheses and unary minus is
-  in `examples/`
+- **left recursion**, which is what makes associativity expressible without notation
+  for it: `1-2-3` is -4 because `Sum` takes its left operand at its own level, and
+  `2^3^2` is 512 because `Power` takes its right one there instead. Two calculators in
+  `examples/` — one with precedence, parentheses and unary minus, one with both
+  groupings side by side
 
 - **`recover`**, which is how a feed survives a bad record. The mark says that inside
   this repetition an element that starts and then fails is an error rather than the end

@@ -9,22 +9,27 @@ namespace DotGram.Examples;
 // visible: an operator that groups the other way, and a number type that does not throw
 // the answer away.
 //
-// Associativity is not notation here. It is which side the rule recurses on, and that
-// is what the shape has meant since BNF:
+// Associativity is not notation here. It is which operand is parsed at the rule's own
+// level and which at the next one along:
 //
-//   Sum   = left: Sum     & op  & right: Product    left-recursive    1-2-3 = (1-2)-3 = -4
-//   Power = left: Primary & '^' & right: Unary      right-recursive   2^3^2 = 2^(3^2) = 512
+//   Sum   = left: Sum     & op  & right: Product    left at this level    1-2-3 = (1-2)-3 = -4
+//   Power = left: Primary & '^' & right: Unary      right at this level   2^3^2 = 2^(3^2) = 512
 //
-// Swap the sides on either one and the answers become 2 and 64 instead. Nothing else
+// `Product` is tighter than `Sum`, so the right operand of `-` cannot be another `-` and
+// the left one can. `Unary` is looser than `Power` and comes back down to it, so the
+// right operand of `^` can be another `^` and the left one cannot — which also lets
+// 2^-2 mean 2^(-2). Swap the sides and the answers become 2 and 64. Nothing else
 // changes, and nothing has to be declared.
 //
-// The two are not the same work underneath, though they are the same notation. A
-// left-recursive rule cannot be called as written — it would call itself before
-// consuming anything, for ever — so docs/syntax.md §4.3 rewrites it into a loop over
-// its tails, and `left` stops being a capture and becomes the value built so far, which
-// that alternative's own `=>` receives. Right recursion needs none of that: the call is
-// made after something has been consumed, so it is an ordinary call, and `right` is an
-// ordinary capture holding what it returned.
+// The compiler works none of this out. It asks one structural question of an
+// alternative, and only because it has to: does it begin with a call to its own rule?
+// That one cannot be compiled as written — it would call itself before consuming
+// anything, for ever — so docs/syntax.md §4.3 rewrites it into a loop over its tails,
+// and `left` stops being a capture and becomes the value built so far, which that
+// alternative's own `=>` receives. Every other call is an ordinary call. There is no
+// "right-recursive" anywhere in the compiler, because there is nothing to do about it:
+// `Power` never calls `Power`, it calls `Unary`, and the grouping falls out of the order
+// the calls return in.
 //
 // Precedence is levels: one rule per level, each calling the next. `^` binds tighter
 // than `*` and looser than unary minus, so -2^2 is -4 rather than 4 — the order Python

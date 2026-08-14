@@ -121,7 +121,23 @@ a capture and becomes the value built so far, which that alternative's own `=>`
 receives.
 
 The loop is an ordinary repetition, so backtracking, forgetting and the rest apply to
-it unchanged. Right associativity needs nothing: right recursion is not left recursion.
+it unchanged.
+
+**Nothing decides associativity, and nothing computes it.** The only structural question
+asked of an alternative is the one that has to be asked — does it begin with a call to
+its own rule, which cannot be compiled as written. Everything else is an ordinary call,
+and how it groups falls out of the order the calls return in. So in a grammar of levels
+the author says associativity by choosing which operand is parsed at the rule's own
+level:
+
+```dotgram
+Sum   = left: Sum     & op  & right: Product   // left at this level  → left-associative
+Power = left: Primary & '^' & right: Unary     // right at this level → right-associative
+```
+
+`Unary` is the looser level and comes back down to `Power`, so the right operand of `^`
+can be another `^` and the left one cannot. There is no "right-recursive" in the
+compiler because there is nothing for it to do: `Power` never calls `Power` at all.
 
 **Nothing is built while matching, folds included.** What a match records is a number:
 which alternative it came through, and — for a chain — which step followed which. Both
