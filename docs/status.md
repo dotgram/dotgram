@@ -412,6 +412,52 @@ ordinary way of holding a plan.
 numbering starts at `GRAM0002`. A retired number is not reused: a suppression written
 against the old meaning would silently acquire a new one.
 
+## What re-runs, and when
+
+**Every parser is regenerated on every keystroke, in every open project.** Measured, not
+suspected: `GeneratorDriverTests` runs the generator, edits a `.cs` file that no grammar
+and no host has anything to do with, runs it again, and the output step comes back
+`Modified` rather than `Cached`. The test is checked in and skipped, with the reason on
+the skip; unskipping it is how the fix is known to have worked.
+
+The cause is one line:
+
+```csharp
+context.RegisterSourceOutput(hosts.Combine(files).Combine(context.CompilationProvider), …);
+```
+
+An incremental generator caches what each step produced and re-runs the next one only
+when that changed. `Host` is carefully reduced to strings for exactly this reason, with a
+comment saying that a symbol compares equal to nothing across compilations — and then a
+whole `Compilation` is combined into the same input, which compares equal to nothing
+either. Every edit anywhere gives a new one.
+
+**Caching is the answer, and it is Roslyn's rather than ours.** A generator that keeps its
+own table of grammar text to generated code would pin compilations, survive across
+projects and target frameworks, and leak; the pipeline exists to do this properly. What
+is needed is to stop defeating it, at either of two depths:
+
+- **Move the compile into a `Select` and out of `RegisterSourceOutput`.** The transform
+  still re-runs — it needs the `Compilation` — but its *output* is text, and text
+  compares. Unchanged text means the IDE is not handed a new syntax tree to parse and
+  bind, which for a fifteen-hundred-line state machine is most of the cost. Diagnostics
+  have to become value records first: `Diagnostic` has no value equality, and neither
+  does `ImmutableArray<T>`, whose `Equals` is reference equality on the array — the
+  classic way to write this fix and have it not work.
+- **Narrow what the `Compilation` is for.** It answers two questions — does this C# type
+  exist, does this method exist with this shape — for the handful of `@Name` and `: @T` a
+  grammar mentions. Collect the questions from the grammar, answer them against the
+  compilation into a small value, and the expensive stage depends on that value instead.
+  Then an unrelated edit changes nothing downstream at all, and the generation itself is
+  skipped rather than merely its result being identical.
+
+`RegisterImplementationSourceOutput` — output produced only for real builds, invisible to
+IntelliSense — is the mechanism for keeping heavy work off the editor's path, and it does
+not apply here: a generated parser *is* the public API a consumer writes against, so it
+has to exist in the editor. It suits a generator whose output nothing references by name,
+which is why the aspect generator next door uses it for its interceptors and
+`RegisterSourceOutput` for its diagnostics.
+
 ## What has been measured
 
 Two of the architecture's claims now have numbers rather than reasoning behind them.

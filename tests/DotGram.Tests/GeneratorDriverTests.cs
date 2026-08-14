@@ -214,6 +214,85 @@ public sealed class GeneratorDriverTests
 	static void AssertDiagnostic(string id, GeneratorDriverRunResult result) =>
 		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
 
+	// ── What re-runs, and when ───────────────────────────────────────────────────
+
+	/// <summary>
+	/// The grammar a host claims, small enough that what is measured is the pipeline
+	/// rather than the grammar.
+	/// </summary>
+	const string Claimed = """
+		[DotGram.Gram("Start = 'a'+\nparse Start")]
+		public static partial class Claimed { }
+		""";
+
+	[Fact(Skip =
+		"Fails, and correctly: the output step comes back Modified. `Compilation` is combined " +
+		"into the input of RegisterSourceOutput and compares equal to nothing across edits, so " +
+		"every parser is regenerated on every keystroke in every open project. Fixing it is a " +
+		"pipeline change — see docs/status.md, 'What re-runs, and when'. Unskip with the fix.")]
+	public void Editing_something_else_does_not_regenerate_the_parser()
+	{
+		// The claim an incremental generator exists to make. It is checked rather than
+		// argued because the failure is invisible: a generator that regenerates everything
+		// on every keystroke produces exactly the right code, just at the wrong time and
+		// as often as the author can type.
+		var steps = StepsAfterEditingAnUnrelatedFile(Claimed);
+
+		Assert.NotEmpty(steps);
+
+		Assert.All(
+			steps,
+			step => Assert.True(
+				step.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+				$"Editing an unrelated file re-ran parser generation ({step.Reason}). " +
+				"Something in the pipeline compares unequal across compilations — the usual " +
+				"cause is a Compilation or a symbol reaching the output step."));
+	}
+
+	/// <summary>
+	/// Runs the generator twice over the same host, changing only a file that has nothing
+	/// to do with any grammar, and reports how the output step of the second run was
+	/// reached.
+	/// </summary>
+	static ImmutableArray<(object Value, IncrementalStepRunReason Reason)> StepsAfterEditingAnUnrelatedFile(
+		string source)
+	{
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+
+		var host      = CSharpSyntaxTree.ParseText(source, parseOptions, "Host.cs");
+		var unrelated = CSharpSyntaxTree.ParseText("class Unrelated { int One; }", parseOptions, "Other.cs");
+
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.Incremental",
+			[host, unrelated],
+			GetMetadataReferences(),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var driver = (GeneratorDriver)CSharpGeneratorDriver.Create(
+			[new GramGenerator().AsSourceGenerator()],
+			parseOptions: parseOptions,
+			driverOptions: new GeneratorDriverOptions(
+				IncrementalGeneratorOutputKind.None,
+				trackIncrementalGeneratorSteps: true));
+
+		driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+		// One edit, in a file no grammar and no host has anything to do with.
+		var edited = compilation.ReplaceSyntaxTree(
+			unrelated,
+			CSharpSyntaxTree.ParseText("class Unrelated { int One; int Two; }", parseOptions, "Other.cs"));
+
+		driver = driver.RunGenerators(edited, TestContext.Current.CancellationToken);
+
+		return
+		[
+			.. driver.GetRunResult().Results
+				.SelectMany(result => result.TrackedOutputSteps)
+				.SelectMany(step => step.Value)
+				.SelectMany(step => step.Outputs)
+		];
+	}
+
 	static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles) =>
 		RunGenerator(source, out _, additionalFiles);
 
