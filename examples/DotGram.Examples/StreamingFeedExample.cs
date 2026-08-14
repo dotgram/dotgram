@@ -21,13 +21,16 @@ namespace DotGram.Examples;
 //                             Header, records and trailer are all `FeedPart` and enter
 //                             the sequence in the order they are read.
 //
-//   Row* recover eol          the repetition commits. Handing an element to the caller
-//                             cannot be undone, so the parse may only read what the
-//                             grammar says it will not go back past — and §8.2 makes a
-//                             marked repetition possessive, which is exactly that.
+//   Row* recover eol          survives a bad record — and the repetition would stream
+//                             without the mark, because a record begins with a letter
+//                             and the trailer with `T`, so where the run ends is
+//                             decided by the grammar rather than found by backtracking.
+//                             Where a grammar cannot tell those apart the mark settles
+//                             it, §8.2 making a marked repetition possessive; here it is
+//                             for what it says on the tin.
 //
-// Leave either of them off and the reader overload is not generated, and the compiler
-// says which one is missing and why.
+// Leave the sequence result off and the reader overload is not generated, and the
+// compiler says why.
 //
 // What the envelope is for shows up here in a way it does not over a string. A caller
 // that chopped the file into lines and parsed each on its own would have to check the

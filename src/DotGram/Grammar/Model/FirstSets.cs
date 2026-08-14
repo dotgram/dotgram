@@ -105,14 +105,7 @@ public static class FirstSets
 		if (node is Node.Sequence(var parts))
 			for (var i = 0; i < parts.Count - 1; i++)
 			{
-				// Only a repetition that may stop — one with an upper bound it can reach
-				// without the input saying so. `X{3}` ends where it ends.
-				if (parts[i] is not Node.Repeat(var body, _, var max) || max is not null)
-					continue;
-
-				var follows = Following(parts, i + 1, graph);
-
-				if (!Of(body, graph).Overlaps(follows))
+				if (!Undecided(parts, i, graph))
 					continue;
 
 				reported.Add(new GramDiagnostic(
@@ -129,6 +122,30 @@ public static class FirstSets
 
 		foreach (var child in Children(node))
 			Walk(child, rule, declaration, reported, graph);
+	}
+
+	/// <summary>
+	/// Whether where a repetition ends is decided by backtracking rather than by the
+	/// grammar.
+	/// </summary>
+	/// <remarks>
+	/// Only a repetition that may stop of its own accord — one with no upper bound it can
+	/// reach without the input saying so. <c>X{3}</c> ends where it ends, and nothing about
+	/// what follows can move it.
+	/// </remarks>
+	/// <param name="parts">The sequence it is one of.</param>
+	/// <param name="at">Where in that sequence it is.</param>
+	public static bool Undecided(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
+	{
+		if (parts is null)
+			throw new ArgumentNullException(nameof(parts));
+
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		return at < parts.Count - 1 &&
+			parts[at] is Node.Repeat(var body, _, null) &&
+			Of(body, graph).Overlaps(Following(parts, at + 1, graph));
 	}
 
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>

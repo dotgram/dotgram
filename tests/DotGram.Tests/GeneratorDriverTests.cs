@@ -353,7 +353,7 @@ public sealed class GeneratorDriverTests
 	{
 		var feed = Build(Pairs)
 			.GetType("PairFeed")!
-			.GetMethod("ParseFeed")!
+			.GetMethod("ParseFeed", [typeof(string)])!
 			.Invoke(null, ["1\n2\n5\n6\n3\n4\n"])!;
 
 		var parsed = (string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!;
@@ -392,7 +392,7 @@ public sealed class GeneratorDriverTests
 	{
 		var items = (Array)Build(Items)
 			.GetType("Items")!
-			.GetMethod("ParseFeed")!
+			.GetMethod("ParseFeed", [typeof(string)])!
 			.Invoke(null, ["H\naa\nbb\nT\n"])!;
 
 		// Header, two rows and the trailer, in the order the grammar reads them. Nothing
@@ -416,7 +416,7 @@ public sealed class GeneratorDriverTests
 				StringComparison.Ordinal)
 			.Replace("= Header & Row*", "= Header & Sep & Row*", StringComparison.Ordinal))
 			.GetType("Items")!
-			.GetMethod("ParseFeed")!
+			.GetMethod("ParseFeed", [typeof(string)])!
 			.Invoke(null, ["H\n-\naa\nT\n"])!;
 
 		Assert.Equal(["Head", "Line:aa", "Tail"], items.Cast<object>().Select(static item => item.GetType().Name + Named(item)));
@@ -629,16 +629,48 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_grammar_with_no_committed_repetition_gets_no_reader_overload()
+	public void An_unambiguous_grammar_needs_no_mark_to_be_streamed()
 	{
-		// Without the mark the parse would be free to change its mind about an element it
-		// has already handed over, and there is nothing to take it back with.
-		var run = RunGenerator(Stream.Replace(" recover eol", "", StringComparison.Ordinal));
+		// What the mark is for is surviving a bad record, not permitting a stream. Where
+		// the grammar itself says where the repetition ends, nothing has to commit it: no
+		// element handed over would ever have been wanted back.
+		var assembly = Build(Stream.Replace(" recover eol", "", StringComparison.Ordinal));
 
-		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM5001"));
+		Assert.Equal(
+			["Head", "Line:aa", "Line:bb", "Tail"],
+			Read(assembly, "Streamed", "ParseFeed", new StringReader("H\naa\nbb\nT\n")));
+	}
 
-		Assert.Contains("recover", told.GetMessage(), StringComparison.Ordinal);
-		Assert.Contains("§8.2",    told.GetMessage(), StringComparison.Ordinal);
+	[Fact]
+	public void But_one_whose_repetition_has_no_end_of_its_own_does()
+	{
+		// `t` reads as a record too, so where the repetition stops is settled by
+		// backtracking — and a stream has nothing to backtrack with.
+		var ambiguous = Stream
+			.Replace(" recover eol", "", StringComparison.Ordinal)
+			.Replace("Trailer : @Item = 'T' & eol", "Trailer : @Item = 't' & eol", StringComparison.Ordinal);
+
+		var told = Assert.Single(RunGenerator(ambiguous).Diagnostics.Where(d => d.Id == "GRAM5001"));
+
+		Assert.Contains("settled by backtracking", told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("recover",                 told.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_the_mark_settles_it_where_the_grammar_does_not()
+	{
+		// The same ambiguous grammar with the repetition marked. It is possessive, so where
+		// it ends is decided rather than searched for, and the overload comes back — which
+		// is not to say the grammar is a good one, and GRAM5002 still says so.
+		var marked = Stream.Replace(
+			"Trailer : @Item = 'T' & eol",
+			"Trailer : @Item = 't' & eol",
+			StringComparison.Ordinal);
+
+		var run = RunGenerator(marked);
+
+		Assert.Empty(run.Diagnostics.Where(d => d.Id == "GRAM5001"));
+		Assert.NotEmpty(run.Diagnostics.Where(d => d.Id == "GRAM5002"));
 	}
 
 	[Fact]
@@ -673,7 +705,7 @@ public sealed class GeneratorDriverTests
 			}
 			""")
 			.GetType("BoomingFeed")!
-			.GetMethod("ParseFeed")!;
+			.GetMethod("ParseFeed", [typeof(string)])!;
 
 		// The middle line begins a Row and breaks inside one, which is what recovery is
 		// for — a line that never began one would simply end the repetition (§8.2).
@@ -717,7 +749,7 @@ public sealed class GeneratorDriverTests
 
 		var feed = Build(reported)
 			.GetType("PairFeed")!
-			.GetMethod("ParseFeed")!
+			.GetMethod("ParseFeed", [typeof(string)])!
 			.Invoke(null, ["5\n6\n"])!;
 
 		Assert.Equal(

@@ -531,21 +531,19 @@ window by the same provisional rule `find` uses.
 **Three conditions, and the second is the interesting one:**
 
 - the result is a sequence (`: @T[]`), because that is the only shape that comes in parts;
-- some repetition is marked `recover`;
-- every stage fits a window.
+- every repetition either ends where the grammar says, or is marked `recover`;
+- every part fits a window, a repetition measured by one of its elements.
 
-The mark is what makes handing an element over safe: §8.2 makes a marked repetition
-possessive, so an element it took was either read or explicitly rejected, and there is no
-shorter reading to come back for. That is the stream's requirement said about the
-repetition.
+The second is the requirement itself rather than a stand-in for it: no element handed
+over may ever have been wanted back. A repetition whose first set does not meet what
+follows it stops where the grammar says and nothing has to commit it — that is the
+ordinary feed, and it streams with no mark at all. Where the two do meet, `recover`
+settles it, because §8.2 makes a marked repetition possessive: an element it took was
+either read or explicitly rejected, and there is no shorter reading to come back for.
 
-**It is a conservative test and not the real one.** What actually has to hold is that no
-element handed over would ever have been given back, and for an unambiguous grammar that
-is true whether or not anything is marked. A grammar where the question arises at all —
-one whose trailer also reads as a record — is ambiguous, and what it wants is a
-diagnostic saying so rather than a stricter rule here. That diagnostic is not built; the
-mark is what can be checked today, and it costs a grammar nothing it would not want
-anyway.
+It used to demand the mark outright, which was a conservative test standing in for this
+one. `recover` is now back to meaning only what it says — survive a bad record — rather
+than doubling as permission to stream.
 
 A grammar that declares a sequence and does not get the overload is told why
 (`GRAM5001`). One that declares no sequence is told nothing: most grammars are not feeds,
@@ -581,10 +579,10 @@ cannot go back — a rule declaring `: @T[]` is asking to be handed over an elem
 time, and an element handed over cannot be taken back. So the check runs on those rules
 and no others.
 
-That is also the honest half of the streaming test: `recover` is required today because
-it makes a repetition possessive, which is a property that can be checked. This is the
-property that actually matters, and having it measured is what would let the requirement
-be relaxed to "no overlap, or marked".
+That measurement is also what the streaming test runs on now. It used to demand a
+`recover` outright, because possessiveness is a property that can be checked; this is the
+property that actually matters, and having it measured let the requirement become "no
+overlap, or marked".
 
 The sets are approximate and in the safe direction: a complement, a Unicode category or
 a C# predicate answers "anything", two of those overlap, and the result is a note rather

@@ -233,25 +233,41 @@ public static class Retention
 			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
 				"not settled until it has been. A streamed parse reads its parts in order.";
 
-		var committed = false;
+		var parts = body is Node.Sequence(var sequence) ? sequence : [body];
 
-		foreach (var part in body is Node.Sequence(var parts) ? parts : [body])
-			if (part is Node.Repeat && graph.Recoveries.ContainsKey(part))
-				committed = true;
+		for (var i = 0; i < parts.Count; i++)
+		{
+			// Marked, so possessive: an element it took was either read or explicitly
+			// rejected, and there is no shorter reading to come back for (§8.2).
+			if (graph.Recoveries.ContainsKey(parts[i]))
+				continue;
 
-		if (!committed)
-			return $"'{rule.Name}' has no repetition marked 'recover'. A streamed parse hands each " +
-				"element to the caller as it reads it, which it cannot take back, so it may only " +
-				"read what the grammar says it will not go back past — and 'recover' says exactly " +
-				"that (docs/syntax.md §8.2).";
+			if (!FirstSets.Undecided(parts, i, graph))
+				continue;
+
+			return $"in '{rule.Name}', the repetition '{parts[i]}' can begin with the same input as " +
+				"what follows it, so where it ends is settled by backtracking. A streamed parse " +
+				"hands each element to the caller as it reads it and cannot take one back. Make the " +
+				"two tellable apart, or mark the repetition 'recover', which commits it " +
+				"(docs/syntax.md §8.2).";
+		}
 
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);
 
-		foreach (var stage in PlanFor(graph, rule).Stages)
-			if (stage.Extent == LineExtent.Beyond)
-				return $"'{rule.Name}' has a part that may take more than one line, so what would " +
-					"have to be held grows with the input.";
+		// Measured a part at a time, and a repetition by one of its elements: the window
+		// moves between them, so the run's own length is what streaming is *for*. What has
+		// to fit is the largest thing the parse is ever in the middle of.
+		foreach (var part in parts)
+		{
+			var measured = part is Node.Repeat(var element, _, _)
+				? Extent(element, extents, consuming)
+				: Extent(part, extents, consuming);
+
+			if (measured == LineExtent.Beyond)
+				return $"in '{rule.Name}', '{part}' may take more than one line, so what would have " +
+					"to be held grows with the input.";
+		}
 
 		return null;
 	}

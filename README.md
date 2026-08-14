@@ -178,9 +178,10 @@ Working end to end — a `.gram` file becomes a parser that runs:
       Handle(item);                                   // one at a time
   ```
 
-  A `parse` gets the overload when its result is a sequence and some repetition in it is
-  marked `recover` — handing an element to the caller cannot be undone, so the parse may
-  only read what the grammar says it will not go back past (§8.2). A grammar that asks
+  A `parse` gets the overload when its result is a sequence and every repetition in it
+  ends where the grammar says rather than where backtracking finds — handing an element
+  to the caller cannot be undone. A repetition that cannot tell its own end from what
+  follows it may still be marked `recover`, which commits it (§8.2). A grammar that asks
   and does not qualify is told why
 
 - **`find` over a `TextReader`**, the same thing for occurrences. The input is read
