@@ -899,9 +899,9 @@ sealed class Machine
 			// statement, which is what lets the whole line — the substring and both scans
 			// included — be removed when nobody implements it.
 			writer.Line(
-				$"{CSharpEmitter.RecoveredMethod}(\"{Element}\", {Supplied("text", counter)}, " +
-				$"{Supplied("position", counter)}, {Supplied("line", counter)}, " +
-				$"{Supplied("column", counter)}, {counter}, {Supplied("message", counter)});");
+				$"{CSharpEmitter.RecoveredMethod}(\"{Element}\", {Supplied("parserText", counter)}, " +
+				$"{Supplied("parserPosition", counter)}, {Supplied("parserLine", counter)}, " +
+				$"{Supplied("parserColumn", counter)}, {counter}, {Supplied("parserMessage", counter)});");
 		}
 		else if (_recoverySlot >= 0)
 		{
@@ -932,13 +932,13 @@ sealed class Machine
 	/// </remarks>
 	string Supplied(string name, string counter) => name switch
 	{
-		"text"     => "text.Slice(from, to - from).ToString()",
-		"position" => "from",
-		"ordinal"  => counter,
-		"line"     => "LineAt(text, from)",
-		"column"   => "ColumnAt(text, from)",
-		"span"     => "new global::DotGram.SourceSpan(from, to - from)",
-		"message"  => $"\"Input does not match '{Element}' at \" + " +
+		"parserText"     => "text.Slice(from, to - from).ToString()",
+		"parserPosition" => "from",
+		"parserOrdinal"  => counter,
+		"parserLine"     => "LineAt(text, from)",
+		"parserColumn"   => "ColumnAt(text, from)",
+		"parserSpan"     => "new global::DotGram.SourceSpan(from, to - from)",
+		"parserMessage"  => $"\"Input does not match '{Element}' at \" + " +
 			"failure.Reach.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		_          => "default",
 	};
@@ -1024,12 +1024,12 @@ sealed class Machine
 		}
 
 		var method     = $"{Name}_Guard{_guards++}";
-		var parameters = new List<string> { "string text" };
+		var parameters = new List<string> { "string parserText" };
 		var arguments  = new List<string> { "text.Slice(pos, p - pos).ToString()" };
 
 		foreach (var member in visible)
 		{
-			if (member.Name == "text")
+			if (member.Name == "parserText")
 				continue;
 
 			parameters.Add(

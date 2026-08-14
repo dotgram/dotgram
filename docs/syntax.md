@@ -287,11 +287,11 @@ Expr = value: Number           => value
 ```
 
 A name, a call or a parenthesized C# expression may stand on the right (§2). Captures
-are visible there as ordinary local variables, along with two implicit names, `span`
-and `text` (§4.1):
+are visible there as ordinary local variables, along with the names the parser supplies
+itself — `parserText`, `parserSpan` and the rest of §8.2's table:
 
 ```dotgram
-Number : int    = ['0'..'9']+ => @int.Parse(text)
+Number : int    = ['0'..'9']+ => @int.Parse(parserText)
 Point  : @Point = x: Number & ',' & y: Number => @(new Point(x, y))
 Add             = l: Expr & '+' & r: Expr     => Add(l, r)
 ```
@@ -410,14 +410,16 @@ A name, a call and a parenthesized C# expression are allowed in `=>` and `where`
 (§2), with captures visible as ordinary local variables:
 
 ```dotgram
-Number : int    = ['0'..'9']+ => @int.Parse(text)
+Number : int    = ['0'..'9']+ => @int.Parse(parserText)
 Point  : @Point = '(' & x: Number & ',' & y: Number & ')' => @(new Point(x, y))
 Row             = ... & where @(qty > 0 && symbol.Length == 4)
 ```
 
-Besides captures, two implicit names are always in scope inside `=>` and `where`:
-`span` (the current rule's `SourceSpan`) and `text` (the matched text, when `TIn` is
-a character). A capture of the same name shadows them.
+Besides captures, the names the parser supplies are always in scope inside `=>` and
+`where`: `parserText` (the matched text, when `TIn` is a character), `parserSpan` (the
+current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
+`parser`, which is what that prefix is for — a capture may not take one of those names
+(GRAM4012), and every other name in the grammar is the author's to choose.
 
 There is no limit on the size of an expression, but there is a recommendation: once
 it stops reading at a glance it is better off as a named method — the generator will
@@ -433,7 +435,7 @@ same thing: binds a name to something that came from outside.
 Lex(item)               : item   = Trivia & item
 List(item, sep)         : item[] = item & (sep & item)*
 Padded(item, pad: char) : item   = pad* & value: item & pad* => value
-Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(text)
+Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 ```
 
 | Declaration | What it is | What is passed at the call site |
@@ -917,8 +919,9 @@ parameter `symbol` and the property `Symbol`.
 
 A handful of names are **supplied rather than captured**: declare a parameter with one
 of them and the generator fills it in. They are listed in §8.2, where the same names
-serve a rejected element — `span` and `text` for the extent and the input it covers,
-`ordinal`, `line`, `column` and `position` for where it was.
+serve a rejected element — `parserSpan` and `parserText` for the extent and the input
+it covers, `parserOrdinal`, `parserLine`, `parserColumn` and `parserPosition` for where
+it was.
 
 A capture's own type follows from what it captures:
 
@@ -1119,7 +1122,7 @@ With a `=>`, a failed element becomes an element of the sequence instead of vani
 from it:
 
 ```dotgram
-Row* recover eol => @BadRow(ordinal, line, text, message)
+Row* recover eol => @BadRow(parserOrdinal, parserLine, parserText, parserMessage)
 ```
 
 The factory's result must fit the sequence's element type, exactly as a successful
@@ -1137,16 +1140,23 @@ names are supplied rather than captured:
 
 | | |
 | --- | --- |
-| `ordinal` | which element of the repetition this is, counting rejected ones, from 0 |
-| `line`, `column` | where it starts, for a person, from 1 |
-| `position` | absolute offset, `long` — for a machine |
-| `span`, `text` | its extent, and the input it covers |
-| `message` | why it was rejected — only here, never in a capture |
+| `parserOrdinal` | which element of the repetition this is, counting rejected ones, from 0 |
+| `parserLine`, `parserColumn` | where it starts, for a person, from 1 |
+| `parserPosition` | absolute offset, `long` — for a machine |
+| `parserSpan`, `parserText` | its extent, and the input it covers |
+| `parserMessage` | why it was rejected — only here, never in a capture |
 
-`ordinal` and `line` are not the same number and neither substitutes for the other: a
-header shifts the first record off line one, a record may span lines, `Trivia` swallows
-blank ones, and a recovery skips an unknown number of them. The first is the key a
-downstream system joins on, the second is what a person opens the file at.
+Every one of them begins with `parser`, and that prefix is the whole of the collision
+story: the supplied names become parameters of the method a `=>` or a `where` turns
+into (§7.4), sitting in the same scope as the captures, so a capture called `text`
+would take a name already spoken for. With the prefix nothing an author would naturally
+write collides, and a capture that takes one of these names anyway is refused by name
+rather than by a C# error in a file nobody wrote (GRAM4012).
+
+`parserOrdinal` and `parserLine` are not the same number and neither substitutes for
+the other: a header shifts the first record off line one, a record may span lines,
+`Trivia` swallows blank ones, and a recovery skips an unknown number of them. The first
+is the key a downstream system joins on, the second is what a person opens the file at.
 
 The same names may be captured on a successful element, which is what lets a record
 carry its own position without the grammar saying anything else:
@@ -1157,6 +1167,32 @@ public sealed record Row(string Symbol, int Qty, long Ordinal, int Line);
 
 Counting lines costs a scan of the text an element consumed, and is done only when a
 name that needs it was asked for.
+
+#### Why separate arguments and not one context object
+
+The obvious alternative is a single `parserContext` carrying all of it, which would
+end the collision question outright and leave somewhere to put feedback later. It is
+refused on performance, which here outranks the convenience:
+
+- **A parameter that is not asked for costs nothing.** The generator sees which names a
+  factory's C# mentions and passes only those. `parserLine` is a scan of everything
+  consumed so far; on a million-record feed, computing it for every element whether or
+  not anybody wanted it is quadratic. A context object has to be filled before it is
+  handed over, so either every field is eagerly computed — the quadratic case — or the
+  object computes them lazily.
+- **Lazily is what it cannot do.** Computing a line number later means holding the
+  input, and the input is a `ReadOnlySpan<char>`. A class cannot hold one, so a lazy
+  context would force the whole engine onto `string` or `Memory<char>`, which is the
+  cost of the feature paid by every parse that never uses it.
+- **A container also allocates**, once per rejected element and once per `=>` that asks
+  for anything at all, in a design whose whole shape is that nothing is allocated while
+  matching (§4).
+
+The two things a context would have been for are already served: feedback out of the
+parse goes through `OnRecovered` (§8.3), and a transformation that wants to refuse says
+so by its own shape — `bool M(…, out T value)` — rather than by writing into a context.
+
+What is left is the name collision, and a prefix costs nothing to solve it.
 
 ### 8.3 What a parse hands back
 
@@ -1222,8 +1258,8 @@ Date : @DateOnly =
     y: Digits(4) & '-' & m: Digits(2) & '-' & d: Digits(2)
     => @DateOnly(y, m, d)
 
-Digits(n: int) : int = ['0'..'9']{n} => @int.Parse(text)
-Number         : int = ['0'..'9']+   => @int.Parse(text)
+Digits(n: int) : int = ['0'..'9']{n} => @int.Parse(parserText)
+Number         : int = ['0'..'9']+   => @int.Parse(parserText)
 Text        : string = [^ '|' | '\r' | '\n']+
 ```
 

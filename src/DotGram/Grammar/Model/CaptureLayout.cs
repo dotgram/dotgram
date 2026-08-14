@@ -205,7 +205,10 @@ public sealed record Recovery(Node Sync, string? Factory)
 	/// factory can be told about it is known here and nowhere else.
 	/// </remarks>
 	public static readonly IReadOnlyList<string> Supplied =
-		["text", "position", "ordinal", "line", "column", "span", "message"];
+		[
+			"parserText", "parserPosition", "parserOrdinal",
+			"parserLine", "parserColumn", "parserSpan", "parserMessage",
+		];
 
 	/// <summary>
 	/// Which of <see cref="Supplied"/> this factory asked for, in that order.

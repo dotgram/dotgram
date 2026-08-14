@@ -376,15 +376,15 @@ public sealed class SemanticTests
 				"""
 				@using System.Globalization;
 
-				Start : @int = ['0'..'9']+ => @int.Parse(text, @CultureInfo.InvariantCulture)
+				Start : @int = ['0'..'9']+ => @int.Parse(parserText, @CultureInfo.InvariantCulture)
 				""",
 				"42"));
 
 	[Fact]
-	public void The_matched_text_is_supplied_under_the_name_text() =>
+	public void The_matched_text_is_supplied_as_parserText() =>
 		Assert.Equal(
 			3,
-			Built("Start : @int = ['a'..'z']+ => @(text.Length)", "abc"));
+			Built("Start : @int = ['a'..'z']+ => @(parserText.Length)", "abc"));
 
 	[Fact]
 	public void Captures_reach_the_expression_by_their_own_names() =>
@@ -600,7 +600,7 @@ public sealed class SemanticTests
 
 	const string Records = """
 		Row   = name: ['a'..'z']+ & eol
-		Start = rows: Row* recover eol => @(new Row("!" + text))
+		Start = rows: Row* recover eol => @(new Row("!" + parserText))
 		""";
 
 	[Fact]
@@ -622,7 +622,7 @@ public sealed class SemanticTests
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
-					Start = rows: Row* recover eol => @(new Row("!" + text)) & '.' & eol
+					Start = rows: Row* recover eol => @(new Row("!" + parserText)) & '.' & eol
 					""",
 					"aa\n.\n"),
 				"Rows")!)
@@ -639,14 +639,15 @@ public sealed class SemanticTests
 
 	[Fact]
 	public void A_recovered_element_is_told_where_it_was_and_which_one_it_is() =>
-		// `text`, `position` and `ordinal` are supplied rather than captured (§8.2), and
-		// the ordinal counts the rejected element too — it holds its place.
+		// `parserText`, `parserPosition` and `parserOrdinal` are supplied rather than
+		// captured (§8.2), and the ordinal counts the rejected element too — it holds its
+		// place.
 		Assert.Equal(
 			["aa", "!3:1", "cc"],
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
-					Start = rows: Row* recover eol => @(new Row($"!{position}:{ordinal}"))
+					Start = rows: Row* recover eol => @(new Row($"!{parserPosition}:{parserOrdinal}"))
 					""",
 					"aa\nb1b\ncc\n"),
 				"Rows")!)
@@ -662,7 +663,7 @@ public sealed class SemanticTests
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
-					Start = "H" & eol & rows: Row* recover eol => @(new Row($"!{line}:{column}"))
+					Start = "H" & eol & rows: Row* recover eol => @(new Row($"!{parserLine}:{parserColumn}"))
 					""",
 					"H\naa\nb1b\ncc\n"),
 				"Rows")!)
@@ -680,7 +681,7 @@ public sealed class SemanticTests
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
-					Start = rows: Row* recover eol => @(new Row($"!{span.Start}+{span.Length}"))
+					Start = rows: Row* recover eol => @(new Row($"!{parserSpan.Start}+{parserSpan.Length}"))
 					""",
 					"aa\nb1b\ncc\n"),
 				"Rows")!)
@@ -695,7 +696,7 @@ public sealed class SemanticTests
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
-					Start = rows: Row* recover eol => @(new Row(message))
+					Start = rows: Row* recover eol => @(new Row(parserMessage))
 					""",
 					"aa\nb1b\ncc\n"),
 				"Rows")!)
@@ -720,7 +721,7 @@ public sealed class SemanticTests
 		Assert.False(
 			Matches("""
 				Row   = name: ['a'..'z']+ & eol
-				Start = rows: Row* recover eol => @(new Row("!" + text)) & tail: ['a'..'z']+ & eol
+				Start = rows: Row* recover eol => @(new Row("!" + parserText)) & tail: ['a'..'z']+ & eol
 				""",
 				"aa\nbb\n"));
 
@@ -809,7 +810,7 @@ public sealed class SemanticTests
 		var rows = (Array)Read(
 			Built("""
 				Field = name: ['a'..'z']+ & '|'
-				Start = fields: Field* recover ('|' | eol) => @(new Field("!" + text))
+				Start = fields: Field* recover ('|' | eol) => @(new Field("!" + parserText))
 				""",
 				"aa|b1b|cc|"),
 			"Fields")!;
@@ -837,7 +838,7 @@ public sealed class SemanticTests
 			GrammarNormalizer.UnbuiltRecovery,
 			"""
 			Row   = name: ['a'..'z']+ & eol
-			Start = rows: Row* recover eol => @(new Row("!" + text))
+			Start = rows: Row* recover eol => @(new Row("!" + parserText))
 			      & more: Row* recover eol => @(new Row("?" + text))
 			""");
 
@@ -860,7 +861,7 @@ public sealed class SemanticTests
 	[InlineData("12",  true)]
 	[InlineData("123", false)]
 	public void A_guard_asks_a_question_of_the_text_so_far(string input, bool expected) =>
-		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & where @(text.Length < 3)", input));
+		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & where @(parserText.Length < 3)", input));
 
 	[Theory]
 	[InlineData("ab", true)]
@@ -892,12 +893,13 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_capture_may_not_take_a_name_that_is_supplied() =>
 		// The supplied names become parameters of the method a `=>` turns into, so a
-		// capture called `text` wants one that is already taken. Before it was refused the
+		// capture of the same name wants one that is already taken. The prefix makes that
+		// unlikely rather than impossible, and this is the backstop: before it, the
 		// generated code simply did not compile, with an error pointing at a file the
 		// author never wrote and saying nothing about the grammar.
 		Refused(
 			GrammarNormalizer.ReservedCaptureName,
-			"Start : @string = text: ['a'..'z']+ => @(text)");
+			"Start : @string = parserText: ['a'..'z']+ => @(parserText)");
 
 	[Fact]
 	public void A_rule_typed_as_another_rule_says_it_is_not_built() =>

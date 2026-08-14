@@ -1293,16 +1293,17 @@ public sealed class GrammarNormalizer
 
 			// The supplied names of §7.3 and §8.2 become parameters of the method a `=>`
 			// turns into, so a capture of the same name wants a parameter that is already
-			// taken. Refused rather than resolved either way round: `text` would otherwise
-			// mean the matched extent in one rule and something else in the next, and the
-			// alternative — generated code that does not compile — points at a file the
-			// author did not write.
-			if (name == "text")
+			// taken. The prefix makes that unlikely; this is what happens when an author
+			// writes one anyway. Refused rather than resolved either way round:
+			// `parserText` would otherwise mean the matched extent in one rule and
+			// something else in the next, and the alternative — generated code that does
+			// not compile — points at a file the author did not write.
+			if (Recovery.Supplied.Contains(name))
 				Report(
 					ReservedCaptureName,
-					$"'{name}' is supplied to every '=>' as the extent that matched " +
-					"(docs/syntax.md §7.3), so a capture may not take that name. Call it " +
-					"something else.",
+					$"'{name}' is one of the names the parser supplies to every '=>' and 'where' " +
+					"(docs/syntax.md §7.3), so a capture may not take it. Every one of them begins " +
+					"with 'parser', which is what that prefix is for.",
 					rule.Declaration!.At);
 
 			if (inLookahead)

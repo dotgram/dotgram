@@ -213,7 +213,7 @@ public sealed class GrammarBinder
 		// before its body is resolved — and the whole body's, since a `=>` at the end
 		// names what the front of it captured.
 		_captures.Clear();
-		_captures.Add("text");
+		_captures.Add("parserText");
 
 		Captures(rule.Body);
 

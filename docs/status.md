@@ -126,16 +126,17 @@ position whose element had matched and be told one broke there.
 All seven names of §8.2 are supplied. Three differ from the specification in ways worth
 knowing:
 
-- **`text` and `span` stop where the synchronization point begins.** `eol` separates the
-  elements and is not part of one, so a rejected `b1b\n` is three characters, not four.
-- **`message` is not the expected set.** It says which rule the element should have been
-  and where the input stopped being one — `Input does not match 'Row' at 43.` The set of
-  what could have appeared there would say more, and is not carried yet.
+- **`parserText` and `parserSpan` stop where the synchronization point begins.** `eol`
+  separates the elements and is not part of one, so a rejected `b1b\n` is three
+  characters, not four.
+- **`parserMessage` is not the expected set.** It says which rule the element should
+  have been and where the input stopped being one — `Input does not match 'Row' at 43.`
+  The set of what could have appeared there would say more, and is not carried yet.
 
 Which of the seven a factory asked for is read out of its C#, because §8.2 has counting
-lines cost a scan and only a factory that named `line` should pay for one. The reading is
-a whole-word search over the text, so it over-approximates: `line` inside a string
-literal counts as asked for. That direction is the safe one — a name that was written is
+lines cost a scan and only a factory that named `parserLine` should pay for one. The
+reading is a whole-word search over the text, so it over-approximates: `parserLine`
+inside a string literal counts as asked for. That direction is the safe one — a name that was written is
 always found, and a name that was not costs an unused parameter. Reading it exactly means
 lexing C#, which is the host's job and not the grammar half's.
 
@@ -332,21 +333,21 @@ is why none of this needed symbol resolution.
 The `=>` becomes a method, and the captures are its parameters:
 
 ```csharp
-static int Construct_Number(string text, string digits) =>
+static int Construct_Number(string parserText, string digits) =>
     int.Parse(digits, CultureInfo.InvariantCulture);
 ```
 
 A method rather than an expression written where the value is assigned, and that is
 what makes the capture names usable at all: inside a recognizer they would have to
 dodge every local it has, and a capture called `p` or `state` would collide with the
-machine itself. `text` is supplied — the matched extent, §7.3 — and a capture may take
-the name instead.
+machine itself. `parserText` is supplied — the matched extent, §7.3 — and a capture that
+takes that name, or any of the other six, is refused (GRAM4012).
 
 ## A guard asks the values
 
 `where @(…)` runs **during** the match, which is what makes it recognition: saying no
 is a non-match and a sibling alternative is tried, exactly as §8.1 has it. It becomes a
-method of its own for the same reason a `=>` does, and takes the same `text`.
+method of its own for the same reason a `=>` does, and takes the same `parserText`.
 
 What it may look at is what was captured **before** it. A capture further along has not
 been written, so it is not a parameter, and naming it is an ordinary C# error about a
@@ -397,14 +398,16 @@ inside one — `@int.Parse` and the like — resolve against the host compilatio
 ## Where the author's C# actually runs
 
 Not inside the machine. Every `=>`, every `where` and every recovery factory becomes a
-**method of its own**, and the names it can use — the captures, and the supplied `text`,
-`line`, `column`, `ordinal`, `message` — are that method's **parameters**:
+**method of its own**, and the names it can use — the captures, and the supplied
+`parserText`, `parserLine`, `parserColumn`, `parserOrdinal`, `parserMessage` — are that
+method's **parameters**:
 
 ```csharp
-static FeedLine Recognize_Feed_Recover(string text, int ordinal, int line, string message) =>
-    new RejectedLine(ordinal, line, text, message);
+static FeedLine Recognize_Feed_Recover(
+    string parserText, int parserOrdinal, int parserLine, string parserMessage) =>
+    new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage);
 
-static decimal Construct_Expr(string text, decimal operand) =>
+static decimal Construct_Expr(string parserText, decimal operand) =>
     (-operand);
 ```
 
@@ -414,16 +417,19 @@ have to dodge every local the recognizer has — `p`, `state`, `r`, `saved`, `sp
 parameters they are in a scope of their own, named exactly as the grammar named them, and
 the machine's internals cannot leak in either direction.
 
-It also means a capture may not be called `text`: the parameter is already taken. That is
-now `GRAM4012` and says so. Before it was refused, the generated code simply did not
+It also means a capture may not be called `parserText`: the parameter is already taken.
+That is the whole reason the supplied names carry a prefix — with it, nothing an author
+would naturally write collides — and `GRAM4012` is the backstop for a capture that takes
+one of the seven anyway. Before it was refused, the generated code simply did not
 compile — "no overload takes 2 arguments", in a file the author never wrote, about a
-grammar it did not mention.
+grammar it did not mention. §8.2 of [`syntax.md`](syntax.md) says why the names are
+separate arguments rather than one context object.
 
 ## Value failures
 
 `=> @TryTiny(digits)` where the C# is `bool TryTiny(string digits, out int value)` is
 §8.1, and it needed no notation because the signature already is one. The factory becomes
-`bool Construct_Start(string text, string digits, out int value)`, and "no" is a failure
+`bool Construct_Start(string parserText, string digits, out int value)`, and "no" is a failure
 of the match: the shape was right and what it held was not accepted, so the rule does not
 match here. Inside a recovering repetition that is a broken element rather than the end of
 the run, which is what makes §8.1 and §8.2 one feature rather than two.

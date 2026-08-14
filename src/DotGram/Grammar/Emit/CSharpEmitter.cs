@@ -524,7 +524,7 @@ public static class CSharpEmitter
 	static void EmitFactory(
 		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results)
 	{
-		var parameters = new List<string> { "string text" };
+		var parameters = new List<string> { "string parserText" };
 
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
@@ -533,7 +533,7 @@ public static class CSharpEmitter
 			parameters.Add($"{graph.Types[rule]} {accumulator}");
 
 		foreach (var member in factory.Members)
-			if (member.Name != "text" && member.Name != factory.Accumulator)
+			if (member.Name != "parserText" && member.Name != factory.Accumulator)
 				parameters.Add(
 					results.ValueOf(member.Rule) +
 
@@ -641,7 +641,7 @@ public static class CSharpEmitter
 
 			var asked = recovery.Asks;
 
-			if (asked.Contains("line") || asked.Contains("column"))
+			if (asked.Contains("parserLine") || asked.Contains("parserColumn"))
 				return true;
 		}
 
@@ -670,10 +670,10 @@ public static class CSharpEmitter
 	/// </remarks>
 	static string TypeOfSupplied(string name) => name switch
 	{
-		"text" or "message" => "string",
-		"span"              => "global::DotGram.SourceSpan",
-		"position"          => "long",
-		_                   => "int",
+		"parserText" or "parserMessage" => "string",
+		"parserSpan"                    => "global::DotGram.SourceSpan",
+		"parserPosition"                => "long",
+		_                               => "int",
 	};
 
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>

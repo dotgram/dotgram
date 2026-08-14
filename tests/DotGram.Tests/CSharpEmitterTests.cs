@@ -223,7 +223,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("using System.Globalization;", source);
 		Assert.Contains(
-			"static int Construct_Start(string text, string digits) =>",
+			"static int Construct_Start(string parserText, string digits) =>",
 			source);
 		Assert.Contains("int.Parse(digits, CultureInfo.InvariantCulture);", source);
 

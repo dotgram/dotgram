@@ -151,7 +151,7 @@ Working end to end — a `.gram` file becomes a parser that runs:
   the `=>` puts what it skipped into the same sequence as the records:
 
   ```dotgram
-  lines: Row* recover eol => @(new RejectedLine(ordinal, line, text, message))
+  lines: Row* recover eol => @(new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage))
   ```
 
   A rejection arrives in its place, carrying which record it was, where a person would

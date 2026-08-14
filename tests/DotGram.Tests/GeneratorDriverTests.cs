@@ -280,7 +280,7 @@ public sealed class GeneratorDriverTests
 
 		// The factory answers whether it produced a value, rather than producing one.
 		Assert.Contains(
-			"static bool Construct_Start(string text, string digits, out int value) =>",
+			"static bool Construct_Start(string parserText, string digits, out int value) =>",
 			source,
 			StringComparison.Ordinal);
 
