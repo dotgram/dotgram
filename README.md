@@ -168,7 +168,22 @@ Working end to end — a `.gram` file becomes a parser that runs:
   elements; `eof` contributes nothing. It is also the shape a streamed parse needs,
   since a sequence is the only result that can be handed over one element at a time
 
-- **`find` over a `TextReader`**, which is the first half of streaming. The input is read
+- **streaming** — both directives read from a `TextReader`, through a buffer that is
+  reused, so what is held is the part being read and not the file:
+
+  ```csharp
+  using var file = File.OpenText("huge.feed");
+
+  foreach (var item in FeedGrammar.ParseFeed(file))   // header, records, trailer
+      Handle(item);                                   // one at a time
+  ```
+
+  A `parse` gets the overload when its result is a sequence and some repetition in it is
+  marked `recover` — handing an element to the caller cannot be undone, so the parse may
+  only read what the grammar says it will not go back past (§8.2). A grammar that asks
+  and does not qualify is told why
+
+- **`find` over a `TextReader`**, the same thing for occurrences. The input is read
   through a buffer that is reused, so what is held is the occurrence being read and not
   the file:
 
@@ -193,8 +208,11 @@ then quietly means nothing is the failure this project is most careful about:
   `where` or a `=>` calls C# today
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- streaming a `parse` — `find` reads from a `TextReader` already, through a buffer that
-  is reused; `parse` needs a committed repetition inside it before its window can move
+- `recover` stepping over a bad record in a *streamed* parse — over a string it does;
+  in a stream the repetition ends there instead, and the two disagree
+- a diagnostic for an ambiguous grammar, which is what would let the streaming test stop
+  being conservative
+- `IEnumerable<string>` input, and the §8.3 surfaces over a streamed parse
 - incremental parsing
 
 ## Examples

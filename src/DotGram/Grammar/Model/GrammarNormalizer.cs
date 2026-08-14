@@ -1147,10 +1147,24 @@ public sealed class GrammarNormalizer
 	/// binds tighter than a quantifier (§10). Written the other way round the slot holds
 	/// the text of the whole run instead of collecting the values.
 	/// </remarks>
-	static Node Collected(Node part, ref int taken) =>
-		part is Node.Repeat(var body, var min, var max)
-			? new Node.Repeat(new Node.Capture("item" + taken++, body), min, max)
-			: new Node.Capture("item" + taken++, part);
+	Node Collected(Node part, ref int taken)
+	{
+		if (part is not Node.Repeat(var body, var min, var max))
+			return new Node.Capture("item" + taken++, part);
+
+		var repetition = new Node.Repeat(new Node.Capture("item" + taken++, body), min, max);
+
+		// The node is new, and `recover` was recorded against the old one. Everything
+		// downstream looks recovery up by node identity, so a repetition rewritten here
+		// would quietly stop recovering.
+		if (_recoveries.TryGetValue(part, out var recovery))
+		{
+			_recoveries.Remove(part);
+			_recoveries[repetition] = recovery;
+		}
+
+		return repetition;
+	}
 
 	/// <summary>
 	/// Whether this operand's value belongs in a sequence of <paramref name="element"/>.

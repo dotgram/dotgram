@@ -31,8 +31,9 @@ public sealed class CSharpEmitterTests
 		// Anything but information. A grammar is allowed to be told what it did not get and
 		// still be a grammar the emitter should be asked about — that is what `Info` is
 		// for, and §6.3's "no reader overload" is one.
-		Assert.Empty(result.Diagnostics.Where(
-			static diagnostic => diagnostic.Severity != GramSeverity.Info));
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			static diagnostic => diagnostic.Severity != GramSeverity.Info);
 
 		return Assert.Single(result.Sources).Text;
 	}

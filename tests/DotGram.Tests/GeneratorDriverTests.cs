@@ -438,6 +438,117 @@ public sealed class GeneratorDriverTests
 		Assert.Contains(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM4008");
 	}
 
+	// ── parse over a reader (§6.3) ───────────────────────────────────────────────
+
+	/// <summary>A feed whose records are read one at a time.</summary>
+	/// <remarks>
+	/// `recover` is what makes it streamable and not decoration: handing an element to the
+	/// caller cannot be undone, so the parse may only read what the grammar says it will
+	/// not go back past (§8.2).
+	/// </remarks>
+	const string Stream = """
+		[DotGram.Gram("Feed : @Item[] = Header & Row* recover eol & Trailer & eof\nHeader : @Item = 'H' & eol => @(new Head())\nRow : @Item = name: ['a'..'z']+ & eol => @(new Line(name))\nTrailer : @Item = 'T' & eol => @(new Tail())\nparse Feed")]
+		public partial class Streamed { }
+		""" + Shapes;
+
+	const string Shapes = """
+
+		public abstract class Item { }
+		public sealed class Head : Item { }
+		public sealed class Tail : Item { }
+		public sealed class Line : Item
+		{
+			public Line(string name) { Name = name; }
+			public string Name { get; }
+		}
+		""";
+
+	static string[] Read(Assembly assembly, string type, string method, object input) =>
+		[.. ((System.Collections.IEnumerable)assembly
+				.GetType(type)!
+				.GetMethod(method, [input.GetType() == typeof(string) ? typeof(string) : typeof(TextReader)])!
+				.Invoke(null, [input])!)
+			.Cast<object>()
+			.Select(static item => item.GetType().Name + Named(item))];
+
+	[Fact]
+	public void A_parse_over_a_reader_reads_the_same_things()
+	{
+		var assembly = Build(Stream);
+		var text     = "H\naa\nbb\nT\n";
+
+		// The same elements in the same order, out of input that was never all there.
+		Assert.Equal(
+			["Head", "Line:aa", "Line:bb", "Tail"],
+			Read(assembly, "Streamed", "ParseFeed", new StringReader(text)));
+	}
+
+	[Fact]
+	public void And_reads_more_records_than_the_window_holds()
+	{
+		// The claim streaming exists to make. Four thousand records is well past the 4096
+		// characters the window starts at, so the buffer is reused many times over.
+		var records = string.Concat(Enumerable.Repeat("aa\n", 4000));
+
+		Assert.Equal(
+			4002,
+			Read(Build(Stream), "Streamed", "ParseFeed", new StringReader("H\n" + records + "T\n")).Length);
+	}
+
+	[Fact]
+	public void A_broken_record_is_not_yet_stepped_over_in_a_stream()
+	{
+		// The mark is required for what it guarantees — that an element handed over is
+		// never wanted back — and its other half, stepping over a broken element, is not
+		// built for the streamed parse. So the two overloads disagree here, and this test
+		// is what says so out loud rather than leaving it to be discovered.
+		var assembly = Build(Stream);
+		var text     = "H\naa\nb1b\ncc\nT\n";
+
+		// Over a string the bad record is stepped over and the rest are read. Four and not
+		// five: there is no `=>` on the recovery, so the rejection is dropped rather than
+		// taking its place in the sequence (§8.3).
+		Assert.Equal(4, ((Array)assembly
+			.GetType("Streamed")!
+			.GetMethod("ParseFeed", [typeof(string)])!
+			.Invoke(null, [text])!).Length);
+
+		// Over a reader the repetition ends there, and `Trailer` is not what follows. The
+		// exception is not wrapped, because a lazy sequence throws where it is walked
+		// rather than where it was asked for.
+		Assert.Equal(
+			"Input does not match 'Trailer' at 5.",
+			Assert.Throws<FormatException>(
+				() => Read(assembly, "Streamed", "ParseFeed", new StringReader(text))).Message);
+	}
+
+	[Fact]
+	public void A_grammar_with_no_committed_repetition_gets_no_reader_overload()
+	{
+		// Without the mark the parse would be free to change its mind about an element it
+		// has already handed over, and there is nothing to take it back with.
+		var run = RunGenerator(Stream.Replace(" recover eol", "", StringComparison.Ordinal));
+
+		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM5001"));
+
+		Assert.Contains("recover", told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("§8.2",    told.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_a_grammar_that_never_asked_for_one_is_told_nothing()
+	{
+		// A result that comes in parts is what says the author had a stream in mind, and
+		// this one does not declare one. Most grammars are not feeds; telling every one of
+		// them what it did not get would be noise on every build.
+		var run = RunGenerator("""
+			[DotGram.Gram("Feed = rows: Row* recover eol\nRow = name: ['a'..'z']+ & eol\nparse Feed")]
+			public partial class NotASequence { }
+			""");
+
+		Assert.Empty(run.Diagnostics.Where(d => d.Id == "GRAM5001"));
+	}
+
 	[Fact]
 	public void An_exception_out_of_a_factory_leaves_the_parse()
 	{
@@ -686,7 +797,10 @@ public sealed class GeneratorDriverTests
 	{
 		var run = RunGenerator(source, out var output);
 
-		Assert.Empty(run.Diagnostics);
+		// Anything but information. A grammar that is told what it did not get is still a
+		// grammar worth building — §6.3's "no reader overload" is exactly that.
+		Assert.Empty(run.Diagnostics.Where(
+			static diagnostic => diagnostic.Severity != DiagnosticSeverity.Info));
 
 		using var stream = new MemoryStream();
 

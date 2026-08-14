@@ -126,6 +126,12 @@ public static class Retention
 		var consuming = Consuming(graph);
 		var body      = graph.Bodies[rule];
 
+		// A rule that builds a sequence has a `=>` wrapped round its whole body (§4.1 case
+		// 2). Left in place it makes the rule one stage — itself — and a feed measures as
+		// unstreamable because a feed is of course more than one line.
+		if (body is Node.Construct(var built, _))
+			body = built;
+
 		var parts  = body is Node.Sequence(var sequence) ? sequence : [body];
 		var stages = new List<Stage>(parts.Count);
 
@@ -167,6 +173,90 @@ public static class Retention
 	public const string NotStreamable = "GRAM5001";
 
 	/// <summary>
+	/// Whether this rule is asking to be streamed at all.
+	/// </summary>
+	/// <remarks>
+	/// Most grammars are not feeds and want nothing to do with a reader, and telling every
+	/// one of them what it did not get would be noise on every build. A result that comes
+	/// in parts is what says the author had a stream in mind — it is the only shape that
+	/// can be handed over one element at a time, so declaring it is asking for the
+	/// possibility. <c>recover</c> alone is not: plenty of grammars recover over a string
+	/// and never want a reader.
+	/// </remarks>
+	static bool Streamable(RecognitionGraph graph, RuleSymbol rule) =>
+		graph.Types.TryGetValue(rule, out var type) && type.EndsWith("[]", StringComparison.Ordinal);
+
+	/// <summary>
+	/// Why a <c>parse</c> cannot be read from a reader, or null when it can.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Three things have to hold, and the second is the one worth explaining. A streamed
+	/// parse hands each element over as it is read, and handing it over is a commitment:
+	/// the caller has it, and no later failure can take it back. Over a string the parse
+	/// may still change its mind, because a repetition that took too much gives it back.
+	/// </para>
+	/// <para>
+	/// <c>recover</c> is what removes the difference, and by construction rather than by
+	/// promise: §8.2 makes a marked repetition possessive, so an element it took was
+	/// either read or explicitly rejected and there is no shorter reading to come back
+	/// for. That is the same property, said about the repetition instead of about the
+	/// stream.
+	/// </para>
+	/// <para>
+	/// <b>It is a conservative test, not the real one.</b> What actually has to hold is
+	/// that no element handed over would ever have been given back — which for an
+	/// unambiguous grammar is true whether or not anything is marked. A grammar where the
+	/// question even arises, one whose trailer also reads as a record, is ambiguous and
+	/// wants a diagnostic of its own rather than a stricter rule here. Until there is one,
+	/// the mark is the thing this can check.
+	/// </para>
+	/// </remarks>
+	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		if (!graph.Types.TryGetValue(rule, out var type) || !type.EndsWith("[]", StringComparison.Ordinal))
+			return $"'{rule.Name}' does not build a sequence, and a stream can only hand over " +
+				"what comes in parts. Declare its result as ': @T[]' (docs/syntax.md §4.1 case 2).";
+
+		var body = graph.Bodies[rule];
+
+		if (body is Node.Construct(var built, _))
+			body = built;
+
+		if (body is Node.Choice)
+			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
+				"not settled until it has been. A streamed parse reads its parts in order.";
+
+		var committed = false;
+
+		foreach (var part in body is Node.Sequence(var parts) ? parts : [body])
+			if (part is Node.Repeat && graph.Recoveries.ContainsKey(part))
+				committed = true;
+
+		if (!committed)
+			return $"'{rule.Name}' has no repetition marked 'recover'. A streamed parse hands each " +
+				"element to the caller as it reads it, which it cannot take back, so it may only " +
+				"read what the grammar says it will not go back past — and 'recover' says exactly " +
+				"that (docs/syntax.md §8.2).";
+
+		var extents   = ExtentOf(graph);
+		var consuming = Consuming(graph);
+
+		foreach (var stage in PlanFor(graph, rule).Stages)
+			if (stage.Extent == LineExtent.Beyond)
+				return $"'{rule.Name}' has a part that may take more than one line, so what would " +
+					"have to be held grows with the input.";
+
+		return null;
+	}
+
+	/// <summary>
 	/// What each publication did not get, and why.
 	/// </summary>
 	/// <remarks>
@@ -195,20 +285,32 @@ public static class Retention
 
 		foreach (var publication in graph.Publications)
 		{
-			if (publication.Kind != PublishKind.Find)
-				continue;
+			string? why;
 
-			if (!extents.TryGetValue(publication.Rule, out var extent) || extent != LineExtent.Beyond)
-				continue;
+			if (publication.Kind == PublishKind.Find)
+			{
+				if (!extents.TryGetValue(publication.Rule, out var extent) || extent != LineExtent.Beyond)
+					continue;
 
-			var culprit = Culprit(graph.Bodies[publication.Rule], extents, consuming);
+				why =
+					$"{Culprit(graph.Bodies[publication.Rule], extents, consuming)} may take more than " +
+					$"one line, so reading '{publication.Rule.Name}' from one would have to hold the " +
+					"input rather than one occurrence.";
+			}
+			else if (Streamable(graph, publication.Rule) &&
+				StreamedParse(graph, publication.Rule) is { } refused)
+			{
+				why = refused;
+			}
+			else
+			{
+				continue;
+			}
 
 			reported.Add(new GramDiagnostic(
 				NotStreamable,
-				$"'{publication.MethodName}' gets no overload taking a reader: {culprit} may take " +
-				$"more than one line, so reading '{publication.Rule.Name}' from one would have to " +
-				"hold the input rather than one occurrence. docs/syntax.md §6.3 says which rules " +
-				"get one, and why.",
+				$"'{publication.MethodName}' gets no overload taking a reader: {why} " +
+				"docs/syntax.md §6.3 says which rules get one, and why.",
 				publication.At.Position,
 				publication.At.Length,
 				GramSeverity.Info));

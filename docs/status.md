@@ -56,7 +56,9 @@ then quietly mean nothing.
 | retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
-| `parse` over a `TextReader` §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
+| `recover` stepping over a bad record in a stream | — | — | — | ✗ | ✗ |
+| a diagnostic for an ambiguous grammar | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `IEnumerable<string>` input §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -514,6 +516,46 @@ noise, and this file is where it belongs. What would let a `parse` window move i
 committed repetition inside it, which means the decomposition `Retention.PlanFor` does
 rather than the single question `find` asks.
 
+## `parse` reads from a reader
+
+`parse R` gets a second overload taking a `TextReader` and handing back
+`IEnumerable<T>` — the elements of the sequence, one at a time, out of input that is
+never all there at once. `Header`, then every `Row`, then `Trailer`: the envelope arrives
+in the stream with the records, on its own place, which is what §4.1 case 2 buys.
+
+The stages are run in order rather than compiled into one machine, and that is the whole
+difference from the parse over a string. A machine may backtrack anywhere inside a rule;
+a stream may not go back past what it has handed over. Each stage reads through the
+window by the same provisional rule `find` uses.
+
+**Three conditions, and the second is the interesting one:**
+
+- the result is a sequence (`: @T[]`), because that is the only shape that comes in parts;
+- some repetition is marked `recover`;
+- every stage fits a window.
+
+The mark is what makes handing an element over safe: §8.2 makes a marked repetition
+possessive, so an element it took was either read or explicitly rejected, and there is no
+shorter reading to come back for. That is the stream's requirement said about the
+repetition.
+
+**It is a conservative test and not the real one.** What actually has to hold is that no
+element handed over would ever have been given back, and for an unambiguous grammar that
+is true whether or not anything is marked. A grammar where the question arises at all —
+one whose trailer also reads as a record — is ambiguous, and what it wants is a
+diagnostic saying so rather than a stricter rule here. That diagnostic is not built; the
+mark is what can be checked today, and it costs a grammar nothing it would not want
+anyway.
+
+A grammar that declares a sequence and does not get the overload is told why
+(`GRAM5001`). One that declares no sequence is told nothing: most grammars are not feeds,
+and a note on every build of every one of them is noise.
+
+Not built for the streamed parse: `recover`'s own recovery. The mark is required for what
+it guarantees, and a broken element inside a streamed repetition ends the repetition
+rather than being stepped over. Over a string it is stepped over, so the two disagree,
+and that is the next thing to do here.
+
 ## A rule can be a sequence of what it is made of
 
 §4.1 case 2 works: `Feed : @FeedItem[] = Header & Row* & Trailer & eof` hands back the
@@ -605,7 +647,7 @@ Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn she
 normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
 it is one. `GRAM0001` and `GRAM4004` are retired.
 
-### Two things wrong with diagnostics, neither fixed
+### Three things wrong with diagnostics, none fixed
 
 Both are about how a message arrives rather than about what any one of them says, which
 is why they are here and not against a particular number.
@@ -620,6 +662,13 @@ is why they are here and not against a particular number.
   what it left behind — twenty messages of which nineteen are consequences. What is
   missing is the ordinary compiler discipline of a first error suppressing the errors
   derived from it.
+- **An ambiguous grammar is not called one.** `Row* & Trailer` where a trailer also reads
+  as a record parses perfectly well over a string — the repetition takes it, fails, and
+  gives it back — and the author never learns that their grammar has two readings and
+  they got the one backtracking happened to find. It is also what makes the streaming
+  test conservative: the mark on the repetition stands in for a property that could be
+  checked directly. What is missing is a first-set comparison between what a repetition
+  can start with and what follows it.
 
 ## What re-runs, and when
 

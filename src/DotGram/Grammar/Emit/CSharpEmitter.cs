@@ -253,6 +253,36 @@ public static class CSharpEmitter
 				file.Line();
 			}
 
+			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
+			// Trivia normalization inserted — have no recognizer of their own, so each gets
+			// one: the driver runs them in order and they have to be runnable one at a time.
+			if (Streams(graph, publication) && StagesOf(graph, publication.Rule) is { } stages)
+			{
+				var parts = new List<string>(stages.Count);
+
+				for (var i = 0; i < stages.Count; i++)
+				{
+					if (stages[i].Rule is not null)
+					{
+						parts.Add("");
+
+						continue;
+					}
+
+					var part = new Machine($"{WholeOf(publication.Rule)}_Part{i}", results);
+
+					file.Write(part.Render(
+						part.Compile(stages[i].Node, Machine.Accept),
+						$"one part of a streamed {publication.Rule.Name}: {stages[i].Node}"));
+
+					file.Line();
+					parts.Add(part.Name);
+				}
+
+				EmitStreamingParse(file, graph, publication, results, stages, parts);
+				file.Line();
+			}
+
 			needsStack = true;
 		}
 
@@ -510,6 +540,189 @@ public static class CSharpEmitter
 	/// window at all. <c>parse</c> needs the decomposition <see cref="Retention.PlanFor"/>
 	/// does, because what lets it move is a committed repetition in the middle of it.
 	/// </remarks>
+	/// <summary>
+	/// <c>parse</c> over a reader: the rule's parts, handed over as they are read.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The stages are run in order rather than compiled into one machine, and that is the
+	/// whole difference from the parse over a string. A machine may backtrack anywhere
+	/// inside the rule; a stream may not go back past what it has handed over. What makes
+	/// the two agree is the mark: §8.2's <c>recover</c> is possessive, so the repetition in
+	/// the middle never wants to give an element back, and the stages around it are read
+	/// once each.
+	/// </para>
+	/// <para>
+	/// Each stage reads through the window with the same provisional rule <c>find</c> uses:
+	/// a result that ran into the end of what is held is not an answer while the reader has
+	/// more.
+	/// </para>
+	/// </remarks>
+	static void EmitStreamingParse(
+		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
+		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts)
+	{
+		var element = graph.Types[publication.Rule];
+
+		element = element.Substring(0, element.Length - "[]".Length);
+
+		file.Line($"/// <summary>Reads <c>{publication.Rule.Name}</c> from a reader, a part at a time.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// The input is read through a buffer that is reused, so what is held is the part");
+		file.Line("/// being read and not the input. Each element is handed over as it is read, which");
+		file.Line("/// is why the repetition has to be marked 'recover' (docs/syntax.md §6.3, §8.2).");
+		file.Line("/// </remarks>");
+
+		using (file.Block(
+			$"public static global::System.Collections.Generic.IEnumerable<{element}> " +
+			$"{publication.MethodName}(global::System.IO.TextReader input)"))
+		{
+			file.Line($"var window = new {WindowType}(input, {WindowSize});");
+			file.Line("var start  = 0;");
+
+			for (var i = 0; i < stages.Count; i++)
+			{
+				var stage  = stages[i];
+				var method = stage.Rule is { } rule ? MethodOf(rule) : parts[i];
+				var built  = stage.Rule is { } called ? results.QualifiedOf(called) : null;
+
+				file.Line();
+				file.Line("// " + Comment(stage));
+
+				var loop = stage.Repeated ? file.Block("while (true)") : null;
+
+				Read(i, stage, method, built);
+
+				loop?.Dispose();
+			}
+
+			// Names per stage rather than one set reused: a stage that is not a repetition
+			// declares its locals in the method's own scope, and two of them cannot share.
+			void Read(int i, Stage stage, string method, string? built)
+			{
+				var hands = built is null ? "ref failure" + i : $"ref failure{i}, out value{i}";
+
+				file.Line($"var failure{i} = new {FailureType}();");
+
+				if (built is not null)
+					file.Line($"{built} value{i} = default!;");
+
+				file.Line($"int end{i};");
+				file.Line();
+
+				using (file.Block("while (true)"))
+				{
+					file.Line($"failure{i} = new {FailureType}();");
+					file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
+					file.Line();
+
+					// The same provisional rule `find` reads by: what ran into the end of the
+					// window is not an answer while the reader has more.
+					using (file.Block(
+						$"if ((end{i} < 0 ? failure{i}.Position : end{i}) >= window.Length && !window.Ended)"))
+					{
+						file.Line("window.Extend(ref start);");
+						file.Line("continue;");
+					}
+
+					file.Line();
+					file.Line("break;");
+				}
+
+				file.Line();
+
+				if (stage.Repeated)
+				{
+					file.Line($"if (end{i} < 0)");
+					file.Then("break;");
+				}
+				else
+				{
+					file.Line($"if (end{i} < 0)");
+					file.Then(
+						"throw new global::System.FormatException(" +
+						$"\"Input does not match '{Named(stage)}' at \" + " +
+						$"(window.Offset + failure{i}.Position).ToString(" +
+						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+				}
+
+				file.Line();
+
+				if (built is not null)
+					file.Line($"yield return value{i};");
+
+				file.Line($"start = end{i};");
+			}
+		}
+	}
+
+	static string Comment(Stage stage) =>
+		stage.Rule is { } rule
+			? (stage.Repeated ? "every " : "") + rule.Name
+			: stage.Node.ToString();
+
+	static string Named(Stage stage) => stage.Rule?.Name ?? stage.Node.ToString();
+
+	/// <summary>
+	/// One part of a streamed <c>parse</c>: what to recognize, and what becomes of it.
+	/// </summary>
+	/// <param name="Rule">The rule to call, or null for a part that yields nothing.</param>
+	/// <param name="Repeated">Whether it is read until it stops matching.</param>
+	/// <param name="Node">What it came from, for the comment above it.</param>
+	sealed record Stage(RuleSymbol? Rule, bool Repeated, Node Node);
+
+	/// <summary>
+	/// A published rule broken into the parts a streamed parse reads one at a time.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only the operands of the rule itself, and only ones that are calls: what a stage
+	/// hands over has to be a whole value of a rule, because that is the unit the parse
+	/// commits to when it yields. Anything else in the sequence — <c>eof</c>, a literal
+	/// separator, <c>Trivia</c> — is recognized and contributes nothing, which is exactly
+	/// what §4.1 case 2 already says of it.
+	/// </para>
+	/// <para>
+	/// Null when the rule is not that shape. There is no attempt to be clever here: a
+	/// grammar this cannot decompose gets the reason and no overload, which is better than
+	/// a driver that quietly reads something else.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyList<Stage>? StagesOf(RecognitionGraph graph, RuleSymbol rule)
+	{
+		var body = graph.Bodies[rule];
+
+		if (body is Node.Construct(var built, _))
+			body = built;
+
+		var parts  = body is Node.Sequence(var sequence) ? sequence : [body];
+		var stages = new List<Stage>(parts.Count);
+
+		foreach (var part in parts)
+			switch (part)
+			{
+				case Node.Capture(_, Node.Call(var called, _)):
+					stages.Add(new Stage(called, Repeated: false, part));
+					break;
+
+				case Node.Repeat(Node.Capture(_, Node.Call(var called, _)), _, _):
+					stages.Add(new Stage(called, Repeated: true, part));
+					break;
+
+				// Consumes and yields nothing. A capture of something that is not a call
+				// would be a value with no rule to recognize it on its own, so it is not one
+				// of these — it is what makes the rule undecomposable.
+				case Node.Capture:
+					return null;
+
+				default:
+					stages.Add(new Stage(null, Repeated: false, part));
+					break;
+			}
+
+		return stages;
+	}
+
 	/// <summary>Whether anything in this grammar reads through a window.</summary>
 	static bool Streaming(RecognitionGraph graph)
 	{
@@ -521,9 +734,10 @@ public static class CSharpEmitter
 	}
 
 	static bool Streams(RecognitionGraph graph, Publication publication) =>
-		publication.Kind == PublishKind.Find &&
-		Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
-		extent != LineExtent.Beyond;
+		publication.Kind == PublishKind.Find
+			? Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
+				extent != LineExtent.Beyond
+			: Retention.StreamedParse(graph, publication.Rule) is null;
 
 	/// <summary>
 	/// The type a rule's captures are built into: a constructor and a get-only property
