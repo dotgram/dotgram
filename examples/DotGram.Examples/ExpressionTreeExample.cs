@@ -11,51 +11,20 @@ namespace DotGram.Examples;
 // That is the whole of the difference. The grammar is the one from
 // DecimalCalculatorExample with its arithmetic replaced by constructors, and it is the
 // shape every small DSL wants: a notation goes in, a typed tree comes out, and what the
-// tree means is C#'s business rather than the parser's.
+// tree means is somebody else's business — Expression.cs, which mentions no parser.
 //
-// One node type per operation rather than one carrying the operator as a string. The
-// grammar pays for it — `'+'` and `'-'` are two alternatives where they were one set —
-// and everything downstream is repaid: a walk names `Add` instead of testing for "+",
-// nothing has to handle an operator that cannot occur, and a node that takes different
-// operands later (a call, an index, a conditional) is a record beside these rather than
-// a string case that does not fit.
+//     var tree = ExpressionParser.Read("1 + 2 * 3");
 //
-// The tree is records, so C# reads it back with patterns:
-//
-//     Evaluate(Expression node) => node switch
-//     {
-//         Number(var value)   => value,
-//         Negate(var operand) => -Evaluate(operand),
-//         Add(var l, var r)   => Evaluate(l) + Evaluate(r),
-//         …
-//     };
+//     tree.Evaluate()   // 7
+//     tree.Print()      // (1 + (2 * 3))
 //
 // A parse tree that only a walker written for it can read is a parse tree somebody has
-// to maintain. This one is ordinary C# data.
-
-/// <summary>A node of the tree. Records, so callers read them back with patterns.</summary>
-public abstract record Expression;
-
-/// <summary>A literal.</summary>
-public sealed record Number(decimal Value) : Expression;
-
-/// <summary>Unary minus.</summary>
-public sealed record Negate(Expression Operand) : Expression;
-
-/// <summary><c>a + b</c>.</summary>
-public sealed record Add(Expression Left, Expression Right) : Expression;
-
-/// <summary><c>a - b</c>.</summary>
-public sealed record Sub(Expression Left, Expression Right) : Expression;
-
-/// <summary><c>a * b</c>.</summary>
-public sealed record Mul(Expression Left, Expression Right) : Expression;
-
-/// <summary><c>a / b</c>.</summary>
-public sealed record Div(Expression Left, Expression Right) : Expression;
-
-/// <summary><c>a ^ b</c>.</summary>
-public sealed record Pow(Expression Left, Expression Right) : Expression;
+// to maintain. This one is ordinary C# data: records, value equality, and patterns for
+// anything the tree does not already know how to do.
+//
+// OneRuleTreeExample builds the identical tree from one rule of binding powers. How a
+// grammar is written and what its `=>` builds are independent choices, and those two
+// examples are the same second choice made over different firsts.
 
 [Gram("""
 	@using System.Globalization;
@@ -97,60 +66,6 @@ public sealed record Pow(Expression Left, Expression Right) : Expression;
 	""")]
 public static partial class ExpressionParser
 {
-	// Read and TryRead are generated here, and hand back an Expression.
-
-	/// <summary>The tree, worked out. One arm per kind of node.</summary>
-	/// <exception cref="DivideByZeroException">A division whose right side is zero.</exception>
-	public static decimal Evaluate(Expression node) => node switch
-	{
-		Number(var value)   => value,
-		Negate(var operand) => -Evaluate(operand),
-
-		Add(var left, var right) => Evaluate(left) + Evaluate(right),
-		Sub(var left, var right) => Evaluate(left) - Evaluate(right),
-		Mul(var left, var right) => Evaluate(left) * Evaluate(right),
-		Div(var left, var right) => Evaluate(left) / Evaluate(right),
-		Pow(var left, var right) => Raise(Evaluate(left), Evaluate(right)),
-
-		// C# has no closed hierarchies, so the compiler cannot check that the arms above
-		// cover `Expression` and this one has to be here. It is where a node added later
-		// and forgotten here shows up, which is why it says which node rather than just
-		// throwing.
-		_ => throw new ArgumentOutOfRangeException(nameof(node), node, "Unknown node."),
-	};
-
-	/// <summary>The tree, written back out with every grouping made explicit.</summary>
-	public static string Print(Expression node) => node switch
-	{
-		Number(var value)   => value.ToString(CultureInfo.InvariantCulture),
-		Negate(var operand) => "-" + Print(operand),
-
-		Add(var left, var right) => Group(left, "+", right),
-		Sub(var left, var right) => Group(left, "-", right),
-		Mul(var left, var right) => Group(left, "*", right),
-		Div(var left, var right) => Group(left, "/", right),
-		Pow(var left, var right) => Group(left, "^", right),
-
-		_ => throw new ArgumentOutOfRangeException(nameof(node), node, "Unknown node."),
-	};
-
-	static string Group(Expression left, string @operator, Expression right) =>
-		$"({Print(left)} {@operator} {Print(right)})";
-
-	/// <summary>Power. See DecimalCalculatorExample for why it is not one line.</summary>
-	static decimal Raise(decimal value, decimal exponent)
-	{
-		if (exponent != decimal.Truncate(exponent))
-			return (decimal)Math.Pow((double)value, (double)exponent);
-
-		if (exponent < 0)
-			return Raise(1m / value, -exponent);
-
-		var result = 1m;
-
-		for (var i = 0; i < exponent; i++)
-			result *= value;
-
-		return result;
-	}
+	// Read and TryRead are generated here, and hand back an Expression. There is nothing
+	// else to write: what the tree does is on the tree.
 }

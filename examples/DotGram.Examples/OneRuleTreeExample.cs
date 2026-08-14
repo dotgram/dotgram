@@ -23,10 +23,11 @@ namespace DotGram.Examples;
 // and what a stack of levels cannot give, since there precedence is which rule calls
 // which and inserting one means a new rule and an edit to each of its neighbours.
 //
-// The node types are ExpressionTreeExample's, unchanged, and so is what walks them:
-// `ExpressionParser.Evaluate` and `.Print` take an `Expression` and neither knows nor
-// cares which grammar built it. That is the separation worth taking from all of this —
-// how the grammar is written and what `=>` builds are two independent choices.
+// The node types are Expression.cs's, unchanged, and so is everything they can do:
+// `Evaluate` and `Print` are on the tree and mention no parser, so nothing here has to
+// know they exist. That is the separation worth taking from all of this — how the
+// grammar is written and what `=>` builds are two independent choices, and the tree is
+// where the second one lands.
 
 [Gram("""
 	@using System.Globalization;

@@ -250,7 +250,7 @@ public sealed class ExampleTests
 	[InlineData("2*3+4",   "((2 * 3) + 4)")]
 	[InlineData("2*(3+4)", "(2 * (3 + 4))")]
 	public void And_the_shape_is_the_grouping(string expression, string expected) =>
-		Assert.Equal(expected, ExpressionParser.Print(ExpressionParser.Read(expression)));
+		Assert.Equal(expected, ExpressionParser.Read(expression).Print());
 
 	[Theory]
 	[MemberData(nameof(Expressions))]
@@ -261,8 +261,7 @@ public sealed class ExampleTests
 		// — a number or a node — is a separate question from how the grammar is written.
 		Assert.Equal(
 			Decimal(expression),
-			ExpressionParser.Evaluate(ExpressionParser.Read(expression))
-				.ToString(CultureInfo.InvariantCulture));
+			ExpressionParser.Read(expression).Evaluate().ToString(CultureInfo.InvariantCulture));
 
 	[Theory]
 	[MemberData(nameof(Expressions))]
@@ -274,18 +273,18 @@ public sealed class ExampleTests
 
 	[Fact]
 	public void And_the_walks_do_not_know_which_grammar_built_it() =>
-		// `Evaluate` and `Print` take an `Expression`. Nothing about them mentions a
-		// parser, which is why one set of them serves both grammars.
-		Assert.Equal(
-			"((1 - 2) - -3)",
-			ExpressionParser.Print(OneRuleParser.Read("1-2--3")));
+		// `Evaluate` and `Print` are on the tree and mention no parser, which is why one
+		// set of them serves both grammars — and why this line says nothing about which
+		// one built the node it is calling.
+		Assert.Equal("((1 - 2) - -3)", OneRuleParser.Read("1-2--3").Print());
 
 	[Fact]
 	public void And_a_tree_can_be_rewritten_before_it_is_walked()
 	{
-		// What the tree is for. Nothing like this is expressible on a parser that hands
-		// back a number.
-		Assert.Equal(6m, ExpressionParser.Evaluate(Double(ExpressionParser.Read("1 + 2"))));
+		// What the tree is for, and what stays with patterns: `Evaluate` and `Print` are on
+		// the nodes because every tree needs them, and everything else — this — is written
+		// where it is wanted, over records the tree knows nothing about.
+		Assert.Equal(6m, Double(ExpressionParser.Read("1 + 2")).Evaluate());
 
 		static Expression Double(Expression node) => node switch
 		{
