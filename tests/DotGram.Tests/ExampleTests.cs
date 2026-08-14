@@ -132,6 +132,13 @@ public sealed class ExampleTests
 		Assert.Equal(expected, Decimal(expression));
 
 	[Fact]
+	public void And_says_where_a_decimal_expression_stops_being_one()
+	{
+		Assert.Equal("1/8 = 0.125", DecimalCalculator.Explain("1/8"));
+		Assert.StartsWith("Input does not match", DecimalCalculator.Explain("1/"));
+	}
+
+	[Fact]
 	public void And_a_number_is_where_a_space_still_means_something()
 	{
 		// `Number` is declared in a scope that shadows Trivia with `none`, so the spaces
@@ -153,6 +160,16 @@ public sealed class ExampleTests
 	[InlineData(" 1 + 2 * 3 ",    "7")]
 	public void One_rule_holds_a_whole_expression_language(string expression, string expected) =>
 		Assert.Equal(expected, Strength(expression));
+
+	[Fact]
+	public void And_says_where_a_one_rule_expression_stops_being_one()
+	{
+		Assert.Equal("-1-2 = -3", StrengthCalculator.Explain("-1-2"));
+
+		// A strength refuses nothing by itself: what fails here is that `+` needs a right
+		// operand, and the position named is where one stopped being available.
+		Assert.StartsWith("Input does not match", StrengthCalculator.Explain("1+"));
+	}
 
 	/// <summary>
 	/// One corpus, used by every test that says two of these examples agree.

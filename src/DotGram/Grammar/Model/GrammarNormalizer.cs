@@ -40,6 +40,7 @@ public sealed class GrammarNormalizer
 	public const string UnbuiltConstruction = "GRAM4008";
 	public const string UnbuiltBinding      = "GRAM4009";
 	public const string UnbuiltRecovery     = "GRAM4010";
+	public const string UnbuiltRuleType     = "GRAM4011";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -163,12 +164,38 @@ public sealed class GrammarNormalizer
 			RuleOf(expression, target.Name),
 			[.. arguments.Select(argument => Lower(argument, scope))]),
 
-		Expr.Reference(_, var name, _) => _model.Bindings.TryGetValue(expression, out var symbol) && symbol is RuleSymbol rule
-			? CallTo(rule, [])
-			: new Node.Element(false, [], [], [symbol ?? Unresolved(name)]),
+		Expr.Reference(_, var name, _) => LowerReference(expression, name),
 
 		_ => Node.Empty.Instance,
 	};
+
+	/// <summary>
+	/// A bare name standing where an operand goes: a rule to call, or something else.
+	/// </summary>
+	/// <remarks>
+	/// A C# name here is §7.1 — a method that consumes input, or a predicate over one item
+	/// — and the seam for calling one at run time does not exist. It used to lower to an
+	/// element set with nothing in it, which is a rule that compiles, runs, and matches
+	/// nothing whatever the input is.
+	/// </remarks>
+	Node LowerReference(Expr expression, string name)
+	{
+		if (!_model.Bindings.TryGetValue(expression, out var symbol))
+			return new Node.Element(false, [], [], [Unresolved(name)]);
+
+		if (symbol is RuleSymbol rule)
+			return CallTo(rule, []);
+
+		if (symbol is CSharpSymbol)
+			Report(
+				UnsupportedElement,
+				$"'@{name}' stands where an operand goes, which is docs/syntax.md §7.1 — a C# method " +
+				"that consumes input — and is not built. Only '@(...)' inside a 'where' or a '=>' " +
+				"calls C# today.",
+				expression.At);
+
+		return new Node.Element(false, [], [], [symbol]);
+	}
 
 	/// <summary>What <c>&lt;&lt; n</c> or <c>&gt;&gt; n</c> said, by the alternative it was said on.</summary>
 	readonly Dictionary<Node, (bool IsLeft, int Level)> _bounds = new(NodeIdentity.Instance);
@@ -980,8 +1007,27 @@ public sealed class GrammarNormalizer
 	void ComputeTypes()
 	{
 		foreach (var rule in _rules)
-			if (rule.Declaration?.Type is { } type && (type.IsCSharp || IsCSharpKeyword(type.Name)))
+		{
+			if (rule.Declaration?.Type is not { } type)
+				continue;
+
+			if (type.IsCSharp || IsCSharpKeyword(type.Name))
+			{
 				_types[rule] = TypeName(type);
+
+				continue;
+			}
+
+			// §4.1 case 3: `A : B` says A's value is B's. Nothing here knows how to make
+			// that true, and what happened before this was worse than not knowing — the
+			// declaration was dropped and A got a type generated from its own captures, so
+			// a rule said one thing and meant another with nothing to read about it.
+			Report(
+				UnbuiltRuleType,
+				$"'{rule.Name}' declares its type as the rule '{type.Name}', which is docs/syntax.md " +
+				"§4.1 case 3 and is not built. Declare a C# type with ': @T' and build it with '=>'.",
+				type.At);
+		}
 	}
 
 	static bool IsCSharpKeyword(string name) => name is

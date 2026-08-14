@@ -30,10 +30,11 @@ then quietly mean nothing.
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| rule types naming another rule §4.1 | ✓ | ✓ | ✗ | ✗ | ✗ |
+| rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| C# references `@Name` | ✓ | partial | ✗ | ✗ | ✗ |
+| C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `@Name` as an operand or predicate §7.1 | ✓ | partial | refused | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
@@ -43,7 +44,7 @@ then quietly mean nothing.
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported | ✓ | ✓ | refused | ✗ | ✗ |
 | a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
-| value failures recovered from §8.2 | — | — | ✗ | ✗ | ✗ |
+| a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
@@ -111,6 +112,14 @@ a whole-word search over the text, so it over-approximates: `line` inside a stri
 literal counts as asked for. That direction is the safe one — a name that was written is
 always found, and a name that was not costs an unused parameter. Reading it exactly means
 lexing C#, which is the host's job and not the grammar half's.
+
+**A `=>` that throws inside a recovering repetition is not caught.** §8.2 says it is, and
+treats the throw as a value failure to be recovered from — the element was recognized
+whole, so there is nothing to skip and the factory's own rejection stands in for it. What
+happens today is that the exception leaves the parse: `DecimalCalculator.Evaluate("1 . 5")`
+in the examples throws `FormatException` out of a `decimal.Parse` in a `=>`, and the tests
+assert exactly that rather than a recovered element. Worth knowing before writing a `=>`
+that can fail.
 
 ## Associativity
 
@@ -186,14 +195,9 @@ parses); levels say that by naming two different rules either side of it, `left:
 `examples/` has the same calculator both ways and a test that runs them against each
 other expression by expression, that pair included.
 
-Refused: a rule with a strength on one recursive alternative and none on another (§4.3.1
-— one convention or the other), and a strength on an alternative with no operand of its
-own to read at it.
-
-They do parse, and are refused with `GRAM4009` naming §4.3.1. Parsing something the
-compiler cannot honour is deliberate: `<< 2` would otherwise be a syntax error about an
-unexpected `<`, which tells an author nothing about what is missing. The tests that pin
-this are the ones that will stop passing, for the right reason, when the engine lands.
+Refused with `GRAM4009`: a rule with a strength on one recursive alternative and none on
+another (§4.3.1 — one convention or the other), and a strength on an alternative with no
+operand of its own to read at it.
 
 ## What a publication answers with
 
@@ -312,8 +316,16 @@ Three things are refused rather than quietly ignored, all `GRAM4008`:
 - a `=>` anywhere but on an alternative of the rule — inside a group, say. It builds
   the rule's value, and a group has none.
 
-`: T` naming another rule (§4.1 case 3) is not wired either: only `: @T` and the C#
-keywords count as a declared type.
+`: T` naming another rule (§4.1 case 3) is refused with `GRAM4011`. Only `: @T` and the
+C# keywords count as a declared type — and until it was refused, the declaration was
+dropped in silence and the rule got a type generated from its own captures instead, so
+`A : B` compiled, ran, and handed back an `A` with nothing to do with `B`.
+
+`@Name` standing where an operand goes (§7.1) is refused with `GRAM4005`, the same
+diagnostic an unbuilt C# predicate inside an element set gets. It used to lower to an
+element set with nothing in it: a rule that compiled, ran, and matched nothing whatever
+the input was. Only `@(...)` inside a `where` or a `=>` reaches C# today, and the names
+inside one — `@int.Parse` and the like — resolve against the host compilation.
 
 ## Two deviations from §7.3, both deliberate
 
@@ -339,3 +351,13 @@ that would have found the backtracking defect above in seconds.
 `UrlTests` runs the URL grammar of §7.3 and reads the captures back by reflection;
 `GeneratedApiTests` asks the compiler the same questions about the same grammar, so a
 member that stopped being generated fails the build rather than an assertion.
+
+`ExampleTests` runs everything under `examples/`, and its most useful tests are the ones
+that compare two examples rather than either against a written-down answer: the same
+expression through a grammar of levels and a grammar of strengths, and the same
+expression through five rules and one, compared as whole trees by record equality. A
+number in a test is a number somebody decided; two implementations disagreeing is a
+defect neither of them can hide.
+
+Every diagnostic the compiler can raise has a test that raises it — all twenty-nine, and
+that is checked rather than assumed.

@@ -86,6 +86,21 @@ public sealed class SemanticTests
 	public void A_lookahead_leaves_nothing_behind_to_backtrack_into() =>
 		Assert.True(Matches("Start = ?=('a' | 'b') & 'a' & 'b'", "ab"));
 
+	[Theory]
+	[InlineData("ab", true)]
+	[InlineData("ax", false)]
+	public void A_positive_lookahead_asks_without_consuming(string input, bool expected) =>
+		// It consumes nothing, so the 'b' after it matches the same character it looked at.
+		Assert.Equal(expected, Matches("Start = 'a' & ?='b' & 'b'", input));
+
+	[Theory]
+	[InlineData("ac", true)]
+	[InlineData("ab", false)]
+	public void A_negative_lookahead_refuses_what_it_finds(string input, bool expected) =>
+		// The other half of §3.6, and the only one nothing tested for its own sake: `eof`
+		// lowers to `?![^ ]`, so it was exercised only through that.
+		Assert.Equal(expected, Matches("Start = 'a' & ?!'b' & ['a'..'z']", input));
+
 	[Fact]
 	public void Repetition_longer_than_the_first_stack_page() =>
 		// The stack starts at 48 ints and grows; this needs far more frames than that.
@@ -748,6 +763,25 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_guard_may_stand_where_nothing_has_been_captured() =>
 		Assert.True(Matches("Start = ['0'..'9']+ & where @(true)", "7"));
+
+	[Fact]
+	public void A_C_sharp_name_standing_as_an_operand_says_it_is_not_built() =>
+		// §7.1: `@Recognizer` as an operand is a C# method that consumes input. The seam
+		// for calling one does not exist, and what happened before this was an element set
+		// with nothing in it — a rule that compiled and matched nothing at all.
+		Refused(GrammarNormalizer.UnsupportedElement, "Start = @MyScanner & 'x'");
+
+	[Fact]
+	public void A_rule_typed_as_another_rule_says_it_is_not_built() =>
+		// §4.1 case 3. Before it was refused the declaration was dropped in silence and the
+		// rule got a type generated from its own captures — so `A : B` compiled, ran, and
+		// handed back an `A` that had nothing to do with `B`.
+		Refused(
+			GrammarNormalizer.UnbuiltRuleType,
+			"""
+			A : B = digits: ['0'..'9']+
+			B     = 'x'
+			""");
 
 	// ── Scopes (§5) ─────────────────────────────────────────────────────────────
 

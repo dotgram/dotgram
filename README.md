@@ -160,11 +160,16 @@ Working end to end — a `.gram` file becomes a parser that runs:
 
 Not built yet:
 
+Each of these is refused with the reason where it can be — a construct that parses and
+then quietly means nothing is the failure this project is most careful about:
+
 - `: T` naming another rule, and matching captures to a constructor by name
+- `@Name` standing as an operand or an element predicate — only `@(...)` inside a
+  `where` or a `=>` calls C# today
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
 - `recover` without a `=>`, reporting broken elements out of band rather than in the
-  sequence
+  sequence; and a `=>` that throws inside one, which §8.2 says is caught and is not
 - streaming input, incremental parsing
 
 ## Examples
