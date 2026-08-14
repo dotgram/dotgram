@@ -52,16 +52,21 @@ sealed class ResultTypes
 			if (graph.Results[rule].Count == 0)
 				continue;
 
+			// Scoped, because two scopes may each declare a rule of the same name — that is
+			// what a scope is for — and two types of the same name is a compile error in
+			// the consumer's build rather than a shadowing.
+			var name = CSharpEmitter.IdentifierOf(rule);
+
 			// A member may not be named after the type that contains it, and a host class
 			// named after the grammar's own root rule is the ordinary case. The support
 			// types emitted beside the recognizers claim their names the same way: a rule
 			// called Failure gets FailureValue rather than colliding with one of ours.
 			_names[rule] =
-				rule.Name == host ||
-				rule.Name == CSharpEmitter.FailureType ||
-				rule.Name == CSharpEmitter.MatchType
-					? rule.Name + "Value"
-					: rule.Name;
+				name == host ||
+				name == CSharpEmitter.FailureType ||
+				name == CSharpEmitter.MatchType
+					? name + "Value"
+					: name;
 
 			_built.Add(rule);
 		}

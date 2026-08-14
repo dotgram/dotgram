@@ -20,6 +20,7 @@ then quietly mean nothing.
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
 | scopes, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same rule name in two scopes | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |

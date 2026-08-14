@@ -445,7 +445,7 @@ public static class CSharpEmitter
 	static IReadOnlyList<Machine.Factory> FactoriesOf(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		var name   = "Construct_" + rule.Name.Replace('.', '_');
+		var name   = "Construct_" + IdentifierOf(rule);
 		var fold   = graph.Folds.TryGetValue(rule, out var found0) ? found0 : null;
 		var layout = LayoutOf(graph, results, rule);
 		var found  = new List<Machine.Factory>();
@@ -641,7 +641,39 @@ public static class CSharpEmitter
 		return machine.UsesStack || machine.Extra.Count > 0;
 	}
 
-	internal static string MethodOf(RuleSymbol rule) => $"Recognize_{rule.Name.Replace('.', '_')}";
+	internal static string MethodOf(RuleSymbol rule) => "Recognize_" + IdentifierOf(rule);
+
+	/// <summary>
+	/// A rule's name as one C# identifier, unique across the grammar.
+	/// </summary>
+	/// <remarks>
+	/// The short name is not unique and is not meant to be — shadowing is what a scope is
+	/// for, so a grammar with a <c>Trivia</c> per scope is the ordinary case rather than a
+	/// clash. The scopes a rule is declared in are prefixed to tell them apart, named
+	/// rather than numbered so that a reader of the generated code can still see which
+	/// rule a method came from. The standard library's scope is not an identifier and is
+	/// left off: its names are fixed, and a grammar that shadows one of them takes the
+	/// name with it.
+	/// </remarks>
+	internal static string IdentifierOf(RuleSymbol rule)
+	{
+		var name = rule.Name;
+
+		for (var scope = rule.Scope; scope is { Name.Length: > 0 }; scope = scope.Parent)
+			if (IsIdentifier(scope.Name))
+				name = scope.Name + "_" + name;
+
+		return name;
+	}
+
+	static bool IsIdentifier(string name)
+	{
+		foreach (var c in name)
+			if (!char.IsLetterOrDigit(c) && c != '_')
+				return false;
+
+		return true;
+	}
 
 	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
 	static string WholeOf(RuleSymbol rule) => MethodOf(rule) + "_Whole";

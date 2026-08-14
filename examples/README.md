@@ -10,6 +10,7 @@ against it. `DotGram.Tests` runs them; nothing here knows that.
 | [`FeedExample.cs`](DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
 | [`RecoveringFeedExample.cs`](DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
 | [`CalculatorExample.cs`](DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
+| [`DecimalCalculatorExample.cs`](DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a scope that shadows `Trivia` back off |
 
 ## Taking one
 

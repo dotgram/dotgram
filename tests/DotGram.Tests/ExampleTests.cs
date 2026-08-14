@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 using DotGram.Examples;
 
@@ -105,6 +106,37 @@ public sealed class ExampleTests
 		Assert.Equal("2*3 = 6", Calculator.Explain("2*3"));
 		Assert.StartsWith("Input does not match", Calculator.Explain("2*"));
 		Assert.Throws<FormatException>(static () => Calculator.Evaluate("2*"));
+	}
+
+	// ── The calculator that recurses both ways ───────────────────────────────────
+
+	static string Decimal(string expression) =>
+		DecimalCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+
+	[Theory]
+	[InlineData("1-2-3",         "-4")]     // (1-2)-3 — Sum recurses on the left
+	[InlineData("100/5/2",       "10")]     // (100/5)/2, the same reason
+	[InlineData("2^3^2",        "512")]     // 2^(3^2) — Power recurses on the right
+	[InlineData("(2^3)^2",       "64")]     // and this is what the other grouping means
+	public void Each_operator_groups_the_way_its_rule_recurses(string expression, string expected) =>
+		Assert.Equal(expected, Decimal(expression));
+
+	[Theory]
+	[InlineData("1/8",        "0.125")]     // `: @decimal`, so not the 0 the int one gives
+	[InlineData("1.5*2",        "3.0")]
+	[InlineData("2^-2",        "0.25")]
+	[InlineData("-2^2",          "-4")]     // -(2^2): `^` binds tighter than unary minus
+	[InlineData("2*3^2",         "18")]     // and looser than `*`
+	public void And_reckons_in_decimal(string expression, string expected) =>
+		Assert.Equal(expected, Decimal(expression));
+
+	[Fact]
+	public void And_a_number_is_where_a_space_still_means_something()
+	{
+		// `Number` is declared in a scope that shadows Trivia with `none`, so the spaces
+		// this grammar ignores everywhere else are not ignored between digits.
+		Assert.Equal("1.5", Decimal(" 1.5 "));
+		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
 	}
 
 	// ── The feed reader ──────────────────────────────────────────────────────────

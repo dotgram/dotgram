@@ -677,6 +677,52 @@ public sealed class SemanticTests
 	public void A_guard_may_stand_where_nothing_has_been_captured() =>
 		Assert.True(Matches("Start = ['0'..'9']+ & where @(true)", "7"));
 
+	// ── Scopes (§5) ─────────────────────────────────────────────────────────────
+
+	[Fact]
+	public void Two_scopes_may_each_have_a_rule_of_the_same_name() =>
+		// Which is the whole point of a scope, and which used to emit two C# methods of
+		// the same name into the consumer's build. The scopes a rule is declared in are
+		// prefixed to the identifier it becomes.
+		Assert.True(Matches(
+			"""
+			using Inner;
+
+			scope Inner
+			{
+				Digit = ['0'..'9']
+				Pair  = Digit & Digit
+			}
+
+			Digit = ['a'..'f']
+			Start = Digit & Pair & Digit
+			""",
+			"a12b"));
+
+	[Theory]
+	[InlineData("1.5",   true)]
+	[InlineData("1 . 5", false)]
+	public void A_scope_shadows_Trivia_the_other_way_round(string input, bool expected) =>
+		// Trivia goes between the operands of every sequence, `Number`'s included. A scope
+		// that shadows it with `none` is how a rule says a space means something here.
+		Assert.Equal(
+			expected,
+			Matches(
+				"""
+				using Lexical;
+
+				scope Lexical
+				{
+					Trivia = none
+
+					Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?
+				}
+
+				Trivia = [' ']*
+				Start  = Number
+				""",
+				input));
+
 	// ── Repetition counts ───────────────────────────────────────────────────────
 
 	[Fact]
