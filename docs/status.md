@@ -42,6 +42,7 @@ then quietly mean nothing.
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
+| `position` is `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
@@ -60,18 +61,20 @@ records the next one, taking one more repetition records the option of having st
 Failing anywhere resumes at the most recent of them, and nothing is given up until the
 stack is empty. So `'a'? & 'a'` matches `"a"`, and `("x" | "xy") & 'y'` matches `"xy"`.
 
-**Backtracking does not cross a rule boundary.** A call is a call: it answers once,
-with the first match it finds, and cannot be asked for another. So
+**Backtracking does not cross a rule boundary**, and that is now language rather than
+implementation — §4 of the specification says so and says why. A call answers once, with
+the first match it finds, and cannot be asked for another:
 
 ```dotgram
 Start = Name & 'y'
-Name  = "x" | "xy"
+Name  = "xy" | "x"
 ```
 
-does not match `xy`, though the same expressions written in one rule would. Whether
-that stays this way is a language question — PEG answers once at rule boundaries by
-design, and .NET regular expressions have no rule boundaries to answer at — and it is
-not settled. What is settled is that it is written here rather than discovered.
+does not match `xy`, though `("xy" | "x") & 'y'` does.
+
+The example was wrong here for a long time — it had the alternatives the other way round,
+as `"x" | "xy"`, which matches perfectly well because the shorter one wins and `'y'` takes
+what is left. Two tests now pin both orderings, which is how the mistake surfaced.
 
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
@@ -120,9 +123,6 @@ position whose element had matched and be told one broke there.
 All seven names of §8.2 are supplied. Three differ from the specification in ways worth
 knowing:
 
-- **`position` is `int`, not `long`.** §8.2 makes it `long` for a feed larger than an
-  `int` can index. Input is a `string` today, so `int` is exact; it widens when
-  streaming arrives, and widening a parameter is not a change any factory has to notice.
 - **`text` and `span` stop where the synchronization point begins.** `eol` separates the
   elements and is not part of one, so a rejected `b1b\n` is three characters, not four.
 - **`message` is not the expected set.** It says which rule the element should have been
@@ -163,13 +163,17 @@ scoped to one call, and one hook serves every recovering rule in the grammar —
 `rule` parameter. `LoggingFeedExample` shows the ordinary way round the first: gather into
 a `[ThreadStatic]` for the duration of a read.
 
-**A `=>` that throws inside a recovering repetition is not caught.** §8.2 says it is, and
-treats the throw as a value failure to be recovered from — the element was recognized
-whole, so there is nothing to skip and the factory's own rejection stands in for it. What
-happens today is that the exception leaves the parse: `DecimalCalculator.Evaluate("1 . 5")`
-in the examples throws `FormatException` out of a `decimal.Parse` in a `=>`, and the tests
-assert exactly that rather than a recovered element. Worth knowing before writing a `=>`
-that can fail.
+**A `=>` that throws is not caught, inside a recovering repetition or anywhere else.**
+This was the one place the specification and the code disagreed, and it was settled by
+changing the specification: §8.2 used to promise the throw would be caught and treated as
+a value failure. Catching would mean catching `Exception`, because there is no type that
+tells "this quantity is not a number" from `NullReferenceException`, and a parser that
+reports a bug in the author's own C# as "row 400 was malformed" is worse than one that
+stops. A conversion that can fail says so with the value-failure form of §8.1, which is
+not built yet and is the row above.
+
+`DecimalCalculator.Evaluate("1 . 5")` in the examples throws `FormatException` out of a
+`decimal.Parse` in a `=>`, and a test asserts exactly that.
 
 ## Associativity
 

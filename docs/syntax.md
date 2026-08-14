@@ -350,6 +350,40 @@ Date : @DateOnly = y: Digit{4} & '-' & m: Digit{2} & '-' & d: Digit{2}
 expression position `[` opens an element set; the positions do not overlap, just as
 an array type and an indexer do not overlap in C#.
 
+**A rule is a boundary that backtracking does not cross.** A call answers once, with the
+first match it finds at that position, and cannot be asked for another. Ordered choice
+*inside* a rule backtracks fully (§11); across a call it does not backtrack at all.
+
+```dotgram
+Start = Name & 'y'
+Name  = "xy" | "x"
+```
+
+does not match `xy`: `Name` answers `"xy"`, `'y'` finds nothing left, and `Name` cannot
+be sent back for its second alternative. The same expressions in one rule do match it,
+because there the choice is ordinary ordered choice:
+
+```dotgram
+Start = ("xy" | "x") & 'y'
+```
+
+Which way round the alternatives are written decides whether it shows at all. With
+`Name = "x" | "xy"` the shorter one wins, `'y'` takes the `y`, and the boundary is
+invisible. That is the awkward part: the same two rules match or fail depending on an
+ordering that looks like a matter of taste.
+
+**This is the language, not the engine.** A rule is a function from a position to a
+match, and the rest of the language rests on that. What a match records is which
+alternative it came through — one number per call — and that is what lets construction
+happen after recognition rather than during it (§7.3), what lets a fold collect its steps
+(§4.3), and what lets a repetition be committed by `recover` (§8.2). A rule that answered
+more than once would be a function from a position to a *sequence* of matches, and every
+one of those would have to be built again around it.
+
+The cost is real and worth stating plainly: a grammar cannot be refactored freely.
+Lifting part of an expression into a rule of its own can change what it matches. Where
+that bites, inline it.
+
 ### 4.1 A rule's result
 
 1. There is `=> expr` — the expression gives the result.
@@ -547,8 +581,6 @@ a new rule. It cannot be a capture: a capture must follow `&` or `|`, and there 
 expression does not count as complete.
 
 ### 4.5 Trivia — insignificant whitespace and comments
-
-**Working proposal.**
 
 The rule `Trivia` is always inserted between the operands of a sequence. It is empty
 by default, so by default nothing is inserted:
@@ -790,6 +822,34 @@ start of the input, so retention would be the whole file.
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 
+**What "how far back" means is fixed by §4**, and this is the whole of the retention
+rule:
+
+- backtracking does not cross a rule boundary, so a **call reaches back not at all** —
+  it either matched, and the parse is past it, or it did not, and the parse is where it
+  was before;
+- inside a rule, backtracking may return to any position that rule has visited, so a
+  **rule reaches back exactly as far as it has consumed**;
+- therefore the input that must be retained is the extent of the outermost rule still in
+  progress.
+
+For `parse` that is the whole input, and a grammar of one rule over a whole file streams
+no better than reading it. What bounds it is a construct that says the parse will not go
+back past a point, and `recover` is one by construction: its synchronization expression
+is exactly such a point, so a marked repetition retains one element and not the file.
+
+**A capture is materialized when the rule that owns it accepts** — not when the parse
+ends, and not lazily afterwards. Since a rule's extent is also its retention, a captured
+string is made while the input it names is still there, and a buffer may be reused the
+moment the rule that read it has answered. That is what makes a capture and a reused
+buffer compatible at all, and it is why construction runs at the accepting state (§7.3)
+rather than at the end of the parse.
+
+**Absolute offsets are `long`; extents are `int`.** A position is into the input, and an
+input may be a file larger than an `int` can index. An extent — a span, a length, a
+capture — is into a buffer, and a buffer never is. Counts of things, like a line number
+or an ordinal, are `int`: nothing has two billion lines.
+
 Positions inside a line are ordinary `int`. What crosses the publication boundary for
 a streamed parse is a `long`, so an error at offset 8,432,109,553 can be reported as
 such.
@@ -1009,8 +1069,14 @@ Feed : FeedItem[] = Header
 
 A value failure inside a marked repetition is recovered from too, and more cheaply: the
 element was recognized whole, so the position is already past it and there is nothing
-to skip. Inside a marked repetition an exception thrown by `=>` is caught and treated
-as a value failure; outside one, nothing is caught.
+to skip.
+
+**Nothing is ever caught.** An exception out of a `=>` leaves the parse, inside a marked
+repetition as anywhere else. Catching would mean catching `Exception` — there is no way
+to tell "this record's quantity is not a number" from `NullReferenceException` by type —
+and a parser that turns a bug in the author's own C# into "row 400 was malformed" is
+worse than one that stops. A conversion that can fail says so, with the value-failure
+form of §8.1, and that is the difference between a rejection and a defect.
 
 **It is opt-in because it cannot be the default.** The rule "consumed something, then
 failed, therefore malformed" is wrong for ordinary grammars, and this language's own

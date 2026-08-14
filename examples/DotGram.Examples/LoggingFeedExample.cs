@@ -92,6 +92,6 @@ public static partial class LoggingFeedReader
 	/// mechanism, and it is why the generated side can afford to always be there.
 	/// </remarks>
 	static partial void OnRecovered(
-		string rule, string text, int position, int line, int column, int ordinal, string message) =>
+		string rule, string text, long position, int line, int column, int ordinal, string message) =>
 		_rejected?.Add(new FeedRejection(rule, line, text, message));
 }

@@ -643,11 +643,21 @@ public static class CSharpEmitter
 		return false;
 	}
 
-	/// <summary>The C# type of a name §8.2 supplies to a failure factory.</summary>
+	/// <summary>
+	/// The C# type of a name §8.2 supplies to a failure factory.
+	/// </summary>
+	/// <remarks>
+	/// <c>position</c> is a <c>long</c> and everything else counting is an <c>int</c>,
+	/// which is the frozen rule: an absolute offset is into the input, and an input may be
+	/// a file larger than an <c>int</c> can index, while an extent is into a buffer and a
+	/// buffer never is. A line number and an ordinal are counts of things in that file
+	/// rather than positions in it, and nothing counts two billion lines.
+	/// </remarks>
 	static string TypeOfSupplied(string name) => name switch
 	{
 		"text" or "message" => "string",
 		"span"              => "global::DotGram.SourceSpan",
+		"position"          => "long",
 		_                   => "int",
 	};
 
@@ -894,7 +904,7 @@ public static class CSharpEmitter
 		/// <param name="ordinal">Which element of the repetition it was, counting rejected ones, from 0.</param>
 		/// <param name="message">Why it was rejected.</param>
 		static partial void OnRecovered(
-			string rule, string text, int position, int line, int column, int ordinal, string message);
+			string rule, string text, long position, int line, int column, int ordinal, string message);
 		""";
 
 	/// <summary>

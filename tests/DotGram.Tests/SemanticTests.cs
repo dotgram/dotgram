@@ -101,6 +101,19 @@ public sealed class SemanticTests
 		// lowers to `?![^ ]`, so it was exercised only through that.
 		Assert.Equal(expected, Matches("Start = 'a' & ?!'b' & ['a'..'z']", input));
 
+	[Theory]
+	[InlineData("Name = \"x\" | \"xy\"", "xy", true)]   // shorter first: "x", then 'y' takes the y
+	[InlineData("Name = \"xy\" | \"x\"", "xy", false)]  // longer first: "xy", and 'y' has nothing left
+	public void A_call_answers_once_and_is_not_asked_again(string name, string input, bool expected) =>
+		// The boundary §4 freezes. Which way round the alternatives are written decides
+		// whether it shows: ordered choice inside `Name` picks the first that matches, and
+		// `Start` cannot send it back for the other one. Written in one rule it could.
+		Assert.Equal(expected, Matches($"Start = Name & 'y'\n{name}", input));
+
+	[Fact]
+	public void And_the_same_expressions_in_one_rule_do_backtrack() =>
+		Assert.True(Matches("Start = (\"xy\" | \"x\") & 'y'", "xy"));
+
 	[Fact]
 	public void Nesting_a_rule_deep_inside_itself() =>
 		// Backtracking is a machine inside a rule and an ordinary call between rules, so
