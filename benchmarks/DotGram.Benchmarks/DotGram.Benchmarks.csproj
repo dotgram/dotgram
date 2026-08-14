@@ -23,7 +23,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- The generator, and nothing else — the same reference a consumer takes. -->
+		<!-- The generator, and nothing else — the same reference a consumer takes. It
+		     stays that way deliberately: referencing the compiler as a library here would
+		     drag its Roslyn version in and stop this project being a consumer at all. What
+		     the compiler itself costs is measured from the tests, which reference both. -->
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

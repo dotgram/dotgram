@@ -452,11 +452,37 @@ found not to work:
 - `ImmutableArray<T>.Equals` compares the underlying array **by reference**, so a step
   handing one out is unequal to itself every run. Hence `EquatableArray<T>`.
 
-**Still to do: narrow what the `Compilation` is for.** It answers two questions — does
-this C# type exist, does this method exist with this shape — for the handful of `@Name`
-and `: @T` a grammar mentions. Collect the questions from the grammar, answer them into a
-small value, and the expensive stage would depend on that instead: then an unrelated edit
-would skip the generation itself rather than merely produce the same text.
+**Then the `Compilation` was narrowed to what it is for**, because the transform it fed
+was not cheap: one compile of the URL grammar is 1.5 ms, so twenty grammars in a solution
+is thirty milliseconds of a keystroke and a hundred is a sixth of a second.
+
+The compilation answers two questions — does this C# type exist, does this method exist
+with this shape — for the handful of `@Name` and `: @T` a grammar mentions. So there are
+three stages:
+
+```text
+grammar + host  ──►  the questions its C# names raise      cached on the grammar
+                              │
+Compilation ──────────────────┤  the answers, as values    re-runs, and is a few lookups
+                              ▼
+grammar + host + answers  ──►  the parser                  cached on all three
+```
+
+Editing a C# file re-runs the middle stage and stops there, because the answers it
+produces are the same ones. Both ends are checked: `Asked` and `Compiled` must come back
+`Cached` after an unrelated edit, and `Compiled` must **not** after a grammar edit — and
+the check insists the stage ran at all, because `Assert.All` over nothing passes.
+
+**The questions are collected from the grammar's syntax, and are a superset.** Not by
+watching the binder ask, because the binder stops as soon as an answer satisfies it —
+`TypeInView` tries the bare name and then each import in turn — so a recording pass would
+record a different set from the one the real pass needs. Every C# name crossed with every
+`@using` is more questions than are needed and always includes the ones that are.
+
+If it is ever not, the answered resolver throws rather than saying no: a question nobody
+foresaw cannot be answered once the compilation is out of reach, and "no" would refuse a
+grammar for naming a type that exists. A test drives the four ways a grammar reaches C#
+and requires the generator not to fall over.
 
 `RegisterImplementationSourceOutput` — output produced only for real builds, invisible to
 IntelliSense — is the mechanism for keeping heavy work off the editor's path, and it does
@@ -478,9 +504,12 @@ parts as strings. `benchmarks/README.md` has the table and what not to read into
 
 **Nesting depth**, above: about 2700 levels, and why.
 
+**One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
+what an editor used to pay per keystroke per grammar, and is why the pipeline was
+narrowed rather than left as it was.
+
 Still unmeasured, and worth knowing before anyone relies on it: throughput on a large
-feed, pathological backtracking, generated code size, and how long the generator takes to
-re-run when one file of many changes.
+feed, pathological backtracking, and generated code size.
 
 ## What the tests cover
 

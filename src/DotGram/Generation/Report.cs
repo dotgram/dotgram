@@ -102,7 +102,18 @@ readonly record struct Report(
 readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<EquatableArray<T>>
 	where T : IEquatable<T>
 {
-	public ImmutableArray<T> Items { get; } = items.IsDefault ? [] : items;
+	readonly ImmutableArray<T> _items = items;
+
+	/// <summary>
+	/// The contents, empty when there are none.
+	/// </summary>
+	/// <remarks>
+	/// Through a property because a <c>default</c> of this struct never ran the
+	/// constructor, so the field is a default <c>ImmutableArray</c> — the one whose every
+	/// member throws. A record with one of these among its fields is defaulted the moment
+	/// any of its cases has nothing to say.
+	/// </remarks>
+	public ImmutableArray<T> Items => _items.IsDefault ? [] : _items;
 
 	public bool Equals(EquatableArray<T> other)
 	{

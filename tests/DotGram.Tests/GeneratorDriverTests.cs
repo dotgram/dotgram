@@ -267,17 +267,20 @@ public sealed class GeneratorDriverTests
 		// argued because the failure is invisible: a generator that regenerates everything
 		// on every keystroke produces exactly the right code, just at the wrong time and
 		// as often as the author can type.
-		var steps = StepsAfterEditingAnUnrelatedFile(Claimed);
+		var run = AfterEditingAnUnrelatedFile(Claimed);
 
-		Assert.NotEmpty(steps);
+		// The middle stage re-runs — it holds the compilation and cannot not — and answers
+		// the same, which is what stops everything below it.
+		Cached(run, GramGenerator.AskedStage);
+		Cached(run, GramGenerator.CompiledStage);
 
 		Assert.All(
-			steps,
-			step => Assert.True(
-				step.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
-				$"Editing an unrelated file re-ran parser generation ({step.Reason}). " +
-				"Something in the pipeline compares unequal across compilations — the usual " +
-				"cause is a Compilation or a symbol reaching the output step."));
+			run.Results.SelectMany(result => result.TrackedOutputSteps).SelectMany(step => step.Value),
+			step => Assert.All(
+				step.Outputs,
+				output => Assert.True(
+					output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+					$"Editing an unrelated file re-ran the output step ({output.Reason}).")));
 	}
 
 	[Fact]
@@ -285,12 +288,57 @@ public sealed class GeneratorDriverTests
 	{
 		// The other half, and the one that keeps the first honest: "nothing re-ran" is also
 		// what a generator that does nothing at all would report.
-		var steps = StepsAfterEditingAnUnrelatedFile(Claimed, alsoEditTheGrammar: true);
+		var run = AfterEditingAnUnrelatedFile(Claimed, alsoEditTheGrammar: true);
 
 		Assert.Contains(
-			steps,
-			step => step.Reason is IncrementalStepRunReason.Modified or IncrementalStepRunReason.New);
+			Runs(run, GramGenerator.CompiledStage),
+			output => output.Reason is IncrementalStepRunReason.Modified or IncrementalStepRunReason.New);
 	}
+
+	[Theory]
+	[InlineData("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start")]
+	[InlineData("@using System.Globalization;\nStart : @decimal = d: ['0'..'9']+ => @(decimal.Parse(d, CultureInfo.InvariantCulture))\nparse Start")]
+	[InlineData("Start = d: ['0'..'9'] & where @(d == \"1\")\nparse Start")]
+	[InlineData("Start : @System.Text.StringBuilder = t: ['a'..'z']+ => @(new System.Text.StringBuilder(t))\nparse Start")]
+	public void The_question_collector_foresees_what_binding_asks(string grammar)
+	{
+		// The one thing this design can get wrong. Questions are collected from the
+		// grammar's syntax and answered before binding runs, so a question binding asks
+		// that nobody foresaw is answered "no" without the host ever being consulted — a
+		// wrong answer, not a slow one. The generator records those; here there must be
+		// none, over grammars that reach C# every way the notation allows.
+		var result = RunGenerator($"[DotGram.Gram(@\"{grammar.Replace("\"", "\"\"")}\")] public partial class Probe;");
+
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			diagnostic => diagnostic.Id == "CS8785" || diagnostic.Severity == DiagnosticSeverity.Error);
+	}
+
+	static void Cached(GeneratorDriverRunResult run, string stage)
+	{
+		var runs = Runs(run, stage);
+
+		// Before the assertion, because `Assert.All` over nothing passes — and a stage
+		// renamed or removed would report nothing rather than fail.
+		Assert.True(runs.Length > 0, $"No stage named '{stage}' ran at all.");
+
+		Assert.All(
+			runs,
+			output => Assert.True(
+				output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+				$"Editing an unrelated file re-ran '{stage}' ({output.Reason}). Something it " +
+				"depends on compares unequal across compilations."));
+	}
+
+	static ImmutableArray<(object Value, IncrementalStepRunReason Reason)> Runs(
+		GeneratorDriverRunResult run, string stage) =>
+	[
+		.. run.Results
+			.SelectMany(result => result.TrackedSteps.TryGetValue(stage, out var steps)
+				? steps
+				: [])
+			.SelectMany(step => step.Outputs)
+	];
 
 	/// <summary>
 	/// Runs the generator twice over the same host, changing only a file that has nothing
@@ -300,7 +348,7 @@ public sealed class GeneratorDriverTests
 	/// <param name="alsoEditTheGrammar">
 	/// Change the host's own grammar too, which must have the opposite effect.
 	/// </param>
-	static ImmutableArray<(object Value, IncrementalStepRunReason Reason)> StepsAfterEditingAnUnrelatedFile(
+	static GeneratorDriverRunResult AfterEditingAnUnrelatedFile(
 		string source,
 		bool   alsoEditTheGrammar = false)
 	{
@@ -337,15 +385,7 @@ public sealed class GeneratorDriverTests
 					parseOptions,
 					"Host.cs"));
 
-		driver = driver.RunGenerators(edited, TestContext.Current.CancellationToken);
-
-		return
-		[
-			.. driver.GetRunResult().Results
-				.SelectMany(result => result.TrackedOutputSteps)
-				.SelectMany(step => step.Value)
-				.SelectMany(step => step.Outputs)
-		];
+		return driver.RunGenerators(edited, TestContext.Current.CancellationToken).GetRunResult();
 	}
 
 	static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles) =>

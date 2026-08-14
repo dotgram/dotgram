@@ -25,6 +25,18 @@ public sealed class GramGenerator : IIncrementalGenerator
 	const string GramFileExtension = ".gram";
 	const string GramAttribute     = "DotGram.GramAttribute";
 
+	/// <summary>
+	/// The stages, named so that what re-ran can be read back.
+	/// </summary>
+	/// <remarks>
+	/// Public because the names are how the incremental behaviour is checked at all —
+	/// Roslyn reports a step under the name it was given and under no other — and a
+	/// property nothing can observe is a property nothing keeps.
+	/// </remarks>
+	public const string AskedStage    = "Asked";
+	public const string AnsweredStage = "Answered";
+	public const string CompiledStage = "Compiled";
+
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		// `[Gram]` and the one support type: always internal, always present, so that the
@@ -50,18 +62,44 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Text: file.GetText(cancellationToken)?.ToString() ?? ""))
 			.Collect();
 
-		// Compiling in a Select and not in the output step, which is the whole of what
-		// makes this incremental. The transform re-runs whenever the Compilation changes,
-		// which is on every keystroke — it cannot not, since resolving `@Name` needs the
-		// compilation — but what it *produces* is text and reports, both compared by
-		// value. An edit that changes neither leaves the output step Cached, and the
-		// consumer's IDE is not handed a new syntax tree to parse and bind.
-		var parsers = hosts
+		// Three stages, and the shape of them is what makes this incremental.
+		//
+		// A `Compilation` is a different object after every keystroke, so anything
+		// downstream of one is recomputed for every character typed. Binding genuinely
+		// needs it — `@int.Parse` has to be looked up somewhere — so the dependency cannot
+		// be removed, only narrowed to what it is for.
+		//
+		//   grammar  ──► the questions its C# names raise      cached on the grammar
+		//   + host                     │
+		//                              ▼
+		//   Compilation ──► the answers, as a list of values   re-runs, and is cheap
+		//                              │
+		//                              ▼
+		//   grammar + host + answers ──► the parser            cached on all three
+		//
+		// So editing a C# file re-runs the middle stage — a handful of symbol lookups —
+		// and stops there, because the answers it produces are the same ones.
+		// The names are what a test reads to say which stage re-ran, and are the only way
+		// to tell "the answers were the same" from "nothing was asked".
+		var asked = hosts
 			.Combine(files)
-			.Combine(context.CompilationProvider)
-			.Select(static (input, _) => Compile(input.Left.Left, input.Left.Right, input.Right));
+			.Select(static (input, _) => Asked(input.Left, input.Right))
+			.WithTrackingName(AskedStage);
 
-		context.RegisterSourceOutput(parsers, static (production, parser) => parser.Deliver(production));
+		var answered = asked
+			.Combine(context.CompilationProvider)
+			.Select(static (input, _) => input.Left with
+			{
+				Answers = new EquatableArray<Answer>(
+					Questions.Ask(input.Left.Questions.Items, new RoslynSymbolResolver(input.Right))),
+			})
+			.WithTrackingName(AnsweredStage);
+
+		context.RegisterSourceOutput(
+			answered
+				.Select(static (grammar, _) => Compile(grammar))
+				.WithTrackingName(CompiledStage),
+			static (production, parser) => parser.Deliver(production));
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
@@ -88,7 +126,27 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static Parser Compile(Host host, ImmutableArray<GrammarFile> files, Compilation compilation)
+	/// <summary>
+	/// One host's grammar, found and read, with the questions its C# names raise and —
+	/// once the middle stage has run — what the host said about them.
+	/// </summary>
+	/// <remarks>
+	/// Every field is a value, which is the point: this is what the expensive stage is
+	/// cached on.
+	/// </remarks>
+	readonly record struct Grammar(
+		Host                     Host,
+		string?                  Text,
+		string?                  Path,
+		EquatableArray<Question> Questions,
+		EquatableArray<Answer>   Answers,
+		EquatableArray<Report>   Reports);
+
+	/// <summary>
+	/// Stage one: find the grammar and work out what it needs to know about the host's C#.
+	/// No compilation, so this is cached on the grammar text and the host alone.
+	/// </summary>
+	static Grammar Asked(Host host, ImmutableArray<GrammarFile> files)
 	{
 		var reports = ImmutableArray.CreateBuilder<Report>();
 
@@ -96,29 +154,59 @@ public sealed class GramGenerator : IIncrementalGenerator
 		{
 			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.Location, host.ClassName));
 
-			return new Parser(null, null, new EquatableArray<Report>(reports.ToImmutable()));
+			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
-		if (!TryResolveGrammar(reports, host, files, out var grammarText, out var grammarPath))
-			return new Parser(null, null, new EquatableArray<Report>(reports.ToImmutable()));
+		if (!TryResolveGrammar(reports, host, files, out var text, out var path))
+			return new Grammar(host, null, null, default, default, Values(reports));
 
-		var result = GramCompiler.Compile(grammarText, new GramCompilerOptions
+		// Parsed twice over a grammar's life: once here for the questions, once in the
+		// third stage for the answer. Both are cheap next to normalization and emission,
+		// and this one only re-runs when the grammar itself changes.
+		var parsed = DotGram.Grammar.Parsing.GramParser.Parse(
+			DotGram.Grammar.Parsing.GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File;
+
+		return new Grammar(
+			host,
+			text,
+			path,
+			new EquatableArray<Question>(Questions.Of(parsed)),
+			default,
+			Values(reports));
+	}
+
+	/// <summary>
+	/// Stage three: the grammar compiled against what the host answered. No compilation
+	/// reaches here, so it runs only when the grammar or one of the answers changed.
+	/// </summary>
+	static Parser Compile(Grammar grammar)
+	{
+		if (grammar.Text is not { } text)
+			return new Parser(null, null, grammar.Reports);
+
+		var host    = grammar.Host;
+		var reports = ImmutableArray.CreateBuilder<Report>();
+
+		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
-			FileName       = grammarPath ?? host.SimpleName + GramFileExtension,
+			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
 			ClassName      = host.ClassName,
 			Namespace      = host.Namespace,
-			SymbolResolver = new RoslynSymbolResolver(compilation),
+			SymbolResolver = new AnsweredSymbolResolver(grammar.Answers.Items),
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
-			reports.Add(Report.Of(diagnostic, grammarPath, grammarText, host.Location));
+			reports.Add(Report.Of(diagnostic, grammar.Path, text, host.Location));
 
 		return new Parser(
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
-			new EquatableArray<Report>(reports.ToImmutable()));
+			Values(reports));
 	}
+
+	static EquatableArray<Report> Values(ImmutableArray<Report>.Builder reports) =>
+		new(reports.ToImmutable());
 
 	/// <summary>
 	/// Works out which grammar a host means: the text written into the attribute, an
