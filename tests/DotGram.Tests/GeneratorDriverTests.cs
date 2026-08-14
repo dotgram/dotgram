@@ -590,6 +590,45 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void A_repetition_that_cannot_tell_its_own_end_is_reported()
+	{
+		// The grammar that started this: `Trailer` reads as a `Row` too, so where the
+		// repetition ends is decided by backtracking rather than by the grammar. It parses,
+		// and the author never learns their rule had two readings.
+		var run = RunGenerator(Stream.Replace(
+			"Trailer : @Item = 'T' & eol",
+			"Trailer : @Item = 't' & eol",
+			StringComparison.Ordinal));
+
+		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM5002"));
+
+		Assert.Contains("backtracking", told.GetMessage(), StringComparison.Ordinal);
+		Assert.Equal(DiagnosticSeverity.Info, told.Severity);
+	}
+
+	[Fact]
+	public void And_one_that_can_is_not()
+	{
+		// `T` is not a lowercase letter, so the repetition stops at the trailer because the
+		// grammar says so and not because the engine tried both ways.
+		Assert.Empty(RunGenerator(Stream).Diagnostics.Where(d => d.Id == "GRAM5002"));
+	}
+
+	[Fact]
+	public void And_a_grammar_that_leans_on_backtracking_is_left_alone()
+	{
+		// `'a'+ & 'a'` is the same overlap and is perfectly good .Gram: §11 makes
+		// backtracking total and a rule is entitled to lean on it. What makes the case
+		// above different is that the rule asks to be read in parts, and a part handed over
+		// cannot be taken back.
+		Assert.Empty(
+			RunGenerator("""
+				[DotGram.Gram("Start = 'a'+ & 'a'\nparse Start")]
+				public partial class Leaning { }
+				""").Diagnostics);
+	}
+
+	[Fact]
 	public void A_grammar_with_no_committed_repetition_gets_no_reader_overload()
 	{
 		// Without the mark the parse would be free to change its mind about an element it

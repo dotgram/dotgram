@@ -60,7 +60,10 @@ public static class GramCompiler
 		// grammar is otherwise sound: telling an author what a broken rule will not get is
 		// answering a question they are not asking yet.
 		if (!HasErrors(diagnostics))
+		{
 			diagnostics.AddRange(Retention.Check(graph));
+			diagnostics.AddRange(FirstSets.Check(graph));
+		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule
 		// should still report what is wrong with the other twelve (implementation.md §0).

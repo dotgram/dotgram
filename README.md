@@ -208,8 +208,6 @@ then quietly means nothing is the failure this project is most careful about:
   `where` or a `=>` calls C# today
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- a diagnostic for an ambiguous grammar, which is what would let the streaming test stop
-  being conservative
 - `IEnumerable<string>` input, and the §8.3 surfaces over a streamed parse
 - incremental parsing
 

@@ -58,7 +58,7 @@ then quietly mean nothing.
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
-| a diagnostic for an ambiguous grammar | ✗ | ✗ | ✗ | ✗ | ✗ |
+| a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -565,6 +565,32 @@ window counts the terminators it drops and where the last one was, which is what
 `parserLine` and `parserColumn` mean the same thing in both modes. There is a test at two
 thousand records — well past the first window — that says so.
 
+## A repetition that cannot tell its own end
+
+`GRAM5002`. `Row* & Trailer` where a trailer also reads as a record parses perfectly
+well — the repetition takes the trailer, the rule fails, the repetition gives it back,
+and the parse succeeds by the second reading. Nothing is wrong with the answer, and
+nothing told the author their rule had two readings and backtracking picked one. First
+sets say when it can happen: what the repeated element can begin with, against what
+follows the repetition.
+
+**An overlap is not a defect on its own**, which is why this is not raised everywhere.
+`'a'+ & 'a'` is the same overlap and is perfectly good `.Gram`: §11 makes backtracking
+total and a rule is entitled to lean on it. It becomes a defect exactly where the parse
+cannot go back — a rule declaring `: @T[]` is asking to be handed over an element at a
+time, and an element handed over cannot be taken back. So the check runs on those rules
+and no others.
+
+That is also the honest half of the streaming test: `recover` is required today because
+it makes a repetition possessive, which is a property that can be checked. This is the
+property that actually matters, and having it measured is what would let the requirement
+be relaxed to "no overlap, or marked".
+
+The sets are approximate and in the safe direction: a complement, a Unicode category or
+a C# predicate answers "anything", two of those overlap, and the result is a note rather
+than a refusal. Being told about an overlap that is not real costs a sentence; missing
+one costs the thing this exists to prevent.
+
 ## A rule can be a sequence of what it is made of
 
 §4.1 case 2 works: `Feed : @FeedItem[] = Header & Row* & Trailer & eof` hands back the
@@ -656,7 +682,7 @@ Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn she
 normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
 it is one. `GRAM0001` and `GRAM4004` are retired.
 
-### Three things wrong with diagnostics, none fixed
+### Three things wrong with diagnostics
 
 Both are about how a message arrives rather than about what any one of them says, which
 is why they are here and not against a particular number.
@@ -671,13 +697,11 @@ is why they are here and not against a particular number.
   what it left behind — twenty messages of which nineteen are consequences. What is
   missing is the ordinary compiler discipline of a first error suppressing the errors
   derived from it.
-- **An ambiguous grammar is not called one.** `Row* & Trailer` where a trailer also reads
-  as a record parses perfectly well over a string — the repetition takes it, fails, and
-  gives it back — and the author never learns that their grammar has two readings and
-  they got the one backtracking happened to find. It is also what makes the streaming
-  test conservative: the mark on the repetition stands in for a property that could be
-  checked directly. What is missing is a first-set comparison between what a repetition
-  can start with and what follows it.
+- **An ambiguous grammar is only called one where it asks to be streamed.** `GRAM5002`
+  compares first sets, and only for a rule declaring `: @T[]` — everywhere else leaning
+  on backtracking is legitimate and saying otherwise would be wrong. A grammar that is
+  ambiguous and never streamed is still told nothing, and whether that is worth an opt-in
+  warning is open.
 
 ## What re-runs, and when
 
