@@ -197,16 +197,16 @@ public sealed class ExampleTests
 		// asked what it is. Nothing here knows anything about the parser.
 		var tree = ExpressionParser.Read("1 + 2 * 3");
 
-		var (op, left, right) = Assert.IsType<Binary>(tree);
+		// The node type is the operation, so this is `is Add` and not a string compared
+		// against "+".
+		var (left, right) = Assert.IsType<Add>(tree);
 
-		Assert.Equal("+", op);
 		Assert.Equal(new Number(1m), left);
 
 		// `*` binds tighter, so it is the one nested inside — precedence read off the
 		// shape rather than trusted.
-		var (inner, two, three) = Assert.IsType<Binary>(right);
+		var (two, three) = Assert.IsType<Mul>(right);
 
-		Assert.Equal("*", inner);
 		Assert.Equal(new Number(2m), two);
 		Assert.Equal(new Number(3m), three);
 	}
@@ -216,10 +216,20 @@ public sealed class ExampleTests
 		// Value equality all the way down, which is the other half of "it is ordinary C#
 		// data": no walker, no visitor, one `==`.
 		Assert.Equal(
-			new Binary("-",
-				new Binary("+", new Number(1m), new Number(2m)),
+			new Sub(
+				new Add(new Number(1m), new Number(2m)),
 				new Negate(new Number(3m))),
 			ExpressionParser.Read("1 + 2 - -3"));
+
+	[Fact]
+	public void And_every_operator_has_a_node_of_its_own() =>
+		Assert.Equal(
+			new Add(
+				new Number(1m),
+				new Div(
+					new Mul(new Number(2m), new Pow(new Number(3m), new Number(4m))),
+					new Negate(new Number(5m)))),
+			ExpressionParser.Read("1 + 2 * 3 ^ 4 / -5"));
 
 	[Theory]
 	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum's left operand is at Sum's level
@@ -250,9 +260,14 @@ public sealed class ExampleTests
 
 		static Expression Double(Expression node) => node switch
 		{
-			Number(var value)                   => new Number(value * 2),
-			Negate(var operand)                 => new Negate(Double(operand)),
-			Binary(var op, var left, var right) => new Binary(op, Double(left), Double(right)),
+			Number(var value)        => new Number(value * 2),
+			Negate(var operand)      => new Negate(Double(operand)),
+
+			Add(var left, var right) => new Add(Double(left), Double(right)),
+			Sub(var left, var right) => new Sub(Double(left), Double(right)),
+			Mul(var left, var right) => new Mul(Double(left), Double(right)),
+			Div(var left, var right) => new Div(Double(left), Double(right)),
+			Pow(var left, var right) => new Pow(Double(left), Double(right)),
 
 			_ => node,
 		};

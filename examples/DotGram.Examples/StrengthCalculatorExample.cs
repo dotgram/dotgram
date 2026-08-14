@@ -64,8 +64,8 @@ namespace DotGram.Examples;
 	                | left: Expr & '/' & right: Expr  << 2 => @(left / right)
 	                | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
 	                | '-' & operand: Expr             >> 3 => @(-operand)
-	                | '(' & inner: Expr & ')'               => @(inner)
-	                | digits: Number                        => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
+	                | '(' & inner: Expr & ')'              => @(inner)
+	                | digits: Number                       => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
 
 	parse Expr as Evaluate
 	""")]

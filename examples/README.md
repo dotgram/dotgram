@@ -12,7 +12,7 @@ against it. `DotGram.Tests` runs them; nothing here knows that.
 | [`CalculatorExample.cs`](DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 | [`DecimalCalculatorExample.cs`](DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a scope that shadows `Trivia` back off |
 | [`StrengthCalculatorExample.cs`](DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
-| [`ExpressionTreeExample.cs`](DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — records out, patterns back in, and the shape a small DSL wants |
+| [`ExpressionTreeExample.cs`](DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |
 
 ## Taking one
 
