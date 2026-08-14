@@ -50,6 +50,8 @@ then quietly mean nothing.
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
+| retention: which rules can span a line §6.3 | — | — | ✓ | — | — |
+| retention: where the window may move §6.3 | — | — | ✗ | ✗ | ✗ |
 | streaming input §6.2, §8.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
@@ -494,6 +496,35 @@ not apply here: a generated parser *is* the public API a consumer writes against
 has to exist in the editor. It suits a generator whose output nothing references by name,
 which is why the aspect generator next door uses it for its interceptors and
 `RegisterSourceOutput` for its diagnostics.
+
+## Streaming, so far
+
+§6.3 emits the streaming overloads only where the grammar provably works with a reused
+buffer, so the analysis comes before anything else. It has two halves and one is built.
+
+**Which rules can span a line** — `Retention.RulesThatSpanLines`. A fixpoint over the
+graph, like nullability: a rule spans a line when it can consume a terminator itself or
+through what it calls. Recursion settles because it starts at "no" and grows, so a rule
+that reaches a terminator only through itself reaches one never.
+
+The case it exists for is the complement written without thinking about lines:
+
+```dotgram
+Text = [^ '|']+          // spans: it will swallow the rest of the file
+Text = [^ '|' | '\r' | '\n']+   // does not
+```
+
+A Unicode category is not looked into and is assumed to admit a terminator. That is wrong
+in the safe direction: a rule wrongly said to span a line loses an overload it could have
+had, and one wrongly said not to would lose data.
+
+**Where the window may move** is the other half and is not built. Knowing a rule stays on
+its line says what may be held; it does not say when what came before may be let go. That
+needs the commit points, which today means `recover` — its synchronization expression is a
+position the parse cannot return past (§8.2), and therefore the one place a buffer can
+advance. Nothing is emitted from any of this until that exists; the analysis is tested on
+its own, because one only exercised through the feature it gates is one nobody can tell is
+wrong.
 
 ## What has been measured
 
