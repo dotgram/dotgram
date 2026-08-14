@@ -40,6 +40,46 @@ public sealed class SemanticTests
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
 	/// <summary>The one diagnostic a grammar must be refused with.</summary>
+	// ── One mistake, one message about it ────────────────────────────────────────
+
+	/// <summary>A feed with a single stray character in the middle of one rule.</summary>
+	const string OneStrayCharacter =
+		"Row     = \"R\" & '|' & name: Text & eol\n" +
+		"Text    = [^ '|']+\n" +
+		"Feed    = header: Header & rows: Row* & eof\n" +
+		"Header  = \"H\" ~ '|' & date: Digit{4} & eol\n" +
+		"Digit   = ['0'..'9']\n" +
+		"parse Feed";
+
+	[Fact]
+	public void A_stray_character_is_not_reported_seven_times()
+	{
+		// It used to be. The lexer said what was actually wrong, and then the parser said
+		// it again about the same character, twice more about where it ended up, and the
+		// binder and normalizer described the tree the parser had guessed at — including
+		// `No rule, parameter or capture named ''`, which is about nothing at all.
+		var reported = Compile(OneStrayCharacter).Diagnostics;
+
+		// The first one is the one that says what happened; what follows is the parser
+		// finding its feet again, which is worth seeing and is not the same message.
+		Assert.Equal(GramLexer.UnexpectedCharacter, reported[0].Id);
+		Assert.Equal(3, reported.Count);
+		Assert.DoesNotContain(reported, diagnostic => diagnostic.Id.StartsWith("GRAM3", StringComparison.Ordinal));
+		Assert.DoesNotContain(reported, diagnostic => diagnostic.Id.StartsWith("GRAM4", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void But_a_rule_the_parser_could_read_is_still_checked()
+	{
+		// The silence is scoped to the declaration that broke, not to the file. One rule
+		// being unreadable must not hide what is wrong with the one below it
+		// (implementation.md §0) — here `Other` is perfectly readable and names something
+		// that does not exist.
+		var reported = Compile(OneStrayCharacter + "\nOther = Missing").Diagnostics;
+
+		Assert.Contains(reported, diagnostic => diagnostic.Id == DotGram.Grammar.Binding.GrammarBinder.UndefinedName);
+	}
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;

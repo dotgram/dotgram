@@ -680,21 +680,32 @@ Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn she
 normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
 it is one. `GRAM0001` and `GRAM4004` are retired.
 
-### Three things wrong with diagnostics
+### How a message arrives, rather than what it says
 
-Both are about how a message arrives rather than about what any one of them says, which
-is why they are here and not against a particular number.
+Three of these, of which one is now fixed. They are here and not against a particular
+number because none of them is about a particular number.
 
 - **A position in an inline grammar does not land in the attribute's string.** A grammar
   written in a `.gram` file gets a location the editor can open; the same grammar written
   in `[Gram("""…""")]` reports against the attribute as a whole, because the offset is
   into the grammar text and nothing maps it back through the string literal's own
   escaping and indentation. The message is right and the squiggle is in the wrong place.
-- **One unrecognized character induces a crowd.** A single symbol the lexer cannot place
-  is reported once and then reported again by every stage that tries to make sense of
-  what it left behind — twenty messages of which nineteen are consequences. What is
-  missing is the ordinary compiler discipline of a first error suppressing the errors
-  derived from it.
+- **An unrecognized character no longer induces a crowd.** A stray `~` used to be
+  reported seven times: by the lexer, then by the parser about the same character, twice
+  more about where it ended up, and then by the binder and the normalizer describing the
+  tree the parser had guessed at — including `No rule, parameter or capture named ''`,
+  which is about nothing at all. Now three, and the first one says what happened.
+
+  Two rules do it. At most one **error** per position, because the second thing said
+  about a place is the first stage's failure told again by the next one; warnings and
+  information are left alone, since two of those in one place can both be true. And
+  nothing from a later stage about a declaration the parser could not read whole — what
+  it would be describing is a guess. That silence is scoped to the declaration, from
+  where it begins to where the next one does, so a rule below it is still checked, which
+  is what implementation.md §0 asks for and there is a test for.
+
+  What is left is the parser's own recovery: two of the three remaining messages are it
+  finding its feet, and a proper synchronization point would make them one.
 - **An ambiguous grammar is only called one where it asks to be streamed.** `GRAM5002`
   compares first sets, and only for a rule declaring `: @T[]` — everywhere else leaning
   on backtracking is legitimate and saying otherwise would be wrong. A grammar that is
