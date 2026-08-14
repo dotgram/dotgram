@@ -214,6 +214,41 @@ public sealed class GeneratorDriverTests
 	static void AssertDiagnostic(string id, GeneratorDriverRunResult result) =>
 		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
 
+	[Fact]
+	public void A_partial_void_with_a_ref_parameter_vanishes_when_nobody_implements_it()
+	{
+		// What a two-phase generator would rest on: the editor gets the API, whose body
+		// hands off to a `partial void` the build phase implements. Where the second half
+		// is absent — which in the editor it always is — the call goes with the
+		// declaration and the value is left as it was, so it compiles and answers `default`
+		// rather than failing to build.
+		//
+		// `ref` and not `out`: a classic partial method may not take `out`, precisely
+		// because an erased call would leave it unassigned.
+		var assembly = EmittedCode.Compile("""
+			public partial class Grammar
+			{
+				public static int Handed()
+				{
+					var value = 7;
+
+					Recognize(ref value);
+
+					return value;
+				}
+
+				static partial void Recognize(ref int value);
+			}
+			""");
+
+		var handed = assembly.GetType("Grammar")!.GetMethod("Handed")!;
+
+		Assert.Equal(7, handed.Invoke(null, null));
+		Assert.Null(assembly.GetType("Grammar")!.GetMethod(
+			"Recognize",
+			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>
@@ -225,11 +260,7 @@ public sealed class GeneratorDriverTests
 		public static partial class Claimed { }
 		""";
 
-	[Fact(Skip =
-		"Fails, and correctly: the output step comes back Modified. `Compilation` is combined " +
-		"into the input of RegisterSourceOutput and compares equal to nothing across edits, so " +
-		"every parser is regenerated on every keystroke in every open project. Fixing it is a " +
-		"pipeline change — see docs/status.md, 'What re-runs, and when'. Unskip with the fix.")]
+	[Fact]
 	public void Editing_something_else_does_not_regenerate_the_parser()
 	{
 		// The claim an incremental generator exists to make. It is checked rather than
@@ -249,13 +280,29 @@ public sealed class GeneratorDriverTests
 				"cause is a Compilation or a symbol reaching the output step."));
 	}
 
+	[Fact]
+	public void But_editing_the_grammar_does()
+	{
+		// The other half, and the one that keeps the first honest: "nothing re-ran" is also
+		// what a generator that does nothing at all would report.
+		var steps = StepsAfterEditingAnUnrelatedFile(Claimed, alsoEditTheGrammar: true);
+
+		Assert.Contains(
+			steps,
+			step => step.Reason is IncrementalStepRunReason.Modified or IncrementalStepRunReason.New);
+	}
+
 	/// <summary>
 	/// Runs the generator twice over the same host, changing only a file that has nothing
 	/// to do with any grammar, and reports how the output step of the second run was
 	/// reached.
 	/// </summary>
+	/// <param name="alsoEditTheGrammar">
+	/// Change the host's own grammar too, which must have the opposite effect.
+	/// </param>
 	static ImmutableArray<(object Value, IncrementalStepRunReason Reason)> StepsAfterEditingAnUnrelatedFile(
-		string source)
+		string source,
+		bool   alsoEditTheGrammar = false)
 	{
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 
@@ -281,6 +328,14 @@ public sealed class GeneratorDriverTests
 		var edited = compilation.ReplaceSyntaxTree(
 			unrelated,
 			CSharpSyntaxTree.ParseText("class Unrelated { int One; int Two; }", parseOptions, "Other.cs"));
+
+		if (alsoEditTheGrammar)
+			edited = edited.ReplaceSyntaxTree(
+				host,
+				CSharpSyntaxTree.ParseText(
+					source.Replace("Start = 'a'+", "Start = 'b'+", StringComparison.Ordinal),
+					parseOptions,
+					"Host.cs"));
 
 		driver = driver.RunGenerators(edited, TestContext.Current.CancellationToken);
 

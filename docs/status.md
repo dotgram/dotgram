@@ -414,13 +414,13 @@ against the old meaning would silently acquire a new one.
 
 ## What re-runs, and when
 
-**Every parser is regenerated on every keystroke, in every open project.** Measured, not
-suspected: `GeneratorDriverTests` runs the generator, edits a `.cs` file that no grammar
-and no host has anything to do with, runs it again, and the output step comes back
-`Modified` rather than `Cached`. The test is checked in and skipped, with the reason on
-the skip; unskipping it is how the fix is known to have worked.
+Two tests hold this, and they only mean anything as a pair: editing a `.cs` file that no
+grammar and no host has anything to do with must leave the output step `Cached`, and
+editing the grammar must not. The first alone is satisfied by a generator that does
+nothing at all.
 
-The cause is one line:
+It began as one test that failed. Every parser was being regenerated on every keystroke
+in every open project, because of one line:
 
 ```csharp
 context.RegisterSourceOutput(hosts.Combine(files).Combine(context.CompilationProvider), …);
@@ -429,27 +429,34 @@ context.RegisterSourceOutput(hosts.Combine(files).Combine(context.CompilationPro
 An incremental generator caches what each step produced and re-runs the next one only
 when that changed. `Host` is carefully reduced to strings for exactly this reason, with a
 comment saying that a symbol compares equal to nothing across compilations — and then a
-whole `Compilation` is combined into the same input, which compares equal to nothing
-either. Every edit anywhere gives a new one.
+whole `Compilation` was combined into the same input, which compares equal to nothing
+either.
 
-**Caching is the answer, and it is Roslyn's rather than ours.** A generator that keeps its
-own table of grammar text to generated code would pin compilations, survive across
-projects and target frameworks, and leak; the pipeline exists to do this properly. What
-is needed is to stop defeating it, at either of two depths:
+**The caching is Roslyn's, not ours.** A generator keeping its own table of grammar text
+to generated code would pin compilations, outlive projects and target frameworks, and
+leak. The pipeline does this properly; what was needed was to stop defeating it.
 
-- **Move the compile into a `Select` and out of `RegisterSourceOutput`.** The transform
-  still re-runs — it needs the `Compilation` — but its *output* is text, and text
-  compares. Unchanged text means the IDE is not handed a new syntax tree to parse and
-  bind, which for a fifteen-hundred-line state machine is most of the cost. Diagnostics
-  have to become value records first: `Diagnostic` has no value equality, and neither
-  does `ImmutableArray<T>`, whose `Equals` is reference equality on the array — the
-  classic way to write this fix and have it not work.
-- **Narrow what the `Compilation` is for.** It answers two questions — does this C# type
-  exist, does this method exist with this shape — for the handful of `@Name` and `: @T` a
-  grammar mentions. Collect the questions from the grammar, answer them against the
-  compilation into a small value, and the expensive stage depends on that value instead.
-  Then an unrelated edit changes nothing downstream at all, and the generation itself is
-  skipped rather than merely its result being identical.
+The compile now happens in a `Select` rather than in the output step. The transform still
+re-runs on every keystroke — resolving `@Name` needs the compilation and there is no way
+round that — but what it *produces* is a hint name, a string of C# and a list of reports,
+all compared by value. An edit that changes none of them leaves the output step `Cached`,
+and the consumer's IDE is not handed a new syntax tree to parse and bind, which for a
+fifteen-hundred-line state machine is the greater part of the cost.
+
+Two things had to become values first, and both are the usual way this fix is written and
+found not to work:
+
+- a `Diagnostic` holds a `Location`, which holds the syntax tree it came from, so
+  carrying one would make the output unequal whenever any tree was reparsed. `Report`
+  carries the pieces and builds the `Diagnostic` at delivery.
+- `ImmutableArray<T>.Equals` compares the underlying array **by reference**, so a step
+  handing one out is unequal to itself every run. Hence `EquatableArray<T>`.
+
+**Still to do: narrow what the `Compilation` is for.** It answers two questions — does
+this C# type exist, does this method exist with this shape — for the handful of `@Name`
+and `: @T` a grammar mentions. Collect the questions from the grammar, answer them into a
+small value, and the expensive stage would depend on that instead: then an unrelated edit
+would skip the generation itself rather than merely produce the same text.
 
 `RegisterImplementationSourceOutput` — output produced only for real builds, invisible to
 IntelliSense — is the mechanism for keeping heavy work off the editor's path, and it does

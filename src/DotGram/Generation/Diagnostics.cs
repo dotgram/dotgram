@@ -41,40 +41,27 @@ static class Diagnostics
 		description:        "Which file a grammar comes from must be unambiguous, not decided silently by order.");
 
 	/// <summary>
-	/// Wraps a grammar diagnostic for Roslyn. The grammar half reports positionally and
-	/// knows nothing about <see cref="Diagnostic"/>; this is where its messages become
-	/// something an IDE can show at the right place in the .gram file.
+	/// The descriptor for an id, made once and kept.
 	/// </summary>
-	/// <param name="filePath">The .gram file, or null when the grammar was written inline.</param>
-	/// <param name="grammarText">The grammar, to turn an offset into a line and column.</param>
-	/// <param name="fallback">Where to point when there is no file — the <c>[Gram]</c> attribute.</param>
-	public static Diagnostic ToRoslyn(GramDiagnostic diagnostic, string? filePath, string grammarText, Location? fallback)
+	/// <remarks>
+	/// The grammar half reports positionally and knows nothing about
+	/// <see cref="Diagnostic"/>; its ids arrive here and become rules an IDE can show.
+	/// Kept rather than remade because two descriptors for one id are two rules as far as
+	/// Roslyn is concerned.
+	/// </remarks>
+	public static DiagnosticDescriptor DescriptorFor(
+		string id, string title, string messageFormat, DiagnosticSeverity severity)
 	{
-		if (!_descriptors.TryGetValue(diagnostic.Id, out var descriptor))
-		{
-			descriptor = new DiagnosticDescriptor(
-				id:                 diagnostic.Id,
-				title:              diagnostic.Id,
-				messageFormat:      "{0}",
+		if (!_descriptors.TryGetValue(id, out var descriptor))
+			_descriptors[id] = descriptor = new DiagnosticDescriptor(
+				id:                 id,
+				title:              title,
+				messageFormat:      messageFormat,
 				category:           Category,
-				defaultSeverity:    diagnostic.Severity == GramSeverity.Error
-					? DiagnosticSeverity.Error
-					: DiagnosticSeverity.Warning,
+				defaultSeverity:    severity,
 				isEnabledByDefault: true);
 
-			_descriptors[diagnostic.Id] = descriptor;
-		}
-
-		var span = new TextSpan(diagnostic.Position, diagnostic.Length);
-
-		// An inline grammar has no file to point into, so the message lands on the
-		// attribute that carries it — still the right place to look, if not the right
-		// character.
-		var location = filePath is null
-			? fallback ?? Location.None
-			: Location.Create(filePath, span, LinesOf(grammarText, span));
-
-		return Diagnostic.Create(descriptor, location, diagnostic.Message);
+		return descriptor;
 	}
 
 	/// <summary>
@@ -85,7 +72,7 @@ static class Diagnostics
 	/// it is told. Told nothing, it points every grammar message at line 1, which is the
 	/// difference between a diagnostic and a diagnostic that helps.
 	/// </remarks>
-	static LinePositionSpan LinesOf(string text, TextSpan span)
+	public static LinePositionSpan LinesOf(string text, TextSpan span)
 	{
 		var line   = 0;
 		var start  = 0;

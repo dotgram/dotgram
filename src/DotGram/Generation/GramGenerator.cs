@@ -50,30 +50,57 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Text: file.GetText(cancellationToken)?.ToString() ?? ""))
 			.Collect();
 
-		context.RegisterSourceOutput(
-			hosts.Combine(files).Combine(context.CompilationProvider),
-			static (production, input) => EmitParser(
-				production, input.Left.Left, input.Left.Right, input.Right));
+		// Compiling in a Select and not in the output step, which is the whole of what
+		// makes this incremental. The transform re-runs whenever the Compilation changes,
+		// which is on every keystroke — it cannot not, since resolving `@Name` needs the
+		// compilation — but what it *produces* is text and reports, both compared by
+		// value. An edit that changes neither leaves the output step Cached, and the
+		// consumer's IDE is not handed a new syntax tree to parse and bind.
+		var parsers = hosts
+			.Combine(files)
+			.Combine(context.CompilationProvider)
+			.Select(static (input, _) => Compile(input.Left.Left, input.Left.Right, input.Right));
+
+		context.RegisterSourceOutput(parsers, static (production, parser) => parser.Deliver(production));
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
 
-	static void EmitParser(
-		SourceProductionContext        context,
-		Host                           host,
-		ImmutableArray<GrammarFile>    files,
-		Compilation                    compilation)
+	/// <summary>
+	/// Everything one host produced, as values: the file to add and the diagnostics to
+	/// report.
+	/// </summary>
+	/// <remarks>
+	/// A <c>Diagnostic</c> is built at delivery rather than carried, because building it
+	/// needs a <c>DiagnosticDescriptor</c> and a <c>Location</c>, and what those compare
+	/// as is not this file's business to depend on. The pieces are strings and numbers,
+	/// which compare the way arithmetic does.
+	/// </remarks>
+	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports)
 	{
+		public void Deliver(SourceProductionContext context)
+		{
+			foreach (var report in Reports.Items)
+				context.ReportDiagnostic(report.ToRoslyn());
+
+			if (HintName is not null && Text is not null)
+				context.AddSource(HintName, Text);
+		}
+	}
+
+	static Parser Compile(Host host, ImmutableArray<GrammarFile> files, Compilation compilation)
+	{
+		var reports = ImmutableArray.CreateBuilder<Report>();
+
 		if (!host.IsPartial)
 		{
-			context.ReportDiagnostic(Diagnostic.Create(
-				Diagnostics.HostNotPartial, host.Location, host.ClassName));
+			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.Location, host.ClassName));
 
-			return;
+			return new Parser(null, null, new EquatableArray<Report>(reports.ToImmutable()));
 		}
 
-		if (!TryResolveGrammar(context, host, files, out var grammarText, out var grammarPath))
-			return;
+		if (!TryResolveGrammar(reports, host, files, out var grammarText, out var grammarPath))
+			return new Parser(null, null, new EquatableArray<Report>(reports.ToImmutable()));
 
 		var result = GramCompiler.Compile(grammarText, new GramCompilerOptions
 		{
@@ -85,10 +112,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
-			context.ReportDiagnostic(Diagnostics.ToRoslyn(diagnostic, grammarPath, grammarText, host.Location));
+			reports.Add(Report.Of(diagnostic, grammarPath, grammarText, host.Location));
 
-		foreach (var source in result.Sources)
-			context.AddSource(host.HintName + ".g.cs", source.Text);
+		return new Parser(
+			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
+			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
+			new EquatableArray<Report>(reports.ToImmutable()));
 	}
 
 	/// <summary>
@@ -96,11 +125,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// explicit path, or — with no argument at all — the file named after the class.
 	/// </summary>
 	static bool TryResolveGrammar(
-		SourceProductionContext     context,
-		Host                        host,
-		ImmutableArray<GrammarFile> files,
-		out string                  text,
-		out string?                 path)
+		ImmutableArray<Report>.Builder reports,
+		Host                           host,
+		ImmutableArray<GrammarFile>    files,
+		out string                     text,
+		out string?                    path)
 	{
 		text = "";
 		path = null;
@@ -127,14 +156,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 				return true;
 
 			case 0:
-				context.ReportDiagnostic(Diagnostic.Create(
+				reports.Add(Report.Of(
 					Diagnostics.GrammarFileNotFound, host.Location, wanted, host.ClassName));
 
 				return false;
 
 			default:
 				// Picking one by reference order would make which file won invisible.
-				context.ReportDiagnostic(Diagnostic.Create(
+				reports.Add(Report.Of(
 					Diagnostics.AmbiguousGrammarFile,
 					host.Location,
 					wanted,
