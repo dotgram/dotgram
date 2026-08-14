@@ -52,3 +52,24 @@ jobs:
         with:
           name: nupkg
           path: artifacts/*.nupkg
+
+  # The development machine is Windows and CI is not, which is the arrangement that
+  # hides a path separator or a line ending until somebody else clones the repository.
+  # Not on every push: this build proves the same thing the one above does, on the
+  # platform where file names, separators and CRLF behave differently.
+  windows:
+    if: github.event_name != 'push'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore DotGram.slnx
+
+      - name: Build
+        run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
+
+      - name: Test
+        run: dotnet test DotGram.slnx --no-build --configuration Release

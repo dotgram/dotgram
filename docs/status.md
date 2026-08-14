@@ -75,6 +75,28 @@ not settled. What is settled is that it is written here rather than discovered.
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
 
+**Nesting depth is bounded by the process stack, and the bound is about 2700.** The
+machine takes recursion out of a rule and not out of a grammar: `Expr = '(' & Expr & ')'`
+is an ordinary C# call, so a thousand brackets are a thousand frames. Measured on the
+default 1 MB stack, `((( … x … )))` survives 2600 levels and overflows by 2800.
+
+The number is what it is for a reason worth knowing, because it is a cost of a decision
+made elsewhere. Each recognizer opens with
+
+```csharp
+global::System.Span<int> bt = stackalloc int[48];
+```
+
+— the backtracking stack, sized so that nothing is allocated on the heap in the common
+case and `Grow` takes over when 48 is not enough. That is 192 bytes of the C# stack per
+rule invocation, and it, not the rest of the frame, is what sets the depth. `Grow` helps
+with backtracking *inside* a rule and does nothing for nesting *between* rules.
+
+So input length and nesting depth are different limits, and only the first is about to
+get better: streaming makes a longer file readable and leaves the bracket count exactly
+where it is. A grammar meant for adversarial input should bound its own nesting, and a
+`StackOverflowException` cannot be caught in .NET — the process goes.
+
 **A repetition marked `recover` is possessive.** §8.2 calls the mark a commit point,
 and this is what that costs: the elements it took are not on offer to what follows.
 
@@ -363,6 +385,23 @@ inside one — `@int.Parse` and the like — resolve against the host compilatio
   `IsSuccess` is what says so. An unconstrained `T?` needs a language version this
   generator may not assume, and `T` has to be unconstrained now that a rule may declare
   itself `: @int`.
+
+## What has been measured
+
+Two of the architecture's claims now have numbers rather than reasoning behind them.
+
+**Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
+as a regular expression, and refuses to time anything until both agree on every part of
+every input. Generated parsing comes out 2.3–6.3× faster than interpreted `Regex` and
+between 1.1× and 1.9× faster than `RegexOptions.Compiled` — the same order as the best the
+BCL does, not a different class. Allocation is at parity, because both materialize the
+parts as strings. `benchmarks/README.md` has the table and what not to read into it.
+
+**Nesting depth**, above: about 2700 levels, and why.
+
+Still unmeasured, and worth knowing before anyone relies on it: throughput on a large
+feed, pathological backtracking, generated code size, and how long the generator takes to
+re-run when one file of many changes.
 
 ## What the tests cover
 

@@ -102,6 +102,16 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches("Start = 'a' & ?!'b' & ['a'..'z']", input));
 
 	[Fact]
+	public void Nesting_a_rule_deep_inside_itself() =>
+		// Backtracking is a machine inside a rule and an ordinary call between rules, so
+		// nesting costs the process stack — about 2700 levels on the default one, which
+		// docs/status.md states and explains. This is well under it, and is here so that a
+		// change making frames heavier shows up as a failure rather than in production.
+		Assert.True(Matches(
+			"Expr = '(' & Expr & ')' | 'x'\nStart = Expr",
+			new string('(', 1000) + "x" + new string(')', 1000)));
+
+	[Fact]
 	public void Repetition_longer_than_the_first_stack_page() =>
 		// The stack starts at 48 ints and grows; this needs far more frames than that.
 		Assert.True(Matches("Start = ['a'..'z']* & 'z'", new string('a', 500) + "z"));

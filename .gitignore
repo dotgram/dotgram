@@ -80,3 +80,6 @@ appsettings.*.local.json
 
 ## What a snapshot test writes when it disagrees, so the diff can be taken in an editor
 *.actual
+
+## Where BenchmarkDotNet leaves its reports and the Release copy it builds to run
+BenchmarkDotNet.Artifacts/

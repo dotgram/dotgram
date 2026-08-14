@@ -87,6 +87,9 @@ tests/
 	                      and the generator attached as an analyzer
 	Snapshots/            a grammar and the file it must compile into, checked in so
 	                      a change to code generation shows up as a diff
+benchmarks/
+	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
+	                      solution so that it has to keep compiling
 .work/                    scratch, ignored by git
 ```
 

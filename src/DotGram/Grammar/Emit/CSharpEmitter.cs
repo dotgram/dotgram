@@ -115,17 +115,21 @@ sealed class Writer(int depth)
 /// </summary>
 /// <remarks>
 /// <para>
-/// One method per rule, and inside it one static local function per node. Every one of
-/// them has the same shape — take the input and a position, return the new position or
-/// -1 — so composing them is just calling them, and there is nothing to allocate,
-/// nothing virtual, and no closure. Static local functions specifically, because a
-/// closure cannot hold a <c>ReadOnlySpan</c>.
+/// One method per rule, and inside it a state machine — see <see cref="Machine"/>, which
+/// says why it is one rather than a function per node. Every recognizer has the same
+/// shape, take the input and a position and return the new position or -1, so composing
+/// them is calling them: nothing allocated, nothing virtual, no closure. A rule of
+/// binding powers takes one more argument, and only that kind does (§4.3.1).
 /// </para>
 /// <para>
-/// This is the fast path over the frozen subset of docs/implementation.md §11:
-/// sequence, ordered choice, quantifiers, element sets, literals, rule calls. No
-/// trivia, no result construction, no recovery yet — a rule's value is the text it
-/// matched.
+/// What this file is responsible for is everything around the machines — the published
+/// methods, the result types, the factories a <c>=&gt;</c> becomes, the support types
+/// shared with the machines, and the layout of the file they all go in. The machines
+/// themselves are compiled by <see cref="Machine"/>.
+/// </para>
+/// <para>
+/// The text produced here is compiled in the consumer's project, which is a different
+/// set of rules from this assembly's own: see .claude/rules/emitted-code.md.
 /// </para>
 /// </remarks>
 public static class CSharpEmitter

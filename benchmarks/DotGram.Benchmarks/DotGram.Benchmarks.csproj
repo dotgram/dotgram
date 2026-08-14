@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>DotGram.Benchmarks</RootNamespace>
+		<IsPackable>false</IsPackable>
+
+		<!-- BenchmarkDotNet builds and runs its own Release copy of this assembly, and
+		     refuses to measure a Debug one. Building it in the solution's default
+		     configuration is still worth doing: a benchmark that does not compile is
+		     found here rather than the next time somebody asks for numbers. -->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!-- The generated parser is the thing under test, so it goes on disk where it can
+		     be read next to the numbers it produced. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else — the same reference a consumer takes. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>

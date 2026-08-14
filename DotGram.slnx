@@ -11,6 +11,10 @@
 		<File Path="LICENSE" />
 		<File Path="README.md" />
 	</Folder>
+	<Folder Name="/benchmarks/">
+		<File Path="benchmarks/README.md" />
+		<Project Path="benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj" />
+	</Folder>
 	<Folder Name="/docs/">
 		<File Path="docs/implementation.md" />
 		<File Path="docs/status.md" />
