@@ -14,9 +14,19 @@ namespace DotGram.Generation;
 /// The only part of compilation that genuinely needs Roslyn, which is why it sits
 /// behind <see cref="ISymbolResolver"/> and lives here rather than in the grammar half.
 /// </remarks>
-public sealed class RoslynSymbolResolver(Compilation compilation) : ISymbolResolver
+/// <param name="host">
+/// The metadata name of the class the grammar is attached to, or null when there is none.
+/// </param>
+/// <remarks>
+/// The host is where a grammar's own helpers live — <c>=&gt; @TryTiny(digits)</c> means
+/// the method next to the grammar, and writing it out as <c>Namespace.Class.TryTiny</c>
+/// would be naming a class the author never has to name anywhere else. So an unqualified
+/// name is looked for there first, the way C# itself resolves one inside a class.
+/// </remarks>
+public sealed class RoslynSymbolResolver(Compilation compilation, string? host = null) : ISymbolResolver
 {
 	readonly Compilation _compilation = compilation ?? throw new ArgumentNullException(nameof(compilation));
+	readonly string?     _host        = host;
 
 	public bool TypeExists(string qualifiedName) => TypeNamed(qualifiedName) is not null;
 
@@ -59,16 +69,19 @@ public sealed class RoslynSymbolResolver(Compilation compilation) : ISymbolResol
 
 		var separator = qualifiedName.LastIndexOf('.');
 
-		if (separator <= 0)
-			return false;
-
-		var type = TypeNamed(qualifiedName.Substring(0, separator));
+		// Unqualified: the host class, which is where a grammar's own helpers live. Looked
+		// at first and not only as a fallback — a name written without a dot is a name in
+		// the class the grammar is attached to, exactly as it would be in C#.
+		var type = separator <= 0
+			? _host is null ? null : _compilation.GetTypeByMetadataName(_host)
+			: TypeNamed(qualifiedName.Substring(0, separator));
 
 		if (type is null)
 			return false;
 
+		var name   = separator <= 0 ? qualifiedName : qualifiedName.Substring(separator + 1);
 		var method = type
-			.GetMembers(qualifiedName.Substring(separator + 1))
+			.GetMembers(name)
 			.OfType<IMethodSymbol>()
 			.FirstOrDefault(candidate => candidate.Parameters.Length >= argumentCount);
 
@@ -98,8 +111,15 @@ public sealed class RoslynSymbolResolver(Compilation compilation) : ISymbolResol
 		if (argumentCount == 0 && parameters.Length == 1 && method.ReturnType.SpecialType == SpecialType.System_Boolean)
 			return MethodRole.ElementPredicate;
 
-		return method.ReturnType.SpecialType == SpecialType.System_Boolean
-			? MethodRole.Guard
-			: MethodRole.ValueTransformation;
+		if (method.ReturnType.SpecialType != SpecialType.System_Boolean)
+			return MethodRole.ValueTransformation;
+
+		// `bool M(args…, out T)` — §8.1's fallible transformation, told from a guard by the
+		// out parameter that carries what it produced. The arity the grammar wrote counts
+		// the arguments it passes, so the `out` is the one parameter beyond them.
+		return parameters.Length == argumentCount + 1 &&
+			parameters[parameters.Length - 1].RefKind == RefKind.Out
+				? MethodRole.FallibleTransformation
+				: MethodRole.Guard;
 	}
 }

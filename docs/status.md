@@ -46,7 +46,8 @@ then quietly mean nothing.
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
-| value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| value failures `bool M(…, out T)` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
@@ -392,6 +393,31 @@ inside one — `@int.Parse` and the like — resolve against the host compilatio
   `IsSuccess` is what says so. An unconstrained `T?` needs a language version this
   generator may not assume, and `T` has to be unconstrained now that a rule may declare
   itself `: @int`.
+
+## Value failures
+
+`=> @TryTiny(digits)` where the C# is `bool TryTiny(string digits, out int value)` is
+§8.1, and it needed no notation because the signature already is one. The factory becomes
+`bool Construct_Start(string text, string digits, out int value)`, and "no" is a failure
+of the match: the shape was right and what it held was not accepted, so the rule does not
+match here. Inside a recovering repetition that is a broken element rather than the end of
+the run, which is what makes §8.1 and §8.2 one feature rather than two.
+
+Told from a `where` guard by the `out` — both return `bool`, and only one hands something
+back. Detected in the shell, because only a real compilation can be asked what shape a C#
+method has; the grammar half never sees it.
+
+**Building it needed `@Name` to resolve against the host class**, which it did not. The
+resolver looked names up as `Type.Method` and gave up on anything without a dot, so the
+one place an author actually puts a helper — the class the grammar is attached to — was
+the one place unreachable. `@int.Parse` worked and `@TryTiny` did not, which is backwards.
+An unqualified name is now looked for in the host first, the way C# resolves one inside a
+class.
+
+Not built: a value failure still costs a rescan. §8.2 says it should be cheaper than a
+recognition failure — the element was recognized whole, so the position is already past it
+and there is nothing to skip — and today the recovering repetition scans forward from the
+element's start as it would for any break. Correct, just not yet cheap.
 
 ## Nothing is shared between assemblies
 

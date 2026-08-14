@@ -90,8 +90,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 			.Combine(context.CompilationProvider)
 			.Select(static (input, _) => input.Left with
 			{
-				Answers = new EquatableArray<Answer>(
-					Questions.Ask(input.Left.Questions.Items, new RoslynSymbolResolver(input.Right))),
+				Answers = new EquatableArray<Answer>(Questions.Ask(
+					input.Left.Questions.Items,
+					new RoslynSymbolResolver(input.Right, input.Left.Host.MetadataName))),
 			})
 			.WithTrackingName(AnsweredStage);
 
@@ -302,6 +303,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		Location? Location)
 	{
+		/// <summary>
+		/// The host as metadata names it, for looking its own members up.
+		/// </summary>
+		/// <remarks>
+		/// Nested classes are joined by <c>+</c> and not by <c>.</c>, which is the whole
+		/// difference between what a grammar writes and what a compilation is asked. Type
+		/// parameters are not part of it — <c>Parser&lt;T&gt;</c> is metadata's
+		/// <c>Parser`1</c> — so a generic host is left alone rather than looked up wrongly.
+		/// </remarks>
+		public string? MetadataName
+		{
+			get
+			{
+				if (ClassName.IndexOf('<') >= 0)
+					return null;
+
+				var nested = ClassName.Replace('.', '+');
+
+				return Namespace is null ? nested : Namespace + "." + nested;
+			}
+		}
+
 		/// <summary>
 		/// The class the grammar is looked up by: the innermost one, without its type
 		/// parameters — <c>Parser&lt;T&gt;</c> looks for <c>Parser.gram</c>.

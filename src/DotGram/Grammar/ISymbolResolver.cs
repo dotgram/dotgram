@@ -36,6 +36,15 @@ public enum MethodRole
 	/// <summary><c>T M(args…)</c> — never touches input.</summary>
 	ValueTransformation,
 
+	/// <summary>
+	/// <c>bool M(args…, out T value)</c> — a transformation that may refuse (§8.1).
+	/// </summary>
+	/// <remarks>
+	/// The shape <c>int.TryParse</c> already has, and the reason §8.1 needs no notation of
+	/// its own: a conversion says it can fail by being written the way the BCL writes one.
+	/// </remarks>
+	FallibleTransformation,
+
 	/// <summary><c>bool M(args…)</c> in a <c>where</c> position.</summary>
 	Guard,
 }

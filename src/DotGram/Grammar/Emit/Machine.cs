@@ -134,8 +134,15 @@ sealed class Machine
 	/// The name a fold step's <c>=&gt;</c> knows the value built so far by, or null when
 	/// this alternative is not a fold step (§4.3).
 	/// </param>
+	/// <param name="Fallible">
+	/// §8.1: the C# may refuse the value, in which case the rule does not match.
+	/// </param>
 	public sealed record Factory(
-		Node Of, string Method, IReadOnlyList<ResultMember> Members, string? Accumulator = null);
+		Node Of,
+		string Method,
+		IReadOnlyList<ResultMember> Members,
+		string? Accumulator = null,
+		bool Fallible = false);
 
 	IReadOnlyList<Factory> Factories => _builds?.Factories ?? [];
 
@@ -1100,7 +1107,13 @@ sealed class Machine
 				? Value(member)
 				: $"l{member.Slots[0]}[{step}]");
 
-		return $"{into} = {factory.Method}({string.Join(", ", arguments)});";
+		// §8.1: it answers whether it produced a value, and "no" is a value failure — the
+		// shape matched and what it held was not accepted, so the rule does not match. The
+		// failure position is the end of what did match, which is what tells a caller's
+		// recovering repetition that an element was there and was refused.
+		return factory.Fallible
+			? $"if (!{factory.Method}({string.Join(", ", arguments)}, out {into})) goto case {Fail};"
+			: $"{into} = {factory.Method}({string.Join(", ", arguments)});";
 	}
 
 	void Construct(Writer file, Built built)

@@ -249,6 +249,78 @@ public sealed class GeneratorDriverTests
 			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
 	}
 
+	// ── Value failures (§8.1) ────────────────────────────────────────────────────
+
+	/// <summary>
+	/// A grammar whose <c>=&gt;</c> may refuse, and the C# it names.
+	/// </summary>
+	/// <remarks>
+	/// Driven through the generator rather than the compiler because §8.1 is decided by
+	/// the shape of a C# signature, and only a real compilation can be asked what that
+	/// shape is. The permissive resolver the grammar half falls back to cannot tell a
+	/// guard from a conversion that refuses.
+	/// </remarks>
+	const string Refusing = """
+		[DotGram.Gram("Start : @int = digits: ['0'..'9']+ => @TryTiny(digits)\nparse Start")]
+		public partial class Numbers
+		{
+			static bool TryTiny(string digits, out int value) =>
+				int.TryParse(digits, out value) && value < 100;
+		}
+		""";
+
+	[Fact]
+	public void A_transformation_that_may_refuse_is_recognized_by_its_shape()
+	{
+		var run = RunGenerator(Refusing);
+
+		Assert.Empty(run.Diagnostics);
+
+		var source = GetGeneratedSource(run, "Numbers.g.cs");
+
+		// The factory answers whether it produced a value, rather than producing one.
+		Assert.Contains(
+			"static bool Construct_Start(string text, string digits, out int value) =>",
+			source,
+			StringComparison.Ordinal);
+
+		Assert.Contains("TryTiny(digits, out value);", source, StringComparison.Ordinal);
+
+		// And "no" is a failure of the match, which is what makes it a *value* failure
+		// rather than an exception: the rule simply does not match here.
+		Assert.Contains(
+			"if (!Construct_Start(text.Slice(pos, p - pos).ToString(), ",
+			source,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_an_ordinary_transformation_still_produces_one()
+	{
+		var source = GetGeneratedSource(
+			RunGenerator("""
+				[DotGram.Gram("Start : @int = digits: ['0'..'9']+ => @Always(digits)\nparse Start")]
+				public partial class Numbers
+				{
+					static int Always(string digits) => int.Parse(digits);
+				}
+				"""),
+			"Numbers.g.cs");
+
+		Assert.Contains("static int Construct_Start(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("out int value) =>",       source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_grammar_whose_construction_may_refuse_compiles()
+	{
+		RunGenerator(Refusing, out var output);
+
+		Assert.Empty(output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>

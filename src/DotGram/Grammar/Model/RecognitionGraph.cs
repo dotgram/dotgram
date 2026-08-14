@@ -204,6 +204,18 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<Node, int> Powers { get; set; } = new Dictionary<Node, int>();
 
+	/// <summary>
+	/// The <c>=&gt;</c> constructions whose C# may refuse the value it was given (§8.1).
+	/// </summary>
+	/// <remarks>
+	/// A transformation written <c>bool M(args…, out T value)</c> says by its shape that it
+	/// can fail, which is why §8.1 needs no notation. What such a refusal means is a value
+	/// failure: the shape matched and what it held was not accepted, so the rule does not
+	/// match — and inside a recovering repetition that is a broken element rather than the
+	/// end of the run.
+	/// </remarks>
+	public IReadOnlyCollection<Node> Fallible { get; set; } = new HashSet<Node>();
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

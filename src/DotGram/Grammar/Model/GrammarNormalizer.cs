@@ -82,6 +82,7 @@ public sealed class GrammarNormalizer
 			Recoveries = normalizer._recoveries,
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
+			Fallible   = normalizer._fallible,
 		};
 	}
 
@@ -145,7 +146,7 @@ public sealed class GrammarNormalizer
 		Expr.Guard(var value)                   => new Node.Guard(Text(value)),
 		Expr.CSharp(var text)                   => new Node.Guard($"@({text})"),
 
-		Expr.Construct(var pattern, var value)  => new Node.Construct(Lower(pattern, scope), Text(value)),
+		Expr.Construct(var pattern, var value)  => LowerConstruct(pattern, value, scope),
 
 		Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, scope),
 
@@ -168,6 +169,41 @@ public sealed class GrammarNormalizer
 
 		_ => Node.Empty.Instance,
 	};
+
+	/// <summary>The constructions whose C# may refuse the value it was given (§8.1).</summary>
+	readonly HashSet<Node> _fallible = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// <c>=&gt; expr</c>, and whether that expression is allowed to say no.
+	/// </summary>
+	/// <remarks>
+	/// §8.1 needs no notation because the shape of the C# says it: a transformation
+	/// written <c>bool M(args…, out T value)</c> is one that may refuse, which is the shape
+	/// <c>int.TryParse</c> already has. Recognised here rather than at emission because
+	/// only the binder knows what the name resolved to, and only an <c>@Name(args)</c> can
+	/// be asked — an inline <c>@(...)</c> is text this half does not read.
+	/// </remarks>
+	Node LowerConstruct(Expr pattern, Expr value, GrammarScope scope)
+	{
+		// The binder hangs a call's symbol on the call, not on the name inside it.
+		var fallible = value is Expr.Call(var target, _) &&
+			target.IsCSharp &&
+			_model.Bindings.TryGetValue(value, out var symbol) &&
+			symbol is CSharpSymbol { Role: MethodRole.FallibleTransformation };
+
+		// The `out` argument is written in here, where the call is still a shape rather
+		// than a string, so that emission has nothing to take apart.
+		var text = fallible && value is Expr.Call(var called, var arguments)
+			? Text(called) + "(" + string.Join(", ", arguments.Select(Text).Append("out value")) + ")"
+			: Text(value);
+
+		var construct = new Node.Construct(Lower(pattern, scope), text);
+
+		if (fallible)
+			_fallible.Add(construct);
+
+		return construct;
+	}
 
 	/// <summary>
 	/// A bare name standing where an operand goes: a rule to call, or something else.

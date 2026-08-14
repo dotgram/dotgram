@@ -507,7 +507,8 @@ public static class CSharpEmitter
 				visible,
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
-					: null));
+					: null,
+				graph.Fallible.Contains(node)));
 		}
 
 		return found;
@@ -543,6 +544,20 @@ public static class CSharpEmitter
 						member.IsOptional ? "?" : "") +
 
 					" " + ResultTypes.ParameterOf(member));
+
+		// §8.1: a transformation that may refuse hands its value back through an `out` and
+		// says whether there is one, so the factory does too. The `out` argument is already
+		// in the text — written where the call was still a shape.
+		if (graph.Fallible.Contains(factory.Of))
+		{
+			parameters.Add($"out {graph.Types[rule]} value");
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with, or refuses to (§8.1).</summary>");
+			file.Line($"static bool {factory.Method}({string.Join(", ", parameters)}) =>");
+			file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
+
+			return;
+		}
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
 		file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
