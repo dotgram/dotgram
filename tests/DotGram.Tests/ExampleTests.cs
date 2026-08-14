@@ -139,6 +139,76 @@ public sealed class ExampleTests
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
 	}
 
+	// ── The calculator that builds a tree instead ────────────────────────────────
+
+	[Fact]
+	public void An_expression_comes_back_as_a_tree_C_sharp_can_read()
+	{
+		// The point of the example: what comes back is data, and a pattern is how it is
+		// asked what it is. Nothing here knows anything about the parser.
+		var tree = ExpressionParser.Read("1 + 2 * 3");
+
+		var (op, left, right) = Assert.IsType<Binary>(tree);
+
+		Assert.Equal("+", op);
+		Assert.Equal(new Number(1m), left);
+
+		// `*` binds tighter, so it is the one nested inside — precedence read off the
+		// shape rather than trusted.
+		var (inner, two, three) = Assert.IsType<Binary>(right);
+
+		Assert.Equal("*", inner);
+		Assert.Equal(new Number(2m), two);
+		Assert.Equal(new Number(3m), three);
+	}
+
+	[Fact]
+	public void And_records_make_a_whole_tree_one_assertion() =>
+		// Value equality all the way down, which is the other half of "it is ordinary C#
+		// data": no walker, no visitor, one `==`.
+		Assert.Equal(
+			new Binary("-",
+				new Binary("+", new Number(1m), new Number(2m)),
+				new Negate(new Number(3m))),
+			ExpressionParser.Read("1 + 2 - -3"));
+
+	[Theory]
+	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum recurses on the left
+	[InlineData("2^3^2",   "(2 ^ (3 ^ 2))")]      // Power recurses on the right
+	[InlineData("-2^2",    "-(2 ^ 2)")]           // `^` binds tighter than unary minus
+	[InlineData("2*3+4",   "((2 * 3) + 4)")]
+	[InlineData("2*(3+4)", "(2 * (3 + 4))")]
+	public void And_the_shape_is_the_grouping(string expression, string expected) =>
+		Assert.Equal(expected, ExpressionParser.Print(ExpressionParser.Read(expression)));
+
+	[Theory]
+	[InlineData("1-2-3",    "-4")]
+	[InlineData("2^3^2",   "512")]
+	[InlineData("1/8",   "0.125")]
+	public void And_a_walk_over_it_gets_the_same_answers_as_the_calculator(
+		string expression, string expected) =>
+		Assert.Equal(
+			expected,
+			ExpressionParser.Evaluate(ExpressionParser.Read(expression))
+				.ToString(CultureInfo.InvariantCulture));
+
+	[Fact]
+	public void And_a_tree_can_be_rewritten_before_it_is_walked()
+	{
+		// What the tree is for. Nothing like this is expressible on a parser that hands
+		// back a number.
+		Assert.Equal(6m, ExpressionParser.Evaluate(Double(ExpressionParser.Read("1 + 2"))));
+
+		static Expression Double(Expression node) => node switch
+		{
+			Number(var value)                   => new Number(value * 2),
+			Negate(var operand)                 => new Negate(Double(operand)),
+			Binary(var op, var left, var right) => new Binary(op, Double(left), Double(right)),
+
+			_ => node,
+		};
+	}
+
 	// ── The feed reader ──────────────────────────────────────────────────────────
 
 	const string Text =
