@@ -50,7 +50,7 @@ then quietly mean nothing.
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
-| retention: which rules can span a line §6.3 | — | — | ✓ | — | — |
+| retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
 | retention: where the window may move §6.3 | — | — | ✗ | ✗ | ✗ |
 | streaming input §6.2, §8.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -502,20 +502,32 @@ which is why the aspect generator next door uses it for its interceptors and
 §6.3 emits the streaming overloads only where the grammar provably works with a reused
 buffer, so the analysis comes before anything else. It has two halves and one is built.
 
-**Which rules can span a line** — `Retention.RulesThatSpanLines`. A fixpoint over the
-graph, like nullability: a rule spans a line when it can consume a terminator itself or
-through what it calls. Recursion settles because it starts at "no" and grows, so a rule
-that reaches a terminator only through itself reaches one never.
+**What each rule can take, in lines** — `Retention.ExtentOf`. Three answers, and the
+distinction that matters is not whether a terminator is consumed but whether anything
+follows it:
 
-The case it exists for is the complement written without thinking about lines:
+| | | fits a line's buffer |
+| --- | --- | :-: |
+| `None` | no path consumes a terminator — a field | ✓ |
+| `AtEnd` | one may be consumed, and nothing follows — a record | ✓ |
+| `Beyond` | one may be consumed and the parse goes on | ✗ |
+
+A fixpoint over the graph, like nullability, and for the same reason: a rule's answer
+depends on the rules it calls and recursion makes that not a tree. It rests on a second
+fixpoint — which rules can consume anything at all — because that is what tells a
+terminator at the end of a rule from one in the middle. Guessing that a call consumes
+made `eol & eof` two lines, which it plainly is not.
+
+The case it exists for is the field written while thinking about separators:
 
 ```dotgram
-Text = [^ '|']+          // spans: it will swallow the rest of the file
-Text = [^ '|' | '\r' | '\n']+   // does not
+Text = [^ '|']+                 // Beyond — `+` repeats, so it swallows the file
+Text = [^ '|' | '\r' | '\n']+   // None
+Row  = "R" & Text & eol         // AtEnd with the second, Beyond with the first
 ```
 
 A Unicode category is not looked into and is assumed to admit a terminator. That is wrong
-in the safe direction: a rule wrongly said to span a line loses an overload it could have
+in the safe direction: a rule wrongly said to take one loses an overload it could have
 had, and one wrongly said not to would lose data.
 
 **Where the window may move** is the other half and is not built. Knowing a rule stays on

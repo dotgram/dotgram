@@ -11,116 +11,126 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Which rules can span a line, which is half of deciding whether a grammar can stream.
+/// What each rule can take, measured in lines — half of deciding whether a grammar can
+/// stream.
 /// </summary>
 /// <remarks>
-/// The other half — the commit points that let the window move — is not built, and
-/// nothing is emitted from any of this yet. It is tested on its own because an analysis
-/// that is only ever exercised through the feature it gates is an analysis nobody can
-/// tell is wrong.
+/// The other half, the commit points that let the window move, is not built, and nothing
+/// is emitted from any of this yet. Tested on its own regardless: an analysis only ever
+/// exercised through the feature it gates is one nobody can tell is wrong.
 /// </remarks>
 public sealed class RetentionTests
 {
-	static string[] SpanningRules(string grammar)
+	static LineExtent ExtentOf(string grammar, string rule)
 	{
 		var graph = GrammarNormalizer.Normalize(GrammarBinder.Bind(
 			GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
 
 		// Before the analysis, because a grammar that did not compile answers "nothing
-		// spans a line" and is indistinguishable from one where nothing does.
+		// takes a line" indistinguishably from one where nothing does.
 		Assert.Empty(graph.Diagnostics);
 
-		return
-		[
-			.. Retention.RulesThatSpanLines(graph)
-				.Select(rule => rule.Name)
-				.OrderBy(name => name, StringComparer.Ordinal)
-		];
+		var extents = Retention.ExtentOf(graph);
+
+		return extents.First(entry => entry.Key.Name == rule).Value;
 	}
 
-	[Fact]
-	public void A_rule_of_ordinary_characters_stays_on_its_line() =>
-		Assert.Empty(SpanningRules("Word = ['a'..'z']+"));
+	[Theory]
+	[InlineData("Word  = ['a'..'z']+",              LineExtent.None)]
+	[InlineData("Word  = \"abc\"",                  LineExtent.None)]
+	[InlineData("Word  = ['a'..'z']* & '\\n'",      LineExtent.AtEnd)]
+	[InlineData("Word  = \"\\r\\n\"",               LineExtent.AtEnd)]
+	[InlineData("Word  = '\\n' & ['a'..'z']",       LineExtent.Beyond)]
+	public void What_a_rule_takes(string grammar, LineExtent expected) =>
+		Assert.Equal(expected, ExtentOf(grammar, "Word"));
 
 	[Fact]
-	public void One_that_names_a_terminator_does_not() =>
-		Assert.Equal(["Line"], SpanningRules("Line = ['a'..'z']* & '\\n'"));
+	public void A_record_is_a_line_and_fits_one() =>
+		// The distinction the three values exist for. `Row` consumes a terminator and is
+		// still one line, because nothing follows it.
+		Assert.Equal(
+			LineExtent.AtEnd,
+			ExtentOf("Row = \"R\" & Text & eol\nText = [^ '|' | '\\r' | '\\n']+", "Row"));
 
 	[Fact]
-	public void And_so_does_one_that_matches_it_in_a_literal() =>
-		Assert.Equal(["Break"], SpanningRules("Break = \"\\r\\n\""));
-
-	[Fact]
-	public void A_complement_that_forgets_to_exclude_it_spans() =>
+	public void A_field_that_forgets_to_exclude_a_terminator_goes_beyond() =>
 		// The case the analysis exists for. `[^ '|']` is how a field is written when the
-		// author is thinking about separators and not about lines, and it will happily
-		// swallow the rest of the file.
-		Assert.Equal(["Field"], SpanningRules("Field = [^ '|']+"));
-
-	[Fact]
-	public void And_one_that_excludes_it_does_not() =>
-		Assert.Empty(SpanningRules("Field = [^ '|' | '\\r' | '\\n']+"));
-
-	[Fact]
-	public void It_reaches_through_a_call() =>
-		// `Row` spans because `Text` does, not because it says so itself.
+		// author is thinking about separators and not about lines.
 		Assert.Equal(
-			["Row", "Text"],
-			SpanningRules("Row = 'R' & Text\nText = [^ '|']+"));
+			LineExtent.Beyond,
+			ExtentOf("Row = \"R\" & Text & eol\nText = [^ '|']+", "Row"));
 
 	[Fact]
-	public void And_through_a_capture_and_a_construction() =>
+	public void And_the_field_itself_already_goes_beyond() =>
+		// Not merely to the end of a line: `+` repeats, so a set that admits a terminator
+		// admits any number of them, and the field alone can swallow the file.
+		Assert.Equal(LineExtent.Beyond, ExtentOf("Text = [^ '|']+", "Text"));
+
+	[Fact]
+	public void A_repetition_of_lines_goes_beyond() =>
 		Assert.Equal(
-			["Row"],
-			SpanningRules("Row : @string = t: [^ '|']+ => @(t)"));
+			LineExtent.Beyond,
+			ExtentOf("Rows = Row*\nRow = \"R\" & eol", "Rows"));
 
 	[Fact]
-	public void A_repetition_of_none_spans_nothing() =>
-		// `{0}` matches nothing at all, so what it repeats cannot be reached.
-		Assert.Empty(SpanningRules("Never = [^ '|']{0}"));
+	public void An_optional_line_is_still_one_line() =>
+		// At most once round, so at most one terminator and nothing after it.
+		Assert.Equal(
+			LineExtent.AtEnd,
+			ExtentOf("Maybe = Row?\nRow = \"R\" & eol", "Maybe"));
 
 	[Fact]
-	public void A_lookahead_reads_a_terminator_without_consuming_one() =>
-		// It consumes nothing, so it retains nothing. What it needs to *see* is a window
-		// question rather than a retention one, and §6.3 does not answer it yet.
-		Assert.Empty(SpanningRules("AtEnd = ?='\\n' & ['a'..'z']*"));
+	public void A_repetition_of_none_takes_nothing() =>
+		Assert.Equal(LineExtent.None, ExtentOf("Never = [^ '|']{0}", "Never"));
+
+	[Fact]
+	public void A_lookahead_reads_a_terminator_without_taking_one() =>
+		Assert.Equal(LineExtent.None, ExtentOf("AtEnd = ?='\\n' & ['a'..'z']*", "AtEnd"));
+
+	[Fact]
+	public void A_line_followed_by_end_of_input_is_still_one_line() =>
+		// `eof` consumes nothing, so it does not put the parse on the next line.
+		Assert.Equal(LineExtent.AtEnd, ExtentOf("One = ['a'..'z']* & eol & eof", "One"));
 
 	[Fact]
 	public void Recursion_settles_rather_than_spinning() =>
-		// A rule that only reaches a terminator through itself reaches one never, which is
-		// what starting at "no" and growing gives. Reaching one otherwise still spreads.
 		Assert.Equal(
-			["Nested"],
-			SpanningRules("Nested = '(' & Nested & ')' | '\\n'"));
+			LineExtent.Beyond,
+			ExtentOf("Nested = '(' & Nested & ')' | '\\n' & ['a'..'z']", "Nested"));
 
 	[Fact]
-	public void A_category_is_assumed_to_admit_one() =>
-		// Not looked into, and wrong in the safe direction: a rule wrongly said to span a
-		// line loses an overload it could have had; wrongly said not to, it would lose data.
-		Assert.Equal(["Any"], SpanningRules(@"Any = [\p{L}]+"));
+	public void The_worst_alternative_decides() =>
+		Assert.Equal(
+			LineExtent.Beyond,
+			ExtentOf("Either = ['a'..'z']+ | '\\n' & ['a'..'z']", "Either"));
 
 	[Fact]
-	public void The_feed_of_the_examples_spans_only_where_it_should()
+	public void A_category_is_assumed_to_admit_a_terminator() =>
+		// Not looked into, and wrong in the safe direction: a rule wrongly said to take a
+		// terminator loses an overload it could have had; wrongly said not to, it would
+		// lose data.
+		Assert.Equal(LineExtent.Beyond, ExtentOf(@"Any = [\p{L}]+", "Any"));
+
+	[Fact]
+	public void The_feed_of_the_examples_measures_as_it_reads()
 	{
-		// The shape the whole analysis is for. Every rule of a line-oriented feed stays on
-		// its line except the ones that deliberately end one.
-		var spanning = SpanningRules("""
+		const string Feed = """
 			Feed    = header: Header & rows: Row* & trailer: Trailer & eof
 			Header  = "H" & '|' & source: Text & eol
 			Row     = "R" & '|' & symbol: Text & eol
 			Trailer = "T" & '|' & count: Digit+ & eol
 			Text    = [^ '|' | '\r' | '\n']+
 			Digit   = ['0'..'9']
-			""");
+			""";
 
-		// The rules that end a line span one; the fields do not, which is what makes a
-		// line a workable unit for this grammar.
-		Assert.Contains("Header",  spanning);
-		Assert.Contains("Row",     spanning);
-		Assert.Contains("Trailer", spanning);
-		Assert.Contains("Feed",    spanning);
+		// Fields fit inside a line; records are a line each.
+		Assert.Equal(LineExtent.None,  ExtentOf(Feed, "Text"));
+		Assert.Equal(LineExtent.None,  ExtentOf(Feed, "Digit"));
+		Assert.Equal(LineExtent.AtEnd, ExtentOf(Feed, "Header"));
+		Assert.Equal(LineExtent.AtEnd, ExtentOf(Feed, "Row"));
 
-		Assert.DoesNotContain("Text",  spanning);
-		Assert.DoesNotContain("Digit", spanning);
+		// And the whole feed is many lines, which is exactly why it needs a commit point
+		// before it can stream: without one, the window could never move.
+		Assert.Equal(LineExtent.Beyond, ExtentOf(Feed, "Feed"));
 	}
 }
