@@ -131,18 +131,20 @@ Working end to end — a `.gram` file becomes a parser that runs:
   `examples/` — one with precedence, parentheses and unary minus, one with both
   groupings side by side
 
-- **binding powers**, for the expression language that levels cannot say. An alternative
-  states its own strength, and `-1-2` is -3 because unary minus is stronger than the
-  binary one it shares a character with — which no stacking of rules can express:
+- **binding powers**, for when a whole expression language should be one rule instead of
+  a stack of them. The alternative states its own strength rather than having it implied
+  by which rule calls which:
 
   ```dotgram
   Expr : @decimal = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+                  | left: Expr & '*' & right: Expr  << 2 => @(left * right)
                   | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
-                  | '-' & operand: Expr             >> 4 => @(-operand)
+                  | '-' & operand: Expr             >> 3 => @(-operand)
   ```
 
   `<<` reads the operand to the right one strength tighter, so it groups left; `>>`
-  reads it at the same strength, so it groups right
+  reads it at the same strength, so it groups right. `examples/` has this calculator
+  and its five-rule twin, tested against each other expression by expression
 
 - **`recover`**, which is how a feed survives a bad record. The mark says that inside
   this repetition an element that starts and then fails is an error rather than the end
@@ -177,7 +179,7 @@ written against it, with no test framework anywhere near them.
 | [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
 | [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
 | [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a scope that shadows `Trivia` back off |
-| [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the same language in one rule — `<< n` and `>> n`, and the unary operator no stacking of levels can make stronger |
+| [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
 | [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — records out, patterns back in, and the shape a small DSL wants |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.

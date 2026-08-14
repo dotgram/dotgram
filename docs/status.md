@@ -173,12 +173,18 @@ levels. The refusal is not about the shape — it is that ordered choice has not
 settle the grouping with. A strength is exactly the missing information, so the same
 `left: E & op & right: E` is a diagnostic in one convention and the point of the other.
 
-**What levels can say and strengths cannot.** A strength is one number, so it says the
-same thing about both sides of an operator. Python's `**` binds tighter than unary minus
-on its left (`-2**2` is `-4`) and looser on its right (`2**-1` parses); levels say that
-by naming two different rules either side of it, `left: Primary & '^' & right: Unary`. A
-grammar of strengths picks one or the other. Both example calculators are in `examples/`
-and a test states the one expression they answer differently.
+**A strength is not symmetric, and that is what makes one number enough.** It says only
+what the operand to the *right* is read at. A prefix has no left operand, so it is a base
+— one of the alternatives that start an expression — and a base is entered whatever
+strength was asked for, because there is nothing to its left for anything to bind more
+tightly than.
+
+So the asymmetry that looks as though it needs two numbers does not. Python's `**` binds
+tighter than unary minus on its left (`-2**2` is `-4`) and looser on its right (`2**-1`
+parses); levels say that by naming two different rules either side of it, `left: Primary
+& '^' & right: Unary`. Strengths say it by giving `^` and unary minus the *same* number.
+`examples/` has the same calculator both ways and a test that runs them against each
+other expression by expression, that pair included.
 
 Refused: a rule with a strength on one recursive alternative and none on another (§4.3.1
 — one convention or the other), and a strength on an alternative with no operand of its
