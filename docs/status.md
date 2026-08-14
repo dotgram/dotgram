@@ -46,6 +46,7 @@ then quietly mean nothing.
 | a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` §8.2 | — | — | — | ✗ | ✗ |
 | value failures `bool M(…, out T)` §8.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
 | streaming input §6.2, §8.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -385,6 +386,31 @@ inside one — `@int.Parse` and the like — resolve against the host compilatio
   `IsSuccess` is what says so. An unconstrained `T?` needs a language version this
   generator may not assume, and `T` has to be unconstrained now that a rule may declare
   itself `: @int`.
+
+## Nothing is shared between assemblies
+
+`.Gram` emits everything a parser needs into the consumer's own compilation, and every
+type it puts in a namespace is `internal`. That is what makes the claim in the README
+true rather than nearly true: an internal type cannot be seen across an assembly
+boundary, so two assemblies that both emit `DotGram.SourceSpan` never collide, never bind
+to each other's, and have nothing to version.
+
+There was briefly a shared mode — `[assembly: GramRuntime]` published four support types
+as `public` and other assemblies bound to them, having found them by looking up a type by
+name. It was removed rather than fixed, for two reasons.
+
+It reintroduced exactly the skew that emitting into the consumer exists to prevent: an
+assembly built by one version of the generator would bind to types emitted by another,
+with no package, version or metadata anywhere to say so. And it was protecting nothing —
+of the four types, `Outcome`, `Diagnostic` and `RecognitionResult<T>` were referenced by
+no generated code at all, and `SourceSpan` appears only in the private signature of a
+recovery factory, which never crosses a boundary. Three types were deleted; §7.5 still
+specifies them and the table above says they are not built, which is this project's
+ordinary way of holding a plan.
+
+`GRAM0001` went with it — it reported two assemblies both publishing — so diagnostic
+numbering starts at `GRAM0002`. A retired number is not reused: a suppression written
+against the old meaning would silently acquire a new one.
 
 ## What has been measured
 

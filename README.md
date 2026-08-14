@@ -65,11 +65,10 @@ against a single test: it means exactly one thing, and that thing is what it mea
 C# or in .NET regular expressions.
 
 **No runtime assembly ships.** Everything a generated parser needs is emitted into the
-consumer's own compilation. You take one analyzer package, acquire no dependency, and
-there is nowhere for a "generator of one version, runtime of another" skew to come
-from. When shared types are wanted — to expose a parser in a library's public API —
-one assembly declares `[assembly: GramRuntime]` and publishes them for the others.
-The two modes are strictly additive: opting in only adds overloads.
+consumer's own compilation, and all of it `internal`. You take one analyzer package,
+acquire no dependency, and there is nowhere for a "generator of one version, runtime of
+another" skew to come from — an internal type is invisible across an assembly boundary,
+so two assemblies that both emit one never have to agree about it.
 
 ## Where it stands
 

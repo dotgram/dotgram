@@ -43,16 +43,6 @@ public enum GramSeverity
 	Error,
 }
 
-/// <summary>Accessibility of the emitted support types — see docs/syntax.md §6.1.</summary>
-public enum SupportAccessibility
-{
-	/// <summary>Emitted internal; nothing crosses an assembly boundary.</summary>
-	Internal,
-
-	/// <summary>Emitted public; this assembly publishes them for others.</summary>
-	Public,
-}
-
 /// <summary>Options for one compilation.</summary>
 public sealed class GramCompilerOptions
 {

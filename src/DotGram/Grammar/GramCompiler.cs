@@ -77,15 +77,8 @@ public static class GramCompiler
 	}
 
 	/// <summary>
-	/// Emits the support types a generated parser needs. Independent of any grammar —
-	/// one copy per compilation, not per grammar.
-	/// </summary>
-	public static GeneratedSource EmitSupportTypes(SupportAccessibility accessibility) =>
-		new("DotGram.Support.g.cs", SupportEmitter.SupportTypes(accessibility));
-
-	/// <summary>
-	/// Emits the marker attributes (<c>[Gram]</c>, <c>[assembly: GramRuntime]</c>).
-	/// Always internal, always present, in every compilation.
+	/// Emits <c>[Gram]</c> and the one support type. Always internal, always present, one
+	/// copy per compilation and independent of any grammar in it.
 	/// </summary>
 	public static GeneratedSource EmitMarkerAttributes() =>
 		new("DotGram.Attributes.g.cs", SupportEmitter.Attributes);

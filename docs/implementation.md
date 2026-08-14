@@ -114,8 +114,8 @@ inside a rule, and it is the one part of the engine that is built (`status.md`).
 **There is no runtime assembly.** Everything a generated parser needs is emitted into
 the same assembly, `internal` (`syntax.md` §6.1). A consumer takes one analyzer
 package. It follows that nothing which must be shared between assemblies can appear
-here — and if something does, it goes into the optional shared mode
-`[assembly: GramRuntime]` rather than into a dependency.
+here — and if something one day must be, it arrives with a versioned contract rather
+than by being made `public` and found by name.
 
 Parameterized rules are specialized per call site (`syntax.md` §4.2), so a recognizer
 parameter disappears during generation and becomes a direct call.

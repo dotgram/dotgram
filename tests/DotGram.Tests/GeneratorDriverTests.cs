@@ -20,33 +20,26 @@ namespace DotGram.Tests;
 public sealed class GeneratorDriverTests
 {
 	[Fact]
-	public void Emits_the_marker_attributes_into_every_compilation()
+	public void Emits_the_attribute_and_the_one_support_type_into_every_compilation()
 	{
 		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Attributes.g.cs");
 
-		Assert.Contains("internal sealed class GramAttribute", source, StringComparison.Ordinal);
-		Assert.Contains("internal sealed class GramRuntimeAttribute", source, StringComparison.Ordinal);
+		Assert.Contains("internal sealed class GramAttribute",   source, StringComparison.Ordinal);
+		Assert.Contains("internal readonly struct SourceSpan",   source, StringComparison.Ordinal);
 	}
 
 	[Fact]
-	public void Emits_support_types_internal_by_default()
+	public void And_nothing_public_that_two_assemblies_would_have_to_agree_about()
 	{
-		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Support.g.cs");
+		// Internal is what makes .Gram need no runtime assembly and no way of finding one:
+		// two assemblies each emitting `DotGram.SourceSpan` cannot see each other's, so
+		// there is nothing to collide, discover or version. There used to be a public mode
+		// for this, and it brought the version skew back with it.
+		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Attributes.g.cs");
 
-		Assert.Contains("internal enum Outcome", source, StringComparison.Ordinal);
-		Assert.Contains("internal readonly struct SourceSpan", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("public enum Outcome", source, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void Emits_support_types_public_when_the_assembly_publishes_them()
-	{
-		var source = GetGeneratedSource(
-			RunGenerator("[assembly: DotGram.GramRuntime]"),
-			"DotGram.Support.g.cs");
-
-		Assert.Contains("public enum Outcome", source, StringComparison.Ordinal);
-		Assert.Contains("public readonly struct SourceSpan", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("public sealed class",   source, StringComparison.Ordinal);
+		Assert.DoesNotContain("public readonly struct", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("public enum",            source, StringComparison.Ordinal);
 	}
 
 	[Fact]

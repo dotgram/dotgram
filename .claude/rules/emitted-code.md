@@ -12,10 +12,11 @@ target framework, next to the consumer's own code. That changes the rules.
   for an older framework almost certainly uses PolySharp or Meziantou.Polyfill, and
   a second `internal struct System.Range` in one compilation is a compile error. This
   is also why `SourceSpan` is ours rather than `System.Range`.
-- **Accessibility is explicit**, unlike in our own sources: `internal` by default,
-  `public` when the assembly is marked `[assembly: GramRuntime]`. The two modes are
-  **strictly additive** — opting in adds typed overloads and never changes an
-  existing signature, so code written before opting in still compiles after.
+- **Accessibility is explicit**, unlike in our own sources. Anything emitted into a
+  namespace is `internal`, always — that is what makes two assemblies emitting the same
+  type unable to see, collide with or disagree about each other's, and it is the whole
+  of why no runtime assembly ships. A generated parser's own types are `public` and
+  nested in the host class, so their names are the host's and cannot clash either.
 - **Assume nothing about the consumer's language version or TFM.** No file-scoped
   namespaces, no collection expressions, no `record` unless the emitted code carries
   what makes it work. Prefer plainly compilable C#.

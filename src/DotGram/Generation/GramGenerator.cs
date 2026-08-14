@@ -22,25 +22,19 @@ namespace DotGram.Generation;
 [Generator(LanguageNames.CSharp)]
 public sealed class GramGenerator : IIncrementalGenerator
 {
-	const string GramFileExtension    = ".gram";
-	const string GramAttribute        = "DotGram.GramAttribute";
-	const string RuntimeAttribute     = "DotGram.GramRuntimeAttribute";
-	const string SupportProbeTypeName = "DotGram.Diagnostic";
+	const string GramFileExtension = ".gram";
+	const string GramAttribute     = "DotGram.GramAttribute";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
-		// Marker attributes: always internal, always present, so that [Gram] and
-		// [assembly: GramRuntime] can be written in source at all.
+		// `[Gram]` and the one support type: always internal, always present, so that the
+		// attribute can be written in source at all and nothing has to be found anywhere.
 		context.RegisterPostInitializationOutput(static postInit =>
 		{
 			var source = GramCompiler.EmitMarkerAttributes();
 
 			postInit.AddSource(source.HintName, source.Text);
 		});
-
-		context.RegisterSourceOutput(
-			context.CompilationProvider.Select(static (compilation, _) => DecideSupportEmission(compilation)),
-			EmitSupportTypes);
 
 		// The unit of generation is the host class, not the file (§1). A .gram file no
 		// class claims generates nothing — there would be nowhere to put the result.
@@ -60,61 +54,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			hosts.Combine(files).Combine(context.CompilationProvider),
 			static (production, input) => EmitParser(
 				production, input.Left.Left, input.Left.Right, input.Right));
-	}
-
-	// ── Support types ────────────────────────────────────────────────────────────
-
-	/// <summary>
-	/// Three cases: another assembly already publishes the support types (bind to
-	/// those), this assembly is the publisher (emit public), or neither (emit internal).
-	/// </summary>
-	static SupportEmission DecideSupportEmission(Compilation compilation)
-	{
-		var referenced = compilation
-			.GetTypesByMetadataName(SupportProbeTypeName)
-			.Where(type =>
-				type.DeclaredAccessibility == Accessibility.Public &&
-				!SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
-			.Select(type => type.ContainingAssembly.Name)
-			.Distinct(StringComparer.Ordinal)
-			.ToImmutableArray();
-
-		if (referenced.Length > 0)
-			return new SupportEmission(Mode: SupportMode.Referenced, Providers: referenced);
-
-		var isPublisher = compilation.Assembly
-			.GetAttributes()
-			.Any(attribute => attribute.AttributeClass?.ToDisplayString() == RuntimeAttribute);
-
-		return new SupportEmission(
-			Mode:      isPublisher ? SupportMode.Publish : SupportMode.Private,
-			Providers: ImmutableArray<string>.Empty);
-	}
-
-	static void EmitSupportTypes(SourceProductionContext context, SupportEmission emission)
-	{
-		switch (emission.Mode)
-		{
-			case SupportMode.Referenced when emission.Providers.Length > 1:
-				// Silently picking one would make which assembly wins invisible.
-				context.ReportDiagnostic(Diagnostic.Create(
-					Diagnostics.AmbiguousSupportTypes,
-					location: null,
-					string.Join(", ", emission.Providers)));
-				break;
-
-			case SupportMode.Referenced:
-				break;
-
-			default:
-				var source = GramCompiler.EmitSupportTypes(
-					emission.Mode == SupportMode.Publish
-						? SupportAccessibility.Public
-						: SupportAccessibility.Internal);
-
-				context.AddSource(source.HintName, source.Text);
-				break;
-		}
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
@@ -227,20 +166,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 	}
 
 	// ── What the shell carries between stages ────────────────────────────────────
-
-	enum SupportMode
-	{
-		/// <summary>Emit internal copies; nothing crosses an assembly boundary.</summary>
-		Private,
-
-		/// <summary>Emit public copies; this assembly is the publisher.</summary>
-		Publish,
-
-		/// <summary>Bind to a referenced assembly's public copies.</summary>
-		Referenced,
-	}
-
-	readonly record struct SupportEmission(SupportMode Mode, ImmutableArray<string> Providers);
 
 	readonly record struct GrammarFile(string Path, string Text);
 

@@ -740,24 +740,21 @@ of a public method. So by default only BCL types face outward — `string`, `int
 
 `Match<T>` and a rule's own type are not exceptions to this. They are generated from
 one grammar into the assembly that uses it, so there are no two versions of them to
-skew, and nothing crosses an assembly boundary. What §6.2 is about is the types that
-*would* be shared.
+skew, and nothing crosses an assembly boundary.
 
-**Shared types on demand.** When typed diagnostics are wanted, or when a parser is
-exposed in a library's public API, one assembly declares:
+**Nothing is shared, and that is the design rather than a stage of it.** A library
+exposing a parser in its public API exposes its own generated types, and a consumer uses
+those — exactly as it would use any other type the library declares. There is no mode in
+which two assemblies bind to one copy of anything.
 
-```csharp
-[assembly: GramRuntime]
-```
-
-and the generator emits `Diagnostic`, `SourceSpan`, `RecognitionResult<T>` and
-`Outcome` into it as `public`, while assemblies referencing it bind to those instead
-of emitting their own. `Match<T>` gains a typed `Diagnostic` beside its `Error`, additively.
-
-The two modes are **strictly additive**: opting in only adds overloads and never
-changes existing ones, so code written before opting in still compiles. If two
-referenced assemblies both publish the shared types, that is compile error `GRAM0001`
-rather than a silent pick between them.
+There was one, briefly: an assembly could declare `[assembly: GramRuntime]` and publish
+four support types as `public` for others to bind to. It bought nothing — three of the
+four were used by nothing at all — and it cost the property this section is about, because
+an assembly compiled by one version of the generator was then binding to types emitted by
+another, with no package or version to say so. Emitting everything `internal` makes the
+question unaskable: an internal type cannot be seen across a boundary, so two of them
+cannot disagree. When a type genuinely has to be shared, it comes back with a contract to
+version and a reason to exist.
 
 ### 6.3 The input type picks the execution mode
 
@@ -931,7 +928,8 @@ This is the mechanism `[GeneratedRegex]` already uses.
 ### 7.5 Recognition outcomes
 
 Inside the language an outcome is an ordinary value, never an exception. The type is
-emitted by the generator into the assembly itself (§6.2), `internal` by default:
+emitted by the generator into the assembly itself, `internal` like everything else
+(§6.2):
 
 ```csharp
 readonly struct RecognitionResult<T>
@@ -1106,11 +1104,10 @@ afterwards, and there is no element to allocate. It is also the shape a reused r
 needs — `Current` valid until the next `Read` — which no compiler-generated iterator
 can offer.
 
-`RowOutcome` is generated per grammar, `public`, with members drawn from the BCL and
-from the grammar's own types. It follows the rule of §7.3 rather than being an
-exception to it: no C# type declared, so one is generated. Nothing is shared between
-assemblies, so §6.2 does not apply and `[assembly: GramRuntime]` is not needed; under
-it, the outcome gains a typed `Diagnostic`, additively.
+`RowOutcome` is generated per grammar, `public`, and nested in the host class, with
+members drawn from the BCL and from the grammar's own types. It follows the rule of §7.3
+rather than being an exception to it: no C# type declared, so one is generated. Nothing
+about it is shared between assemblies, which is what §6.2 says of everything.
 
 **A rejection carries the text it was rejected from.** A position alone is useless in a
 streamed parse — a `TextReader` cannot be wound back and the buffer has been reused —
