@@ -135,11 +135,11 @@ Working end to end — a `.gram` file becomes a parser that runs:
   the `=>` puts what it skipped into the same sequence as the records:
 
   ```dotgram
-  lines: Row* recover eol => @(new RejectedLine(ordinal, position, text.Trim()))
+  lines: Row* recover eol => @(new RejectedLine(ordinal, line, text, message))
   ```
 
-  A rejection arrives in its place, carrying which record it was, so nothing has to be
-  joined back up afterwards
+  A rejection arrives in its place, carrying which record it was, where a person would
+  open the file, and why — so nothing has to be joined back up afterwards
 
 Not built yet:
 
@@ -149,7 +149,7 @@ Not built yet:
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
 - `recover` without a `=>`, reporting broken elements out of band rather than in the
-  sequence; and the names `line`, `column`, `span` and `message` a rejection may ask for
+  sequence
 - streaming input, incremental parsing
 
 ## Examples

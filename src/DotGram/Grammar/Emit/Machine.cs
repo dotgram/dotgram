@@ -809,9 +809,29 @@ sealed class Machine
 		writer.Line();
 
 		if (_recoverySlot >= 0 && _recovery.Factory is not null)
-			writer.Line(
-				$"l{_recoverySlot}.Add({_recoverMaker}(" +
-				$"text.Slice(from, to - from).ToString(), from, {counter}));");
+		{
+			var asked = _recovery.Asks;
+
+			// §8.2: counting lines costs a scan of what came before, so it is done only
+			// where a factory asked to be told the line — and each half of the answer is
+			// discarded unless it was one of the halves asked for.
+			if (asked.Contains("line") || asked.Contains("column"))
+			{
+				writer.Line(
+					$"{CSharpEmitter.LocateMethod}(text, from, " +
+					$"out {(asked.Contains("line") ? "var line" : "_")}, " +
+					$"out {(asked.Contains("column") ? "var column" : "_")});");
+
+				writer.Line();
+			}
+
+			var arguments = new List<string>();
+
+			foreach (var name in asked)
+				arguments.Add(Supplied(name, counter));
+
+			writer.Line($"l{_recoverySlot}.Add({_recoverMaker}({string.Join(", ", arguments)}));");
+		}
 
 		writer.Line($"{counter}++;");
 		writer.Line("p = r;");
@@ -819,6 +839,29 @@ sealed class Machine
 
 		return state;
 	}
+
+	/// <summary>
+	/// What one of the names §8.2 supplies is, where a broken element is being made into
+	/// one of the sequence.
+	/// </summary>
+	/// <remarks>
+	/// <c>message</c> is the one that has to be built rather than read. What is known about
+	/// a broken element is which rule it should have been and how far into it the input
+	/// stopped being that — <c>failure.Reach</c>, which is what said the element began at
+	/// all. The set of what was expected there would say more and is not carried yet.
+	/// </remarks>
+	string Supplied(string name, string counter) => name switch
+	{
+		"text"     => "text.Slice(from, to - from).ToString()",
+		"position" => "from",
+		"ordinal"  => counter,
+		"line"     => "line",
+		"column"   => "column",
+		"span"     => "new global::DotGram.SourceSpan(from, to - from)",
+		"message"  => $"\"Input does not match '{Layout.Slots[_recoverySlot].Rule?.Name}' at \" + " +
+			"failure.Reach.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+		_          => "default",
+	};
 
 	/// <summary>Where the parse may pick up again — a machine of its own, like a lookahead.</summary>
 	string CompileSync(Node sync)

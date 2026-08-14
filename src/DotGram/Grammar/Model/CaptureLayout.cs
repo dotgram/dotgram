@@ -195,7 +195,70 @@ public sealed record ResultMember(
 /// What a repetition marked <c>recover</c> was told (§8.2): where to resume after a
 /// broken element, and how to turn it into one of the sequence.
 /// </summary>
-public sealed record Recovery(Node Sync, string? Factory);
+public sealed record Recovery(Node Sync, string? Factory)
+{
+	/// <summary>
+	/// The names §8.2 supplies to a failure factory, in the order it takes them.
+	/// </summary>
+	/// <remarks>
+	/// Supplied rather than captured: a broken element captured nothing, so everything the
+	/// factory can be told about it is known here and nowhere else.
+	/// </remarks>
+	public static readonly IReadOnlyList<string> Supplied =
+		["text", "position", "ordinal", "line", "column", "span", "message"];
+
+	/// <summary>
+	/// Which of <see cref="Supplied"/> this factory asked for, in that order.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Read out of the C# rather than declared, because §8.2 matches by name and §8.2 also
+	/// says counting lines is done only when a name that needs it was asked for. A
+	/// parameter nobody named would be a scan of the input per rejected element, paid for
+	/// nothing.
+	/// </para>
+	/// <para>
+	/// The search is a whole-word one over the text, so it over-approximates: <c>line</c>
+	/// inside a string literal counts as having been asked for. That direction is the safe
+	/// one — a name that was written is always found, and a name that was not costs an
+	/// unused parameter. Reading it exactly would mean lexing C# here, which is the host's
+	/// job and not this half's.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<string> Asks
+	{
+		get
+		{
+			if (Factory is not { } factory)
+				return [];
+
+			var asked = new List<string>();
+
+			foreach (var name in Supplied)
+				if (Mentions(factory, name))
+					asked.Add(name);
+
+			return asked;
+		}
+	}
+
+	static bool Mentions(string csharp, string name)
+	{
+		for (var at = csharp.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			 at = csharp.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			if ((at == 0 || !IsPartOfAName(csharp[at - 1])) &&
+				(at + name.Length == csharp.Length || !IsPartOfAName(csharp[at + name.Length])))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool IsPartOfAName(char c) => char.IsLetterOrDigit(c) || c is '_' or '@';
+}
 
 /// <summary>
 /// What a left-recursive rule became: the loop of its tails, and which capture of each

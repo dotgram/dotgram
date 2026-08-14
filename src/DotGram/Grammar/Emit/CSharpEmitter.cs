@@ -54,12 +54,22 @@ sealed class Writer(int depth)
 
 	public void Append(Writer other) => _text.Append(other._text);
 
-	/// <summary>Writes text that is already laid out, each line at the current depth.</summary>
+	/// <summary>
+	/// Writes text that is already laid out, each line at the current depth.
+	/// </summary>
+	/// <remarks>
+	/// The endings are normalized first, and that is not tidiness. What arrives here is a
+	/// raw string literal, whose content is whatever the file it was typed in was saved
+	/// with — so a generator whose own source went from CRLF to LF would silently start
+	/// emitting every one of these blocks as a single unsplit line, indented once and
+	/// flattened after that. Generated code must not depend on how the generator was
+	/// saved.
+	/// </remarks>
 	public void Write(string text)
 	{
 		var written = new Writer(0);
 
-		written._text.Append(text);
+		written._text.Append(Lines.Normalize(text));
 
 		// AppendIndented reads the text as lines, each closed by an ending. Text that
 		// does not end with one — a raw string literal, say — would lose its last line.
@@ -240,6 +250,12 @@ public static class CSharpEmitter
 		if (graph.Rules.Count > 0)
 		{
 			file.Write(FailureStructWith(graph.Recoveries.Count > 0));
+			file.Line();
+		}
+
+		if (Locating(graph))
+		{
+			file.Write(LocateHelper);
 			file.Line();
 		}
 
@@ -557,16 +573,43 @@ public static class CSharpEmitter
 	/// covered and where in the sequence it was.
 	/// </summary>
 	static void EmitRecoveryFactory(
-		Writer file, ResultTypes results, RuleSymbol rule, string owner, string factory,
+		Writer file, ResultTypes results, RuleSymbol rule, string owner, Recovery recovery,
 		RecognitionGraph graph, int slot)
 	{
-		var element = LayoutOf(graph, results, rule).Slots[slot].Rule;
+		var element    = LayoutOf(graph, results, rule).Slots[slot].Rule;
+		var parameters = new List<string>();
+
+		foreach (var name in recovery.Asks)
+			parameters.Add(TypeOfSupplied(name) + " " + name);
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> makes of an element it could not read.</summary>");
-		file.Line($"static {results.ValueOf(element)} {owner}_Recover(string text, int position, int ordinal) =>");
-		file.Line("\t" + factory + ";");
+		file.Line(
+			$"static {results.ValueOf(element)} {owner}_Recover({string.Join(", ", parameters)}) =>");
+		file.Line("\t" + recovery.Factory + ";");
 		file.Line();
 	}
+
+	/// <summary>Whether any <c>recover</c> in this grammar asked where its element was.</summary>
+	static bool Locating(RecognitionGraph graph)
+	{
+		foreach (var recovery in graph.Recoveries.Values)
+		{
+			var asked = recovery.Asks;
+
+			if (asked.Contains("line") || asked.Contains("column"))
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>The C# type of a name §8.2 supplies to a failure factory.</summary>
+	static string TypeOfSupplied(string name) => name switch
+	{
+		"text" or "message" => "string",
+		"span"              => "global::DotGram.SourceSpan",
+		_                   => "int",
+	};
 
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
 	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
@@ -581,7 +624,7 @@ public static class CSharpEmitter
 			machine.Recovers(repetition, recovery, slot, MethodOf(rule) + "_Recover");
 
 			if (recovery.Factory is not null && slot >= 0)
-				EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery.Factory, graph, slot);
+				EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
 		}
 
 		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);
@@ -689,7 +732,10 @@ public static class CSharpEmitter
 	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
 	/// every recognizer and another edit at every call site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach) => FailureStruct.Replace("{{reach}}", reach ? ReachField : "");
+	internal static string FailureStructWith(bool reach) =>
+		Lines.Normalize(FailureStruct).Replace(
+			"\t{{reach}}" + Lines.Ending,
+			reach ? Lines.Normalize(ReachField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -700,7 +746,8 @@ public static class CSharpEmitter
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
-		{{reach}}}
+			{{reach}}
+		}
 		""";
 
 	/// <summary>
@@ -716,7 +763,7 @@ public static class CSharpEmitter
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
-	""";
+		""";
 
 	/// <summary>
 	/// Grows the backtracking stack. Emitted once per class, next to the recognizers
@@ -730,6 +777,38 @@ public static class CSharpEmitter
 			from.CopyTo(bigger);
 
 			return bigger;
+		}
+		""";
+
+	/// <summary>The method a factory asking for <c>line</c> or <c>column</c> is served by.</summary>
+	internal const string LocateMethod = "Locate";
+
+	/// <summary>
+	/// Where a position is, for a person. Emitted once per class, and only for a grammar
+	/// whose <c>recover</c> asked to be told (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// Both from 1, which is where an editor starts counting and therefore where a message
+	/// a person will act on has to. <c>\r\n</c> needs no case of its own: the line ends at
+	/// the <c>\n</c>, and the <c>\r</c> before it is the last column of the line it ends.
+	/// </remarks>
+	internal const string LocateHelper = """
+		/// <summary>Which line and column a position is on, both counting from 1.</summary>
+		static void Locate(global::System.ReadOnlySpan<char> text, int position, out int line, out int column)
+		{
+			line   = 1;
+			column = 1;
+
+			for (var at = 0; at < position; at++)
+				if (text[at] == '\n')
+				{
+					line++;
+					column = 1;
+				}
+				else
+				{
+					column++;
+				}
 		}
 		""";
 

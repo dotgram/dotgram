@@ -23,6 +23,12 @@ namespace DotGram.Examples;
 //
 // That is why every record here is declared `: @FeedLine`: the good ones and the
 // rejected ones have to fit the same array.
+//
+// `ordinal`, `line`, `text` and `message` are supplied to the factory rather than
+// captured — a broken record captured nothing. `ordinal` counts rejected records too,
+// so it is the record's place in the file; `line` is where a person opens the file. The
+// two are different numbers here, because the header shifts the first record off line
+// one.
 
 /// <summary>A line of the feed: either a record or the reason it is not one.</summary>
 public abstract record FeedLine;
@@ -30,14 +36,14 @@ public abstract record FeedLine;
 /// <summary>A record that was read.</summary>
 public sealed record TradeLine(string Symbol, int Quantity, DateOnly TradedOn) : FeedLine;
 
-/// <summary>A record that was not, and the text it was written on.</summary>
-public sealed record RejectedLine(int Ordinal, int Position, string Text) : FeedLine;
+/// <summary>A record that was not, and enough to go and look at it.</summary>
+public sealed record RejectedLine(int Ordinal, int Line, string Text, string Message) : FeedLine;
 
 [Gram("""
 	@using DotGram.Examples;
 
 	Feed    = header: Header
-	        & lines:  Row* recover eol => @(new RejectedLine(ordinal, position, text.Trim()))
+	        & lines:  Row* recover eol => @(new RejectedLine(ordinal, line, text, message))
 	        & trailer: Trailer & eof
 
 	Header  = "H" & '|' & date: Date & '|' & source: Text & eol

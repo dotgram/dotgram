@@ -544,6 +544,55 @@ public sealed class SemanticTests
 				.Select(row => Read(row, "Name")));
 
 	[Fact]
+	public void A_recovered_element_knows_where_a_person_would_look_for_it() =>
+		// `line` and `column` are where the element starts, both from 1 — the header shifts
+		// the first record off line one, which is the whole reason they are not the ordinal.
+		Assert.Equal(
+			["aa", "!3:1", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = "H" & eol & rows: Row* recover eol => @(new Row($"!{line}:{column}"))
+					""",
+					"H\naa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void A_recovered_element_knows_its_extent() =>
+		// `span` is the support type, which a generated parser has beside it — the factory
+		// is private to the host class, so nothing internal reaches a public signature. The
+		// extent stops where the synchronization point begins: `eol` separates the elements
+		// and is not part of one, which is why "b1b" is three characters and not four.
+		Assert.Equal(
+			["aa", "!3+3", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol => @(new Row($"!{span.Start}+{span.Length}"))
+					""",
+					"aa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void A_recovered_element_can_say_why_it_was_rejected() =>
+		// The rule it should have been, and where the input stopped being one.
+		Assert.Equal(
+			["aa", "Input does not match 'Row' at 4.", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol => @(new Row(message))
+					""",
+					"aa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
 	public void An_ordinary_repetition_hands_an_element_back() =>
 		// One row, and `tail` gets the other — the repetition took both and gave one up.
 		Assert.True(

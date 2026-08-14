@@ -162,7 +162,7 @@ public sealed class ExampleTests
 		Assert.Equal(
 			[
 				new TradeLine("AAPL", 100, new DateOnly(2026, 8, 12)),
-				new RejectedLine(1, 40, "R|MSFT|two hundred|2026-08-12"),
+				new RejectedLine(1, 3, "R|MSFT|two hundred|2026-08-12", "Input does not match 'Row' at 47."),
 				new TradeLine("NVDA",  75, new DateOnly(2026, 8, 11)),
 			],
 			lines);

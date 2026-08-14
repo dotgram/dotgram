@@ -28,4 +28,15 @@ static class Lines
 
 	public static StringBuilder AppendEndingWith(this StringBuilder text, string value) =>
 		text.Append(value).Append(Ending);
+
+	/// <summary>
+	/// The same text with every line ending <see cref="Ending"/>.
+	/// </summary>
+	/// <remarks>
+	/// For text this component did not write: a raw string literal carries whatever the
+	/// file it was typed in was saved with, and everything downstream of it reads lines by
+	/// splitting on <see cref="Ending"/>.
+	/// </remarks>
+	public static string Normalize(string text) =>
+		text.IndexOf('\n') < 0 ? text : text.Replace("\r\n", "\n").Replace("\n", Ending);
 }

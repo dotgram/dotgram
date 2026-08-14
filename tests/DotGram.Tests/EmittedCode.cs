@@ -4,6 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
+using DotGram.Grammar;
+using DotGram.Grammar.Emit;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -28,10 +31,15 @@ static class EmittedCode
 			? $"public partial class {className} {{ }}"
 			: $"namespace {@namespace} {{ public partial class {className} {{ }} }}";
 
+		// The support types come with every generated parser in a real build, so they come
+		// with one here too. A grammar that names `span` in a `recover` reaches for
+		// `DotGram.SourceSpan`, and a harness without it would fail on code that compiles
+		// perfectly well where it is actually emitted.
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Emitted",
 			[
 				CSharpSyntaxTree.ParseText(declaration),
+				CSharpSyntaxTree.ParseText(SupportEmitter.SupportTypes(SupportAccessibility.Internal)),
 				CSharpSyntaxTree.ParseText(source),
 			],
 			References,

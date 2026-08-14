@@ -39,8 +39,7 @@ then quietly mean nothing.
 | parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `recover` names `text position ordinal` §8.2 | — | — | — | ✓ | ✓ |
-| `recover` names `line column span message` §8.2 | — | — | — | ✗ | ✗ |
+| the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported | ✓ | ✓ | refused | ✗ | ✗ |
 | a second `recover` in one rule | ✓ | ✓ | refused | ✗ | ✗ |
 | value failures recovered from §8.2 | — | — | ✗ | ✗ | ✗ |
@@ -90,6 +89,27 @@ element begin here* answerable — the question is asked where the repetition wo
 otherwise have ended, and it is answered by how far the attempt starting there reached.
 With the iterations still on the stack, a failure after the repetition would resume at a
 position whose element had matched and be told one broke there.
+
+## What a rejection is told
+
+All seven names of §8.2 are supplied. Three differ from the specification in ways worth
+knowing:
+
+- **`position` is `int`, not `long`.** §8.2 makes it `long` for a feed larger than an
+  `int` can index. Input is a `string` today, so `int` is exact; it widens when
+  streaming arrives, and widening a parameter is not a change any factory has to notice.
+- **`text` and `span` stop where the synchronization point begins.** `eol` separates the
+  elements and is not part of one, so a rejected `b1b\n` is three characters, not four.
+- **`message` is not the expected set.** It says which rule the element should have been
+  and where the input stopped being one — `Input does not match 'Row' at 43.` The set of
+  what could have appeared there would say more, and is not carried yet.
+
+Which of the seven a factory asked for is read out of its C#, because §8.2 has counting
+lines cost a scan and only a factory that named `line` should pay for one. The reading is
+a whole-word search over the text, so it over-approximates: `line` inside a string
+literal counts as asked for. That direction is the safe one — a name that was written is
+always found, and a name that was not costs an unused parameter. Reading it exactly means
+lexing C#, which is the host's job and not the grammar half's.
 
 ## Associativity
 

@@ -241,6 +241,25 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Blocks_written_in_one_piece_land_at_the_depth_they_are_written_at()
+	{
+		// `Match<T>`, `Failure` and `Grow` are raw string literals in the emitter, which
+		// carry whatever line endings the emitter's own file was saved with. Read as one
+		// line — which is what happens when those endings are not the ones the writer
+		// splits on — they arrive indented once and flat after that. The code still
+		// compiles, so nothing but this notices.
+		// In a namespace, so the depth every one of them sits at is two and not "whatever
+		// the class happened to be nested at".
+		var source = Assert.Single(GramCompiler.Compile(
+			"Start = 'a'+ & 'b'\nparse Start",
+			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
+
+		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\tprivate Match(", source);
+		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\t/// <summary>",                    source);
+		Assert.Contains("\t\tstatic int[] Grow(global::System.Span<int> from)\r\n\t\t{\r\n",     source);
+	}
+
+	[Fact]
 	public void The_class_goes_where_it_was_asked_to()
 	{
 		var source = GramCompiler.Compile(
