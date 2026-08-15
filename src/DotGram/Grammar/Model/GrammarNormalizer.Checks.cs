@@ -97,6 +97,17 @@ public sealed partial class GrammarNormalizer
 		{
 		}
 
+		// Some alternatives say and some do not. The constructor of §7.3 is matched against
+		// the rule rather than against one alternative — the captures it is filled from are
+		// the rule's — so a rule that has begun answering the question has to finish.
+		else if (declared && building > 0 && building < offered.Count)
+			Report(
+				UnbuiltConstruction,
+				$"'{rule.Name}' says how to build its value on {building} of its {offered.Count} " +
+				"alternatives and not on the rest. Give every alternative a '=>', or none of " +
+				$"them and let the captures fill a constructor of '{_types[rule]}' (§7.3).",
+				rule.Declaration!.At);
+
 		else if (declared && building < offered.Count)
 			Report(
 				UnbuiltConstruction,

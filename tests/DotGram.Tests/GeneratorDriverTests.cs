@@ -948,6 +948,56 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void A_rule_that_says_how_to_build_its_value_still_says_it()
+	{
+		// The constructor match is what happens when the grammar left it unsaid. Writing
+		// `=> @(new Row(...))` by hand goes on meaning exactly that — here with the
+		// arguments swapped, which a match by name would never produce, so the assertion
+		// can tell the two apart.
+		var built = Build("""
+			public sealed class Swapped(string name, string amount)
+			{
+				public string Name   { get; } = name;
+				public string Amount { get; } = amount;
+			}
+
+			[DotGram.Gram("Row : @Swapped = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+ => @(new Swapped(amount, name))\nparse Row")]
+			public partial class Handwritten;
+			""")
+			.GetType("Handwritten")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab,12"])!;
+
+		Assert.Equal("12", built.GetType().GetProperty("Name")!.GetValue(built));
+		Assert.Equal("ab", built.GetType().GetProperty("Amount")!.GetValue(built));
+	}
+
+	[Fact]
+	public void Half_an_answer_is_refused_and_says_which_half()
+	{
+		// One alternative builds and the other does not. §7.3's constructor is matched
+		// against the rule rather than against an alternative — the captures that fill it
+		// are the rule's — so a rule that has begun answering has to finish. Refused rather
+		// than completed for it: a `=>` on one alternative and not the next is as likely to
+		// be an omission as an intention, and the silent version of that guess builds the
+		// wrong value.
+		var diagnostic = Assert.Single(
+			RunGenerator(
+				"public sealed class Two(string a, string b)\n" +
+				"{\n" +
+				"	public string A { get; } = a;\n" +
+				"	public string B { get; } = b;\n" +
+				"}\n" +
+				"[DotGram.Gram(\"R : @Two = a: ['a'..'z']+ & b: ['0'..'9']+ => @(new Two(a, b))" +
+				"\\n | a: ['A'..'Z']+ & b: ['0'..'9']+\\nparse R\")]\n" +
+				"public partial class Mixed;")
+				.Diagnostics
+				.Where(d => d.Id == "GRAM4008"));
+
+		Assert.Contains("on 1 of its 2 alternatives", diagnostic.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void A_type_no_constructor_of_which_the_captures_cover_is_reported()
 	{
 		// Turned down rather than half-built. The message names what was matched against,

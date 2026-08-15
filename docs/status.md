@@ -389,6 +389,19 @@ none is chosen and the rule is reported unbuilt — calling the wrong constructo
 is the failure worth avoiding. The types are not checked on this side; whether a capture
 goes in that parameter is C#'s question, and §7.6 now asks it on the grammar's own line.
 
+Writing the construction out by hand goes on meaning exactly that. The match is what
+happens when the grammar left the question unanswered, so `=> @(new Row(amount, name))`
+builds it that way round, arguments swapped and all — a test pins that, because a match
+by name could never produce it.
+
+Half an answer is refused. A `=>` on one alternative and not on the next leaves a rule
+whose value is built two ways, and the constructor is matched against the rule rather
+than against an alternative, so there is no half to complete. The message says which
+half: *says how to build its value on 1 of its 2 alternatives and not on the rest*. It
+could have been completed instead — filling in the alternatives that stayed quiet — and
+that was not done on purpose: a missing `=>` is as likely to be an omission as an
+intention, and the silent version of that guess builds the wrong value.
+
 Still not built: **`init`/`required` properties**, §7.3's second way. And a type nested
 in the host class is not found by its short name — `@Row` beside the grammar means a
 top-level `Row`, though `@Method` beside it does mean the host's own method. The
