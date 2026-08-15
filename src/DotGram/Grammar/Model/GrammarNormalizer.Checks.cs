@@ -103,7 +103,9 @@ public sealed partial class GrammarNormalizer
 				$"'{rule.Name}' declares a type and does not say how to build it. Only ': @string' " +
 				"can be left to the shape of the rule — §4.1 case 4, the extent it matched. " +
 				(HasCapture(body)
-					? "Matching captures to a constructor by name (§7.3) is not implemented yet."
+					? $"No constructor of '{_types[rule]}' has every parameter covered by a capture " +
+						"of this rule, which is what §7.3 matches against, so give every alternative " +
+						"a '=>'."
 					: $"Give every alternative a '=>', or declare '{rule.Name}' as ': @string'."),
 				rule.Declaration!.At);
 	}

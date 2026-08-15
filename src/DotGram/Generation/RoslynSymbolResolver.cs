@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar;
@@ -52,6 +53,53 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 		var conversion = _compilation.ClassifyCommonConversion(source, target);
 
 		return conversion.IsImplicit && !conversion.IsNumeric && !conversion.IsUserDefined;
+	}
+
+	/// <summary>
+	/// What the declared type can be built with, for §7.3's first way of filling one in.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only the constructors the generated code could actually call: it sits inside the
+	/// host class, so a <c>private</c> one of the host's own nested type is as callable as
+	/// a public one, and <c>internal</c> is callable when the type is in this assembly.
+	/// Roslyn is asked rather than guessed at.
+	/// </para>
+	/// <para>
+	/// Static constructors and those taking a pointer are left out — the first cannot be
+	/// called at all and the second cannot be reached from a grammar.
+	/// </para>
+	/// </remarks>
+	public bool TryResolveConstructors(
+		string qualifiedName,
+		out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		constructors = [];
+
+		if (TypeNamed(qualifiedName) is not { } type)
+			return false;
+
+		var found = new List<IReadOnlyList<MethodParameter>>();
+
+		foreach (var constructor in type.InstanceConstructors)
+		{
+			if (constructor.IsStatic || !_compilation.IsSymbolAccessibleWithin(constructor, _compilation.Assembly))
+				continue;
+
+			var parameters = new List<MethodParameter>(constructor.Parameters.Length);
+
+			foreach (var parameter in constructor.Parameters)
+				parameters.Add(new MethodParameter(
+					parameter.Name,
+					parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+					parameter.IsOptional));
+
+			found.Add(parameters);
+		}
+
+		constructors = found;
+
+		return found.Count > 0;
 	}
 
 	/// <summary>

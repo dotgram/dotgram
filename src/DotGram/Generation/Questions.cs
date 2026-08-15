@@ -22,12 +22,29 @@ readonly record struct Question(string Name, int Arity, string? Against = null)
 	/// <summary>The arity that marks a question about types rather than about a name.</summary>
 	public const int Assignability = -2;
 
+	/// <summary>And the one that asks what a type can be built with (§7.3).</summary>
+	public const int Constructors = -3;
+
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
+
+	public static Question Builds(string type) => new(type, Constructors);
 }
 
 /// <param name="Yes">Whether the host has it.</param>
 /// <param name="Role">What kind of method it is, meaningless unless the question was one.</param>
-readonly record struct Answer(Question Asked, bool Yes, MethodRole Role);
+/// <param name="Constructors">
+/// What the type can be built with, each constructor as its parameters in order (§7.3).
+/// Empty unless the question asked.
+/// </param>
+/// <remarks>
+/// Everything here compares by value, which is the whole point of the stage: an answer
+/// that changed by identity alone would rebuild the parser on every keystroke.
+/// </remarks>
+readonly record struct Answer(
+	Question Asked,
+	bool Yes,
+	MethodRole Role,
+	EquatableArray<EquatableArray<MethodParameter>> Constructors = default);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -71,6 +88,12 @@ static class Questions
 		foreach (var element in sequences)
 			foreach (var type in declared)
 				questions.Add(Question.Fits(type, element));
+
+		// §7.3: a rule declaring a type may have it built from its captures, so what every
+		// declared type can be built with is asked for. The same superset as the rest of
+		// this file — a type that turns out to be built by a `=>` was asked about anyway.
+		foreach (var type in declared)
+			questions.Add(Question.Builds(type));
 
 		foreach (var name in names)
 		{
@@ -165,6 +188,12 @@ static class Questions
 				Question.Assignability =>
 					new Answer(question, resolver.IsAssignable(question.Name, question.Against!), default),
 
+				Question.Constructors => new Answer(
+					question,
+					resolver.TryResolveConstructors(question.Name, out var constructors),
+					default,
+					Shapes(constructors)),
+
 				< 0 => new Answer(question, resolver.TypeExists(question.Name), default),
 
 				_ => new Answer(
@@ -174,6 +203,18 @@ static class Questions
 			});
 
 		return answers.ToImmutable();
+	}
+
+	/// <summary>The host's answer as something that compares by value.</summary>
+	static EquatableArray<EquatableArray<MethodParameter>> Shapes(
+		IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		var shapes = ImmutableArray.CreateBuilder<EquatableArray<MethodParameter>>(constructors.Count);
+
+		foreach (var constructor in constructors)
+			shapes.Add(new EquatableArray<MethodParameter>([.. constructor]));
+
+		return new EquatableArray<EquatableArray<MethodParameter>>(shapes.ToImmutable());
 	}
 }
 
@@ -210,6 +251,20 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		var answer = Look(new Question(qualifiedName, argumentCount));
 
 		role = answer.Role;
+
+		return answer.Yes;
+	}
+
+	public bool TryResolveConstructors(
+		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		var answer = Look(Question.Builds(qualifiedName));
+		var found  = new List<IReadOnlyList<MethodParameter>>();
+
+		foreach (var shape in answer.Constructors.Items)
+			found.Add(shape.Items);
+
+		constructors = found;
 
 		return answer.Yes;
 	}

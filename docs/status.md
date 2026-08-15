@@ -60,8 +60,9 @@ then quietly mean nothing.
 | a refused value recovered without a rescan §8.2 | — | — | — | ✓ | ✓ |
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
-| captures matched to an existing type's constructor §7.3 | — | — | ✗ | ✗ | ✗ |
+| captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
+| a declared type nested in the host class §7.3 | — | ✗ | ✗ | ✗ | ✗ |
 | partial declarations for unimplemented `@Method` §7.4 | — | — | — | ✗ | ✗ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
@@ -365,18 +366,33 @@ dodge every local it has, and a capture called `p` or `state` would collide with
 machine itself. `parserText` is supplied — the matched extent, §7.3 — and a capture that
 takes that name, or any of the other six, is refused (GRAM4012).
 
-Not built: **the first two ways §7.3 offers to fill a type in**. A rule that declares
-`: @T` must say how to build it with `=>`; captures are not matched to `T`'s constructor
-parameters, nor to its `init`/`required` properties, and the casing transform that would
-fit the capture `symbol` to the property `Symbol` exists only where a type is generated
-from the captures rather than found. Declaring a type without a `=>` is refused
-(GRAM4008) rather than quietly built wrong, which is the right failure for the gap but
-not the same thing as the gap being closed.
+**§7.3's first way of filling a type in works**: a rule that declares `: @T` and writes
+no `=>` is built by calling `T`'s constructor, with its captures as the arguments.
 
-Both need a question this side cannot ask: what members `T` has. `ISymbolResolver`
-answers whether a type exists and whether one is assignable to another, and matching
-captures to a constructor needs its parameter list — a third question, and so a third
-thing the Roslyn shell has to answer (`.claude/rules/grammar-half.md`).
+```dotgram
+Row : @Row = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+
+```
+
+matched against `Row(string name, string amount)` and called with the two captures, in
+the constructor's order. Names are compared without regard to case, which is the
+mechanical transform §7.3 describes — the capture `symbol` fits the parameter `symbol`
+and, where a record wrote one, the property `Symbol`.
+
+The constructors of a type are the third thing the Roslyn shell answers, alongside
+whether a type exists and whether one is assignable to another
+(`.claude/rules/grammar-half.md`). It is asked as part of the cached question set, so a
+keystroke that changes nothing about the host still costs nothing.
+
+Chosen, not guessed at: the longest constructor every parameter of which is covered by a
+capture. Two of the same length both covered is an ambiguity nothing here can resolve, so
+none is chosen and the rule is reported unbuilt — calling the wrong constructor silently
+is the failure worth avoiding. The types are not checked on this side; whether a capture
+goes in that parameter is C#'s question, and §7.6 now asks it on the grammar's own line.
+
+Still not built: **`init`/`required` properties**, §7.3's second way. And a type nested
+in the host class is not found by its short name — `@Row` beside the grammar means a
+top-level `Row`, though `@Method` beside it does mean the host's own method. The
+asymmetry is real and is not deliberate.
 
 ## A guard asks the values
 

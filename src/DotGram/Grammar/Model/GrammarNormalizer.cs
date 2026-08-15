@@ -82,6 +82,11 @@ public sealed partial class GrammarNormalizer
 		normalizer.CollectSequences();
 
 		normalizer.ComputeResults();
+
+		// After the results, because what a constructor is matched against is the members
+		// they worked out (§7.3).
+		normalizer.BuildByConstructor();
+
 		normalizer.Check();
 
 		return new RecognitionGraph(
@@ -99,7 +104,8 @@ public sealed partial class GrammarNormalizer
 			Recoveries = normalizer._recoveries,
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
-			Fallible   = normalizer._fallible,
+			Fallible     = normalizer._fallible,
+			Constructions = normalizer._constructions,
 		};
 	}
 
@@ -527,6 +533,122 @@ public sealed partial class GrammarNormalizer
 	/// sequence — the emitter builds the body rather than compiling an expression.
 	/// </summary>
 	public const string SequenceMarker = "<sequence>";
+
+	/// <summary>
+	/// And the one it carries when the value is built by calling the declared type's
+	/// constructor (§7.3). <see cref="RecognitionGraph.Constructions"/> says with what.
+	/// </summary>
+	public const string ConstructorMarker = "<constructor>";
+
+	readonly Dictionary<RuleSymbol, IReadOnlyList<string>> _constructions = [];
+
+	/// <summary>
+	/// §7.3's first way of filling a result in: a constructor whose every parameter is
+	/// covered by a capture.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Rewritten into what already works, the same as §4.1 case 2 above: the alternative
+	/// gets a <c>=&gt;</c> carrying <see cref="ConstructorMarker"/>, and the order the
+	/// captures go in is recorded beside it. Everything about numbering captures, giving
+	/// them up on a failed alternative and rebuilding them at the accepting state is then
+	/// the code that already does it.
+	/// </para>
+	/// <para>
+	/// Names are matched without regard to case, which is the mechanical transform §7.3
+	/// describes: the capture <c>symbol</c> fits the parameter <c>symbol</c> and the
+	/// property <c>Symbol</c>. Types are not checked here — whether the capture's value
+	/// goes in that parameter is C#'s question, and it will be asked on the grammar's own
+	/// line now that §7.6 puts it there.
+	/// </para>
+	/// <para>
+	/// The longest constructor every parameter of which is covered. Two of the same length
+	/// both covered is an ambiguity the grammar cannot resolve, so nothing is chosen and
+	/// the rule is left to be reported as unbuilt — a wrong constructor called silently is
+	/// the failure worth avoiding.
+	/// </para>
+	/// </remarks>
+	void BuildByConstructor()
+	{
+		foreach (var rule in _rules)
+		{
+			if (!_types.TryGetValue(rule, out var type) ||
+				rule.Declaration?.Type is { IsSequence: true } ||
+				!_results.TryGetValue(rule, out var members) ||
+				members.Count == 0)
+			{
+				continue;
+			}
+
+			var alternatives = Alternatives(_bodies[rule]);
+
+			// A rule that says how to build its value has said it.
+			if (alternatives.Any(static alternative => alternative is Node.Construct))
+				continue;
+
+			if (!_resolver.TryResolveConstructors(type, out var constructors))
+				continue;
+
+			var chosen = (IReadOnlyList<string>?)null;
+			var length = -1;
+			var tied   = false;
+
+			foreach (var constructor in constructors)
+			{
+				if (Covered(constructor, members) is not { } order)
+					continue;
+
+				if (order.Count > length)
+				{
+					(chosen, length, tied) = (order, order.Count, false);
+				}
+				else if (order.Count == length)
+				{
+					tied = true;
+				}
+			}
+
+			if (chosen is null || tied)
+				continue;
+
+			var rewritten = new List<Node>(alternatives.Count);
+
+			foreach (var alternative in alternatives)
+				rewritten.Add(new Node.Construct(alternative, ConstructorMarker));
+
+			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_constructions[rule] = chosen;
+		}
+	}
+
+	/// <summary>
+	/// The captures that fill this constructor, in its own order, or null where one of its
+	/// parameters has nothing to fill it.
+	/// </summary>
+	static IReadOnlyList<string>? Covered(
+		IReadOnlyList<MethodParameter> constructor, IReadOnlyList<ResultMember> members)
+	{
+		if (constructor.Count == 0)
+			return null;
+
+		var order = new List<string>(constructor.Count);
+
+		foreach (var parameter in constructor)
+		{
+			var found = (string?)null;
+
+			foreach (var member in members)
+				if (string.Equals(member.Name, parameter.Name, StringComparison.OrdinalIgnoreCase))
+					found = member.Name;
+
+			if (found is null)
+				return null;
+
+			order.Add(found);
+		}
+
+		return order;
+	}
 
 	/// <summary>
 	/// §4.1 case 2: a rule whose type is <c>T[]</c> collects the operands that fit.

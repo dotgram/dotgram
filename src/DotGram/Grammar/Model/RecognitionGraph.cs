@@ -275,6 +275,18 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
 	/// <summary>
+	/// The rules whose value is built by calling their declared type's constructor, and
+	/// the captures that fill it, in the constructor's own order (§7.3).
+	/// </summary>
+	/// <remarks>
+	/// A rule is in here instead of writing a <c>=&gt;</c>, never as well as: the two are
+	/// the first and third of §7.3's ways to fill a result in, and a rule that says how to
+	/// build its value has said it.
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<string>> Constructions { get; init; } =
+		new Dictionary<RuleSymbol, IReadOnlyList<string>>();
+
+	/// <summary>
 	/// The <c>=&gt;</c> constructions whose C# may refuse the value it was given (§8.1).
 	/// </summary>
 	/// <remarks>

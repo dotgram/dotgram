@@ -898,6 +898,78 @@ public sealed class GeneratorDriverTests
 			(string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!);
 	}
 
+	// ── Captures matched to a constructor (§7.3) ─────────────────────────────────
+
+	[Fact]
+	public void A_declared_type_can_be_built_from_its_constructor()
+	{
+		// §7.3's first way of filling a result in, and the one that needs the host: which
+		// constructors a type has is not something a grammar can see. No `=>` anywhere —
+		// the captures are the arguments, matched by name.
+		var built = Build("""
+			public sealed class Row(string name, string amount)
+			{
+				public string Name   { get; } = name;
+				public string Amount { get; } = amount;
+			}
+
+			[DotGram.Gram("Row : @Row = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+\nparse Row")]
+			public partial class Rows;
+			""")
+			.GetType("Rows")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab,12"])!;
+
+		Assert.Equal("ab", built.GetType().GetProperty("Name")!.GetValue(built));
+		Assert.Equal("12", built.GetType().GetProperty("Amount")!.GetValue(built));
+	}
+
+	[Fact]
+	public void The_match_is_by_name_and_ignores_case()
+	{
+		// The mechanical transform §7.3 describes: the capture `symbol` fits the parameter
+		// `symbol` and the property `Symbol`. A constructor written the way records write
+		// theirs takes captures written the way grammars write theirs.
+		var built = Build("""
+			public sealed class Pair(string left, string right)
+			{
+				public string Left  { get; } = left;
+				public string Right { get; } = right;
+			}
+
+			[DotGram.Gram("Pair : @Pair = Left: ['a'..'z']+ & '-' & Right: ['a'..'z']+\nparse Pair")]
+			public partial class Pairs;
+			""")
+			.GetType("Pairs")!
+			.GetMethod("ParsePair", [typeof(string)])!
+			.Invoke(null, ["ab-cd"])!;
+
+		Assert.Equal("ab", built.GetType().GetProperty("Left")!.GetValue(built));
+	}
+
+	[Fact]
+	public void A_type_no_constructor_of_which_the_captures_cover_is_reported()
+	{
+		// Turned down rather than half-built. The message names what was matched against,
+		// because "declares a type and does not say how to build it" is true of a rule
+		// whose captures very nearly fit and does not say which one is missing.
+		var diagnostic = Assert.Single(
+			RunGenerator("""
+				public sealed class Priced(string name, int amount)
+				{
+					public string Name   { get; } = name;
+					public int    Amount { get; } = amount;
+				}
+
+				[DotGram.Gram("Row : @Priced = name: ['a'..'z']+\nparse Row")]
+				public partial class Missing;
+				""")
+				.Diagnostics
+				.Where(d => d.Id == "GRAM4008"));
+
+		Assert.Contains("No constructor of", diagnostic.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]

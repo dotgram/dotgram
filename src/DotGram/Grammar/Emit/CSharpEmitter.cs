@@ -561,6 +561,25 @@ public static partial class CSharpEmitter
 			return;
 		}
 
+		// §7.3's first way of filling a result in: the captures fill the declared type's
+		// constructor, and which ones in what order was worked out where the host could be
+		// asked what constructors there are.
+		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.ConstructorMarker)
+		{
+			var arguments = new List<string>();
+
+			foreach (var name in graph.Constructions[rule])
+				foreach (var member in factory.Members)
+					if (member.Name == name)
+						arguments.Add(ResultTypes.ParameterOf(member));
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (§7.3).</summary>");
+			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
+			file.Line($"\tnew {graph.Types[rule]}({string.Join(", ", arguments)});");
+
+			return;
+		}
+
 		// §4.1 case 2: the grammar wrote no expression, so there is none to write out. What
 		// the rule is made of is its operands, in order, and the body says so — a body and
 		// not an expression because a repetition contributes an unknown number of elements

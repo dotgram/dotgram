@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Grammar;
 
@@ -35,7 +36,24 @@ public interface ISymbolResolver
 	/// <param name="from">The type a rule's value has, as the grammar declared it.</param>
 	/// <param name="to">The element type of the sequence being built.</param>
 	bool IsAssignable(string from, string to);
+
+	/// <summary>
+	/// The constructors a declared type offers, each as its parameters in order.
+	/// </summary>
+	/// <remarks>
+	/// §7.3's first way of filling a result in: captures are matched to a constructor by
+	/// name, so which constructors there are and what they take is the one thing that has
+	/// to be asked. Accessibility is the host's business — what comes back is what the
+	/// generated code may actually call from where it will sit.
+	/// </remarks>
+	/// <returns><c>false</c> when the type is not in scope, or offers nothing to call.</returns>
+	bool TryResolveConstructors(
+		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors);
 }
+
+/// <summary>One parameter of a C# method or constructor, as the host sees it.</summary>
+/// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
+public readonly record struct MethodParameter(string Name, string Type, bool IsOptional);
 
 /// <summary>Role a C# method plays, decided by its signature and call position.</summary>
 public enum MethodRole
@@ -79,4 +97,18 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	}
 
 	public bool IsAssignable(string from, string to) => true;
+
+	/// <remarks>
+	/// None, rather than everything: a made-up constructor would have the grammar half
+	/// emit a call to something that is not there, and the failure would arrive in the
+	/// consumer's build. Saying no leaves the grammar to build its value with a
+	/// <c>=&gt;</c>, which needs no host at all.
+	/// </remarks>
+	public bool TryResolveConstructors(
+		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		constructors = [];
+
+		return false;
+	}
 }
