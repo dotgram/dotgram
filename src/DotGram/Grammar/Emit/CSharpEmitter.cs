@@ -218,6 +218,7 @@ public static class CSharpEmitter
 			{
 				Reaches    = graph.Recoveries.Count > 0,
 				Refuses    = Refusing(graph),
+				Starves    = Streaming(graph),
 				TakesPower = graph.Climbing.ContainsKey(publication.Rule),
 			};
 
@@ -324,7 +325,7 @@ public static class CSharpEmitter
 
 		if (graph.Rules.Count > 0)
 		{
-			file.Write(FailureStructWith(graph.Recoveries.Count > 0, Refusing(graph)));
+			file.Write(FailureStructWith(graph.Recoveries.Count > 0, Refusing(graph), Streaming(graph)));
 			file.Line();
 		}
 
@@ -526,7 +527,8 @@ public static class CSharpEmitter
 				// Reaching the end of what is held is not the same as reaching the end of the
 				// input, and only the reader knows which one it was.
 				using (file.Block(
-					"if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)"))
+					"if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && " +
+					"!window.Ended)"))
 				{
 					file.Line("window.Extend(ref start);");
 					file.Line("continue;");
@@ -680,7 +682,8 @@ public static class CSharpEmitter
 					// The same provisional rule `find` reads by: what ran into the end of the
 					// window is not an answer while the reader has more.
 					using (file.Block(
-						$"if ((end{i} < 0 ? failure{i}.Position : end{i}) >= window.Length && !window.Ended)"))
+						$"if (((end{i} < 0 ? failure{i}.Position : end{i}) >= window.Length || " +
+						$"failure{i}.Starved) && !window.Ended)"))
 					{
 						file.Line("window.Extend(ref start);");
 						file.Line("continue;");
@@ -1247,6 +1250,7 @@ public static class CSharpEmitter
 		{
 			Reaches    = graph.Recoveries.Count > 0,
 			Refuses    = Refusing(graph),
+			Starves    = Streaming(graph),
 			TakesPower = graph.Climbing.ContainsKey(rule),
 		};
 
@@ -1327,6 +1331,21 @@ public static class CSharpEmitter
 
 	/// <summary>What a streamed parse reads through. The name a rule may not take.</summary>
 	internal const string WindowType = "Window";
+
+	/// <summary>
+	/// What tells "the input ran out" from "this does not match", for a windowed parse.
+	/// </summary>
+	/// <remarks>
+	/// Carried only where something reads through a window. A rule that wanted one more
+	/// character fails at the position that character would have gone in, which over a
+	/// window is before the end of what is held — indistinguishable, without this, from an
+	/// element that genuinely broke there.
+	/// </remarks>
+	const string StarvedField = """
+
+			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
+			public bool Starved;
+		""";
 
 	/// <summary>
 	/// How much of a reader a window holds before it has to grow.
@@ -1554,34 +1573,36 @@ public static class CSharpEmitter
 				if (_ended)
 					return false;
 
-				if (_filled == _buffer.Length)
+				// Room is made by dropping what is behind `from` first, and the buffer only
+				// grows when there is nothing behind it to drop — an element genuinely
+				// larger than the window. Growing while a prefix was still droppable made
+				// the buffer double every time an element straddled the end of it, so a
+				// long feed ended up holding most of itself.
+				if (from > 0)
 				{
-					if (from > 0)
-					{
-						// What is about to be dropped is where a line number comes from, so
-						// it is counted on the way out. Without this a position past the
-						// first window would be reported as a line near the top of the file.
-						for (var at = 0; at < from; at++)
-							if (_buffer[at] == '\n')
-							{
-								_lines++;
-								_break = _offset + at;
-							}
+					// What is about to be dropped is where a line number comes from, so it
+					// is counted on the way out. Without this a position past the first
+					// window would be reported as a line near the top of the file.
+					for (var at = 0; at < from; at++)
+						if (_buffer[at] == '\n')
+						{
+							_lines++;
+							_break = _offset + at;
+						}
 
-						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
+					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
-						_filled -= from;
-						_offset += from;
-						from     = 0;
-					}
-					else
-					{
-						var grown = new char[_buffer.Length * 2];
+					_filled -= from;
+					_offset += from;
+					from     = 0;
+				}
+				else if (_filled == _buffer.Length)
+				{
+					var grown = new char[_buffer.Length * 2];
 
-						global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
+					global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
 
-						_buffer = grown;
-					}
+					_buffer = grown;
 				}
 
 				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);
@@ -1682,14 +1703,17 @@ public static class CSharpEmitter
 	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
 	/// every recognizer and another edit at every call site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach, bool refused = false) =>
+	internal static string FailureStructWith(bool reach, bool refused = false, bool starved = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
 				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
 			.Replace(
 				"\t{{refused}}" + Lines.Ending,
-				refused ? Lines.Normalize(RefusedField) + Lines.Ending : "");
+				refused ? Lines.Normalize(RefusedField) + Lines.Ending : "")
+			.Replace(
+				"\t{{starved}}" + Lines.Ending,
+				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -1702,6 +1726,7 @@ public static class CSharpEmitter
 			public int Position;
 			{{reach}}
 			{{refused}}
+			{{starved}}
 		}
 		""";
 

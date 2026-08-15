@@ -405,8 +405,19 @@ sealed class Machine
 			{
 				var state = Reserve(out var writer, node);
 
+				// Running out of input is not the same as not matching, and only here is it
+				// known which happened: `p` has not moved, so a caller reading through a
+				// window would be told the element broke at `p` when it merely did not fit.
 				writer.Line($"if (p + {value.Length} > text.Length)");
-				writer.Then($"goto case {Fail};");
+
+				if (Starves)
+					using (writer.Block(""))
+					{
+						writer.Line("failure.Starved = true;");
+						writer.Line($"goto case {Fail};");
+					}
+				else
+					writer.Then($"goto case {Fail};");
 
 				for (var i = 0; i < value.Length; i++)
 				{
@@ -433,7 +444,15 @@ sealed class Machine
 				}
 
 				writer.Line("if (p >= text.Length)");
-				writer.Then($"goto case {Fail};");
+
+				if (Starves)
+					using (writer.Block(""))
+					{
+						writer.Line("failure.Starved = true;");
+						writer.Line($"goto case {Fail};");
+					}
+				else
+					writer.Then($"goto case {Fail};");
 
 				if (test != "true")
 				{
@@ -851,6 +870,19 @@ sealed class Machine
 	/// nothing about the repetition calling it.
 	/// </remarks>
 	public bool Reaches { get; set; }
+
+	/// <summary>
+	/// Whether this machine says when it ran out of input rather than out of matches.
+	/// </summary>
+	/// <remarks>
+	/// Only a windowed parse can tell the difference, and only it needs to. Over a string
+	/// the end of the input is the end of the input, and a rule wanting one more character
+	/// was simply wrong. Over a window it may be right and merely early — and the position
+	/// it failed at is where the missing character would have gone, which is *before* the
+	/// end of what is held. Nothing else distinguishes the two, which is how a feed of
+	/// records whose lengths vary lost one every time an element straddled the buffer.
+	/// </remarks>
+	public bool Starves { get; set; }
 
 	/// <summary>
 	/// Whether this grammar can fail a value at all, and so whether the cheap recovery of

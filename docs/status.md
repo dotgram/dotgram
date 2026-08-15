@@ -58,7 +58,7 @@ then quietly mean nothing.
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
-| a streamed feed of records of differing lengths | — | — | — | ✓ | ✗ |
+| a streamed feed of records of differing lengths | — | — | — | ✓ | ✓ |
 | `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
 | a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
@@ -700,14 +700,27 @@ At a hundred records the three are within a fifth of each other, which is the ot
 of the answer: the window costs nothing worth noticing on input that would have fitted
 anyway.
 
-**A defect the benchmark found.** Records of *differing lengths* lose the window past
-about a hundred thousand characters — the parse reports `Input does not match 'Trailer'`
-partway through. Fixed-width records stream to a megabyte and past it, which is why the
-tests did not catch it: they all use one length. Reproduced by a feed of twenty thousand
-records whose quantity field is one, two or three digits. Not diagnosed yet; the
-benchmark carries fixed-width records and a comment saying why.
+**The defect the benchmark found, and what it was.** Records of *differing lengths* lost
+the window: one record per buffer was read as broken and stepped over, silently, until
+the trailer turned up where a record was expected.
 
-One thing already fixed on the way there: the recovery scan extended the window from
+Running out of input looked exactly like not matching. A literal checks
+`p + n > text.Length` and gives up **without moving `p`** — so a record straddling the
+end of the window reported its failure at the position the missing character would have
+gone in, which is *before* the end of what is held. The driver asks "did this run into
+the end of the window?" to decide whether to read more, and the honest answer was no.
+
+`Failure` now carries `Starved`, set exactly where a bounds check gives up, and both
+drivers read it beside the position. Only where something streams: over a string the end
+of the input is the end of the input, and a rule wanting one more character was simply
+wrong.
+
+Every fixed-width test passed throughout, including a megabyte of records through a 4 KB
+window — the boundary sat at the same offset inside every record, and that offset
+happened to be a safe one. There is now a test whose quantity field is one, two or three
+digits, which walks the boundary through every offset there is.
+
+One more thing fixed on the way there: the recovery scan extended the window from
 `start` rather than from `from`, which threw away the front of the element about to be
 handed over and put `from` before the window — a negative index into a buffer.
 

@@ -71,7 +71,7 @@ namespace DotGram.Snapshots
 
 				var end = Recognize_Name(window.Span(), start, ref failure);
 
-				if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)
+				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
 					window.Extend(ref start);
 					continue;
@@ -145,7 +145,7 @@ namespace DotGram.Snapshots
 
 				var end = Recognize_Row(window.Span(), start, ref failure, out var recognized);
 
-				if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)
+				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
 					window.Extend(ref start);
 					continue;
@@ -611,7 +611,11 @@ namespace DotGram.Snapshots
 				case 7:
 					// 'H'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != 'H')
 						goto case 1;
 					p += 1;
@@ -722,7 +726,11 @@ namespace DotGram.Snapshots
 				case 11:
 					// 'R'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != 'R')
 						goto case 1;
 					p += 1;
@@ -801,7 +809,11 @@ namespace DotGram.Snapshots
 				case 7:
 					// 'T'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != 'T')
 						goto case 1;
 					p += 1;
@@ -832,7 +844,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// '|'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '|')
 						goto case 1;
 					p += 1;
@@ -864,7 +880,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ['0'..'9']
 					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 
 					c = text[p];
 
@@ -1036,7 +1056,11 @@ namespace DotGram.Snapshots
 					case 7:
 						// '-'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '-')
 							goto case 1;
 						p += 1;
@@ -1086,7 +1110,11 @@ namespace DotGram.Snapshots
 					case 13:
 						// '-'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '-')
 							goto case 1;
 						p += 1;
@@ -1249,7 +1277,11 @@ namespace DotGram.Snapshots
 					case 11:
 						// '.'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '.')
 							goto case 1;
 						p += 1;
@@ -1321,7 +1353,11 @@ namespace DotGram.Snapshots
 					case 21:
 						// '-'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '-')
 							goto case 1;
 						p += 1;
@@ -1396,7 +1432,11 @@ namespace DotGram.Snapshots
 					case 6:
 						// [^ '\n' | '\r' | '|']
 						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 
 						c = text[p];
 
@@ -1502,7 +1542,11 @@ namespace DotGram.Snapshots
 					case 2:
 						// '\r'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '\r')
 							goto case 1;
 						p += 1;
@@ -1511,7 +1555,11 @@ namespace DotGram.Snapshots
 					case 3:
 						// '\n'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '\n')
 							goto case 1;
 						p += 1;
@@ -1526,7 +1574,11 @@ namespace DotGram.Snapshots
 					case 5:
 						// "\u000D\u000A"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '\r')
 							goto case 1;
 						if (text[p + 1] != '\n')
@@ -1599,6 +1651,9 @@ namespace DotGram.Snapshots
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
+			public bool Starved;
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>
@@ -1704,34 +1759,36 @@ namespace DotGram.Snapshots
 				if (_ended)
 					return false;
 
-				if (_filled == _buffer.Length)
+				// Room is made by dropping what is behind `from` first, and the buffer only
+				// grows when there is nothing behind it to drop — an element genuinely
+				// larger than the window. Growing while a prefix was still droppable made
+				// the buffer double every time an element straddled the end of it, so a
+				// long feed ended up holding most of itself.
+				if (from > 0)
 				{
-					if (from > 0)
-					{
-						// What is about to be dropped is where a line number comes from, so
-						// it is counted on the way out. Without this a position past the
-						// first window would be reported as a line near the top of the file.
-						for (var at = 0; at < from; at++)
-							if (_buffer[at] == '\n')
-							{
-								_lines++;
-								_break = _offset + at;
-							}
+					// What is about to be dropped is where a line number comes from, so it
+					// is counted on the way out. Without this a position past the first
+					// window would be reported as a line near the top of the file.
+					for (var at = 0; at < from; at++)
+						if (_buffer[at] == '\n')
+						{
+							_lines++;
+							_break = _offset + at;
+						}
 
-						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
+					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
-						_filled -= from;
-						_offset += from;
-						from     = 0;
-					}
-					else
-					{
-						var grown = new char[_buffer.Length * 2];
+					_filled -= from;
+					_offset += from;
+					from     = 0;
+				}
+				else if (_filled == _buffer.Length)
+				{
+					var grown = new char[_buffer.Length * 2];
 
-						global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
+					global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
 
-						_buffer = grown;
-					}
+					_buffer = grown;
 				}
 
 				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);

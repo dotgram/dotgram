@@ -440,6 +440,23 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
+	public void And_records_of_differing_lengths_are_not_lost_at_the_edge()
+	{
+		// Records all one length keep every window boundary at the same offset inside a
+		// record; varying them walks the boundary through every offset there is. That is
+		// what a real feed does, and what every fixed-width test here could not reach — a
+		// record straddling the end of the buffer was read as a broken one and stepped
+		// over, silently, one per window.
+		var records = string.Concat(Enumerable.Range(0, 20_000)
+			.Select(i => "R|AAPL|" + (i % 1000).ToString(CultureInfo.InvariantCulture) + "|2026-08-12\n"));
+
+		Assert.Equal(
+			20_000,
+			StreamingFeedReader.Total(new StringReader(
+				"H|2026-08-13|ACME\n" + records + "T|20000\n")).Trades);
+	}
+
+	[Fact]
 	public void And_reads_more_records_than_it_could_hold()
 	{
 		// The claim streaming exists to make, at a size where holding the input would be a

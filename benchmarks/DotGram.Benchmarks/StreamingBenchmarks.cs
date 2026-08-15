@@ -77,13 +77,9 @@ public class StreamingBenchmarks
 		var text = new StringBuilder("H|ACME\n");
 
 		for (var i = 0; i < Records; i++)
-			// Fixed width, and not because a real feed has one: records of differing
-			// lengths currently lose the window past about a hundred thousand characters,
-			// which docs/status.md records. A benchmark measuring a defect measures the
-			// defect.
-			text.Append("R|AAPL|")
-				.Append((i % 1000).ToString("D3", System.Globalization.CultureInfo.InvariantCulture))
-				.Append('\n');
+			// Varying width, which is what a real feed has — and what walks the window
+			// boundary through every offset inside a record rather than parking it at one.
+			text.Append("R|AAPL|").Append(i % 1000).Append('\n');
 
 		_text  = text.Append("T|").Append(Records).Append('\n').ToString();
 		_lines = _text.Split('\n', StringSplitOptions.RemoveEmptyEntries);

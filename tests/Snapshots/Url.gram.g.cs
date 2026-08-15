@@ -71,7 +71,7 @@ namespace DotGram.Snapshots
 
 				var end = Recognize_Url(window.Span(), start, ref failure, out var recognized);
 
-				if ((end < 0 ? failure.Position : end) >= window.Length && !window.Ended)
+				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
 					window.Extend(ref start);
 					continue;
@@ -264,7 +264,11 @@ namespace DotGram.Snapshots
 					case 10:
 						// '#'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '#')
 							goto case 1;
 						p += 1;
@@ -326,7 +330,11 @@ namespace DotGram.Snapshots
 					case 19:
 						// '?'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '?')
 							goto case 1;
 						p += 1;
@@ -375,7 +383,11 @@ namespace DotGram.Snapshots
 					case 26:
 						// "://"
 						if (p + 3 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != '/')
@@ -540,7 +552,11 @@ namespace DotGram.Snapshots
 					case 9:
 						// '#'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '#')
 							goto case 1;
 						p += 1;
@@ -602,7 +618,11 @@ namespace DotGram.Snapshots
 					case 18:
 						// '?'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '?')
 							goto case 1;
 						p += 1;
@@ -651,7 +671,11 @@ namespace DotGram.Snapshots
 					case 25:
 						// "://"
 						if (p + 3 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != '/')
@@ -723,7 +747,11 @@ namespace DotGram.Snapshots
 					case 2:
 						// "ftp"
 						if (p + 3 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != 'f')
 							goto case 1;
 						if (text[p + 1] != 't')
@@ -736,7 +764,11 @@ namespace DotGram.Snapshots
 					case 3:
 						// "http"
 						if (p + 4 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != 'h')
 							goto case 1;
 						if (text[p + 1] != 't')
@@ -757,7 +789,11 @@ namespace DotGram.Snapshots
 					case 5:
 						// "https"
 						if (p + 5 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != 'h')
 							goto case 1;
 						if (text[p + 1] != 't')
@@ -903,7 +939,11 @@ namespace DotGram.Snapshots
 					case 12:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -965,7 +1005,11 @@ namespace DotGram.Snapshots
 					case 21:
 						// '@'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '@')
 							goto case 1;
 						p += 1;
@@ -1067,7 +1111,11 @@ namespace DotGram.Snapshots
 					case 6:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -1240,7 +1288,11 @@ namespace DotGram.Snapshots
 				case 3:
 					// '.'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '.')
 						goto case 1;
 					p += 1;
@@ -1259,7 +1311,11 @@ namespace DotGram.Snapshots
 				case 5:
 					// '.'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '.')
 						goto case 1;
 					p += 1;
@@ -1278,7 +1334,11 @@ namespace DotGram.Snapshots
 				case 7:
 					// '.'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '.')
 						goto case 1;
 					p += 1;
@@ -1510,7 +1570,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ']'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != ']')
 						goto case 1;
 					p += 1;
@@ -1529,7 +1593,11 @@ namespace DotGram.Snapshots
 				case 4:
 					// '['
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '[')
 						goto case 1;
 					p += 1;
@@ -1598,7 +1666,11 @@ namespace DotGram.Snapshots
 					case 2:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -1695,7 +1767,11 @@ namespace DotGram.Snapshots
 					case 14:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -1798,7 +1874,11 @@ namespace DotGram.Snapshots
 					case 27:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -1901,7 +1981,11 @@ namespace DotGram.Snapshots
 					case 40:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -1920,7 +2004,11 @@ namespace DotGram.Snapshots
 					case 42:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -2054,7 +2142,11 @@ namespace DotGram.Snapshots
 					case 59:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2073,7 +2165,11 @@ namespace DotGram.Snapshots
 					case 61:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -2207,7 +2303,11 @@ namespace DotGram.Snapshots
 					case 78:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2226,7 +2326,11 @@ namespace DotGram.Snapshots
 					case 80:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -2360,7 +2464,11 @@ namespace DotGram.Snapshots
 					case 97:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2379,7 +2487,11 @@ namespace DotGram.Snapshots
 					case 99:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -2475,7 +2587,11 @@ namespace DotGram.Snapshots
 					case 111:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2494,7 +2610,11 @@ namespace DotGram.Snapshots
 					case 113:
 						// "::"
 						if (p + 2 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						if (text[p + 1] != ':')
@@ -2552,7 +2672,11 @@ namespace DotGram.Snapshots
 					case 120:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2601,7 +2725,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ':'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != ':')
 						goto case 1;
 					p += 1;
@@ -2679,7 +2807,11 @@ namespace DotGram.Snapshots
 					case 4:
 						// ':'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != ':')
 							goto case 1;
 						p += 1;
@@ -2859,7 +2991,11 @@ namespace DotGram.Snapshots
 					case 7:
 						// '/'
 						if (p + 1 > text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 						if (text[p + 0] != '/')
 							goto case 1;
 						p += 1;
@@ -2932,7 +3068,11 @@ namespace DotGram.Snapshots
 					case 6:
 						// [':' | '@']
 						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 
 						c = text[p];
 
@@ -3057,7 +3197,11 @@ namespace DotGram.Snapshots
 					case 6:
 						// ['/' | ':' | '?'..'@']
 						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
 							goto case 1;
+						}
 
 						c = text[p];
 
@@ -3162,7 +3306,11 @@ namespace DotGram.Snapshots
 				case 4:
 					// '%'
 					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 					if (text[p + 0] != '%')
 						goto case 1;
 					p += 1;
@@ -3194,7 +3342,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ['0'..'9']
 					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 
 					c = text[p];
 
@@ -3230,7 +3382,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ['0'..'9' | 'A'..'F' | 'a'..'f']
 					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 
 					c = text[p];
 
@@ -3266,7 +3422,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']
 					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 
 					c = text[p];
 
@@ -3302,7 +3462,11 @@ namespace DotGram.Snapshots
 				case 2:
 					// ['!' | '$' | '&'..',' | ';' | '=']
 					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
 						goto case 1;
+					}
 
 					c = text[p];
 
@@ -3370,6 +3534,9 @@ namespace DotGram.Snapshots
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
+			public bool Starved;
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>
@@ -3475,34 +3642,36 @@ namespace DotGram.Snapshots
 				if (_ended)
 					return false;
 
-				if (_filled == _buffer.Length)
+				// Room is made by dropping what is behind `from` first, and the buffer only
+				// grows when there is nothing behind it to drop — an element genuinely
+				// larger than the window. Growing while a prefix was still droppable made
+				// the buffer double every time an element straddled the end of it, so a
+				// long feed ended up holding most of itself.
+				if (from > 0)
 				{
-					if (from > 0)
-					{
-						// What is about to be dropped is where a line number comes from, so
-						// it is counted on the way out. Without this a position past the
-						// first window would be reported as a line near the top of the file.
-						for (var at = 0; at < from; at++)
-							if (_buffer[at] == '\n')
-							{
-								_lines++;
-								_break = _offset + at;
-							}
+					// What is about to be dropped is where a line number comes from, so it
+					// is counted on the way out. Without this a position past the first
+					// window would be reported as a line near the top of the file.
+					for (var at = 0; at < from; at++)
+						if (_buffer[at] == '\n')
+						{
+							_lines++;
+							_break = _offset + at;
+						}
 
-						global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
+					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
-						_filled -= from;
-						_offset += from;
-						from     = 0;
-					}
-					else
-					{
-						var grown = new char[_buffer.Length * 2];
+					_filled -= from;
+					_offset += from;
+					from     = 0;
+				}
+				else if (_filled == _buffer.Length)
+				{
+					var grown = new char[_buffer.Length * 2];
 
-						global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
+					global::System.Array.Copy(_buffer, 0, grown, 0, _filled);
 
-						_buffer = grown;
-					}
+					_buffer = grown;
 				}
 
 				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);
