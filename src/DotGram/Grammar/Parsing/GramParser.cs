@@ -512,7 +512,10 @@ public sealed class GramParser
 
 		Take();                                     // `:`
 
-		return new Expr.Capture(name, ParsePrimary()) { At = From(start) };
+		// Prefixed and not primary: §3.6 writes `n: ?=Number`, a capture of what a
+		// lookahead saw. The two nest either way round — `?=n: Number` is the same
+		// question asked with the naming inside — and only one of them used to parse.
+		return new Expr.Capture(name, ParsePrefixed()) { At = From(start) };
 	}
 
 	Expr ParsePrimary()

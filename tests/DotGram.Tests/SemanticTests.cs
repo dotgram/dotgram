@@ -80,6 +80,45 @@ public sealed class SemanticTests
 		Assert.Contains(reported, diagnostic => diagnostic.Id == DotGram.Grammar.Binding.GrammarBinder.UndefinedName);
 	}
 
+	// ── Lookahead (§3.4, §3.6) ───────────────────────────────────────────────────
+
+	[Fact]
+	public void A_lookahead_produces_what_it_saw()
+	{
+		// §3.4: "?=X is a recognizer in its own right and produces X's value (which can be
+		// captured) without moving the input." It parsed only the other way round —
+		// `?=n: X` — and the capture came back empty, because the extent was measured from
+		// a position the lookahead had deliberately not moved.
+		Assert.Equal(
+			"ab",
+			Parsed("Start : @string = seen: ?=Word & Word => @(seen)\nWord = ['a'..'z']+", "ab")
+				.Value);
+	}
+
+	[Fact]
+	public void And_a_negative_one_saw_nothing() =>
+		// §3.4: "?!X produces nothing" — it succeeded because what it looked for was not
+		// there, so there is nothing to have seen.
+		Assert.Equal(
+			"",
+			Parsed("Start : @string = seen: ?!'z' & Word => @(seen)\nWord = ['a'..'z']+", "ab")
+				.Value);
+
+	[Fact]
+	public void And_the_specification_example_works() =>
+		// §3.6, written out: look ahead, name what was seen, ask a question of it, then
+		// read it for real.
+		Assert.True(Matches(
+			"Start = n: ?=Word & where @(n.Length < 3) & Word\nWord = ['a'..'z']+",
+			"ab"));
+
+	[Fact]
+	public void And_the_question_is_asked_of_what_was_seen() =>
+		// The guard is what makes the capture worth having, so it has to be able to say no.
+		Assert.False(Matches(
+			"Start = n: ?=Word & where @(n.Length < 3) & Word\nWord = ['a'..'z']+",
+			"abcd"));
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;

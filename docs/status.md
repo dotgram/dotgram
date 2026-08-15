@@ -18,6 +18,7 @@ then quietly mean nothing.
 | ordered choice `\|` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | quantifiers `? * + {n} {n,m}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a capture of what a lookahead saw §3.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
 | scopes, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same rule name in two scopes | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -41,8 +42,9 @@ then quietly mean nothing.
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
-| parameterized rules, recognizer arguments §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a value argument — `Digits(4)`, `Padded(x, pad: char)` | ✗ | ✗ | ✗ | ✗ | ✗ |
+| parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a declared parameter type, `pad: char` §4.2 | ✓ | ✓ | ignored | — | — |
 | a result type naming a parameter, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -593,6 +595,28 @@ The sets are approximate and in the safe direction: a complement, a Unicode cate
 a C# predicate answers "anything", two of those overlap, and the result is a note rather
 than a refusal. Being told about an overlap that is not real costs a sentence; missing
 one costs the thing this exists to prevent.
+
+## A lookahead produces what it saw
+
+§3.4 says `?=X` "produces X's value (which can be captured) without moving the input",
+and §3.6 writes the example out:
+
+```dotgram
+SmallNumber = n: ?=Number & where @IsSmall(n) & value: Number
+```
+
+Neither half worked. `n: ?=Number` did not parse at all — a capture read only a primary
+expression, and `?=` is a prefix, so the two nested one way round and not the other. And
+once it did parse, the capture came back empty: the extent was measured from `p` to `p`,
+and `p` is exactly where a lookahead leaves it.
+
+It now takes the extent from what the lookahead returned, which is how far it got before
+giving the position back. A negative lookahead still produces nothing, which is not an
+oversight — it succeeded because what it looked for was *not* there, so there is nothing
+to have seen.
+
+Found by reading §3 with a probe rather than by writing a feature: five claims tested,
+one of them false in two ways.
 
 ## A rule may take another rule
 

@@ -576,6 +576,32 @@ sealed class Machine
 					return CompileCall((Node.Call)captured, marked, slot);
 				}
 
+				// §3.4: a lookahead produces the value of what it saw, and consumes nothing.
+				// Taking the extent from `p` would take nothing, because `p` is where it
+				// started — so the answer comes from what the lookahead returned, which is
+				// how far it got before giving the position back.
+				if (captured is Node.Lookahead(var ahead, var seen))
+				{
+					var looked = CompileLookahead(seen);
+					var asked  = Reserve(out var atAsk, node, "captured, and consumes nothing");
+
+					atAsk.Line($"s{slot}_from = p;");
+					atAsk.Line($"s{slot}_to   = {looked}(text, p);");
+					atAsk.Line();
+					atAsk.Line($"if (s{slot}_to {(ahead ? "<" : ">=")} 0)");
+					atAsk.Then($"goto case {Fail};");
+					atAsk.Line();
+
+					// A negative lookahead saw nothing by definition — it succeeded because
+					// what it looked for was not there.
+					if (!ahead)
+						atAsk.Line($"s{slot}_to = p;");
+
+					atAsk.Line($"goto case {next};");
+
+					return asked;
+				}
+
 				var close = Reserve(out var atClose, node, "captured to here");
 
 				atClose.Line(Layout.Slots[slot].IsSequence
