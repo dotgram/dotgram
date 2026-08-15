@@ -124,16 +124,8 @@ public static class Retention
 
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);
-		var body      = graph.Bodies[rule];
-
-		// A rule that builds a sequence has a `=>` wrapped round its whole body (§4.1 case
-		// 2). Left in place it makes the rule one stage — itself — and a feed measures as
-		// unstreamable because a feed is of course more than one line.
-		if (body is Node.Construct(var built, _))
-			body = built;
-
-		var parts  = body is Node.Sequence(var sequence) ? sequence : [body];
-		var stages = new List<Stage>(parts.Count);
+		var parts     = graph.PartsOf(rule);
+		var stages    = new List<Stage>(parts.Count);
 
 		foreach (var part in parts)
 		{

@@ -283,6 +283,33 @@ public sealed class RecognitionGraph(
 	public bool HasErrors => Diagnostics.Count > 0;
 
 	/// <summary>
+	/// A rule as the parts it is read in, which is what a streamed parse runs one at a
+	/// time and what the analysis of §6.3 measures one at a time.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One line of it matters: a rule that builds a sequence (§4.1 case 2) has a <c>=&gt;</c>
+	/// wrapped round its whole body, and a body that is not unwrapped is one part — itself.
+	/// The analysis then measures a whole feed against one window and says it cannot be
+	/// streamed, while the emitter, which did unwrap, streams it. Both read this now, so
+	/// the two cannot answer differently.
+	/// </para>
+	/// <para>
+	/// What each side makes of the parts is its own: the analysis asks how much input each
+	/// may hold, the emitter asks which are rules it can hand back one at a time.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<Node> PartsOf(RuleSymbol rule)
+	{
+		var body = Bodies[rule];
+
+		if (body is Node.Construct(var built, _))
+			body = built;
+
+		return body is Node.Sequence(var sequence) ? sequence : [body];
+	}
+
+	/// <summary>
 	/// Every node this graph says something about that is no longer in it, named. Empty
 	/// for a graph that holds together, which is every graph this compiler should build.
 	/// </summary>

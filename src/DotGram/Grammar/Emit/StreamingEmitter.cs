@@ -422,12 +422,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static IReadOnlyList<Stage>? StagesOf(RecognitionGraph graph, RuleSymbol rule)
 	{
-		var body = graph.Bodies[rule];
-
-		if (body is Node.Construct(var built, _))
-			body = built;
-
-		var parts  = body is Node.Sequence(var sequence) ? sequence : [body];
+		var parts  = graph.PartsOf(rule);
 		var stages = new List<Stage>(parts.Count);
 
 		foreach (var part in parts)
