@@ -5,7 +5,7 @@ A typed grammar notation for .NET, compiled to C# by a source generator.
 > **Early work.** The pipeline runs end to end, the parsers it produces are real and
 > typed, a grammar can compute, a marked repetition survives a bad element, and a feed
 > streams — ten million records of fifty fields read through a 4 KB window. What is
-> missing is parameterized rules, a good deal of §7.1's seam with C#, and incremental
+> missing is a good deal of §7.1's seam with C#, keyword boundaries, and incremental
 > parsing. Nothing here is ready to depend on.
 >
 > The specification describes the target language. Not every specified feature is
@@ -178,6 +178,17 @@ Working end to end — a `.gram` file becomes a parser that runs:
   it is handed the parser's own, and nothing checks what came back. Reaching into the
   parse means taking the parse's invariants on with it, which §7.1 says in as many words
 
+- **a rule that takes another rule** — written once, used with whatever it is given:
+
+  ```dotgram
+  List(item, sep) = item & (sep & item)*
+
+  Start = List(Word, Comma) & ' ' & List(Word, Semi)
+  ```
+
+  By substitution: each call becomes a rule of its own with the parameters replaced, so
+  nothing is dispatched at run time and a parameter can be a recognizer
+
 - **a rule that is a sequence of what it is made of** — the envelope and the records in
   one result, in the order they were read, with no `=>` anywhere:
 
@@ -231,7 +242,8 @@ then quietly means nothing is the failure this project is most careful about:
 - `: T` naming another rule, and matching captures to a constructor by name
 - an external recognizer that hands back a value of its own — the form that reads the
   input and moves the position works, the one with `out T value` does not
-- parameterized rules: `R(n)` is in the specification and does not parse
+- an argument that is a *value* rather than a piece of grammar — `Digits(4)` and
+  `Padded(item, pad: char)`; a rule passed as an argument works
 - diagnostics beyond a position: the set of what was expected there is next
 - the §8.3 surfaces over a streamed parse
 - incremental parsing

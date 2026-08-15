@@ -41,7 +41,9 @@ then quietly mean nothing.
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
-| parameterized rules `R(n)` | ✗ | ✗ | ✗ | ✗ | ✗ |
+| parameterized rules, recognizer arguments §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value argument — `Digits(4)`, `Padded(x, pad: char)` | ✗ | ✗ | ✗ | ✗ | ✗ |
+| a result type naming a parameter, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
@@ -591,6 +593,39 @@ The sets are approximate and in the safe direction: a complement, a Unicode cate
 a C# predicate answers "anything", two of those overlap, and the result is a note rather
 than a refusal. Being told about an overlap that is not real costs a sentence; missing
 one costs the thing this exists to prevent.
+
+## A rule may take another rule
+
+§4.2, for the arguments that are pieces of grammar:
+
+```dotgram
+List(item, sep) = item & (sep & item)*
+
+Start = List(Word, Comma) & ' ' & List(Word, Semi)
+```
+
+**By substitution, not dispatch.** `List(Word, Comma)` becomes a rule of its own —
+`List_Word_Comma` — whose body is `List`'s with the parameters replaced by what was
+passed. A parameter is therefore a compile-time thing entirely, and nothing downstream
+ever meets one: the machine, the capture layout and the retention analysis all see an
+ordinary rule. That is also what lets a parameter be a *recognizer* at all, since passing
+a rule as a value at run time would need a delegate the emitted code deliberately does
+not have.
+
+Two calls with the same arguments share one specialization, keyed by what those arguments
+lower to, so a grammar naming `List(Word, Comma)` twice gets one recognizer. An argument
+need not be a rule — anything that recognizes will do, including a literal or a character
+class.
+
+It used to compile and match nothing at all: a parameter lowered to an element set with
+nothing in it, which is a rule that runs and refuses every input. The parser and the
+binder had understood parameters all along; it was the normalizer that dropped them.
+
+Not built: an argument that is a *value* rather than a piece of grammar — `Digits(4)`,
+`Padded(item, pad: char)`. The parser stops at the number, and `['0'..'9']{n}` would need
+a quantifier that takes a name. `: item`, the result type naming a parameter, is §4.1
+case 3 said of a parameter and is refused where the rule is declared — once, and not
+again about the specialization.
 
 ## A C# method may read the input itself
 

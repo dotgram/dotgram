@@ -42,6 +42,7 @@ public sealed class GrammarNormalizer
 	public const string UnbuiltRecovery     = "GRAM4010";
 	public const string UnbuiltRuleType     = "GRAM4011";
 	public const string ReservedCaptureName = "GRAM4012";
+	public const string UnbuiltCall         = "GRAM4013";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -235,6 +236,12 @@ public sealed class GrammarNormalizer
 		if (!_model.Bindings.TryGetValue(expression, out var symbol))
 			return new Node.Element(false, [], [], [Unresolved(name)]);
 
+		// §4.2: inside a specialization a parameter stands for whatever the call passed.
+		// It used to lower to an element set with nothing in it — a rule that compiled,
+		// ran, and matched nothing whatever the input was.
+		if (symbol is ParameterSymbol && _arguments.TryGetValue(name, out var argument))
+			return argument;
+
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule, []);
 
@@ -360,7 +367,120 @@ public sealed class GrammarNormalizer
 			_bodies[rule] = BuiltInBody(rule.Name);
 		}
 
+		// §4.2: a rule with parameters is a rule per set of arguments, made here. Nothing
+		// downstream ever meets a parameter — the machine, the layout, the retention
+		// analysis all see the ordinary rule that a call turned into.
+		if (rule.Declaration is { Params.Count: > 0 })
+			return Specialize(rule, arguments);
+
 		return new Node.Call(rule, arguments);
+	}
+
+	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>
+	readonly Dictionary<string, RuleSymbol> _specialized = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// One rule per set of arguments (§4.2).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Substitution rather than dispatch: <c>List(Word, Comma)</c> becomes a rule whose
+	/// body is <c>List</c>'s with <c>item</c> and <c>sep</c> replaced by what was passed.
+	/// A parameter is therefore a compile-time thing entirely, which is what lets it be a
+	/// recognizer at all — nothing here can call one at run time, and passing a rule as a
+	/// value would need a delegate the emitted code deliberately does not have.
+	/// </para>
+	/// <para>
+	/// Two calls with the same arguments share a specialization, keyed by what the
+	/// arguments lower to. So <c>List(Word, Comma)</c> written twice is one rule and one
+	/// recognizer, and the machine's own recursion check sees a cycle where there is one.
+	/// </para>
+	/// </remarks>
+	Node Specialize(RuleSymbol rule, IReadOnlyList<Node> arguments)
+	{
+		var declaration = rule.Declaration!;
+
+		if (declaration.Params.Count != arguments.Count)
+		{
+			Report(
+				UnbuiltCall,
+				$"'{rule.Name}' takes {declaration.Params.Count} " +
+				$"{(declaration.Params.Count == 1 ? "parameter" : "parameters")} and is given " +
+				$"{arguments.Count}.",
+				declaration.At);
+
+			return Node.Empty.Instance;
+		}
+
+		var key = rule.Name + "(" + string.Join(", ", arguments) + ")";
+
+		if (_specialized.TryGetValue(key, out var made))
+			return new Node.Call(made, []);
+
+		var specialized = new RuleSymbol(NameFor(rule, arguments), rule.Scope, declaration);
+
+		_specialized[key] = specialized;
+		_rules.Add(specialized);
+
+		// Before lowering, for the same reason an ordinary rule is: a specialization that
+		// reaches itself would otherwise recurse here rather than be reported.
+		_bodies[specialized] = Node.Empty.Instance;
+
+		var outer = _arguments;
+
+		_arguments = new Dictionary<string, Node>(StringComparer.Ordinal);
+
+		for (var i = 0; i < arguments.Count; i++)
+			_arguments[declaration.Params[i].Name] = arguments[i];
+
+		_bodies[specialized] = Lower(declaration.Body, rule.Scope);
+		_arguments           = outer;
+
+		// Only a C# type. `: item` — the result being whatever the argument produces — is
+		// §4.1 case 3 said of a parameter; it is refused where the rule is declared, and
+		// copying it here would say so a second time about a rule the author never wrote.
+		if (declaration.Type is { } declared && (declared.IsCSharp || IsCSharpKeyword(declared.Name)))
+			_types[specialized] = TypeName(declared);
+
+		return new Node.Call(specialized, []);
+	}
+
+	/// <summary>What each parameter stands for while a specialization is being lowered.</summary>
+	Dictionary<string, Node> _arguments = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// What a specialization is called: the rule, and what it was given.
+	/// </summary>
+	/// <remarks>
+	/// <c>List(Word, Comma)</c> is <c>List_Word_Comma</c>, so a diagnostic and a generated
+	/// method both name something the author can find in the grammar. An argument that is
+	/// not a call has no name of its own and is numbered instead — the alternative is a
+	/// method named after a character class.
+	/// </remarks>
+	string NameFor(RuleSymbol rule, IReadOnlyList<Node> arguments)
+	{
+		var name = rule.Name;
+
+		foreach (var argument in arguments)
+			name += "_" + (argument is Node.Call(var called, _)
+				? called.Name.Replace(".", "_")
+				: _specialized.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+		var taken = name;
+
+		for (var i = 2; Named(taken); i++)
+			taken = name + "_" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+		return taken;
+	}
+
+	bool Named(string name)
+	{
+		foreach (var rule in _rules)
+			if (string.Equals(rule.Name, name, StringComparison.Ordinal))
+				return true;
+
+		return false;
 	}
 
 	static Node BuiltInBody(string name) => name switch

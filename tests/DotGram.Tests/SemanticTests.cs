@@ -91,6 +91,77 @@ public sealed class SemanticTests
 				: string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString()))));
 	}
 
+	// ── Parameterized rules (§4.2) ───────────────────────────────────────────────
+
+	const string Listing =
+		"List(item, sep) = item & (sep & item)*\n" +
+		"Word  = ['a'..'z']+\n" +
+		"Comma = ','\n" +
+		"Semi  = ';'\n";
+
+	[Fact]
+	public void A_rule_may_take_another_rule_as_a_parameter() =>
+		// §4.2. A parameter is a compile-time thing entirely: the call becomes a rule of
+		// its own with `item` and `sep` replaced by what was passed, so nothing downstream
+		// ever meets a parameter and nothing is dispatched at run time.
+		Assert.True(Matches(Listing + "Start = List(Word, Comma)", "ab,cd,ef"));
+
+	[Fact]
+	public void And_the_same_rule_twice_with_different_arguments() =>
+		// Two specializations of one rule, side by side in one grammar, which is the whole
+		// point of writing `List` once.
+		Assert.True(Matches(
+			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
+			"ab,cd ef;gh"));
+
+	[Fact]
+	public void And_what_it_was_given_still_has_to_match() =>
+		Assert.False(Matches(Listing + "Start = List(Word, Comma)", "ab;cd"));
+
+	[Fact]
+	public void The_same_arguments_twice_are_one_rule()
+	{
+		// Keyed by what the arguments lower to, so a grammar naming the same specialization
+		// in two places gets one recognizer rather than two identical ones.
+		var source = Compile(
+			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Comma)\nparse Start")
+			.Sources[0].Text;
+
+		Assert.Equal(
+			1,
+			source.Split("static int Recognize_List_Word_Comma(").Length - 1);
+	}
+
+	[Fact]
+	public void An_argument_may_be_anything_that_recognizes()
+	{
+		// Not only a rule: what a parameter stands for is a piece of grammar, so a
+		// character class or a literal passed in place of one works the same way.
+		Assert.True(Matches(
+			"Padded(item, pad) = pad* & item & pad*\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')",
+			"  ab  "));
+	}
+
+	[Fact]
+	public void A_result_type_naming_a_parameter_is_refused_once()
+	{
+		// `: item` — the result being whatever the argument produces — is §4.1 case 3 said
+		// of a parameter, and is not built. Said where the rule is declared and nowhere
+		// else: the specialization would otherwise say it again about a rule the author
+		// never wrote.
+		var reported = Compile(
+			"Lex(item) : item = ' '* & item\n" +
+			"Word : @string = ['a'..'z']+ => @(parserText)\n" +
+			"Start = Lex(Word)\n" +
+			"parse Start").Diagnostics;
+
+		Assert.Equal(GrammarNormalizer.UnbuiltRuleType, Assert.Single(reported).Id);
+	}
+
+	[Fact]
+	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
+		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
+
 	// ── Backtracking (§11) ───────────────────────────────────────────────────────
 
 	// A greedy operand that took too much has to give it back when what follows fails.
