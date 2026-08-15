@@ -118,8 +118,13 @@ public sealed class GrammarNormalizer
 	/// </remarks>
 	void Collect(GrammarScope scope)
 	{
+		// A parameterized rule is not a rule until it is called: its body names things
+		// that only a call gives values to (§4.2). What goes in the graph is the
+		// specializations, made where the calls are, so the template itself is left out —
+		// lowering it here would report a count with nothing passed for it, and emit a
+		// recognizer nobody could call.
 		foreach (var rule in scope.Rules.Values)
-			if (rule.Declaration is not null)
+			if (rule.Declaration is { Params.Count: 0 })
 				_rules.Add(rule);
 
 		foreach (var nested in scope.Nested)
@@ -172,15 +177,19 @@ public sealed class GrammarNormalizer
 		Expr.Recovering(var body, var sync, var factory) =>
 			LowerRecovery(body, sync, factory, scope, expression),
 
-		Expr.Quantified(var operand, var kind, var min, _, var max, _) =>
-			new Node.Repeat(Lower(operand, scope), Bounds(kind, min).Min, Bounds(kind, max).Max),
+		// §4.2: a count may be a parameter's name, and inside a specialization it stands
+		// for the number the call passed.
+		Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
+			new Node.Repeat(
+				Lower(operand, scope),
+				Bounds(kind, Counted(min, minName, expression)).Min,
+				Bounds(kind, Counted(max, maxName, expression)).Max),
 
 		Expr.Sequence(var operands)             => LowerSequence(operands, scope),
 		Expr.Choice(var alternatives)           => LowerChoice(alternatives, scope),
 
-		Expr.Call(var target, var arguments) => CallTo(
-			RuleOf(expression, target.Name),
-			[.. arguments.Select(argument => Lower(argument, scope))]),
+		Expr.Call(var target, var arguments) =>
+			LowerCall(RuleOf(expression, target.Name), arguments, scope),
 
 		Expr.Reference(_, var name, _) => LowerReference(expression, name),
 
@@ -367,13 +376,23 @@ public sealed class GrammarNormalizer
 			_bodies[rule] = BuiltInBody(rule.Name);
 		}
 
-		// §4.2: a rule with parameters is a rule per set of arguments, made here. Nothing
-		// downstream ever meets a parameter — the machine, the layout, the retention
-		// analysis all see the ordinary rule that a call turned into.
-		if (rule.Declaration is { Params.Count: > 0 })
-			return Specialize(rule, arguments);
-
 		return new Node.Call(rule, arguments);
+	}
+
+	/// <summary>
+	/// A call, which for a parameterized rule is a rule of its own (§4.2).
+	/// </summary>
+	/// <remarks>
+	/// The arguments arrive unlowered, because whether one is a piece of grammar or a
+	/// value is decided here: a number is neither a recognizer nor lowerable into one, and
+	/// stands where a count goes rather than where an operand does.
+	/// </remarks>
+	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarScope scope)
+	{
+		if (rule.Declaration is not { Params.Count: > 0 })
+			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, scope))]);
+
+		return Specialize(rule, arguments, scope);
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>
@@ -396,7 +415,7 @@ public sealed class GrammarNormalizer
 	/// recognizer, and the machine's own recursion check sees a cycle where there is one.
 	/// </para>
 	/// </remarks>
-	Node Specialize(RuleSymbol rule, IReadOnlyList<Node> arguments)
+	Node Specialize(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarScope scope)
 	{
 		var declaration = rule.Declaration!;
 
@@ -412,12 +431,39 @@ public sealed class GrammarNormalizer
 			return Node.Empty.Instance;
 		}
 
-		var key = rule.Name + "(" + string.Join(", ", arguments) + ")";
+		// Lowered in the caller's own substitution, because an argument may name one of
+		// the caller's parameters: `Pair(item) = List(item, Comma)` passes on what it was
+		// given rather than a parameter of its own.
+		var passed = new List<Node?>(arguments.Count);
+		var counts = new List<int?>(arguments.Count);
+
+		foreach (var argument in arguments)
+			if (argument is Expr.Number(var value))
+			{
+				passed.Add(null);
+				counts.Add(value);
+			}
+			else if (argument is Expr.Reference(false, var named, _) &&
+				_counts.TryGetValue(named, out var forwarded))
+			{
+				passed.Add(null);
+				counts.Add(forwarded);
+			}
+			else
+			{
+				passed.Add(Lower(argument, scope));
+				counts.Add(null);
+			}
+
+		var key = rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
+			node is null
+				? counts[i]!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+				: node.ToString())) + ")";
 
 		if (_specialized.TryGetValue(key, out var made))
 			return new Node.Call(made, []);
 
-		var specialized = new RuleSymbol(NameFor(rule, arguments), rule.Scope, declaration);
+		var specialized = new RuleSymbol(NameFor(rule, passed, counts), rule.Scope, declaration);
 
 		_specialized[key] = specialized;
 		_rules.Add(specialized);
@@ -426,15 +472,21 @@ public sealed class GrammarNormalizer
 		// reaches itself would otherwise recurse here rather than be reported.
 		_bodies[specialized] = Node.Empty.Instance;
 
-		var outer = _arguments;
+		var outerArguments = _arguments;
+		var outerCounts    = _counts;
 
 		_arguments = new Dictionary<string, Node>(StringComparer.Ordinal);
+		_counts    = new Dictionary<string, int>(StringComparer.Ordinal);
 
 		for (var i = 0; i < arguments.Count; i++)
-			_arguments[declaration.Params[i].Name] = arguments[i];
+			if (passed[i] is { } node)
+				_arguments[declaration.Params[i].Name] = node;
+			else
+				_counts[declaration.Params[i].Name] = counts[i]!.Value;
 
 		_bodies[specialized] = Lower(declaration.Body, rule.Scope);
-		_arguments           = outer;
+		_arguments           = outerArguments;
+		_counts              = outerCounts;
 
 		// Only a C# type. `: item` — the result being whatever the argument produces — is
 		// §4.1 case 3 said of a parameter; it is refused where the rule is declared, and
@@ -444,6 +496,28 @@ public sealed class GrammarNormalizer
 
 		return new Node.Call(specialized, []);
 	}
+
+	/// <summary>A repetition count: written, or the name of a parameter that carries one.</summary>
+	int? Counted(int? written, string? name, Expr at)
+	{
+		if (written is not null || name is null)
+			return written;
+
+		if (_counts.TryGetValue(name, out var passed))
+			return passed;
+
+		Report(
+			UnbuiltCall,
+			$"'{name}' is a repetition count and no number was passed for it. A count may name " +
+			"a parameter of the rule it is in, and that parameter has to be given a number at " +
+			"every call (docs/syntax.md §4.2).",
+			at.At);
+
+		return null;
+	}
+
+	/// <summary>What each numeric parameter stands for while a specialization is lowered.</summary>
+	Dictionary<string, int> _counts = new(StringComparer.Ordinal);
 
 	/// <summary>What each parameter stands for while a specialization is being lowered.</summary>
 	Dictionary<string, Node> _arguments = new(StringComparer.Ordinal);
@@ -457,22 +531,28 @@ public sealed class GrammarNormalizer
 	/// not a call has no name of its own and is numbered instead — the alternative is a
 	/// method named after a character class.
 	/// </remarks>
-	string NameFor(RuleSymbol rule, IReadOnlyList<Node> arguments)
+	string NameFor(RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts)
 	{
 		var name = rule.Name;
 
-		foreach (var argument in arguments)
-			name += "_" + (argument is Node.Call(var called, _)
-				? called.Name.Replace(".", "_")
-				: _specialized.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		for (var i = 0; i < passed.Count; i++)
+			name += "_" + (passed[i] switch
+			{
+				null                     => Text(counts[i]!.Value),
+				Node.Call(var called, _) => called.Name.Replace(".", "_"),
+				_                        => Text(_specialized.Count),
+			});
 
 		var taken = name;
 
 		for (var i = 2; Named(taken); i++)
-			taken = name + "_" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+			taken = name + "_" + Text(i);
 
 		return taken;
 	}
+
+	static string Text(int value) =>
+		value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
 	bool Named(string name)
 	{

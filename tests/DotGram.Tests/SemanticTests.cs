@@ -159,6 +159,42 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void An_argument_may_also_be_a_number()
+	{
+		// §4.2's other kind of argument. A count may name a parameter, and the number the
+		// call passed is substituted into the quantifier — so `Digits(4)` is a rule that
+		// takes exactly four.
+		const string counted = "Digits(n) = ['0'..'9']{n}\nStart = Digits(4)";
+
+		Assert.True (Matches(counted, "2026"));
+		Assert.False(Matches(counted, "202"));
+		Assert.False(Matches(counted, "20268"));
+	}
+
+	[Fact]
+	public void And_two_counts_are_two_rules() =>
+		// One rule written once, two lengths asked of it, side by side.
+		Assert.True(Matches(
+			"Digits(n) = ['0'..'9']{n}\nStart = Digits(4) & '-' & Digits(2)",
+			"2026-08"));
+
+	[Fact]
+	public void A_count_passed_on_is_still_a_count() =>
+		// The argument names the caller's own parameter rather than a number, so what is
+		// passed through is what the outer call was given.
+		Assert.True(Matches(
+			"Digits(n) = ['0'..'9']{n}\nPair(n) = Digits(n) & '-' & Digits(n)\nStart = Pair(2)",
+			"20-26"));
+
+	[Fact]
+	public void A_count_naming_a_parameter_that_was_not_given_one_is_refused() =>
+		// The rule takes a piece of grammar and uses it as a number, which is a rule that
+		// would otherwise repeat zero times and match nothing.
+		Refused(
+			GrammarNormalizer.UnbuiltCall,
+			"Digits(n) = ['0'..'9']{n}\nWord = ['a'..'z']\nStart = Digits(Word)");
+
+	[Fact]
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 

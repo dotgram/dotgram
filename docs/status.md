@@ -621,11 +621,29 @@ It used to compile and match nothing at all: a parameter lowered to an element s
 nothing in it, which is a rule that runs and refuses every input. The parser and the
 binder had understood parameters all along; it was the normalizer that dropped them.
 
-Not built: an argument that is a *value* rather than a piece of grammar — `Digits(4)`,
-`Padded(item, pad: char)`. The parser stops at the number, and `['0'..'9']{n}` would need
-a quantifier that takes a name. `: item`, the result type naming a parameter, is §4.1
-case 3 said of a parameter and is refused where the rule is declared — once, and not
-again about the specialization.
+**An argument may also be a number**, which is the other half of §4.2:
+
+```dotgram
+Digits(n) = ['0'..'9']{n}
+
+Start = Digits(4) & '-' & Digits(2)
+```
+
+A count may name a parameter, and the number the call passed is substituted into the
+quantifier. The two kinds of argument are told apart where the call is lowered rather
+than by the parameter's declaration: a number is neither a recognizer nor lowerable into
+one. An argument that names the caller's own parameter passes the number through, so
+`Pair(n) = Digits(n) & '-' & Digits(n)` works as it reads.
+
+The template itself is not in the graph. A parameterized rule is not a rule until it is
+called — its body names things only a call gives values to — so what is emitted is the
+specializations. Lowering the template would report a count with nothing passed for it,
+and emit a recognizer nobody could call.
+
+Refused: a count naming a parameter that was given a piece of grammar rather than a
+number, which would otherwise repeat zero times and match nothing (`GRAM4013`). And
+`: item`, the result type naming a parameter — §4.1 case 3 said of a parameter, refused
+where the rule is declared and not again about the specialization.
 
 ## A C# method may read the input itself
 

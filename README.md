@@ -182,12 +182,14 @@ Working end to end — a `.gram` file becomes a parser that runs:
 
   ```dotgram
   List(item, sep) = item & (sep & item)*
+  Digits(n)       = ['0'..'9']{n}
 
-  Start = List(Word, Comma) & ' ' & List(Word, Semi)
+  Start = List(Word, Comma) & ' ' & Digits(4)
   ```
 
   By substitution: each call becomes a rule of its own with the parameters replaced, so
-  nothing is dispatched at run time and a parameter can be a recognizer
+  nothing is dispatched at run time and a parameter can be a recognizer. An argument is
+  a piece of grammar or a number, and a repetition count may name one
 
 - **a rule that is a sequence of what it is made of** — the envelope and the records in
   one result, in the order they were read, with no `=>` anywhere:
@@ -242,8 +244,8 @@ then quietly means nothing is the failure this project is most careful about:
 - `: T` naming another rule, and matching captures to a constructor by name
 - an external recognizer that hands back a value of its own — the form that reads the
   input and moves the position works, the one with `out T value` does not
-- an argument that is a *value* rather than a piece of grammar — `Digits(4)` and
-  `Padded(item, pad: char)`; a rule passed as an argument works
+- a typed parameter — `Padded(item, pad: char)`; a rule and a number both work as
+  arguments, a declared parameter type does nothing
 - diagnostics beyond a position: the set of what was expected there is next
 - the §8.3 surfaces over a streamed parse
 - incremental parsing

@@ -90,6 +90,16 @@ public abstract record Expr : ILocated
 	public sealed record ElementSet(bool IsNegated, IReadOnlyList<Elem> Items) : Expr;
 	public sealed record CSharp    (string Text)                               : Expr;
 
+	/// <summary>
+	/// A number, which is a value rather than a recognizer.
+	/// </summary>
+	/// <remarks>
+	/// Only where a value goes: an argument to a parameterized rule (§4.2). There is no
+	/// position in a recognition expression where a bare number means anything, which is
+	/// why it is not one of the operands.
+	/// </remarks>
+	public sealed record Number(int Value) : Expr;
+
 	public sealed record Reference(bool IsCSharp, string Name, IReadOnlyList<TypeRef> TypeArguments) : Expr;
 	public sealed record Call     (Reference Target, IReadOnlyList<Expr> Arguments)                  : Expr;
 

@@ -445,6 +445,22 @@ public sealed class GramParser
 		return new Expr.Recovering(repetition, sync, factory) { At = From(start) };
 	}
 
+	/// <summary>A number where a value goes, with the same overflow care as a count.</summary>
+	Expr ParseNumber()
+	{
+		var token = Take();
+
+		if (int.TryParse(token.Value!, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+			return new Expr.Number(value) { At = new Location(token.Position, token.Length) };
+
+		Report(
+			InvalidCount,
+			$"'{token.Value}' is too large for an argument.",
+			new Location(token.Position, token.Length));
+
+		return new Expr.Number(0) { At = new Location(token.Position, token.Length) };
+	}
+
 	(int? Value, string? Name) ParseCount()
 	{
 		if (At(TokenKind.Identifier))
@@ -561,7 +577,10 @@ public sealed class GramParser
 
 		while (!AtEnd && !At(TokenKind.CloseParen))
 		{
-			arguments.Add(ParseAlternative());
+			// §4.2: an argument is a piece of grammar or a value. A number is only ever the
+			// second — there is no position in a recognition expression where a bare one
+			// means anything — so it is read here and nowhere else.
+			arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseAlternative());
 
 			if (!TakeIf(TokenKind.Comma))
 				break;
