@@ -195,6 +195,22 @@ public sealed class SemanticTests
 			"Digits(n) = ['0'..'9']{n}\nWord = ['a'..'z']\nStart = Digits(Word)");
 
 	[Fact]
+	public void A_call_that_would_specialize_for_ever_is_refused()
+	{
+		// §4.2 asks for this in as many words, and the reason is worse than an unhelpful
+		// message: each call wraps its own argument, so there is no repeat to find and no
+		// end to the specializing. It used to overflow the stack — which is not an
+		// exception and takes the process with it, so an author would watch their IDE lose
+		// the compiler rather than read anything about their grammar.
+		Refused(
+			GrammarNormalizer.UnbuiltCall,
+			"Grow(item) = 'x' & Grow(Pair(item))\n" +
+			"Pair(item) = item & item\n" +
+			"Word = ['a'..'z']\n" +
+			"Start = Grow(Word)");
+	}
+
+	[Fact]
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 

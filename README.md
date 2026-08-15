@@ -244,8 +244,8 @@ then quietly means nothing is the failure this project is most careful about:
 - `: T` naming another rule, and matching captures to a constructor by name
 - an external recognizer that hands back a value of its own — the form that reads the
   input and moves the position works, the one with `out T value` does not
-- a typed parameter — `Padded(item, pad: char)`; a rule and a number both work as
-  arguments, a declared parameter type does nothing
+- a declared parameter type — `Padded(item, pad: char)` parses and binds, and then the
+  argument is judged by what it turns out to be rather than by what was declared
 - diagnostics beyond a position: the set of what was expected there is next
 - the §8.3 surfaces over a streamed parse
 - incremental parsing

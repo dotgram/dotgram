@@ -419,6 +419,24 @@ public sealed class GrammarNormalizer
 	{
 		var declaration = rule.Declaration!;
 
+		// §4.2: a recursive call that wraps its own argument specializes for ever, and
+		// "for ever" in a source generator is a stack overflow — which is not an exception
+		// and takes the process with it, so the author's IDE loses the compiler rather than
+		// showing a message about their grammar. Checked on the way in, before the
+		// arguments are lowered, because lowering an argument is where the recursion is.
+		if (_specializing.Count >= SpecializationDepth)
+		{
+			Report(
+				UnbuiltCall,
+				$"'{rule.Name}' is called with an argument built from its own, so every call needs " +
+				"another rule and there is no end to them — " +
+				$"{_specializing[0]} … {_specializing[_specializing.Count - 1]}, and growing. " +
+				"§4.2 rejects this when the grammar is built rather than letting it run.",
+				declaration.At);
+
+			return Node.Empty.Instance;
+		}
+
 		if (declaration.Params.Count != arguments.Count)
 		{
 			Report(
@@ -484,9 +502,13 @@ public sealed class GrammarNormalizer
 			else
 				_counts[declaration.Params[i].Name] = counts[i]!.Value;
 
+		_specializing.Add(specialized.Name);
+
 		_bodies[specialized] = Lower(declaration.Body, rule.Scope);
 		_arguments           = outerArguments;
 		_counts              = outerCounts;
+
+		_specializing.RemoveAt(_specializing.Count - 1);
 
 		// Only a C# type. `: item` — the result being whatever the argument produces — is
 		// §4.1 case 3 said of a parameter; it is refused where the rule is declared, and
@@ -518,6 +540,17 @@ public sealed class GrammarNormalizer
 
 	/// <summary>What each numeric parameter stands for while a specialization is lowered.</summary>
 	Dictionary<string, int> _counts = new(StringComparer.Ordinal);
+
+	/// <summary>How deep specializations may nest before the grammar is called runaway.</summary>
+	/// <remarks>
+	/// Generous, because a grammar built out of <c>Lex(List(Padded(…)))</c> is doing
+	/// nothing wrong and nesting is how it says so. What this stops is unbounded growth,
+	/// which passes this depth almost at once.
+	/// </remarks>
+	const int SpecializationDepth = 24;
+
+	/// <summary>The specializations being lowered, outermost first.</summary>
+	readonly List<string> _specializing = [];
 
 	/// <summary>What each parameter stands for while a specialization is being lowered.</summary>
 	Dictionary<string, Node> _arguments = new(StringComparer.Ordinal);

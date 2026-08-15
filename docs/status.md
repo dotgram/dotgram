@@ -645,6 +645,19 @@ number, which would otherwise repeat zero times and match nothing (`GRAM4013`). 
 `: item`, the result type naming a parameter — §4.1 case 3 said of a parameter, refused
 where the rule is declared and not again about the specialization.
 
+**A call that would specialize for ever is refused too**, which §4.2 asks for and which
+matters more than it sounds. `Grow(item) = 'x' & Grow(Pair(item))` wraps its own argument
+at every call, so there is no repeat to find and no end to the specializing — and the way
+that ended was a stack overflow, which is not an exception and takes the process with it.
+An author would have watched their IDE lose the compiler rather than read anything about
+their grammar. Bounded at 24 nested specializations: generous for a grammar built out of
+`Lex(List(Padded(…)))`, and passed almost at once by growth.
+
+Not built: **a declared parameter type does nothing**. `Padded(item, pad: char)` parses
+and binds, and then the argument is judged by what it turns out to be rather than by what
+was declared. §4.2 says a C# type makes the parameter a value and anything else makes it
+a recognizer; today the call decides that by itself.
+
 ## A C# method may read the input itself
 
 §7.1's second row works, in the form without a value:
