@@ -144,6 +144,47 @@ public sealed class SemanticTests
 		Assert.Contains("§4.1 case 4", reported[0].Message, StringComparison.Ordinal);
 	}
 
+	// ── Publication (§6) ─────────────────────────────────────────────────────────
+
+	/// <summary>Compiles a grammar and calls one of its published methods.</summary>
+	static object? Published(string grammar, string method, string input)
+	{
+		var result = Compile(grammar);
+
+		Assert.Empty(result.Diagnostics);
+
+		return EmittedCode.Compile(result.Sources[0].Text)
+			.GetType("Grammar")!
+			.GetMethod(method, [typeof(string)])!
+			.Invoke(null, [input]);
+	}
+
+	[Fact]
+	public void Either_directive_may_be_renamed() =>
+		// §6: `as` is on both, and only `parse as` had a test.
+		Assert.Single(
+			(System.Collections.IEnumerable)Published(
+				"Word = ['a'..'z']+\nfind Word as AllWords", "AllWords", "ab")!);
+
+	[Fact]
+	public void A_rule_in_a_scope_can_be_published() =>
+		// §5 and §6 together: the directive reaches into a scope by the qualified name,
+		// and the method is named after the rule rather than after the path to it.
+		Assert.Equal(
+			"ab",
+			Published("scope Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
+
+	[Fact]
+	public void A_find_of_a_rule_that_matches_nothing_ends()
+	{
+		// `['a'..'z']*` matches the empty string everywhere, so a `find` that took the
+		// match and did not move would answer for ever. It moves.
+		var found = (System.Collections.IEnumerable)Published(
+			"Maybe = ['a'..'z']*\nfind Maybe", "FindMaybe", "..")!;
+
+		Assert.Equal(3, found.Cast<object>().Count());
+	}
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;
