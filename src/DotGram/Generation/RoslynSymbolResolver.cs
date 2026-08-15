@@ -110,10 +110,29 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 	/// the C# keywords are always C# types, so a grammar writing <c>@int.Parse</c> means
 	/// <c>System.Int32.Parse</c> and expects to be understood.
 	/// </remarks>
-	INamedTypeSymbol? TypeNamed(string qualifiedName) =>
-		_compilation.GetTypeByMetadataName(Keywords.TryGetValue(qualifiedName, out var framework)
-			? framework
-			: qualifiedName);
+	/// <remarks>
+	/// The host is looked in as well, and for the same reason its methods are: a type
+	/// written beside the grammar is a type the author never has to name in full anywhere
+	/// else. Without it `@Row` beside `Row` meant a top-level `Row`, while `@Method`
+	/// beside `Method` meant the host's own — an asymmetry nobody chose.
+	/// </remarks>
+	INamedTypeSymbol? TypeNamed(string qualifiedName)
+	{
+		var name = Keywords.TryGetValue(qualifiedName, out var framework) ? framework : qualifiedName;
+
+		// The host first, because that is the order C# itself resolves in and because the
+		// generated code is written inside the host class: a short name there binds to the
+		// nested type whatever this method decides, so deciding otherwise would check one
+		// type and call another. Nested types are `Outer+Inner` in metadata, and a grammar
+		// writing `Row.Inner` means one nested inside another.
+		if (_host is not null &&
+			_compilation.GetTypeByMetadataName(_host + "+" + name.Replace('.', '+')) is { } nested)
+		{
+			return nested;
+		}
+
+		return _compilation.GetTypeByMetadataName(name);
+	}
 
 	static readonly System.Collections.Generic.Dictionary<string, string> Keywords =
 		new(StringComparer.Ordinal)

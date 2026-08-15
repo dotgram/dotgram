@@ -973,6 +973,65 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void A_type_beside_the_grammar_is_found_by_its_short_name()
+	{
+		// `@Method` beside a grammar has always meant the host's own method. `@Row` beside
+		// it meant a top-level `Row`, and a type nested in the host — which is where a type
+		// written for one grammar belongs — could not be named at all without writing out
+		// the chain the author never writes anywhere else.
+		var built = Build("""
+			[DotGram.Gram("Row : @Line = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+\nparse Row")]
+			public partial class Nested
+			{
+				public sealed class Line(string name, string amount)
+				{
+					public string Name   { get; } = name;
+					public string Amount { get; } = amount;
+				}
+			}
+			""")
+			.GetType("Nested")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab,12"])!;
+
+		Assert.Equal("ab", built.GetType().GetProperty("Name")!.GetValue(built));
+		Assert.Equal("12", built.GetType().GetProperty("Amount")!.GetValue(built));
+	}
+
+	[Fact]
+	public void And_the_nearer_one_wins_the_way_it_does_in_C_sharp()
+	{
+		// Both exist. C# inside the host class binds the short name to the nested type, and
+		// the generated code *is* inside the host class — so resolving to the outer one
+		// would check the constructors of a type other than the one that gets called, and
+		// the mismatch would surface as a C# error in a file the author did not write.
+		var built = Build("""
+			public sealed class Line(string name, string amount)
+			{
+				public string Name   { get; } = name;
+				public string Amount { get; } = amount;
+				public string Which  { get; } = "outer";
+			}
+
+			[DotGram.Gram("Row : @Line = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+\nparse Row")]
+			public partial class Shadowing
+			{
+				public sealed class Line(string name, string amount)
+				{
+					public string Name   { get; } = name;
+					public string Amount { get; } = amount;
+					public string Which  { get; } = "nested";
+				}
+			}
+			""")
+			.GetType("Shadowing")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab,12"])!;
+
+		Assert.Equal("nested", built.GetType().GetProperty("Which")!.GetValue(built));
+	}
+
+	[Fact]
 	public void Half_an_answer_is_refused_and_says_which_half()
 	{
 		// One alternative builds and the other does not. §7.3's constructor is matched

@@ -62,7 +62,7 @@ then quietly mean nothing.
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
-| a declared type nested in the host class §7.3 | — | ✗ | ✗ | ✗ | ✗ |
+| a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
 | partial declarations for unimplemented `@Method` §7.4 | — | — | — | ✗ | ✗ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
@@ -402,10 +402,15 @@ could have been completed instead — filling in the alternatives that stayed qu
 that was not done on purpose: a missing `=>` is as likely to be an omission as an
 intention, and the silent version of that guess builds the wrong value.
 
-Still not built: **`init`/`required` properties**, §7.3's second way. And a type nested
-in the host class is not found by its short name — `@Row` beside the grammar means a
-top-level `Row`, though `@Method` beside it does mean the host's own method. The
-asymmetry is real and is not deliberate.
+A type written beside the grammar is found by its short name, the same way a method
+beside it is. `@Row` used to mean a top-level `Row` only, so a type nested in the host —
+which is where a type written for one grammar belongs — could not be named without
+spelling out a chain the author writes nowhere else. The host is looked in first, which
+is both what C# does and what the generated code needs: it sits inside the host class, so
+a short name there binds to the nested type whatever the resolver decided, and deciding
+otherwise would check the constructors of one type and call another.
+
+Still not built: **`init`/`required` properties**, §7.3's second way.
 
 ## A guard asks the values
 
