@@ -58,6 +58,10 @@ then quietly mean nothing.
 | value failures `bool M(…, out T)` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a refused value recovered without a rescan §8.2 | — | — | — | ✓ | ✓ |
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
+| captures matched to an existing type's constructor §7.3 | — | — | ✗ | ✗ | ✗ |
+| captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
+| partial declarations for unimplemented `@Method` §7.4 | — | — | — | ✗ | ✗ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
@@ -359,6 +363,19 @@ dodge every local it has, and a capture called `p` or `state` would collide with
 machine itself. `parserText` is supplied — the matched extent, §7.3 — and a capture that
 takes that name, or any of the other six, is refused (GRAM4012).
 
+Not built: **the first two ways §7.3 offers to fill a type in**. A rule that declares
+`: @T` must say how to build it with `=>`; captures are not matched to `T`'s constructor
+parameters, nor to its `init`/`required` properties, and the casing transform that would
+fit the capture `symbol` to the property `Symbol` exists only where a type is generated
+from the captures rather than found. Declaring a type without a `=>` is refused
+(GRAM4008) rather than quietly built wrong, which is the right failure for the gap but
+not the same thing as the gap being closed.
+
+Both need a question this side cannot ask: what members `T` has. `ISymbolResolver`
+answers whether a type exists and whether one is assignable to another, and matching
+captures to a constructor needs its parameter list — a third question, and so a third
+thing the Roslyn shell has to answer (`.claude/rules/grammar-half.md`).
+
 ## A guard asks the values
 
 `where @(…)` runs **during** the match, which is what makes it recognition: saying no
@@ -401,11 +418,17 @@ element set with nothing in it: a rule that compiled, ran, and matched nothing w
 the input was. Only `@(...)` inside a `where` or a `=>` reaches C# today, and the names
 inside one — `@int.Parse` and the like — resolve against the host compilation.
 
-## Two deviations from §7.3, both deliberate
+## One deviation from §7.3, deliberate
 
-- the generated type is a `sealed class`, not a `record`. A positional record needs
-  `IsExternalInit`, which lives in a namespace this generator must not emit into, and
-  the consumer's language version is not ours to assume.
+The generated type used to be the other one. §7.3 asked for a `record` and a `sealed
+class` was emitted, because a positional record needs `IsExternalInit` and that lives in
+a namespace this generator must not emit into. That is no longer a deviation: the
+specification says class now, and says why. A specification may describe what is not
+built yet — that is what this file is for — but not something the project has ruled out
+on purpose.
+
+What is left:
+
 - `Match<T>.Value` is `T` rather than `T?`, so a failed match holds `default` and
   `IsSuccess` is what says so. An unconstrained `T?` needs a language version this
   generator may not assume, and `T` has to be unconstrained now that a rule may declare
@@ -748,6 +771,21 @@ implemented" does not tell them.
 
 Decided by the shape of the C# signature, so it is tested where there is a compilation to
 ask. The permissive resolver the grammar half falls back to calls everything a predicate.
+
+## A method that does not exist yet
+
+Not built: **§7.4's partial declarations**. A grammar that names `@IsSupportedSymbol`
+where no such method exists is refused by the binder — `No C# method or type named
+'IsSupportedSymbol' is in view here` — rather than compiled against a partial declaration
+the author then fills in.
+
+The difference is who reports it and with what. Today it is the generator, and what it
+says is that the name is unknown. §7.4 wants the C# compiler to say it, at a method
+signature the generator worked out and wrote down, so the fix is to implement the method
+in front of you rather than to work out from a grammar what shape it should have had. It
+is the mechanism `[GeneratedRegex]` uses, and it needs one thing this side does not have
+yet: the signature is only knowable once the role is, and the role is currently read off
+a method that must already exist.
 
 ## A rule can be a sequence of what it is made of
 

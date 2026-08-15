@@ -972,7 +972,14 @@ Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
 ```
 
 ```csharp
-public sealed record Url(string Scheme, Host Host);   // generated when no C# type exists
+// generated when no C# type exists
+public sealed class Url
+{
+    public Url(string scheme, Host host) { Scheme = scheme; Host = host; }
+
+    public string Scheme { get; }
+    public Host   Host   { get; }
+}
 ```
 
 This is what a regex's named group becomes: a member of a known type, checked at
@@ -980,8 +987,13 @@ compile time, rather than `Match.Groups["scheme"].Value` looked up by string at 
 time. And it can be typed all the way — `scheme: Scheme` with `Scheme : @UriScheme`
 hands back the enum instead of the text.
 
-When no accessible C# type exists for a rule, an ordinary `public sealed record` with
-the same members is generated — not a bespoke node framework.
+When no accessible C# type exists for a rule, an ordinary class with the same members
+is generated — a constructor and a get-only property per capture, and nothing else. Not
+a bespoke node framework, and not a `record`: a positional record needs `IsExternalInit`,
+which lives in `System.Runtime.CompilerServices`, and §6.1 is why nothing is ever emitted
+into a namespace that is not ours. A consumer targeting an older framework has their own
+copy of that type from a polyfill package, and a second one is a compile error in their
+build rather than ours.
 
 ### 7.4 The other direction: partial declarations
 
