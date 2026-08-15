@@ -213,29 +213,10 @@ public static class CSharpEmitter
 			if (publication.Kind != PublishKind.Parse)
 				continue;
 
-			var whole = new Machine(
-				WholeOf(publication.Rule), results, BuiltBy(graph, results, publication.Rule))
-			{
-				Reaches    = graph.Recoveries.Count > 0,
-				Refuses    = Refusing(graph),
-				Starves    = Streaming(graph),
-				TakesPower = graph.Climbing.ContainsKey(publication.Rule),
-			};
-
-			// The same body compiled a second time, so it climbs the same way. Publication
-			// asks at strength 0, which admits every alternative.
-			whole.Climbs(
-				graph.Climbing,
-				graph.Powers,
-				graph.Climbing.TryGetValue(publication.Rule, out var climbed)
-					? climbed
-					: new Dictionary<Node, int>());
-
-			// A rule that recovers recovers however it is entered. The whole-input machine is
-			// the same body compiled a second time, so it is told the same thing — and calls
-			// the one factory, which the rule's own machine emits.
-			if (RecoveryIn(graph, results, publication.Rule) is var (repeats, recovers, into))
-				whole.Recovers(repeats, recovers, into, MethodOf(publication.Rule) + "_Recover");
+			// The same body compiled a second time, so it is told the same things by the
+			// same code: it climbs the same way, recovers the same way, and calls the one
+			// recovery factory that the rule's own machine emits.
+			var whole = MachineFor(graph, results, publication.Rule, whole: true);
 
 			// The two ends normalization cannot reach: it inserts Trivia between operands,
 			// and a whole parse has an outside (§4.5).
@@ -1245,9 +1226,35 @@ public static class CSharpEmitter
 	};
 
 	/// <summary>One rule, and whether it needed the shared stack helper.</summary>
-	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	/// <summary>
+	/// A machine for one rule, wired the one way there is to wire one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Every <c>parse</c> compiles its rule twice — once as itself and once with
+	/// end-of-input on the end (see where this is called) — and the two have to be told
+	/// the same things or they read the same grammar differently. They were told them by
+	/// two copies of the same eight lines, so every feature that added a flag added it in
+	/// two places and relied on somebody noticing.
+	/// </para>
+	/// <para>
+	/// What is set here divides in two, which is worth seeing at a glance. <c>Reaches</c>,
+	/// <c>Refuses</c> and <c>Starves</c> are facts about the <i>grammar</i> — they decide
+	/// what the shared <c>Failure</c> struct carries, so every recognizer in the file must
+	/// agree about them. The rest is about this rule.
+	/// </para>
+	/// </remarks>
+	/// <param name="whole">
+	/// Whether this is the end-of-input copy, which differs only in what it is called: it
+	/// calls the same recovery factory, which the rule's own machine emits.
+	/// </param>
+	static Machine MachineFor(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule, bool whole = false)
 	{
-		var machine = new Machine(MethodOf(rule), results, BuiltBy(graph, results, rule))
+		var machine = new Machine(
+			whole ? WholeOf(rule) : MethodOf(rule),
+			results,
+			BuiltBy(graph, results, rule))
 		{
 			Reaches    = graph.Recoveries.Count > 0,
 			Refuses    = Refusing(graph),
@@ -1261,11 +1268,21 @@ public static class CSharpEmitter
 			graph.Climbing.TryGetValue(rule, out var levels) ? levels : new Dictionary<Node, int>());
 
 		if (RecoveryIn(graph, results, rule) is var (repetition, recovery, slot))
-		{
 			machine.Recovers(repetition, recovery, slot, MethodOf(rule) + "_Recover");
 
-			if (recovery.Factory is not null && slot >= 0)
-				EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
+		return machine;
+	}
+
+	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		var machine = MachineFor(graph, results, rule);
+
+		// The factory a recovery calls is emitted beside the rule's own machine and not
+		// beside the end-of-input copy, which calls the same one.
+		if (RecoveryIn(graph, results, rule) is var (_, recovery, slot) &&
+			recovery.Factory is not null && slot >= 0)
+		{
+			EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
 		}
 
 		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);
