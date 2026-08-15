@@ -3,12 +3,14 @@
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
 > **Early work.** The pipeline runs end to end, the parsers it produces are real and
-> typed, a grammar can compute, and a marked repetition survives a bad element — but
-> streaming and a good deal of the diagnostics are not built. Nothing here is ready to
-> depend on.
+> typed, a grammar can compute, a marked repetition survives a bad element, and a feed
+> streams — ten million records of fifty fields read through a 4 KB window. What is
+> missing is parameterized rules, a good deal of §7.1's seam with C#, and incremental
+> parsing. Nothing here is ready to depend on.
 >
 > The specification describes the target language. Not every specified feature is
-> implemented — [`docs/status.md`](docs/status.md) says which are.
+> implemented — [`docs/status.md`](docs/status.md) says which are, feature by pipeline
+> stage, along with what is known to be wrong.
 
 ## What it looks like
 
@@ -266,6 +268,17 @@ Tests run at three levels: direct calls into each stage, the generator driven in
 memory, and the generator attached as an analyzer. `tests/Snapshots` holds a grammar
 and the file it must compile into, so a change to code generation shows up as a diff,
 and `examples/` is compiled and run by the same command.
+
+Benchmarks are run by hand and not by CI — a number from a shared runner is a number
+about the runner:
+
+```sh
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*"
+```
+
+They compare the `Url` grammar against the same language as a regular expression, and a
+feed read three ways — all in memory, from a `TextReader`, and from `File.ReadLines`.
+[`docs/status.md`](docs/status.md) records what they said.
 
 ## License
 
