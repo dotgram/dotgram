@@ -319,6 +319,21 @@ public sealed class SemanticTests
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 
+	[Fact]
+	public void A_parameter_declared_as_a_C_sharp_type_is_a_value_and_says_so() =>
+		// §4.2: a C# type makes the parameter a value, anything else makes it a recognizer.
+		// Only one value is built — a number — so a `pad: char` handed a literal used to be
+		// quietly taken as a recognizer instead, which is the declaration meaning one thing
+		// to the author and another to the compiler.
+		Refused(
+			GrammarNormalizer.UnbuiltCall,
+			"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')");
+
+	[Fact]
+	public void A_number_still_reaches_a_parameter_that_declared_its_type() =>
+		// The half that is built: `n: int` is a value, and a number is a value.
+		Assert.True(Matches("Digits(n: int) = ['0'..'9']{n}\nStart = Digits(4)", "2026"));
+
 	// ── Backtracking (§11) ───────────────────────────────────────────────────────
 
 	// A greedy operand that took too much has to give it back when what follows fails.

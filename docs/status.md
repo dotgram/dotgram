@@ -46,7 +46,8 @@ then quietly mean nothing.
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a declared parameter type, `pad: char` §4.2 | ✓ | ✓ | ignored | — | — |
+| a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | a result type naming a parameter, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -718,10 +719,17 @@ An author would have watched their IDE lose the compiler rather than read anythi
 their grammar. Bounded at 24 nested specializations: generous for a grammar built out of
 `Lex(List(Padded(…)))`, and passed almost at once by growth.
 
-Not built: **a declared parameter type does nothing**. `Padded(item, pad: char)` parses
-and binds, and then the argument is judged by what it turns out to be rather than by what
-was declared. §4.2 says a C# type makes the parameter a value and anything else makes it
-a recognizer; today the call decides that by itself.
+Half built: **a declared parameter type**. §4.2 says a C# type makes the parameter a
+value and anything else makes it a recognizer, and the only value that can be passed is a
+number — so `Digits(n: int)` called as `Digits(4)` works, and the number reaches the
+quantifier.
+
+`Padded(item, pad: char)` handed `' '` does not. It used to: the call judged the argument
+by what it turned out to be rather than by what was declared, so a literal became a
+recognizer and the parameter meant one thing where it was declared and another where it
+was used. It is refused now, which is the whole of the change — a declaration that is
+quietly disregarded is worse than one that is turned down, because the grammar goes on
+compiling and matching something else.
 
 ## A C# method may read the input itself
 

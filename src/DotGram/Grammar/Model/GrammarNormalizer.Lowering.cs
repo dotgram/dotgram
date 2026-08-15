@@ -378,6 +378,27 @@ public sealed partial class GrammarNormalizer
 				counts.Add(null);
 			}
 
+		// §4.2 gives a parameter's kind by what its declaration says: a C# type makes it a
+		// value, anything else a recognizer. Only one value is built — a number, which a
+		// quantifier count can be — and a parameter declared `pad: char` that is handed
+		// anything else would silently become a recognizer instead. Refused rather than
+		// taken as something the grammar did not say.
+		for (var i = 0; i < declaration.Params.Count; i++)
+			if (declaration.Params[i].Type is { } kind &&
+				(kind.IsCSharp || IsCSharpKeyword(kind.Name)) &&
+				counts[i] is null)
+			{
+				Report(
+					UnbuiltCall,
+					$"'{declaration.Params[i].Name}' is declared as the C# type " +
+					$"'{TypeName(kind)}', which docs/syntax.md §4.2 makes a value, and the " +
+					"only value a call may pass so far is a number. Pass a number, or drop the " +
+					"type to make it a recognizer.",
+					declaration.Params[i].At);
+
+				return Node.Empty.Instance;
+			}
+
 		var key = rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
 			node is null
 				? counts[i]!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
