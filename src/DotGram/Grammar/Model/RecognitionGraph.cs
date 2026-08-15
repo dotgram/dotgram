@@ -42,6 +42,16 @@ public readonly record struct CharRange(char From, char To)
 /// </remarks>
 public abstract record Node
 {
+	/// <summary>
+	/// The operands this node is written over, in the order the notation writes them.
+	/// </summary>
+	/// <remarks>
+	/// A record's members are its structure, so this is not an index kept beside the tree
+	/// that can drift out of step with it — a node that gains an operand gains it here.
+	/// Computed, so it stays out of equality.
+	/// </remarks>
+	public virtual IEnumerable<Node> Children => [];
+
 	/// <summary>Matches nothing at all, and succeeds. What `none` lowers to.</summary>
 	public sealed record Empty : Node
 	{
@@ -78,16 +88,22 @@ public abstract record Node
 
 	public sealed record Sequence(IReadOnlyList<Node> Nodes) : Node
 	{
+		public override IEnumerable<Node> Children => Nodes;
+
 		public override string ToString() => string.Join(" & ", Nodes);
 	}
 
 	public sealed record Choice(IReadOnlyList<Node> Nodes) : Node
 	{
+		public override IEnumerable<Node> Children => Nodes;
+
 		public override string ToString() => $"({string.Join(" | ", Nodes)})";
 	}
 
 	public sealed record Repeat(Node Body, int Min, int? Max) : Node
 	{
+		public override IEnumerable<Node> Children => [Body];
+
 		public override string ToString() => (Min, Max) switch
 		{
 			(0, 1)                             => $"{Repeated}?",
@@ -108,11 +124,15 @@ public abstract record Node
 
 	public sealed record Lookahead(bool IsPositive, Node Body) : Node
 	{
+		public override IEnumerable<Node> Children => [Body];
+
 		public override string ToString() => $"{(IsPositive ? "?=" : "?!")}{Body}";
 	}
 
 	public sealed record Capture(string Name, Node Body) : Node
 	{
+		public override IEnumerable<Node> Children => [Body];
+
 		public override string ToString() => $"{Name}: {Body}";
 	}
 
@@ -125,6 +145,8 @@ public abstract record Node
 	/// <summary>A `=>` construction. Consumes nothing, runs after the alternative matched.</summary>
 	public sealed record Construct(Node Body, string Text) : Node
 	{
+		public override IEnumerable<Node> Children => [Body];
+
 		public override string ToString() => $"{Body} => {Text}";
 	}
 
@@ -152,6 +174,12 @@ public abstract record Node
 	/// <summary>A call to another rule; rule boundaries survive normalization.</summary>
 	public sealed record Call(RuleSymbol Rule, IReadOnlyList<Node> Arguments) : Node
 	{
+		/// <remarks>
+		/// The arguments, not the called rule's body: a call is a boundary, and what is on
+		/// the other side of it belongs to that rule (§4).
+		/// </remarks>
+		public override IEnumerable<Node> Children => Arguments;
+
 		public override string ToString() =>
 			Arguments.Count == 0 ? Rule.Name : $"{Rule.Name}({string.Join(", ", Arguments)})";
 	}
@@ -188,17 +216,17 @@ public sealed class RecognitionGraph(
 	/// parse: nothing precedes the first operand and nothing follows the last. Publication
 	/// is where those are, so publication is where this is needed.
 	/// </remarks>
-	public IReadOnlyDictionary<RuleSymbol, Node> Trivia { get; set; } =
+	public IReadOnlyDictionary<RuleSymbol, Node> Trivia { get; init; } =
 		new Dictionary<RuleSymbol, Node>();
 
 	/// <summary>
 	/// What a left-recursive rule was rewritten into (§4.3), for the rules that were.
 	/// </summary>
-	public IReadOnlyDictionary<RuleSymbol, Fold> Folds { get; set; } =
+	public IReadOnlyDictionary<RuleSymbol, Fold> Folds { get; init; } =
 		new Dictionary<RuleSymbol, Fold>();
 
 	/// <summary>The repetitions marked <c>recover</c>, by the repetition (§8.2).</summary>
-	public IReadOnlyDictionary<Node, Recovery> Recoveries { get; set; } =
+	public IReadOnlyDictionary<Node, Recovery> Recoveries { get; init; } =
 		new Dictionary<Node, Recovery>();
 
 	/// <summary>
@@ -211,7 +239,7 @@ public sealed class RecognitionGraph(
 	/// say <c>&lt;&lt;</c> or <c>&gt;&gt;</c> — so a grammar that never reaches for
 	/// binding powers is generated exactly as it was before they existed.
 	/// </remarks>
-	public IReadOnlyDictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> Climbing { get; set; } =
+	public IReadOnlyDictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> Climbing { get; init; } =
 		new Dictionary<RuleSymbol, IReadOnlyDictionary<Node, int>>();
 
 	/// <summary>
@@ -223,7 +251,7 @@ public sealed class RecognitionGraph(
 	/// grouping goes left; <c>&gt;&gt; n</c> records <c>n</c>, so it can, and the grouping
 	/// goes right.
 	/// </remarks>
-	public IReadOnlyDictionary<Node, int> Powers { get; set; } = new Dictionary<Node, int>();
+	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
 	/// <summary>
 	/// The <c>=&gt;</c> constructions whose C# may refuse the value it was given (§8.1).
@@ -235,7 +263,7 @@ public sealed class RecognitionGraph(
 	/// match — and inside a recovering repetition that is a broken element rather than the
 	/// end of the run.
 	/// </remarks>
-	public IReadOnlyCollection<Node> Fallible { get; set; } = new HashSet<Node>();
+	public IReadOnlyCollection<Node> Fallible { get; init; } = new HashSet<Node>();
 
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
@@ -253,6 +281,68 @@ public sealed class RecognitionGraph(
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
 	public bool HasErrors => Diagnostics.Count > 0;
+
+	/// <summary>
+	/// Every node this graph says something about that is no longer in it, named. Empty
+	/// for a graph that holds together, which is every graph this compiler should build.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Three of the maps here are keyed by a node's identity — a repetition recovers, a
+	/// call parses at a strength, a construction may refuse — and normalization rewrites
+	/// nodes. Rewrite one that is a key and the entry is still in the map, still keyed by
+	/// the node that was replaced, and nothing reads it again: the <c>recover</c> quietly
+	/// stops recovering, and the grammar still compiles.
+	/// </para>
+	/// <para>
+	/// That has happened once already, when sequence results began rewriting repetitions.
+	/// It is not a class of bug that can be found by reading, because the symptom is a
+	/// missing effect rather than a wrong one — so it is stated here instead, and the
+	/// tests hold every grammar they build to it.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<string> Orphans()
+	{
+		var live = NodeWalk.ByIdentity(NodeWalk.Descendants(Reachable()));
+		var lost = new List<string>();
+
+		foreach (var node in Recoveries.Keys)
+			Check(node, "recover");
+
+		foreach (var node in Powers.Keys)
+			Check(node, "binding power");
+
+		foreach (var node in Fallible)
+			Check(node, "value failure");
+
+		foreach (var levels in Climbing)
+			foreach (var node in levels.Value.Keys)
+				Check(node, $"strength in {levels.Key.Name}");
+
+		return lost;
+
+		void Check(Node node, string what)
+		{
+			if (!live.Contains(node))
+				lost.Add($"{what}: {node}");
+		}
+	}
+
+	/// <summary>
+	/// The trees a parse actually runs: the rules, plus what left recursion left behind
+	/// and the trivia the ends of a parse are given.
+	/// </summary>
+	IEnumerable<Node> Reachable()
+	{
+		foreach (var body in Bodies.Values)
+			yield return body;
+
+		foreach (var fold in Folds.Values)
+			yield return fold.Loop;
+
+		foreach (var trivia in Trivia.Values)
+			yield return trivia;
+	}
 
 	/// <summary>
 	/// One rule per line, rendered back into notation.
