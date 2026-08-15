@@ -898,6 +898,47 @@ public sealed class GeneratorDriverTests
 			(string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!);
 	}
 
+	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
+
+	[Fact]
+	public void An_error_in_the_grammars_own_C_sharp_is_reported_in_the_authors_file()
+	{
+		// The point of the whole mechanism, asked of the thing that actually reports it.
+		// `Missing` does not exist, so C# has something to say; without a `#line` it says
+		// it inside a generated file the author did not write and is told not to edit.
+		RunGenerator(
+			""""
+			using DotGram;
+
+			[Gram("""
+				Start : @int = digits: ['0'..'9']+ => @(Missing(digits))
+				parse Start
+				""")]
+			public partial class Broken;
+			"""",
+			out var output);
+
+		var error = Assert.Single(
+			output
+				.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+				.ToArray());
+
+		// The mapped span, which is the one every tool shows. The raw one still points into
+		// the generated file, and the whole of a `#line` is the difference between the two.
+		var at = error.Location.GetMappedLineSpan();
+
+		Assert.Equal("GeneratorDriverTest.cs", at.Path);
+
+		// The fourth line of the source above, 0-based here, and the column `Missing` is
+		// written at — not the start of the line, and not the start of the expression,
+		// which is where the `@` is.
+		Assert.Equal(3,  at.StartLinePosition.Line);
+		Assert.Equal(41, at.StartLinePosition.Character);
+
+		Assert.Contains("Missing", error.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>

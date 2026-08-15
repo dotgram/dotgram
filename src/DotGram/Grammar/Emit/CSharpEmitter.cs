@@ -39,7 +39,12 @@ public static partial class CSharpEmitter
 	/// chain — <c>Outer.Inner</c> — and written back out nested.
 	/// </param>
 	/// <param name="namespace">Its namespace, or null for the global one.</param>
-	public static string Emit(RecognitionGraph graph, string className, string? @namespace = null)
+	/// <param name="lines">
+	/// Where the grammar's own C# came from, for the <c>#line</c> directives of §7.6. Null
+	/// emits none, which is right for a caller with no file to point at.
+	/// </param>
+	public static string Emit(
+		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -96,7 +101,7 @@ public static partial class CSharpEmitter
 
 			foreach (var factory in FactoriesOf(graph, results, rule))
 			{
-				EmitFactory(file, graph, rule, factory, results);
+				EmitFactory(file, graph, rule, factory, results, lines);
 				file.Line();
 			}
 		}
@@ -115,7 +120,7 @@ public static partial class CSharpEmitter
 			// The same body compiled a second time, so it is told the same things by the
 			// same code: it climbs the same way, recovers the same way, and calls the one
 			// recovery factory that the rule's own machine emits.
-			var whole = MachineFor(graph, results, publication.Rule, whole: true);
+			var whole = MachineFor(graph, results, publication.Rule, whole: true, lines: lines);
 
 			// The two ends normalization cannot reach: it inserts Trivia between operands,
 			// and a whole parse has an outside (§4.5).
@@ -150,7 +155,7 @@ public static partial class CSharpEmitter
 						continue;
 					}
 
-					var part = new Machine($"{WholeOf(publication.Rule)}_Part{i}", results);
+					var part = new Machine($"{WholeOf(publication.Rule)}_Part{i}", results) { LineMap = lines };
 
 					file.Write(part.Render(
 						part.Compile(stages[i].Node, Machine.Accept),
@@ -172,6 +177,7 @@ public static partial class CSharpEmitter
 					var machine = new Machine($"{WholeOf(publication.Rule)}_Sync", results)
 					{
 						IsLookahead = true,
+						LineMap     = lines,
 					};
 
 					file.Write(machine.Render(
@@ -193,7 +199,7 @@ public static partial class CSharpEmitter
 
 		foreach (var rule in graph.Rules)
 		{
-			needsStack |= EmitRule(file, graph, results, rule);
+			needsStack |= EmitRule(file, graph, results, rule, lines);
 			file.Line();
 		}
 
@@ -478,8 +484,47 @@ public static partial class CSharpEmitter
 			other => results.QualifiedOf(other) is not null,
 			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 
+	/// <summary>
+	/// A line of the author's own C#, under a <c>#line</c> that points back at where they
+	/// wrote it (§7.6).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Everything else in this file is machine-written and an error in it is our bug. This
+	/// is the exception: the text came from the grammar, the C# compiler will have things
+	/// to say about it, and it must say them on the grammar's line. Without the directive
+	/// the author is sent into a generated file they did not write and cannot edit.
+	/// </para>
+	/// <para>
+	/// Padded out to the column too, and that is not decoration: an error under one
+	/// argument of <c>@Add(l, r)</c> should sit under that argument. The line is written
+	/// with no indent of its own so that the padding is the whole of the column.
+	/// </para>
+	/// <para>
+	/// The plain form, not the span form C# 10 added: the consumer's language version is
+	/// not ours to assume (.claude/rules/emitted-code.md).
+	/// </para>
+	/// </remarks>
+	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct) =>
+		Handed(file, lines, construct.At, construct.Text + ";");
+
+	internal static void Handed(Writer file, ILineMap? lines, int at, string text)
+	{
+		if (lines is null || at < 0 || !lines.TryMap(at, out var path, out var line, out var column))
+		{
+			file.Line("\t" + text);
+
+			return;
+		}
+
+		file.Exactly($"#line {line.ToString(System.Globalization.CultureInfo.InvariantCulture)} \"{path}\"");
+		file.Exactly(new string(' ', column - 1) + text);
+		file.Exactly("#line default");
+	}
+
 	static void EmitFactory(
-		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results)
+		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
+		ResultTypes results, ILineMap? lines)
 	{
 		var parameters = new List<string> { "string parserText" };
 
@@ -511,7 +556,7 @@ public static partial class CSharpEmitter
 
 			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with, or refuses to (§8.1).</summary>");
 			file.Line($"static bool {factory.Method}({string.Join(", ", parameters)}) =>");
-			file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
+			Handed(file, lines, (Node.Construct)factory.Of);
 
 			return;
 		}
@@ -557,7 +602,7 @@ public static partial class CSharpEmitter
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
 		file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
-		file.Line("\t" + ((Node.Construct)factory.Of).Text + ";");
+		Handed(file, lines, (Node.Construct)factory.Of);
 	}
 
 	/// <summary>
@@ -703,7 +748,8 @@ public static partial class CSharpEmitter
 	/// calls the same recovery factory, which the rule's own machine emits.
 	/// </param>
 	static Machine MachineFor(
-		RecognitionGraph graph, ResultTypes results, RuleSymbol rule, bool whole = false)
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule, bool whole = false,
+		ILineMap? lines = null)
 	{
 		var machine = new Machine(
 			whole ? WholeOf(rule) : MethodOf(rule),
@@ -714,6 +760,7 @@ public static partial class CSharpEmitter
 			Refuses    = Refusing(graph),
 			Starves    = Streaming(graph),
 			TakesPower = graph.Climbing.ContainsKey(rule),
+			LineMap    = lines,
 		};
 
 		machine.Climbs(
@@ -727,9 +774,10 @@ public static partial class CSharpEmitter
 		return machine;
 	}
 
-	static bool EmitRule(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	static bool EmitRule(
+		Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule, ILineMap? lines)
 	{
-		var machine = MachineFor(graph, results, rule);
+		var machine = MachineFor(graph, results, rule, lines: lines);
 
 		// The factory a recovery calls is emitted beside the rule's own machine and not
 		// beside the end-of-input copy, which calls the same one.

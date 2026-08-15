@@ -73,4 +73,14 @@ public sealed class GramCompilerOptions
 	/// not use one — a diagnostic, not a crash.
 	/// </summary>
 	public ICSharpScanner? CSharpScanner { get; set; }
+
+	/// <summary>
+	/// Where the C# a grammar hands over is, for the <c>#line</c> directives of §7.6.
+	/// </summary>
+	/// <remarks>
+	/// Null emits none, and that is the right answer for a caller with nothing to point
+	/// at — a grammar compiled from a string in a test has no file an editor could open,
+	/// and a directive naming one that does not exist is worse than none.
+	/// </remarks>
+	public ILineMap? LineMap { get; set; }
 }

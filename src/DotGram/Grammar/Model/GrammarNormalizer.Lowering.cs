@@ -70,8 +70,8 @@ public sealed partial class GrammarNormalizer
 		Expr.Group(var body)                    => Lower(body, scope),
 		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, scope)),
 		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, scope)),
-		Expr.Guard(var value)                   => new Node.Guard(Text(value)),
-		Expr.CSharp(var text)                   => new Node.Guard($"@({text})"),
+		Expr.Guard(var value)                   => new Node.Guard(Text(value), StartOf(value)),
+		Expr.CSharp(var text)                   => new Node.Guard($"@({text})", StartOf(expression)),
 
 		Expr.Construct(var pattern, var value)  => LowerConstruct(pattern, value, scope),
 
@@ -128,13 +128,30 @@ public sealed partial class GrammarNormalizer
 			? Text(called) + "(" + string.Join(", ", arguments.Select(Text).Append("out value")) + ")"
 			: Text(value);
 
-		var construct = new Node.Construct(Lower(pattern, scope), text);
+		var construct = new Node.Construct(Lower(pattern, scope), text, StartOf(value));
 
 		if (fallible)
 			_fallible.Add(construct);
 
 		return construct;
 	}
+
+	/// <summary>
+	/// Where the C# of an expression starts, which is not always where the expression does.
+	/// </summary>
+	/// <remarks>
+	/// The <c>@</c> is the grammar saying that C# follows (§2); it is not part of the C#
+	/// and is not written out. So the text emitted begins one character further along than
+	/// the expression does, and a <c>#line</c> that ignored that would put every column one
+	/// to the left — under the <c>@</c> rather than under the code.
+	/// </remarks>
+	static int StartOf(Expr value) => value switch
+	{
+		Expr.CSharp                      => value.At.Position + 1,
+		Expr.Call(var target, _)         => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
+		Expr.Reference(var csharp, _, _) => csharp ? value.At.Position + 1 : value.At.Position,
+		_                                => value.At.Position,
+	};
 
 	/// <summary>
 	/// A bare name standing where an operand goes: a rule to call, or something else.

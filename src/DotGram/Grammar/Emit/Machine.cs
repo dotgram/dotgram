@@ -913,6 +913,12 @@ sealed class Machine
 	public bool Reaches { get; set; }
 
 	/// <summary>
+	/// Where the grammar's own C# came from, so a guard is written under a <c>#line</c>
+	/// pointing at where the author wrote it (§7.6). Null emits none.
+	/// </summary>
+	public ILineMap? LineMap { get; set; }
+
+	/// <summary>
 	/// Whether this machine says when it ran out of input rather than out of matches.
 	/// </summary>
 	/// <remarks>
@@ -1090,7 +1096,11 @@ sealed class Machine
 	/// <summary>Where the parse may pick up again — a machine of its own, like a lookahead.</summary>
 	string CompileSync(Node sync)
 	{
-		var machine = new Machine($"{Name}_Sync{_syncs++}", _results) { IsLookahead = true };
+		var machine = new Machine($"{Name}_Sync{_syncs++}", _results)
+		{
+			IsLookahead = true,
+			LineMap     = LineMap,
+		};
 		var entry   = machine.Compile(sync, Accept);
 
 		foreach (var extra in machine.Extra)
@@ -1177,7 +1187,9 @@ sealed class Machine
 
 		body.Line($"// {Comment(guard, null)}");
 		body.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
-		body.Line("\t" + condition + ";");
+
+		CSharpEmitter.Handed(
+			body, LineMap, guard is Node.Guard { At: var at } ? at : -1, condition + ";");
 
 		_extra.Add(body.ToString());
 
@@ -1194,7 +1206,11 @@ sealed class Machine
 
 	string CompileLookahead(Node body)
 	{
-		var machine = new Machine($"{Name}_Look{_lookaheads++}", _results) { IsLookahead = true };
+		var machine = new Machine($"{Name}_Look{_lookaheads++}", _results)
+		{
+			IsLookahead = true,
+			LineMap     = LineMap,
+		};
 		var entry   = machine.Compile(body, Accept);
 
 		foreach (var extra in machine.Extra)

@@ -195,6 +195,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Namespace      = host.Namespace,
 			SymbolResolver = new AnsweredSymbolResolver(grammar.Answers.Items),
 			CSharpScanner  = RoslynCSharpScanner.Instance,
+
+			// §7.6. A grammar that is its own file maps onto itself; one written into an
+			// attribute maps into the C# file holding it, which has to be searched for
+			// rather than computed — see InlineLineMap.
+			LineMap        = grammar.Path is { } path
+				? new GrammarLineMap(text, path)
+				: host.Literal is { } spelling && host.Location?.SourceTree is { } tree
+					? new InlineLineMap(text, spelling, host.LiteralAt, tree)
+					: null,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)

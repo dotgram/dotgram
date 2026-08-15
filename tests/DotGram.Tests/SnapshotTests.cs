@@ -35,9 +35,18 @@ public sealed class SnapshotTests
 	[MemberData(nameof(Snapshots))]
 	public void Generated_code_matches_what_is_checked_in(string name)
 	{
+		var text   = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
 		var result = GramCompiler.Compile(
-			File.ReadAllText(Path.Combine(Directory, name + ".gram")),
-			new GramCompilerOptions { ClassName = name, Namespace = Namespace });
+			text,
+			new GramCompilerOptions
+			{
+				ClassName = name,
+				Namespace = Namespace,
+
+				// The file name alone, not where this checkout happens to be: a snapshot
+				// holding an absolute path would differ on every machine that read it.
+				LineMap   = new GrammarLineMap(text, name + ".gram"),
+			});
 
 		Assert.Empty(result.Diagnostics);
 
