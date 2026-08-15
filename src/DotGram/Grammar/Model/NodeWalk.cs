@@ -24,10 +24,19 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 static class NodeWalk
 {
-	/// <summary>The node and everything under it, in no particular order.</summary>
+	/// <summary>
+	/// The node, then everything under it, each subtree before the one to its right.
+	/// </summary>
 	/// <remarks>
-	/// Iterative: a grammar of any depth is a tree of that depth, and recursion here
-	/// would put the limit on the C# stack rather than on anything about grammars.
+	/// <para>
+	/// The order is the order the grammar is written in, which is the order an author
+	/// reads their own rule in — so a pass that reports the first thing wrong reports the
+	/// leftmost one.
+	/// </para>
+	/// <para>
+	/// Iterative: a grammar of any depth is a tree of that depth, and recursion here would
+	/// put the limit on the C# stack rather than on anything about grammars.
+	/// </para>
 	/// </remarks>
 	public static IEnumerable<Node> Descendants(Node node)
 	{
@@ -44,8 +53,12 @@ static class NodeWalk
 
 			yield return current;
 
-			foreach (var child in current.Children)
-				pending.Push(child);
+			// Backwards, because a stack hands back what went in last: pushing the operands
+			// in reverse is what makes them come out in the order they were written.
+			var children = current.Children as IReadOnlyList<Node> ?? [.. current.Children];
+
+			for (var i = children.Count - 1; i >= 0; i--)
+				pending.Push(children[i]);
 		}
 	}
 
