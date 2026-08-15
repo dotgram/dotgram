@@ -528,6 +528,21 @@ sealed class Machine
 			case Node.Call call:
 				return CompileCall(call, next, into: -1);
 
+			// §7.1: a C# method that reads the input itself. It is handed the parser's own
+			// position, because the `ref` in its signature is it saying that it moves one —
+			// nothing here copies it away and nothing checks what came back. Where it says
+			// no, that is an ordinary non-match and the stack has somewhere to resume.
+			case Node.External(var method):
+			{
+				var state = Reserve(out var writer, node);
+
+				writer.Line($"if (!{method}(text, ref p))");
+				writer.Then($"goto case {Fail};");
+				writer.Line($"goto case {next};");
+
+				return state;
+			}
+
 			// A capture of a rule that builds a value keeps the value; anything else is
 			// text, and what is kept is the extent it covered.
 			case Node.Capture(_, var captured) when _builds is null:

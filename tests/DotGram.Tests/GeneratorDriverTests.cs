@@ -314,28 +314,82 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void And_a_method_of_another_shape_says_what_it_is_instead()
+	public void A_C_sharp_method_may_read_the_input_itself()
 	{
-		// The other rows of §7.1 consume input on their own terms, and the seam for that
-		// does not exist. Before this the message said only "not built"; now it says what
+		// §7.1's second row. `Blob` reads a length-prefixed run the grammar has no way of
+		// spelling — the count decides how much to take — and moves the parser's own
+		// position to say how much it took.
+		var parse = Build("""
+			[DotGram.Gram("Start = 'b' & @Blob & '.'\nparse Start")]
+			public partial class Blobs
+			{
+				static bool Blob(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					var at = pos;
+
+					var size = 0;
+
+					while (at < input.Length && input[at] >= '0' && input[at] <= '9')
+						size = size * 10 + (input[at++] - '0');
+
+					if (at == pos || at + size > input.Length)
+						return false;
+
+					pos = at + size;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("Blobs")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		// `3abc` is three characters of payload after the count, and the `.` follows it.
+		Assert.Equal("b3abc.", parse.Invoke(null, ["b3abc."]));
+
+		// Saying no is an ordinary non-match, so the rule simply does not match.
+		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["b3ab."]));
+	}
+
+	[Fact]
+	public void And_a_grammar_that_reads_its_own_input_is_not_streamed()
+	{
+		// The recognizer is handed a span and told nothing about where it came from, so it
+		// cannot tell the end of a window from the end of the input — and, unlike a
+		// literal, it has no way to say which it hit. Over a window it would read a record
+		// cut in half as a record that ended.
+		var source = GetGeneratedSource(
+			RunGenerator("""
+				[DotGram.Gram("Feed : @object[] = Row* recover eol\nRow : @object = @Blob & eol => @(new object())\nparse Feed")]
+				public partial class Reading
+				{
+					static bool Blob(System.ReadOnlySpan<char> input, ref int pos) => false;
+				}
+				"""),
+			"Reading.g.cs");
+
+		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_a_method_of_neither_shape_says_what_it_is_instead()
+	{
+		// Neither row of §7.1: it takes no input and moves nothing. The message says what
 		// the method actually is, which is what tells an author whether they meant this
 		// method or another one.
 		var run = RunGenerator("""
-			[DotGram.Gram("Start = @Scan & 'x'\nparse Start")]
-			public partial class Scanning
+			[DotGram.Gram("Start = @Convert & 'x'\nparse Start")]
+			public partial class Converting
 			{
-				static bool Scan(System.ReadOnlySpan<char> input, ref int pos, out int value)
-				{
-					value = 0;
-					return false;
-				}
+				static int Convert(string text) => text.Length;
 			}
 			""");
 
 		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM4005"));
 
-		Assert.Contains("recognizer over a span", told.GetMessage(), StringComparison.Ordinal);
-		Assert.Contains("bool Scan(char c)",      told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("transformation",          told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("bool Convert(char c)",    told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("ref int pos",             told.GetMessage(), StringComparison.Ordinal);
 	}
 
 	// ── Value failures (§8.1) ────────────────────────────────────────────────────

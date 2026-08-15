@@ -871,7 +871,8 @@ the position it is called from:
 | C# signature | Role | Called from the grammar as |
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `@M` in recognizer position |
-| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer | `@M` in recognizer position |
+| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | `@M` in recognizer position |
+| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | `@M` in recognizer position |
 | `T M(args…)` | value transformation | `=> @M(a, b)` |
 | `bool M(args…, out T value)` | value transformation that may fail | `=> @M(a, b)` |
 | `bool M(args…)` | guard | `where @M(a)` |
@@ -884,6 +885,27 @@ the positions do not overlap.
 
 The external recognizer's signature is deliberately built from BCL types only: it is
 the same whether or not shared mode is on (§6.2), and it needs no interface dispatch.
+The two forms differ in one thing: without an `out`, its value is the text it covered —
+the same as any rule that captures nothing.
+
+**A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
+saying that it moves the position; it is handed the parser's own, and nothing copies it
+away, bounds-checks it afterwards, or reasons about what came back. Move it backwards,
+move it past the end, leave it somewhere that makes the rest of the grammar nonsense —
+all of that is allowed and none of it is diagnosed.
+
+This is deliberate. A seam that second-guessed the code on the other side of it would
+cost every parse that uses one and still not make a wrong recognizer right. So: reaching
+into the parse means taking the parse's invariants on with it. Where the parser can tell
+you something you could not otherwise know — that a `=>` may refuse a value (§8.1), that
+an element was stepped over (§8.2) — it does. Where you have taken the wheel, it does not
+check your steering.
+
+One thing follows from it, and it is arithmetic rather than punishment: a grammar
+containing an external recognizer gets no streaming overloads (§6.3). The method is
+handed a span and told nothing about where it came from, so it cannot tell the end of a
+window from the end of the input, and nothing in its signature lets it say which it hit.
+It would read a record cut in half as a record that ended.
 
 An inline `@(...)` expression plays the same role as a value transformation, only
 without a name: it receives no input, sees captures as local variables, and is checked

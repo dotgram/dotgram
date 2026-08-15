@@ -918,7 +918,8 @@ public static class CSharpEmitter
 
 	static bool Streams(RecognitionGraph graph, Publication publication) =>
 		publication.Kind == PublishKind.Find
-			? Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
+			? Retention.Reads(graph) is null &&
+				Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
 				extent != LineExtent.Beyond
 			: Retention.StreamedParse(graph, publication.Rule) is null;
 

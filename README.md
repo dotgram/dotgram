@@ -167,6 +167,17 @@ Working end to end — a `.gram` file becomes a parser that runs:
   Start = (@IsVowel | ['0'..'9'])+ & @IsStop
   ```
 
+- **and a C# method that reads the input itself**, for what a grammar spells badly — a
+  length-prefixed run, a date in ten formats, anything the BCL already knows:
+
+  ```csharp
+  static bool Blob(ReadOnlySpan<char> input, ref int pos)
+  ```
+
+  The `ref` is the method saying that it moves the position, and it is taken at its word:
+  it is handed the parser's own, and nothing checks what came back. Reaching into the
+  parse means taking the parse's invariants on with it, which §7.1 says in as many words
+
 - **a rule that is a sequence of what it is made of** — the envelope and the records in
   one result, in the order they were read, with no `=>` anywhere:
 
@@ -218,8 +229,8 @@ Each of these is refused with the reason where it can be — a construct that pa
 then quietly means nothing is the failure this project is most careful about:
 
 - `: T` naming another rule, and matching captures to a constructor by name
-- `@Name` as a recognizer over a span (§7.1's second row) — a C# predicate over one
-  input item works, one that consumes input on its own terms does not
+- an external recognizer that hands back a value of its own — the form that reads the
+  input and moves the position works, the one with `out T value` does not
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
 - the §8.3 surfaces over a streamed parse

@@ -128,6 +128,27 @@ public abstract record Node
 		public override string ToString() => $"{Body} => {Text}";
 	}
 
+	/// <summary>
+	/// A C# method that reads the input itself (docs/syntax.md §7.1).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos)</c>. The <c>ref</c> is the
+	/// method saying it moves the position, and that is taken at its word: it is handed
+	/// the parser's own position and nothing checks what it did with it. A grammar that
+	/// reaches into the parse takes the parse's invariants on, which §7.1 says in words.
+	/// </para>
+	/// <para>
+	/// Consumes whatever it says it consumed, and its value is the text it covered — the
+	/// same as any rule that captures nothing. The form that hands back a value of its own
+	/// is a second one, and is not built.
+	/// </para>
+	/// </remarks>
+	public sealed record External(string Name) : Node
+	{
+		public override string ToString() => "@" + Name;
+	}
+
 	/// <summary>A call to another rule; rule boundaries survive normalization.</summary>
 	public sealed record Call(RuleSymbol Rule, IReadOnlyList<Node> Arguments) : Node
 	{

@@ -238,19 +238,25 @@ public sealed class GrammarNormalizer
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule, []);
 
-		// §7.1: `bool M(char c)` tests one input item, which is exactly what an element set
-		// does, so it lowers to one — a set of no ranges and one predicate. Anything else
-		// a C# name could be here consumes input on its own terms, and the seam for that
-		// does not exist.
+		// §7.1's second row: the method reads the input itself. Nothing is checked about
+		// what it does with the position it is handed — the `ref` is it saying that it
+		// moves one, and a grammar that reaches into the parse takes the parse's
+		// invariants on.
+		if (symbol is CSharpSymbol { Role: MethodRole.ExternalRecognizer } reader)
+			return new Node.External(reader.Name);
+
+		// §7.1's first row: `bool M(char c)` tests one input item, which is exactly what an
+		// element set does, so it lowers to one — a set of no ranges and one predicate.
 		if (symbol is CSharpSymbol { Role: not MethodRole.ElementPredicate } other)
 			Report(
 				UnsupportedElement,
 				$"'@{name}' stands where an operand goes. A C# method may be one — docs/syntax.md " +
-				$"§7.1 — but only as 'bool {name}(char c)', which tests one input item. " +
+				$"§7.1 — as 'bool {name}(char c)', which tests one input item, or as " +
+				$"'bool {name}(ReadOnlySpan<char> input, ref int pos)', which reads the input " +
+				"itself. " +
 				(other.Role is null
 					? "This name is not a method in view."
-					: $"This one is a {Described(other.Role.Value)}, which consumes input on its own " +
-						"terms, and that is not built."),
+					: $"This one is a {Described(other.Role.Value)}."),
 				expression.At);
 
 		return new Node.Element(false, [], [], [symbol]);

@@ -36,7 +36,8 @@ then quietly mean nothing.
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `@Name` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | refused | ✗ | ✗ |
+| `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same handing back a value of its own §7.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
@@ -590,6 +591,34 @@ The sets are approximate and in the safe direction: a complement, a Unicode cate
 a C# predicate answers "anything", two of those overlap, and the result is a note rather
 than a refusal. Being told about an overlap that is not real costs a sentence; missing
 one costs the thing this exists to prevent.
+
+## A C# method may read the input itself
+
+§7.1's second row works, in the form without a value:
+
+```csharp
+static bool Blob(ReadOnlySpan<char> input, ref int pos)
+```
+
+`@Blob` stands where an operand goes, reads whatever it likes, and moves the parser's own
+position to say how much it took. Saying no is an ordinary non-match: the stack has
+somewhere to resume and the grammar carries on. Its value is the text it covered, the same
+as any rule that captures nothing — which is why this form needs nothing new from the
+host, and why it came first. The form with `out T value` needs the host asked what `T` is,
+and is not built.
+
+**It is trusted absolutely.** The `ref` is the method saying it moves a position; it is
+handed the parser's own, and nothing copies it away, checks it afterwards, or reasons
+about what came back. That is written into §7.1 as a contract rather than left implied: a
+seam that second-guessed the code on the other side of it would cost every parse that uses
+one and still not make a wrong recognizer right. Reaching into the parse means taking the
+parse's invariants on with it.
+
+The one consequence: a grammar containing one gets no streaming overloads. The method is
+handed a span and told nothing about where it came from, so it cannot tell the end of a
+window from the end of the input — and, unlike a literal, has no way to say which it hit,
+which is exactly the distinction `Starved` exists to carry. It would read a record cut in
+half as a record that ended.
 
 ## A C# predicate stands where an element does
 

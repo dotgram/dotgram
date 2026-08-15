@@ -173,6 +173,46 @@ public static class Retention
 	public const string NotStreamable = "GRAM5001";
 
 	/// <summary>
+	/// Why nothing in this grammar may be read through a window, or null.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A C# recognizer is handed a span and told nothing about where it came from, so it
+	/// cannot tell the end of a window from the end of the input — and cannot say which it
+	/// hit, the way a literal does. Over a window it would read a record cut in half as a
+	/// record that ended, which is the one failure streaming must not have.
+	/// </para>
+	/// <para>
+	/// Said of the grammar rather than of the rule, because a recognizer anywhere in it is
+	/// reachable from anything published.
+	/// </para>
+	/// </remarks>
+	public static string? Reads(RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		foreach (var owner in graph.Rules)
+			foreach (var node in Everything(graph.Bodies[owner]))
+				if (node is Node.External(var method))
+					return $"'{owner.Name}' reads through '@{method}', a C# recognizer over a span " +
+						"(docs/syntax.md §7.1). It is handed whatever is held and cannot be told that " +
+						"more is coming, so it would read the edge of the window as the end of the " +
+						"input.";
+
+		return null;
+	}
+
+	static IEnumerable<Node> Everything(Node node)
+	{
+		yield return node;
+
+		foreach (var child in Children(node))
+			foreach (var inside in Everything(child))
+				yield return inside;
+	}
+
+	/// <summary>
 	/// Whether this rule is asking to be streamed at all.
 	/// </summary>
 	/// <remarks>
@@ -232,6 +272,9 @@ public static class Retention
 		if (body is Node.Choice)
 			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
 				"not settled until it has been. A streamed parse reads its parts in order.";
+
+		if (Reads(graph) is { } reader)
+			return reader;
 
 		var parts = body is Node.Sequence(var sequence) ? sequence : [body];
 
