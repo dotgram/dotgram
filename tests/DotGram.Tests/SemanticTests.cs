@@ -119,6 +119,31 @@ public sealed class SemanticTests
 			"Start = n: ?=Word & where @(n.Length < 3) & Word\nWord = ['a'..'z']+",
 			"abcd"));
 
+	// ── The extent a rule matched (§4.1 case 4) ──────────────────────────────────
+
+	[Fact]
+	public void A_rule_may_say_out_loud_that_its_result_is_the_text()
+	{
+		// §4.1 case 4: with no `=>` and no captures, "the result is the matched extent:
+		// string gives the text". Declaring that was refused, with a message about
+		// matching captures to a constructor — of which there were none.
+		Assert.Equal("ab", Parsed("Start : @string = ['a'..'z']+", "ab").Value);
+
+		// Which is what the same rule without a type has always done.
+		Assert.Equal("ab", Parsed("Start = ['a'..'z']+", "ab").Value);
+	}
+
+	[Fact]
+	public void And_any_other_type_still_has_to_be_built()
+	{
+		// `SourceSpan` is the other half of case 4 and is not built. The message says so
+		// now, and says what to do instead — it used to talk about constructors.
+		var reported = Compile("Start : @DotGram.SourceSpan = ['a'..'z']+\nparse Start").Diagnostics;
+
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, Assert.Single(reported).Id);
+		Assert.Contains("§4.1 case 4", reported[0].Message, StringComparison.Ordinal);
+	}
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;

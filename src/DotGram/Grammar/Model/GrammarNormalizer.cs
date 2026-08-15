@@ -1309,6 +1309,18 @@ public sealed class GrammarNormalizer
 
 			if (type.IsCSharp || IsCSharpKeyword(type.Name))
 			{
+				// §4.1 case 4: `: @string` over a rule that builds nothing and captures
+				// nothing says out loud what such a rule says by default — the extent it
+				// matched. Recorded as no declared type at all, because a declared one is
+				// what tells the emitter to expect a value the machine never builds.
+				if (string.Equals(TypeName(type), "string", StringComparison.Ordinal) &&
+					_bodies.TryGetValue(rule, out var said) &&
+					!HasCapture(said) &&
+					Constructs(said).FirstOrDefault() is null)
+				{
+					continue;
+				}
+
 				_types[rule] = TypeName(type);
 
 				continue;
@@ -1625,11 +1637,22 @@ public sealed class GrammarNormalizer
 				"Declare one with ': @T'.",
 				rule.Declaration!.At);
 
+		// §4.1 case 4: a rule that builds nothing and captures nothing yields the extent it
+		// matched, and `string` is what an extent is. Declaring that type says out loud
+		// what a rule with no type says by default, and used to be refused for saying it.
+		else if (declared && building == 0 && !HasCapture(body) &&
+			string.Equals(_types[rule], "string", StringComparison.Ordinal))
+		{
+		}
+
 		else if (declared && building < offered.Count)
 			Report(
 				UnbuiltConstruction,
-				$"'{rule.Name}' declares a type, so every alternative needs a '=>' to build it. " +
-				"Matching captures to a constructor by name (§7.3) is not implemented yet.",
+				$"'{rule.Name}' declares a type and does not say how to build it. Only ': @string' " +
+				"can be left to the shape of the rule — §4.1 case 4, the extent it matched. " +
+				(HasCapture(body)
+					? "Matching captures to a constructor by name (§7.3) is not implemented yet."
+					: $"Give every alternative a '=>', or declare '{rule.Name}' as ': @string'."),
 				rule.Declaration!.At);
 	}
 

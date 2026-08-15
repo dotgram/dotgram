@@ -31,6 +31,8 @@ then quietly mean nothing.
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | refused | ✗ | ✗ |
 | rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -595,6 +597,21 @@ The sets are approximate and in the safe direction: a complement, a Unicode cate
 a C# predicate answers "anything", two of those overlap, and the result is a note rather
 than a refusal. Being told about an overlap that is not real costs a sentence; missing
 one costs the thing this exists to prevent.
+
+## A rule may say out loud that its result is the text
+
+§4.1 case 4: with no `=>` and no captures, "the result is the matched extent: `string`
+gives the text, `SourceSpan` gives the bounds". Saying so was refused — and refused with
+a message about matching captures to a constructor, of which there were none.
+
+`: @string` now means what the same rule without a type has always meant, and is recorded
+as no declared type at all: a declared one is what tells the emitter to expect a value the
+machine never builds, which is how this first showed up as generated code that would not
+compile.
+
+`: @SourceSpan` is the other half and is still not built — the value would have to be made
+where the match accepts, from positions no factory is handed. The message says that now
+instead of talking about constructors.
 
 ## A lookahead produces what it saw
 
