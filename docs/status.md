@@ -700,6 +700,23 @@ At a hundred records the three are within a fifth of each other, which is the ot
 of the answer: the window costs nothing worth noticing on input that would have fitted
 anyway.
 
+**A wide feed, which is the shape that pays for itself.** Fifty pipe-separated fields a
+record, twenty-five of them read out into an object — `long`, `int`, `decimal`,
+`DateOnly`, `DateTime`, an enum of the grammar's own and a good deal of text, every one
+converted by C# the grammar names. The captured fields are scattered rather than the
+first twenty-five, because a skipped field still has to be recognized and every capture
+between them is a slot the machine keeps. One million records, about 190 MB:
+
+| Input | Time | Allocated | Gen2 |
+| --- | ---: | ---: | ---: |
+| `string` | 3164 ms | 3279 MB | 7000 |
+| `TextReader` | 1351 ms | 1641 MB | 0 |
+| `File.ReadLines` | 1472 ms | 2710 MB | 0 |
+
+Ten million records — 1.9 GB of feed — read through the same 4 KB window in 13.6 seconds,
+still with no second-generation collection. The string overload was not asked: 1.9 billion
+characters is 3.8 GB in one object, which stops being a choice well before that.
+
 **The defect the benchmark found, and what it was.** Records of *differing lengths* lost
 the window: one record per buffer was read as broken and stepped over, silently, until
 the trailer turned up where a record was expected.
