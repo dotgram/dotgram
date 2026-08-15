@@ -726,14 +726,18 @@ public static class CSharpEmitter
 							file.Then("break;");
 							file.Line();
 
-							// Reading more moves the window under `from` and `to`, so they
-							// move with it. `start` is what Extend adjusts.
-							file.Line("var back = start - from;");
+							// Extended from `from` and not from `start`: what is being
+							// looked for is where this element ends, and the element
+							// begins at `from`. Dropping to `start` would throw away the
+							// front of the very thing about to be handed over — and put
+							// `from` before the window, which is nowhere.
+							file.Line("var ahead = to - from;");
+							file.Line("var after = start - from;");
 							file.Line();
-							file.Line("window.Extend(ref start);");
+							file.Line("window.Extend(ref from);");
 							file.Line();
-							file.Line("from = start - back;");
-							file.Line("to   = window.Length;");
+							file.Line("start = from + after;");
+							file.Line("to    = from + ahead;");
 						}
 
 						file.Line();

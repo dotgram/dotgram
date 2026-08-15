@@ -58,6 +58,7 @@ then quietly mean nothing.
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
+| a streamed feed of records of differing lengths | — | — | — | ✓ | ✗ |
 | `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
 | a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
@@ -676,6 +677,39 @@ what was actually taken off is not knowable: the sequence does not say, and
 A test gives the same feed both ways and compares what comes back, because that is the
 property worth holding: what a parse answers may not depend on which door the input came
 in by.
+
+## What the window costs
+
+Measured, because streaming that is slower and heavier than reading the file is a
+feature nobody wants. The same feed, the same grammar, the same parts built, given three
+ways — `benchmarks/DotGram.Benchmarks/StreamingBenchmarks.cs`, ten thousand records:
+
+| Input | Time | Allocated | Gen2 |
+| --- | ---: | ---: | ---: |
+| `string` | 719 us | 2653 KB | 249 |
+| `TextReader` | 433 us | 1415 KB | 0 |
+| `IEnumerable<string>` | 518 us | 1884 KB | 0 |
+
+Streaming is *faster*, which was not the claim being made and is worth understanding:
+the string case has to hold the input and every part at once, and the array it grows is
+large enough to be collected as one. The `Gen2` column is the whole point — the streamed
+cases hold one part at a time and never reach the large object heap at all, while the
+string case pays a second-generation collection for every four operations.
+
+At a hundred records the three are within a fifth of each other, which is the other half
+of the answer: the window costs nothing worth noticing on input that would have fitted
+anyway.
+
+**A defect the benchmark found.** Records of *differing lengths* lose the window past
+about a hundred thousand characters — the parse reports `Input does not match 'Trailer'`
+partway through. Fixed-width records stream to a megabyte and past it, which is why the
+tests did not catch it: they all use one length. Reproduced by a feed of twenty thousand
+records whose quantity field is one, two or three digits. Not diagnosed yet; the
+benchmark carries fixed-width records and a comment saying why.
+
+One thing already fixed on the way there: the recovery scan extended the window from
+`start` rather than from `from`, which threw away the front of the element about to be
+handed over and put `from` before the window — a negative index into a buffer.
 
 ## An offset is a `long`, a length is an `int`
 
