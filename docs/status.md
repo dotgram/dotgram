@@ -62,6 +62,7 @@ then quietly mean nothing.
 | captures matched to an existing type's constructor §7.3 | — | — | ✗ | ✗ | ✗ |
 | captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
 | partial declarations for unimplemented `@Method` §7.4 | — | — | — | ✗ | ✗ |
+| `#line` from the generated file back to the grammar §7.6 | — | — | — | ✗ | ✗ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
@@ -771,6 +772,28 @@ implemented" does not tell them.
 
 Decided by the shape of the C# signature, so it is tested where there is a compilation to
 ask. The permissive resolver the grammar half falls back to calls everything a predicate.
+
+## Where a C# error lands
+
+Not built: **`#line`**. The generated file carries no line directives at all, so an
+error in the author's own C# — `=> @Add(l, r)` where `Add` will not take those types —
+is reported inside a machine-written file the author did not open and cannot edit. The
+engine plan calls position mapping mandatory, and it is: a seam whose errors land on the
+wrong side of it is not working as a seam.
+
+What DotGram's *own* diagnostics do is a different mechanism and already works. A GRAM
+message carries a position in the grammar; a grammar in a `.gram` file gets a location
+in that file, and one written into a `[Gram("…")]` attribute is placed as far into the
+attribute's own string as its line can be found there — never wrong, sometimes only as
+precise as the whole attribute (`Generation/Report.cs`). That is about what this
+compiler says. `#line` is about what the C# compiler says afterwards, and none of it
+carries over.
+
+Two things are missing before it can be written. The tree keeps the C# it was given as
+text — `Node.Construct(Body, Text)`, `Node.Guard(Text)` — and drops where it was, so by
+the time a factory method is emitted there is no position left to point at. And the
+inline case needs the mapping to reach into a string literal, which is the same problem
+`Report.Inline` solves for diagnostics and would have to solve again for directives.
 
 ## A method that does not exist yet
 
