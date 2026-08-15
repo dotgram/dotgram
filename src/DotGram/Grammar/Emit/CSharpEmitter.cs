@@ -332,6 +332,8 @@ public static class CSharpEmitter
 		{
 			file.Write(WindowClass);
 			file.Line();
+			file.Write(LinesClass);
+			file.Line();
 		}
 
 		if (Reporting(graph))
@@ -552,6 +554,35 @@ public static class CSharpEmitter
 				file.Then("yield break;");
 			}
 		}
+
+		file.Line();
+
+		EmitOverLines(file, $"global::System.Collections.Generic.IEnumerable<{match}>", method, name);
+	}
+
+	/// <summary>
+	/// The same method again, taking lines rather than a reader (§6.3).
+	/// </summary>
+	/// <remarks>
+	/// One line, because a sequence of lines is a reader once the terminators are put
+	/// back. Written out rather than left to the caller so that <c>File.ReadLines</c> and
+	/// a <c>List&lt;string&gt;</c> are as ordinary an input as a string is.
+	/// </remarks>
+	static void EmitOverLines(Writer file, string returns, string method, string name)
+	{
+		file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// The lines are read as though they were a file, with a newline put back on the");
+		file.Line($"/// end of each: a sequence of lines has had its terminators taken off, and <c>{name}</c>");
+		file.Line("/// may well be looking for one.");
+		file.Line("/// </remarks>");
+
+		using (file.Block(
+			$"public static {returns} {method}(" +
+			"global::System.Collections.Generic.IEnumerable<string> input)"))
+		{
+			file.Line($"return {method}(new {LinesType}(input));");
+		}
 	}
 
 	/// <summary>
@@ -743,6 +774,14 @@ public static class CSharpEmitter
 				file.Line($"start = end{i};");
 			}
 		}
+
+		file.Line();
+
+		EmitOverLines(
+			file,
+			$"global::System.Collections.Generic.IEnumerable<{element}>",
+			publication.MethodName,
+			publication.Rule.Name);
 	}
 
 	static string Comment(Stage stage) =>
@@ -1321,6 +1360,92 @@ public static class CSharpEmitter
 	/// record rather than a runaway.
 	/// </para>
 	/// </remarks>
+	/// <summary>What a sequence of lines is read through. The name a rule may not take.</summary>
+	internal const string LinesType = "Lines";
+
+	/// <summary>
+	/// A sequence of lines, read as though it were a file.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §6.3 lists <c>IEnumerable&lt;string&gt;</c> beside <c>TextReader</c>, and this is
+	/// the whole of the difference between them: a reader carries its terminators and a
+	/// sequence of lines has had them taken off. So they are put back, as <c>\n</c>, and
+	/// everything downstream is the reader case unchanged.
+	/// </para>
+	/// <para>
+	/// Which terminator is a decision and not a detail. <c>\n</c> because a grammar's
+	/// <c>eol</c> matches it, because it is what the lines came from more often than not,
+	/// and because the alternative — putting back what was taken off — is not knowable:
+	/// the sequence does not say, and <c>File.ReadLines</c> would not tell it.
+	/// </para>
+	/// </remarks>
+	internal const string LinesClass = """
+		/// <summary>A sequence of lines, read as though it were a file.</summary>
+		sealed class Lines : global::System.IO.TextReader
+		{
+			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
+
+			private string _line = "";
+			private int    _at;
+			private bool   _ended;
+
+			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
+			{
+				_lines = lines.GetEnumerator();
+			}
+
+			public override int Read(char[] buffer, int index, int count)
+			{
+				var written = 0;
+
+				while (written < count)
+				{
+					if (_at >= _line.Length && !Next())
+						break;
+
+					var taking = global::System.Math.Min(count - written, _line.Length - _at);
+
+					_line.CopyTo(_at, buffer, index + written, taking);
+
+					_at     += taking;
+					written += taking;
+				}
+
+				return written;
+			}
+
+			/// <summary>
+			/// The next line, with the terminator the sequence does not carry put back.
+			/// </summary>
+			private bool Next()
+			{
+				if (_ended)
+					return false;
+
+				if (!_lines.MoveNext())
+				{
+					_ended = true;
+
+					return false;
+				}
+
+				_line = _lines.Current + "\n";
+				_at    = 0;
+
+				return true;
+			}
+
+			protected override void Dispose(bool disposing)
+			{
+				if (disposing)
+					_lines.Dispose();
+
+				base.Dispose(disposing);
+			}
+		}
+		""";
+
 	internal const string WindowClass = """
 		/// <summary>A reader, read through a buffer that is reused.</summary>
 		sealed class Window

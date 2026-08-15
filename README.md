@@ -186,6 +186,9 @@ Working end to end — a `.gram` file becomes a parser that runs:
       Handle(item);                                   // one at a time
   ```
 
+  A sequence of lines is the same door — `ParseFeed(File.ReadLines(path))` — with the
+  terminators put back, since lines have had them taken off.
+
   A `parse` gets the overload when its result is a sequence and every repetition in it
   ends where the grammar says rather than where backtracking finds — handing an element
   to the caller cannot be undone. A repetition that cannot tell its own end from what
@@ -217,7 +220,7 @@ then quietly means nothing is the failure this project is most careful about:
   input item works, one that consumes input on its own terms does not
 - parameterized rules: `R(n)` is in the specification and does not parse
 - diagnostics beyond a position: the set of what was expected there is next
-- `IEnumerable<string>` input, and the §8.3 surfaces over a streamed parse
+- the §8.3 surfaces over a streamed parse
 - incremental parsing
 
 ## Examples

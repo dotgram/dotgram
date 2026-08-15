@@ -89,6 +89,17 @@ public static partial class StreamingFeedReader
 	public static IEnumerable<FeedPart> Read(TextReader input) => ParseFeed(input);
 
 	/// <summary>
+	/// Reads a feed from lines, which is the same thing said another way.
+	/// </summary>
+	/// <remarks>
+	/// §6.3 lists a sequence of lines beside a reader, and the difference between them is
+	/// one character: a reader carries its terminators and a sequence of lines has had
+	/// them taken off, so the parser puts them back. <c>File.ReadLines</c> is the ordinary
+	/// caller, and it is lazy too, so the file is still read as the parts are asked for.
+	/// </remarks>
+	public static IEnumerable<FeedPart> Read(IEnumerable<string> lines) => ParseFeed(lines);
+
+	/// <summary>
 	/// What the feed adds up to, without ever holding it.
 	/// </summary>
 	/// <remarks>

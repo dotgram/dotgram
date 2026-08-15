@@ -96,6 +96,17 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>
+		/// <remarks>
+		/// The lines are read as though they were a file, with a newline put back on the
+		/// end of each: a sequence of lines has had its terminators taken off, and <c>Name</c>
+		/// may well be looking for one.
+		/// </remarks>
+		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(global::System.Collections.Generic.IEnumerable<string> input)
+		{
+			return FindName(new Lines(input));
+		}
+
 		/// <summary>Every occurrence of <c>Row</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> AllRows(string input)
 		{
@@ -157,6 +168,17 @@ namespace DotGram.Snapshots
 				if (start > window.Length)
 					yield break;
 			}
+		}
+
+		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>
+		/// <remarks>
+		/// The lines are read as though they were a file, with a newline put back on the
+		/// end of each: a sequence of lines has had its terminators taken off, and <c>Row</c>
+		/// may well be looking for one.
+		/// </remarks>
+		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> AllRows(global::System.Collections.Generic.IEnumerable<string> input)
+		{
+			return AllRows(new Lines(input));
 		}
 
 		/// <summary>What the rule <c>Feed</c> recognized.</summary>
@@ -1724,6 +1746,70 @@ namespace DotGram.Snapshots
 				_filled += read;
 
 				return true;
+			}
+		}
+
+		/// <summary>A sequence of lines, read as though it were a file.</summary>
+		sealed class Lines : global::System.IO.TextReader
+		{
+			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
+
+			private string _line = "";
+			private int    _at;
+			private bool   _ended;
+
+			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
+			{
+				_lines = lines.GetEnumerator();
+			}
+
+			public override int Read(char[] buffer, int index, int count)
+			{
+				var written = 0;
+
+				while (written < count)
+				{
+					if (_at >= _line.Length && !Next())
+						break;
+
+					var taking = global::System.Math.Min(count - written, _line.Length - _at);
+
+					_line.CopyTo(_at, buffer, index + written, taking);
+
+					_at     += taking;
+					written += taking;
+				}
+
+				return written;
+			}
+
+			/// <summary>
+			/// The next line, with the terminator the sequence does not carry put back.
+			/// </summary>
+			private bool Next()
+			{
+				if (_ended)
+					return false;
+
+				if (!_lines.MoveNext())
+				{
+					_ended = true;
+
+					return false;
+				}
+
+				_line = _lines.Current + "\n";
+				_at    = 0;
+
+				return true;
+			}
+
+			protected override void Dispose(bool disposing)
+			{
+				if (disposing)
+					_lines.Dispose();
+
+				base.Dispose(disposing);
 			}
 		}
 

@@ -60,7 +60,7 @@ then quietly mean nothing.
 | `parse` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |
 | `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
 | a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
-| `IEnumerable<string>` input §6.3 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
 | the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
@@ -659,6 +659,23 @@ out of band (§8.3).
 
 Found by writing a test about something else — that an exception out of a `=>` leaves
 the parse, which §8.2 decided and nothing had checked. It does.
+
+## And from a sequence of lines
+
+§6.3 lists `IEnumerable<string>` beside `TextReader`, and the difference between them is
+one character: a reader carries its terminators, and a sequence of lines has had them
+taken off. So they are put back and everything downstream is the reader case unchanged —
+one generated method per publication, forwarding.
+
+Which terminator is a decision rather than a detail. `
+`, because a grammar's `eol`
+matches it, because it is what the lines most often came from, and because putting back
+what was actually taken off is not knowable: the sequence does not say, and
+`File.ReadLines` would not tell it.
+
+A test gives the same feed both ways and compares what comes back, because that is the
+property worth holding: what a parse answers may not depend on which door the input came
+in by.
 
 ## An offset is a `long`, a length is an `int`
 

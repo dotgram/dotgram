@@ -65,7 +65,8 @@ sealed class ResultTypes
 				name == host ||
 				name == CSharpEmitter.FailureType ||
 				name == CSharpEmitter.MatchType ||
-				name == CSharpEmitter.WindowType
+				name == CSharpEmitter.WindowType ||
+				name == CSharpEmitter.LinesType
 					? name + "Value"
 					: name;
 

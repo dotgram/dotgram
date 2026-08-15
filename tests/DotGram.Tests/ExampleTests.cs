@@ -453,6 +453,30 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
+	public void A_feed_can_also_be_read_from_a_sequence_of_lines()
+	{
+		// §6.3 lists `IEnumerable<string>` beside `TextReader`, and the difference between
+		// them is one character: a reader carries its terminators and a sequence of lines
+		// has had them taken off, so they are put back.
+		var lines = new[] { "H|2026-08-13|ACME", "R|AAPL|100|2026-08-12", "T|1" };
+
+		Assert.Equal(
+			["FeedOpening", "FeedTrade", "FeedClosing"],
+			[.. StreamingFeedReader.Read(lines).Select(part => part.GetType().Name)]);
+	}
+
+	[Fact]
+	public void And_reads_the_same_things_a_reader_would()
+	{
+		// The same feed, given both ways. What comes back may not depend on which door it
+		// came in by.
+		Assert.Equal(
+			[.. StreamingFeedReader.Read(new StringReader(Text)).Select(part => part.ToString())],
+			[.. StreamingFeedReader.Read(Text.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+				.Select(part => part.ToString())]);
+	}
+
+	[Fact]
 	public void And_the_reader_is_only_read_as_the_sequence_is_walked()
 	{
 		// Lazy, which is what "the result is walked once" in §6.3 means. Nothing is read
