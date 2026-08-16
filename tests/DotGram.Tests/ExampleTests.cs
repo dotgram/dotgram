@@ -696,4 +696,32 @@ public sealed class ExampleTests
 		Assert.Equal(
 			"#nope",
 			Assert.IsType<MarkdownParagraph>(MarkdownParser.Blocks("#nope\n").Single()).Text);
+
+	[Fact]
+	public void And_nesting_goes_as_deep_as_the_stack_allows()
+	{
+		// Recursion between rules is ordinary C# recursion — `Value` calls `Array` calls
+		// `Value` — so depth costs frames rather than heap. docs/status.md puts the ceiling
+		// at about 2700 for a single rule; this is well inside it and passes through three
+		// rules per level, which is the shape a real document has.
+		const int depth = 200;
+
+		var text = new string('[', depth) + "1" + new string(']', depth);
+		var read = JsonParser.Read(text);
+
+		for (var i = 0; i < depth; i++)
+			read = Assert.IsType<JsonArray>(read).Items.Single();
+
+		Assert.Equal(1, Assert.IsType<JsonNumber>(read).Value);
+	}
+
+	[Fact]
+	public void And_an_unclosed_document_says_where_it_stopped_being_one()
+	{
+		// The position is what a reader needs from a format with no recovery in it: the
+		// parse ran out of ways through the rule at the end of the input.
+		var error = Assert.Throws<FormatException>(static () => JsonParser.Read("""{"a": [1, 2"""));
+
+		Assert.Contains("11", error.Message, StringComparison.Ordinal);
+	}
 }
