@@ -848,4 +848,29 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_field_nobody_sent_is_null_rather_than_empty() =>
 		Assert.Null(HttpParser.Read("Host: a\n")["Absent"]);
+
+	// ── Fixed-width records ─────────────────────────────────────────────────────
+
+	[Fact]
+	public void Fixed_width_fields_are_found_by_counting()
+	{
+		var rows = FixedWidth.Read(
+			"000123ACME CORP           20260816USD000001250000\n"
+			+ "000124WIDGETS LTD         20260817EUR000000099950\n");
+
+		Assert.Equal(2, rows.Count);
+		Assert.Equal("ACME CORP", rows[0].Name);            // padding is not data
+		Assert.Equal(123m, rows[0].Id);
+		Assert.Equal(new DateOnly(2026, 8, 16), rows[0].On);
+		Assert.Equal("USD", rows[0].Currency);
+		Assert.Equal(12500.00m, rows[0].Amount);            // minor units, once
+		Assert.Equal(999.50m, rows[1].Amount);
+	}
+
+	[Fact]
+	public void And_a_record_a_column_short_is_refused() =>
+		// The failure this format is prone to: one column missing reads every later field
+		// wrong. `{n}` is exact, so it fails at the field that ran out instead.
+		Assert.Throws<FormatException>(static () =>
+			FixedWidth.Read("000123ACME CORP           20260816USD00000125000\n"));
 }
