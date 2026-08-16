@@ -1,0 +1,27 @@
+// A CSV of typed fields — the snapshot that carries C# across.
+//
+// The other two grammars here are the frozen subset: they recognize, and every value
+// they hand back is text they matched. This one is the seam. It builds values with
+// `=>`, asks a question with `where`, and declares what its rules produce — so the
+// generated file holds factory methods, a guard method, and the `#line` directives of
+// §7.6 that put an error in the author's C# on the author's own line.
+//
+// Every type named here is one the consumer's compilation already has, because this
+// grammar is compiled on its own: a snapshot that does not build is worse than no
+// snapshot, since it makes the wrong thing look approved.
+//
+// Csv.gram.g.cs is what it turns into, and a diff of that file is how a change to any
+// of it is seen.
+
+// §4.1 case 2: the rule is the rows it collected. `Row*` is an operand whose value
+// fits the element type, so it is what the sequence is made of — and it is not
+// captured by hand, because collecting them is what the declaration asks for.
+Csv : @string[] = Row* & eof
+
+// Built from its captures, and both of them are values rather than the text under
+// them: `Amount` hands back an int, and the `where` refuses a name too long to want.
+Row : @string = name: Name & ',' & amount: Amount & eol => @(name + "=" + amount)
+
+Name : @string = text: ['a'..'z' | 'A'..'Z']+ & where @(text.Length <= 16) => @(text)
+
+Amount : @int = digits: ['0'..'9']+ => @int.Parse(digits)

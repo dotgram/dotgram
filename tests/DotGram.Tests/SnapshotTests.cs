@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
+using DotGram.Generation;
 using DotGram.Grammar;
 
 using Xunit;
@@ -42,6 +43,10 @@ public sealed class SnapshotTests
 			{
 				ClassName = name,
 				Namespace = Namespace,
+
+				// A grammar here may hand C# across, and an inline `@(...)` needs the
+				// scanner to find where it ends.
+				CSharpScanner = RoslynCSharpScanner.Instance,
 
 				// The file name alone, not where this checkout happens to be: a snapshot
 				// holding an absolute path would differ on every machine that read it.
