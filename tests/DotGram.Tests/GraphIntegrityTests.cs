@@ -80,6 +80,42 @@ public sealed class GraphIntegrityTests
 	}
 
 	[Fact]
+	public void A_recovering_repetition_inside_a_group_survives_being_collected()
+	{
+		// The rewrite that reaches inside a group (§4.1 case 2) rebuilds the repetition it
+		// finds there, and `recover` is keyed by which node — so this is the same failure
+		// as the first one, one level deeper, and would be as silent.
+		var graph = Normalized(
+			"""
+			Feed : @Item[] = Header & (Row* recover eol & Trailer) & eof
+			Header  : @Item = 'H' & eol               => @(new Head())
+			Row     : @Item = name: ['a'..'z']+ & eol => @(new Line(name))
+			Trailer : @Item = 'T' & eol               => @(new Tail())
+			""");
+
+		Assert.Empty(graph.Diagnostics);
+		Assert.NotEmpty(graph.Recoveries);
+		Assert.Empty(graph.Orphans());
+	}
+
+	[Fact]
+	public void And_so_does_one_in_a_rule_that_hands_its_operand_back()
+	{
+		// §4.1 case 3 rewrites every alternative of the rule, which is a third place a
+		// repetition can be rebuilt under a recovery that was recorded elsewhere.
+		var graph = Normalized(
+			"""
+			Start : Feed = Feed
+			Feed : @Item[] = Row* recover eol & eof
+			Row  : @Item   = name: ['a'..'z']+ & eol => @(new Line(name))
+			""");
+
+		Assert.Empty(graph.Diagnostics);
+		Assert.NotEmpty(graph.Recoveries);
+		Assert.Empty(graph.Orphans());
+	}
+
+	[Fact]
 	public void Binding_powers_survive_normalization()
 	{
 		var graph = Normalized(
