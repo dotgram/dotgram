@@ -70,7 +70,9 @@ reading once before the first change and not again.
   it actually reaches — parsed, bound, normalized, emitted, run.
 - A refused construct owes a test that it is refused, and by which diagnostic. A construct
   that parses and then quietly means nothing is the failure this project is most careful
-  about.
+  about — and a row of `status.md` reading *refused* is that same claim, made in prose.
+  `SemanticTests.Still_refused` holds those rows to it, so a feature built and never
+  marked is caught by the suite rather than by somebody trusting the table.
 - A rewrite that builds new nodes owes a thought about what was recorded against the old
   ones. `RecognitionGraph.Orphans()` answers that question and `GraphIntegrityTests` asks
   it of every grammar in the repository.

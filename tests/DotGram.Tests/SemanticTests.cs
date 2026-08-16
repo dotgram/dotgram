@@ -334,6 +334,26 @@ public sealed class SemanticTests
 			"aa\n1bad\ncc\n"));
 	}
 
+	// ── The rows the table calls refused (docs/status.md) ───────────────────────
+
+	/// <summary>
+	/// That what the status table calls refused really is, and by the diagnostic named.
+	/// </summary>
+	/// <remarks>
+	/// The table is this project's answer to "what works", and three of its rows turned out
+	/// stale in one week — two features built and never marked, one behaviour that was
+	/// semantics rather than a gap. A row saying "refused" is a claim about the compiler and
+	/// belongs under a test like any other.
+	/// </remarks>
+	[Theory]
+	[InlineData(GrammarNormalizer.LeftRecursion,   "A = B & 'x' | 'a'\nB = A & 'y' | 'b'\nStart = A")]
+	[InlineData(GrammarNormalizer.UnbuiltRecovery,
+		"Start = a: Row* recover eol => @(1) & b: Row* recover eol => @(2)\n"
+		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
+	[InlineData(GrammarNormalizer.UnbuiltCall,
+		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
+	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
+
 	// ── Keyword boundaries (§4.6) ────────────────────────────────────────────────
 
 	[Fact]
