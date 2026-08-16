@@ -151,6 +151,21 @@ garbage on every parse, because the URL grammar genuinely needs more than 32 slo
 the heap one replacing it. 48 is where an ordinary parse stops spilling, and buying depth
 past that means paying for it on every match rather than on the deep ones.
 
+**Spilling the buffer to the heap when the stack runs low was tried and does not work
+in the obvious form.** `RuntimeHelpers.TryEnsureSufficientExecutionStack()` asks whether a
+fixed reserve is left — on this runtime a hundred kilobytes or so — so it keeps answering
+yes until the last few hundred frames and then answers no for the rest. Measured: the
+limit did not move. The check is a guard against being about to overflow, not a way of
+deciding early that a parse is going deep.
+
+What would work is a depth counter: pass the nesting level down, and past some threshold —
+a few hundred, which no ordinary grammar reaches — take the buffer from the heap instead
+of the stack. A frame without its buffer is about 40 bytes rather than 230, so the limit
+would go from 4562 to something in the tens of thousands, and an ordinary parse would
+never test the branch more than a few times. The cost is a parameter on every recognizer
+and an increment at every call, which every snapshot would show. Not done yet, and worth
+doing before anything parses adversarial input.
+
 So input length and nesting depth are different limits, and only the first is about to
 get better: streaming makes a longer file readable and leaves the bracket count exactly
 where it is. A grammar meant for adversarial input should bound its own nesting, and a
