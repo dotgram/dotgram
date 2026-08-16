@@ -84,6 +84,7 @@ then quietly mean nothing.
 | a streamed feed of records of differing lengths | — | — | — | ✓ | ✓ |
 | `recover` stepping over a bad record in a stream | — | — | — | ✓ | ✓ |
 | a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
+| a repetition of something other than a rule §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
 | the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |

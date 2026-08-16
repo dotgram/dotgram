@@ -101,9 +101,10 @@ What writing it found, both real:
 
 - the streaming driver emitted an iterator with no `yield` in it for
   `Doc : @T[] = (Line | Blank)*`, because `Retention` called the grammar streamable while
-  `StagesOf` found no rule to hand elements over from. It does not compile, which is the
-  good kind of failure, but the two halves disagreed — the same class as `PartsOf` fixed
-  earlier, and still open;
+  `StagesOf` found no rule to hand elements over from. Fixed: the analysis now refuses a
+  stream with nothing to yield, and — the actual cause — it had a second copy of "how a
+  rule breaks into parts" instead of calling `PartsOf`, which is exactly what `PartsOf`
+  was written to prevent;
 - `Questions` did not foresee `T[]` as a type, so a rule whose value is a sequence and
   which is an operand of another sequence took the generator down with CS8785. Fixed: a
   sequence declaration now asks about both spellings, the element and the array.

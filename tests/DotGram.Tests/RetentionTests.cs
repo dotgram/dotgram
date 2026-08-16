@@ -222,4 +222,23 @@ public sealed class RetentionTests
 		// before it can stream: without one, the window could never move.
 		Assert.Equal(LineExtent.Beyond, ExtentOf(Feed, "Feed"));
 	}
+
+	[Fact]
+	public void A_repetition_of_something_other_than_a_rule_has_nothing_to_hand_over()
+	{
+		// The driver yields the elements of a repetition of a rule, because a rule has a
+		// recognizer of its own to call one element at a time. A repetition of a choice is
+		// read whole by one machine, so there is nothing to give the caller between reads —
+		// and the emitter, left to it, wrote an iterator with no `yield` in it, which the
+		// consumer's compiler reported about a file they did not write.
+		var graph = GrammarNormalizer.Normalize(GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(
+			"Doc : @object[] = (Line | Blank)* & eof\n"
+			+ "Line : @object = ['a'..'z']+ & eol => @(new object())\n"
+			+ "Blank = eol\n"
+			+ "parse Doc", RoslynCSharpScanner.Instance)).File));
+
+		var reported = Retention.Check(graph);
+
+		Assert.Contains(reported, d => d.Message.Contains("nothing to give the caller"));
+	}
 }

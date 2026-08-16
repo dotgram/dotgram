@@ -244,6 +244,11 @@ public static class Retention
 	/// the mark is the thing this can check.
 	/// </para>
 	/// </remarks>
+	/// <summary>Whether this part is a repetition the driver could hand elements over from.</summary>
+	static bool Yields(Node part) => part is
+		Node.Repeat(Node.Capture(_, Node.Call), _, _) or
+		Node.Repeat(Node.Call, _, _);
+
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
 	{
 		if (graph is null)
@@ -268,7 +273,18 @@ public static class Retention
 		if (Reads(graph) is { } reader)
 			return reader;
 
-		var parts = body is Node.Sequence(var sequence) ? sequence : [body];
+		var parts = graph.PartsOf(rule);
+
+		// What the driver hands over is the elements of a repetition of a rule, because a
+		// rule is what has a recognizer of its own to call one element at a time. A
+		// repetition of something else — a choice, a group — is read whole by one machine,
+		// and there is nothing to yield between iterations. Said here rather than left to
+		// the emitter, which would otherwise write an iterator with no `yield` in it and
+		// leave the consumer's compiler to complain about a file they did not write.
+		if (!parts.Any(Yields))
+			return $"'{rule.Name}' has no repetition of a rule to hand over, so a streamed parse " +
+				"would have nothing to give the caller between reads. Give the repeated part its " +
+				"own rule (docs/syntax.md §6.3).";
 
 		for (var i = 0; i < parts.Count; i++)
 		{
