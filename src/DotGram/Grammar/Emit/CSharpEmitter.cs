@@ -477,7 +477,7 @@ public static partial class CSharpEmitter
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
 					: null,
-				graph.Fallible.Contains(node)));
+				node is Node.Construct { How: Construction.Expression { Refuses: true } }));
 		}
 
 		return found;
@@ -547,8 +547,15 @@ public static partial class CSharpEmitter
 	/// not ours to assume (.claude/rules/emitted-code.md).
 	/// </para>
 	/// </remarks>
-	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct) =>
-		Handed(file, lines, construct.At, construct.Text + ";");
+	/// <remarks>
+	/// Only an expression has text of its own; the four the language supplies are written
+	/// by the cases above, which know what they are writing and where it is not from.
+	/// </remarks>
+	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
+	{
+		if (construct.How is Construction.Expression { Text: var text, At: var at })
+			Handed(file, lines, at, text + ";");
+	}
 
 	internal static void Handed(Writer file, ILineMap? lines, int at, string text)
 	{
@@ -592,7 +599,7 @@ public static partial class CSharpEmitter
 		// §8.1: a transformation that may refuse hands its value back through an `out` and
 		// says whether there is one, so the factory does too. The `out` argument is already
 		// in the text — written where the call was still a shape.
-		if (graph.Fallible.Contains(factory.Of))
+		if (factory.Of is Node.Construct { How: Construction.Expression { Refuses: true } })
 		{
 			parameters.Add($"out {graph.Types[rule]} value");
 
@@ -603,102 +610,110 @@ public static partial class CSharpEmitter
 			return;
 		}
 
-		// §4.1 case 3: the rule's value is one of its operands, so the factory hands that
-		// operand back and does nothing else.
-		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.ValueMarker)
+		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
+		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
+
+		switch (((Node.Construct)factory.Of).How)
 		{
-			var value = "default";
+			// The author's own C#, written under a `#line` pointing back at it (§7.6).
+			case Construction.Expression:
 
-			foreach (var member in factory.Members)
-				if (member.Name.StartsWith("item", StringComparison.Ordinal))
-					value = ResultTypes.ParameterOf(member);
+				file.Line(summary + " (docs/syntax.md §7.3).</summary>");
+				file.Line(head + " =>");
+				Handed(file, lines, (Node.Construct)factory.Of);
 
-			file.Line($"/// <summary>What <c>{rule.Name}</c> is worth: what its operand was (§4.1 case 3).</summary>");
-			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
-			file.Line($"	{value};");
+				break;
 
-			return;
-		}
-
-		// §7.3's first way of filling a result in: the captures fill the declared type's
-		// constructor, and which ones in what order was worked out where the host could be
-		// asked what constructors there are.
-		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.ConstructorMarker)
-		{
-			var arguments = new List<string>();
-
-			foreach (var name in graph.Constructions[rule])
-				foreach (var member in factory.Members)
-					if (member.Name == name)
-						arguments.Add(ResultTypes.ParameterOf(member));
-
-			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (§7.3).</summary>");
-			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
-			file.Line($"\tnew {graph.Types[rule]}({string.Join(", ", arguments)});");
-
-			return;
-		}
-
-		// §7.3's second way: the value is made and then written into. An object initializer
-		// rather than assignments, because `init` and `required` can only be written in one.
-		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.InitializerMarker)
-		{
-			var written = new List<string>();
-
-			foreach (var binding in graph.Initializations[rule])
-				foreach (var member in factory.Members)
-					if (member.Name == binding.Capture)
-						written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
-
-			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (§7.3).</summary>");
-			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
-			file.Line($"	new {graph.Types[rule]} {{ {string.Join(", ", written)} }};");
-
-			return;
-		}
-
-		// §4.1 case 2: the grammar wrote no expression, so there is none to write out. What
-		// the rule is made of is its operands, in order, and the body says so — a body and
-		// not an expression because a repetition contributes an unknown number of elements
-		// and an optional operand contributes none, so the length is not known in advance.
-		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.SequenceMarker)
-		{
-			var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
-
-			file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
-
-			using (file.Block($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})"))
+			// §4.1 case 3: the value is one of the operands, handed back as it stands.
+			case Construction.Operand:
 			{
-				file.Line($"var items = new global::System.Collections.Generic.List<{element}>();");
-				file.Line();
+				var value = "default";
 
 				foreach (var member in factory.Members)
-				{
-					var value = ResultTypes.ParameterOf(member);
+					if (member.Name.StartsWith("item", StringComparison.Ordinal))
+						value = ResultTypes.ParameterOf(member);
 
-					// Null where the alternative that captured it was not the one that
-					// matched, and an empty run is an empty array that adds nothing.
-					if (member.IsSequence || member.IsOptional)
-					{
-						file.Line($"if ({value} != null)");
-						file.Then($"items.{(member.IsSequence ? "AddRange" : "Add")}({value});");
-					}
-					else
-					{
-						file.Line($"items.Add({value});");
-					}
-				}
+				file.Line(summary + ": what its operand was (§4.1 case 3).</summary>");
+				file.Line(head + " =>");
+				file.Line($"	{value};");
 
-				file.Line();
-				file.Line("return items.ToArray();");
+				break;
 			}
 
-			return;
-		}
+			// §7.3's first way: the captures fill the declared type's constructor, in the
+			// order the case carries.
+			case Construction.Constructor(var order):
+			{
+				var arguments = new List<string>();
 
-		file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (docs/syntax.md §7.3).</summary>");
-		file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
-		Handed(file, lines, (Node.Construct)factory.Of);
+				foreach (var name in order)
+					foreach (var member in factory.Members)
+						if (member.Name == name)
+							arguments.Add(ResultTypes.ParameterOf(member));
+
+				file.Line(summary + " (§7.3).</summary>");
+				file.Line(head + " =>");
+				file.Line($"	new {graph.Types[rule]}({string.Join(", ", arguments)});");
+
+				break;
+			}
+
+			// §7.3's second way: made, then written into. An object initializer rather than
+			// assignments, because `init` and `required` can only be written in one.
+			case Construction.Initializer(var bindings):
+			{
+				var written = new List<string>();
+
+				foreach (var binding in bindings)
+					foreach (var member in factory.Members)
+						if (member.Name == binding.Capture)
+							written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
+
+				file.Line(summary + " (§7.3).</summary>");
+				file.Line(head + " =>");
+				file.Line($"	new {graph.Types[rule]} {{ {string.Join(", ", written)} }};");
+
+				break;
+			}
+
+			// §4.1 case 2: the grammar wrote no expression, so there is none to write out.
+			// A body rather than an expression, because a repetition contributes an unknown
+			// number of elements and an optional operand contributes none.
+			case Construction.Sequence:
+			{
+				var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
+
+				file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
+
+				using (file.Block(head))
+				{
+					file.Line($"var items = new global::System.Collections.Generic.List<{element}>();");
+					file.Line();
+
+					foreach (var member in factory.Members)
+					{
+						var value = ResultTypes.ParameterOf(member);
+
+						// Null where the alternative that captured it was not the one that
+						// matched, and an empty run is an empty array that adds nothing.
+						if (member.IsSequence || member.IsOptional)
+						{
+							file.Line($"if ({value} != null)");
+							file.Then($"items.{(member.IsSequence ? "AddRange" : "Add")}({value});");
+						}
+						else
+						{
+							file.Line($"items.Add({value});");
+						}
+					}
+
+					file.Line();
+					file.Line("return items.ToArray();");
+				}
+
+				break;
+			}
+		}
 	}
 
 	/// <summary>
@@ -789,8 +804,23 @@ public static partial class CSharpEmitter
 	/// Whether recovery in this grammar ever has a refused value to tell from a shape that
 	/// did not match (§8.1).
 	/// </summary>
-	static bool Refusing(RecognitionGraph graph) =>
-		graph.Recoveries.Count > 0 && graph.Fallible.Count > 0;
+	/// <remarks>
+	/// Asked of the graph rather than looked up in a table beside it: whether an
+	/// expression may refuse is part of what that expression is, so there is nowhere for
+	/// the answer to drift out of step with the tree.
+	/// </remarks>
+	static bool Refusing(RecognitionGraph graph)
+	{
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Construct { How: Construction.Expression { Refuses: true } })
+					return true;
+
+		return false;
+	}
 
 	/// <summary>Whether any <c>recover</c> in this grammar reports out of band (§8.3).</summary>
 	static bool Reporting(RecognitionGraph graph)

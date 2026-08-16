@@ -152,23 +152,15 @@ public abstract record Node
 		public override string ToString() => $"where {Text}";
 	}
 
-	/// <summary>A `=>` construction. Consumes nothing, runs after the alternative matched.</summary>
-	/// <param name="At">
-	/// Where the C# starts in the grammar, so that a C# error in it can be reported there
-	/// (§7.6). -1 for text this compiler wrote rather than read.
-	/// </param>
-	public sealed record Construct(Node Body, string Text, int At = -1) : Node
+	/// <summary>
+	/// A `=>` construction, or one of the four the language supplies in its place.
+	/// Consumes nothing, runs after the alternative matched.
+	/// </summary>
+	public sealed record Construct(Node Body, Construction How) : Node
 	{
-		/// <summary>Without the position, for the passes that only read the C#.</summary>
-		public void Deconstruct(out Node body, out string text)
-		{
-			body = Body;
-			text = Text;
-		}
-
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{Body} => {Text}";
+		public override string ToString() => $"{Body} => {How}";
 	}
 
 	/// <summary>
@@ -275,41 +267,10 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
 	/// <summary>
-	/// The rules whose value is built by calling their declared type's constructor, and
-	/// the captures that fill it, in the constructor's own order (§7.3).
-	/// </summary>
-	/// <remarks>
-	/// A rule is in here instead of writing a <c>=&gt;</c>, never as well as: the two are
-	/// the first and third of §7.3's ways to fill a result in, and a rule that says how to
-	/// build its value has said it.
-	/// </remarks>
-	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<string>> Constructions { get; init; } =
-		new Dictionary<RuleSymbol, IReadOnlyList<string>>();
-
-	/// <summary>
-	/// The rules whose value is made and then written into, and what goes where (§7.3's
-	/// second way).
-	/// </summary>
-	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<PropertyBinding>> Initializations { get; init; } =
-		new Dictionary<RuleSymbol, IReadOnlyList<PropertyBinding>>();
-
-	/// <summary>
 	/// The methods a grammar calls that the host does not have, and that §7.4 declares for
 	/// the author to implement.
 	/// </summary>
 	public IReadOnlyList<RequiredMethod> Declarations { get; init; } = [];
-
-	/// <summary>
-	/// The <c>=&gt;</c> constructions whose C# may refuse the value it was given (§8.1).
-	/// </summary>
-	/// <remarks>
-	/// A transformation written <c>bool M(args…, out T value)</c> says by its shape that it
-	/// can fail, which is why §8.1 needs no notation. What such a refusal means is a value
-	/// failure: the shape matched and what it held was not accepted, so the rule does not
-	/// match — and inside a recovering repetition that is a broken element rather than the
-	/// end of the run.
-	/// </remarks>
-	public IReadOnlyCollection<Node> Fallible { get; init; } = new HashSet<Node>();
 
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
@@ -385,9 +346,6 @@ public sealed class RecognitionGraph(
 		foreach (var node in Powers.Keys)
 			Check(node, "binding power");
 
-		foreach (var node in Fallible)
-			Check(node, "value failure");
-
 		foreach (var levels in Climbing)
 			foreach (var node in levels.Value.Keys)
 				Check(node, $"strength in {levels.Key.Name}");
@@ -454,6 +412,3 @@ public sealed class RecognitionGraph(
 /// <param name="Owner">The rule the call is written in, which is where the type comes from.</param>
 public sealed record RequiredMethod(
 	string Name, IReadOnlyList<string> Arguments, bool IsGuard, RuleSymbol Owner);
-
-/// <summary>One property of a result written from one capture (§7.3).</summary>
-public readonly record struct PropertyBinding(string Property, string Capture);

@@ -107,11 +107,8 @@ public sealed partial class GrammarNormalizer
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
 			Climbing   = normalizer._climbing,
-			Powers     = normalizer._powers,
-			Fallible     = normalizer._fallible,
-			Constructions = normalizer._constructions,
-			Initializations = normalizer._initializations,
-			Declarations  = normalizer._declared,
+			Powers       = normalizer._powers,
+			Declarations = normalizer._declared,
 		};
 	}
 
@@ -598,31 +595,6 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
-	/// <summary>
-	/// The text a <c>=&gt;</c> carries when the grammar wrote none and the result is a
-	/// sequence — the emitter builds the body rather than compiling an expression.
-	/// </summary>
-	public const string SequenceMarker = "<sequence>";
-
-	/// <summary>
-	/// The text a <c>=&gt;</c> carries when the rule's value is one of its operands —
-	/// §4.1 case 3 and the scalar <c>: item</c> of §4.2.
-	/// </summary>
-	public const string ValueMarker = "<value>";
-
-	/// <summary>
-	/// And the one it carries when the value is built by calling the declared type's
-	/// constructor (§7.3). <see cref="RecognitionGraph.Constructions"/> says with what.
-	/// </summary>
-	public const string ConstructorMarker = "<constructor>";
-
-	/// <summary>
-	/// And when it is made and then written into — §7.3's second way.
-	/// </summary>
-	public const string InitializerMarker = "<initializer>";
-
-	readonly Dictionary<RuleSymbol, IReadOnlyList<string>> _constructions = [];
-	readonly Dictionary<RuleSymbol, IReadOnlyList<PropertyBinding>> _initializations = [];
 
 	/// <summary>
 	/// §7.3's first way of filling a result in: a constructor whose every parameter is
@@ -696,7 +668,7 @@ public sealed partial class GrammarNormalizer
 					break;
 				}
 
-				rewritten.Add(new Node.Construct(built, ValueMarker));
+				rewritten.Add(new Node.Construct(built, Construction.Operand.Instance));
 			}
 
 			if (taken < 0)
@@ -755,17 +727,16 @@ public sealed partial class GrammarNormalizer
 				continue;
 
 			var rewritten = new List<Node>(alternatives.Count);
-			var marker    = written is null ? ConstructorMarker : InitializerMarker;
+
+			// The case carries what it needs, so nothing has to be looked up later by rule.
+			Construction how = written is null
+				? new Construction.Constructor(chosen!)
+				: new Construction.Initializer(written);
 
 			foreach (var alternative in alternatives)
-				rewritten.Add(new Node.Construct(alternative, marker));
+				rewritten.Add(new Node.Construct(alternative, how));
 
 			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
-
-			if (written is null)
-				_constructions[rule] = chosen!;
-			else
-				_initializations[rule] = written;
 		}
 	}
 
@@ -887,7 +858,8 @@ public sealed partial class GrammarNormalizer
 			var taken     = 0;
 
 			foreach (var alternative in Alternatives(_bodies[rule]))
-				rewritten.Add(new Node.Construct(Gather(alternative, element, ref taken), SequenceMarker));
+				rewritten.Add(new Node.Construct(
+					Gather(alternative, element, ref taken), Construction.Sequence.Instance));
 
 			if (taken == 0)
 			{

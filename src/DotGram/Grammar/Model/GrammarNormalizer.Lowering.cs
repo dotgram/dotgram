@@ -118,9 +118,6 @@ public sealed partial class GrammarNormalizer
 		_ => Node.Empty.Instance,
 	};
 
-	/// <summary>The constructions whose C# may refuse the value it was given (§8.1).</summary>
-	readonly HashSet<Node> _fallible = new(NodeIdentity.Instance);
-
 	/// <summary>
 	/// <c>=&gt; expr</c>, and whether that expression is allowed to say no.
 	/// </summary>
@@ -147,12 +144,8 @@ public sealed partial class GrammarNormalizer
 
 		Declares(value, guard: false);
 
-		var construct = new Node.Construct(Lower(pattern, scope), text, StartOf(value));
-
-		if (fallible)
-			_fallible.Add(construct);
-
-		return construct;
+		return new Node.Construct(
+			Lower(pattern, scope), new Construction.Expression(text, StartOf(value), fallible));
 	}
 
 	Node Guarded(Expr value)
