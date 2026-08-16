@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace DotGram.Grammar.Model;
 
@@ -73,19 +72,11 @@ static class NodeWalk
 	/// <summary>A set that holds nodes apart by identity rather than by value.</summary>
 	public static HashSet<Node> ByIdentity(IEnumerable<Node> nodes)
 	{
-		var set = new HashSet<Node>(Identity.Instance);
+		var set = new HashSet<Node>(NodeIdentity.Instance);
 
 		foreach (var node in nodes)
 			set.Add(node);
 
 		return set;
-	}
-
-	sealed class Identity : IEqualityComparer<Node>
-	{
-		public static readonly Identity Instance = new();
-
-		public bool Equals(Node? left, Node? right) => ReferenceEquals(left, right);
-		public int  GetHashCode(Node node)          => RuntimeHelpers.GetHashCode(node);
 	}
 }
