@@ -54,7 +54,7 @@ then quietly mean nothing.
 | a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | one capture name over rules of one declared type §7.3 | — | — | ✓ | ✓ | ✓ |
 | the scalar form of it, `: item` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
+| keyword boundaries §4.6 | — | ✓ | ✓ | ✓ | ✓ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | offsets are `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |

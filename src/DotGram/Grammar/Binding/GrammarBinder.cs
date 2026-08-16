@@ -27,7 +27,8 @@ public sealed class GrammarBinder
 	/// global one, so a grammar can shadow any of them by declaring its own — which is
 	/// exactly how whitespace handling works (§4.5).
 	/// </summary>
-	public static readonly string[] StandardLibrary = ["any", "none", "eol", "eof", "Trivia"];
+	public static readonly string[] StandardLibrary =
+		["any", "none", "eol", "eof", "Trivia", "KeywordBoundary"];
 
 	const string TriviaRule = "Trivia";
 

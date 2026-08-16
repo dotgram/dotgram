@@ -82,7 +82,7 @@ public sealed partial class GrammarNormalizer
 
 	Node Lower(Expr expression, GrammarScope scope) => expression switch
 	{
-		Expr.Literal(_, var value)              => new Node.Literal(value),
+		Expr.Literal(_, var value)              => Bounded(value, scope),
 		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
 		Expr.Group(var body)                    => Lower(body, scope),
 		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, scope)),
@@ -791,6 +791,64 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// §4.6: a literal that is all word characters may not be the start of a longer word.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same shape as Trivia and for the same reason: an ordinary rule, shadowed to turn
+	/// it on, and the insertion dropped entirely while it is empty — so a regex or a feed
+	/// grammar pays nothing and a language grammar pays one line.
+	/// </para>
+	/// <para>
+	/// Which literals qualify is decided here, when the grammar is built: every character
+	/// of <c>"select"</c> continues a word, so it gets the check; <c>"("</c> does not, and
+	/// asking whether a word character follows a bracket would refuse <c>(a)</c>.
+	/// </para>
+	/// <para>
+	/// Before the trivia insertion, which is what §4.6 says and what makes it mean
+	/// anything: `"select" &amp; ?!KeywordBoundary` asks whether a letter follows the
+	/// keyword, while the other order would ask whether one follows the whitespace after
+	/// it.
+	/// </para>
+	/// </remarks>
+	Node Bounded(string value, GrammarScope scope)
+	{
+		var literal = new Node.Literal(value);
+
+		if (value.Length == 0 || BoundaryFor(scope) is not { } boundary)
+			return literal;
+
+		foreach (var character in value)
+			if (!Continues(boundary, character))
+				return literal;
+
+		return new Node.Sequence([literal, new Node.Lookahead(false, boundary)]);
+	}
+
+	/// <summary>Whether this character is one the boundary rule says continues a word.</summary>
+	/// <remarks>
+	/// Read out of the lowered rule rather than asked of it at run time: the class is an
+	/// element set, which is exactly a set of characters, so membership is a question this
+	/// side can answer while it still has the grammar in hand.
+	/// </remarks>
+	bool Continues(Node boundary, char character) =>
+		boundary is Node.Call(var rule, _) &&
+		_bodies.TryGetValue(rule, out var body) &&
+		body is Node.Element(var negated, var ranges, var categories, _) &&
+		categories.Count == 0 &&
+		negated != ranges.Any(range => character >= range.From && character <= range.To);
+
+	/// <summary>The `KeywordBoundary` this scope sees, or null while it matches nothing.</summary>
+	Node? BoundaryFor(GrammarScope scope)
+	{
+		for (var at = scope; at is not null; at = at.Parent)
+			if (at.Rules.TryGetValue("KeywordBoundary", out var rule) && !rule.IsBuiltIn)
+				return MatchesNothing(rule, []) ? null : CallTo(rule, []);
+
+		return null;
+	}
+
+	/// <summary>
 	/// The `Trivia` this scope sees, or null when it matches nothing — in which case the
 	/// insertions are not emitted at all rather than emitted and skipped (§4.5).
 	/// </summary>
@@ -806,7 +864,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
 		rule.IsBuiltIn
-			? rule.Name is "none" or "Trivia" or "eof"
+			? rule.Name is "none" or "Trivia" or "eof" or "KeywordBoundary"
 			: seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && MatchesNothing(body, seen);
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch
