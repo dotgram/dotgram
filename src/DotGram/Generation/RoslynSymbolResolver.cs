@@ -176,12 +176,32 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 			.OfType<IMethodSymbol>()
 			.FirstOrDefault(candidate => candidate.Parameters.Length >= argumentCount);
 
-		if (method is null)
+		// A half of a partial method counts as not being there. The author writes the
+		// implementation and §7.4 writes the declaration that completes it, so a method
+		// with an implementation and no definition is exactly the one to declare — saying
+		// it exists would leave the two halves unjoined (CS0759).
+		if (method is null || Unjoined(method))
 			return false;
 
 		role = Classify(method, argumentCount);
 
 		return true;
+	}
+
+	/// <summary>An implementation of a partial method whose declaration nobody wrote.</summary>
+	static bool Unjoined(IMethodSymbol method)
+	{
+		if (method.IsPartialDefinition || method.PartialDefinitionPart is not null)
+			return false;
+
+		foreach (var reference in method.DeclaringSyntaxReferences)
+			if (reference.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax declaration &&
+				declaration.Modifiers.Any(static modifier => modifier.ValueText == "partial"))
+			{
+				return true;
+			}
+
+		return false;
 	}
 
 	/// <summary>

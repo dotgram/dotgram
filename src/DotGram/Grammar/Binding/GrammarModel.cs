@@ -28,7 +28,11 @@ public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Nam
 /// A name that lives on the C# side. Resolution beyond "it exists" happens later —
 /// this stage only records what the resolver was asked and what it answered.
 /// </summary>
-public sealed record CSharpSymbol(string Name, MethodRole? Role) : Symbol(Name);
+/// <param name="Missing">
+/// The host has no such method, and the grammar is somewhere its signature can be worked
+/// out — so one is declared for the author to implement (§7.4) rather than reported.
+/// </param>
+public sealed record CSharpSymbol(string Name, MethodRole? Role, bool Missing = false) : Symbol(Name);
 
 /// <summary>
 /// One lexical scope: the global one at the top of a file, or a `scope` block.

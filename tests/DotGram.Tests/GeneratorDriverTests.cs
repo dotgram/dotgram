@@ -1079,6 +1079,65 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("No constructor of", diagnostic.GetMessage(), StringComparison.Ordinal);
 	}
 
+	// ── A method that is not written yet (§7.4) ──────────────────────────────────
+
+	[Fact]
+	public void A_method_the_grammar_calls_and_nobody_wrote_is_declared()
+	{
+		// §7.4. The grammar says what it wants of `Tiny`; the generator writes the
+		// signature down and the C# compiler asks for the body. What the author used to get
+		// was the generator refusing the grammar over a name — true, and no help in working
+		// out what to write.
+		var source = GetGeneratedSource(
+			RunGenerator(
+				"[DotGram.Gram(\"Start : @int = digits: ['0'..'9']+ => @Tiny(digits)\\nparse Start\")]\n" +
+				"public partial class Later;"),
+			"Later.g.cs");
+
+		Assert.Contains("private static partial int Tiny(string digits);", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_the_implementation_completes_it()
+	{
+		// The other half: written next door, the parser is whole and runs. The partial
+		// declaration is what makes the two halves one method.
+		var parse = Build("""
+			[DotGram.Gram("Start : @int = digits: ['0'..'9']+ => @Tiny(digits)\nparse Start")]
+			public partial class Done
+			{
+				private static partial int Tiny(string digits) => digits.Length;
+			}
+			""")
+			.GetType("Done")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(4, parse.Invoke(null, ["2026"]));
+	}
+
+	[Fact]
+	public void A_guard_that_is_not_written_yet_is_declared_as_a_bool()
+	{
+		var source = GetGeneratedSource(
+			RunGenerator(
+				"[DotGram.Gram(\"Start = digits: ['0'..'9']+ & where @Fits(digits)\\nparse Start\")]\n" +
+				"public partial class Guarded;"),
+			"Guarded.g.cs");
+
+		Assert.Contains("private static partial bool Fits(string digits);", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_bare_name_where_an_operand_goes_is_still_reported()
+	{
+		// §7.1 gives that position two possible shapes — one testing an item, one reading a
+		// span — so there is no signature to write down, and a wrong guess would send the
+		// author to implement the wrong method. The message stays.
+		AssertDiagnostic("GRAM3004", RunGenerator(
+			"[DotGram.Gram(\"Start = @Unknown & eol\\nparse Start\")]\n" +
+			"public partial class Bare;"));
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]

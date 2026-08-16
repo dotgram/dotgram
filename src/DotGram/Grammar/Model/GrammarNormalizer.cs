@@ -106,6 +106,7 @@ public sealed partial class GrammarNormalizer
 			Powers     = normalizer._powers,
 			Fallible     = normalizer._fallible,
 			Constructions = normalizer._constructions,
+			Declarations  = normalizer._declared,
 		};
 	}
 

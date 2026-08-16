@@ -63,7 +63,8 @@ then quietly mean nothing.
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
 | a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
-| partial declarations for unimplemented `@Method` §7.4 | — | — | — | ✗ | ✗ |
+| partial declarations for a `=>` or `where` call §7.4 | — | ✓ | ✓ | ✓ | ✓ |
+| the same for a bare `@Name` where an operand goes §7.4 | — | — | — | ✗ | ✗ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -861,18 +862,31 @@ output.
 
 ## A method that does not exist yet
 
-Not built: **§7.4's partial declarations**. A grammar that names `@IsSupportedSymbol`
-where no such method exists is refused by the binder — `No C# method or type named
-'IsSupportedSymbol' is in view here` — rather than compiled against a partial declaration
-the author then fills in.
+§7.4 works where the signature can be worked out. A grammar calling `@Tiny(digits)` in a
+`=>` gets
 
-The difference is who reports it and with what. Today it is the generator, and what it
-says is that the name is unknown. §7.4 wants the C# compiler to say it, at a method
-signature the generator worked out and wrote down, so the fix is to implement the method
-in front of you rather than to work out from a grammar what shape it should have had. It
-is the mechanism `[GeneratedRegex]` uses, and it needs one thing this side does not have
-yet: the signature is only knowable once the role is, and the role is currently read off
-a method that must already exist.
+```csharp
+private static partial int Tiny(string digits);
+```
+
+written into the generated file, and the missing body is then an ordinary C# error —
+*no defining declaration found* — naming the exact signature expected. The author writes
+the implementation next door and the two halves are one method. It is the mechanism
+`[GeneratedRegex]` uses, with the halves the other way round.
+
+Two positions say what a signature is. A `=>` returns the rule's declared type, a `where`
+returns `bool`, and in both the parameters are the captures passed — so every argument has
+to be a capture, and a call passing anything else is reported as it was. A bare `@Name`
+standing where an operand goes says neither: §7.1 gives that position two shapes, one
+testing an item and one reading a span, and guessing would send the author off to
+implement the wrong method. That one is still `GRAM3004`.
+
+The half-written method took some finding. Once the author writes
+`private static partial int Tiny(string digits) => digits.Length;` the host *has* a method
+of that name, so the generator would stop declaring one and the implementation would be
+left unjoined (CS0759). An implementation whose declaration nobody wrote is therefore
+treated as absent — which is what it is, and the half that is missing is the half this
+generator writes.
 
 ## A rule can be a sequence of what it is made of
 

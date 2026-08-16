@@ -94,6 +94,12 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		foreach (var required in graph.Declarations)
+		{
+			EmitDeclaration(file, graph, results, required);
+			file.Line();
+		}
+
 		foreach (var rule in graph.Rules)
 		{
 			if (!graph.Types.ContainsKey(rule))
@@ -483,6 +489,42 @@ public static partial class CSharpEmitter
 			graph.Bodies[rule],
 			other => results.QualifiedOf(other) is not null,
 			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+
+	/// <summary>
+	/// §7.4: the signature of a method the grammar calls and the host has not got.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Declared rather than reported. A missing implementation is then an ordinary C#
+	/// error — "no defining declaration found" — naming the exact signature expected, so
+	/// the fix is to write the body in front of you rather than to work out from a grammar
+	/// what shape it should have had. `[GeneratedRegex]` does the same.
+	/// </para>
+	/// <para>
+	/// <c>private</c> and written out, unlike this project's own code: an emitted member
+	/// says its accessibility deliberately, and a partial method that returns something
+	/// must state one. That form needs C# 9, which is also what a source generator needs
+	/// to run at all.
+	/// </para>
+	/// </remarks>
+	static void EmitDeclaration(
+		Writer file, RecognitionGraph graph, ResultTypes results, RequiredMethod required)
+	{
+		var parameters = new List<string>();
+
+		foreach (var name in required.Arguments)
+			foreach (var member in graph.Results[required.Owner])
+				if (member.Name == name)
+					parameters.Add(
+						results.ValueOf(member.Rule) +
+						(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +
+						" " + ResultTypes.ParameterOf(member));
+
+		var returns = required.IsGuard ? "bool" : graph.Types[required.Owner];
+
+		file.Line($"/// <summary>What <c>{required.Owner.Name}</c> asks of you (docs/syntax.md §7.4).</summary>");
+		file.Line($"private static partial {returns} {required.Name}({string.Join(", ", parameters)});");
+	}
 
 	/// <summary>
 	/// A line of the author's own C#, under a <c>#line</c> that points back at where they
