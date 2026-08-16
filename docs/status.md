@@ -67,6 +67,7 @@ then quietly mean nothing.
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
+| a declared type found under the grammar's `@using` §7.3 | — | — | ✓ | ✓ | ✓ |
 | partial declarations for a `=>` or `where` call §7.4 | — | ✓ | ✓ | ✓ | ✓ |
 | the same for a bare `@Name` where an operand goes §7.4 | — | — | — | ✗ | ✗ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |

@@ -662,7 +662,7 @@ public sealed partial class GrammarNormalizer
 			var length = -1;
 			var tied   = false;
 
-			if (_resolver.TryResolveConstructors(type, out var constructors))
+			if (TryConstructors(type, out var constructors))
 				foreach (var constructor in constructors)
 				{
 					if (Covered(constructor, members) is not { } order)
@@ -683,6 +683,7 @@ public sealed partial class GrammarNormalizer
 			// rather than fallen through — the grammar did name a way to build this type
 			// and it is the ambiguity that has to be reported, not a second way found.
 			var written = tied || chosen is { Count: > 0 } ? null : Settable(type, members);
+
 
 			if (tied || (chosen is null or { Count: 0 } && written is null))
 				continue;
@@ -720,7 +721,7 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	IReadOnlyList<PropertyBinding>? Settable(string type, IReadOnlyList<ResultMember> members)
 	{
-		if (!_resolver.TryResolveSettableProperties(type, out var properties))
+		if (!TrySettable(type, out var properties))
 			return null;
 
 		var written = new List<PropertyBinding>();
@@ -846,6 +847,41 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
+	}
+
+	/// <summary>
+	/// The host asked about a type by the name the grammar wrote, then under each
+	/// <c>@using</c> it declared.
+	/// </summary>
+	/// <remarks>
+	/// The same search the binder does for a type's existence, and for the same reason: a
+	/// grammar writes <c>: @Trade</c> beside an <c>@using</c> and expects to be understood,
+	/// exactly as C# would. Asked only about the written name, §7.3 worked for a type in
+	/// the global namespace and quietly did not for one in anybody's — which is every real
+	/// project, and is how this was found.
+	/// </remarks>
+	bool TryConstructors(string type, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		if (_resolver.TryResolveConstructors(type, out constructors))
+			return true;
+
+		foreach (var import in Imports(_model.Root))
+			if (_resolver.TryResolveConstructors(import + "." + type, out constructors))
+				return true;
+
+		return false;
+	}
+
+	bool TrySettable(string type, out IReadOnlyList<ObjectMember> properties)
+	{
+		if (_resolver.TryResolveSettableProperties(type, out properties))
+			return true;
+
+		foreach (var import in Imports(_model.Root))
+			if (_resolver.TryResolveSettableProperties(import + "." + type, out properties))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>

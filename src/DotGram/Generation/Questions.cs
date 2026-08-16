@@ -98,10 +98,18 @@ static class Questions
 		// §7.3: a rule declaring a type may have it built from its captures, so what every
 		// declared type can be built with is asked for. The same superset as the rest of
 		// this file — a type that turns out to be built by a `=>` was asked about anyway.
+		// Under each import as well, because a type is written the way C# would write it
+		// beside a `using` and the grammar half searches the same way (§7.3).
 		foreach (var type in declared)
 		{
 			questions.Add(Question.Builds(type));
 			questions.Add(Question.Sets(type));
+
+			foreach (var import in imports)
+			{
+				questions.Add(Question.Builds(import + "." + type));
+				questions.Add(Question.Sets(import + "." + type));
+			}
 		}
 
 		foreach (var name in names)

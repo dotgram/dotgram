@@ -556,4 +556,37 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_what_is_not_JSON_is_refused() =>
 		Assert.Throws<FormatException>(() => JsonParser.Read("{\"a\": }"));
+
+	// ── The CSV with no `=>` in it (§7.3) ────────────────────────────────────────
+
+	[Fact]
+	public void A_row_is_built_by_the_constructor_its_captures_cover()
+	{
+		var trades = TypedCsv.Read(
+			"""
+			AAPL,100,2026-08-12
+			MSFT,250,2026-08-13
+
+			""");
+
+		Assert.Equal(["AAPL", "MSFT"], trades.Select(trade => trade.Symbol));
+		Assert.Equal([100, 250],       trades.Select(trade => trade.Size));
+		Assert.Equal(new DateOnly(2026, 8, 12), trades[0].On);
+	}
+
+	[Fact]
+	public void And_a_type_with_no_constructor_is_written_into()
+	{
+		var session = TypedCsv.ReadSession(
+			"""
+			2026-08-12/2026-08-13
+
+			""");
+
+		Assert.Equal(new DateOnly(2026, 8, 12), session.Opened);
+		Assert.Equal(new DateOnly(2026, 8, 13), session.Closed);
+
+		// Neither captured nor required, so the type's own default survives.
+		Assert.Equal("", session.Note);
+	}
 }

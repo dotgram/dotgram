@@ -173,7 +173,19 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 			return nested;
 		}
 
-		return _compilation.GetTypeByMetadataName(name);
+		if (_compilation.GetTypeByMetadataName(name) is { } found)
+			return found;
+
+		// `GetTypeByMetadataName` answers null when the name is ambiguous as well as when
+		// it is unknown, and the two deserve different treatment. Two types of one name is
+		// something C# reports itself (CS0101, or CS0104 at the use), so saying "no C# type
+		// named 'Trade' is in view" on top of it is a second message about one mistake —
+		// and a misleading one, since there are two of them. The first is taken and the
+		// grammar goes on; what is wrong reaches the author from the compiler that owns
+		// the question.
+		var candidates = _compilation.GetTypesByMetadataName(name);
+
+		return candidates.Length > 0 ? candidates[0] : null;
 	}
 
 	static readonly System.Collections.Generic.Dictionary<string, string> Keywords =

@@ -19,11 +19,10 @@ namespace DotGram.Examples;
 //
 // Two things in it are worth looking at rather than copying:
 //
-//   * `Members` and `Elements` are one rule each, parameterized on what they hold, so
-//     the comma-separated list is written once (§4.2). `List(item, sep)` is the
-//     specification's own example, and it specializes per call site — `List(Member,
-//     ',')` and `List(Value, ',')` become two separate recognizers with no delegate,
-//     no interface and nothing virtual between them.
+//   * The comma-separated list is written once, as `List(item, sep)` — §4.2's own
+//     example — and specialized per call site. `List(Member, ',')` and `List(Value,
+//     ',')` become two separate recognizers with no delegate, no interface and nothing
+//     virtual between them, which is what "specialization" buys over a generic list.
 //
 //   * `Trivia` is whitespace and is declared once, at the top, so no rule below it
 //     mentions spacing at all (§4.5). The lexical scope turns it off for the runs where
