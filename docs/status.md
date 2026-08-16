@@ -1279,7 +1279,7 @@ can tell is wrong.
 
 ## What has been measured
 
-Four of the architecture's claims now have numbers rather than reasoning behind them.
+Five of the architecture's claims now have numbers rather than reasoning behind them.
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
@@ -1293,14 +1293,36 @@ records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the
 feed as one string, and ten million — 1.9 GB — in 13.6 seconds with no Gen2 collection at
 all. That is the streaming claim measured rather than argued.
 
+**Pathological backtracking**, and it is real. §11 says ordered choice backtracks fully
+inside a rule, and full backtracking over a repetition whose body can be cut several ways
+is exponential — measured here on a match that fails at the very end, so every cutting is
+tried:
+
+| grammar | 16 chars | 18 | 20 | 22 |
+| --- | --: | --: | --: | --: |
+| `(['a']+)+ & 'b'` | 3.5 ms | 14.8 | 62.4 | 258 |
+| `("a" \| "aa" \| "aaa")* & 'b'` | 1.2 ms | 4.1 | 14.9 | 57.6 |
+| `("a" \| "aa")* & 'b'` | 0.2 ms | 0.4 | 1.2 | 3.8 |
+| `Inner+ & 'b'`, `Inner = ['a']+` | 0.09 ms | 0.005 | 0.001 | 0.001 |
+
+Four times the work for two more characters in the first row, which is 2ⁿ; the second is
+the tribonacci count of the ways to cut a run, the third the Fibonacci one. Nothing here
+memoizes, so a grammar that offers a repetition several ways of consuming the same text
+pays for all of them.
+
+The last row is the same shape with a rule boundary in it, and it is the answer rather
+than a workaround. **A call answers once** (§4): `Inner` takes the whole run, is never
+asked for a shorter one, and the enclosing repetition has nothing to enumerate. So the
+engine's one deliberate limitation is also what makes the exponential case avoidable — by
+naming the inner run, which is what a reader wants the grammar to say anyway.
+
 **Nesting depth**, above: about 2700 levels, and why.
 
 **One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
 
-Still unmeasured, and worth knowing before anyone relies on it: pathological
-backtracking, and generated code size.
+Still unmeasured, and worth knowing before anyone relies on it: generated code size.
 
 ## What the tests cover
 
