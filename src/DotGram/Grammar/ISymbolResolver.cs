@@ -49,7 +49,28 @@ public interface ISymbolResolver
 	/// <returns><c>false</c> when the type is not in scope, or offers nothing to call.</returns>
 	bool TryResolveConstructors(
 		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors);
+
+	/// <summary>
+	/// The properties of a type that can be set when it is made — §7.3's second way of
+	/// filling a result in.
+	/// </summary>
+	/// <remarks>
+	/// Only what an object initializer may write: <c>init</c> and settable properties, and
+	/// among them the <c>required</c> ones have to be covered or the type will not compile.
+	/// Whether one is settable from where the generated code sits is the host's business,
+	/// the same as for a constructor.
+	/// </remarks>
+	/// <returns><c>false</c> when the type is not in scope, or nothing about it can be set.</returns>
+	bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties);
 }
+
+/// <summary>A property an object initializer may write.</summary>
+/// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
+/// <param name="IsRequired">
+/// <c>required</c>: not covering it is not an option, so a type with one the captures
+/// cannot fill is not a type these captures can build.
+/// </param>
+public readonly record struct ObjectMember(string Name, string Type, bool IsRequired);
 
 /// <summary>One parameter of a C# method or constructor, as the host sees it.</summary>
 /// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
@@ -108,6 +129,14 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
 	{
 		constructors = [];
+
+		return false;
+	}
+
+	/// <remarks>The same reasoning as the constructors above: none rather than everything.</remarks>
+	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+	{
+		properties = [];
 
 		return false;
 	}

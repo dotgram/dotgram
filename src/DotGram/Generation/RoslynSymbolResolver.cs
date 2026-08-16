@@ -103,6 +103,48 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 	}
 
 	/// <summary>
+	/// What an object initializer could write on the declared type (§7.3's second way).
+	/// </summary>
+	/// <remarks>
+	/// A property counts when the generated code could set it where it sits — which is
+	/// inside the host class, so the host's own private members count as much as public
+	/// ones. <c>init</c> and ordinary setters both qualify: an initializer may write
+	/// either, and which one the author chose is their design rather than this compiler's
+	/// concern.
+	/// </remarks>
+	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+	{
+		properties = [];
+
+		if (TypeNamed(qualifiedName) is not { } type)
+			return false;
+
+		var found = new List<ObjectMember>();
+
+		for (var at = type; at is not null; at = at.BaseType)
+			foreach (var member in at.GetMembers().OfType<IPropertySymbol>())
+			{
+				if (member.IsStatic ||
+					member.IsIndexer ||
+					member.SetMethod is not { } setter ||
+					!_compilation.IsSymbolAccessibleWithin(setter, _compilation.Assembly) ||
+					found.Any(one => string.Equals(one.Name, member.Name, StringComparison.Ordinal)))
+				{
+					continue;
+				}
+
+				found.Add(new ObjectMember(
+					member.Name,
+					member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+					member.IsRequired));
+			}
+
+		properties = found;
+
+		return found.Count > 0;
+	}
+
+	/// <summary>
 	/// A type by the name a grammar writes, keyword or otherwise.
 	/// </summary>
 	/// <remarks>

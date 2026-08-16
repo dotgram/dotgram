@@ -25,9 +25,14 @@ readonly record struct Question(string Name, int Arity, string? Against = null)
 	/// <summary>And the one that asks what a type can be built with (§7.3).</summary>
 	public const int Constructors = -3;
 
+	/// <summary>And what can be set on it once it is (§7.3's second way).</summary>
+	public const int Properties = -4;
+
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
 
 	public static Question Builds(string type) => new(type, Constructors);
+
+	public static Question Sets(string type) => new(type, Properties);
 }
 
 /// <param name="Yes">Whether the host has it.</param>
@@ -44,7 +49,8 @@ readonly record struct Answer(
 	Question Asked,
 	bool Yes,
 	MethodRole Role,
-	EquatableArray<EquatableArray<MethodParameter>> Constructors = default);
+	EquatableArray<EquatableArray<MethodParameter>> Constructors = default,
+	EquatableArray<ObjectMember> Properties = default);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -93,7 +99,10 @@ static class Questions
 		// declared type can be built with is asked for. The same superset as the rest of
 		// this file — a type that turns out to be built by a `=>` was asked about anyway.
 		foreach (var type in declared)
+		{
 			questions.Add(Question.Builds(type));
+			questions.Add(Question.Sets(type));
+		}
 
 		foreach (var name in names)
 		{
@@ -194,6 +203,13 @@ static class Questions
 					default,
 					Shapes(constructors)),
 
+				Question.Properties => new Answer(
+					question,
+					resolver.TryResolveSettableProperties(question.Name, out var properties),
+					default,
+					default,
+					new EquatableArray<ObjectMember>([.. properties])),
+
 				< 0 => new Answer(question, resolver.TypeExists(question.Name), default),
 
 				_ => new Answer(
@@ -251,6 +267,15 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		var answer = Look(new Question(qualifiedName, argumentCount));
 
 		role = answer.Role;
+
+		return answer.Yes;
+	}
+
+	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+	{
+		var answer = Look(Question.Sets(qualifiedName));
+
+		properties = answer.Properties.Items;
 
 		return answer.Yes;
 	}

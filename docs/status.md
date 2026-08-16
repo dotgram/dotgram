@@ -61,7 +61,7 @@ then quietly mean nothing.
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
-| captures matched to `init`/`required` properties §7.3 | — | — | ✗ | ✗ | ✗ |
+| captures matched to `init`/`required` properties §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
 | partial declarations for a `=>` or `where` call §7.4 | — | ✓ | ✓ | ✓ | ✓ |
 | the same for a bare `@Name` where an operand goes §7.4 | — | — | — | ✗ | ✗ |
@@ -411,7 +411,22 @@ is both what C# does and what the generated code needs: it sits inside the host 
 a short name there binds to the nested type whatever the resolver decided, and deciding
 otherwise would check the constructors of one type and call another.
 
-Still not built: **`init`/`required` properties**, §7.3's second way.
+§7.3's second way works too, and is reached when the first cannot answer: the value is
+made and its properties written from the captures, in one object initializer because
+that is the only place `init` and `required` can be written. Every `required` property
+has to be covered — a type saying `required` is saying it will not compile otherwise —
+and a property that is neither covered nor required is left alone, keeping whatever
+default the type gave it. At least one has to be written, or this would be making an
+empty value rather than building one.
+
+The order is §7.3's own: a constructor first, and only what it could not answer is asked
+of the properties. A tie between constructors is left as a tie rather than falling
+through to them — the grammar did name a way to build this type, and it is the ambiguity
+that has to be reported, not a second way found behind it.
+
+Whether the type has a constructor of no parameters to write into is not checked here.
+That is C#'s question about the initializer this emits, and §7.6 now asks it on the
+grammar's own line.
 
 ## A guard asks the values
 

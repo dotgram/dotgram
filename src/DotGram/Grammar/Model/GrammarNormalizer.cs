@@ -106,6 +106,7 @@ public sealed partial class GrammarNormalizer
 			Powers     = normalizer._powers,
 			Fallible     = normalizer._fallible,
 			Constructions = normalizer._constructions,
+			Initializations = normalizer._initializations,
 			Declarations  = normalizer._declared,
 		};
 	}
@@ -541,7 +542,13 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string ConstructorMarker = "<constructor>";
 
+	/// <summary>
+	/// And when it is made and then written into — §7.3's second way.
+	/// </summary>
+	public const string InitializerMarker = "<initializer>";
+
 	readonly Dictionary<RuleSymbol, IReadOnlyList<string>> _constructions = [];
+	readonly Dictionary<RuleSymbol, IReadOnlyList<PropertyBinding>> _initializations = [];
 
 	/// <summary>
 	/// §7.3's first way of filling a result in: a constructor whose every parameter is
@@ -587,39 +594,93 @@ public sealed partial class GrammarNormalizer
 			if (alternatives.Any(static alternative => alternative is Node.Construct))
 				continue;
 
-			if (!_resolver.TryResolveConstructors(type, out var constructors))
-				continue;
-
 			var chosen = (IReadOnlyList<string>?)null;
 			var length = -1;
 			var tied   = false;
 
-			foreach (var constructor in constructors)
-			{
-				if (Covered(constructor, members) is not { } order)
-					continue;
-
-				if (order.Count > length)
+			if (_resolver.TryResolveConstructors(type, out var constructors))
+				foreach (var constructor in constructors)
 				{
-					(chosen, length, tied) = (order, order.Count, false);
-				}
-				else if (order.Count == length)
-				{
-					tied = true;
-				}
-			}
+					if (Covered(constructor, members) is not { } order)
+						continue;
 
-			if (chosen is null || tied)
+					if (order.Count > length)
+					{
+						(chosen, length, tied) = (order, order.Count, false);
+					}
+					else if (order.Count == length)
+					{
+						tied = true;
+					}
+				}
+
+			// §7.3 in the order it lists them: a constructor first, and what it could not
+			// answer is asked of the properties. A tie among constructors is left alone
+			// rather than fallen through — the grammar did name a way to build this type
+			// and it is the ambiguity that has to be reported, not a second way found.
+			var written = tied || chosen is { Count: > 0 } ? null : Settable(type, members);
+
+			if (tied || (chosen is null or { Count: 0 } && written is null))
 				continue;
 
 			var rewritten = new List<Node>(alternatives.Count);
+			var marker    = written is null ? ConstructorMarker : InitializerMarker;
 
 			foreach (var alternative in alternatives)
-				rewritten.Add(new Node.Construct(alternative, ConstructorMarker));
+				rewritten.Add(new Node.Construct(alternative, marker));
 
 			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
-			_constructions[rule] = chosen;
+
+			if (written is null)
+				_constructions[rule] = chosen!;
+			else
+				_initializations[rule] = written;
 		}
+	}
+
+	/// <summary>
+	/// §7.3's second way: the properties these captures can write, or null where the type
+	/// cannot be built that way.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Every <c>required</c> property has to be covered — a type saying <c>required</c> is
+	/// saying it will not compile otherwise — and at least one property has to be written,
+	/// or this is not building a value so much as making an empty one.
+	/// </para>
+	/// <para>
+	/// A constructor of no parameters is not asked for here. Whether one exists is C#'s
+	/// question about the initializer this emits, and it will be asked on the grammar's
+	/// own line (§7.6).
+	/// </para>
+	/// </remarks>
+	IReadOnlyList<PropertyBinding>? Settable(string type, IReadOnlyList<ResultMember> members)
+	{
+		if (!_resolver.TryResolveSettableProperties(type, out var properties))
+			return null;
+
+		var written = new List<PropertyBinding>();
+
+		foreach (var property in properties)
+		{
+			var found = (string?)null;
+
+			foreach (var member in members)
+				if (string.Equals(member.Name, property.Name, StringComparison.OrdinalIgnoreCase))
+					found = member.Name;
+
+			if (found is null)
+			{
+				if (property.IsRequired)
+					return null;
+
+				continue;
+			}
+
+			written.Add(new PropertyBinding(property.Name, found));
+		}
+
+		return written.Count > 0 ? written : null;
 	}
 
 	/// <summary>

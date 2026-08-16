@@ -622,6 +622,24 @@ public static partial class CSharpEmitter
 			return;
 		}
 
+		// §7.3's second way: the value is made and then written into. An object initializer
+		// rather than assignments, because `init` and `required` can only be written in one.
+		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.InitializerMarker)
+		{
+			var written = new List<string>();
+
+			foreach (var binding in graph.Initializations[rule])
+				foreach (var member in factory.Members)
+					if (member.Name == binding.Capture)
+						written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with (§7.3).</summary>");
+			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
+			file.Line($"	new {graph.Types[rule]} {{ {string.Join(", ", written)} }};");
+
+			return;
+		}
+
 		// §4.1 case 2: the grammar wrote no expression, so there is none to write out. What
 		// the rule is made of is its operands, in order, and the body says so — a body and
 		// not an expression because a repetition contributes an unknown number of elements

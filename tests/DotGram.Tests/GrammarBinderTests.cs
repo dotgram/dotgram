@@ -211,6 +211,14 @@ public sealed class GrammarBinderTests
 
 		public bool IsAssignable(string from, string to) => false;
 
+		public bool TryResolveSettableProperties(
+			string qualifiedName, out System.Collections.Generic.IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
 		public bool TryResolveConstructors(
 			string qualifiedName,
 			out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<MethodParameter>> constructors)

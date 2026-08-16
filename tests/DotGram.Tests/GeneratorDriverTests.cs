@@ -1057,6 +1057,83 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void A_type_with_no_constructor_to_fill_is_written_into_instead()
+	{
+		// §7.3's second way, reached when the first cannot answer: the value is made and
+		// its properties written from the captures. `required` is what makes this a
+		// definite answer rather than a guess — the type says which of them it insists on.
+		var built = Build("""
+			public sealed class Entry
+			{
+				public required string Name   { get; init; }
+				public required string Amount { get; init; }
+				public          string Note   { get; init; } = "";
+			}
+
+			[DotGram.Gram("Row : @Entry = name: ['a'..'z']+ & ',' & amount: ['0'..'9']+\nparse Row")]
+			public partial class Entries;
+			""")
+			.GetType("Entries")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab,12"])!;
+
+		Assert.Equal("ab", built.GetType().GetProperty("Name")!.GetValue(built));
+		Assert.Equal("12", built.GetType().GetProperty("Amount")!.GetValue(built));
+
+		// Not covered, not required, and so not written: it keeps the default the type gave it.
+		Assert.Equal("", built.GetType().GetProperty("Note")!.GetValue(built));
+	}
+
+	[Fact]
+	public void A_required_property_the_captures_cannot_fill_is_not_a_way_to_build_it()
+	{
+		// The type insists on `Amount` and the rule captures no such thing, so writing into
+		// it would not compile. Reported as unbuilt rather than emitted and left to fail in
+		// the consumer's build.
+		var diagnostic = Assert.Single(
+			RunGenerator("""
+				public sealed class Insisting
+				{
+					public required string Name   { get; init; }
+					public required string Amount { get; init; }
+				}
+
+				[DotGram.Gram("Row : @Insisting = name: ['a'..'z']+\nparse Row")]
+				public partial class Short;
+				""")
+				.Diagnostics
+				.Where(d => d.Id == "GRAM4008"));
+
+		Assert.Contains("does not say how to build it", diagnostic.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_constructor_is_preferred_to_writing_into_the_value()
+	{
+		// §7.3 lists the constructor first, and the difference is visible: the constructor
+		// here records that it ran.
+		var built = Build("""
+			public sealed class Either
+			{
+				public Either() { }
+
+				public Either(string name) { Name = name; How = "constructor"; }
+
+				public string Name { get; init; } = "";
+				public string How  { get; init; } = "initializer";
+			}
+
+			[DotGram.Gram("Row : @Either = name: ['a'..'z']+\nparse Row")]
+			public partial class Preferred;
+			""")
+			.GetType("Preferred")!
+			.GetMethod("ParseRow", [typeof(string)])!
+			.Invoke(null, ["ab"])!;
+
+		Assert.Equal("constructor", built.GetType().GetProperty("How")!.GetValue(built));
+	}
+
+	[Fact]
 	public void A_type_no_constructor_of_which_the_captures_cover_is_reported()
 	{
 		// Turned down rather than half-built. The message names what was matched against,

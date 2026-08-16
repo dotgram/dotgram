@@ -287,6 +287,13 @@ public sealed class RecognitionGraph(
 		new Dictionary<RuleSymbol, IReadOnlyList<string>>();
 
 	/// <summary>
+	/// The rules whose value is made and then written into, and what goes where (§7.3's
+	/// second way).
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<PropertyBinding>> Initializations { get; init; } =
+		new Dictionary<RuleSymbol, IReadOnlyList<PropertyBinding>>();
+
+	/// <summary>
 	/// The methods a grammar calls that the host does not have, and that §7.4 declares for
 	/// the author to implement.
 	/// </summary>
@@ -447,3 +454,6 @@ public sealed class RecognitionGraph(
 /// <param name="Owner">The rule the call is written in, which is where the type comes from.</param>
 public sealed record RequiredMethod(
 	string Name, IReadOnlyList<string> Arguments, bool IsGuard, RuleSymbol Owner);
+
+/// <summary>One property of a result written from one capture (§7.3).</summary>
+public readonly record struct PropertyBinding(string Property, string Capture);
