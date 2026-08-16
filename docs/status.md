@@ -1279,7 +1279,7 @@ can tell is wrong.
 
 ## What has been measured
 
-Two of the architecture's claims now have numbers rather than reasoning behind them.
+Four of the architecture's claims now have numbers rather than reasoning behind them.
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
@@ -1288,14 +1288,19 @@ between 1.1× and 1.9× faster than `RegexOptions.Compiled` — the same order a
 BCL does, not a different class. Allocation is at parity, because both materialize the
 parts as strings. `benchmarks/README.md` has the table and what not to read into it.
 
+**Throughput on a large feed**, under *What the window costs* above: a million wide
+records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the same
+feed as one string, and ten million — 1.9 GB — in 13.6 seconds with no Gen2 collection at
+all. That is the streaming claim measured rather than argued.
+
 **Nesting depth**, above: about 2700 levels, and why.
 
 **One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
 
-Still unmeasured, and worth knowing before anyone relies on it: throughput on a large
-feed, pathological backtracking, and generated code size.
+Still unmeasured, and worth knowing before anyone relies on it: pathological
+backtracking, and generated code size.
 
 ## What the tests cover
 
