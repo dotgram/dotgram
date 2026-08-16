@@ -1280,7 +1280,7 @@ can tell is wrong.
 
 ## What has been measured
 
-Five of the architecture's claims now have numbers rather than reasoning behind them.
+Six of the architecture's claims now have numbers rather than reasoning behind them.
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
@@ -1317,13 +1317,34 @@ asked for a shorter one, and the enclosing repetition has nothing to enumerate. 
 engine's one deliberate limitation is also what makes the exponential case avoidable — by
 naming the inner run, which is what a reader wants the grammar to say anyway.
 
+**Generated code size**, which is large and is meant to be:
+
+| grammar | its lines | generated | of which support |
+| --- | --: | --: | --: |
+| `Csv.gram` | 4 | 558 | 19 |
+| `Feed.gram` | 13 | 1882 | 281 |
+| `Url.gram` | 32 | 3765 | 281 |
+| `JsonExample` | 30 | 2103 | 19 |
+
+A hundred lines of C# per line of grammar, and the ratio holds because the machines are
+what dominate: one state per position a rule can be in, each with its comment saying
+which notation it came from. The support library at the end is a fixed cost and a small
+one — 19 lines where nothing streams, 281 where it does — so a second grammar in the same
+project pays the machines again and the support again, since both are emitted per host
+class rather than shared (§6.1).
+
+Nothing here is optimized for size and it should not be: the file is read by a compiler,
+and every line of it exists so that no allocation, no virtual call and no closure exists
+at run time. What the number is worth knowing for is compile time in a project with many
+grammars — which is measured above, at 1.5 ms each.
+
 **Nesting depth**, above: about 2700 levels, and why.
 
 **One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
 
-Still unmeasured, and worth knowing before anyone relies on it: generated code size.
+Everything the architecture claims now has a number behind it.
 
 ## What the tests cover
 
