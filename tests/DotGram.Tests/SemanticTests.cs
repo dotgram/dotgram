@@ -295,6 +295,29 @@ public sealed class SemanticTests
 		Assert.Contains("captured as 'rows'", reported[0].Message, StringComparison.Ordinal);
 	}
 
+	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
+
+	[Fact]
+	public void Trivia_goes_between_operands_and_not_between_iterations()
+	{
+		// §4.5 says between the operands of a sequence, and means it. The two cases look
+		// alike and are not, which is worth a test of its own because the difference is
+		// what keeps `['0'..'9']+` from reading "1 2" as one number in a grammar that
+		// ignores spaces.
+		Assert.True(Matches("Trivia = ' '*\nStart = Word & Word\nWord = ['a'..'z']+", "ab cd"));
+		Assert.False(Matches("Trivia = ' '*\nStart = Word*\nWord = ['a'..'z']+", "ab cd"));
+	}
+
+	[Fact]
+	public void And_a_spaced_list_says_so_with_the_rule_itself()
+	{
+		// `Trivia` is an ordinary rule (§4.5), so a repetition that wants spacing names it.
+		// Nothing new in the language and nothing special about the name.
+		Assert.True(Matches(
+			"Trivia = ' '*\nStart = Word & (Trivia & Word)*\nWord = ['a'..'z']+",
+			"ab cd ef"));
+	}
+
 	[Fact]
 	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
 	{

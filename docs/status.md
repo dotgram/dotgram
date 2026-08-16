@@ -74,6 +74,7 @@ then quietly mean nothing.
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
+| `Trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |
 | retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |
 | `find` over a `TextReader` §6.3 | — | — | ✓ | ✓ | ✓ |

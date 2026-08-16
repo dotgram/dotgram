@@ -604,6 +604,38 @@ Trivia = WhitespaceAndComments
 No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
 itself as `any{0}` rather than by a new primitive.
 
+**Between the operands of a sequence, and nowhere else.** The iterations of a repetition
+are not operands of a sequence, so nothing is inserted between them:
+
+```dotgram
+Trivia = Whitespace
+
+Pair    = Word & Word            // matches "ab cd"
+Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
+```
+
+That is not an oversight to be worked around but the thing that makes the notation
+usable at all. A repetition is how a lexeme is written — `Digits = ['0'..'9']+`,
+`Name = Letter+` — and inserting Trivia between those iterations would make `1 2` one
+number and `a b` one name in every grammar that ignores whitespace. Nothing can tell the
+two apart automatically: `Word*` and `Digit*` have the same shape, and only the author
+knows which is a list and which is a lexeme.
+
+So the author says which. `Trivia` is an ordinary rule and may be named:
+
+```dotgram
+Attributes = Attribute & (Trivia & Attribute)*     // a list, spaced
+Digits     = ['0'..'9']+                           // a lexeme, not
+```
+
+The same is true of a run with a separator, where the separator is an operand and the
+spacing around it comes for free:
+
+```dotgram
+List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — Trivia is inserted
+                                                   // either side of `sep`
+```
+
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
 ```dotgram
