@@ -14,7 +14,25 @@ and what else is owed by a change.
 
 ## Next, in order
 
-**1. §8.3 over a streamed parse.** The one gap with no workaround. A `recover` without a
+**1. §8.3 over a streamed parse — and the channel is already emitted, so start by finding
+out what is actually wrong.** `StreamingEmitter` calls `OnRecovered` in the branch where a
+`recover` has no `=>`, so the row in the status table saying nothing is built is stale.
+What could not be shown is that it *works*: this grammar, read from a `TextReader`,
+
+```dotgram
+Feed : @string[] = Row* recover eol & eof
+Row  : @string   = name: ['a'..'z']+ & eol => @(name)
+```
+
+throws `Input does not match 'eof' at 3` on `aa
+1bad
+cc
+` — the streamed driver does
+not step over the bad line the way the string parser does. Either its recovery is broken
+or that grammar is not what it looks like; telling which is the first job, and a test is
+the second either way.
+
+The original note follows and still stands if the channel turns out sound. A `recover` without a
 `=>` reports a bad element through the `partial void OnRecovered` hook, and the streaming
 driver has no such channel at all — so a feed read from a `TextReader` can step over a
 bad record but cannot say which one. That is exactly the case streaming exists for: a
