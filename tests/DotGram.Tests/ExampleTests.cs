@@ -774,4 +774,45 @@ public sealed class ExampleTests
 	[InlineData("select 'unterminated")]
 	public void Refused_when_it_cannot_be_sure(string sql) =>
 		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
+
+	// ── The INI reader ───────────────────────────────────────────────────────────
+
+	[Fact]
+	public void Ini_comes_back_as_the_lookup_a_caller_wants()
+	{
+		var ini = IniParser.Read(
+			"""
+			name = global one
+			; a comment
+			[server]
+			host = example.com
+			port = 8080
+
+			# another comment
+			[client]
+			retries = 3
+			""".ReplaceLineEndings("\n"));
+
+		Assert.Equal("global one",  ini[""]["name"]);
+		Assert.Equal("example.com", ini["server"]["host"]);
+		Assert.Equal("8080",        ini["server"]["port"]);
+		Assert.Equal("3",           ini["client"]["retries"]);
+		Assert.Equal(["server", "client"], ini.Sections);
+	}
+
+	[Fact]
+	public void And_a_value_keeps_what_INI_has_no_way_to_escape() =>
+		// No escaping in the format, so `;` and `=` inside a value are part of it. A reader
+		// that treated `;` as a comment would silently truncate a path list.
+		Assert.Equal(
+			"C:\a;C:\b",
+			IniParser.Read("path = C:\a;C:\b")[""]["path"]);
+
+	[Fact]
+	public void And_a_later_key_wins_the_way_every_INI_reader_does() =>
+		Assert.Equal("second", IniParser.Read("k = first\nk = second")[""]["k"]);
+
+	[Fact]
+	public void And_a_section_nobody_wrote_is_empty_rather_than_missing() =>
+		Assert.Empty(IniParser.Read("[a]\nx = 1")["absent"]);
 }
