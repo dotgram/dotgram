@@ -283,6 +283,7 @@ written against it, with no test framework anywhere near them.
 | [`JsonExample.cs`](examples/DotGram.Examples/JsonExample.cs) | JSON — a value that is any of six things nested inside itself, and one parameterized list written once for members and elements |
 | [`XmlExample.cs`](examples/DotGram.Examples/XmlExample.cs) | XML — a closing tag checked against the tag it closes with a `where`, which is the thing no grammar can say on its own |
 | [`MarkdownExample.cs`](examples/DotGram.Examples/MarkdownExample.cs) | Markdown blocks — a format where the line is the unit, ordered choice carrying a definition, and every newline written down |
+| [`FixExample.cs`](examples/DotGram.Examples/FixExample.cs) | FIX messages — fields in order because a tag may repeat, and a checksum done in C# because arithmetic over the matched bytes is not a shape |
 | [`FilterExample.cs`](examples/DotGram.Examples/FilterExample.cs) | `Price > 10 AND Country IN ('UK','DE')` — heterogeneous literals, an operator whose right side is a list, and a tree a caller evaluates against their own data |
 | [`NetstringExample.cs`](examples/DotGram.Examples/NetstringExample.cs) | a frame that says how long it is — the one shape a grammar cannot express, handed to a C# recognizer (§7.1) one step at a time |
 | [`FixedWidthExample.cs`](examples/DotGram.Examples/FixedWidthExample.cs) | records with no delimiters at all — widths in the grammar rather than substring arithmetic, and one rule per field kind parameterized by width |

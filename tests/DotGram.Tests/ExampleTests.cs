@@ -958,4 +958,38 @@ public sealed class ExampleTests
 		Assert.Equal(
 			"it's",
 			Assert.IsType<Compare>(Filter.Read("Note = 'it''s'")).Value);
+
+	// ── FIX ──────────────────────────────────────────────────────────────────────
+
+	const string Order = "8=FIX.4.4|9=65|35=D|49=SENDER|56=TARGET|11=ORD1|55=AAPL|54=1|38=100|44=150.25|10=040|";
+
+	[Fact]
+	public void A_FIX_message_comes_back_as_fields_and_as_names()
+	{
+		var order = FixParser.Read(Order);
+
+		Assert.Equal("D",      order.Type);
+		Assert.Equal("AAPL",   order.Symbol);
+		Assert.Equal("SENDER", order.Sender);
+		Assert.Equal(150.25m,  order.Price);
+		Assert.Equal(100m,     order.Quantity);
+
+		// In order, because FIX lets a tag repeat and order is what tells them apart.
+		Assert.Equal("8", order.Fields[0].Tag);
+		Assert.Equal("10", order.Fields[^1].Tag);
+	}
+
+	[Fact]
+	public void And_the_checksum_is_arithmetic_rather_than_shape()
+	{
+		// A sum over the bytes before tag 10, which no grammar can express — the extent
+		// comes across as text and the sum is taken in C#.
+		Assert.True(FixParser.Read(Order).ChecksumHolds);
+		Assert.False(FixParser.Read(Order.Replace("10=040", "10=999")).ChecksumHolds);
+	}
+
+	[Fact]
+	public void And_a_value_may_hold_anything_but_the_separator() =>
+		// Which is why the separator is a control character: `58=a=b c` is one value.
+		Assert.Equal("a=b c", FixParser.Read("35=D|58=a=b c|")["58"]);
 }
