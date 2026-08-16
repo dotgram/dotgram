@@ -577,6 +577,14 @@ public static partial class CSharpEmitter
 	{
 		var parameters = new List<string> { "string parserText" };
 
+		// The other name §8.2 supplies that a construction can want: where the rule
+		// matched, rather than what it matched. Passed when the expression says it, which
+		// is the rule a recovery factory has always been written by — a name found inside
+		// a string literal costs an unused parameter, and reading it exactly would mean
+		// lexing C# on this side.
+		if (Asks(factory, "parserSpan"))
+			parameters.Add("global::DotGram.SourceSpan parserSpan");
+
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
@@ -715,6 +723,11 @@ public static partial class CSharpEmitter
 			}
 		}
 	}
+
+	/// <summary>Whether a construction names one of the parameters §8.2 supplies.</summary>
+	internal static bool Asks(Machine.Factory factory, string name) =>
+		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
+		text.Contains(name);
 
 	/// <summary>
 	/// The repetition of a rule that was marked <c>recover</c>, the slot its elements

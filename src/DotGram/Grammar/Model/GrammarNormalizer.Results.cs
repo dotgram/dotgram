@@ -179,6 +179,46 @@ public sealed partial class GrammarNormalizer
 	/// rewrite rather than a choice for this compiler.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// §4.1 case 4's other half: a rule that builds nothing and captures nothing yields
+	/// the extent it matched, and a rule may say out loud that it wants the bounds of
+	/// that extent rather than its text.
+	/// </summary>
+	/// <remarks>
+	/// <c>: @string</c> needs no construction at all — text is what an extent already is,
+	/// and the type is recorded as absent so the machine goes on doing what it did. Bounds
+	/// are a value somebody has to make, so this becomes an ordinary construction whose
+	/// expression is the supplied name §8.2 already defines for exactly this
+	/// (<c>parserSpan</c>). Nothing new reaches the emitter: a factory that names a
+	/// supplied parameter gets it, which is the rule recovery has always been written by.
+	/// </remarks>
+	void ExtentValues()
+	{
+		foreach (var rule in _rules)
+		{
+			if (!_types.TryGetValue(rule, out var type) || !IsSourceSpan(type))
+				continue;
+
+			var body = _bodies[rule];
+
+			// A rule that captures or builds is making something of its parts; this is for
+			// the one that made nothing and is asking where it was.
+			if (HasCapture(body) || Constructs(body).FirstOrDefault() is not null)
+				continue;
+
+			var rewritten = new List<Node>();
+
+			foreach (var alternative in Alternatives(body))
+				rewritten.Add(new Node.Construct(alternative, new Construction.Expression("parserSpan")));
+
+			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+		}
+	}
+
+	/// <summary>The one type §4.1 case 4 names besides <c>string</c>, however it is written.</summary>
+	static bool IsSourceSpan(string type) =>
+		type is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+
 	void PassThrough()
 	{
 		foreach (var pair in _produces)

@@ -25,6 +25,31 @@ public sealed partial class GrammarNormalizer
 		}
 
 		CheckTrivia();
+		CheckPublications();
+	}
+
+	/// <summary>
+	/// What a published method may hand back (§6.1).
+	/// </summary>
+	/// <remarks>
+	/// Everything this generator emits into the consumer's namespace is <c>internal</c> —
+	/// that is what lets two assemblies each emit it without colliding, and it is the whole
+	/// of why no runtime assembly ships. An <c>internal</c> type cannot appear in a
+	/// <c>public</c> signature, so a rule whose value is one of ours can be used inside the
+	/// grammar and cannot be the thing a caller receives. Said here rather than left to the
+	/// consumer's build, where it arrives as CS0050 about a file they did not write.
+	/// </remarks>
+	void CheckPublications()
+	{
+		foreach (var publication in _model.Publications)
+			if (_types.TryGetValue(publication.Rule, out var type) && IsSourceSpan(type))
+				Report(
+					UnbuiltConstruction,
+					$"'{publication.Rule.Name}' is published and its value is a 'SourceSpan', which " +
+					"is emitted into your assembly as 'internal' and so cannot be what a public " +
+					"method returns (docs/syntax.md §6.1). Capture it inside another rule, or " +
+					"publish one that builds a type of your own.",
+					publication.Rule.Declaration?.At ?? default);
 	}
 
 	/// <summary>

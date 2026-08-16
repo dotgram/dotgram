@@ -83,6 +83,7 @@ public sealed partial class GrammarNormalizer
 
 		// After the types and before the results, the same as the sequence rewrite above:
 		// it writes captures that the results are then computed from (§4.1 case 3).
+		normalizer.ExtentValues();
 		normalizer.PassThrough();
 
 		normalizer.ComputeResults();

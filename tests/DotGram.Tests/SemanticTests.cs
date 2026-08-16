@@ -134,15 +134,27 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_any_other_type_still_has_to_be_built()
+	public void And_a_rule_may_ask_for_the_bounds_instead_of_the_text()
 	{
-		// `SourceSpan` is the other half of case 4 and is not built. The message says so
-		// now, and says what to do instead — it used to talk about constructors.
-		var reported = Compile("Start : @DotGram.SourceSpan = ['a'..'z']+\nparse Start").Diagnostics;
-
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, Assert.Single(reported).Id);
-		Assert.Contains("§4.1 case 4", reported[0].Message, StringComparison.Ordinal);
+		// §4.1 case 4's other half: `: @string` is the extent as text, `: @SourceSpan` is
+		// the same extent as where it was. An ordinary construction whose expression is the
+		// name §8.2 already supplies for it, so nothing in the machine is new.
+		Assert.Equal(
+			"2:2",
+			Parsed(
+				"Start : @string = ' '* & at: Word => @(at.Start + \":\" + at.Length)\n"
+				+ "Word : @DotGram.SourceSpan = ['a'..'z']+",
+				"  ab").Value);
 	}
+
+	[Fact]
+	public void But_it_cannot_be_what_a_published_method_hands_back() =>
+		// §6.1: everything emitted into the consumer's namespace is internal, so it cannot
+		// appear in a public signature. Said here rather than left to arrive as CS0050
+		// about a generated file nobody wrote.
+		Refused(
+			GrammarNormalizer.UnbuiltConstruction,
+			"Start : @DotGram.SourceSpan = ['a'..'z']+\nparse Start");
 
 	// ── Publication (§6) ─────────────────────────────────────────────────────────
 

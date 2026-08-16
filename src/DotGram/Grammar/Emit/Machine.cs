@@ -1248,6 +1248,10 @@ sealed class Machine
 		// reads costs nothing.
 		var arguments = new List<string> { "text.Slice(pos, p - pos).ToString()" };
 
+		// In the same order the parameters were written.
+		if (CSharpEmitter.Asks(factory, "parserSpan"))
+			arguments.Add("new global::DotGram.SourceSpan(pos, p - pos)");
+
 		if (factory.Accumulator is not null)
 			arguments.Add(into);
 
