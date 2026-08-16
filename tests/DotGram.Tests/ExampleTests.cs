@@ -575,6 +575,30 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
+	public void And_the_same_feed_streams_a_record_at_a_time()
+	{
+		// §6.3 and §7.3 in one place: the window hands back records built by a constructor
+		// it knows nothing about. Nothing in the grammar asked for the overload — a rule
+		// that reads a bounded amount per record gets one.
+		var reader = new StringReader(
+			"""
+			AAPL,100,2026-08-12
+			MSFT,250,2026-08-13
+
+			""");
+		var read   = 0;
+
+		foreach (var trade in TypedCsv.Read(reader))
+		{
+			Assert.Equal(read == 0 ? "AAPL" : "MSFT", trade.Symbol);
+
+			read++;
+		}
+
+		Assert.Equal(2, read);
+	}
+
+	[Fact]
 	public void And_a_type_with_no_constructor_is_written_into()
 	{
 		var session = TypedCsv.ReadSession(

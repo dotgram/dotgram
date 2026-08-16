@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 using DotGram;
 
@@ -55,6 +56,17 @@ public sealed partial class TypedCsv
 {
 	/// <summary>Reads a whole feed of trades, or throws where it is not one.</summary>
 	public static IReadOnlyList<TradeRow> Read(string text) => ParseFeed(text);
+
+	/// <summary>
+	/// The same feed out of a reader, a record at a time (§6.3).
+	/// </summary>
+	/// <remarks>
+	/// Nothing in the grammar asked for this: a rule that reads a bounded amount before
+	/// each record can be streamed, so the overload is generated. What it hands back is
+	/// the same `TradeRow` the string form does — built by the constructor §7.3 matched,
+	/// which the window knows nothing about.
+	/// </remarks>
+	public static IEnumerable<TradeRow> Read(TextReader input) => ParseFeed(input);
 
 	/// <summary>Reads the one line that says what a session covered.</summary>
 	public static Session ReadSession(string text) => ParseSession(text);
