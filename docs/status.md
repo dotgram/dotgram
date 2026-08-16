@@ -205,8 +205,9 @@ changing the specification: §8.2 used to promise the throw would be caught and 
 a value failure. Catching would mean catching `Exception`, because there is no type that
 tells "this quantity is not a number" from `NullReferenceException`, and a parser that
 reports a bug in the author's own C# as "row 400 was malformed" is worse than one that
-stops. A conversion that can fail says so with the value-failure form of §8.1, which is
-not built yet and is the row above.
+stops. A conversion that can fail says so with the value-failure form of §8.1 — `bool M(args…,
+out T value)` — which is built, and is what to reach for instead of a `try` nobody here
+can write.
 
 `DecimalCalculator.Evaluate("1 . 5")` in the examples throws `FormatException` out of a
 `decimal.Parse` in a `=>`, and a test asserts exactly that.

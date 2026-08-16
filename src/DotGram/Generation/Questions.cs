@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Parsing;
@@ -127,7 +128,18 @@ static class Questions
 			}
 		}
 
-		return [.. questions];
+		// Sorted, because what this is conceptually is a set and what it travels as is an
+		// array compared element by element. Two runs that asked the same questions must
+		// produce the same array or the incremental stage rebuilds for nothing, and the
+		// enumeration order of a hash set is not a promise anybody made. Stable within one
+		// process today; a contract now.
+		return
+		[
+			.. questions
+				.OrderBy(static question => question.Name, StringComparer.Ordinal)
+				.ThenBy(static question => question.Arity)
+				.ThenBy(static question => question.Against ?? "", StringComparer.Ordinal),
+		];
 
 		void Collect(IReadOnlyList<Using> usings, IReadOnlyList<Decl> declarations)
 		{
