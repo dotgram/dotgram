@@ -90,6 +90,21 @@ fixed-width (counting rather than delimiters), netstrings (§7.1, the shape a gr
 cannot express), the filter language (heterogeneous literals, an AST), and FIX (ordered
 fields, arithmetic over the match).
 
-Left from the shortlist: **YAML**, worth writing as reconnaissance rather than as an
-example — it should hit the absence of indentation-sensitivity, and the useful outcome is
-knowing precisely where.
+**YAML was the last of the shortlist, and the reconnaissance is done.** The border is
+exactly where it looked:
+
+- *Fixed* depth is expressible by writing the levels out — `L0`, `L1`, `L2`, each with
+  its own indent literal. Compiles and works, and is what a config format with two levels
+  actually needs.
+- *Arbitrary* depth is not. It needs the indent of this line compared against the indent
+  of the last one, which is a value carried from one place in the input into the shape of
+  another — the same wall netstrings hit.
+- And unlike netstrings, §7.1 does not get round it. An external recognizer is handed the
+  input and a position and nothing else; a stack of open indent levels has nowhere to
+  live between calls, and putting it in a static would make the parser stateful and
+  unreentrant, which is a worse trade than not supporting YAML.
+
+So YAML is not an example this project should carry. What it is, is the clearest
+statement of the one thing the language cannot do: **carry state across a parse**.
+Anything indentation-sensitive — YAML, Python, reStructuredText — is out of reach for the
+same reason, and the reason is worth knowing rather than rediscovering.
