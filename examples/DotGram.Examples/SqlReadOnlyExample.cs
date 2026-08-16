@@ -32,6 +32,13 @@ namespace DotGram.Examples;
 // because the answer it exists to give is "this cannot write", and silence about a
 // construct is not that answer.
 //
+// One consequence worth stating, because it looks like a hole and is not. An
+// unterminated `/*` does not match the comment rule, so what follows is read as ordinary
+// tokens — which means `select 1 /* unterminated` is allowed, since nothing in it writes,
+// and `select 1 /* drop table t` is refused, since `drop` is then a word like any other.
+// Refusing to close a comment buys an attacker nothing: it takes the hiding place away
+// rather than extending it.
+//
 // SQL is case-insensitive, so each keyword is spelled as its letters in either case.
 // That is what `Sel & Ect` below is doing — the language has no case-insensitive
 // literal, and a rule per letter pair is the honest way to say it.

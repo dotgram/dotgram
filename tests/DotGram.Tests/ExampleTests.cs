@@ -755,4 +755,23 @@ public sealed class ExampleTests
 	[InlineData("drop table t -- select")]
 	public void Cannot_be_shown_to_read_only(string sql) =>
 		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
+
+	[Theory]
+	[InlineData("select '/*' from t")]
+	[InlineData("select '--' from t")]
+	[InlineData("select ';drop table t' from t")]
+	[InlineData("select 1 -- it's fine")]
+	[InlineData("select 1 /* it's fine */")]
+	[InlineData("select '''' from t")]
+	[InlineData("select 1 /* unterminated")]
+	public void Reads_only_across_the_awkward_ones(string sql) =>
+		Assert.True(SqlReadOnly.IsReadOnly(sql), sql);
+
+	[Theory]
+	[InlineData("select/*c*/into other from t")]
+	[InlineData("select 1 /* /* */ drop table t */")]
+	[InlineData("select 1 /* drop table t")]
+	[InlineData("select 'unterminated")]
+	public void Refused_when_it_cannot_be_sure(string sql) =>
+		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
 }
