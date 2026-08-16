@@ -613,4 +613,47 @@ public sealed class ExampleTests
 		// Neither captured nor required, so the type's own default survives.
 		Assert.Equal("", session.Note);
 	}
+
+	// ── The XML parser ───────────────────────────────────────────────────────────
+
+	[Fact]
+	public void Xml_reads_elements_attributes_and_text()
+	{
+		var root = XmlParser.Read("""<a x="1" y='2'><b>text</b><c/></a>""");
+
+		Assert.Equal("a", root.Name);
+		Assert.Equal("1", root["x"]);
+		Assert.Equal("2", root["y"]);
+		Assert.Equal(["b", "c"], root.Elements.Select(element => element.Name));
+		Assert.Equal("text", ((XmlText)root.Elements.First().Children.Single()).Text);
+		Assert.Empty(root.Elements.Last().Children);
+	}
+
+	[Fact]
+	public void And_a_closing_tag_has_to_close_the_element_it_is_in()
+	{
+		// The `where` doing the one thing no amount of grammar can say. Saying no is an
+		// ordinary non-match, so this is not an element at all rather than a wrong one.
+		Assert.Throws<FormatException>(static () => XmlParser.Read("<a></b>"));
+
+		// And the same names nested still close in order.
+		Assert.Equal("a", XmlParser.Read("<a><a></a></a>").Elements.Single().Name);
+
+		// A space before the closing bracket is XML's to allow, so it is written down.
+		Assert.Equal("1", XmlParser.Read("""<a x="1" ></a >""")["x"]);
+	}
+
+	[Fact]
+	public void And_whitespace_inside_an_element_is_text_because_in_XML_it_is()
+	{
+		// Not a decision this grammar makes lightly: content is `[^ '<']+`, so the run
+		// between two tags is text whatever it holds. XML says the same — whitespace
+		// between elements is a text node, and throwing it away is a reader's choice
+		// rather than a parser's.
+		Assert.Equal(
+			["  ", "  "],
+			XmlParser.Read("<a>  <b/>  </a>").Children.OfType<XmlText>().Select(text => text.Text));
+
+		Assert.Equal(" a b ", ((XmlText)XmlParser.Read("<a> a b </a>").Children.Single()).Text);
+	}
 }
