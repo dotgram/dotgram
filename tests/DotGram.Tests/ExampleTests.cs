@@ -913,4 +913,49 @@ public sealed class ExampleTests
 		// Including the characters that would end a frame if the length had not spoken
 		// first — which is the whole reason a format counts instead of delimiting.
 		Assert.Equal(["a,b:c"], Netstrings.Read("5:a,b:c,"));
+
+	// ── The filter language ─────────────────────────────────────────────────────
+
+	static readonly IReadOnlyDictionary<string, object?> Row =
+		new Dictionary<string, object?>
+		{
+			["Price"]        = 25,
+			["Country"]      = "UK",
+			["Discontinued"] = false,
+			["Note"]         = null,
+		};
+
+	[Theory]
+	[InlineData("Price > 10",                       true)]
+	[InlineData("Price < 10",                       false)]
+	[InlineData("Price >= 25 AND Country = 'UK'",   true)]
+	[InlineData("Country IN ('UK', 'DE')",          true)]
+	[InlineData("Country IN ('FR', 'DE')",          false)]
+	[InlineData("NOT Discontinued",                 true)]
+	[InlineData("Note = null",                      true)]
+	[InlineData("Note <> null",                     false)]
+	[InlineData("Missing > 1",                      false)]
+	public void A_filter_answers_about_a_row(string text, bool expected) =>
+		Assert.True(expected == Filter.Read(text).Matches(Row), text);
+
+	[Fact]
+	public void And_AND_binds_tighter_than_OR()
+	{
+		// `a OR b AND c` is `a OR (b AND c)`, which the strengths say and the tree shows.
+		var any = Assert.IsType<Any>(Filter.Read("Price < 1 OR Price > 10 AND Country = 'UK'"));
+
+		Assert.IsType<All>(any.Right);
+		Assert.True(any.Matches(Row));
+	}
+
+	[Fact]
+	public void And_brackets_say_the_other_grouping() =>
+		Assert.False(Filter.Read("(Price < 1 OR Price > 10) AND Country = 'FR'").Matches(Row));
+
+	[Fact]
+	public void And_a_quoted_value_keeps_what_is_inside_it() =>
+		// `''` is one quote, the same convention SQL uses.
+		Assert.Equal(
+			"it's",
+			Assert.IsType<Compare>(Filter.Read("Note = 'it''s'")).Value);
 }
