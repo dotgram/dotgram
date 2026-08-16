@@ -319,6 +319,31 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void An_argument_is_a_grammar_name_unless_it_says_otherwise()
+	{
+		// §2 with no exception made for argument lists: a bare name is looked up among
+		// rules and captures, and `@` is what reaches into C#. So a capture goes in as it
+		// is written, and anything of C#'s needs the transition — which is why
+		// `@int.Parse(d, CultureInfo.InvariantCulture)` is refused and this is not.
+		Assert.Empty(Compile(
+			"@using System.Globalization;\n"
+			+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, @CultureInfo.InvariantCulture)\n"
+			+ "parse Start").Diagnostics);
+	}
+
+	[Fact]
+	public void And_a_C_sharp_name_written_without_it_is_told_what_is_missing() =>
+		// The message named what it looked for and not what to do about it. A dotted name
+		// is a C# one nine times in ten, and the fix is one character.
+		Assert.Contains(
+			"@CultureInfo.InvariantCulture",
+			Compile(
+				"@using System.Globalization;\n"
+				+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, CultureInfo.InvariantCulture)\n"
+				+ "parse Start").Diagnostics[0].Message,
+			StringComparison.Ordinal);
+
+	[Fact]
 	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
 	{
 		// `: item` alone needs the argument's own value handed out as the rule's, which is

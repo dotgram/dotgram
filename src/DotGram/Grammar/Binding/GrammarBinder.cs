@@ -406,11 +406,23 @@ public sealed class GrammarBinder
 			return;
 
 		if (scope.LookupQualified(reference.Name) is { } rule)
+		{
 			Bind(rule);
+		}
 		else
+		{
+			// A dotted name is a C# one nine times in ten — `CultureInfo.InvariantCulture`
+			// written where the grammar expects one of its own. §2 makes no exception for
+			// argument lists, so the fix is the one character that switches namespace, and
+			// saying which character is the difference between a message and a message
+			// worth reading.
 			Report(
 				UndefinedName,
-				$"No rule, parameter or capture named '{reference.Name}'.",
+				$"No rule, parameter or capture named '{reference.Name}'." +
+				(reference.Name.Contains(".")
+					? $" A C# name is reached with '@' — '@{reference.Name}' (docs/syntax.md §2)."
+					: ""),
 				at);
+		}
 	}
 }

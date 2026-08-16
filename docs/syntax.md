@@ -910,6 +910,19 @@ the position it is called from:
 | `bool M(args…)` | guard | `where @M(a)` |
 | — | inline expression | `=> @(expr)`, `where @(expr)` |
 
+**The arguments are read by §2, with no exception made for being in an argument list.**
+A bare name is looked up among the grammar's own — a capture, a rule, a parameter — and
+anything of C#'s is reached with `@`:
+
+```dotgram
+=> @int.Parse(digits, @CultureInfo.InvariantCulture)     // a capture, then a C# name
+=> @(int.Parse(digits, CultureInfo.InvariantCulture))    // or all of it as one expression
+```
+
+Both are written the same way in the generated file; which to use is a matter of how
+much of the line is C#. A dotted name written without the `@` is the ordinary mistake
+here, and the compiler says so by name.
+
 There is one rule to read this by: **a method taking the input and a `ref int pos` is
 a recognizer; any other method never touches input at all.** `bool M(char)` in
 recognizer position is an element predicate and the same method in `where` is a guard;
