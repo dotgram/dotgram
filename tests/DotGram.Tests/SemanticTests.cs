@@ -307,6 +307,33 @@ public sealed class SemanticTests
 		Assert.Contains("captured as 'rows'", reported[0].Message, StringComparison.Ordinal);
 	}
 
+	// ── What `recover` recovers from (§8.2) ─────────────────────────────────────
+
+	[Fact]
+	public void Recovery_steps_over_an_element_that_started_and_broke()
+	{
+		// `ab1` begins the way a row does and fails part way through, which is what a
+		// malformed record looks like: the run knows an element was there and knows it was
+		// refused.
+		Assert.True(Matches(
+			"Start = rows: Row* recover eol => @(\"!\") & eof\n"
+			+ "Row : @string = t: ['a'..'z']+ & eol => @(t)",
+			"aa\nab1\ncc\n"));
+	}
+
+	[Fact]
+	public void And_not_from_a_line_that_never_began_one()
+	{
+		// `1bad` cannot start a row at all, so the repetition ends rather than breaks —
+		// zero further iterations is a legitimate outcome for `*`, and what follows is
+		// asked to match from there. Nothing tells this apart from a run that simply
+		// finished, which is why recovery has nothing to step over.
+		Assert.False(Matches(
+			"Start = rows: Row* recover eol => @(\"!\") & eof\n"
+			+ "Row : @string = t: ['a'..'z']+ & eol => @(t)",
+			"aa\n1bad\ncc\n"));
+	}
+
 	// ── Keyword boundaries (§4.6) ────────────────────────────────────────────────
 
 	[Fact]

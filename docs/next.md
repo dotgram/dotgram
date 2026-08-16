@@ -14,47 +14,13 @@ and what else is owed by a change.
 
 ## Next, in order
 
-**1. §8.3 over a streamed parse — and the channel is already emitted, so start by finding
-out what is actually wrong.** `StreamingEmitter` calls `OnRecovered` in the branch where a
-`recover` has no `=>`, so the row in the status table saying nothing is built is stale.
-What could not be shown is that it *works*: this grammar, read from a `TextReader`,
-
-```dotgram
-Feed : @string[] = Row* recover eol & eof
-Row  : @string   = name: ['a'..'z']+ & eol => @(name)
-```
-
-throws `Input does not match 'eof' at 3` on `aa
-1bad
-cc
-`.
-
-**Narrowed, and it is not the driver.** The same grammar read from a *string* fails the
-same way, and so do two variants of it: with a `=> @(…)` on the recover, and with a
-hand-written `rows:` capture instead of a sequence result. So it is neither §8.3, nor the
-window, nor the §4.1 case 2 rewrite.
-
-Meanwhile `LoggingFeedExample` recovers correctly and is tested. What it has that these
-do not:
-
-```dotgram
-Feed = header: Header & rows: Row* recover eol & trailer: Trailer & eof
-Row  = "R" & '|' & … & eol
-```
-
-— a header before the run, a trailer after it, and a `Row` that begins with a literal
-`"R"` rather than with a character class that a bad line could also start. One of those
-three is what makes recovery fire, and finding which is the next job: take the working
-grammar and remove one difference at a time until it stops recovering. Reading
-`Machine.CompileRecovery` alongside would say why.
-
-The original note follows and still stands if the channel turns out sound. A `recover` without a
-`=>` reports a bad element through the `partial void OnRecovered` hook, and the streaming
-driver has no such channel at all — so a feed read from a `TextReader` can step over a
-bad record but cannot say which one. That is exactly the case streaming exists for: a
-million records, one of them wrong, and the reader needs to know. Part design: what
-"report" means when records are handed over one at a time, and whether the hook fires
-before or after the element that replaced the broken one.
+**1. §8.3 over a streamed parse — the channel exists; what remains is a test.**
+`StreamingEmitter` calls `OnRecovered` where a `recover` has no `=>`, so the status row
+saying nothing is built is stale. The failure that looked like a bug was not one: recovery
+steps over an element that *started* and broke, and a line the element cannot begin at all
+ends the run instead — now pinned by two tests and written up in `status.md`. So the job
+here is smaller than it looked: write the streamed equivalent of those tests, with a bad
+record that begins correctly, and correct the table row.
 
 **2. Indirect left recursion.** `A = B & x`, `B = A & y`. Refused by the normalizer. The
 direct form is built and rewritten into a fold; the indirect one needs the cycle found

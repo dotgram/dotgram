@@ -172,6 +172,32 @@ get better: streaming makes a longer file readable and leaves the bracket count 
 where it is. A grammar meant for adversarial input should bound its own nesting, and a
 `StackOverflowException` cannot be caught in .NET — the process goes.
 
+**What `recover` recovers from is an element that started.** A run of `Row*` ends when
+`Row` does not begin, and zero further iterations is a legitimate outcome for `*` —
+nothing tells that apart from a run that simply finished. So a line the element cannot
+start at all ends the run, and what follows is asked to match from there:
+
+```dotgram
+Start = rows: Row* recover eol => @(…) & eof
+Row   = t: ['a'..'z']+ & eol
+```
+
+reads `aa
+ab1
+cc
+` — `ab1` begins as a row and breaks part way through, which is what
+a malformed record looks like — and refuses `aa
+1bad
+cc
+`, where `1bad` never began
+one. Both are pinned by tests.
+
+This is worth knowing before writing a feed grammar, and it is why the examples give
+their records a distinguishing prefix: `Row = "R" & '|' & …` cannot be mistaken for the
+end of the run, so anything starting `R|` and failing afterwards is a broken record
+rather than a trailer. A grammar whose records begin with the same characters as whatever
+follows them has told the parser nothing to recover with.
+
 **A repetition marked `recover` is possessive.** §8.2 calls the mark a commit point,
 and this is what that costs: the elements it took are not on offer to what follows.
 
