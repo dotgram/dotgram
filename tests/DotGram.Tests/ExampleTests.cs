@@ -888,4 +888,29 @@ public sealed class ExampleTests
 		Assert.Equal("settled early", rows[0].Note);
 		Assert.Equal("",    rows[1].Note);            // the ragged one, absent entirely
 	}
+
+	// ── Netstrings: a length that decides how much to read ──────────────────────
+
+	[Fact]
+	public void A_frame_says_how_long_it_is()
+	{
+		// The one shape a grammar cannot express: the count comes from the input rather
+		// than from the call site, so §7.1 hands that one step to C# and keeps the rest.
+		Assert.Equal(["hello", "goodbye", ""], Netstrings.Read("5:hello,7:goodbye,0:,"));
+	}
+
+	[Theory]
+	[InlineData("5:hell,")]          // the length overruns what is there
+	[InlineData("5:hello")]          // no terminator
+	[InlineData("5hello,")]          // no colon
+	[InlineData(":hello,")]          // no length
+	[InlineData("99:hello,")]        // a length past the end of the input
+	public void And_a_frame_that_is_not_one_is_refused(string text) =>
+		Assert.Throws<FormatException>(() => Netstrings.Read(text));
+
+	[Fact]
+	public void And_the_payload_is_whatever_the_length_said() =>
+		// Including the characters that would end a frame if the length had not spoken
+		// first — which is the whole reason a format counts instead of delimiting.
+		Assert.Equal(["a,b:c"], Netstrings.Read("5:a,b:c,"));
 }
