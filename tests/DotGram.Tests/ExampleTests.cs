@@ -815,4 +815,37 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_section_nobody_wrote_is_empty_rather_than_missing() =>
 		Assert.Empty(IniParser.Read("[a]\nx = 1")["absent"]);
+
+	// ── HTTP header fields ───────────────────────────────────────────────────────
+
+	[Fact]
+	public void Headers_come_back_as_a_lookup_that_ignores_case()
+	{
+		var headers = HttpParser.Read(
+			"Host: example.com\n"
+			+ "Content-Type: text/plain; charset=utf-8\n");
+
+		Assert.Equal("example.com", headers["Host"]);
+		Assert.Equal("text/plain; charset=utf-8", headers["content-type"]);
+		Assert.Equal(["Host", "Content-Type"], headers.Names);
+	}
+
+	[Fact]
+	public void And_a_value_may_continue_on_the_next_line() =>
+		// The one thing this format has that the others do not: a line starting with a
+		// space is the rest of the field above it, not a field of its own.
+		Assert.Equal(
+			"a long subject continued here",
+			HttpParser.Read("Subject: a long subject\n continued here\n")["Subject"]);
+
+	[Fact]
+	public void And_a_repeated_field_is_one_value_with_commas() =>
+		// RFC 7230 says repeats mean a list, which is not the same as the last one winning.
+		Assert.Equal(
+			"gzip, br",
+			HttpParser.Read("Accept-Encoding: gzip\nAccept-Encoding: br\n")["Accept-Encoding"]);
+
+	[Fact]
+	public void And_a_field_nobody_sent_is_null_rather_than_empty() =>
+		Assert.Null(HttpParser.Read("Host: a\n")["Absent"]);
 }
