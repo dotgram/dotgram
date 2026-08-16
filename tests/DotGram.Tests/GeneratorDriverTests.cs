@@ -1489,4 +1489,36 @@ public sealed class GeneratorDriverTests
 			.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
 			.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
 	];
+
+	// ── §8.3 over a streamed parse ───────────────────────────────────────────────
+
+	[Fact]
+	public void A_streamed_parse_reports_a_bad_record_on_the_hook()
+	{
+		// §8.3 where it matters most: a million records, one of them wrong, and the reader
+		// needs to know which. The bad line begins the way a good one does and breaks part
+		// way through, which is what recovery steps over (§8.2).
+		var assembly = Build(
+			"using System.Collections.Generic;\n"
+			+ "[DotGram.Gram(\"Feed : @string[] = Row* recover eol & eof\\n"
+			+ "Row : @string = name: [\'a\'..\'z\']+ & eol => @(name)\\n"
+			+ "parse Feed\")]\n"
+			+ "public partial class Streamed\n"
+			+ "{\n"
+			+ "	public static List<string> Bad = new();\n"
+			+ "	static partial void OnRecovered(string element, string text, long position,\n"
+			+ "		int line, int column, int ordinal, string message) => Bad.Add(text.Trim());\n"
+			+ "}");
+
+		var type = assembly.GetType("Streamed")!;
+		var read = ((System.Collections.IEnumerable)type
+			.GetMethod("ParseFeed", [typeof(TextReader)])!
+			.Invoke(null, [new StringReader("aa\nab1\ncc\n")])!)
+			.Cast<string>()
+			.ToArray();
+
+		// The good records arrive; the bad one is dropped and reported instead.
+		Assert.Equal(["aa", "cc"], read);
+		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
+	}
 }

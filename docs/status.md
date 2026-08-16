@@ -86,7 +86,7 @@ then quietly mean nothing.
 | a repetition that cannot tell its own end §6.3 | — | — | ✓ | — | — |
 | a repetition of something other than a rule §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
-| the §8.3 surfaces over a streamed parse | ✗ | ✗ | ✗ | ✗ | ✗ |
+| the §8.3 hook over a streamed parse | — | — | — | ✓ | ✓ |
 | incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 ## Backtracking, and where it stops

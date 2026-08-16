@@ -14,20 +14,11 @@ and what else is owed by a change.
 
 ## Next, in order
 
-**1. §8.3 over a streamed parse — the channel exists; what remains is a test.**
-`StreamingEmitter` calls `OnRecovered` where a `recover` has no `=>`, so the status row
-saying nothing is built is stale. The failure that looked like a bug was not one: recovery
-steps over an element that *started* and broke, and a line the element cannot begin at all
-ends the run instead — now pinned by two tests and written up in `status.md`. So the job
-here is smaller than it looked: write the streamed equivalent of those tests, with a bad
-record that begins correctly, and correct the table row.
-
-**2. Indirect left recursion.** `A = B & x`, `B = A & y`. Refused by the normalizer. The
+**1. Indirect left recursion.** `A = B & x`, `B = A & y`. Refused by the normalizer. The
 direct form is built and rewritten into a fold; the indirect one needs the cycle found
-across rules first. Rare in practice, and the message says so clearly, which is why it
-sits below §8.3.
+across rules first. Rare in practice, and the message says so clearly.
 
-**3. Incremental parsing.** The largest, and not worth starting without deciding what is
+**2. Incremental parsing.** The largest, and not worth starting without deciding what is
 incremental — the parse of an edited input, or the generation of an edited grammar. The
 second is already largely there (`Questions`/`Answers`); the first is a different project.
 
