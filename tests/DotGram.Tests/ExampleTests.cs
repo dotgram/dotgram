@@ -989,6 +989,15 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
+	public void And_the_real_separator_is_SOH_rather_than_the_bar() =>
+		// `|` is what logs print; the wire carries 0x01, and the grammar reads both. The
+		// escape is written `` rather than pasted in, so the character stays visible
+		// to whoever reads the grammar next.
+		Assert.Equal(
+			"AAPL",
+			FixParser.Read("35=D55=AAPL")["55"]);
+
+	[Fact]
 	public void And_a_value_may_hold_anything_but_the_separator() =>
 		// Which is why the separator is a control character: `58=a=b c` is one value.
 		Assert.Equal("a=b c", FixParser.Read("35=D|58=a=b c|")["58"]);

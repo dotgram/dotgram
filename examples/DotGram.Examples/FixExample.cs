@@ -55,11 +55,13 @@ namespace DotGram.Examples;
 
 	// Everything up to the separator: a value may hold anything else, spaces and `=`
 	// included, which is why the separator is a control character in the first place.
-	Value : @string = text: [^ '' | '|']* => @(text)
+	Value : @string = text: [^ '\u0001' | '|']* => @(text)
 
-	// Real FIX uses SOH; `|` is what every log and every example prints instead, so both
-	// are read and neither is written into a value.
-	Soh   = '' | '|'
+	// Real FIX uses SOH (0x01); `|` is what every log and every example prints instead,
+	// so both are read and neither is written into a value. Written `` rather than
+	// pasted in: a control character in a source file is invisible to whoever reads it
+	// next, survives a copy only by luck, and is the sort of thing an editor eats.
+	Soh   = '\u0001' | '|'
 
 	parse Message
 	""")]
