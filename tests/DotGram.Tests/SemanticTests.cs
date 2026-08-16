@@ -248,12 +248,26 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_result_type_naming_a_parameter_is_refused_once()
+	public void A_sequence_result_may_name_a_parameter()
 	{
-		// `: item` — the result being whatever the argument produces — is §4.1 case 3 said
-		// of a parameter, and is not built. Said where the rule is declared and nowhere
-		// else: the specialization would otherwise say it again about a rule the author
-		// never wrote.
+		// §4.2: `: item[]` is a sequence of whatever the argument produces. There are no
+		// type parameters in the language and none are needed — a specialization has one
+		// concrete argument, so its element type is a concrete answer.
+		var built = Built(
+			"Many(item) : item[] = item*\n" +
+			"Word : @string = text: ['a'..'z']+ & ',' => @(text)\n" +
+			"Start = words: Many(Word)",
+			"ab,cd,");
+
+		Assert.Equal(["ab", "cd"], (string[])Read(built, "Words")!);
+	}
+
+	[Fact]
+	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
+	{
+		// `: item` alone needs the argument's own value handed out as the rule's, which is
+		// a second mechanism and is not built. Said where the rule is declared, and naming
+		// the form that does work.
 		var reported = Compile(
 			"Lex(item) : item = ' '* & item\n" +
 			"Word : @string = ['a'..'z']+ => @(parserText)\n" +
@@ -261,6 +275,7 @@ public sealed class SemanticTests
 			"parse Start").Diagnostics;
 
 		Assert.Equal(GrammarNormalizer.UnbuiltRuleType, Assert.Single(reported).Id);
+		Assert.Contains("item[]", Assert.Single(reported).Message, StringComparison.Ordinal);
 	}
 
 	[Fact]

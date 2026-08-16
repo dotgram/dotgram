@@ -522,11 +522,75 @@ public sealed partial class GrammarNormalizer
 			// that true, and what happened before this was worse than not knowing — the
 			// declaration was dropped and A got a type generated from its own captures, so
 			// a rule said one thing and meant another with nothing to read about it.
+			// A rule taking the parameter as its type is §4.2 rather than §4.1 case 3: each
+			// specialization has one concrete argument, so there is an answer, and lowering
+			// wrote down what to ask. The template itself is not in `_rules`.
+			if (rule.Declaration.Params.Any(one => one.Name == type.Name))
+			{
+				if (type.IsSequence)
+					continue;
+
+				Report(
+					UnbuiltRuleType,
+					$"'{rule.Name}' declares its result as '{type.Name}', which docs/syntax.md §4.2 " +
+					"makes it whatever the argument produces. The sequence form ': " + 
+					$"{type.Name}[]' is built and this one is not — it needs the argument's own " +
+					"value handed out as the rule's, which nothing does yet.",
+					type.At);
+
+				continue;
+			}
+
 			Report(
 				UnbuiltRuleType,
 				$"'{rule.Name}' declares its type as the rule '{type.Name}', which is docs/syntax.md " +
 				"§4.1 case 3 and is not built. Declare a C# type with ': @T' and build it with '=>'.",
 				type.At);
+		}
+
+		ResolveProduced();
+	}
+
+	/// <summary>
+	/// §4.2's <c>: item</c>: a specialization's result type is its argument's.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// To a fixpoint, because an argument may itself be a specialization of the same kind:
+	/// <c>List(Pair(Number))</c> is a sequence of what <c>Pair(Number)</c> produces, which
+	/// is what <c>Number</c> produces. Each round settles at least one, so the number of
+	/// rounds is bounded by the number of specializations.
+	/// </para>
+	/// <para>
+	/// A rule with no type of its own yields the text it matched, and <c>string</c> is what
+	/// an extent is — so an argument that builds nothing gives <c>: item</c> the answer
+	/// <c>string</c> rather than no answer at all.
+	/// </para>
+	/// </remarks>
+	void ResolveProduced()
+	{
+		for (var settled = true; settled;)
+		{
+			settled = false;
+
+			foreach (var pair in _produces)
+			{
+				if (_types.ContainsKey(pair.Key))
+					continue;
+
+				// Only once the argument has settled, or a rule that produces a value would
+				// be read as producing its extent.
+				if (!_types.TryGetValue(pair.Value.Produces, out var type))
+				{
+					if (_produces.ContainsKey(pair.Value.Produces))
+						continue;
+
+					type = "string";
+				}
+
+				_types[pair.Key] = pair.Value.IsSequence ? type + "[]" : type;
+				settled          = true;
+			}
 		}
 	}
 

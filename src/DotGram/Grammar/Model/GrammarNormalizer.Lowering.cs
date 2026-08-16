@@ -512,14 +512,39 @@ public sealed partial class GrammarNormalizer
 
 		_specializing.RemoveAt(_specializing.Count - 1);
 
-		// Only a C# type. `: item` — the result being whatever the argument produces — is
-		// §4.1 case 3 said of a parameter; it is refused where the rule is declared, and
-		// copying it here would say so a second time about a rule the author never wrote.
-		if (declaration.Type is { } declared && (declared.IsCSharp || IsCSharpKeyword(declared.Name)))
-			_types[specialized] = TypeName(declared);
+		if (declaration.Type is { } declared)
+		{
+			if (declared.IsCSharp || IsCSharpKeyword(declared.Name))
+			{
+				_types[specialized] = TypeName(declared);
+			}
+
+			// §4.2: `: item` is the result being whatever the argument produces, and that
+			// is knowable here and only here — this specialization has one concrete
+			// argument. What it produces is not known yet, though: rule types are worked
+			// out after every body is lowered, so the pairing is recorded and resolved
+			// there. §4.1 case 3 — a type naming a rule rather than a parameter — stays
+			// refused where it is declared.
+			// Only the sequence form. The scalar `: item` needs the argument's value passed
+			// out as the rule's own, which is a second mechanism — collecting one operand
+			// rather than a run of them — and is not built; it is refused where the rule is
+			// declared, below.
+			else if (declared.IsSequence && declaration.Params.Any(one => one.Name == declared.Name))
+			{
+				for (var i = 0; i < declaration.Params.Count; i++)
+					if (declaration.Params[i].Name == declared.Name && passed[i] is Node.Call(var produced, _))
+						_produces[specialized] = (produced, true);
+			}
+		}
 
 		return new Node.Call(specialized, []);
 	}
+
+	/// <summary>
+	/// A specialization whose result type is its argument's, and whether it collects them
+	/// (§4.2). Resolved once every rule's own type is known.
+	/// </summary>
+	readonly Dictionary<RuleSymbol, (RuleSymbol Produces, bool IsSequence)> _produces = [];
 
 	/// <summary>A repetition count: written, or the name of a parameter that carries one.</summary>
 	int? Counted(int? written, string? name, Expr at)

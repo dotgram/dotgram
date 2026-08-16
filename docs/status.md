@@ -48,7 +48,8 @@ then quietly mean nothing.
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
-| a result type naming a parameter, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
+| a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the scalar form of it, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
@@ -768,6 +769,18 @@ that ended was a stack overflow, which is not an exception and takes the process
 An author would have watched their IDE lose the compiler rather than read anything about
 their grammar. Bounded at 24 nested specializations: generous for a grammar built out of
 `Lex(List(Padded(…)))`, and passed almost at once by growth.
+
+**A result type may name a parameter, in the sequence form.** `Many(item) : item[]`
+called as `Many(Word)` is an array of what `Word` produces — there are no type parameters
+in the language and none are needed, because a specialization has one concrete argument
+and so a concrete answer. The pairing is written down where the specialization is made,
+because that is where the argument is known, and resolved once every rule's own type has
+been worked out. To a fixpoint, since an argument may itself be a specialization of the
+same kind; an argument that builds nothing answers `string`, which is what an extent is.
+
+The scalar `: item` is refused, and says which form works. It needs the argument's own
+value handed out as the rule's — a second mechanism, collecting one operand rather than a
+run of them — and nothing does that yet.
 
 Half built: **a declared parameter type**. §4.2 says a C# type makes the parameter a
 value and anything else makes it a recognizer, and the only value that can be passed is a
