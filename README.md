@@ -191,6 +191,17 @@ Working end to end — a `.gram` file becomes a parser that runs:
   nothing is dispatched at run time and a parameter can be a recognizer. An argument is
   a piece of grammar or a number, and a repetition count may name one
 
+- **a result built without saying how** — a rule that declares its type and writes no
+  `=>` is filled from its captures, matched by name:
+
+  ```dotgram
+  Row : @Trade = symbol: Symbol & ',' & size: Amount & ',' & on: Day & eol
+  ```
+
+  A constructor those captures cover is called; a type with none and `required`
+  properties is made and written into. What that removes is the line that repeats in
+  the grammar what the C# type already says and goes stale when a parameter is added
+
 - **a rule that is a sequence of what it is made of** — the envelope and the records in
   one result, in the order they were read, with no `=>` anywhere:
 
@@ -241,11 +252,14 @@ Not built yet:
 Each of these is refused with the reason where it can be — a construct that parses and
 then quietly means nothing is the failure this project is most careful about:
 
-- `: T` naming another rule, and matching captures to a constructor by name
+- `: @SourceSpan` as a rule's result — the bounds of what it matched, where `: @string`
+  gives the text
 - an external recognizer that hands back a value of its own — the form that reads the
   input and moves the position works, the one with `out T value` does not
-- a declared parameter type — `Padded(item, pad: char)` parses and binds, and then the
-  argument is judged by what it turns out to be rather than by what was declared
+- a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
+  refused rather than quietly taken as a recognizer
+- a second `recover` in one rule, and indirect left recursion
+- keyword boundaries (§4.6), which nothing parses yet
 - diagnostics beyond a position: the set of what was expected there is next
 - the §8.3 surfaces over a streamed parse
 - incremental parsing
@@ -268,6 +282,10 @@ written against it, with no test framework anywhere near them.
 | [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |
 | [`OneRuleTreeExample.cs`](examples/DotGram.Examples/OneRuleTreeExample.cs) | that tree from one rule of eight lines — the whole of a small DSL in one place, and the same nodes its five-rule twin builds |
 | [`Expression.cs`](examples/DotGram.Examples/Expression.cs) | the tree those two build, and everything it can do. No grammar in it, deliberately |
+| [`JsonExample.cs`](examples/DotGram.Examples/JsonExample.cs) | JSON — a value that is any of six things nested inside itself, and one parameterized list written once for members and elements |
+| [`XmlExample.cs`](examples/DotGram.Examples/XmlExample.cs) | XML — a closing tag checked against the tag it closes with a `where`, which is the thing no grammar can say on its own |
+| [`MarkdownExample.cs`](examples/DotGram.Examples/MarkdownExample.cs) | Markdown blocks — a format where the line is the unit, ordered choice carrying a definition, and every newline written down |
+| [`TypedCsvExample.cs`](examples/DotGram.Examples/TypedCsvExample.cs) | a CSV read into records with no `=>` anywhere — captures matched to a constructor and to `required` properties, and the same feed out of a reader |
 
 [`examples/README.md`](examples/README.md) says what to add to a project to take one.
 
