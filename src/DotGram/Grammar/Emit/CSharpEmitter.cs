@@ -603,6 +603,23 @@ public static partial class CSharpEmitter
 			return;
 		}
 
+		// §4.1 case 3: the rule's value is one of its operands, so the factory hands that
+		// operand back and does nothing else.
+		if (((Node.Construct)factory.Of).Text == GrammarNormalizer.ValueMarker)
+		{
+			var value = "default";
+
+			foreach (var member in factory.Members)
+				if (member.Name.StartsWith("item", StringComparison.Ordinal))
+					value = ResultTypes.ParameterOf(member);
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> is worth: what its operand was (§4.1 case 3).</summary>");
+			file.Line($"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)}) =>");
+			file.Line($"	{value};");
+
+			return;
+		}
+
 		// §7.3's first way of filling a result in: the captures fill the declared type's
 		// constructor, and which ones in what order was worked out where the host could be
 		// asked what constructors there are.

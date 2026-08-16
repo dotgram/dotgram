@@ -344,19 +344,17 @@ public sealed class SemanticTests
 			StringComparison.Ordinal);
 
 	[Fact]
-	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
+	public void And_the_scalar_form_of_it_works_the_same_way()
 	{
-		// `: item` alone needs the argument's own value handed out as the rule's, which is
-		// a second mechanism and is not built. Said where the rule is declared, and naming
-		// the form that does work.
-		var reported = Compile(
-			"Lex(item) : item = ' '* & item\n" +
-			"Word : @string = ['a'..'z']+ => @(parserText)\n" +
-			"Start = Lex(Word)\n" +
-			"parse Start").Diagnostics;
-
-		Assert.Equal(GrammarNormalizer.UnbuiltRuleType, Assert.Single(reported).Id);
-		Assert.Contains("item[]", Assert.Single(reported).Message, StringComparison.Ordinal);
+		// §4.2's `: item` is §4.1 case 3 said of a parameter, and is the same rewrite: the
+		// operand the specialization was given becomes the value handed back.
+		Assert.Equal(
+			"ab",
+			Parsed(
+				"Lex(item) : item = ' '* & item\n"
+				+ "Word : @string = text: ['a'..'z']+ => @(text)\n"
+				+ "Start : Word = Lex(Word)",
+				"  ab").Value);
 	}
 
 	[Fact]
@@ -1300,15 +1298,28 @@ public sealed class SemanticTests
 			"Start : @string = parserText: ['a'..'z']+ => @(parserText)");
 
 	[Fact]
-	public void A_rule_typed_as_another_rule_says_it_is_not_built() =>
-		// §4.1 case 3. Before it was refused the declaration was dropped in silence and the
-		// rule got a type generated from its own captures — so `A : B` compiled, ran, and
-		// handed back an `A` that had nothing to do with `B`.
+	public void A_rule_may_take_another_rules_value_as_its_own()
+	{
+		// §4.1 case 3: `A : B` says A's value is B's. The operand that produces it becomes
+		// a capture and the rule hands it back — the same rewrite a sequence result uses,
+		// one size down.
+		Assert.Equal(
+			42,
+			Parsed(
+				"Start : Number = ' '* & Number\n"
+				+ "Number : @int = digits: ['0'..'9']+ => @int.Parse(digits)",
+				"  42").Value);
+	}
+
+	[Fact]
+	public void And_two_operands_that_could_be_it_are_refused() =>
+		// Two answers and nothing to say which. A grammar to rewrite rather than a choice
+		// for the compiler to make quietly.
 		Refused(
-			GrammarNormalizer.UnbuiltRuleType,
+			GrammarNormalizer.UnbuiltConstruction,
 			"""
-			A : B = digits: ['0'..'9']+
-			B     = 'x'
+			Start : Number = Number & '+' & Number
+			Number : @int = digits: ['0'..'9']+ => @int.Parse(digits)
 			""");
 
 	// ── Scopes (§5) ─────────────────────────────────────────────────────────────

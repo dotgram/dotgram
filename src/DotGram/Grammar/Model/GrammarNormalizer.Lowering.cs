@@ -525,15 +525,15 @@ public sealed partial class GrammarNormalizer
 			// out after every body is lowered, so the pairing is recorded and resolved
 			// there. §4.1 case 3 — a type naming a rule rather than a parameter — stays
 			// refused where it is declared.
-			// Only the sequence form. The scalar `: item` needs the argument's value passed
-			// out as the rule's own, which is a second mechanism — collecting one operand
-			// rather than a run of them — and is not built; it is refused where the rule is
-			// declared, below.
-			else if (declared.IsSequence && declaration.Params.Any(one => one.Name == declared.Name))
+			// §4.2: the result is whatever the argument produces, and which argument that is
+			// is knowable here and only here — this specialization has one concrete one.
+			// What it produces is not known yet, since rule types are worked out after every
+			// body is lowered, so the pairing is recorded and resolved there.
+			else if (declaration.Params.Any(one => one.Name == declared.Name))
 			{
 				for (var i = 0; i < declaration.Params.Count; i++)
 					if (declaration.Params[i].Name == declared.Name && passed[i] is Node.Call(var produced, _))
-						_produces[specialized] = (produced, true);
+						_produces[specialized] = (produced, declared.IsSequence);
 			}
 		}
 

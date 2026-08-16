@@ -33,7 +33,7 @@ then quietly mean nothing.
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | refused | ✗ | ✗ |
-| rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
+| rule types naming another rule §4.1 case 3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
@@ -52,7 +52,7 @@ then quietly mean nothing.
 | a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | one capture name over rules of one declared type §7.3 | — | — | ✓ | ✓ | ✓ |
-| the scalar form of it, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
+| the scalar form of it, `: item` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
@@ -784,9 +784,13 @@ because that is where the argument is known, and resolved once every rule's own 
 been worked out. To a fixpoint, since an argument may itself be a specialization of the
 same kind; an argument that builds nothing answers `string`, which is what an extent is.
 
-The scalar `: item` is refused, and says which form works. It needs the argument's own
-value handed out as the rule's — a second mechanism, collecting one operand rather than a
-run of them — and nothing does that yet.
+The scalar `: item` works too, and is the same thing as §4.1 case 3 — `A : B` says A's
+value is B's — so one rewrite covers both. The operand that produces the value becomes a
+capture and the alternative hands it back, which is the sequence rewrite one size down.
+
+Exactly one operand may produce it. Two is a rule with two answers and nothing to say
+which, so it is left alone and reported: that is a grammar to rewrite, not a choice for
+this compiler to make quietly.
 
 Half built: **a declared parameter type**. §4.2 says a C# type makes the parameter a
 value and anything else makes it a recognizer, and the only value that can be passed is a

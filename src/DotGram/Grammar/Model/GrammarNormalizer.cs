@@ -81,6 +81,10 @@ public sealed partial class GrammarNormalizer
 		// writes captures the results are then computed from (§4.1 case 2).
 		normalizer.CollectSequences();
 
+		// After the types and before the results, the same as the sequence rewrite above:
+		// it writes captures that the results are then computed from (§4.1 case 3).
+		normalizer.PassThrough();
+
 		normalizer.ComputeResults();
 
 		// After the results, because what a constructor is matched against is the members
@@ -525,26 +529,26 @@ public sealed partial class GrammarNormalizer
 			// A rule taking the parameter as its type is §4.2 rather than §4.1 case 3: each
 			// specialization has one concrete argument, so there is an answer, and lowering
 			// wrote down what to ask. The template itself is not in `_rules`.
+			// §4.2: the parameter's type, which lowering wrote down per specialization. The
+			// template itself is not in `_rules`, so nothing is reported about it here.
 			if (rule.Declaration.Params.Any(one => one.Name == type.Name))
-			{
-				if (type.IsSequence)
-					continue;
+				continue;
 
-				Report(
-					UnbuiltRuleType,
-					$"'{rule.Name}' declares its result as '{type.Name}', which docs/syntax.md §4.2 " +
-					"makes it whatever the argument produces. The sequence form ': " + 
-					$"{type.Name}[]' is built and this one is not — it needs the argument's own " +
-					"value handed out as the rule's, which nothing does yet.",
-					type.At);
+			// §4.1 case 3: `A : B` says A's value is B's. Recorded the same way and
+			// resolved with the rest — a rule named in type position is a rule whose type
+			// this one takes.
+			if (rule.Scope.LookupQualified(type.Name) is { } produced)
+			{
+				_produces[rule] = (produced, type.IsSequence);
 
 				continue;
 			}
 
 			Report(
 				UnbuiltRuleType,
-				$"'{rule.Name}' declares its type as the rule '{type.Name}', which is docs/syntax.md " +
-				"§4.1 case 3 and is not built. Declare a C# type with ': @T' and build it with '=>'.",
+				$"'{rule.Name}' declares its type as '{type.Name}', which is neither a C# type " +
+				"nor a rule in view. §4.1 case 3 takes the value of a rule named here; a C# type " +
+				"is written with '@'.",
 				type.At);
 		}
 
@@ -601,6 +605,12 @@ public sealed partial class GrammarNormalizer
 	public const string SequenceMarker = "<sequence>";
 
 	/// <summary>
+	/// The text a <c>=&gt;</c> carries when the rule's value is one of its operands —
+	/// §4.1 case 3 and the scalar <c>: item</c> of §4.2.
+	/// </summary>
+	public const string ValueMarker = "<value>";
+
+	/// <summary>
 	/// And the one it carries when the value is built by calling the declared type's
 	/// constructor (§7.3). <see cref="RecognitionGraph.Constructions"/> says with what.
 	/// </summary>
@@ -640,6 +650,62 @@ public sealed partial class GrammarNormalizer
 	/// the failure worth avoiding.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// §4.1 case 3: a rule whose type is another rule's takes that rule's value.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same rewrite as a sequence result one size down: the operand that produces the
+	/// value becomes a capture, and the alternative gets a <c>=&gt;</c> that hands it back.
+	/// Everything about numbering, giving up and rebuilding is then the code that already
+	/// does it.
+	/// </para>
+	/// <para>
+	/// Exactly one operand may produce it. Two would be a rule with two answers and no way
+	/// to say which, so it is left alone and reported as unbuilt — that is a grammar to
+	/// rewrite rather than a choice for this compiler.
+	/// </para>
+	/// </remarks>
+	void PassThrough()
+	{
+		foreach (var pair in _produces)
+		{
+			var rule = pair.Key;
+
+			if (pair.Value.IsSequence || !_types.TryGetValue(rule, out var type))
+				continue;
+
+			var alternatives = Alternatives(_bodies[rule]);
+
+			if (alternatives.Any(static alternative => alternative is Node.Construct))
+				continue;
+
+			var rewritten = new List<Node>(alternatives.Count);
+			var taken     = 0;
+
+			foreach (var alternative in alternatives)
+			{
+				var before = taken;
+				var built  = Gather(alternative, type, ref taken);
+
+				// One per alternative, and one only.
+				if (taken != before + 1)
+				{
+					taken = -1;
+
+					break;
+				}
+
+				rewritten.Add(new Node.Construct(built, ValueMarker));
+			}
+
+			if (taken < 0)
+				continue;
+
+			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+		}
+	}
+
 	void BuildByConstructor()
 	{
 		foreach (var rule in _rules)
