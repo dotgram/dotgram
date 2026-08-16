@@ -263,6 +263,21 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void The_list_of_4_2_collects_every_element_and_not_the_first()
+	{
+		// The line §4.2 prints as its example. The separated elements are inside a group,
+		// and a sequence result used to take only the operands of the alternative itself —
+		// so this collected one element and read as though it worked.
+		var built = Built(
+			"List(item, sep) : item[] = item & (sep & item)*\n" +
+			"Word : @string = text: ['a'..'z']+ => @(text)\n" +
+			"Start = words: List(Word, ',')",
+			"ab,cd,ef");
+
+		Assert.Equal(["ab", "cd", "ef"], (string[])Read(built, "Words")!);
+	}
+
+	[Fact]
 	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
 	{
 		// `: item` alone needs the argument's own value handed out as the rule's, which is

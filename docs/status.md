@@ -35,6 +35,7 @@ then quietly mean nothing.
 | `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | refused | ✗ | ✗ |
 | rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -809,17 +809,7 @@ public sealed partial class GrammarNormalizer
 			var taken     = 0;
 
 			foreach (var alternative in Alternatives(_bodies[rule]))
-			{
-				var parts = alternative is Node.Sequence(var sequence) ? sequence : [alternative];
-				var built = new List<Node>(parts.Count);
-
-				foreach (var part in parts)
-					built.Add(Fits(part, declared.Name) ? Collected(part, ref taken) : part);
-
-				rewritten.Add(new Node.Construct(
-					built.Count == 1 ? built[0] : new Node.Sequence(built),
-					SequenceMarker));
-			}
+				rewritten.Add(new Node.Construct(Gather(alternative, declared.Name, ref taken), SequenceMarker));
 
 			if (taken == 0)
 			{
@@ -838,6 +828,67 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// Every operand of this alternative whose value belongs in the sequence, turned into
+	/// a capture — including the ones inside a group.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Groups are gone into and rule boundaries are not, which is the line §4.1 draws
+	/// everywhere else: a group has no value of its own, so its operands are this rule's
+	/// however they are bracketed, while what another rule is made of is that rule's
+	/// business. The canonical list of §4.2 —
+	/// <c>List(item, sep) : item[] = item &amp; (sep &amp; item)*</c> — therefore collects
+	/// every element rather than the first, which is what the line says to a reader and is
+	/// not what it did at first.
+	/// </para>
+	/// <para>
+	/// Not into a lookahead, which consumes nothing and so contributes nothing; not into a
+	/// capture the author wrote, which is a value with a name already; not into a
+	/// <c>=&gt;</c>, which is another alternative's answer.
+	/// </para>
+	/// </remarks>
+	Node Gather(Node node, string element, ref int taken)
+	{
+		if (Fits(node, element))
+			return Collected(node, ref taken);
+
+		switch (node)
+		{
+			case Node.Sequence(var parts):
+			{
+				var built = new List<Node>(parts.Count);
+
+				foreach (var part in parts)
+					built.Add(Gather(part, element, ref taken));
+
+				return new Node.Sequence(built);
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var built = new List<Node>(alternatives.Count);
+
+				foreach (var alternative in alternatives)
+					built.Add(Gather(alternative, element, ref taken));
+
+				return new Node.Choice(built);
+			}
+
+			case Node.Repeat(var body, var min, var max):
+			{
+				var inner = Gather(body, element, ref taken);
+
+				return ReferenceEquals(inner, body)
+					? node
+					: Repeated(node, new Node.Repeat(inner, min, max));
+			}
+
+			default:
+				return node;
+		}
+	}
+
+	/// <summary>
 	/// An operand wrapped in the capture that puts it in the sequence.
 	/// </summary>
 	/// <remarks>
@@ -851,18 +902,27 @@ public sealed partial class GrammarNormalizer
 		if (part is not Node.Repeat(var body, var min, var max))
 			return new Node.Capture("item" + taken++, part);
 
-		var repetition = new Node.Repeat(new Node.Capture("item" + taken++, body), min, max);
+		return Repeated(part, new Node.Repeat(new Node.Capture("item" + taken++, body), min, max));
+	}
 
-		// The node is new, and `recover` was recorded against the old one. Everything
-		// downstream looks recovery up by node identity, so a repetition rewritten here
-		// would quietly stop recovering.
-		if (_recoveries.TryGetValue(part, out var recovery))
+	/// <summary>
+	/// A repetition that replaces another, carrying over what was recorded against it.
+	/// </summary>
+	/// <remarks>
+	/// The node is new and <c>recover</c> was recorded against the old one. Everything
+	/// downstream looks recovery up by node identity, so a repetition rewritten here would
+	/// quietly stop recovering — which happened once, and is what
+	/// <see cref="RecognitionGraph.Orphans"/> now catches.
+	/// </remarks>
+	Node.Repeat Repeated(Node old, Node.Repeat rewritten)
+	{
+		if (_recoveries.TryGetValue(old, out var recovery))
 		{
-			_recoveries.Remove(part);
-			_recoveries[repetition] = recovery;
+			_recoveries.Remove(old);
+			_recoveries[rewritten] = recovery;
 		}
 
-		return repetition;
+		return rewritten;
 	}
 
 	/// <summary>
