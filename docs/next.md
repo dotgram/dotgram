@@ -27,10 +27,26 @@ Row  : @string   = name: ['a'..'z']+ & eol => @(name)
 throws `Input does not match 'eof' at 3` on `aa
 1bad
 cc
-` — the streamed driver does
-not step over the bad line the way the string parser does. Either its recovery is broken
-or that grammar is not what it looks like; telling which is the first job, and a test is
-the second either way.
+`.
+
+**Narrowed, and it is not the driver.** The same grammar read from a *string* fails the
+same way, and so do two variants of it: with a `=> @(…)` on the recover, and with a
+hand-written `rows:` capture instead of a sequence result. So it is neither §8.3, nor the
+window, nor the §4.1 case 2 rewrite.
+
+Meanwhile `LoggingFeedExample` recovers correctly and is tested. What it has that these
+do not:
+
+```dotgram
+Feed = header: Header & rows: Row* recover eol & trailer: Trailer & eof
+Row  = "R" & '|' & … & eol
+```
+
+— a header before the run, a trailer after it, and a `Row` that begins with a literal
+`"R"` rather than with a character class that a bad line could also start. One of those
+three is what makes recovery fire, and finding which is the next job: take the working
+grammar and remove one difference at a time until it stops recovering. Reading
+`Machine.CompileRecovery` alongside would say why.
 
 The original note follows and still stands if the channel turns out sound. A `recover` without a
 `=>` reports a bad element through the `partial void OnRecovered` hook, and the streaming
