@@ -724,4 +724,35 @@ public sealed class ExampleTests
 
 		Assert.Contains("11", error.Message, StringComparison.Ordinal);
 	}
+
+	// ── The read-only SQL guard ──────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("select * from t")]
+	[InlineData("SELECT a, b FROM t WHERE x = 1")]
+	[InlineData("with c as (select 1) select * from c")]
+	[InlineData("select 'a''; drop table t --' from t")]     // the escaped quote
+	[InlineData("select \"insert\" from t")]                  // a quoted identifier
+	[InlineData("select [delete] from t")]                   // and the other spelling
+	[InlineData("select 1 -- drop table t")]                 // inside a line comment
+	[InlineData("select 1 /* update t set x = 1 */")]        // and a block one
+	[InlineData("select into_stock from t")]                 // `into` is not a word here
+	[InlineData("select * from t;")]
+	public void Reads_only(string sql) => Assert.True(SqlReadOnly.IsReadOnly(sql), sql);
+
+	[Theory]
+	[InlineData("insert into t values (1)")]
+	[InlineData("select * into other from t")]               // the one that hides in a select
+	[InlineData("SELECT * INTO other FROM t")]
+	[InlineData("select 1; drop table t")]                   // a second statement
+	[InlineData("select 1;drop table t")]
+	[InlineData("update t set x = 1")]
+	[InlineData("delete from t")]
+	[InlineData("truncate table t")]
+	[InlineData("exec sp_who")]
+	[InlineData("execute sp_who")]
+	[InlineData("select * from t; -- and then\ndrop table t")]
+	[InlineData("drop table t -- select")]
+	public void Cannot_be_shown_to_read_only(string sql) =>
+		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
 }
