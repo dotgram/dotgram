@@ -656,4 +656,44 @@ public sealed class ExampleTests
 
 		Assert.Equal(" a b ", ((XmlText)XmlParser.Read("<a> a b </a>").Children.Single()).Text);
 	}
+
+	// ── The Markdown parser ──────────────────────────────────────────────────────
+
+	[Fact]
+	public void Markdown_reads_a_document_into_blocks()
+	{
+		var blocks = MarkdownParser.Blocks(
+			"# Title\n" +
+			"\n" +
+			"some text\n" +
+			"- one\n" +
+			"- two\n" +
+			"\n" +
+			"```csharp\n" +
+			"var x = 1;\n" +
+			"```\n").ToArray();
+
+		var heading = Assert.IsType<MarkdownHeading>(blocks[0]);
+
+		Assert.Equal(1, heading.Level);
+		Assert.Equal("Title", heading.Text);
+
+		Assert.Equal("some text", Assert.IsType<MarkdownParagraph>(blocks[1]).Text);
+		Assert.Equal(["one", "two"], Assert.IsType<MarkdownList>(blocks[2]).Items);
+		Assert.Equal(["var x = 1;"], Assert.IsType<MarkdownCode>(blocks[3]).Lines);
+	}
+
+	[Fact]
+	public void And_the_level_of_a_heading_is_how_many_hashes_it_had() =>
+		Assert.Equal(
+			[1, 3],
+			MarkdownParser.Blocks("# a\n### b\n").OfType<MarkdownHeading>().Select(h => h.Level));
+
+	[Fact]
+	public void And_a_line_that_is_none_of_the_others_is_a_paragraph() =>
+		// Ordered choice is the whole definition: `#nope` has no space after the hash, so
+		// it is not a heading, and nothing else claims it either.
+		Assert.Equal(
+			"#nope",
+			Assert.IsType<MarkdownParagraph>(MarkdownParser.Blocks("#nope\n").Single()).Text);
 }
