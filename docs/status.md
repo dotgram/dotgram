@@ -36,6 +36,7 @@ then quietly mean nothing.
 | rule types naming another rule §4.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |

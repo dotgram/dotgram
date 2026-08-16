@@ -278,6 +278,24 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void An_operand_captured_by_hand_is_not_collected_and_the_message_says_so()
+	{
+		// The likeliest way to write §4.1 case 2 wrong, because naming things is what a
+		// grammar author does everywhere else. A sequence result collects the operands
+		// nothing has spoken for, so a captured one leaves it with nothing — and the
+		// message used to say no operand produces one, which is untrue of a rule that does.
+		var reported = Compile(
+			"""
+			Feed : @string[] = rows: Row*
+			Row : @string = text: ['a'..'z']+ & eol => @(text)
+			parse Feed
+			""").Diagnostics;
+
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, reported[0].Id);
+		Assert.Contains("captured as 'rows'", reported[0].Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void The_scalar_form_of_it_is_refused_and_says_which_form_is_built()
 	{
 		// `: item` alone needs the argument's own value handed out as the rule's, which is

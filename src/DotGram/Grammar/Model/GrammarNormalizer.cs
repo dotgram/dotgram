@@ -813,11 +813,21 @@ public sealed partial class GrammarNormalizer
 
 			if (taken == 0)
 			{
+				// The near miss, told apart from the miss. An operand that would have joined
+				// the sequence and is captured by hand is the likeliest way to write this
+				// wrong, and "no operand of it produces one" is untrue of it — one does, and
+				// it has a name already.
 				Report(
 					UnbuiltConstruction,
-					$"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and no " +
-					"operand of it produces one — every part either builds no value or builds a type " +
-					$"that is not a '{declared.Name}'. §4.1 case 2 says which operands join a sequence.",
+					Spoken(_bodies[rule], declared.Name) is { } name
+						? $"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and " +
+							$"the operand that would fill it is captured as '{name}'. A sequence result " +
+							"collects the operands nothing else has spoken for (§4.1 case 2), so drop " +
+							"the name and let it be collected, or keep it and build the value with '=>'."
+						: $"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and no " +
+							"operand of it produces one — every part either builds no value or builds a " +
+							$"type that is not a '{declared.Name}'. §4.1 case 2 says which operands join " +
+							"a sequence.",
 					declared.At);
 
 				continue;
@@ -825,6 +835,18 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
+	}
+
+	/// <summary>
+	/// The name of a capture holding what the sequence was looking for, where there is one.
+	/// </summary>
+	string? Spoken(Node node, string element)
+	{
+		foreach (var inside in NodeWalk.Descendants(node))
+			if (inside is Node.Capture(var name, var body) && Fits(body, element))
+				return name;
+
+		return null;
 	}
 
 	/// <summary>
