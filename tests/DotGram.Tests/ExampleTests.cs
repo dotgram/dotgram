@@ -855,8 +855,8 @@ public sealed class ExampleTests
 	public void Fixed_width_fields_are_found_by_counting()
 	{
 		var rows = FixedWidth.Read(
-			"000123ACME CORP           20260816USD000001250000\n"
-			+ "000124WIDGETS LTD         20260817EUR000000099950\n");
+			"000123ACME CORP           20260816USD000001250000|EQ|LDN|ABsettled early\n"
+			+ "000124WIDGETS LTD         20260817EUR000000099950|FX|NYC|  \n");
 
 		Assert.Equal(2, rows.Count);
 		Assert.Equal("ACME CORP", rows[0].Name);            // padding is not data
@@ -872,5 +872,20 @@ public sealed class ExampleTests
 		// The failure this format is prone to: one column missing reads every later field
 		// wrong. `{n}` is exact, so it fails at the field that ran out instead.
 		Assert.Throws<FormatException>(static () =>
-			FixedWidth.Read("000123ACME CORP           20260816USD00000125000\n"));
+			FixedWidth.Read("000123ACME CORP           2026\n"));
+
+	[Fact]
+	public void And_fixed_columns_mix_with_delimited_and_a_ragged_last_one()
+	{
+		// Nothing in the language knows about columns: a width is `{n}` and a delimiter is
+		// a literal, so one record may hold both — and a trailing field that stops where
+		// its content stops is `*` rather than `{n}`.
+		var rows = FixedWidth.Read("000123ACME CORP           20260816USD000001250000|EQ|LDN|ABsettled early\n" + "000124WIDGETS LTD         20260817EUR000000099950|FX|NYC|  \n");
+
+		Assert.Equal("EQ",  rows[0].Desk);
+		Assert.Equal("LDN", rows[0].Book);
+		Assert.Equal("AB",  rows[0].Flags);
+		Assert.Equal("settled early", rows[0].Note);
+		Assert.Equal("",    rows[1].Note);            // the ragged one, absent entirely
+	}
 }

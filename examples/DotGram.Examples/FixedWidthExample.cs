@@ -42,9 +42,15 @@ namespace DotGram.Examples;
 
 	Feed : @Settlement[] = Row* & eof
 
+	// Fixed columns, then two delimited ones, then a fixed one again, then a last field
+	// that stops where its content stops. Nothing in the language knows about columns:
+	// a width is `{n}` and a delimiter is a literal, so a record may mix them freely.
 	Row : @Settlement = id: Digits(6) & name: Text(20) & on: Date & currency: Raw(3)
-	                  & amount: Digits(12) & eol
-	                    => @(new Settlement(id, name, on, currency, amount / 100m))
+	                  & amount: Digits(12)
+	                  & '|' & desk: Bar & '|' & book: Bar & '|'
+	                  & flags: Raw(2)
+	                  & note: Rest & eol
+	                    => @(new Settlement(id, name, on, currency, amount / 100m, desk, book, flags, note))
 
 	// Parameterized by width and specialized per call site: `Digits(6)` and `Digits(12)`
 	// become two recognizers, each with its count compiled in.
@@ -54,6 +60,17 @@ namespace DotGram.Examples;
 	Text(n)   : @string  = text: Raw(n) => @(text.TrimEnd())
 
 	Raw(n)    : @string  = text: any{n} => @(text)
+
+	// A delimited column: everything up to the next separator, however long it is. The
+	// separator is written into the set rather than passed in — a parameter names a piece
+	// of grammar, and an element set holds characters and elementary rules, so `[^ sep]`
+	// is refused. One rule per separator is the price, and it is small.
+	Bar       : @string  = text: [^ '|' | '\n' | '\r']* => @(text)
+
+	// The last column, which stops where its content stops rather than being padded out
+	// — common in these formats and the reason a trailing field is written `*` and not
+	// `{n}`. Bounded, so a runaway line cannot be swallowed whole.
+	Rest      : @string  = text: [^ '\n' | '\r']{0,40} => @(text.TrimEnd())
 
 	Date : @DateOnly = text: ['0'..'9']{8}
 	                     => @(DateOnly.ParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture))
@@ -72,4 +89,8 @@ public sealed record Settlement(
 	string   Name,
 	DateOnly On,
 	string   Currency,
-	decimal  Amount);
+	decimal  Amount,
+	string   Desk,
+	string   Book,
+	string   Flags,
+	string   Note);
