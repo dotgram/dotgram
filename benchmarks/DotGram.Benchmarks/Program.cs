@@ -14,6 +14,18 @@ namespace DotGram.Benchmarks;
 /// </remarks>
 static class Program
 {
-	static void Main(string[] args) =>
+	static void Main(string[] args)
+	{
+		// `--depth N` is not a benchmark: it is one run that either prints `ok` or takes
+		// the process with it, so that a caller can walk N up and find where nesting stops
+		// being possible. See Nesting.cs.
+		if (args.Length == 2 && args[0] == "--depth" && int.TryParse(args[1], out var depth))
+		{
+			Console.WriteLine(Nesting.Reads(depth) ? "ok" : "no match");
+
+			return;
+		}
+
 		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+	}
 }

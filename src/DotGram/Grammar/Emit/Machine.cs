@@ -38,6 +38,17 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 sealed class Machine
 {
+	/// <summary>
+	/// Slots of backtracking stack a recognizer keeps on the C# stack before spilling.
+	/// </summary>
+	/// <remarks>
+	/// Two costs pull opposite ways. Too few and <c>Grow</c> runs on ordinary matches,
+	/// which allocates; too many and every nested rule call carries the unused remainder,
+	/// which is what bounds how deep a grammar may nest before the process dies. Measured
+	/// rather than guessed: see docs/status.md.
+	/// </remarks>
+	public const int Backtracking = 48;
+
 	/// <summary>The match is done; the position reached is the answer.</summary>
 	public const int Accept = 0;
 
@@ -1447,7 +1458,7 @@ sealed class Machine
 				// Enough for the great majority of matches; Grow takes over when it is
 				// not, so nothing is allocated in the common case and nothing overflows
 				// in the uncommon one.
-				file.Line("global::System.Span<int> bt = stackalloc int[48];");
+				file.Line($"global::System.Span<int> bt = stackalloc int[{Backtracking}];");
 				file.Line();
 				file.Line("var sp    = 0;");
 				file.Line("var saved = 0;");

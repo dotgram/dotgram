@@ -114,10 +114,15 @@ what is left. Two tests now pin both orderings, which is how the mistake surface
 The same boundary shows up in publication: `parse R` asks `R` for a match and then
 checks the input ended, and cannot send `R` back for a longer one if it did not.
 
-**Nesting depth is bounded by the process stack, and the bound is about 2700.** The
+**Nesting depth is bounded by the process stack, and the bound is about 4560 in
+Release.** The
 machine takes recursion out of a rule and not out of a grammar: `Expr = '(' & Expr & ')'`
 is an ordinary C# call, so a thousand brackets are a thousand frames. Measured on the
-default 1 MB stack, `((( … x … )))` survives 2600 levels and overflows by 2800.
+default 1 MB stack, `((( … x … )))` survives 4562 levels and overflows by 4625 — bisected
+by a child process, because a `StackOverflowException` cannot be caught and takes the
+process with it (`benchmarks/ … --depth N`). The 2700 written here before was measured in
+Debug, where frames are fatter; both numbers were right about different builds, which is
+why the build is now part of the claim.
 
 The number is what it is for a reason worth knowing, because it is a cost of a decision
 made elsewhere. Each recognizer opens with
@@ -130,6 +135,21 @@ global::System.Span<int> bt = stackalloc int[48];
 case and `Grow` takes over when 48 is not enough. That is 192 bytes of the C# stack per
 rule invocation, and it, not the rest of the frame, is what sets the depth. `Grow` helps
 with backtracking *inside* a rule and does nothing for nesting *between* rules.
+
+**48 was tried against 32 and 24**, since the buffer is what a frame mostly costs and a
+smaller one buys depth:
+
+| slots | depth | one URL parse | allocated |
+| --: | --: | --: | --: |
+| 48 | 4562 | 241 ns | 760 B |
+| 32 | 5625 | 296 ns | 1448 B |
+| 24 | 6421 | 274 ns | 1408 B |
+
+The trade is bad in both directions of reading it. A quarter more depth costs twice the
+garbage on every parse, because the URL grammar genuinely needs more than 32 slots and
+`Grow` starts running on ordinary matches — the allocation is not the stack buffer, it is
+the heap one replacing it. 48 is where an ordinary parse stops spilling, and buying depth
+past that means paying for it on every match rather than on the deep ones.
 
 So input length and nesting depth are different limits, and only the first is about to
 get better: streaming makes a longer file readable and leaves the bracket count exactly
