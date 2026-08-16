@@ -2,19 +2,15 @@
 
 A working note rather than documentation: enough to pick the project up on another
 machine without reading the whole history. [`status.md`](status.md) says what is built,
-[`syntax.md`](syntax.md) says what the language is; this says what to do on Monday.
+[`syntax.md`](syntax.md) says what the language is, [`development.md`](development.md)
+says how it is built and checked; this says what to do next, and why in that order.
 
 ## State
 
-Everything is on `main`. The build is clean, 712 tests pass, and no snapshot has moved
-since the restructuring began — which is the standing check that a change altered the
-shape and not the output.
-
-```
-dotnet build DotGram.slnx
-tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe
-git diff --stat -- tests/Snapshots examples/          # must be empty after a refactor
-```
+Everything is on `main`; the build is clean and 712 tests pass. No snapshot has moved
+since the restructuring began, which is the standing check that a change altered the
+shape and not the output — [`development.md`](development.md) says how that check is run
+and what else is owed by a change.
 
 ## Next, in order
 
