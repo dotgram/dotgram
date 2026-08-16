@@ -1001,4 +1001,38 @@ public sealed class ExampleTests
 	public void And_a_value_may_hold_anything_but_the_separator() =>
 		// Which is why the separator is a control character: `58=a=b c` is one value.
 		Assert.Equal("a=b c", FixParser.Read("35=D|58=a=b c|")["58"]);
+
+	// ── YAML by indentation ─────────────────────────────────────────────────────
+
+	[Fact]
+	public void Nesting_goes_as_deep_as_the_indentation_does()
+	{
+		// The grammar reads lines and captures each indent as text; the tree is a stack in
+		// C#. Depth is unbounded because nothing in the grammar counts it.
+		var root = YamlLite.Read(
+			"server:\n"
+			+ "  host: example.com\n"
+			+ "  ports:\n"
+			+ "    http: 80\n"
+			+ "    https: 443\n"
+			+ "client:\n"
+			+ "  retries: 3\n");
+
+		Assert.Equal("example.com", root["server"]["host"].Value);
+		Assert.Equal("443", root["server"]["ports"]["https"].Value);
+		Assert.Equal("3", root["client"]["retries"].Value);
+		Assert.Equal(["server", "client"], root.Children.Keys);
+	}
+
+	[Fact]
+	public void And_a_level_is_whatever_width_the_file_uses() =>
+		// Nothing decides that a level is two spaces: the tree compares one indent with
+		// another, so a file indented by four reads the same way.
+		Assert.Equal(
+			"1",
+			YamlLite.Read("a:\n" + "    b:\n" + "        c: 1\n")["a"]["b"]["c"].Value);
+
+	[Fact]
+	public void And_a_missing_key_is_an_empty_node_rather_than_null() =>
+		Assert.Equal("", YamlLite.Read("a: 1\n")["b"]["c"].Value);
 }

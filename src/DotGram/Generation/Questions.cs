@@ -171,9 +171,18 @@ static class Questions
 			(type.IsSequence ? sequences : declared).Add(type.Name);
 
 			// A sequence's element type is a type in its own right, and a rule declaring
-			// `: T[]` may itself be an element of another sequence.
-			if (type.IsSequence && !declared.Contains(type.Name))
-				declared.Add(type.Name);
+			// `: T[]` may itself be an element of another sequence — as `T[]`, which is the
+			// name the graph carries and therefore the name it asks about. Both spellings
+			// go in: the element, because it is what a sequence collects, and the array,
+			// because a rule whose value is one can be an operand of another sequence.
+			if (type.IsSequence)
+			{
+				if (!declared.Contains(type.Name))
+					declared.Add(type.Name);
+
+				if (!declared.Contains(type.Name + "[]"))
+					declared.Add(type.Name + "[]");
+			}
 		}
 
 		void Walk(Expr expression)

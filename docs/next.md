@@ -90,21 +90,20 @@ fixed-width (counting rather than delimiters), netstrings (§7.1, the shape a gr
 cannot express), the filter language (heterogeneous literals, an AST), and FIX (ordered
 fields, arithmetic over the match).
 
-**YAML was the last of the shortlist, and the reconnaissance is done.** The border is
-exactly where it looked:
+**YAML is written, and the earlier conclusion was wrong.** A grammar cannot *compare*
+indents — that is carrying state across a parse, and it remains the one thing the language
+cannot do. But it can *capture* them: every line hands over its indent as text, and the
+tree is a stack in twenty lines of C#. Depth is unbounded because nothing in the grammar
+counts it. `YamlExample.cs` is the split — recognition in the grammar, arithmetic over
+what was recognised in C# — and it is the same split FIX uses for its checksum.
 
-- *Fixed* depth is expressible by writing the levels out — `L0`, `L1`, `L2`, each with
-  its own indent literal. Compiles and works, and is what a config format with two levels
-  actually needs.
-- *Arbitrary* depth is not. It needs the indent of this line compared against the indent
-  of the last one, which is a value carried from one place in the input into the shape of
-  another — the same wall netstrings hit.
-- And unlike netstrings, §7.1 does not get round it. An external recognizer is handed the
-  input and a position and nothing else; a stack of open indent levels has nowhere to
-  live between calls, and putting it in a static would make the parser stateful and
-  unreentrant, which is a worse trade than not supporting YAML.
+What writing it found, both real:
 
-So YAML is not an example this project should carry. What it is, is the clearest
-statement of the one thing the language cannot do: **carry state across a parse**.
-Anything indentation-sensitive — YAML, Python, reStructuredText — is out of reach for the
-same reason, and the reason is worth knowing rather than rediscovering.
+- the streaming driver emitted an iterator with no `yield` in it for
+  `Doc : @T[] = (Line | Blank)*`, because `Retention` called the grammar streamable while
+  `StagesOf` found no rule to hand elements over from. It does not compile, which is the
+  good kind of failure, but the two halves disagreed — the same class as `PartsOf` fixed
+  earlier, and still open;
+- `Questions` did not foresee `T[]` as a type, so a rule whose value is a sequence and
+  which is an operand of another sequence took the generator down with CS8785. Fixed: a
+  sequence declaration now asks about both spellings, the element and the array.
