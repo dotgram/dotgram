@@ -41,20 +41,22 @@ namespace DotGram.Examples;
 	Ini : @IniFile = global: Entries & sections: Section* & eof
 	                   => @(new IniFile(global, sections))
 
-	Section : @IniSection = Space & '[' & name: Name & ']' & Space & Eol & entries: Entries
+	Section : @IniSection = Space & '[' & name: Name & ']' & Space & eol & entries: Entries
 	                          => @(new IniSection(name, entries))
 
 	// §4.1 case 2: the entries are what this collects, and the lines that are not entries
 	// produce no value and so join nothing.
-	// Every alternative consumes, or the repetition would not terminate. The one line
-	// that may end without a terminator is the last, which `Tail` takes.
+	// Every alternative consumes, or the repetition would not terminate — which is why
+	// `eol` is the standard rule and not a copy of it with `eof` added. A nullable `eol`
+	// would take that check away from every line-oriented grammar at once; the one line
+	// allowed to end without a terminator is the last, and `Tail` is where it is said.
 	Entries : @IniEntry[] = (Entry | Blank)* & Tail?
 
-	Entry : @IniEntry = Space & key: Key & Space & '=' & value: Value & (Eol | ?=eof)
+	Entry : @IniEntry = Space & key: Key & Space & '=' & value: Value & (eol | ?=eof)
 	                      => @(new IniEntry(key, value.Trim()))
 
 	// Not an entry and not a section: a comment, or nothing at all.
-	Blank = Space & Comment? & Eol
+	Blank = Space & Comment? & eol
 
 	Tail  = Space & Comment | Comment
 
@@ -68,7 +70,6 @@ namespace DotGram.Examples;
 	Value : @string = text: [^ '\n' | '\r']*                              => @(text)
 
 	Space = [' ' | '\t']*
-	Eol   = "\r\n" | '\n' | '\r'
 
 	parse Ini
 	""")]
