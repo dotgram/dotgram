@@ -805,11 +805,22 @@ public sealed partial class GrammarNormalizer
 			if (Alternatives(_bodies[rule]).Any(static alternative => alternative is Node.Construct))
 				continue;
 
+			// What the declaration says, unless it named a parameter: a specialization of
+			// `List(item, sep) : item[]` has `item[]` written on it and `JsonMember[]`
+			// worked out for it, and the host is asked about the second. Asking about the
+			// first is asking whether a type called `item` exists, which is a question with
+			// no true answer — and the permissive resolver says yes to it, so this held
+			// together in tests and fell apart against a compilation.
+			var element = _types.TryGetValue(rule, out var resolved) &&
+				resolved.EndsWith("[]", StringComparison.Ordinal)
+					? resolved.Substring(0, resolved.Length - "[]".Length)
+					: declared.Name;
+
 			var rewritten = new List<Node>();
 			var taken     = 0;
 
 			foreach (var alternative in Alternatives(_bodies[rule]))
-				rewritten.Add(new Node.Construct(Gather(alternative, declared.Name, ref taken), SequenceMarker));
+				rewritten.Add(new Node.Construct(Gather(alternative, element, ref taken), SequenceMarker));
 
 			if (taken == 0)
 			{
@@ -819,14 +830,14 @@ public sealed partial class GrammarNormalizer
 				// it has a name already.
 				Report(
 					UnbuiltConstruction,
-					Spoken(_bodies[rule], declared.Name) is { } name
-						? $"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and " +
+					Spoken(_bodies[rule], element) is { } name
+						? $"'{rule.Name}' declares its result as a sequence of '{element}', and " +
 							$"the operand that would fill it is captured as '{name}'. A sequence result " +
 							"collects the operands nothing else has spoken for (§4.1 case 2), so drop " +
 							"the name and let it be collected, or keep it and build the value with '=>'."
-						: $"'{rule.Name}' declares its result as a sequence of '{declared.Name}', and no " +
+						: $"'{rule.Name}' declares its result as a sequence of '{element}', and no " +
 							"operand of it produces one — every part either builds no value or builds a " +
-							$"type that is not a '{declared.Name}'. §4.1 case 2 says which operands join " +
+							$"type that is not a '{element}'. §4.1 case 2 says which operands join " +
 							"a sequence.",
 					declared.At);
 
@@ -835,6 +846,29 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
+	}
+
+	/// <summary>
+	/// Whether two slots of one name hold the same thing.
+	/// </summary>
+	/// <remarks>
+	/// The same rule holds the same thing trivially. Two rules do when both declared a
+	/// type and the types are the same name — which is what makes a value of several
+	/// shapes writable: every alternative of it produces the declared base, and the member
+	/// that collects them has that one type. Declared, not assignable: a member has one
+	/// type and it has to be a type both alternatives certainly produce, so widening one
+	/// to the other's would be choosing for the author.
+	/// </remarks>
+	bool SameValue(CaptureSlot left, CaptureSlot right)
+	{
+		if (Equals(left.Rule, right.Rule))
+			return true;
+
+		return left.Rule is { } first &&
+			right.Rule is { } second &&
+			_types.TryGetValue(first, out var one) &&
+			_types.TryGetValue(second, out var other) &&
+			string.Equals(one, other, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -988,8 +1022,11 @@ public sealed partial class GrammarNormalizer
 				if (slots.TryGetValue(slot.Name, out var sharing))
 				{
 					// The same name in two alternatives is one member — but only if the two
-					// agree on what it holds, since a member has one type.
-					if (sharing[0].Rule != slot.Rule || sharing[0].IsSequence != slot.IsSequence)
+					// agree on what it holds, since a member has one type. Two different
+					// rules agree when they declared the same type: `value: Object | value:
+					// Array` with both `: @JsonValue` is one member of that type, and is how
+					// a value that is one of several things gets written at all.
+					if (!SameValue(sharing[0], slot) || sharing[0].IsSequence != slot.IsSequence)
 						Report(
 							CaptureTypeMismatch,
 							$"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +

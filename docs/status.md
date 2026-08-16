@@ -51,6 +51,7 @@ then quietly mean nothing.
 | a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| one capture name over rules of one declared type §7.3 | — | — | ✓ | ✓ | ✓ |
 | the scalar form of it, `: item` §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
 | keyword boundaries §4.6 | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `recover` on a repetition, with `=>` §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |

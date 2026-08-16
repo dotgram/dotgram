@@ -516,4 +516,44 @@ public sealed class ExampleTests
 					"what is this line\n" +
 					"R|MSFT|250|2026-08-12\n")],
 				trade => trade.Symbol));
+
+	// ── The JSON parser ──────────────────────────────────────────────────────────
+
+	[Fact]
+	public void Json_reads_a_document_of_every_kind_of_value()
+	{
+		var read = (JsonObject)JsonParser.Read(
+			"""
+			{
+				"name":    "a \"quoted\" name",
+				"count":   42,
+				"ratio":   0.25,
+				"ok":      true,
+				"missing": null,
+				"items":   [1, "two", false, {"deep": []}]
+			}
+			""");
+
+		Assert.Equal("a \\\"quoted\\\" name", ((JsonText)read["name"]!).Text);
+		Assert.Equal(42,    ((JsonNumber)read["count"]!).Value);
+		Assert.Equal(0.25,  ((JsonNumber)read["ratio"]!).Value);
+		Assert.True(((JsonBool)read["ok"]!).Value);
+		Assert.IsType<JsonNull>(read["missing"]);
+
+		var items = (JsonArray)read["items"]!;
+
+		Assert.Equal(4, items.Items.Count);
+		Assert.Empty(((JsonArray)((JsonObject)items.Items[3])["deep"]!).Items);
+	}
+
+	[Fact]
+	public void And_an_empty_object_and_array_are_documents_too()
+	{
+		Assert.Empty(((JsonObject)JsonParser.Read("{}")).Members);
+		Assert.Empty(((JsonArray)JsonParser.Read("[ ]")).Items);
+	}
+
+	[Fact]
+	public void And_what_is_not_JSON_is_refused() =>
+		Assert.Throws<FormatException>(() => JsonParser.Read("{\"a\": }"));
 }
