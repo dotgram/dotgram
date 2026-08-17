@@ -35,6 +35,16 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void Preserves_an_atomic_boundary_while_normalizing_its_body()
+	{
+		Assert.Equal(
+			"""
+			R = { "ab" } & 'c'{2}
+			""",
+			Normalize("R = { 'a' & 'b' } & 'c'{2}").ToString());
+	}
+
+	[Fact]
 	public void Folds_character_alternatives_into_ranges()
 	{
 		Assert.Equal(

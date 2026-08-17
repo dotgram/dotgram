@@ -103,6 +103,14 @@ public abstract record Node
 		public override string ToString() => $"({string.Join(" | ", Nodes)})";
 	}
 
+	/// <summary>An explicit commit-on-success backtracking boundary.</summary>
+	public sealed record Atomic(Node Body) : Node
+	{
+		public override IEnumerable<Node> Children => [Body];
+
+		public override string ToString() => $"{{ {Body} }}";
+	}
+
 	public sealed record Repeat(Node Body, int Min, int? Max) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];

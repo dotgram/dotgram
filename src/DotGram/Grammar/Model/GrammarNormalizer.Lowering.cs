@@ -68,6 +68,7 @@ public sealed partial class GrammarNormalizer
 		Expr.Literal(_, var value)              => Bounded(value, scope),
 		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
 		Expr.Group(var body)                    => Lower(body, scope),
+		Expr.Atomic(var body)                   => new Node.Atomic(Lower(body, scope)),
 		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, scope)),
 		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, scope)),
 		Expr.Guard(var value)                   => Guarded(value),
@@ -779,6 +780,7 @@ public sealed partial class GrammarNormalizer
 	{
 		Node.Empty          => true,
 		Node.Literal(var t) => t.Length == 0,
+		Node.Atomic(var body) => MatchesNothing(body, seen),
 		Node.Repeat(var body, _, var max) => max == 0 || MatchesNothing(body, seen),
 		Node.Sequence(var nodes)   => nodes.All(child => MatchesNothing(child, seen)),
 		Node.Choice(var nodes)     => nodes.All(child => MatchesNothing(child, seen)),

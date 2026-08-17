@@ -328,6 +328,7 @@ public sealed partial class GrammarNormalizer
 			case Node.Choice(var nodes):        return nodes.Any(child => Reaches(child, target, seen));
 			case Node.Capture(_, var captured): return Reaches(captured, target, seen);
 			case Node.Construct(var built, _):  return Reaches(built, target, seen);
+			case Node.Atomic(var atomic):        return Reaches(atomic, target, seen);
 			case Node.Repeat(var repeated, _, _): return Reaches(repeated, target, seen);
 			case Node.Lookahead(_, var ahead):  return Reaches(ahead, target, seen);
 

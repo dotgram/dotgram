@@ -728,6 +728,7 @@ public static partial class CSharpEmitter
 		Node.Choice(var nodes)       => nodes,
 		Node.Repeat(var body, _, _)  => [body],
 		Node.Construct(var body, _)  => [body],
+		Node.Atomic(var body)        => [body],
 		_                            => [],
 	};
 
@@ -896,7 +897,7 @@ public static partial class CSharpEmitter
 
 		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			if (graph.Recoveries.ContainsKey(node) ||
-				node is Node.Capture or Node.Construct or Node.Lookahead)
+				node is Node.Capture or Node.Construct or Node.Lookahead or Node.Atomic)
 				return false;
 
 		return true;
@@ -910,7 +911,7 @@ public static partial class CSharpEmitter
 			return false;
 
 		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
-			if (graph.Recoveries.ContainsKey(node) || node is Node.Lookahead)
+			if (graph.Recoveries.ContainsKey(node) || node is Node.Lookahead or Node.Atomic)
 				return false;
 
 		return true;

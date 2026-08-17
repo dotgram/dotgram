@@ -65,6 +65,7 @@ sealed class Machine
 
 	int _counters;
 	int _lookaheads;
+	int _atomics;
 
 	/// <param name="results">What every rule's value is called; nothing may be null.</param>
 	/// <param name="builds">What this machine builds, or null when it only recognizes.</param>
@@ -267,6 +268,7 @@ sealed class Machine
 	}
 
 	string NewCounter() => "c" + _counters++;
+	string NewAtomic() => "a" + _atomics++;
 
 	/// <summary>
 	/// How wide one backtracking frame is: where to resume, where the input was, one
@@ -519,6 +521,24 @@ sealed class Machine
 				}
 
 				return attempt;
+			}
+
+			case Node.Atomic(var body):
+			{
+				UsesStack = true;
+
+				var mark      = NewAtomic();
+				var committed = Reserve(out var atCommit, node, "discard choices made inside the atomic group");
+				var inner     = Compile(body, committed);
+				var entry     = Reserve(out var atEntry, node, "atomic group starts here");
+
+				atEntry.Line($"{mark} = sp;");
+				atEntry.Line($"goto case {inner};");
+
+				atCommit.Line($"sp = {mark};");
+				atCommit.Line($"goto case {next};");
+
+				return entry;
 			}
 
 			case Node.Repeat repeat:
@@ -1534,6 +1554,9 @@ sealed class Machine
 
 			for (var i = 0; i < _counters; i++)
 				file.Line($"var c{i}    = 0;");
+
+			for (var i = 0; i < _atomics; i++)
+				file.Line($"var a{i}    = 0;");
 
 			file.Line($"var state = {initialEntry};");
 

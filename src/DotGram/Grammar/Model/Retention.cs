@@ -415,6 +415,7 @@ public static class Retention
 			case Node.Repeat(var body, _, _):     return [body];
 			case Node.Capture(_, var captured):   return [captured];
 			case Node.Construct(var built, _):    return [built];
+			case Node.Atomic(var body):            return [body];
 			default:                              return [];
 		}
 	}
@@ -478,6 +479,7 @@ public static class Retention
 
 			case Node.Capture(_, var captured): return Extent(captured, rules, consuming);
 			case Node.Construct(var built, _):  return Extent(built, rules, consuming);
+			case Node.Atomic(var body):          return Extent(body, rules, consuming);
 
 			case Node.Choice(var alternatives):
 			{
@@ -546,6 +548,7 @@ public static class Retention
 		Node.Empty or Node.Guard or Node.Lookahead => false,
 		Node.Literal(var text)                     => text.Length > 0,
 		Node.Repeat(var body, _, var max)          => max != 0 && Consumes(body, consuming),
+		Node.Atomic(var body)                      => Consumes(body, consuming),
 		Node.Capture(_, var captured)              => Consumes(captured, consuming),
 		Node.Construct(var built, _)               => Consumes(built, consuming),
 		Node.Sequence(var parts)                   => Any(parts, consuming),

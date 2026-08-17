@@ -549,12 +549,23 @@ public sealed class GramParser
 				return new Expr.Group(body) { At = From(start) };
 			}
 
+			case TokenKind.OpenBrace:
+			{
+				Take();
+
+				var body = ParseBody();
+
+				Expect(TokenKind.CloseBrace);
+
+				return new Expr.Atomic(body) { At = From(start) };
+			}
+
 			case TokenKind.At:
 			case TokenKind.Identifier:
 				return ParseReferenceOrCall();
 
 			default:
-				Report(ExpectedExpression, "Expected a literal, a reference, an element set or a group.");
+				Report(ExpectedExpression, "Expected a literal, a reference, an element set, a group or an atomic group.");
 
 				_panic = true;
 

@@ -95,6 +95,24 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void Distinguishes_an_atomic_group_from_a_repetition_count()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "R"
+					Sequence
+						Atomic
+							Choice
+								Char "a"
+								Char "b"
+						Count 2..3
+							Char "c"
+			""",
+			Parse("R = { 'a' | 'b' } & 'c'{2,3}"));
+	}
+
+	[Fact]
 	public void Where_is_not_an_alias_for_when()
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(

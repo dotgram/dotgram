@@ -594,6 +594,13 @@ public sealed partial class GrammarNormalizer
 					: Repeated(node, new Node.Repeat(inner, min, max));
 			}
 
+			case Node.Atomic(var body):
+			{
+				var inner = Gather(body, element, ref taken);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
+			}
+
 			default:
 				return node;
 		}
@@ -742,6 +749,7 @@ public sealed partial class GrammarNormalizer
 		Node.Sequence(var nodes)           => nodes.Any(HasCapture),
 		Node.Choice(var nodes)             => nodes.Any(HasCapture),
 		Node.Repeat(var body, _, _)        => HasCapture(body),
+		Node.Atomic(var body)              => HasCapture(body),
 		Node.Construct(var built, _)       => HasCapture(built),
 
 		// Not across a call — that is another rule's result — and not into a lookahead,

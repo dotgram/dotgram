@@ -85,6 +85,7 @@ public abstract record Expr : ILocated
 	public sealed record Guard     (Expr Value)                                : Expr;
 	public sealed record Capture   (string Name, Expr Operand)                 : Expr;
 	public sealed record Group     (Expr Body)                                 : Expr;
+	public sealed record Atomic    (Expr Body)                                 : Expr;
 	public sealed record Lookahead (bool IsPositive, Expr Operand)             : Expr;
 	public sealed record Literal   (bool IsChar, string Value)                 : Expr;
 	public sealed record ElementSet(bool IsNegated, IReadOnlyList<Elem> Items) : Expr;
@@ -224,6 +225,7 @@ static class Dump
 		Expr.Recovering(var body, var sync, null)         => [body, sync],
 		Expr.Recovering(var body, var sync, var factory)  => [body, sync, factory],
 		Expr.Group(var body)                => [body],
+		Expr.Atomic(var body)               => [body],
 		Expr.Lookahead(_, var operand)      => [operand],
 		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
 		Expr.Call(var target, var arguments) => [target, .. arguments],
@@ -248,6 +250,7 @@ static class Dump
 		Expr.Guard                                => "Guard",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
 		Expr.Group                                => "Group",
+		Expr.Atomic                               => "Atomic",
 		Expr.Lookahead(true,  _)                  => "PositiveLookahead",
 		Expr.Lookahead(false, _)                  => "NegativeLookahead",
 		Expr.Literal(true,  var value)            => $"Char {Quote(value)}",

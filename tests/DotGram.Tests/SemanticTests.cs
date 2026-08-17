@@ -582,6 +582,13 @@ public sealed class SemanticTests
 		Assert.True(Matches("Start = (\"xy\" | \"x\") & 'y'", "xy"));
 
 	[Fact]
+	public void An_atomic_group_discards_its_internal_choices_after_success()
+	{
+		Assert.False(Matches("Start = { \"xy\" | \"x\" } & 'y'", "xy"));
+		Assert.True(Matches("Start = { \"xz\" | \"x\" } & 'y'", "xy"));
+	}
+
+	[Fact]
 	public void Nesting_a_rule_deep_inside_itself() =>
 		// Backtracking is a machine inside a rule and an ordinary call between rules, so
 		// nesting costs the process stack — about 2700 levels on the default one, which

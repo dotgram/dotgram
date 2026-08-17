@@ -202,6 +202,7 @@ public static class FirstSets
 
 			case Node.Capture(_, var captured):  return Of(captured, graph, seen);
 			case Node.Construct(var built, _):   return Of(built,    graph, seen);
+			case Node.Atomic(var body):           return Of(body,     graph, seen);
 			case Node.Repeat(var body, _, _):    return Of(body,     graph, seen);
 
 			case Node.Call(var called, _):
@@ -245,6 +246,7 @@ public static class FirstSets
 		Node.Empty or Node.Guard or Node.Lookahead => true,
 		Node.Literal(var text)                     => text.Length == 0,
 		Node.Repeat(_, var min, _)                 => min == 0,
+		Node.Atomic(var body)                      => Nullable(body, graph),
 		Node.Capture(_, var captured)              => Nullable(captured, graph),
 		Node.Construct(var built, _)               => Nullable(built,    graph),
 		Node.Sequence(var parts)                   => All(parts, graph),
@@ -280,6 +282,7 @@ public static class FirstSets
 			case Node.Repeat(var body, _, _):    return [body];
 			case Node.Capture(_, var captured):  return [captured];
 			case Node.Construct(var built, _):   return [built];
+			case Node.Atomic(var body):           return [body];
 			default:                             return [];
 		}
 	}

@@ -164,6 +164,7 @@ public sealed partial class GrammarNormalizer
 		Node.Element                   => false,
 		Node.Guard                     => true,
 		Node.Lookahead                 => true,
+		Node.Atomic(var body)          => IsNullable(body),
 		Node.Capture(_, var body)      => IsNullable(body),
 		Node.Construct(var body, _)    => IsNullable(body),
 		Node.Repeat(var body, var min, _) => min == 0 || IsNullable(body),
@@ -488,6 +489,7 @@ public sealed partial class GrammarNormalizer
 	internal static bool Writes(Node node, string name) => node switch
 	{
 		Node.Capture(var captured, var body) => captured == name || Writes(body, name),
+		Node.Atomic(var body)                  => Writes(body, name),
 		Node.Sequence(var nodes)             => nodes.Any(child => Writes(child, name)),
 		Node.Choice(var nodes)               => nodes.All(child => Writes(child, name)),
 		Node.Construct(var built, _)         => Writes(built, name),
