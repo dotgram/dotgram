@@ -159,12 +159,12 @@ Working end to end — a `.gram` file becomes a parser that runs:
   A rejection arrives in its place, carrying which record it was, where a person would
   open the file, and why — so nothing has to be joined back up afterwards
 
-- **a C# predicate where an element goes** — `bool M(char c)` asks the same question
-  about one input item that a range does, so it stands where one does and merges into a
-  set beside them:
+- **a C# predicate inside an element set** — `bool M(char c)` asks the same question
+  about one input item that a range does. The brackets establish that contract and let
+  the predicate merge with ranges:
 
   ```dotgram
-  Start = (@IsVowel | ['0'..'9'])+ & @IsStop
+  Start = ([@IsVowel] | ['0'..'9'])+ & [@IsStop]
   ```
 
 - **and a C# method that reads the input itself**, for what a grammar spells badly — a
@@ -173,6 +173,9 @@ Working end to end — a `.gram` file becomes a parser that runs:
   ```csharp
   static bool Blob(ReadOnlySpan<char> input, ref int pos)
   ```
+
+  A bare `@Blob` is the corresponding grammar operand. Its position, rather than the
+  method's signature, tells the generator which call to emit.
 
   The `ref` is the method saying that it moves the position, and it is taken at its word:
   it is handed the parser's own, and nothing checks what came back. Reaching into the

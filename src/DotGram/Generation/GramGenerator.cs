@@ -66,9 +66,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		//
 		// A `Compilation` is a different object after every keystroke, so anything
 		// downstream of one is recomputed for every character typed. Binding genuinely
-		// needs it for declared C# types and C# recognizers used as grammar operands, so the
-		// dependency cannot be removed, only narrowed to what it is for. C# in `where` and
-		// `=>` is not among those questions: it is emitted for the C# compiler to bind.
+		// needs it for declared C# types, their constructors and their properties, so the
+		// dependency cannot be removed, only narrowed to what it is for. C# methods are not
+		// among those questions: syntax fixes their call shape and the C# compiler binds it.
 		//
 		//   grammar  ──► the questions its C# names raise      cached on the grammar
 		//   + host                     │

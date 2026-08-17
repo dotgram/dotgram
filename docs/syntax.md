@@ -225,11 +225,10 @@ where @Predicate(args)
 An operand that consumes no input and produces no value: if the predicate returns
 `false`, the whole sequence did not match.
 
-The keyword is not ceremony. Without it, a call site does not say whether the input
-moves: `@ParseGuid` (an external recognizer), `@IsLetter` (an element predicate) and
-`@IsSupported(symbol)` (a test on a captured value) look identical and differ only by
-a signature living in another file. And `@IsUpper(ch)`, where `ch` is a capture, is
-outright ambiguous: a test on the captured character, or on the current input item?
+The keyword is not ceremony. Syntactic position fixes every C# contract: `@ParseGuid`
+as an operand is an external recognizer, `[@IsLetter]` is an element predicate, and
+`where @IsSupported(symbol)` is a test on captured values. No C# signature is inspected
+to decide which one the author meant.
 
 Hence the wider scheme: there are exactly two positions where C# is called for a
 value, each with its own marker — `where` asks (`bool`), `=>` answers (a result).
@@ -903,9 +902,8 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 
 | C# signature | Role | Called from the grammar as |
 | --- | --- | --- |
-| `bool M(char c)` | element predicate | `@M` in recognizer position |
-| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | `@M` in recognizer position |
-| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | `@M` in recognizer position |
+| `bool M(char c)` | element predicate | `[@M]` inside an element set |
+| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `where @M(a)`, `where @(expr)` |
 
@@ -922,14 +920,24 @@ Both are written the same way in the generated file; which to use is a matter of
 much of the line is C#. A dotted name written without the `@` is the ordinary mistake
 here, and the compiler says so by name.
 
-There is one rule to read this by: **only recognizer position asks the generator to
-classify a method.** Everything in `where` and `=>` is C# text; its overloads, generic
-arguments, accessibility, parameter types and result type are C#'s responsibility.
+There is one rule to read this by: **syntactic position determines the call shape.**
+`[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `where` and `=>` emit their C#
+values. The generator never inspects a method signature to choose among those roles;
+overloads, accessibility, parameter types and result types are C#'s responsibility.
+
+The same C# name may therefore implement both contracts without ambiguity:
+
+```dotgram
+One  = [@Foo]
+Many = @Foo
+```
+
+The first call selects `bool Foo(char)`, the second
+`bool Foo(ReadOnlySpan<char>, ref int)` by ordinary C# overload resolution.
 
 The external recognizer's signature is deliberately built from BCL types only: it is
 the same whether or not shared mode is on (§6.2), and it needs no interface dispatch.
-The two forms differ in one thing: without an `out`, its value is the text it covered —
-the same as any rule that captures nothing.
+Its value is the text it covered — the same as any rule that captures nothing.
 
 **A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
 saying that it moves the position; it is handed the parser's own, and nothing copies it

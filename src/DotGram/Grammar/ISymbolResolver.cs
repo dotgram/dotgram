@@ -4,26 +4,18 @@ using System.Collections.Generic;
 namespace DotGram.Grammar;
 
 /// <summary>
-/// Answers what a grammar's <c>@Name</c> refers to on the C# side.
+/// Answers the C# type questions the grammar cannot answer by itself.
 /// </summary>
 /// <remarks>
-/// One of the two seams between the grammar half and its host. Resolving a C# name
-/// needs the host compilation; everything else the grammar half does is a pure
-/// function of the grammar text. Keeping the dependency behind one small interface is
-/// what lets the rest be tested, and run, without Roslyn.
+/// One of the two seams between the grammar half and its host. Resolving C# type
+/// relationships needs the host compilation; everything else the grammar half does is
+/// a pure function of the grammar text. Keeping the dependency behind one small interface
+/// is what lets the rest be tested, and run, without Roslyn.
 /// </remarks>
 public interface ISymbolResolver
 {
 	/// <summary>Whether a C# type of this name is in scope.</summary>
 	bool TypeExists(string qualifiedName);
-
-	/// <summary>
-	/// Classifies a C# method used as a recognizer (docs/syntax.md §7.1). A supported
-	/// recognizer is an element predicate or external recognizer; the other roles let the
-	/// diagnostic describe the incompatible method that was found.
-	/// </summary>
-	/// <returns><c>false</c> when no such method is in scope.</returns>
-	bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role);
 
 	/// <summary>
 	/// Whether a value of one C# type may be put where the other is expected.
@@ -77,22 +69,6 @@ public readonly record struct ObjectMember(string Name, string Type, bool IsRequ
 /// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
 public readonly record struct MethodParameter(string Name, string Type, bool IsOptional);
 
-/// <summary>The shape of a C# method considered for recognizer position.</summary>
-public enum MethodRole
-{
-	/// <summary><c>bool M(char c)</c> — tests and consumes one input item.</summary>
-	ElementPredicate,
-
-	/// <summary><c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos, out T value)</c>.</summary>
-	ExternalRecognizer,
-
-	/// <summary><c>T M(args…)</c> without a recognizer signature.</summary>
-	ValueTransformation,
-
-	/// <summary><c>bool M(args…)</c> without a recognizer signature.</summary>
-	Guard,
-}
-
 /// <summary>
 /// Accepts every name it is asked about. For tests and tooling that exercise the
 /// grammar side without a host compilation; never correct for real generation.
@@ -102,12 +78,6 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	public static readonly PermissiveSymbolResolver Instance = new();
 
 	public bool TypeExists(string qualifiedName) => true;
-
-	public bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role)
-	{
-		role = argumentCount == 0 ? MethodRole.ElementPredicate : MethodRole.ValueTransformation;
-		return true;
-	}
 
 	public bool IsAssignable(string from, string to) => true;
 

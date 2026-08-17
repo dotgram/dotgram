@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 namespace DotGram.Generation;
 
 /// <summary>
-/// Resolves a grammar's <c>@Name</c> against the host compilation.
+/// Resolves the C# type relationships a grammar cannot know by itself.
 /// </summary>
 /// <remarks>
 /// The only part of compilation that genuinely needs Roslyn, which is why it sits
@@ -18,12 +18,7 @@ namespace DotGram.Generation;
 /// <param name="host">
 /// The metadata name of the class the grammar is attached to, or null when there is none.
 /// </param>
-/// <remarks>
-/// The host is where a grammar's own recognizers live. An unqualified C# name used as a
-/// grammar operand is looked for there first, the way C# itself resolves one inside a
-/// class. C# inside <c>where</c> and <c>=&gt;</c> never comes through this resolver; it is
-/// emitted and resolved by the consumer's C# compilation.
-/// </remarks>
+/// <remarks>The host matters for nested result types declared beside the grammar.</remarks>
 public sealed class RoslynSymbolResolver(Compilation compilation, string? host = null) : ISymbolResolver
 {
 	readonly Compilation _compilation = compilation ?? throw new ArgumentNullException(nameof(compilation));
@@ -153,10 +148,9 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 	/// <c>System.Int32.Parse</c> and expects to be understood.
 	/// </remarks>
 	/// <remarks>
-	/// The host is looked in as well, and for the same reason its methods are: a type
-	/// written beside the grammar is a type the author never has to name in full anywhere
-	/// else. Without it `@Row` beside `Row` meant a top-level `Row`, while `@Method`
-	/// beside `Method` meant the host's own — an asymmetry nobody chose.
+	/// The host is looked in as well: a nested type written beside the grammar is a type
+	/// the author never has to name in full anywhere else. Without this lookup, <c>@Row</c>
+	/// beside a nested <c>Row</c> would mean only a top-level type.
 	/// </remarks>
 	INamedTypeSymbol? TypeNamed(string qualifiedName)
 	{
@@ -207,58 +201,4 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 			["string"]  = "System.String",
 			["object"]  = "System.Object",
 		};
-
-	public bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role)
-	{
-		role = MethodRole.ValueTransformation;
-
-		var separator = qualifiedName.LastIndexOf('.');
-
-		// Unqualified: the host class, which is where a grammar's own helpers live. Looked
-		// at first and not only as a fallback — a name written without a dot is a name in
-		// the class the grammar is attached to, exactly as it would be in C#.
-		var type = separator <= 0
-			? _host is null ? null : _compilation.GetTypeByMetadataName(_host)
-			: TypeNamed(qualifiedName.Substring(0, separator));
-
-		if (type is null)
-			return false;
-
-		var name   = separator <= 0 ? qualifiedName : qualifiedName.Substring(separator + 1);
-		var method = type
-			.GetMembers(name)
-			.OfType<IMethodSymbol>()
-			.FirstOrDefault(candidate => candidate.Parameters.Length >= argumentCount);
-
-		if (method is null)
-			return false;
-
-		role = Classify(method, argumentCount);
-
-		return true;
-	}
-
-	/// <summary>
-	/// docs/syntax.md §7.1: a method taking the input and a <c>ref int pos</c> is a
-	/// recognizer; anything else never touches input.
-	/// </summary>
-	static MethodRole Classify(IMethodSymbol method, int argumentCount)
-	{
-		var parameters = method.Parameters;
-
-		if (parameters.Length >= 2 &&
-			parameters[1].RefKind == RefKind.Ref &&
-			parameters[1].Type.SpecialType == SpecialType.System_Int32)
-		{
-			return MethodRole.ExternalRecognizer;
-		}
-
-		if (argumentCount == 0 && parameters.Length == 1 && method.ReturnType.SpecialType == SpecialType.System_Boolean)
-			return MethodRole.ElementPredicate;
-
-		if (method.ReturnType.SpecialType != SpecialType.System_Boolean)
-			return MethodRole.ValueTransformation;
-
-		return MethodRole.Guard;
-	}
 }

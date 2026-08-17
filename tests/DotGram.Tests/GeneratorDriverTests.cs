@@ -295,11 +295,10 @@ public sealed class GeneratorDriverTests
 	[Fact]
 	public void A_C_sharp_predicate_tests_one_input_item()
 	{
-		// §7.1's first row: `bool M(char c)` asks the same question about one item that a
-		// range does, so it stands where an element does — on its own, and merged into a
-		// set beside ranges of characters.
+		// The brackets establish the contract: both C# names test exactly one item, just as
+		// the range beside IsVowel does.
 		var parse = Build("""
-			[DotGram.Gram("Start = (@IsVowel | ['0'..'9'])+ & @IsStop\nparse Start")]
+			[DotGram.Gram("Start = ([@IsVowel] | ['0'..'9'])+ & [@IsStop]\nparse Start")]
 			public partial class Predicates
 			{
 				static bool IsVowel(char c) => "aeiou".IndexOf(c) >= 0;
@@ -352,6 +351,32 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void Syntactic_position_selects_between_C_sharp_overloads()
+	{
+		var parse = Build("""
+			[DotGram.Gram("Start = [@Foo] & @Foo & eof\nparse Start")]
+			public partial class Overloaded
+			{
+				static bool Foo(char c) => c == 'a';
+
+				static bool Foo(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					if (pos + 2 > input.Length || input[pos] != 'b' || input[pos + 1] != 'c')
+						return false;
+
+					pos += 2;
+					return true;
+				}
+			}
+			""")
+			.GetType("Overloaded")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["abb"]));
+	}
+
+	[Fact]
 	public void And_a_grammar_that_reads_its_own_input_is_not_streamed()
 	{
 		// The recognizer is handed a span and told nothing about where it came from, so it
@@ -372,24 +397,25 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void And_a_method_of_neither_shape_says_what_it_is_instead()
+	public void A_bare_C_sharp_operand_uses_the_external_recognizer_contract()
 	{
-		// Neither row of §7.1: it takes no input and moves nothing. The message says what
-		// the method actually is, which is what tells an author whether they meant this
-		// method or another one.
 		var run = RunGenerator("""
 			[DotGram.Gram("Start = @Convert & 'x'\nparse Start")]
 			public partial class Converting
 			{
 				static int Convert(string text) => text.Length;
 			}
-			""");
+			""", out var output);
 
-		var told = Assert.Single(run.Diagnostics.Where(d => d.Id == "GRAM4005"));
+		var source = GetGeneratedSource(run, "Converting.g.cs");
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.ToArray();
 
-		Assert.Contains("transformation",          told.GetMessage(), StringComparison.Ordinal);
-		Assert.Contains("bool Convert(char c)",    told.GetMessage(), StringComparison.Ordinal);
-		Assert.Contains("ref int pos",             told.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("Convert(text, ref p)", source, StringComparison.Ordinal);
+		Assert.NotEmpty(errors);
+		Assert.All(errors, error => Assert.StartsWith("CS", error.Id, StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -1074,14 +1100,24 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_bare_name_where_an_operand_goes_is_still_reported()
+	public void A_missing_bare_recognizer_is_reported_by_C_sharp()
 	{
-		// Unlike C# values, a recognizer participates in moving through the input. The
-		// generator must distinguish the §7.1 predicate and span-reader shapes before it can
-		// emit a call, so an unknown recognizer remains a grammar diagnostic.
-		AssertDiagnostic("GRAM3004", RunGenerator(
+		RunGenerator(
 			"[DotGram.Gram(\"Start = @Unknown & eol\\nparse Start\")]\n" +
-			"public partial class Bare;"));
+			"public partial class Bare;",
+			out var output);
+
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+
+		Assert.NotEmpty(errors);
+		Assert.All(errors, error =>
+		{
+			Assert.Equal("CS0103", error.Id);
+			Assert.Contains("Unknown", error.GetMessage(), StringComparison.Ordinal);
+		});
 	}
 
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
@@ -1392,17 +1428,23 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_name_inside_an_element_set_is_asked_about_like_any_other()
+	public void A_missing_predicate_inside_an_element_set_is_reported_by_C_sharp()
 	{
-		// §3.1 allows a C# predicate inside a set, and the question collector did not walk
-		// into one — so the resolver was asked something nobody foresaw and the generator
-		// died with CS8785, taking the whole compilation with it. A grammar naming a method
-		// that is not there deserves a diagnostic, not that.
-		var reported = RunGenerator(
+		RunGenerator(
 			"[DotGram.Gram(\"Start = [@IsVowel | \'0\'..\'9\']+\\nparse Start\")]\n"
-			+ "public partial class Sets;").Diagnostics;
+			+ "public partial class Sets;",
+			out var output);
 
-		Assert.DoesNotContain(reported, d => d.Id == "CS8785");
-		Assert.Contains(reported, d => d.Id == "GRAM3004");
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+
+		Assert.NotEmpty(errors);
+		Assert.All(errors, error =>
+		{
+			Assert.Equal("CS0103", error.Id);
+			Assert.Contains("IsVowel", error.GetMessage(), StringComparison.Ordinal);
+		});
 	}
 }

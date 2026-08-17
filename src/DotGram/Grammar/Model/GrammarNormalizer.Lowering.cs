@@ -131,10 +131,8 @@ public sealed partial class GrammarNormalizer
 	/// A bare name standing where an operand goes: a rule to call, or something else.
 	/// </summary>
 	/// <remarks>
-	/// A C# name here is §7.1 — a method that consumes input, or a predicate over one item
-	/// — and the seam for calling one at run time does not exist. It used to lower to an
-	/// element set with nothing in it, which is a rule that compiles, runs, and matches
-	/// nothing whatever the input is.
+	/// A bare C# name here is unambiguously §7.1's input-consuming recognizer. A predicate
+	/// over one item appears inside an element set instead, as <c>[@Name]</c>.
 	/// </remarks>
 	Node LowerReference(Expr expression, string name)
 	{
@@ -154,33 +152,11 @@ public sealed partial class GrammarNormalizer
 		// what it does with the position it is handed — the `ref` is it saying that it
 		// moves one, and a grammar that reaches into the parse takes the parse's
 		// invariants on.
-		if (symbol is CSharpSymbol { Role: MethodRole.ExternalRecognizer } reader)
+		if (symbol is CSharpSymbol reader)
 			return new Node.External(reader.Name);
-
-		// §7.1's first row: `bool M(char c)` tests one input item, which is exactly what an
-		// element set does, so it lowers to one — a set of no ranges and one predicate.
-		if (symbol is CSharpSymbol { Role: not MethodRole.ElementPredicate } other)
-			Report(
-				UnsupportedElement,
-				$"'@{name}' stands where an operand goes. A C# method may be one — docs/syntax.md " +
-				$"§7.1 — as 'bool {name}(char c)', which tests one input item, or as " +
-				$"'bool {name}(ReadOnlySpan<char> input, ref int pos)', which reads the input " +
-				"itself. " +
-				(other.Role is null
-					? "This name is not a method in view."
-					: $"This one is a {Described(other.Role.Value)}."),
-				expression.At);
 
 		return new Node.Element(false, [], [], [symbol]);
 	}
-
-	/// <summary>What a method's shape makes it, in words a message can use.</summary>
-	static string Described(MethodRole role) => role switch
-	{
-		MethodRole.ExternalRecognizer     => "recognizer over a span",
-		MethodRole.ValueTransformation    => "transformation",
-		_                                 => "guard",
-	};
 
 	/// <summary>What <c>&lt;&lt; n</c> or <c>&gt;&gt; n</c> said, by the alternative it was said on.</summary>
 	readonly Dictionary<Node, (bool IsLeft, int Level)> _bounds = new(NodeIdentity.Instance);
@@ -632,19 +608,30 @@ public sealed partial class GrammarNormalizer
 
 		void Merge(Expr.Reference reference, List<CharRange> into, List<string> alsoInto, List<Symbol> unresolved)
 		{
-			if (!_model.Bindings.TryGetValue(reference, out var symbol) || symbol is not RuleSymbol rule)
+			if (!_model.Bindings.TryGetValue(reference, out var symbol))
 			{
-				// A C# predicate — `[Letter | @IsDigit]` — needs the C# seam at run time,
-				// which does not exist yet. Named as unbuilt rather than silently dropped.
 				Report(
 					UnsupportedElement,
-					symbol is CSharpSymbol
-						? $"'@{reference.Name}' cannot be used inside an element set yet: C# predicates are not implemented."
-						: $"'{reference.Name}' is not a rule.",
+					$"'{reference.Name}' is not a rule.",
 					set.At);
 
-				unresolved.Add(symbol ?? Unresolved(reference.Name));
+				unresolved.Add(Unresolved(reference.Name));
 
+				return;
+			}
+
+			// The brackets are the contract: this C# method tests exactly one input item.
+			// Emission writes Name(c), and the C# compiler resolves that overload.
+			if (symbol is CSharpSymbol)
+			{
+				unresolved.Add(symbol);
+				return;
+			}
+
+			if (symbol is not RuleSymbol rule)
+			{
+				Report(UnsupportedElement, $"'{reference.Name}' is not a rule.", set.At);
+				unresolved.Add(symbol);
 				return;
 			}
 

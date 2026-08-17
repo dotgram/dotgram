@@ -179,16 +179,15 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void Only_C_sharp_recognizers_go_through_the_resolver()
+	public void C_sharp_methods_do_not_go_through_the_resolver()
 	{
 		var strict = new StrictResolver();
 		var model  = GrammarBinder.Bind(
-			GramParser.Parse(GramLexer.Tokenize("A = @IsLetter & where @IsSmall(x)")).File,
+			GramParser.Parse(GramLexer.Tokenize("A = x: [@IsLetter] & @Read & where @IsSmall(x)")).File,
 			strict);
 
-		Assert.Contains(GrammarBinder.UnknownCSharp, model.Diagnostics.Select(d => d.Id));
-		Assert.Contains("IsLetter", strict.Asked);
-		Assert.DoesNotContain("IsSmall", strict.Asked);
+		Assert.Empty(model.Diagnostics);
+		Assert.Empty(strict.Asked);
 	}
 
 	sealed class StrictResolver : ISymbolResolver
@@ -198,14 +197,6 @@ public sealed class GrammarBinderTests
 		public bool TypeExists(string qualifiedName)
 		{
 			Asked.Add(qualifiedName);
-			return false;
-		}
-
-		public bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role)
-		{
-			Asked.Add(qualifiedName);
-			role = MethodRole.ValueTransformation;
-
 			return false;
 		}
 

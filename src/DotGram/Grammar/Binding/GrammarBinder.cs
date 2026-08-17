@@ -291,7 +291,7 @@ public sealed class GrammarBinder
 		switch (expression)
 		{
 			case Expr.Reference reference:
-				ResolveReference(reference, reference, scope, parameters, argumentCount: 0, csharpValue);
+				ResolveReference(reference, reference, scope, parameters, csharpValue);
 				return;
 
 			case Expr.Construct(var pattern, var value):
@@ -304,7 +304,7 @@ public sealed class GrammarBinder
 				return;
 
 			case Expr.Call(var target, var arguments):
-				ResolveReference(target, expression, scope, parameters, arguments.Count, csharpValue);
+				ResolveReference(target, expression, scope, parameters, csharpValue);
 
 				foreach (var argument in arguments)
 					ResolveExpression(argument, scope, parameters, csharpValue);
@@ -317,7 +317,7 @@ public sealed class GrammarBinder
 				// what it names into the set, and for that it needs to know what it is.
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, bind: reference, scope, parameters, argumentCount: 0);
+						ResolveReference(reference, bind: reference, scope, parameters);
 
 				return;
 
@@ -336,7 +336,6 @@ public sealed class GrammarBinder
 		Expr?                               bind,
 		GrammarScope                        scope,
 		Dictionary<string, ParameterSymbol> parameters,
-		int                                 argumentCount,
 		bool                                csharpValue = false)
 	{
 		var at = reference.At;
@@ -358,12 +357,7 @@ public sealed class GrammarBinder
 			if (csharpValue)
 				return;
 
-			if (_symbols.TryResolveMethod(reference.Name, argumentCount, out var role))
-				Bind(new CSharpSymbol(reference.Name, role));
-			else if (TypeInView(reference.Name, scope))
-				Bind(new CSharpSymbol(reference.Name, Role: null));
-			else
-				Report(UnknownCSharp, $"No C# method or type named '{reference.Name}' is in view here.", at);
+			Bind(new CSharpSymbol(reference.Name));
 
 			return;
 		}

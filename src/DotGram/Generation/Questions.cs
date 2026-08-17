@@ -10,17 +10,19 @@ namespace DotGram.Generation;
 
 /// <summary>What a grammar needs to know about the host's C#, and what it was told.</summary>
 /// <param name="Name">A qualified C# name, exactly as it will be asked for.</param>
-/// <param name="Arity">
-/// The number of arguments a method was called with, or -1 when the question is whether a
-/// type of this name exists.
+/// <param name="Kind">
+/// One of the constants below, identifying the type relationship being asked about.
 /// </param>
 /// <param name="Against">
 /// The type <paramref name="Name"/> is being asked to fit into, for an assignability
 /// question (§4.1 case 2), and null for every other kind.
 /// </param>
-readonly record struct Question(string Name, int Arity, string? Against = null)
+readonly record struct Question(string Name, int Kind, string? Against = null)
 {
-	/// <summary>The arity that marks a question about types rather than about a name.</summary>
+	/// <summary>The kind that asks whether a type exists.</summary>
+	public const int Exists = -1;
+
+	/// <summary>The kind that asks whether one type fits another.</summary>
 	public const int Assignability = -2;
 
 	/// <summary>And the one that asks what a type can be built with (§7.3).</summary>
@@ -37,7 +39,6 @@ readonly record struct Question(string Name, int Arity, string? Against = null)
 }
 
 /// <param name="Yes">Whether the host has it.</param>
-/// <param name="Role">What kind of method it is, meaningless unless the question was one.</param>
 /// <param name="Constructors">
 /// What the type can be built with, each constructor as its parameters in order (§7.3).
 /// Empty unless the question asked.
@@ -49,7 +50,6 @@ readonly record struct Question(string Name, int Arity, string? Against = null)
 readonly record struct Answer(
 	Question Asked,
 	bool Yes,
-	MethodRole Role,
 	EquatableArray<EquatableArray<MethodParameter>> Constructors = default,
 	EquatableArray<ObjectMember> Properties = default);
 
@@ -59,12 +59,12 @@ readonly record struct Answer(
 /// <remarks>
 /// <para>
 /// This is what lets the expensive half of generation be cached. Binding needs a
-/// <c>Compilation</c> for declared C# types and C# recognizers used as grammar operands,
+/// <c>Compilation</c> for declared C# types, their constructors and their properties,
 /// and a <c>Compilation</c> is a new object after every keystroke, so anything downstream
 /// of it is recomputed for every character typed. Asking those questions first turns
 /// that dependency into a small list of answers, which compares by value and hardly ever
-/// changes. C# in <c>where</c> and <c>=&gt;</c> raises no question here; the generated C#
-/// compiler binds it.
+/// changes. C# methods raise no question here: their contract follows from syntactic
+/// position, and the generated C# compiler binds the emitted call.
 /// </para>
 /// <para>
 /// <b>A superset, deliberately.</b> The set is built from the grammar's syntax rather
@@ -118,15 +118,9 @@ static class Questions
 		{
 			questions.Add(name);
 
-			// A method is asked for by name and arity; a type only by name. Both are asked
-			// unqualified first and then under each import, the way C# itself resolves.
-			questions.Add(name with { Arity = -1 });
-
+			// Asked unqualified first and then under each import, the way C# itself resolves.
 			foreach (var import in imports)
-			{
 				questions.Add(name with { Name = import + "." + name.Name });
-				questions.Add(new Question(import + "." + name.Name, -1));
-			}
 		}
 
 		// Sorted, because what this is conceptually is a set and what it travels as is an
@@ -138,7 +132,7 @@ static class Questions
 		[
 			.. questions
 				.OrderBy(static question => question.Name, StringComparer.Ordinal)
-				.ThenBy(static question => question.Arity)
+				.ThenBy(static question => question.Kind)
 				.ThenBy(static question => question.Against ?? "", StringComparer.Ordinal),
 		];
 
@@ -167,7 +161,7 @@ static class Questions
 			if (type is null)
 				return;
 
-			names.Add(new Question(type.Name, -1));
+			names.Add(new Question(type.Name, Question.Exists));
 
 			(type.IsSequence ? sequences : declared).Add(type.Name);
 
@@ -186,55 +180,29 @@ static class Questions
 			}
 		}
 
-		void Walk(Expr expression, bool csharpValue = false)
+		void Walk(Expr expression)
 		{
 			switch (expression)
 			{
-				// These are C# values. Their names and overloads are deliberately not
-				// questions for the generator: the text is emitted unchanged and the C#
-				// compiler resolves it in the consumer's compilation.
-				case Expr.Construct(var pattern, var value):
+				// C# values and methods are deliberately not questions for the generator.
+				// Walk only the recognizing half of a construction; the compiler owns its
+				// value and every guard.
+				case Expr.Construct(var pattern, _):
 					Walk(pattern);
-					Walk(value, csharpValue: true);
 					return;
 
-				case Expr.Guard(var value):
-					Walk(value, csharpValue: true);
+				case Expr.Guard:
 					return;
-
-				// `@Name(a, b)` — a method of two arguments, or a type if it is not one.
-				case Expr.Call(var target, var arguments) when target.IsCSharp && !csharpValue:
-					names.Add(new Question(target.Name, arguments.Count));
-					break;
-
-				// `@Name` on its own is asked for as a method of none, then as a type.
-				case Expr.Reference(true, var name, var typeArguments) when !csharpValue:
-					names.Add(new Question(name, 0));
-
-					foreach (var argument in typeArguments)
-						Type(argument);
-
-					break;
 
 				case Expr.Reference(false, _, var typeArguments):
 					foreach (var argument in typeArguments)
 						Type(argument);
 
 					break;
-
-				// A name inside an element set is §7.1's first row — `bool M(char)` — and is
-				// asked for like any other. `Dump.Children` does not reach into a set, because
-				// what is in one is elements rather than expressions, so it is walked here.
-				case Expr.ElementSet(_, var items):
-					foreach (var item in items)
-						if (item is Elem.Ref(var reference) && reference.IsCSharp)
-							names.Add(new Question(reference.Name, 0));
-
-					break;
 			}
 
 			foreach (var child in Dump.Children(expression))
-				Walk(child, csharpValue);
+				Walk(child);
 		}
 	}
 
@@ -244,30 +212,25 @@ static class Questions
 		var answers = ImmutableArray.CreateBuilder<Answer>(questions.Length);
 
 		foreach (var question in questions)
-			answers.Add(question.Arity switch
+			answers.Add(question.Kind switch
 			{
 				Question.Assignability =>
-					new Answer(question, resolver.IsAssignable(question.Name, question.Against!), default),
+					new Answer(question, resolver.IsAssignable(question.Name, question.Against!)),
 
 				Question.Constructors => new Answer(
 					question,
 					resolver.TryResolveConstructors(question.Name, out var constructors),
-					default,
 					Shapes(constructors)),
 
 				Question.Properties => new Answer(
 					question,
 					resolver.TryResolveSettableProperties(question.Name, out var properties),
 					default,
-					default,
 					new EquatableArray<ObjectMember>([.. properties])),
 
-				< 0 => new Answer(question, resolver.TypeExists(question.Name), default),
+				Question.Exists => new Answer(question, resolver.TypeExists(question.Name)),
 
-				_ => new Answer(
-					question,
-					resolver.TryResolveMethod(question.Name, question.Arity, out var role),
-					role),
+				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
 
 		return answers.ToImmutable();
@@ -309,19 +272,10 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		return index;
 	}
 
-	public bool TypeExists(string qualifiedName) => Look(new Question(qualifiedName, -1)).Yes;
+	public bool TypeExists(string qualifiedName) => Look(new Question(qualifiedName, Question.Exists)).Yes;
 
 	public bool IsAssignable(string from, string to) =>
 		string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
-
-	public bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role)
-	{
-		var answer = Look(new Question(qualifiedName, argumentCount));
-
-		role = answer.Role;
-
-		return answer.Yes;
-	}
 
 	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
 	{
@@ -360,7 +314,6 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		_answers.TryGetValue(question, out var answer)
 			? answer
 			: throw new InvalidOperationException(
-				$"The question collector did not foresee '{question.Name}'" +
-				(question.Arity < 0 ? " as a type" : $" as a method of {question.Arity}") +
-				". This is a defect in DotGram.Generation.Questions, not in the grammar.");
+				$"The question collector did not foresee the type question for '{question.Name}' " +
+				$"(kind {question.Kind}). This is a defect in DotGram.Generation.Questions, not in the grammar.");
 }

@@ -25,7 +25,7 @@ public sealed record RuleSymbol(
 public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
 
 /// <summary>A name that lives on the C# side.</summary>
-public sealed record CSharpSymbol(string Name, MethodRole? Role) : Symbol(Name);
+public sealed record CSharpSymbol(string Name) : Symbol(Name);
 
 /// <summary>
 /// One lexical scope: the global one at the top of a file, or a `scope` block.

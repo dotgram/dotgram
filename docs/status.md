@@ -41,8 +41,8 @@ then quietly mean nothing.
 | guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `@Name` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `[@Name]` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| bare `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same handing back a value of its own §7.1 | ✓ | ✓ | refused | ✗ | ✗ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -61,7 +61,7 @@ then quietly mean nothing.
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
-| `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| C# recognizer calls emitted without generator resolution §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | ✓ | ✓ | ✓ | ✓ |
@@ -531,11 +531,10 @@ C# keywords count as a declared type — and until it was refused, the declarati
 dropped in silence and the rule got a type generated from its own captures instead, so
 `A : B` compiled, ran, and handed back an `A` with nothing to do with `B`.
 
-`@Name` standing where an operand goes (§7.1) is refused with `GRAM4005`, the same
-diagnostic an unbuilt C# predicate inside an element set gets. It used to lower to an
-element set with nothing in it: a rule that compiled, ran, and matched nothing whatever
-the input was. Only `@(...)` inside a `where` or a `=>` reaches C# today, and the names
-inside one — `@int.Parse` and the like — resolve against the host compilation.
+Syntactic position now fixes the two recognizer contracts. `[@Name]` is an element
+predicate and emits `Name(c)`; bare `@Name` is an input-consuming recognizer and emits
+`Name(text, ref p)`. Neither name is looked up by the generator. Missing names, wrong
+signatures and overload selection are ordinary diagnostics from the generated C# call.
 
 ## One deviation from §7.3, deliberate
 
@@ -842,7 +841,7 @@ compiling and matching something else.
 static bool Blob(ReadOnlySpan<char> input, ref int pos)
 ```
 
-`@Blob` stands where an operand goes, reads whatever it likes, and moves the parser's own
+Bare `@Blob` stands where an operand goes, reads whatever it likes, and moves the parser's own
 position to say how much it took. Saying no is an ordinary non-match: the stack has
 somewhere to resume and the grammar carries on. Its value is the text it covered, the same
 as any rule that captures nothing — which is why this form needs nothing new from the
@@ -865,24 +864,20 @@ half as a record that ended.
 ## A C# predicate stands where an element does
 
 §7.1's first row works: `bool M(char c)` asks the same question about one input item that
-a range does, so `@IsVowel` lowers to an element set — no ranges, one predicate — and
-merges into one beside characters and categories:
+a range does, so `[@IsVowel]` is an element set with one C# predicate and merges with
+characters and categories in the same brackets:
 
 ```dotgram
-Start = (@IsVowel | ['0'..'9'])+ & @IsStop
+Start = [@IsVowel | '0'..'9']+ & [@IsStop]
 ```
 
 The name is written into the generated code as the grammar wrote it, unqualified. The
 grammar's own `@using` directives are in that file, which is what they are there for.
 
-The other rows of §7.1 — a recognizer taking a span and a position — are still refused,
-and the message now says *what the method it found actually is* rather than only that
-something is not built: `This one is a recognizer over a span, which consumes input on
-its own terms`. Which method an author meant is the thing they need told, and "not
-implemented" does not tell them.
-
-Decided by the shape of the C# signature, so it is tested where there is a compilation to
-ask. The permissive resolver the grammar half falls back to calls everything a predicate.
+Bare `@Name` is the other contract: a recognizer taking the span and a position. The
+generator chooses between the two only from brackets versus operand position. It asks
+Roslyn about neither method; the emitted `Name(c)` or `Name(text, ref p)` lets C# select
+the matching overload and report a missing or incompatible one.
 
 ## Where a C# error lands
 
