@@ -71,6 +71,21 @@ public sealed class CSharpEmitterTests
 	public void Element_sets_and_repetition(string input, bool expected) =>
 		Assert.Equal(expected, Run("Start = ['0'..'9']+", input).Matched);
 
+	[Fact]
+	public void Simple_recursive_rule_uses_an_explicit_call_stack()
+	{
+		const int depth = 100_000;
+		const string grammar = "Start = '(' & Start & ')' | 'x'\nparse Start";
+
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var input = new string('(', depth) + "x" + new string(')', depth);
+
+		Assert.Contains("Span<int> calls", source);
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", input + ")").IsSuccess);
+	}
+
 	[Theory]
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]

@@ -60,17 +60,20 @@ sealed class Machine
 
 	readonly List<Writer> _states = [];
 	readonly List<string> _extra  = [];
+	readonly RuleSymbol?  _recursiveRule;
 
 	int _counters;
 	int _lookaheads;
 
 	/// <param name="results">What every rule's value is called; nothing may be null.</param>
 	/// <param name="builds">What this machine builds, or null when it only recognizes.</param>
-	public Machine(string name, ResultTypes results, Built? builds = null)
+	public Machine(
+		string name, ResultTypes results, Built? builds = null, RuleSymbol? recursiveRule = null)
 	{
-		Name     = name;
-		_results = results;
-		_builds  = builds;
+		Name           = name;
+		_results       = results;
+		_builds        = builds;
+		_recursiveRule = recursiveRule;
 
 		// Settled before anything is compiled: every frame pushed carries one length per
 		// sequence, so how wide a frame is has to be known before the first push.
@@ -163,6 +166,7 @@ sealed class Machine
 	public bool UsesStack  { get; private set; }
 	public bool UsesResult { get; private set; }
 	public bool UsesChar   { get; private set; }
+	public bool UsesCallStack => _recursiveCalls.Count > 0;
 
 	// ── Building ─────────────────────────────────────────────────────────────────
 
@@ -678,6 +682,14 @@ sealed class Machine
 	int CompileCall(Node.Call call, int next, int into)
 	{
 		var state = Reserve(out var writer, call);
+
+		if (ReferenceEquals(call.Rule, _recursiveRule))
+		{
+			_recursiveCalls.Add((writer, next));
+
+			return state;
+		}
+
 		var value = _results.QualifiedOf(call.Rule);
 
 		UsesResult = true;
@@ -1354,6 +1366,7 @@ sealed class Machine
 	/// there, and a flag nobody reads is a warning in the consumer's build.
 	/// </summary>
 	readonly HashSet<int> _flagged = [];
+	readonly List<(Writer Writer, int Next)> _recursiveCalls = [];
 
 	/// <summary>The whole machine as one method.</summary>
 	/// <param name="pattern">
@@ -1364,6 +1377,15 @@ sealed class Machine
 	public string Render(int entry, string? pattern = null)
 	{
 		WriteDeferred();
+
+		foreach (var (writer, next) in _recursiveCalls)
+		{
+			writer.Line("if (cp + 3 > calls.Length) calls = Grow(calls);");
+			writer.Line($"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp; cp += 3;");
+			writer.Line("bp = sp;");
+			writer.Line($"state = {entry};");
+			writer.Line("continue;");
+		}
 
 		var file = new Writer(0);
 
@@ -1402,6 +1424,20 @@ sealed class Machine
 
 				if (_marked)
 					file.Line($"var {Mark}   = 0;");
+			}
+			else if (_recursiveCalls.Count > 0)
+			{
+				file.Line("var sp = 0;");
+			}
+
+			if (_recursiveCalls.Count > 0)
+			{
+				file.Line($"// Recursive component: {_recursiveRule!.Name}.");
+				file.Line("// Each frame is return state, call position, and caller backtracking base.");
+				file.Line($"global::System.Span<int> calls = stackalloc int[{Backtracking}];");
+				file.Line();
+				file.Line("var cp = 0;");
+				file.Line("var bp = 0;");
 			}
 
 			file.Line("var p     = pos;");
@@ -1472,7 +1508,7 @@ sealed class Machine
 			// The loop exists only for the one `continue` that resumes from the stack.
 			// Without a stack nothing leaves the switch except by returning, and wrapping
 			// it would be scaffolding around nothing.
-			using (UsesStack ? file.Block("while (true)") : null)
+			using (UsesStack || _recursiveCalls.Count > 0 ? file.Block("while (true)") : null)
 			using (file.Block("switch (state)"))
 			{
 				file.Line($"case {Accept}:");
@@ -1485,7 +1521,21 @@ sealed class Machine
 						file.Line();
 					}
 
-					file.Line("return p;");
+					if (_recursiveCalls.Count > 0)
+					{
+						file.Line("if (cp == 0)");
+						file.Then("return p;");
+						file.Line();
+						file.Line("sp = bp;");
+						file.Line("cp -= 3;");
+						file.Line("state = calls[cp];");
+						file.Line("bp = calls[cp + 2];");
+						file.Line("continue;");
+					}
+					else
+					{
+						file.Line("return p;");
+					}
 				}
 
 				file.Line();
@@ -1511,11 +1561,35 @@ sealed class Machine
 						}
 					}
 
+					if (_recursiveCalls.Count > 0)
+					{
+						file.Line("if (sp == bp)");
+
+						using (file.Block(""))
+						{
+							file.Line("if (cp == 0)");
+							file.Then("return -1;");
+							file.Line();
+							file.Line("sp = bp;");
+							file.Line("cp -= 3;");
+							file.Line("p = calls[cp + 1];");
+							file.Line("bp = calls[cp + 2];");
+							file.Line($"state = {Fail};");
+							file.Line("continue;");
+						}
+
+						file.Line();
+					}
+
 					if (UsesStack)
 					{
-						file.Line("if (sp == 0)");
-						file.Then("return -1;");
-						file.Line();
+						if (_recursiveCalls.Count == 0)
+						{
+							file.Line("if (sp == 0)");
+							file.Then("return -1;");
+							file.Line();
+						}
+
 						file.Line($"sp    -= {Frame};");
 						file.Line("state  = bt[sp];");
 						file.Line("p      = bt[sp + 1];");
