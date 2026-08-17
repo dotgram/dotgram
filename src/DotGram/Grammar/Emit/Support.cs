@@ -394,19 +394,15 @@ public static partial class CSharpEmitter
 	/// </summary>
 	/// <remarks>
 	/// A struct passed by <c>ref</c> rather than more <c>out</c> parameters, and that is
-	/// the point of it: what a failure has to say is going to grow — the set of what was
-	/// expected there, an outcome that tells a malformed record from no record at all
-	/// (docs/syntax.md §8.1) — and each of those would otherwise be another parameter on
-	/// every recognizer and another edit at every call site.
+	/// the point of it: what a failure has to say can grow, and each addition would
+	/// otherwise be another parameter on every recognizer and another edit at every call
+	/// site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach, bool refused = false, bool starved = false) =>
+	internal static string FailureStructWith(bool reach, bool starved = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
 				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
-			.Replace(
-				"\t{{refused}}" + Lines.Ending,
-				refused ? Lines.Normalize(RefusedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{starved}}" + Lines.Ending,
 				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "");
@@ -421,7 +417,6 @@ public static partial class CSharpEmitter
 			/// </summary>
 			public int Position;
 			{{reach}}
-			{{refused}}
 			{{starved}}
 		}
 		""";
@@ -439,23 +434,6 @@ public static partial class CSharpEmitter
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
-		""";
-
-	/// <summary>
-	/// What tells the two failures of §8.1 apart, in a grammar that has both kinds.
-	/// </summary>
-	/// <remarks>
-	/// Carried only where the grammar both recovers and can refuse a value. Without a
-	/// <c>bool M(…, out T)</c> anywhere it would be a field that is always -1, and the
-	/// branches reading it would be branches never taken.
-	/// </remarks>
-	const string RefusedField = """
-
-			/// <summary>
-			/// Where an element ended that matched and whose value was refused (§8.1), or
-			/// -1 for one that did not match at all. Cleared where each element begins.
-			/// </summary>
-			public int Refused;
 		""";
 
 	/// <summary>

@@ -26,13 +26,7 @@ public abstract record Construction
 {
 	/// <summary>The C# the grammar wrote, and where it wrote it (§7.6).</summary>
 	/// <param name="At">-1 for text this compiler wrote rather than read.</param>
-	/// <param name="Refuses">
-	/// §8.1: the C# may refuse the value it was given, in which case the rule does not
-	/// match. A property of the expression rather than a set of nodes kept beside the
-	/// graph — the shape <c>bool M(args…, out T)</c> is what makes it true, and that is
-	/// known where the expression is built.
-	/// </param>
-	public sealed record Expression(string Text, int At = -1, bool Refuses = false) : Construction
+	public sealed record Expression(string Text, int At = -1) : Construction
 	{
 		public override string ToString() => Text;
 	}

@@ -179,7 +179,7 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void C_sharp_names_go_through_the_resolver()
+	public void Only_C_sharp_recognizers_go_through_the_resolver()
 	{
 		var strict = new StrictResolver();
 		var model  = GrammarBinder.Bind(
@@ -188,7 +188,7 @@ public sealed class GrammarBinderTests
 
 		Assert.Contains(GrammarBinder.UnknownCSharp, model.Diagnostics.Select(d => d.Id));
 		Assert.Contains("IsLetter", strict.Asked);
-		Assert.Contains("IsSmall",  strict.Asked);
+		Assert.DoesNotContain("IsSmall", strict.Asked);
 	}
 
 	sealed class StrictResolver : ISymbolResolver

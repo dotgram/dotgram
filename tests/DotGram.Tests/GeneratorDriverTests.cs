@@ -392,53 +392,8 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("ref int pos",             told.GetMessage(), StringComparison.Ordinal);
 	}
 
-	// ── Value failures (§8.1) ────────────────────────────────────────────────────
-
-	/// <summary>
-	/// A grammar whose <c>=&gt;</c> may refuse, and the C# it names.
-	/// </summary>
-	/// <remarks>
-	/// Driven through the generator rather than the compiler because §8.1 is decided by
-	/// the shape of a C# signature, and only a real compilation can be asked what that
-	/// shape is. The permissive resolver the grammar half falls back to cannot tell a
-	/// guard from a conversion that refuses.
-	/// </remarks>
-	const string Refusing = """
-		[DotGram.Gram("Start : @int = digits: ['0'..'9']+ => @TryTiny(digits)\nparse Start")]
-		public partial class Numbers
-		{
-			static bool TryTiny(string digits, out int value) =>
-				int.TryParse(digits, out value) && value < 100;
-		}
-		""";
-
 	[Fact]
-	public void A_transformation_that_may_refuse_is_recognized_by_its_shape()
-	{
-		var run = RunGenerator(Refusing);
-
-		Assert.Empty(run.Diagnostics);
-
-		var source = GetGeneratedSource(run, "Numbers.g.cs");
-
-		// The factory answers whether it produced a value, rather than producing one.
-		Assert.Contains(
-			"static bool Construct_Start(string parserText, string digits, out int value) =>",
-			source,
-			StringComparison.Ordinal);
-
-		Assert.Contains("TryTiny(digits, out value);", source, StringComparison.Ordinal);
-
-		// And "no" is a failure of the match, which is what makes it a *value* failure
-		// rather than an exception: the rule simply does not match here.
-		Assert.Contains(
-			"if (!Construct_Start(text.Slice(pos, p - pos).ToString(), ",
-			source,
-			StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void And_an_ordinary_transformation_still_produces_one()
+	public void A_transformation_is_emitted_as_written()
 	{
 		var source = GetGeneratedSource(
 			RunGenerator("""
@@ -451,57 +406,7 @@ public sealed class GeneratorDriverTests
 			"Numbers.g.cs");
 
 		Assert.Contains("static int Construct_Start(", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("out int value) =>",       source, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void A_grammar_whose_construction_may_refuse_compiles()
-	{
-		RunGenerator(Refusing, out var output);
-
-		Assert.Empty(output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
-	}
-
-	/// <summary>
-	/// An element that spans two lines and whose value may be refused, in a repetition
-	/// that recovers at one line.
-	/// </summary>
-	/// <remarks>
-	/// The shape that tells the two recoveries apart, and the reason §8.2 calls one of
-	/// them cheaper. A recognition failure has to be scanned forward from where the
-	/// element began, and the first <c>eol</c> that scan finds is the one *inside* the
-	/// element — so the parse picks up in the middle of it and every pair after that is
-	/// read off by one. A value failure needs no scan: the element matched, so the parse
-	/// is already past it and where the next one begins is known.
-	/// </remarks>
-	const string Pairs = """
-		[DotGram.Gram("Pair : @string = a: ['0'..'9']+ & eol & b: ['0'..'9']+ & eol => @TryJoin(a, b)\nFeed = pairs: Pair* recover eol => @(parserText) & eof\nparse Feed")]
-		public partial class PairFeed
-		{
-			static bool TryJoin(string a, string b, out string value)
-			{
-				value = a + "+" + b;
-
-				return int.Parse(a) + int.Parse(b) < 10;
-			}
-		}
-		""";
-
-	[Fact]
-	public void A_refused_value_resumes_past_the_element_rather_than_scanning_it_again()
-	{
-		var feed = Build(Pairs)
-			.GetType("PairFeed")!
-			.GetMethod("ParseFeed", [typeof(string)])!
-			.Invoke(null, ["1\n2\n5\n6\n3\n4\n"])!;
-
-		var parsed = (string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!;
-
-		// The middle pair is refused whole — both its lines are what was rejected — and
-		// the pair after it is read as a pair rather than as the tail of the one before.
-		Assert.Equal(["1+2", "5\n6\n", "3+4"], parsed);
+		Assert.Contains("Always(digits);", source, StringComparison.Ordinal);
 	}
 
 	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
@@ -858,44 +763,17 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_grammar_that_cannot_refuse_a_value_carries_nothing_that_tells_one()
+	public void Generated_code_carries_no_value_refusal_state()
 	{
-		// The field would always be -1, the branch reading it never taken and the message's
-		// condition always false. Emitted code is read in someone else's build, where the
-		// shortest version of what it does is the one that belongs.
-		var refusing = GetGeneratedSource(RunGenerator(Pairs), "PairFeed.g.cs");
-
-		var recognizing = GetGeneratedSource(
+		var source = GetGeneratedSource(
 			RunGenerator("""
 				[DotGram.Gram("Row = name: ['a'..'z']+ & eol\nFeed = rows: Row* recover eol => @(parserText) & eof\nparse Feed")]
 				public partial class PlainFeed { }
 				"""),
 			"PlainFeed.g.cs");
 
-		Assert.Contains("public int Refused;",    refusing,    StringComparison.Ordinal);
-		Assert.DoesNotContain("Refused",          recognizing, StringComparison.Ordinal);
-
-		// And the one that keeps the difference honest: both still recover.
-		Assert.Contains("failure.Reach", refusing,    StringComparison.Ordinal);
-		Assert.Contains("failure.Reach", recognizing, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void And_says_so_rather_than_calling_a_record_that_matched_malformed()
-	{
-		// §8.1 makes the two failures different things, so the message has to be a
-		// different message. "Does not match" of a record that matched perfectly well
-		// sends a reader looking at the shape, which is the half that was fine.
-		var reported = Pairs.Replace("@(parserText)", "@(parserMessage)", StringComparison.Ordinal);
-
-		var feed = Build(reported)
-			.GetType("PairFeed")!
-			.GetMethod("ParseFeed", [typeof(string)])!
-			.Invoke(null, ["5\n6\n"])!;
-
-		Assert.Equal(
-			["'Pair' at 0 was recognized and its value was not accepted."],
-			(string[])feed.GetType().GetProperty("Pairs")!.GetValue(feed)!);
+		Assert.DoesNotContain("Refused", source, StringComparison.Ordinal);
+		Assert.Contains("failure.Reach", source, StringComparison.Ordinal);
 	}
 
 	// ── Captures matched to a constructor (§7.3) ─────────────────────────────────
@@ -1156,60 +1034,51 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("No constructor of", diagnostic.GetMessage(), StringComparison.Ordinal);
 	}
 
-	// ── A method that is not written yet (§7.4) ──────────────────────────────────
+	// ── C# names belong to the consumer's compiler ───────────────────────────────
 
 	[Fact]
-	public void A_method_the_grammar_calls_and_nobody_wrote_is_declared()
+	public void A_missing_transformation_is_emitted_and_reported_by_C_sharp()
 	{
-		// §7.4. The grammar says what it wants of `Tiny`; the generator writes the
-		// signature down and the C# compiler asks for the body. What the author used to get
-		// was the generator refusing the grammar over a name — true, and no help in working
-		// out what to write.
-		var source = GetGeneratedSource(
-			RunGenerator(
-				"[DotGram.Gram(\"Start : @int = digits: ['0'..'9']+ => @Tiny(digits)\\nparse Start\")]\n" +
-				"public partial class Later;"),
-			"Later.g.cs");
+		RunGenerator(
+			"[DotGram.Gram(\"Start : @int = digits: ['0'..'9']+ => @Tini(digits)\\nparse Start\")]\n" +
+			"public partial class Misspelled { static int Tiny(string digits) => digits.Length; }",
+			out var output);
 
-		Assert.Contains("private static partial int Tiny(string digits);", source, StringComparison.Ordinal);
+		var error = Assert.Single(output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+
+		Assert.Equal("CS0103", error.Id);
+		Assert.Contains("Tini", error.GetMessage(), StringComparison.Ordinal);
 	}
 
 	[Fact]
-	public void And_the_implementation_completes_it()
+	public void A_missing_guard_is_emitted_and_reported_by_C_sharp()
 	{
-		// The other half: written next door, the parser is whole and runs. The partial
-		// declaration is what makes the two halves one method.
-		var parse = Build("""
-			[DotGram.Gram("Start : @int = digits: ['0'..'9']+ => @Tiny(digits)\nparse Start")]
-			public partial class Done
-			{
-				private static partial int Tiny(string digits) => digits.Length;
-			}
-			""")
-			.GetType("Done")!
-			.GetMethod("ParseStart", [typeof(string)])!;
+		RunGenerator(
+			"[DotGram.Gram(\"Start = digits: ['0'..'9']+ & where @Fit(digits)\\nparse Start\")]\n" +
+			"public partial class Misspelled { static bool Fits(string digits) => true; }",
+			out var output);
 
-		Assert.Equal(4, parse.Invoke(null, ["2026"]));
-	}
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.ToArray();
 
-	[Fact]
-	public void A_guard_that_is_not_written_yet_is_declared_as_a_bool()
-	{
-		var source = GetGeneratedSource(
-			RunGenerator(
-				"[DotGram.Gram(\"Start = digits: ['0'..'9']+ & where @Fits(digits)\\nparse Start\")]\n" +
-				"public partial class Guarded;"),
-			"Guarded.g.cs");
-
-		Assert.Contains("private static partial bool Fits(string digits);", source, StringComparison.Ordinal);
+		Assert.NotEmpty(errors);
+		Assert.All(errors, error =>
+		{
+			Assert.Equal("CS0103", error.Id);
+			Assert.Contains("Fit", error.GetMessage(), StringComparison.Ordinal);
+		});
 	}
 
 	[Fact]
 	public void A_bare_name_where_an_operand_goes_is_still_reported()
 	{
-		// §7.1 gives that position two possible shapes — one testing an item, one reading a
-		// span — so there is no signature to write down, and a wrong guess would send the
-		// author to implement the wrong method. The message stays.
+		// Unlike C# values, a recognizer participates in moving through the input. The
+		// generator must distinguish the §7.1 predicate and span-reader shapes before it can
+		// emit a call, so an unknown recognizer remains a grammar diagnostic.
 		AssertDiagnostic("GRAM3004", RunGenerator(
 			"[DotGram.Gram(\"Start = @Unknown & eol\\nparse Start\")]\n" +
 			"public partial class Bare;"));

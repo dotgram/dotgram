@@ -60,25 +60,8 @@ public sealed partial class GrammarNormalizer
 		// recurse for ever here rather than being reported by the left-recursion check.
 		_bodies[rule] = Node.Empty.Instance;
 
-		var outer = _owner;
-
-		_owner = rule;
-
-		try
-		{
-			return _bodies[rule] = Lower(rule.Declaration.Body, rule.Scope);
-		}
-		finally
-		{
-			_owner = outer;
-		}
+		return _bodies[rule] = Lower(rule.Declaration.Body, rule.Scope);
 	}
-
-	/// <summary>
-	/// The rule being lowered, for the things that are about a rule rather than a node —
-	/// today the methods §7.4 declares, whose return type is the rule's.
-	/// </summary>
-	RuleSymbol? _owner;
 
 	Node Lower(Expr expression, GrammarScope scope) => expression switch
 	{
@@ -118,75 +101,14 @@ public sealed partial class GrammarNormalizer
 		_ => Node.Empty.Instance,
 	};
 
-	/// <summary>
-	/// <c>=&gt; expr</c>, and whether that expression is allowed to say no.
-	/// </summary>
-	/// <remarks>
-	/// §8.1 needs no notation because the shape of the C# says it: a transformation
-	/// written <c>bool M(args…, out T value)</c> is one that may refuse, which is the shape
-	/// <c>int.TryParse</c> already has. Recognised here rather than at emission because
-	/// only the binder knows what the name resolved to, and only an <c>@Name(args)</c> can
-	/// be asked — an inline <c>@(...)</c> is text this half does not read.
-	/// </remarks>
+	/// <summary><c>=&gt; expr</c>.</summary>
 	Node LowerConstruct(Expr pattern, Expr value, GrammarScope scope)
 	{
-		// The binder hangs a call's symbol on the call, not on the name inside it.
-		var fallible = value is Expr.Call(var target, _) &&
-			target.IsCSharp &&
-			_model.Bindings.TryGetValue(value, out var symbol) &&
-			symbol is CSharpSymbol { Role: MethodRole.FallibleTransformation };
-
-		// The `out` argument is written in here, where the call is still a shape rather
-		// than a string, so that emission has nothing to take apart.
-		var text = fallible && value is Expr.Call(var called, var arguments)
-			? Text(called) + "(" + string.Join(", ", arguments.Select(Text).Append("out value")) + ")"
-			: Text(value);
-
-		Declares(value, guard: false);
-
 		return new Node.Construct(
-			Lower(pattern, scope), new Construction.Expression(text, StartOf(value), fallible));
+			Lower(pattern, scope), new Construction.Expression(Text(value), StartOf(value)));
 	}
 
-	Node Guarded(Expr value)
-	{
-		Declares(value, guard: true);
-
-		return new Node.Guard(Text(value), StartOf(value));
-	}
-
-	/// <summary>
-	/// §7.4: a method the grammar calls and the host does not have, in a position that
-	/// says what its signature is.
-	/// </summary>
-	/// <remarks>
-	/// The binder decided it can be declared — it is there that the position is known and
-	/// that the host was asked. What is added here is what only lowering knows: which rule
-	/// the call is in, and so what it returns.
-	/// </remarks>
-	void Declares(Expr value, bool guard)
-	{
-		if (value is not Expr.Call(_, var arguments) ||
-			!_model.Bindings.TryGetValue(value, out var symbol) ||
-			symbol is not CSharpSymbol { Missing: true } missing ||
-			_owner is null)
-		{
-			return;
-		}
-
-		var names = new List<string>(arguments.Count);
-
-		foreach (var argument in arguments)
-			if (argument is Expr.Reference(false, var name, _))
-				names.Add(name);
-
-		if (names.Count != arguments.Count || _declared.Any(one => one.Name == missing.Name))
-			return;
-
-		_declared.Add(new RequiredMethod(missing.Name, names, guard, _owner));
-	}
-
-	readonly List<RequiredMethod> _declared = [];
+	static Node Guarded(Expr value) => new Node.Guard(Text(value), StartOf(value));
 
 	/// <summary>
 	/// Where the C# of an expression starts, which is not always where the expression does.
@@ -257,7 +179,6 @@ public sealed partial class GrammarNormalizer
 	{
 		MethodRole.ExternalRecognizer     => "recognizer over a span",
 		MethodRole.ValueTransformation    => "transformation",
-		MethodRole.FallibleTransformation => "transformation that may refuse",
 		_                                 => "guard",
 	};
 

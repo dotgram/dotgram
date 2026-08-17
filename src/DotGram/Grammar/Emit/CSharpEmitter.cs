@@ -94,12 +94,6 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		foreach (var required in graph.Declarations)
-		{
-			EmitDeclaration(file, graph, results, required);
-			file.Line();
-		}
-
 		foreach (var rule in graph.Rules)
 		{
 			if (!graph.Types.ContainsKey(rule))
@@ -217,7 +211,9 @@ public static partial class CSharpEmitter
 
 		if (graph.Rules.Count > 0)
 		{
-			file.Write(FailureStructWith(graph.Recoveries.Count > 0, Refusing(graph), Streaming(graph)));
+			file.Write(FailureStructWith(
+				reach: graph.Recoveries.Count > 0,
+				starved: Streaming(graph)));
 			file.Line();
 		}
 
@@ -476,8 +472,7 @@ public static partial class CSharpEmitter
 				visible,
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
-					: null,
-				node is Node.Construct { How: Construction.Expression { Refuses: true } }));
+					: null));
 		}
 
 		return found;
@@ -489,42 +484,6 @@ public static partial class CSharpEmitter
 			graph.Bodies[rule],
 			other => results.QualifiedOf(other) is not null,
 			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
-
-	/// <summary>
-	/// §7.4: the signature of a method the grammar calls and the host has not got.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Declared rather than reported. A missing implementation is then an ordinary C#
-	/// error — "no defining declaration found" — naming the exact signature expected, so
-	/// the fix is to write the body in front of you rather than to work out from a grammar
-	/// what shape it should have had. `[GeneratedRegex]` does the same.
-	/// </para>
-	/// <para>
-	/// <c>private</c> and written out, unlike this project's own code: an emitted member
-	/// says its accessibility deliberately, and a partial method that returns something
-	/// must state one. That form needs C# 9, which is also what a source generator needs
-	/// to run at all.
-	/// </para>
-	/// </remarks>
-	static void EmitDeclaration(
-		Writer file, RecognitionGraph graph, ResultTypes results, RequiredMethod required)
-	{
-		var parameters = new List<string>();
-
-		foreach (var name in required.Arguments)
-			foreach (var member in graph.Results[required.Owner])
-				if (member.Name == name)
-					parameters.Add(
-						results.ValueOf(member.Rule) +
-						(member.IsSequence ? "[]" : member.IsOptional ? "?" : "") +
-						" " + ResultTypes.ParameterOf(member));
-
-		var returns = required.IsGuard ? "bool" : graph.Types[required.Owner];
-
-		file.Line($"/// <summary>What <c>{required.Owner.Name}</c> asks of you (docs/syntax.md §7.4).</summary>");
-		file.Line($"private static partial {returns} {required.Name}({string.Join(", ", parameters)});");
-	}
 
 	/// <summary>
 	/// A line of the author's own C#, under a <c>#line</c> that points back at where they
@@ -603,20 +562,6 @@ public static partial class CSharpEmitter
 						member.IsOptional ? "?" : "") +
 
 					" " + ResultTypes.ParameterOf(member));
-
-		// §8.1: a transformation that may refuse hands its value back through an `out` and
-		// says whether there is one, so the factory does too. The `out` argument is already
-		// in the text — written where the call was still a shape.
-		if (factory.Of is Node.Construct { How: Construction.Expression { Refuses: true } })
-		{
-			parameters.Add($"out {graph.Types[rule]} value");
-
-			file.Line($"/// <summary>What <c>{rule.Name}</c> builds its value with, or refuses to (§8.1).</summary>");
-			file.Line($"static bool {factory.Method}({string.Join(", ", parameters)}) =>");
-			Handed(file, lines, (Node.Construct)factory.Of);
-
-			return;
-		}
 
 		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
 		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
@@ -813,28 +758,6 @@ public static partial class CSharpEmitter
 		return false;
 	}
 
-	/// <summary>
-	/// Whether recovery in this grammar ever has a refused value to tell from a shape that
-	/// did not match (§8.1).
-	/// </summary>
-	/// <remarks>
-	/// Asked of the graph rather than looked up in a table beside it: whether an
-	/// expression may refuse is part of what that expression is, so there is nowhere for
-	/// the answer to drift out of step with the tree.
-	/// </remarks>
-	static bool Refusing(RecognitionGraph graph)
-	{
-		if (graph.Recoveries.Count == 0)
-			return false;
-
-		foreach (var body in graph.Bodies.Values)
-			foreach (var node in NodeWalk.Descendants(body))
-				if (node is Node.Construct { How: Construction.Expression { Refuses: true } })
-					return true;
-
-		return false;
-	}
-
 	/// <summary>Whether any <c>recover</c> in this grammar reports out of band (§8.3).</summary>
 	static bool Reporting(RecognitionGraph graph)
 	{
@@ -876,8 +799,8 @@ public static partial class CSharpEmitter
 	/// two places and relied on somebody noticing.
 	/// </para>
 	/// <para>
-	/// What is set here divides in two, which is worth seeing at a glance. <c>Reaches</c>,
-	/// <c>Refuses</c> and <c>Starves</c> are facts about the <i>grammar</i> — they decide
+	/// What is set here divides in two, which is worth seeing at a glance. <c>Reaches</c>
+	/// and <c>Starves</c> are facts about the <i>grammar</i> — they decide
 	/// what the shared <c>Failure</c> struct carries, so every recognizer in the file must
 	/// agree about them. The rest is about this rule.
 	/// </para>
@@ -896,7 +819,6 @@ public static partial class CSharpEmitter
 			BuiltBy(graph, results, rule))
 		{
 			Reaches    = graph.Recoveries.Count > 0,
-			Refuses    = Refusing(graph),
 			Starves    = Streaming(graph),
 			TakesPower = graph.Climbing.ContainsKey(rule),
 			LineMap    = lines,

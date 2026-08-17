@@ -145,15 +145,11 @@ sealed class Machine
 	/// The name a fold step's <c>=&gt;</c> knows the value built so far by, or null when
 	/// this alternative is not a fold step (§4.3).
 	/// </param>
-	/// <param name="Fallible">
-	/// §8.1: the C# may refuse the value, in which case the rule does not match.
-	/// </param>
 	public sealed record Factory(
 		Node Of,
 		string Method,
 		IReadOnlyList<ResultMember> Members,
-		string? Accumulator = null,
-		bool Fallible = false);
+		string? Accumulator = null);
 
 	IReadOnlyList<Factory> Factories => _builds?.Factories ?? [];
 
@@ -798,17 +794,7 @@ sealed class Machine
 
 			// How far the attempt starting here reached — read at `asked`, which is entered
 			// only by that attempt failing, because the repetition gives nothing back.
-			// `Refused` goes with it where the grammar has one at all: both answer a
-			// question about *this* element, so both are cleared where this element begins.
-			if (Refuses)
-			{
-				atLoop.Line("failure.Reach   = p;");
-				atLoop.Line("failure.Refused = -1;");
-			}
-			else
-			{
-				atLoop.Line("failure.Reach = p;");
-			}
+			atLoop.Line("failure.Reach = p;");
 
 			// Possessive: an element it took was either good or explicitly rejected, so
 			// there is no shorter reading of it to come back for. Dropping what the
@@ -942,18 +928,6 @@ sealed class Machine
 	/// </remarks>
 	public bool Starves { get; set; }
 
-	/// <summary>
-	/// Whether this grammar can fail a value at all, and so whether the cheap recovery of
-	/// §8.2 has anything to be cheap about.
-	/// </summary>
-	/// <remarks>
-	/// A grammar that recovers but has no <c>bool M(…, out T)</c> anywhere would carry a
-	/// field that is always -1, a branch never taken and a message with a condition that
-	/// is always false. Emitted code lands in someone else's build, and the shortest
-	/// version of what it does is the one worth reading there.
-	/// </remarks>
-	public bool Refuses { get; set; }
-
 	/// <summary>What the repetition of this rule was told to do about a bad element.</summary>
 	public void Recovers(Node repetition, Recovery recovery, int into, string factory)
 	{
@@ -985,23 +959,7 @@ sealed class Machine
 		writer.Line("r        = -1;");
 		writer.Line();
 
-		// §8.1's value failure, and why §8.2 calls it the cheaper one: the element matched
-		// and only its value was refused, so it was recognized whole and the parse is
-		// already past it. Where the next one begins is known rather than looked for, and
-		// the scan — which would re-read the element it just read, and on an element longer
-		// than the synchronization point would stop inside it — does not run.
-		if (Refuses)
-		{
-			using (writer.Block("if (failure.Refused >= 0)"))
-				writer.Line("to = r = failure.Refused;");
-
-			using (writer.Block("else"))
-				Scan(writer, sync);
-		}
-		else
-		{
-			Scan(writer, sync);
-		}
+		Scan(writer, sync);
 
 		writer.Line();
 
@@ -1066,12 +1024,6 @@ sealed class Machine
 	/// input stopped being that — <c>failure.Reach</c>, which is what said the element began
 	/// at all. The set of what was expected there would say more and is not carried yet.
 	/// </para>
-	/// <para>
-	/// It also has to say which kind of failure this was, because §8.1 makes them different
-	/// things: a shape the grammar does not describe, or a shape it does holding a value
-	/// that was not accepted. Saying "does not match" of a record that matched perfectly
-	/// well would send a reader looking at the wrong half of the problem.
-	/// </para>
 	/// </remarks>
 	string Supplied(string name, string counter) => name switch
 	{
@@ -1081,11 +1033,7 @@ sealed class Machine
 		"parserLine"     => "LineAt(text, from)",
 		"parserColumn"   => "ColumnAt(text, from)",
 		"parserSpan"     => "new global::DotGram.SourceSpan(from, to - from)",
-		"parserMessage"  => Refuses
-			? "(failure.Refused >= 0 " +
-				$"? \"'{Element}' at \" + {Number("from")} + \" was recognized and its value was not accepted.\" " +
-				$": \"Input does not match '{Element}' at \" + {Number("failure.Reach")} + \".\")"
-			: $"\"Input does not match '{Element}' at \" + {Number("failure.Reach")} + \".\"",
+		"parserMessage"  => $"\"Input does not match '{Element}' at \" + {Number("failure.Reach")} + \".\"",
 		_                => "default",
 	};
 
@@ -1271,18 +1219,7 @@ sealed class Machine
 				? Value(member)
 				: $"l{member.Slots[0]}[{step}]");
 
-		// §8.1: it answers whether it produced a value, and "no" is a value failure — the
-		// shape matched and what it held was not accepted, so the rule does not match. The
-		// failure position is the end of what did match, which is what tells a caller's
-		// recovering repetition that an element was there and was refused — and, because it
-		// was recognized whole, exactly where it ends.
-		if (!factory.Fallible)
-			return $"{into} = {factory.Method}({string.Join(", ", arguments)});";
-
-		var refused = Refuses ? "failure.Refused = p; " : "";
-
-		return $"if (!{factory.Method}({string.Join(", ", arguments)}, out {into})) " +
-			$"{{ {refused}goto case {Fail}; }}";
+		return $"{into} = {factory.Method}({string.Join(", ", arguments)});";
 	}
 
 	void Construct(Writer file, Built built)

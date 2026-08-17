@@ -16,7 +16,7 @@ namespace DotGram.Grammar.Model;
 /// <para>
 /// Nodes are records and compare by value, so a set of them collapses two structurally
 /// equal nodes into one. Everything a grammar keeps beside the tree — recoveries,
-/// binding powers, fallible constructions — is keyed by <em>which</em> node, not by
+/// binding powers and construction metadata — is keyed by <em>which</em> node, not by
 /// what it looks like, so the identity comparer is not an optimization here but the
 /// meaning.
 /// </para>

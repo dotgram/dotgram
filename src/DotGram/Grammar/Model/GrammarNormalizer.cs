@@ -109,7 +109,6 @@ public sealed partial class GrammarNormalizer
 			Recoveries = normalizer._recoveries,
 			Climbing   = normalizer._climbing,
 			Powers       = normalizer._powers,
-			Declarations = normalizer._declared,
 		};
 	}
 

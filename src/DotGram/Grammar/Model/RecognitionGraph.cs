@@ -266,12 +266,6 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
-	/// <summary>
-	/// The methods a grammar calls that the host does not have, and that §7.4 declares for
-	/// the author to implement.
-	/// </summary>
-	public IReadOnlyList<RequiredMethod> Declarations { get; init; } = [];
-
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;
@@ -400,15 +394,3 @@ public sealed class RecognitionGraph(
 		return text.ToString().TrimEnd();
 	}
 }
-
-/// <summary>
-/// A method the grammar calls, the host has not got, and whose signature follows from
-/// where it is written (§7.4).
-/// </summary>
-/// <param name="Arguments">Capture names, whose types are what the parameters take.</param>
-/// <param name="IsGuard">
-/// A <c>where</c> returns <c>bool</c>; a <c>=&gt;</c> returns what its rule declared.
-/// </param>
-/// <param name="Owner">The rule the call is written in, which is where the type comes from.</param>
-public sealed record RequiredMethod(
-	string Name, IReadOnlyList<string> Arguments, bool IsGuard, RuleSymbol Owner);

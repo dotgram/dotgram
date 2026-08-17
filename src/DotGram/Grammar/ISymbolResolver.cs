@@ -18,8 +18,9 @@ public interface ISymbolResolver
 	bool TypeExists(string qualifiedName);
 
 	/// <summary>
-	/// Classifies a C# method by its signature (docs/syntax.md §7.1): element predicate,
-	/// external recognizer, value transformation, or guard.
+	/// Classifies a C# method used as a recognizer (docs/syntax.md §7.1). A supported
+	/// recognizer is an element predicate or external recognizer; the other roles let the
+	/// diagnostic describe the incompatible method that was found.
 	/// </summary>
 	/// <returns><c>false</c> when no such method is in scope.</returns>
 	bool TryResolveMethod(string qualifiedName, int argumentCount, out MethodRole role);
@@ -76,7 +77,7 @@ public readonly record struct ObjectMember(string Name, string Type, bool IsRequ
 /// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
 public readonly record struct MethodParameter(string Name, string Type, bool IsOptional);
 
-/// <summary>Role a C# method plays, decided by its signature and call position.</summary>
+/// <summary>The shape of a C# method considered for recognizer position.</summary>
 public enum MethodRole
 {
 	/// <summary><c>bool M(char c)</c> — tests and consumes one input item.</summary>
@@ -85,19 +86,10 @@ public enum MethodRole
 	/// <summary><c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos, out T value)</c>.</summary>
 	ExternalRecognizer,
 
-	/// <summary><c>T M(args…)</c> — never touches input.</summary>
+	/// <summary><c>T M(args…)</c> without a recognizer signature.</summary>
 	ValueTransformation,
 
-	/// <summary>
-	/// <c>bool M(args…, out T value)</c> — a transformation that may refuse (§8.1).
-	/// </summary>
-	/// <remarks>
-	/// The shape <c>int.TryParse</c> already has, and the reason §8.1 needs no notation of
-	/// its own: a conversion says it can fail by being written the way the BCL writes one.
-	/// </remarks>
-	FallibleTransformation,
-
-	/// <summary><c>bool M(args…)</c> in a <c>where</c> position.</summary>
+	/// <summary><c>bool M(args…)</c> without a recognizer signature.</summary>
 	Guard,
 }
 

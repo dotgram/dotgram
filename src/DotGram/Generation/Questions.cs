@@ -59,11 +59,12 @@ readonly record struct Answer(
 /// <remarks>
 /// <para>
 /// This is what lets the expensive half of generation be cached. Binding needs a
-/// <c>Compilation</c> — it has to know whether <c>@int.Parse</c> is a real method — and a
-/// <c>Compilation</c> is a new object after every keystroke, so anything downstream of it
-/// is recomputed for every character typed. Asking the questions first turns that
-/// dependency into a small list of answers, which compares by value and hardly ever
-/// changes.
+/// <c>Compilation</c> for declared C# types and C# recognizers used as grammar operands,
+/// and a <c>Compilation</c> is a new object after every keystroke, so anything downstream
+/// of it is recomputed for every character typed. Asking those questions first turns
+/// that dependency into a small list of answers, which compares by value and hardly ever
+/// changes. C# in <c>where</c> and <c>=&gt;</c> raises no question here; the generated C#
+/// compiler binds it.
 /// </para>
 /// <para>
 /// <b>A superset, deliberately.</b> The set is built from the grammar's syntax rather
@@ -185,17 +186,29 @@ static class Questions
 			}
 		}
 
-		void Walk(Expr expression)
+		void Walk(Expr expression, bool csharpValue = false)
 		{
 			switch (expression)
 			{
+				// These are C# values. Their names and overloads are deliberately not
+				// questions for the generator: the text is emitted unchanged and the C#
+				// compiler resolves it in the consumer's compilation.
+				case Expr.Construct(var pattern, var value):
+					Walk(pattern);
+					Walk(value, csharpValue: true);
+					return;
+
+				case Expr.Guard(var value):
+					Walk(value, csharpValue: true);
+					return;
+
 				// `@Name(a, b)` — a method of two arguments, or a type if it is not one.
-				case Expr.Call(var target, var arguments) when target.IsCSharp:
+				case Expr.Call(var target, var arguments) when target.IsCSharp && !csharpValue:
 					names.Add(new Question(target.Name, arguments.Count));
 					break;
 
 				// `@Name` on its own is asked for as a method of none, then as a type.
-				case Expr.Reference(true, var name, var typeArguments):
+				case Expr.Reference(true, var name, var typeArguments) when !csharpValue:
 					names.Add(new Question(name, 0));
 
 					foreach (var argument in typeArguments)
@@ -221,7 +234,7 @@ static class Questions
 			}
 
 			foreach (var child in Dump.Children(expression))
-				Walk(child);
+				Walk(child, csharpValue);
 		}
 	}
 

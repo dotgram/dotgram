@@ -1363,8 +1363,8 @@ public sealed class SemanticTests
 
 	[Fact]
 	public void A_failing_guard_is_a_non_match_and_a_sibling_is_tried() =>
-		// Recognition, not a value failure: saying no sends the match back into the choice
-		// rather than ending it. §8.1 is where the two are told apart.
+		// Recognition failure: saying no sends the match back into the choice rather than
+		// ending it.
 		Assert.True(Matches(
 			"""Start = (a: "ab" & where @(a == "xy") | a: "ab") & 'c'""",
 			"abc"));

@@ -61,16 +61,13 @@ then quietly mean nothing.
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
 | a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
-| value failures `bool M(…, out T)` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a refused value recovered without a rescan §8.2 | — | — | — | ✓ | ✓ |
 | `@Name` resolved against the host class §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
 | captures matched to an existing type's constructor §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | captures matched to `init`/`required` properties §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
 | a declared type found under the grammar's `@using` §7.3 | — | — | ✓ | ✓ | ✓ |
-| partial declarations for a `=>` or `where` call §7.4 | — | ✓ | ✓ | ✓ | ✓ |
-| the same for a bare `@Name` where an operand goes §7.4 | — | — | — | ✗ | ✗ |
+| C# in `=>` and `where` emitted without generator resolution §7.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -264,12 +261,11 @@ a `[ThreadStatic]` for the duration of a read.
 **A `=>` that throws is not caught, inside a recovering repetition or anywhere else.**
 This was the one place the specification and the code disagreed, and it was settled by
 changing the specification: §8.2 used to promise the throw would be caught and treated as
-a value failure. Catching would mean catching `Exception`, because there is no type that
-tells "this quantity is not a number" from `NullReferenceException`, and a parser that
+a failed parse outcome. Catching would mean catching `Exception`, because no type tells
+"this quantity is not a number" from `NullReferenceException`, and a parser that
 reports a bug in the author's own C# as "row 400 was malformed" is worse than one that
-stops. A conversion that can fail says so with the value-failure form of §8.1 — `bool M(args…,
-out T value)` — which is built, and is what to reach for instead of a `try` nobody here
-can write.
+stops. The generator does not infer a parser outcome from the signature of the C# called
+by `=>`.
 
 `DecimalCalculator.Evaluate("1 . 5")` in the examples throws `FormatException` out of a
 `decimal.Parse` in a `=>`, and a test asserts exactly that.
@@ -587,43 +583,13 @@ compile — "no overload takes 2 arguments", in a file the author never wrote, a
 grammar it did not mention. §8.2 of [`syntax.md`](syntax.md) says why the names are
 separate arguments rather than one context object.
 
-## Value failures
+## C# value calls are passed through
 
-`=> @TryTiny(digits)` where the C# is `bool TryTiny(string digits, out int value)` is
-§8.1, and it needed no notation because the signature already is one. The factory becomes
-`bool Construct_Start(string parserText, string digits, out int value)`, and "no" is a failure
-of the match: the shape was right and what it held was not accepted, so the rule does not
-match here. Inside a recovering repetition that is a broken element rather than the end of
-the run, which is what makes §8.1 and §8.2 one feature rather than two.
-
-Told from a `where` guard by the `out` — both return `bool`, and only one hands something
-back. Detected in the shell, because only a real compilation can be asked what shape a C#
-method has; the grammar half never sees it.
-
-**Building it needed `@Name` to resolve against the host class**, which it did not. The
-resolver looked names up as `Type.Method` and gave up on anything without a dot, so the
-one place an author actually puts a helper — the class the grammar is attached to — was
-the one place unreachable. `@int.Parse` worked and `@TryTiny` did not, which is backwards.
-An unqualified name is now looked for in the host first, the way C# resolves one inside a
-class.
-
-**And it is the cheaper of the two failures, as §8.2 says it should be.** A recognition
-failure has to be scanned forward from where the element began, looking for the
-synchronization point; a value failure does not, because the element was recognized whole
-and the parse is already past it. `Failure` carries a `Refused` field beside `Reach`, set
-where the factory answered no and cleared where each element begins, and the recovering
-repetition reads it instead of scanning.
-
-That is not only a saving. On an element longer than the synchronization point — a record
-of two lines with `recover eol` — the scan finds the terminator *inside* the element, so
-the parse used to pick up in its own middle and read every record after it off by one.
-The rejected extent is now the whole element, which is also what makes `parserText` the
-record a reader would have to go and look at.
-
-The message differs too, because §8.1 makes the failures different things: `'Pair' at 0
-was recognized and its value was not accepted.` rather than `Input does not match 'Pair'
-at 0.` — saying "does not match" of a record that matched sends a reader at the half of
-the problem that was fine.
+Names used by `where` and `=>` are not looked up or classified by the generator. The
+call is emitted as written, and `#line` maps the consumer compiler's diagnostics back to
+the grammar. Overloads, generic inference, accessibility and result types consequently
+have exactly their C# meaning. A misspelled `@Tini(digits)` remains a missing C# name; it
+is not turned into a generated declaration.
 
 ## `find` reads from a reader
 
@@ -962,33 +928,11 @@ rest of the generated file, which stays attributed to itself — `#line default`
 every region, so this compiler's own bugs are reported against this compiler's own
 output.
 
-## A method that does not exist yet
+## A method that does not exist
 
-§7.4 works where the signature can be worked out. A grammar calling `@Tiny(digits)` in a
-`=>` gets
-
-```csharp
-private static partial int Tiny(string digits);
-```
-
-written into the generated file, and the missing body is then an ordinary C# error —
-*no defining declaration found* — naming the exact signature expected. The author writes
-the implementation next door and the two halves are one method. It is the mechanism
-`[GeneratedRegex]` uses, with the halves the other way round.
-
-Two positions say what a signature is. A `=>` returns the rule's declared type, a `where`
-returns `bool`, and in both the parameters are the captures passed — so every argument has
-to be a capture, and a call passing anything else is reported as it was. A bare `@Name`
-standing where an operand goes says neither: §7.1 gives that position two shapes, one
-testing an item and one reading a span, and guessing would send the author off to
-implement the wrong method. That one is still `GRAM3004`.
-
-The half-written method took some finding. Once the author writes
-`private static partial int Tiny(string digits) => digits.Length;` the host *has* a method
-of that name, so the generator would stop declaring one and the implementation would be
-left unjoined (CS0759). An implementation whose declaration nobody wrote is therefore
-treated as absent — which is what it is, and the half that is missing is the half this
-generator writes.
+The generator emits calls from `where` and `=>` even when their C# names do not exist.
+The consumer compiler then reports the missing name at the mapped grammar location. No
+partial helper declaration is generated and no intended signature is guessed.
 
 ## A rule can be a sequence of what it is made of
 

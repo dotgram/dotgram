@@ -19,10 +19,10 @@ namespace DotGram.Generation;
 /// The metadata name of the class the grammar is attached to, or null when there is none.
 /// </param>
 /// <remarks>
-/// The host is where a grammar's own helpers live — <c>=&gt; @TryTiny(digits)</c> means
-/// the method next to the grammar, and writing it out as <c>Namespace.Class.TryTiny</c>
-/// would be naming a class the author never has to name anywhere else. So an unqualified
-/// name is looked for there first, the way C# itself resolves one inside a class.
+/// The host is where a grammar's own recognizers live. An unqualified C# name used as a
+/// grammar operand is looked for there first, the way C# itself resolves one inside a
+/// class. C# inside <c>where</c> and <c>=&gt;</c> never comes through this resolver; it is
+/// emitted and resolved by the consumer's C# compilation.
 /// </remarks>
 public sealed class RoslynSymbolResolver(Compilation compilation, string? host = null) : ISymbolResolver
 {
@@ -230,32 +230,12 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 			.OfType<IMethodSymbol>()
 			.FirstOrDefault(candidate => candidate.Parameters.Length >= argumentCount);
 
-		// A half of a partial method counts as not being there. The author writes the
-		// implementation and §7.4 writes the declaration that completes it, so a method
-		// with an implementation and no definition is exactly the one to declare — saying
-		// it exists would leave the two halves unjoined (CS0759).
-		if (method is null || Unjoined(method))
+		if (method is null)
 			return false;
 
 		role = Classify(method, argumentCount);
 
 		return true;
-	}
-
-	/// <summary>An implementation of a partial method whose declaration nobody wrote.</summary>
-	static bool Unjoined(IMethodSymbol method)
-	{
-		if (method.IsPartialDefinition || method.PartialDefinitionPart is not null)
-			return false;
-
-		foreach (var reference in method.DeclaringSyntaxReferences)
-			if (reference.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax declaration &&
-				declaration.Modifiers.Any(static modifier => modifier.ValueText == "partial"))
-			{
-				return true;
-			}
-
-		return false;
 	}
 
 	/// <summary>
@@ -279,12 +259,6 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 		if (method.ReturnType.SpecialType != SpecialType.System_Boolean)
 			return MethodRole.ValueTransformation;
 
-		// `bool M(args…, out T)` — §8.1's fallible transformation, told from a guard by the
-		// out parameter that carries what it produced. The arity the grammar wrote counts
-		// the arguments it passes, so the `out` is the one parameter beyond them.
-		return parameters.Length == argumentCount + 1 &&
-			parameters[parameters.Length - 1].RefKind == RefKind.Out
-				? MethodRole.FallibleTransformation
-				: MethodRole.Guard;
+		return MethodRole.Guard;
 	}
 }

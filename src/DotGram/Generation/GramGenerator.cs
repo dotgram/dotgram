@@ -66,8 +66,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		//
 		// A `Compilation` is a different object after every keystroke, so anything
 		// downstream of one is recomputed for every character typed. Binding genuinely
-		// needs it — `@int.Parse` has to be looked up somewhere — so the dependency cannot
-		// be removed, only narrowed to what it is for.
+		// needs it for declared C# types and C# recognizers used as grammar operands, so the
+		// dependency cannot be removed, only narrowed to what it is for. C# in `where` and
+		// `=>` is not among those questions: it is emitted for the C# compiler to bind.
 		//
 		//   grammar  ──► the questions its C# names raise      cached on the grammar
 		//   + host                     │

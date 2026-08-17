@@ -28,6 +28,7 @@ public sealed class GrammarBinder
 	/// exactly how whitespace handling works (§4.5).
 	/// </summary>
 	public static readonly string[] StandardLibrary =
+
 		["any", "none", "eol", "eof", "Trivia", "KeywordBoundary"];
 
 	const string TriviaRule = "Trivia";
@@ -281,54 +282,32 @@ public sealed class GrammarBinder
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or
 		"object" or "void";
 
-	/// <summary>
-	/// Where a call sits, which is what decides whether a method that is not there can be
-	/// declared instead of reported (§7.4).
-	/// </summary>
-	/// <remarks>
-	/// Only two positions say what a method's signature would be. A <c>=&gt;</c> returns
-	/// the rule's declared type; a <c>where</c> returns <c>bool</c>. A bare <c>@Name</c>
-	/// standing where an operand goes says neither — §7.1 gives it two possible shapes,
-	/// one testing an item and one reading a span — so nothing is declared for it and the
-	/// message stays.
-	/// </remarks>
-	enum Position { Anywhere, Construction, Guard }
-
 	void ResolveExpression(
 		Expr expression,
 		GrammarScope scope,
 		Dictionary<string, ParameterSymbol> parameters,
-		Position position = Position.Anywhere)
+		bool csharpValue = false)
 	{
 		switch (expression)
 		{
 			case Expr.Reference reference:
-				ResolveReference(reference, reference, scope, parameters, argumentCount: 0);
+				ResolveReference(reference, reference, scope, parameters, argumentCount: 0, csharpValue);
 				return;
 
-			// The position reaches the call itself and no further: `=> @Build(@Inner(x))`
-			// says what `Build` returns and says nothing about `Inner`.
 			case Expr.Construct(var pattern, var value):
 				ResolveExpression(pattern, scope, parameters);
-				ResolveExpression(value, scope, parameters, Position.Construction);
+				ResolveExpression(value, scope, parameters, csharpValue: true);
 				return;
 
 			case Expr.Guard(var guarded):
-				ResolveExpression(guarded, scope, parameters, Position.Guard);
+				ResolveExpression(guarded, scope, parameters, csharpValue: true);
 				return;
 
 			case Expr.Call(var target, var arguments):
-
-				ResolveReference(
-					target, expression, scope, parameters, arguments.Count,
-					// A signature can only be worked out when every argument is a capture:
-					// that is where the parameter types come from.
-					arguments.All(static argument => argument is Expr.Reference(false, _, _))
-						? position
-						: Position.Anywhere);
+				ResolveReference(target, expression, scope, parameters, arguments.Count, csharpValue);
 
 				foreach (var argument in arguments)
-					ResolveExpression(argument, scope, parameters);
+					ResolveExpression(argument, scope, parameters, csharpValue);
 
 				return;
 
@@ -349,7 +328,7 @@ public sealed class GrammarBinder
 		}
 
 		foreach (var child in Dump.Children(expression))
-			ResolveExpression(child, scope, parameters);
+			ResolveExpression(child, scope, parameters, csharpValue);
 	}
 
 	void ResolveReference(
@@ -358,12 +337,13 @@ public sealed class GrammarBinder
 		GrammarScope                        scope,
 		Dictionary<string, ParameterSymbol> parameters,
 		int                                 argumentCount,
-		Position                            position = Position.Anywhere)
+		bool                                csharpValue = false)
 	{
 		var at = reference.At;
 
-		foreach (var typeArgument in reference.TypeArguments)
-			ResolveType(typeArgument, scope, parameters);
+		if (!csharpValue || !reference.IsCSharp)
+			foreach (var typeArgument in reference.TypeArguments)
+				ResolveType(typeArgument, scope, parameters);
 
 		void Bind(Symbol symbol)
 		{
@@ -373,21 +353,15 @@ public sealed class GrammarBinder
 
 		if (reference.IsCSharp)
 		{
+			// A `where` or `=>` value is C# owned by the consumer. Preserve it and let
+			// their compiler resolve names, overloads, generic arguments and types.
+			if (csharpValue)
+				return;
+
 			if (_symbols.TryResolveMethod(reference.Name, argumentCount, out var role))
 				Bind(new CSharpSymbol(reference.Name, role));
 			else if (TypeInView(reference.Name, scope))
 				Bind(new CSharpSymbol(reference.Name, Role: null));
-
-			// §7.4: in a position that says what the signature is, a method that does not
-			// exist is declared for the author rather than reported. The C# compiler then
-			// says it is unimplemented, at a signature already written out — which is the
-			// message they can act on, and is `[GeneratedRegex]`'s mechanism.
-			else if (position != Position.Anywhere && argumentCount > 0 && !reference.Name.Contains("."))
-				Bind(new CSharpSymbol(
-					reference.Name,
-					position == Position.Guard ? MethodRole.Guard : MethodRole.ValueTransformation,
-					Missing: true));
-
 			else
 				Report(UnknownCSharp, $"No C# method or type named '{reference.Name}' is in view here.", at);
 

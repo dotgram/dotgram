@@ -105,8 +105,8 @@ matching `)`, minding literals, and hands the text to the compiler.
 
 The block form (Razor's `@{ ... }`) is not supported, and not arbitrarily: the
 positions that accept C# accept a **value**, and a block of statements is code. Code
-belongs in the partial class next door, where there is a debugger and refactoring
-(§7.4). The reverse transition (`@:`, `<text>`) and the `@@` escape are unnecessary:
+belongs in the partial class next door, where there is a debugger and refactoring.
+The reverse transition (`@:`, `<text>`) and the `@@` escape are unnecessary:
 a grammar is never nested inside C#, and a literal `@` occurs only inside quotes.
 
 ---
@@ -422,9 +422,9 @@ current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
 There is no limit on the size of an expression, but there is a recommendation: once
-it stops reading at a glance it is better off as a named method — the generator will
-declare a partial signature for it (§7.4), and the code moves into a `.cs` file with
-a debugger and refactoring.
+it stops reading at a glance it is better off as a named method in the partial class
+next door, where it has a debugger and refactoring. The generator neither declares nor
+resolves that method (§7.4).
 
 ### 4.2 Parameters
 
@@ -895,20 +895,19 @@ such.
 This is the language's other half, not an appendix to it: the grammar describes
 structure, C# describes meaning, and the seam between them has to be mechanical.
 
-### 7.1 Classifying C# methods by signature
+### 7.1 Recognizer signatures and C# values
 
-No attributes on methods are needed — a method's role follows from its signature and
-the position it is called from:
+Only a method used as a recognizer needs a shape the generator understands, because it
+participates in moving through the input. A method or expression used by `where` or `=>`
+is emitted as C# and belongs entirely to the consumer's compiler:
 
 | C# signature | Role | Called from the grammar as |
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `@M` in recognizer position |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | `@M` in recognizer position |
 | `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | `@M` in recognizer position |
-| `T M(args…)` | value transformation | `=> @M(a, b)` |
-| `bool M(args…, out T value)` | value transformation that may fail | `=> @M(a, b)` |
-| `bool M(args…)` | guard | `where @M(a)` |
-| — | inline expression | `=> @(expr)`, `where @(expr)` |
+| any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
+| any C# `bool` value | guard | `where @M(a)`, `where @(expr)` |
 
 **The arguments are read by §2, with no exception made for being in an argument list.**
 A bare name is looked up among the grammar's own — a capture, a rule, a parameter — and
@@ -923,10 +922,9 @@ Both are written the same way in the generated file; which to use is a matter of
 much of the line is C#. A dotted name written without the `@` is the ordinary mistake
 here, and the compiler says so by name.
 
-There is one rule to read this by: **a method taking the input and a `ref int pos` is
-a recognizer; any other method never touches input at all.** `bool M(char)` in
-recognizer position is an element predicate and the same method in `where` is a guard;
-the positions do not overlap.
+There is one rule to read this by: **only recognizer position asks the generator to
+classify a method.** Everything in `where` and `=>` is C# text; its overloads, generic
+arguments, accessibility, parameter types and result type are C#'s responsibility.
 
 The external recognizer's signature is deliberately built from BCL types only: it is
 the same whether or not shared mode is on (§6.2), and it needs no interface dispatch.
@@ -940,11 +938,8 @@ move it past the end, leave it somewhere that makes the rest of the grammar nons
 all of that is allowed and none of it is diagnosed.
 
 This is deliberate. A seam that second-guessed the code on the other side of it would
-cost every parse that uses one and still not make a wrong recognizer right. So: reaching
-into the parse means taking the parse's invariants on with it. Where the parser can tell
-you something you could not otherwise know — that a `=>` may refuse a value (§8.1), that
-an element was stepped over (§8.2) — it does. Where you have taken the wheel, it does not
-check your steering.
+still not make a wrong recognizer right. Reaching into the parse means taking the
+parse's invariants on with it.
 
 One thing follows from it, and it is arithmetic rather than punishment: a grammar
 containing an external recognizer gets no streaming overloads (§6.3). The method is
@@ -1040,32 +1035,19 @@ into a namespace that is not ours. A consumer targeting an older framework has t
 copy of that type from a polyfill package, and a second one is a compile error in their
 build rather than ours.
 
-### 7.4 The other direction: partial declarations
+### 7.4 C# stays C#
 
-For every `@Method` a grammar refers to and that is not implemented yet, the generator
-emits a partial method declaration with the signature already worked out:
+The generator does not resolve or declare methods named by `where` and `=>`. It emits
+the call exactly as written, under the `#line` mapping of §7.6. A missing name, a wrong
+overload, an inaccessible member or an incompatible result is therefore an ordinary C#
+diagnostic at the corresponding place in the grammar.
 
-```csharp
-// generated
-public partial class FeedGrammar
-{
-    private static partial bool IsSupportedSymbol(string symbol);
-}
+```dotgram
+Number : @int = digits: ['0'..'9']+ => @Tini(digits)
 ```
 
-A missing implementation becomes an ordinary C# compile error naming the exact
-expected signature, rather than an error from the generator. The developer fills it
-in:
-
-```csharp
-public partial class FeedGrammar
-{
-    private static partial bool IsSupportedSymbol(string symbol)
-        => Symbols.Contains(symbol);
-}
-```
-
-This is the mechanism `[GeneratedRegex]` already uses.
+If the host contains `Tiny` rather than `Tini`, the compiler reports the misspelling.
+The generator does not turn an unknown name into a partial-method contract.
 
 ### 7.5 Recognition outcomes
 
@@ -1105,26 +1087,21 @@ not: a million records, one of them malformed, and the answer must be a message 
 that record and a parse that keeps going. Everything in this section is inert in a
 grammar that does not ask for it.
 
-### 8.1 Two kinds of failure, told apart by when they happen
+### 8.1 Recognition failure and C# exceptions
 
 The seam already exists — §7.2: `where` runs **during** the match, `=>` runs **after**
 it, once the match is final and from the alternative that actually matched.
 
-- **A recognition failure** is a shape the grammar does not describe. It happens during
-  the match, and ordered choice may undo it and try something else. Only past a commit
-  point (§8.2) does it stop being "try something else" and become an error.
-- **A value failure** is a shape the grammar does describe holding a value it does not
-  accept. It happens at construction, after the match is settled, and never backtracks.
+A recognition failure is a shape the grammar does not describe. It happens during the
+match, and ordered choice may undo it and try something else. Only past a commit point
+(§8.2) does it stop being "try something else" and become an error.
 
-`2026-02-31` is both, depending on where the work is done: a recognition failure if
-`Date` cannot match it by shape, a value failure if it matches and `DateOnly` refuses
-it. Which one an author gets is a design choice, and the second is cheaper — see §8.2.
+Construction runs after recognition. Its C# must produce the rule's declared value;
+compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
+value leaves the parse. The generator does not infer another parser outcome from a C#
+method's signature.
 
-A value failure is reported without an exception, by the same signature-reading rule as
-everything else in §7.1: a transformation that may fail is written `bool M(args…, out T
-value)` — the shape the BCL's own `int.TryParse` and `DateOnly.TryParse` already have.
-
-There is a third kind that belongs to neither, and to no single record: the **envelope**
+There is also a failure that belongs to no single record: the **envelope**
 — a missing `Trailer`, input that did not end, a declared count that does not match.
 It is settled when the whole parse finishes, which for a streamed parse is after the
 records have long since been handed out.
@@ -1149,16 +1126,11 @@ Feed : FeedItem[] = Header
 3. **What follows the repetition is not tried on the error path.** An error means the
    element was there and was broken, not that the repetition ended.
 
-A value failure inside a marked repetition is recovered from too, and more cheaply: the
-element was recognized whole, so the position is already past it and there is nothing
-to skip.
-
 **Nothing is ever caught.** An exception out of a `=>` leaves the parse, inside a marked
 repetition as anywhere else. Catching would mean catching `Exception` — there is no way
 to tell "this record's quantity is not a number" from `NullReferenceException` by type —
 and a parser that turns a bug in the author's own C# into "row 400 was malformed" is
-worse than one that stops. A conversion that can fail says so, with the value-failure
-form of §8.1, and that is the difference between a rejection and a defect.
+worse than one that stops.
 
 **It is opt-in because it cannot be the default.** The rule "consumed something, then
 failed, therefore malformed" is wrong for ordinary grammars, and this language's own
@@ -1226,8 +1198,8 @@ names are supplied rather than captured:
 | `parserMessage` | why it was rejected — only here, never in a capture |
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
-story: the supplied names become parameters of the method a `=>` or a `where` turns
-into (§7.4), sitting in the same scope as the captures, so a capture called `text`
+story: the supplied names become parameters of the generated factory for a `=>` or a
+`where`, sitting in the same scope as the captures, so a capture called `text`
 would take a name already spoken for. With the prefix nothing an author would naturally
 write collides, and a capture that takes one of these names anyway is refused by name
 rather than by a C# error in a file nobody wrote (GRAM4012).
@@ -1267,9 +1239,7 @@ refused on performance, which here outranks the convenience:
   for anything at all, in a design whose whole shape is that nothing is allocated while
   matching (§4).
 
-The two things a context would have been for are already served: feedback out of the
-parse goes through `OnRecovered` (§8.3), and a transformation that wants to refuse says
-so by its own shape — `bool M(…, out T value)` — rather than by writing into a context.
+Feedback out of the parse already goes through `OnRecovered` (§8.3).
 
 What is left is the name collision, and a prefix costs nothing to solve it.
 
