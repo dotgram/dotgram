@@ -857,7 +857,7 @@ public static partial class CSharpEmitter
 	{
 		var machine = MachineFor(
 			graph, results, rule, lines: lines,
-			recursiveSafe: CanUseRecursiveExecutor(graph, execution, rule));
+			recursiveSafe: CanUseSelfRecursiveExecutor(graph, execution, results, rule));
 
 		// The factory a recovery calls is emitted beside the rule's own machine and not
 		// beside the end-of-input copy, which calls the same one.
@@ -882,11 +882,11 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
-	/// The first deliberately narrow recursion-safe code path. It proves the explicit
-	/// call boundary with rules whose complete invocation state is integer-only; later
-	/// stages widen the generated frame before admitting captures, results and auxiliaries.
+	/// Whether this one-rule component fits the explicit frame currently generated for
+	/// scalar captures and typed values. Sequence captures and auxiliary machines need
+	/// storage with different rollback ownership and are admitted by later stages.
 	/// </summary>
-	static bool CanUseRecursiveExecutor(
+	static bool CanUseIntegerRecursiveExecutor(
 		RecognitionGraph graph, ExecutionPlan execution, RuleSymbol rule)
 	{
 		if (!execution.IsRecursive(rule) ||
@@ -902,11 +902,29 @@ public static partial class CSharpEmitter
 		return true;
 	}
 
+	static bool CanUseSelfRecursiveExecutor(
+		RecognitionGraph graph, ExecutionPlan execution, ResultTypes results, RuleSymbol rule)
+	{
+		if (!execution.IsRecursive(rule) || execution.ComponentOf[rule].Rules.Count != 1 ||
+			graph.Climbing.ContainsKey(rule) || graph.Folds.ContainsKey(rule))
+			return false;
+
+		foreach (var slot in LayoutOf(graph, results, rule).Slots)
+			if (slot.IsSequence)
+				return false;
+
+		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+			if (graph.Recoveries.ContainsKey(node) || node is Node.Lookahead)
+				return false;
+
+		return true;
+	}
+
 	static bool CanUseRecursiveExecutor(
 		RecognitionGraph graph, ExecutionPlan execution, ExecutionComponent component)
 	{
 		foreach (var rule in component.Rules)
-			if (!CanUseRecursiveExecutor(graph, execution, rule))
+			if (!CanUseIntegerRecursiveExecutor(graph, execution, rule))
 				return false;
 
 		return true;

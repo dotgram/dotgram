@@ -688,7 +688,7 @@ sealed class Machine
 
 		if (_recursiveRules.Contains(call.Rule))
 		{
-			_recursiveCalls.Add((writer, call.Rule, next));
+			_recursiveCalls.Add((writer, call.Rule, next, into));
 
 			return state;
 		}
@@ -1369,7 +1369,7 @@ sealed class Machine
 	/// there, and a flag nobody reads is a warning in the consumer's build.
 	/// </summary>
 	readonly HashSet<int> _flagged = [];
-	readonly List<(Writer Writer, RuleSymbol Rule, int Next)> _recursiveCalls = [];
+	readonly List<(Writer Writer, RuleSymbol Rule, int Next, int Into)> _recursiveCalls = [];
 
 	/// <summary>The whole machine as one method.</summary>
 	/// <param name="pattern">
@@ -1388,18 +1388,51 @@ sealed class Machine
 	string Render(
 		string initialEntry, IReadOnlyDictionary<RuleSymbol, int>? entries, string? pattern)
 	{
+		PrepareFlags();
 		WriteDeferred();
 
-		foreach (var (writer, rule, next) in _recursiveCalls)
+		var scalars = CallScalars();
+		var values  = CallValues();
+		var completedTargets = CompletedTargets(values);
+
+		foreach (var (writer, rule, next, into) in _recursiveCalls)
 		{
 			var frame = new System.Text.StringBuilder(
-				$"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp;");
+				$"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp; " +
+				$"calls[cp + 3] = {into};");
 
-			for (var i = 0; i < _counters; i++)
-				frame.Append($" calls[cp + {i + 3}] = c{i};");
+			for (var i = 0; i < scalars.Count; i++)
+				frame.Append($" calls[cp + {i + 4}] = {scalars[i].Save};");
+
+			if (values.Count > 0)
+			{
+				writer.Line($"if (call_v{values[0].Index} is null)");
+
+				using (writer.Block(""))
+					foreach (var value in values)
+						writer.Line($"call_v{value.Index} = new {value.Type}[16];");
+
+				writer.Line($"else if (cd == call_v{values[0].Index}.Length)");
+
+				using (writer.Block(""))
+					foreach (var value in values)
+						writer.Line($"global::System.Array.Resize(ref call_v{value.Index}, cd * 2);");
+
+				foreach (var value in values)
+					writer.Line($"call_v{value.Index}[cd] = v{value.Index};");
+
+				writer.Line("cd++;");
+			}
 
 			writer.Line($"if (cp + {CallFrame} > calls.Length) calls = Grow(calls);");
 			writer.Line(frame.Append($" cp += {CallFrame};").ToString());
+
+			foreach (var scalar in scalars)
+				writer.Line($"{scalar.Value} = {scalar.Reset};");
+
+			foreach (var value in values)
+				writer.Line($"v{value.Index} = default!;");
+
 			writer.Line("bp = sp;");
 			writer.Line($"state = {(entries is null ? initialEntry : entries[rule].ToString())};");
 			writer.Line("continue;");
@@ -1458,6 +1491,14 @@ sealed class Machine
 				file.Line();
 				file.Line("var cp = 0;");
 				file.Line("var bp = 0;");
+
+				if (values.Count > 0)
+				{
+					file.Line("var cd = 0;");
+
+					foreach (var value in values)
+						file.Line($"{value.Type}[]? call_v{value.Index} = null;");
+				}
 			}
 
 			file.Line("var p     = pos;");
@@ -1543,6 +1584,9 @@ sealed class Machine
 
 					if (_recursiveCalls.Count > 0)
 					{
+						if (completedTargets.Count > 0)
+							file.Line("var completed = value;");
+
 						file.Line("if (cp == 0)");
 						file.Then("return p;");
 						file.Line();
@@ -1551,8 +1595,14 @@ sealed class Machine
 						file.Line("state = calls[cp];");
 						file.Line("bp = calls[cp + 2];");
 
-						for (var i = 0; i < _counters; i++)
-							file.Line($"c{i} = calls[cp + {i + 3}];");
+						for (var i = 0; i < scalars.Count; i++)
+							file.Line($"{scalars[i].Value} = calls[cp + {i + 4}]" +
+								(scalars[i].Boolean ? " != 0;" : ";"));
+
+						RestoreValues(file, values);
+
+						if (completedTargets.Count > 0)
+							WriteCompleted(file, completedTargets);
 
 						file.Line("continue;");
 					}
@@ -1599,8 +1649,11 @@ sealed class Machine
 							file.Line("p = calls[cp + 1];");
 							file.Line("bp = calls[cp + 2];");
 
-							for (var i = 0; i < _counters; i++)
-								file.Line($"c{i} = calls[cp + {i + 3}];");
+							for (var i = 0; i < scalars.Count; i++)
+								file.Line($"{scalars[i].Value} = calls[cp + {i + 4}]" +
+									(scalars[i].Boolean ? " != 0;" : ";"));
+
+							RestoreValues(file, values);
 
 							file.Line($"state = {Fail};");
 							file.Line("continue;");
@@ -1663,5 +1716,92 @@ sealed class Machine
 		return file.ToString();
 	}
 
-	int CallFrame => 3 + _counters;
+	void PrepareFlags()
+	{
+		if (_builds is null || _recursiveCalls.Count == 0)
+			return;
+
+		foreach (var member in _builds.Members)
+			if (member.IsOptional || member.Slots.Count > 1)
+				foreach (var slot in member.Slots)
+					if (Layout.Slots[slot].Rule is not null)
+						_flagged.Add(slot);
+
+		foreach (var factory in Factories)
+			foreach (var member in factory.Members)
+				if (member.IsOptional || member.Slots.Count > 1)
+					foreach (var slot in member.Slots)
+						if (Layout.Slots[slot].Rule is not null)
+							_flagged.Add(slot);
+	}
+
+	List<(string Value, string Reset, string Save, bool Boolean)> CallScalars()
+	{
+		var fields = new List<(string, string, string, bool)>();
+
+		for (var i = 0; i < _counters; i++)
+			fields.Add(($"c{i}", "0", $"c{i}", false));
+
+		if (Factories.Count > 1)
+			fields.Add((Chosen, "-1", Chosen, false));
+
+		foreach (var slot in Layout.Slots)
+			if (slot.Rule is null)
+			{
+				fields.Add(($"s{slot.Index}_from", "-1", $"s{slot.Index}_from", false));
+
+				if (!slot.IsSequence)
+					fields.Add(($"s{slot.Index}_to", "-1", $"s{slot.Index}_to", false));
+			}
+			else if (_flagged.Contains(slot.Index))
+			{
+				fields.Add(($"v{slot.Index}_set", "false", $"v{slot.Index}_set ? 1 : 0", true));
+			}
+
+		return fields;
+	}
+
+	List<(int Index, string Type)> CallValues()
+	{
+		var values = new List<(int, string)>();
+
+		foreach (var slot in Layout.Slots)
+			if (slot.Rule is not null && !slot.IsSequence)
+				values.Add((slot.Index, _results.QualifiedOf(slot.Rule)!));
+
+		return values;
+	}
+
+	static void RestoreValues(Writer file, IReadOnlyList<(int Index, string Type)> values)
+	{
+		if (values.Count == 0)
+			return;
+
+		file.Line("cd--;");
+
+		foreach (var value in values)
+			file.Line($"v{value.Index} = call_v{value.Index}![cd];");
+	}
+
+	List<int> CompletedTargets(IReadOnlyList<(int Index, string Type)> values)
+	{
+		var targets = new List<int>();
+
+		foreach (var (index, _) in values)
+			if (Layout.Slots[index].Rule is { } rule && _recursiveRules.Contains(rule))
+				targets.Add(index);
+
+		return targets;
+	}
+
+	static void WriteCompleted(Writer file, IReadOnlyList<int> targets)
+	{
+		using (file.Block("switch (calls[cp + 3])"))
+			foreach (var target in targets)
+			{
+				file.Line($"case {target}: v{target} = completed; break;");
+			}
+	}
+
+	int CallFrame => 4 + CallScalars().Count;
 }

@@ -116,6 +116,56 @@ public sealed class CSharpEmitterTests
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseA", input + "b").IsSuccess);
 	}
 
+	[Fact]
+	public void Typed_recursive_results_return_through_explicit_frames()
+	{
+		const int depth = 20_000;
+		const string grammar =
+			"Start : @int = '(' & inner: Start & ')' => @(inner + 1)\n" +
+			"             | 'x'                     => @(1)\n" +
+			"parse Start";
+
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var input = new string('(', depth) + "x" + new string(')', depth);
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(depth + 1, match.Value);
+	}
+
+	[Fact]
+	public void Recursive_frames_restore_text_and_typed_captures_together()
+	{
+		const int depth = 10_000;
+		const string grammar =
+			"Start : @string = '(' & inner: Start & ')' => @(inner)\n" +
+			"                | value: 'x'              => @(value)\n" +
+			"parse Start";
+
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var input = new string('(', depth) + "x" + new string(')', depth);
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal("x", match.Value);
+	}
+
+	[Fact]
+	public void An_uncaptured_recursive_value_needs_no_return_slot()
+	{
+		const string grammar =
+			"Start : @int = '(' & Start & ')' => @(1)\n" +
+			"             | 'x'                 => @(1)\n" +
+			"parse Start";
+
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", "(((x)))");
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(1, match.Value);
+	}
+
 	[Theory]
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]
