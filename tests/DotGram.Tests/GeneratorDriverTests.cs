@@ -1259,6 +1259,61 @@ public sealed class GeneratorDriverTests
 			diagnostic => diagnostic.Id == "CS8785" || diagnostic.Severity == DiagnosticSeverity.Error);
 	}
 
+	[Theory]
+	[MemberData(nameof(RobustnessGrammars))]
+	public void Grammar_input_never_crashes_the_generator(string name, string grammar)
+	{
+		var source =
+			$"[DotGram.Gram(@\"{grammar.Replace("\"", "\"\"", StringComparison.Ordinal)}\")] " +
+			$"public partial class Robust_{name};";
+		var run = RunGenerator(source, out var output);
+
+		Assert.All(run.Results, result => Assert.Null(result.Exception));
+
+		var diagnostics = run.Diagnostics
+			.Concat(output.GetDiagnostics(TestContext.Current.CancellationToken))
+			.ToArray();
+
+		Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Id is "CS8785" or "AD0001" or "GRAM0001");
+
+		var generatedParser = run.Results
+			.SelectMany(result => result.GeneratedSources)
+			.Any(source => !source.HintName.StartsWith("DotGram.", StringComparison.Ordinal));
+		var reported = diagnostics.Any(diagnostic =>
+			diagnostic.Id.StartsWith("GRAM", StringComparison.Ordinal) ||
+			diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
+
+		Assert.True(generatedParser || reported, $"Mutation '{name}' was silently ignored: {grammar}");
+	}
+
+	public static TheoryData<string, string> RobustnessGrammars => new()
+	{
+		{ "Baseline",        "Start = 'a' & Tail?\nTail = 'b'+\nparse Start" },
+		{ "ElementSet",      "Start = [Tail]\nTail = ['a'..'z']\nparse Start" },
+		{ "BadElementSet",   "Start = [Tail]\nTail = \"ab\"\nparse Start" },
+		{ "CSharpElement",   "Start = [@IsLetter]+\nparse Start" },
+		{ "CSharpReader",    "Start = @Read & eof\nparse Start" },
+		{ "Capture",         "Start = head: 'a' & tail: Tail?\nTail = 'b'+\nparse Start" },
+		{ "Optional",        "Start = ('a' & 'b')? & eof\nparse Start" },
+		{ "Repeated",        "Start = ('a' | 'b')* & eof\nparse Start" },
+		{ "Counted",         "Start = ('a' | 'b'){2} & eof\nparse Start" },
+		{ "SequenceType",    "Start : @string[] = Item* & eof\nItem : @string = 'a'\nparse Start" },
+		{ "Scoped",          "scope Inner { Start = Item+ }\nItem = 'a'\nparse Inner.Start" },
+		{ "Guard",           "Start = value: ['a'..'z']+ & when @Accept(value)\nparse Start" },
+		{ "Construction",    "Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start" },
+		{ "InlineCSharp",    "Start = ['a'..'z']+ & when @(parserText.Length < 4)\nparse Start" },
+		{ "Parameterized",   "List(item) = item & (',' & item)*\nStart = List(Word)\nWord = ['a'..'z']+\nparse Start" },
+		{ "Nested",          "Start = ((('a' | 'b') & ('c' | 'd'))+ | 'x') & eof\nparse Start" },
+		{ "Lookahead",       "Start = ?!Keyword & Word\nKeyword = \"when\"\nWord = ['a'..'z']+\nparse Start" },
+		{ "Recovery",        "Feed : @string[] = row: Row* recover eol & eof\nRow : @string = text: ['a'..'z']+ & eol => @(text)\nparse Feed" },
+		{ "EmptyBody",       "Start =\nparse Start" },
+		{ "BrokenSequence",  "Start = 'a' & & 'b'\nparse Start" },
+		{ "BrokenSet",       "Start = ['a'..]\nparse Start" },
+		{ "BrokenCount",     "Start = 'a'{x,}\nparse Start" },
+		{ "BrokenScope",     "scope Inner { Start = 'a'\nparse Inner.Start" },
+		{ "BrokenCSharp",    "Start = 'a' & when @(true\nparse Start" },
+	};
+
 	static void Cached(GeneratorDriverRunResult run, string stage)
 	{
 		var runs = Runs(run, stage);

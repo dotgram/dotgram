@@ -39,6 +39,32 @@ public sealed class GraphIntegrityTests
 	public void Nothing_the_graph_knows_is_about_a_node_that_is_gone(string path) =>
 		Assert.Empty(Normalized(File.ReadAllText(path)).Orphans());
 
+	[Theory]
+	[MemberData(nameof(MutatedGrammars))]
+	public void Mutated_grammars_leave_no_metadata_on_replaced_nodes(string name, string grammar)
+	{
+		var graph   = Normalized(grammar);
+		var orphans = graph.Orphans();
+
+		Assert.True(orphans.Count == 0, $"Mutation '{name}' left orphaned metadata: {string.Join(", ", orphans)}");
+	}
+
+	public static TheoryData<string, string> MutatedGrammars => new()
+	{
+		{ "ElementSet",     "Start = [Letter | '0'..'9']+\nLetter = ['a'..'z']" },
+		{ "CSharpElement",  "Start = [@IsLetter | '0'..'9']+" },
+		{ "Captured",       "Start = first: Item & rest: Item*\nItem = ['a'..'z']" },
+		{ "Optional",       "Start = (left: Item & right: Item)?\nItem = ['a'..'z']" },
+		{ "Counted",        "Start = item: Item{2}\nItem = ['a'..'z']" },
+		{ "SequenceResult", "Start : @Item[] = Item*\nItem : @Item = ['a'..'z']" },
+		{ "Scoped",         "scope Inner { Start = Item+\nItem = ['a'..'z'] }" },
+		{ "Guarded",        "Start = item: Item & when @Accept(item)\nItem = ['a'..'z']" },
+		{ "Constructed",    "Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)" },
+		{ "Parameterized",  "List(item) = item & (',' & item)*\nStart = List(Word)\nWord = ['a'..'z']+" },
+		{ "Recovering",     "Feed : @Item[] = row: Row* recover eol & eof\nRow : @Item = ['a'..'z']+ & eol" },
+		{ "BindingPowers",  "Expr : @int = left: Expr & '+' & right: Expr << 1 => @(left + right) | digit: ['0'..'9'] => @int.Parse(digit)" },
+	};
+
 	/// <summary>
 	/// Every grammar checked into the repository: the snapshots and the examples.
 	/// </summary>

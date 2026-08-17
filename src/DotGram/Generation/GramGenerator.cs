@@ -84,27 +84,98 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// to tell "the answers were the same" from "nothing was asked".
 		var asked = hosts
 			.Combine(files)
-			.Select(static (input, _) => Asked(input.Left, input.Right))
+			.Select(static (input, _) => AskedSafely(input.Left, input.Right))
 			.WithTrackingName(AskedStage);
 
 		var answered = asked
 			.Combine(context.CompilationProvider)
-			.Select(static (input, _) => input.Left with
-			{
-				Answers = new EquatableArray<Answer>(Questions.Ask(
-					input.Left.Questions.Items,
-					new RoslynSymbolResolver(input.Right, input.Left.Host.MetadataName))),
-			})
+			.Select(static (input, _) => AnswerSafely(input.Left, input.Right))
 			.WithTrackingName(AnsweredStage);
 
 		context.RegisterSourceOutput(
 			answered
-				.Select(static (grammar, _) => Compile(grammar))
+				.Select(static (grammar, _) => CompileSafely(grammar))
 				.WithTrackingName(CompiledStage),
 			static (production, parser) => parser.Deliver(production));
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// Grammar text is untrusted input. An unexpected non-fatal exception is a compiler
+	/// defect to report, never a reason for Roslyn to disable the generator with CS8785.
+	/// </summary>
+	static Grammar AskedSafely(Host host, ImmutableArray<GrammarFile> files)
+	{
+		try
+		{
+			return Asked(host, files);
+		}
+		catch (Exception exception) when (Recoverable(exception))
+		{
+			return Failed(
+				new Grammar(host, null, null, default, default, default),
+				"reading and analyzing the grammar",
+				exception);
+		}
+	}
+
+	static Grammar AnswerSafely(Grammar grammar, Compilation compilation)
+	{
+		try
+		{
+			return grammar with
+			{
+				Answers = new EquatableArray<Answer>(Questions.Ask(
+					grammar.Questions.Items,
+					new RoslynSymbolResolver(compilation, grammar.Host.MetadataName))),
+			};
+		}
+		catch (Exception exception) when (Recoverable(exception))
+		{
+			return Failed(grammar, "answering C# type questions", exception);
+		}
+	}
+
+	static Parser CompileSafely(Grammar grammar)
+	{
+		try
+		{
+			return Compile(grammar);
+		}
+		catch (Exception exception) when (Recoverable(exception))
+		{
+			var failed = Failed(grammar, "compiling the recognition graph", exception);
+
+			return new Parser(null, null, failed.Reports);
+		}
+	}
+
+	static bool Recoverable(Exception exception) =>
+		exception is not OperationCanceledException and not OutOfMemoryException;
+
+	static Grammar Failed(Grammar grammar, string stage, Exception exception)
+	{
+		var reports = ImmutableArray.CreateBuilder<Report>();
+
+		reports.AddRange(grammar.Reports.Items);
+		reports.Add(Report.Of(
+			Diagnostics.InternalFailure,
+			grammar.Host.Location,
+			stage,
+			exception.GetType().FullName ?? exception.GetType().Name,
+			exception.Message));
+
+		// Stop this host here. Continuing with partial questions or answers would only turn
+		// one defect into a cascade from the next stage.
+		return grammar with
+		{
+			Text      = null,
+			Questions = default,
+			Answers   = default,
+			Reports   = Values(reports),
+		};
+	}
 
 	/// <summary>
 	/// Everything one host produced, as values: the file to add and the diagnostics to
@@ -121,12 +192,36 @@ public sealed class GramGenerator : IIncrementalGenerator
 		public void Deliver(SourceProductionContext context)
 		{
 			foreach (var report in Reports.Items)
-				context.ReportDiagnostic(report.ToRoslyn());
+				try
+				{
+					context.ReportDiagnostic(report.ToRoslyn());
+				}
+				catch (Exception exception) when (Recoverable(exception))
+				{
+					context.ReportDiagnostic(InternalDiagnostic(
+						"delivering a grammar diagnostic", exception, report.Fallback));
+				}
 
 			if (HintName is not null && Text is not null)
-				context.AddSource(HintName, Text);
+				try
+				{
+					context.AddSource(HintName, Text);
+				}
+				catch (Exception exception) when (Recoverable(exception))
+				{
+					context.ReportDiagnostic(InternalDiagnostic(
+						"adding generated C# to the compilation", exception, null));
+				}
 		}
 	}
+
+	static Diagnostic InternalDiagnostic(string stage, Exception exception, Location? location) =>
+		Diagnostic.Create(
+			Diagnostics.InternalFailure,
+			location ?? Location.None,
+			stage,
+			exception.GetType().FullName ?? exception.GetType().Name,
+			exception.Message);
 
 	/// <summary>
 	/// One host's grammar, found and read, with the questions its C# names raise and —

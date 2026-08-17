@@ -13,6 +13,18 @@ static class Diagnostics
 {
 	const string Category = "DotGram";
 
+	/// <summary>
+	/// The final safety net for a defect reached through grammar input. Kept out of the
+	/// public language specification: this is an internal failure, not language behavior.
+	/// </summary>
+	public static readonly DiagnosticDescriptor InternalFailure = new(
+		id:                 "GRAM0001",
+		title:              "The .Gram generator encountered an internal error",
+		messageFormat:      "The generator failed during {0}: {1}: {2}",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true);
+
 	public static readonly DiagnosticDescriptor HostNotPartial = new(
 		id:                 "GRAM0002",
 		title:              "A class hosting a grammar must be partial",
