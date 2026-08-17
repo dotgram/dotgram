@@ -98,6 +98,24 @@ public sealed class CSharpEmitterTests
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
 	}
 
+	[Fact]
+	public void Mutually_recursive_rules_share_one_explicit_executor()
+	{
+		const int depth = 50_000;
+		const string grammar =
+			"A = 'a' & B | 'x'\n" +
+			"B = 'b' & A | 'y'\n" +
+			"parse A";
+
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var input = string.Concat(Enumerable.Repeat("ab", depth)) + "x";
+
+		Assert.Contains("recursive component: A, B", source);
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseA", input).IsSuccess);
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseA", input + "b").IsSuccess);
+	}
+
 	[Theory]
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]

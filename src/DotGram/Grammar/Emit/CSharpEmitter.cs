@@ -198,9 +198,23 @@ public static partial class CSharpEmitter
 			needsStack = true;
 		}
 
+		var emittedRecursive = new HashSet<ExecutionComponent>();
+
 		foreach (var rule in graph.Rules)
 		{
-			needsStack |= EmitRule(file, graph, execution, results, rule, lines);
+			var component = execution.ComponentOf[rule];
+
+			if (component.Rules.Count > 1 &&
+				CanUseRecursiveExecutor(graph, execution, component) &&
+				emittedRecursive.Add(component))
+			{
+				needsStack |= EmitRecursiveComponent(file, graph, results, component, lines);
+			}
+			else if (component.Rules.Count == 1 || !emittedRecursive.Contains(component))
+			{
+				needsStack |= EmitRule(file, graph, execution, results, rule, lines);
+			}
+
 			file.Line();
 		}
 
@@ -818,7 +832,7 @@ public static partial class CSharpEmitter
 			whole ? WholeOf(rule) : MethodOf(rule),
 			results,
 			BuiltBy(graph, results, rule),
-			recursiveRule: recursiveSafe ? rule : null)
+			recursiveRules: recursiveSafe ? [rule] : null)
 		{
 			Reaches    = graph.Recoveries.Count > 0,
 			Starves    = Streaming(graph),
@@ -875,7 +889,7 @@ public static partial class CSharpEmitter
 	static bool CanUseRecursiveExecutor(
 		RecognitionGraph graph, ExecutionPlan execution, RuleSymbol rule)
 	{
-		if (!execution.IsRecursive(rule) || execution.ComponentOf[rule].Rules.Count != 1 ||
+		if (!execution.IsRecursive(rule) ||
 			graph.Types.ContainsKey(rule) || graph.Results[rule].Count > 0 ||
 			graph.Climbing.ContainsKey(rule))
 			return false;
@@ -886,6 +900,49 @@ public static partial class CSharpEmitter
 				return false;
 
 		return true;
+	}
+
+	static bool CanUseRecursiveExecutor(
+		RecognitionGraph graph, ExecutionPlan execution, ExecutionComponent component)
+	{
+		foreach (var rule in component.Rules)
+			if (!CanUseRecursiveExecutor(graph, execution, rule))
+				return false;
+
+		return true;
+	}
+
+	static bool EmitRecursiveComponent(
+		Writer file, RecognitionGraph graph, ResultTypes results,
+		ExecutionComponent component, ILineMap? lines)
+	{
+		var name = "Recognize_Recursive_" + IdentifierOf(component.Rules[0]);
+		var machine = new Machine(name, results, recursiveRules: component.Rules)
+		{
+			Reaches = graph.Recoveries.Count > 0,
+			Starves = Streaming(graph),
+			LineMap = lines,
+		};
+		var entries = new Dictionary<RuleSymbol, int>();
+
+		foreach (var rule in component.Rules)
+			entries[rule] = machine.Compile(graph.Bodies[rule], Machine.Accept);
+
+		file.Write(machine.Render(
+			entries,
+			"recursive component: " + string.Join(", ", component.Rules)));
+		file.Line();
+
+		foreach (var rule in component.Rules)
+		{
+			file.Line($"// Entry for {rule.Name} in the recursive component above.");
+			file.Line(
+				$"static int {MethodOf(rule)}(global::System.ReadOnlySpan<char> text, int pos, " +
+				$"ref {FailureType} failure) => {name}(text, pos, {entries[rule]}, ref failure);");
+			file.Line();
+		}
+
+		return machine.UsesStack || machine.UsesCallStack;
 	}
 
 	internal static string MethodOf(RuleSymbol rule) => "Recognize_" + IdentifierOf(rule);

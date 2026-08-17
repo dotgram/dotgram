@@ -60,7 +60,8 @@ sealed class Machine
 
 	readonly List<Writer> _states = [];
 	readonly List<string> _extra  = [];
-	readonly RuleSymbol?  _recursiveRule;
+	readonly HashSet<RuleSymbol>       _recursiveRules;
+	readonly IReadOnlyList<RuleSymbol> _recursiveRulesInOrder;
 
 	int _counters;
 	int _lookaheads;
@@ -68,12 +69,14 @@ sealed class Machine
 	/// <param name="results">What every rule's value is called; nothing may be null.</param>
 	/// <param name="builds">What this machine builds, or null when it only recognizes.</param>
 	public Machine(
-		string name, ResultTypes results, Built? builds = null, RuleSymbol? recursiveRule = null)
+		string name, ResultTypes results, Built? builds = null,
+		IReadOnlyList<RuleSymbol>? recursiveRules = null)
 	{
-		Name           = name;
-		_results       = results;
-		_builds        = builds;
-		_recursiveRule = recursiveRule;
+		Name            = name;
+		_results        = results;
+		_builds         = builds;
+		_recursiveRulesInOrder = recursiveRules ?? [];
+		_recursiveRules = [.. _recursiveRulesInOrder];
 
 		// Settled before anything is compiled: every frame pushed carries one length per
 		// sequence, so how wide a frame is has to be known before the first push.
@@ -683,9 +686,9 @@ sealed class Machine
 	{
 		var state = Reserve(out var writer, call);
 
-		if (ReferenceEquals(call.Rule, _recursiveRule))
+		if (_recursiveRules.Contains(call.Rule))
 		{
-			_recursiveCalls.Add((writer, next));
+			_recursiveCalls.Add((writer, call.Rule, next));
 
 			return state;
 		}
@@ -1366,7 +1369,7 @@ sealed class Machine
 	/// there, and a flag nobody reads is a warning in the consumer's build.
 	/// </summary>
 	readonly HashSet<int> _flagged = [];
-	readonly List<(Writer Writer, int Next)> _recursiveCalls = [];
+	readonly List<(Writer Writer, RuleSymbol Rule, int Next)> _recursiveCalls = [];
 
 	/// <summary>The whole machine as one method.</summary>
 	/// <param name="pattern">
@@ -1375,10 +1378,19 @@ sealed class Machine
 	/// after normalization — so it is what the method does rather than what was typed.
 	/// </param>
 	public string Render(int entry, string? pattern = null)
+		=> Render(entry.ToString(), null, pattern);
+
+	/// <summary>Several rule entries sharing one explicit recursive call stack.</summary>
+	public string Render(
+		IReadOnlyDictionary<RuleSymbol, int> entries, string? pattern = null)
+		=> Render("entry", entries, pattern);
+
+	string Render(
+		string initialEntry, IReadOnlyDictionary<RuleSymbol, int>? entries, string? pattern)
 	{
 		WriteDeferred();
 
-		foreach (var (writer, next) in _recursiveCalls)
+		foreach (var (writer, rule, next) in _recursiveCalls)
 		{
 			var frame = new System.Text.StringBuilder(
 				$"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp;");
@@ -1389,7 +1401,7 @@ sealed class Machine
 			writer.Line($"if (cp + {CallFrame} > calls.Length) calls = Grow(calls);");
 			writer.Line(frame.Append($" cp += {CallFrame};").ToString());
 			writer.Line("bp = sp;");
-			writer.Line($"state = {entry};");
+			writer.Line($"state = {(entries is null ? initialEntry : entries[rule].ToString())};");
 			writer.Line("continue;");
 		}
 
@@ -1407,8 +1419,10 @@ sealed class Machine
 		// generated exactly as it was.
 		var strength = TakesPower ? $", int {Power}" : "";
 
+		var entryParameter = entries is null ? "" : ", int entry";
+
 		using (file.Block(
-			$"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{strength}{failure}{built})"))
+			$"static int {Name}(global::System.ReadOnlySpan<char> text, int pos{entryParameter}{strength}{failure}{built})"))
 		{
 			if (_builds is not null)
 			{
@@ -1438,7 +1452,7 @@ sealed class Machine
 
 			if (_recursiveCalls.Count > 0)
 			{
-				file.Line($"// Recursive component: {_recursiveRule!.Name}.");
+				file.Line($"// Recursive component: {string.Join(", ", _recursiveRulesInOrder)}.");
 				file.Line("// Each frame starts with return state, call position, and caller backtracking base.");
 				file.Line($"global::System.Span<int> calls = stackalloc int[{Backtracking}];");
 				file.Line();
@@ -1463,7 +1477,7 @@ sealed class Machine
 			for (var i = 0; i < _counters; i++)
 				file.Line($"var c{i}    = 0;");
 
-			file.Line($"var state = {entry};");
+			file.Line($"var state = {initialEntry};");
 
 
 			// One pair of positions per text capture, one reference per captured value.
