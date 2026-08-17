@@ -882,7 +882,7 @@ public static partial class CSharpEmitter
 
 		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			if (graph.Recoveries.ContainsKey(node) ||
-				node is Node.Capture or Node.Construct or Node.Lookahead or Node.Repeat)
+				node is Node.Capture or Node.Construct or Node.Lookahead)
 				return false;
 
 		return true;

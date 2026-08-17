@@ -1380,8 +1380,14 @@ sealed class Machine
 
 		foreach (var (writer, next) in _recursiveCalls)
 		{
-			writer.Line("if (cp + 3 > calls.Length) calls = Grow(calls);");
-			writer.Line($"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp; cp += 3;");
+			var frame = new System.Text.StringBuilder(
+				$"calls[cp] = {next}; calls[cp + 1] = p; calls[cp + 2] = bp;");
+
+			for (var i = 0; i < _counters; i++)
+				frame.Append($" calls[cp + {i + 3}] = c{i};");
+
+			writer.Line($"if (cp + {CallFrame} > calls.Length) calls = Grow(calls);");
+			writer.Line(frame.Append($" cp += {CallFrame};").ToString());
 			writer.Line("bp = sp;");
 			writer.Line($"state = {entry};");
 			writer.Line("continue;");
@@ -1433,7 +1439,7 @@ sealed class Machine
 			if (_recursiveCalls.Count > 0)
 			{
 				file.Line($"// Recursive component: {_recursiveRule!.Name}.");
-				file.Line("// Each frame is return state, call position, and caller backtracking base.");
+				file.Line("// Each frame starts with return state, call position, and caller backtracking base.");
 				file.Line($"global::System.Span<int> calls = stackalloc int[{Backtracking}];");
 				file.Line();
 				file.Line("var cp = 0;");
@@ -1527,9 +1533,13 @@ sealed class Machine
 						file.Then("return p;");
 						file.Line();
 						file.Line("sp = bp;");
-						file.Line("cp -= 3;");
+						file.Line($"cp -= {CallFrame};");
 						file.Line("state = calls[cp];");
 						file.Line("bp = calls[cp + 2];");
+
+						for (var i = 0; i < _counters; i++)
+							file.Line($"c{i} = calls[cp + {i + 3}];");
+
 						file.Line("continue;");
 					}
 					else
@@ -1571,9 +1581,13 @@ sealed class Machine
 							file.Then("return -1;");
 							file.Line();
 							file.Line("sp = bp;");
-							file.Line("cp -= 3;");
+							file.Line($"cp -= {CallFrame};");
 							file.Line("p = calls[cp + 1];");
 							file.Line("bp = calls[cp + 2];");
+
+							for (var i = 0; i < _counters; i++)
+								file.Line($"c{i} = calls[cp + {i + 3}];");
+
 							file.Line($"state = {Fail};");
 							file.Line("continue;");
 						}
@@ -1634,4 +1648,6 @@ sealed class Machine
 
 		return file.ToString();
 	}
+
+	int CallFrame => 3 + _counters;
 }

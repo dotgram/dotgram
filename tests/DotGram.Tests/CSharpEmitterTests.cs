@@ -86,6 +86,18 @@ public sealed class CSharpEmitterTests
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", input + ")").IsSuccess);
 	}
 
+	[Fact]
+	public void Recursive_invocations_keep_their_repetition_state_apart()
+	{
+		const int depth = 20_000;
+		const string grammar = "Start = 'a'* & ('(' & Start & ')' | 'x')\nparse Start";
+
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var input = string.Concat(Enumerable.Repeat("a(", depth)) + "ax" + new string(')', depth);
+
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
 	[Theory]
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]
