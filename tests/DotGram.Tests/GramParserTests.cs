@@ -91,7 +91,18 @@ public sealed class GramParserTests
 						Count 2..4
 							Reference "Digit"
 			""",
-			Parse("Small = ?=n: Number & where @IsSmall(n) & Digit{2,4}"));
+			Parse("Small = ?=n: Number & when @IsSmall(n) & Digit{2,4}"));
+	}
+
+	[Fact]
+	public void Where_is_not_an_alias_for_when()
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize(
+			"Small = n: Number & where @IsSmall(n)",
+			RoslynCSharpScanner.Instance));
+
+		Assert.NotEmpty(result.Diagnostics);
+		Assert.DoesNotContain("Guard", result.File.ToString(), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -182,7 +193,7 @@ public sealed class GramParserTests
 			Feed : FeedItem[] = Header & Row* & Trailer & eof
 
 			Header  = "H" & '|' & date: Date & eol
-			Row     = "D" & '|' & symbol: Text & where @IsSupported(symbol) & eol
+			Row     = "D" & '|' & symbol: Text & when @IsSupported(symbol) & eol
 			Trailer = "T" & '|' & count: Number & eol
 
 			Text   : string = [^ '|' | '\r' | '\n']+

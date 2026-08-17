@@ -183,7 +183,7 @@ public sealed class GrammarBinderTests
 	{
 		var strict = new StrictResolver();
 		var model  = GrammarBinder.Bind(
-			GramParser.Parse(GramLexer.Tokenize("A = x: [@IsLetter] & @Read & where @IsSmall(x)")).File,
+			GramParser.Parse(GramLexer.Tokenize("A = x: [@IsLetter] & @Read & when @IsSmall(x)")).File,
 			strict);
 
 		Assert.Empty(model.Diagnostics);

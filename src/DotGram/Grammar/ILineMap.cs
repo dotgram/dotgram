@@ -8,7 +8,7 @@ namespace DotGram.Grammar;
 /// <remarks>
 /// <para>
 /// The generated file carries `#line` directives over the C# a grammar handed across —
-/// a `where`, a `=>` — so that the C# compiler's own complaints about that code land on
+/// a `when`, a `=>` — so that the C# compiler's own complaints about that code land on
 /// the grammar's line rather than inside a machine-written file. Nothing else about
 /// generation needs to know where anything came from.
 /// </para>

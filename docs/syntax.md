@@ -86,7 +86,7 @@ in different namespaces — exactly the implicit context dependency `@` exists t
 remove.
 
 Of all keywords `@` applies only to `using`, and that is not an exception: `scope`,
-`parse`, `where` and the rest are constructs of `.Gram` with no C# counterpart, so
+`parse`, `when` and the rest are constructs of `.Gram` with no C# counterpart, so
 there is nothing to transition into. `using` is the one directive that exists in both
 languages. The model is Razor's, where `@using`, `@model` and `@inherits` mean
 precisely "C# follows".
@@ -189,7 +189,7 @@ Postfix `?` and prefix `?=`/`?!` do not clash: the postfix follows an operand, t
 prefix opens one, and between operands there is always `&` or `|`.
 
 ```dotgram
-SmallNumber = n: ?=Number & where @IsSmall(n) & value: Number => value
+SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number => value
 Identifier  = ?!Keyword & Letter & LetterOrDigit*
 ```
 
@@ -219,7 +219,7 @@ A capture cannot take a type: a group and a call are allowed on its right
 ### 3.6 Guard
 
 ```dotgram
-where @Predicate(args)
+when @Predicate(args)
 ```
 
 An operand that consumes no input and produces no value: if the predicate returns
@@ -227,31 +227,28 @@ An operand that consumes no input and produces no value: if the predicate return
 
 The keyword is not ceremony. Syntactic position fixes every C# contract: `@ParseGuid`
 as an operand is an external recognizer, `[@IsLetter]` is an element predicate, and
-`where @IsSupported(symbol)` is a test on captured values. No C# signature is inspected
+`when @IsSupported(symbol)` is a test on captured values. No C# signature is inspected
 to decide which one the author meant.
 
-Hence the wider scheme: there are exactly two positions where C# is called for a
-value, each with its own marker — `where` asks (`bool`), `=>` answers (a result).
-Neither touches the input. Everything else with `@` is a recognizer, and recognizers
-move it.
-
-The word is C#'s, where both of its uses are restrictions rather than branches:
-`where` filters in LINQ and constrains in a generic declaration. The meaning here is
-the same — narrow the set of matches by a condition.
+The word follows C#'s own guards: `case P when condition` and
+`catch (Exception e) when condition` make a branch applicable only under an additional
+condition. Here it says the same thing about the current recognition path. The guard is
+evaluated while that path is being tried, so it may run more than once and on a path
+later abandoned by backtracking.
 
 **The guard's position is the author's choice and carries meaning.** A guard has no
 outcome of its own — it is an ordinary operand, and its failure means whatever the
 failure of any operand in that place means:
 
 ```dotgram
-SmallNumber = n: ?=Number & where @IsSmall(n) & value: Number => value
+SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number => value
 ```
 
 nothing has been consumed before the guard (lookahead does not move the input), so
 `SmallNumber` simply does not begin here and a sibling alternative may be tried;
 
 ```dotgram
-Row = "D" & '|' & symbol: Text & where @IsSupportedSymbol(symbol) & ...
+Row = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol) & ...
 ```
 
 `"D"` has been consumed — the line is plainly a data row, and failure should produce
@@ -272,9 +269,9 @@ and still decides how much work is thrown away and where the message points.
 => value
 ```
 
-The other half of the pair from §3.6: `where` asks, `=>` answers. It gives the
-alternative its value, never touches the input, and runs once the alternative has
-matched in full.
+Construction gives the alternative its value. It never touches the input and is deferred
+until recognition has selected the accepted derivation. An alternative later abandoned
+by backtracking does not invoke its construction.
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
@@ -304,8 +301,9 @@ matched to the result type by name — case 3 in §4.1, which covers most rules.
 for where automatic matching does not suffice, or where being explicit is worth it;
 when present it wins over the other cases.
 
-Like `where`, construction may be invoked more than once or discarded on backtracking,
-so it is bound by the same obligation in §7.2: no irreversible side effects.
+Construction is therefore not speculative like `when`: its value does not need rollback.
+A factory runs once for each accepted result it builds; a repeated rule may of course
+produce more than one such result.
 
 ### 3.8 Operator precedence
 
@@ -405,17 +403,17 @@ Feed : FeedItem[] = Header & Row* & Trailer & eof
 `Header`, `Row` and `Trailer` are assignable to `FeedItem` and enter the result in
 order; `eof` is not assignable and contributes nothing.
 
-A name, a call and a parenthesized C# expression are allowed in `=>` and `where`
+A name, a call and a parenthesized C# expression are allowed in `=>` and `when`
 (§2), with captures visible as ordinary local variables:
 
 ```dotgram
 Number : int    = ['0'..'9']+ => @int.Parse(parserText)
 Point  : @Point = '(' & x: Number & ',' & y: Number & ')' => @(new Point(x, y))
-Row             = ... & where @(qty > 0 && symbol.Length == 4)
+Row             = ... & when @(qty > 0 && symbol.Length == 4)
 ```
 
 Besides captures, the names the parser supplies are always in scope inside `=>` and
-`where`: `parserText` (the matched text, when `TIn` is a character), `parserSpan` (the
+`when`: `parserText` (the matched text, when `TIn` is a character), `parserSpan` (the
 current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
 `parser`, which is what that prefix is for — a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
@@ -897,7 +895,7 @@ structure, C# describes meaning, and the seam between them has to be mechanical.
 ### 7.1 Recognizer signatures and C# values
 
 Only a method used as a recognizer needs a shape the generator understands, because it
-participates in moving through the input. A method or expression used by `where` or `=>`
+participates in moving through the input. A method or expression used by `when` or `=>`
 is emitted as C# and belongs entirely to the consumer's compiler:
 
 | C# signature | Role | Called from the grammar as |
@@ -905,7 +903,7 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
-| any C# `bool` value | guard | `where @M(a)`, `where @(expr)` |
+| any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
 **The arguments are read by §2, with no exception made for being in an argument list.**
 A bare name is looked up among the grammar's own — a capture, a rule, a parameter — and
@@ -921,7 +919,7 @@ much of the line is C#. A dotted name written without the `@` is the ordinary mi
 here, and the compiler says so by name.
 
 There is one rule to read this by: **syntactic position determines the call shape.**
-`[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `where` and `=>` emit their C#
+`[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#
 values. The generator never inspects a method signature to choose among those roles;
 overloads, accessibility, parameter types and result types are C#'s responsibility.
 
@@ -967,14 +965,13 @@ ordinary C# rules.
 - A value transformation has no access to the input — it physically never receives it.
 - An external recognizer must restore `pos` to its entry value on any outcome other
   than success.
-- Code in `@Method`, `@(...)`, `where` and `=>` must be safe to invoke more than once:
-  ordered choice and lookahead may call it repeatedly or discard its result. This is
-  not a demand for mathematical purity — it is a ban on irreversible side effects.
-- The same code must not depend on *when* it runs. A capture records where it matched
-  and nothing more; the result is built once, after the match is known to have
-  succeeded, from the alternative that actually matched. So `=>` and `@(...)` see the
-  parse that happened, never a parse that was tried and given back — and how many
-  attempts it took to get there is not observable from inside them.
+- An external recognizer and a `when` guard execute during recognition. Ordered choice
+  and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
+  code must therefore be safe for speculative invocation and must not perform effects
+  that require rollback.
+- A `=>` construction is deferred until the accepted derivation is known. Captures record
+  what matched; the chosen factory then builds the result from that accepted path. A
+  factory belonging to an abandoned alternative is not invoked.
 
 ### 7.3 Captures and building the result
 
@@ -1045,7 +1042,7 @@ build rather than ours.
 
 ### 7.4 C# stays C#
 
-The generator does not resolve or declare methods named by `where` and `=>`. It emits
+The generator does not resolve or declare methods named by `when` and `=>`. It emits
 the call exactly as written, under the `#line` mapping of §7.6. A missing name, a wrong
 overload, an inaccessible member or an incompatible result is therefore an ordinary C#
 diagnostic at the corresponding place in the grammar.
@@ -1097,7 +1094,7 @@ grammar that does not ask for it.
 
 ### 8.1 Recognition failure and C# exceptions
 
-The seam already exists — §7.2: `where` runs **during** the match, `=>` runs **after**
+The seam already exists — §7.2: `when` runs **during** the match, `=>` runs **after**
 it, once the match is final and from the alternative that actually matched.
 
 A recognition failure is a shape the grammar does not describe. It happens during the
@@ -1207,7 +1204,7 @@ names are supplied rather than captured:
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
 story: the supplied names become parameters of the generated factory for a `=>` or a
-`where`, sitting in the same scope as the captures, so a capture called `text`
+`when`, sitting in the same scope as the captures, so a capture called `text`
 would take a name already spoken for. With the prefix nothing an author would naturally
 write collides, and a capture that takes one of these names anyway is refused by name
 rather than by a C# error in a file nobody wrote (GRAM4012).
@@ -1307,7 +1304,7 @@ parse Feed
 Feed : FeedItem[] = Header & Row* & Trailer & eof
 
 Header  = "H" & '|' & date: Date & '|' & source: Text & eol
-Row     = "D" & '|' & symbol: Text & where @IsSupportedSymbol(symbol)
+Row     = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol)
         & '|' & qty: Number & '|' & date: Date & eol
 Trailer = "T" & '|' & count: Number & eol
 
@@ -1366,7 +1363,7 @@ Alternative = Sequence & Binding? & ("=>" & Value)?
 Binding     = ("<<" | ">>") & Int
 Sequence    = Operand & ('&' & Operand)*
 Operand     = Guard | Quantified
-Guard       = "where" & Value
+Guard       = "when" & Value
 
 Quantified  = Prefixed & Quantifier? & Recovery?
 Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
@@ -1400,7 +1397,7 @@ inside one cannot change the depth.
 
 C#'s parser will not do, tempting though it looks: `SyntaxFactory.ParseExpression` is
 greedy and knows nothing of `.gram`'s terminators, while `&`, `|`, `*`, `+`, `?`, `[`
-and `..` are all valid C# operators. On `where @(qty > 0) & b: Y` it would consume
+and `..` are all valid C# operators. On `when @(qty > 0) & b: Y` it would consume
 `(qty > 0) & b` and stop only at the colon.
 
 Consequences. `.gram`'s lexer is not single-mode: after `@(` it switches to C#
@@ -1497,7 +1494,7 @@ paper. None of it requires changing the notation above.
 **Answered, and where.**
 
 - **How an author says "this is an error, not a mismatch"** was open here, on the
-  observation that a failing `where @IsSupportedSymbol(symbol)` is merely a non-match
+  observation that a failing `when @IsSupportedSymbol(symbol)` is merely a non-match
   and "unsupported symbol XYZ" is therefore never said. It was answered by splitting
   the question in two (§8.1). A guard is recognition and stays a non-match — that was
   never the part that needed changing. What was missing is that most of the checks

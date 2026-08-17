@@ -74,7 +74,7 @@ until the last few hundred frames.
 
 The set now covers, one class of problem each: URL (alternatives, `find`), three
 calculators and two tree builders (precedence, associativity, binding powers), four feeds
-(records, `recover`, streaming, the §8.3 hook), JSON (recursion), XML (a `where` comparing
+(records, `recover`, streaming, the §8.3 hook), JSON (recursion), XML (a `when` comparing
 two captures), Markdown (line-oriented blocks), typed CSV (§7.3 both ways), INI and HTTP
 headers (a lookup rather than a tree), the SQL read-only guard (lexis as proof),
 fixed-width (counting rather than delimiters), netstrings (§7.1, the shape a grammar

@@ -1082,7 +1082,7 @@ sealed class Machine
 	}
 
 	/// <summary>
-	/// A <c>where</c> guard: a question asked of the values, answered in C#.
+	/// A <c>when</c> guard: a question asked of the values, answered in C#.
 	/// </summary>
 	/// <remarks>
 	/// <para>

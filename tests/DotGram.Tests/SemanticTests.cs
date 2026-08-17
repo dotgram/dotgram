@@ -109,14 +109,14 @@ public sealed class SemanticTests
 		// §3.6, written out: look ahead, name what was seen, ask a question of it, then
 		// read it for real.
 		Assert.True(Matches(
-			"Start = n: ?=Word & where @(n.Length < 3) & Word\nWord = ['a'..'z']+",
+			"Start = n: ?=Word & when @(n.Length < 3) & Word\nWord = ['a'..'z']+",
 			"ab"));
 
 	[Fact]
 	public void And_the_question_is_asked_of_what_was_seen() =>
 		// The guard is what makes the capture worth having, so it has to be able to say no.
 		Assert.False(Matches(
-			"Start = n: ?=Word & where @(n.Length < 3) & Word\nWord = ['a'..'z']+",
+			"Start = n: ?=Word & when @(n.Length < 3) & Word\nWord = ['a'..'z']+",
 			"abcd"));
 
 	// ── The extent a rule matched (§4.1 case 4) ──────────────────────────────────
@@ -1345,13 +1345,13 @@ public sealed class SemanticTests
 			Other = Start | 'y'
 			""");
 
-	// ── `where` guards (§8.1) ───────────────────────────────────────────────────
+	// ── `when` guards (§8.1) ───────────────────────────────────────────────────
 
 	[Theory]
 	[InlineData("12",  true)]
 	[InlineData("123", false)]
 	public void A_guard_asks_a_question_of_the_text_so_far(string input, bool expected) =>
-		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & where @(parserText.Length < 3)", input));
+		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & when @(parserText.Length < 3)", input));
 
 	[Theory]
 	[InlineData("ab", true)]
@@ -1359,22 +1359,22 @@ public sealed class SemanticTests
 	public void And_of_the_captures_written_before_it(string input, bool expected) =>
 		Assert.Equal(
 			expected,
-			Matches("""Start = a: 'a' & b: ['a'..'z'] & where @(b == "b")""", input));
+			Matches("""Start = a: 'a' & b: ['a'..'z'] & when @(b == "b")""", input));
 
 	[Fact]
 	public void A_failing_guard_is_a_non_match_and_a_sibling_is_tried() =>
 		// Recognition failure: saying no sends the match back into the choice rather than
 		// ending it.
 		Assert.True(Matches(
-			"""Start = (a: "ab" & where @(a == "xy") | a: "ab") & 'c'""",
+			"""Start = (a: "ab" & when @(a == "xy") | a: "ab") & 'c'""",
 			"abc"));
 
 	[Fact]
 	public void A_guard_may_stand_where_nothing_has_been_captured() =>
-		Assert.True(Matches("Start = ['0'..'9']+ & where @(true)", "7"));
+		Assert.True(Matches("Start = ['0'..'9']+ & when @(true)", "7"));
 
-	// §7.1's `@Name` as an operand is decided by the shape of the C# method it names, so
-	// it is tested where there is a compilation to ask: GeneratorDriverTests.
+	// §7.1's C# recognizer contracts are fixed by syntactic position; their emitted calls
+	// and ordinary C# diagnostics are tested with a host compilation in GeneratorDriverTests.
 
 	[Fact]
 	public void A_capture_may_not_take_a_name_that_is_supplied() =>

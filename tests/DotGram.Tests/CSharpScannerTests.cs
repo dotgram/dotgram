@@ -41,7 +41,7 @@ public sealed class CSharpScannerTests
 	// Positions must be absolute. Every case above starts the expression at index 0,
 	// where a relative result is indistinguishable from an absolute one — which is
 	// exactly how an off-by-offset bug survived here until the lexer used it.
-	[InlineData("where @(a + b) & rest",        7, 13)]
+	[InlineData("when @(a + b) & rest",        6, 12)]
 	[InlineData("=> @(\"a)b\") & rest",         4, 10)]
 	public void Reports_positions_relative_to_the_whole_text(string text, int open, int expected)
 	{

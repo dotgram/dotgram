@@ -55,7 +55,7 @@ public sealed class LineDirectiveTests
 	public void A_guard_gets_one_too()
 	{
 		var generated = Generate(
-			"Start = digits: ['0'..'9']+ & where @(digits.Length == 4) & eol\nparse Start",
+			"Start = digits: ['0'..'9']+ & when @(digits.Length == 4) & eol\nparse Start",
 			"Guarded.gram");
 
 		Assert.Contains("#line 1 \"Guarded.gram\"", generated, StringComparison.Ordinal);

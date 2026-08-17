@@ -66,7 +66,7 @@ public static partial class FeedReader
 		foreach (var row in feed.Rows)
 			trades.Add(new Trade(row.Symbol, Number(row.Qty), ToDate(row.Date)));
 
-		// The one check the grammar cannot make today: `where @(count == rows.Length)` is
+		// The one check the grammar cannot make today: `when @(count == rows.Length)` is
 		// a guard over a value, and guards over values are docs/syntax.md §8.1.
 		if (Number(feed.Trailer.Count) != trades.Count)
 			throw new FormatException(

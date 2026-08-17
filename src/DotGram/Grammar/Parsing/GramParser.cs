@@ -375,7 +375,7 @@ public sealed class GramParser
 
 	Expr ParseOperand()
 	{
-		if (!AtKeyword("where"))
+		if (!AtKeyword("when"))
 			return ParseQuantified();
 
 		var start = Current.Position;
@@ -562,7 +562,7 @@ public sealed class GramParser
 		}
 	}
 
-	/// <summary>A value position — <c>=&gt;</c> and <c>where</c> take these.</summary>
+	/// <summary>A value position — <c>=&gt;</c> and <c>when</c> take these.</summary>
 	Expr ParseValue() =>
 		At(TokenKind.At) || At(TokenKind.Identifier) ? ParseReferenceOrCall() : ParsePrimary();
 

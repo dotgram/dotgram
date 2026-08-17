@@ -38,8 +38,8 @@ then quietly mean nothing.
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
-| guards `where` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| inline C# `@(...)` in `where` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| guards `when` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| inline C# `@(...)` in `when` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `[@Name]` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | bare `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -67,7 +67,7 @@ then quietly mean nothing.
 | captures matched to `init`/`required` properties §7.3 | — | ✓ | ✓ | ✓ | ✓ |
 | a C# type named beside the grammar, nested in the host | — | ✓ | ✓ | ✓ | ✓ |
 | a declared type found under the grammar's `@using` §7.3 | — | — | ✓ | ✓ | ✓ |
-| C# in `=>` and `where` emitted without generator resolution §7.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| C# in `=>` and `when` emitted without generator resolution §7.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -497,7 +497,7 @@ grammar's own line.
 
 ## A guard asks the values
 
-`where @(…)` runs **during** the match, which is what makes it recognition: saying no
+`when @(…)` runs **during** the match, which is what makes it recognition: saying no
 is a non-match and a sibling alternative is tried, exactly as §8.1 has it. It becomes a
 method of its own for the same reason a `=>` does, and takes the same `parserText`.
 
@@ -554,7 +554,7 @@ What is left:
 
 ## Where the author's C# actually runs
 
-Not inside the machine. Every `=>`, every `where` and every recovery factory becomes a
+Not inside the machine. Every `=>`, every `when` and every recovery factory becomes a
 **method of its own**, and the names it can use — the captures, and the supplied
 `parserText`, `parserLine`, `parserColumn`, `parserOrdinal`, `parserMessage` — are that
 method's **parameters**:
@@ -584,7 +584,7 @@ separate arguments rather than one context object.
 
 ## C# value calls are passed through
 
-Names used by `where` and `=>` are not looked up or classified by the generator. The
+Names used by `when` and `=>` are not looked up or classified by the generator. The
 call is emitted as written, and `#line` maps the consumer compiler's diagnostics back to
 the grammar. Overloads, generic inference, accessibility and result types consequently
 have exactly their C# meaning. A misspelled `@Tini(digits)` remains a missing C# name; it
@@ -730,7 +730,7 @@ instead of talking about constructors.
 and §3.6 writes the example out:
 
 ```dotgram
-SmallNumber = n: ?=Number & where @IsSmall(n) & value: Number
+SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number
 ```
 
 Neither half worked. `n: ?=Number` did not parse at all — a capture read only a primary
@@ -881,7 +881,7 @@ the matching overload and report a missing or incompatible one.
 
 ## Where a C# error lands
 
-On the grammar's line. A `=>` or a `where` is the author's own C#, and the C# compiler
+On the grammar's line. A `=>` or a `when` is the author's own C#, and the C# compiler
 will have things of its own to say about it — that a method does not exist, that the
 arguments do not fit. Those are said over a `#line` directive naming where the code was
 written, so they arrive there rather than inside a machine-written file the author did
@@ -925,7 +925,7 @@ output.
 
 ## A method that does not exist
 
-The generator emits calls from `where` and `=>` even when their C# names do not exist.
+The generator emits calls from `when` and `=>` even when their C# names do not exist.
 The consumer compiler then reports the missing name at the mapped grammar location. No
 partial helper declaration is generated and no intended signature is guessed.
 

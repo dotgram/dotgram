@@ -238,7 +238,7 @@ public sealed partial class GrammarNormalizer
 			if (Recovery.Supplied.Contains(name))
 				Report(
 					ReservedCaptureName,
-					$"'{name}' is one of the names the parser supplies to every '=>' and 'where' " +
+					$"'{name}' is one of the names the parser supplies to every '=>' and 'when' " +
 					"(docs/syntax.md §7.3), so a capture may not take it. Every one of them begins " +
 					"with 'parser', which is what that prefix is for.",
 					rule.Declaration!.At);

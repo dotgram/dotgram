@@ -25,7 +25,7 @@ namespace DotGram.Snapshots
 		/// <summary>What <c>Name</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Name(string parserText, string text) =>
 #line 25 "Csv.gram"
-                                                                               (text);
+                                                                              (text);
 #line default
 
 		/// <summary>What <c>Amount</c> builds its value with (docs/syntax.md §7.3).</summary>
@@ -208,13 +208,13 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// where (text.Length <= 16)
+		// when (text.Length <= 16)
 		static bool Recognize_Name_Guard0(string parserText, string text) =>
 #line 25 "Csv.gram"
-                                                       (text.Length <= 16);
+                                                      (text.Length <= 16);
 #line default
 
-		// Name = text: ['A'..'Z' | 'a'..'z']+ & where (text.Length <= 16) => (text)
+		// Name = text: ['A'..'Z' | 'a'..'z']+ & when (text.Length <= 16) => (text)
 		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			value = default!;
@@ -256,7 +256,7 @@ namespace DotGram.Snapshots
 						continue;
 
 					case 2:
-						// where (text.Length <= 16)
+						// when (text.Length <= 16)
 						if (!Recognize_Name_Guard0(text.Slice(pos, p - pos).ToString(), text.Slice(s0_from, s0_to - s0_from).ToString()))
 							goto case 1;
 						goto case 0;

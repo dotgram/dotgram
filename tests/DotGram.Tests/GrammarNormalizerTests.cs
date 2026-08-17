@@ -201,7 +201,7 @@ public sealed class GrammarNormalizerTests
 	}
 
 	/// <summary>
-	/// What a <c>=&gt;</c> or a <c>where</c> carries is C# to be pasted into the
+	/// What a <c>=&gt;</c> or a <c>when</c> carries is C# to be pasted into the
 	/// generated file, so it is rendered rather than described.
 	/// </summary>
 	[Fact]
@@ -209,13 +209,13 @@ public sealed class GrammarNormalizerTests
 		Assert.Equal(
 			"""
 			N = ['0'..'9']+ => int.Parse(text, CultureInfo.InvariantCulture)
-			P = ['a'..'z']+ & where IsKnown(text, "prefix")
+			P = ['a'..'z']+ & when IsKnown(text, "prefix")
 			Q = ['a'..'z']+ => Make<Row, int>(text)
 			R = ['a'..'z']+ => (text.Length * 2)
 			""",
 			Normalize("""
 				N : @int = ['0'..'9']+ => @int.Parse(text, CultureInfo.InvariantCulture)
-				P        = ['a'..'z']+ & where @IsKnown(text, "prefix")
+				P        = ['a'..'z']+ & when @IsKnown(text, "prefix")
 				Q : @Row = ['a'..'z']+ => @Make<@Row, @int>(text)
 				R : @int = ['a'..'z']+ => @(text.Length * 2)
 				""").ToString());

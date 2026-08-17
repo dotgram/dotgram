@@ -435,6 +435,39 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("Always(digits);", source, StringComparison.Ordinal);
 	}
 
+	[Fact]
+	public void A_when_guard_runs_on_paths_later_abandoned_by_backtracking()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start = (\"ab\" & when @Seen() & 'x' | \"abc\" & when @Seen())\nparse Start")]
+			public partial class SpeculativeGuard
+			{
+				public static int Calls;
+				static bool Seen() { Calls++; return true; }
+			}
+			""").GetType("SpeculativeGuard")!;
+
+		Assert.Equal("abc", type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void Construction_runs_only_for_the_accepted_derivation()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start")]
+			public partial class DeferredConstruction
+			{
+				public static string Calls = "";
+				static int First()  { Calls += "1"; return 1; }
+				static int Second() { Calls += "2"; return 2; }
+			}
+			""").GetType("DeferredConstruction")!;
+
+		Assert.Equal(2, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+		Assert.Equal("2", type.GetField("Calls")!.GetValue(null));
+	}
+
 	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
 
 	/// <summary>
@@ -1082,7 +1115,7 @@ public sealed class GeneratorDriverTests
 	public void A_missing_guard_is_emitted_and_reported_by_C_sharp()
 	{
 		RunGenerator(
-			"[DotGram.Gram(\"Start = digits: ['0'..'9']+ & where @Fit(digits)\\nparse Start\")]\n" +
+			"[DotGram.Gram(\"Start = digits: ['0'..'9']+ & when @Fit(digits)\\nparse Start\")]\n" +
 			"public partial class Misspelled { static bool Fits(string digits) => true; }",
 			out var output);
 
@@ -1210,7 +1243,7 @@ public sealed class GeneratorDriverTests
 	[Theory]
 	[InlineData("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start")]
 	[InlineData("@using System.Globalization;\nStart : @decimal = d: ['0'..'9']+ => @(decimal.Parse(d, CultureInfo.InvariantCulture))\nparse Start")]
-	[InlineData("Start = d: ['0'..'9'] & where @(d == \"1\")\nparse Start")]
+	[InlineData("Start = d: ['0'..'9'] & when @(d == \"1\")\nparse Start")]
 	[InlineData("Start : @System.Text.StringBuilder = t: ['a'..'z']+ => @(new System.Text.StringBuilder(t))\nparse Start")]
 	public void The_question_collector_foresees_what_binding_asks(string grammar)
 	{

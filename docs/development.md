@@ -32,7 +32,7 @@ fails once, saying so. Read the diff before committing it — that reading is th
 and it is the only place the whole generated file is looked at.
 
 Three grammars are covered: `Url` and `Feed` are the frozen subset and hand no C# across,
-`Csv` carries a `=>`, a `where` and the `#line` directives of §7.6.
+`Csv` carries a `=>`, a `when` and the `#line` directives of §7.6.
 
 ## Measuring
 

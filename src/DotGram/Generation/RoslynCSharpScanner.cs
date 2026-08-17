@@ -14,7 +14,7 @@ namespace DotGram.Generation;
 /// The lexer, not the parser. <c>SyntaxFactory.ParseExpression</c> looks like the right
 /// tool and is not: it is greedy and knows nothing about where a grammar expression
 /// ends, while <c>&amp;</c>, <c>|</c>, <c>*</c>, <c>+</c>, <c>?</c>, <c>[</c> and
-/// <c>..</c> are all valid C# operators. On <c>where @(qty &gt; 0) &amp; b: Y</c> it
+/// <c>..</c> are all valid C# operators. On <c>when @(qty &gt; 0) &amp; b: Y</c> it
 /// would happily consume <c>&amp; b</c> and stop only at the colon.
 /// </para>
 /// <para>

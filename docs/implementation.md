@@ -147,9 +147,9 @@ The table is indexed by **position in the input**; each position holds a linked 
 results for different rules, the head in the table and a `Next` field for the
 successor.
 
-This stays an execution strategy rather than a guarantee of the language (`syntax.md`
-§7.2: code in `@(...)`, `where` and `=>` must be safe to invoke repeatedly whether or
-not anything is cached).
+This stays an execution strategy rather than a guarantee of the language. `syntax.md`
+§7.2 requires recognition-time external code and `when` guards to tolerate speculative
+invocation; deferred `=>` construction runs only for the accepted derivation.
 
 ## 5. Filtering alternatives by their first element
 

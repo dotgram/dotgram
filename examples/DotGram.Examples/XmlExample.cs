@@ -12,11 +12,11 @@ namespace DotGram.Examples;
 //     XmlParser.Read("<a x='1'><b>text</b></a>")
 //
 // A closing tag has to name the element it closes, and no amount of grammar says that.
-// What says it is a `where` (§3.6): the guard runs during the match, sees the captures
+// What says it is a `when` (§3.6): the guard runs during the match, sees the captures
 // taken before it, and saying no is an ordinary non-match — so `<a></b>` fails to be an
 // element rather than parsing into one that is wrong.
 //
-//     Element = '<' & name: Name … "</" & close: Name & '>' & where @(name == close)
+//     Element = '<' & name: Name … "</" & close: Name & '>' & when @(name == close)
 //
 // That is the whole trick, and it is why the guard is recognition rather than
 // validation: a language whose well-formedness rule lives outside the parser has two
@@ -50,11 +50,11 @@ namespace DotGram.Examples;
 
 	Xml : @XmlElement = element: Element & eof => @(element)
 
-	// The `where` is what makes a closing tag close *this* element. It sits after both
+	// The `when` is what makes a closing tag close *this* element. It sits after both
 	// names are captured, because a guard sees what was taken before it and nothing else.
 	Element : @XmlElement = '<' & name: Name & attributes: Attribute* & Lexical.Space & '>'
 	                      & children: Content*
-	                      & "</" & close: Name & Lexical.Space & '>' & where @(name == close)
+	                      & "</" & close: Name & Lexical.Space & '>' & when @(name == close)
 	                        => @(new XmlElement(name, attributes, children))
 
 	                      | '<' & name: Name & attributes: Attribute* & Lexical.Space & "/>"

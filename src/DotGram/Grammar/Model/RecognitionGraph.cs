@@ -32,7 +32,7 @@ public readonly record struct CharRange(char From, char To)
 /// Flat, like the shapes it comes from, and with almost no locations: a graph node is
 /// not a place in a file, and diagnostics raised here point at the rule being normalized,
 /// whose declaration knows where it is. The exception is the C# a grammar hands over
-/// verbatim — a <c>where</c> or a <c>=&gt;</c> — which keeps where it was written, because
+/// verbatim — a <c>when</c> or a <c>=&gt;</c> — which keeps where it was written, because
 /// the C# compiler will have things of its own to say about it and has to say them on the
 /// grammar's line (§7.6).
 /// </para>
@@ -139,7 +139,7 @@ public abstract record Node
 		public override string ToString() => $"{Name}: {Body}";
 	}
 
-	/// <summary>A `where` guard. Consumes nothing.</summary>
+	/// <summary>A `when` guard. Consumes nothing.</summary>
 	/// <param name="At">
 	/// Where the C# starts in the grammar, so that a C# error in it can be reported there
 	/// (§7.6). -1 for text this compiler wrote rather than read.
@@ -149,7 +149,7 @@ public abstract record Node
 		/// <summary>Without the position, for the passes that only read the C#.</summary>
 		public void Deconstruct(out string text) => text = Text;
 
-		public override string ToString() => $"where {Text}";
+		public override string ToString() => $"when {Text}";
 	}
 
 	/// <summary>

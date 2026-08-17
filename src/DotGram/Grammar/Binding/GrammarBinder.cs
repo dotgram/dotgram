@@ -211,7 +211,7 @@ public sealed class GrammarBinder
 		if (rule.Type is not null)
 			ResolveType(rule.Type, scope, parameters);
 
-		// `where` and `=>` see the rule's captures as values, so they have to be in view
+		// `when` and `=>` see the rule's captures as values, so they have to be in view
 		// before its body is resolved — and the whole body's, since a `=>` at the end
 		// names what the front of it captured.
 		_captures.Clear();
@@ -352,7 +352,7 @@ public sealed class GrammarBinder
 
 		if (reference.IsCSharp)
 		{
-			// A `where` or `=>` value is C# owned by the consumer. Preserve it and let
+			// A `when` or `=>` value is C# owned by the consumer. Preserve it and let
 			// their compiler resolve names, overloads, generic arguments and types.
 			if (csharpValue)
 				return;

@@ -544,7 +544,7 @@ public sealed partial class GrammarNormalizer
 		new(name, new GrammarScope("<unresolved>", null), Declaration: null);
 
 	/// <summary>
-	/// Values in `=&gt;` and `where` are C# by the time they get here — and are rendered
+	/// Values in `=&gt;` and `when` are C# by the time they get here — and are rendered
 	/// as C#, not described.
 	/// </summary>
 	/// <remarks>

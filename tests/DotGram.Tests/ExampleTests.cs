@@ -632,7 +632,7 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_closing_tag_has_to_close_the_element_it_is_in()
 	{
-		// The `where` doing the one thing no amount of grammar can say. Saying no is an
+		// The `when` doing the one thing no amount of grammar can say. Saying no is an
 		// ordinary non-match, so this is not an element at all rather than a wrong one.
 		Assert.Throws<FormatException>(static () => XmlParser.Read("<a></b>"));
 

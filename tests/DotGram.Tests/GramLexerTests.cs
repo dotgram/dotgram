@@ -117,13 +117,13 @@ public sealed class GramLexerTests
 	{
 		Assert.Equal(
 			"""
-			Identifier "where"
+			Identifier "when"
 			CSharpExpression "qty > 0 && s == \"a)b\""
 			Ampersand
 			Identifier "rest"
 			""",
 			GramLexer.Tokenize(
-				"""where @(qty > 0 && s == "a)b") & rest""",
+				"""when @(qty > 0 && s == "a)b") & rest""",
 				RoslynCSharpScanner.Instance).ToString());
 	}
 
