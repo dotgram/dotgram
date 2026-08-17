@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 using DotGram.Grammar;
 
@@ -62,19 +62,16 @@ static class Diagnostics
 	/// Roslyn is concerned.
 	/// </remarks>
 	public static DiagnosticDescriptor DescriptorFor(
-		string id, string title, string messageFormat, DiagnosticSeverity severity)
-	{
-		if (!_descriptors.TryGetValue(id, out var descriptor))
-			_descriptors[id] = descriptor = new DiagnosticDescriptor(
+		string id, string title, string messageFormat, DiagnosticSeverity severity) =>
+		_descriptors.GetOrAdd(
+			id,
+			_ => new DiagnosticDescriptor(
 				id:                 id,
 				title:              title,
 				messageFormat:      messageFormat,
 				category:           Category,
 				defaultSeverity:    severity,
-				isEnabledByDefault: true);
-
-		return descriptor;
-	}
+				isEnabledByDefault: true));
 
 	/// <summary>
 	/// Turns an offset span into lines and columns.
@@ -108,5 +105,5 @@ static class Diagnostics
 		return new LinePositionSpan(result, result);
 	}
 
-	static readonly Dictionary<string, DiagnosticDescriptor> _descriptors = [];
+	static readonly ConcurrentDictionary<string, DiagnosticDescriptor> _descriptors = [];
 }
