@@ -166,6 +166,24 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(1, match.Value);
 	}
 
+	[Fact]
+	public void Sequence_captures_use_one_list_with_an_invocation_segment()
+	{
+		const int depth = 5_000;
+		const string grammar =
+			"Start : @int = '(' & (item: Item)* & child: Start? & ')' => @(item.Length + (child ?? 0))\n" +
+			"             | 'x'                                       => @(0)\n" +
+			"Item = 'a'\n" +
+			"parse Start";
+
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var input = string.Concat(Enumerable.Repeat("(a", depth)) + "x" + new string(')', depth);
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(depth, match.Value);
+	}
+
 	[Theory]
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]

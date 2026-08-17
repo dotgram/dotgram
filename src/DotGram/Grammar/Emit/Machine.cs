@@ -1323,7 +1323,10 @@ sealed class Machine
 		// A sequence is never absent and never shared between names: no iterations is an
 		// empty array, so there is nothing to test and nothing to fall through to.
 		if (member.IsSequence)
-			return $"l{member.Slots[0]}.ToArray()";
+			return _recursiveCalls.Count == 0
+				? $"l{member.Slots[0]}.ToArray()"
+				: $"l{member.Slots[0]}.GetRange(lb{member.Slots[0]}, " +
+					$"l{member.Slots[0]}.Count - lb{member.Slots[0]}).ToArray()";
 
 		if (member.Slots.Count == 1 && !member.IsOptional)
 			return Read(member, member.Slots[0]);
@@ -1393,7 +1396,8 @@ sealed class Machine
 
 		var scalars = CallScalars();
 		var values  = CallValues();
-		var completedTargets = CompletedTargets(values);
+		var sequences = CallSequences();
+		var completedTargets = CompletedTargets();
 
 		foreach (var (writer, rule, next, into) in _recursiveCalls)
 		{
@@ -1403,6 +1407,13 @@ sealed class Machine
 
 			for (var i = 0; i < scalars.Count; i++)
 				frame.Append($" calls[cp + {i + 4}] = {scalars[i].Save};");
+
+			for (var i = 0; i < sequences.Count; i++)
+			{
+				var offset = 4 + scalars.Count + i * 2;
+				frame.Append($" calls[cp + {offset}] = lb{sequences[i]};");
+				frame.Append($" calls[cp + {offset + 1}] = l{sequences[i]}.Count;");
+			}
 
 			if (values.Count > 0)
 			{
@@ -1432,6 +1443,9 @@ sealed class Machine
 
 			foreach (var value in values)
 				writer.Line($"v{value.Index} = default!;");
+
+			foreach (var sequence in sequences)
+				writer.Line($"lb{sequence} = l{sequence}.Count;");
 
 			writer.Line("bp = sp;");
 			writer.Line($"state = {(entries is null ? initialEntry : entries[rule].ToString())};");
@@ -1499,6 +1513,9 @@ sealed class Machine
 					foreach (var value in values)
 						file.Line($"{value.Type}[]? call_v{value.Index} = null;");
 				}
+
+				foreach (var sequence in sequences)
+					file.Line($"var lb{sequence} = 0;");
 			}
 
 			file.Line("var p     = pos;");
@@ -1600,6 +1617,7 @@ sealed class Machine
 								(scalars[i].Boolean ? " != 0;" : ";"));
 
 						RestoreValues(file, values);
+						RestoreSequences(file, sequences, scalars.Count);
 
 						if (completedTargets.Count > 0)
 							WriteCompleted(file, completedTargets);
@@ -1654,6 +1672,7 @@ sealed class Machine
 									(scalars[i].Boolean ? " != 0;" : ";"));
 
 							RestoreValues(file, values);
+							RestoreSequences(file, sequences, scalars.Count);
 
 							file.Line($"state = {Fail};");
 							file.Line("continue;");
@@ -1718,21 +1737,23 @@ sealed class Machine
 
 	void PrepareFlags()
 	{
-		if (_builds is null || _recursiveCalls.Count == 0)
+		if (_builds is null)
 			return;
 
-		foreach (var member in _builds.Members)
-			if (member.IsOptional || member.Slots.Count > 1)
-				foreach (var slot in member.Slots)
-					if (Layout.Slots[slot].Rule is not null)
-						_flagged.Add(slot);
+		if (Factories.Count == 0)
+			Prepare(_builds.Members);
+		else
+			foreach (var factory in Factories)
+				Prepare(factory.Members);
 
-		foreach (var factory in Factories)
-			foreach (var member in factory.Members)
+		void Prepare(IReadOnlyList<ResultMember> members)
+		{
+			foreach (var member in members)
 				if (member.IsOptional || member.Slots.Count > 1)
 					foreach (var slot in member.Slots)
 						if (Layout.Slots[slot].Rule is not null)
 							_flagged.Add(slot);
+		}
 	}
 
 	List<(string Value, string Reset, string Save, bool Boolean)> CallScalars()
@@ -1772,6 +1793,17 @@ sealed class Machine
 		return values;
 	}
 
+	List<int> CallSequences()
+	{
+		var sequences = new List<int>();
+
+		foreach (var slot in Layout.Slots)
+			if (slot.IsSequence)
+				sequences.Add(slot.Index);
+
+		return sequences;
+	}
+
 	static void RestoreValues(Writer file, IReadOnlyList<(int Index, string Type)> values)
 	{
 		if (values.Count == 0)
@@ -1783,13 +1815,27 @@ sealed class Machine
 			file.Line($"v{value.Index} = call_v{value.Index}![cd];");
 	}
 
-	List<int> CompletedTargets(IReadOnlyList<(int Index, string Type)> values)
+	static void RestoreSequences(Writer file, IReadOnlyList<int> sequences, int scalarCount)
+	{
+		for (var i = 0; i < sequences.Count; i++)
+		{
+			var sequence = sequences[i];
+			var offset = 4 + scalarCount + i * 2;
+
+			file.Line($"if (l{sequence}.Count > calls[cp + {offset + 1}])");
+			file.Then($"l{sequence}.RemoveRange(calls[cp + {offset + 1}], " +
+				$"l{sequence}.Count - calls[cp + {offset + 1}]);");
+			file.Line($"lb{sequence} = calls[cp + {offset}];");
+		}
+	}
+
+	List<int> CompletedTargets()
 	{
 		var targets = new List<int>();
 
-		foreach (var (index, _) in values)
-			if (Layout.Slots[index].Rule is { } rule && _recursiveRules.Contains(rule))
-				targets.Add(index);
+		foreach (var slot in Layout.Slots)
+			if (slot.Rule is { } rule && _recursiveRules.Contains(rule))
+				targets.Add(slot.Index);
 
 		return targets;
 	}
@@ -1803,5 +1849,5 @@ sealed class Machine
 			}
 	}
 
-	int CallFrame => 4 + CallScalars().Count;
+	int CallFrame => 4 + CallScalars().Count + CallSequences().Count * 2;
 }

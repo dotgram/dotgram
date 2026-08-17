@@ -857,7 +857,7 @@ public static partial class CSharpEmitter
 	{
 		var machine = MachineFor(
 			graph, results, rule, lines: lines,
-			recursiveSafe: CanUseSelfRecursiveExecutor(graph, execution, results, rule));
+			recursiveSafe: CanUseSelfRecursiveExecutor(graph, execution, rule));
 
 		// The factory a recovery calls is emitted beside the rule's own machine and not
 		// beside the end-of-input copy, which calls the same one.
@@ -903,15 +903,11 @@ public static partial class CSharpEmitter
 	}
 
 	static bool CanUseSelfRecursiveExecutor(
-		RecognitionGraph graph, ExecutionPlan execution, ResultTypes results, RuleSymbol rule)
+		RecognitionGraph graph, ExecutionPlan execution, RuleSymbol rule)
 	{
 		if (!execution.IsRecursive(rule) || execution.ComponentOf[rule].Rules.Count != 1 ||
 			graph.Climbing.ContainsKey(rule) || graph.Folds.ContainsKey(rule))
 			return false;
-
-		foreach (var slot in LayoutOf(graph, results, rule).Slots)
-			if (slot.IsSequence)
-				return false;
 
 		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			if (graph.Recoveries.ContainsKey(node) || node is Node.Lookahead)
