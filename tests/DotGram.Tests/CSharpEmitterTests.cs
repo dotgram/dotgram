@@ -72,7 +72,7 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(expected, Run("Start = ['0'..'9']+", input).Matched);
 
 	[Fact]
-	public void Simple_recursive_rule_uses_an_explicit_call_stack()
+	public void Simple_recursive_rule_uses_the_shared_parser_arena()
 	{
 		const int depth = 100_000;
 		const string grammar = "Start = '(' & Start & ')' | 'x'\nparse Start";
@@ -81,7 +81,8 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = new string('(', depth) + "x" + new string(')', depth);
 
-		Assert.Contains("Span<int> calls", source);
+		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.DoesNotContain("Span<int> calls", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", input + ")").IsSuccess);
 	}
@@ -99,7 +100,7 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void Mutually_recursive_rules_share_one_explicit_executor()
+	public void Mutually_recursive_rules_share_one_automaton()
 	{
 		const int depth = 50_000;
 		const string grammar =
@@ -111,9 +112,26 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = string.Concat(Enumerable.Repeat("ab", depth)) + "x";
 
-		Assert.Contains("recursive component: A, B", source);
+		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.DoesNotContain("Recognize_A(", source);
+		Assert.DoesNotContain("Recognize_B(", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseA", input).IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseA", input + "b").IsSuccess);
+	}
+
+	[Fact]
+	public void A_frequently_called_rule_has_one_shared_block()
+	{
+		var source = Emit(
+			"""
+			Start = Name & ':' & Name & ':' & Name
+			Name = 'a' | 'b'
+			parse Start
+			""");
+
+		Assert.Equal(1, source.Split(["enter Name"], StringSplitOptions.None).Length - 1);
+		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
+		Assert.Contains("Debug.Assert", source);
 	}
 
 	[Fact]

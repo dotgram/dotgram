@@ -451,6 +451,50 @@ public static partial class CSharpEmitter
 		}
 		""";
 
+	/// <summary>The reusable state owned by the unified automaton.</summary>
+	internal const string ParserRuntime = """
+		private sealed class Parser
+		{
+			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
+				new global::System.Collections.Generic.List<ParserEntry>();
+
+			internal void Reset() => Entries.Clear();
+		}
+
+		private readonly struct ParserEntry
+		{
+			internal const int Choice = 1;
+			internal const int Call   = 2;
+			internal const int Atomic = 3;
+
+			internal ParserEntry(int kind, int state, int position, int callIndex, int atomicIndex)
+			{
+				Kind        = kind;
+				State       = state;
+				Position    = position;
+				CallIndex   = callIndex;
+				AtomicIndex = atomicIndex;
+			}
+
+			internal int Kind        { get; }
+			internal int State       { get; }
+			internal int Position    { get; }
+			internal int CallIndex   { get; }
+			internal int AtomicIndex { get; }
+		}
+
+		static partial void RentParser(ref Parser parser);
+		static partial void ReturnParser(Parser parser);
+
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(string action, int state, int position, int arena)
+		{
+			global::System.Diagnostics.Debug.WriteLine(
+				".Gram " + action + " state=" + state.ToString() +
+				" position=" + position.ToString() + " arena=" + arena.ToString());
+		}
+		""";
+
 	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
 	internal const string RecoveredMethod = "OnRecovered";
 

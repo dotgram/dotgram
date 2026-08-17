@@ -569,13 +569,14 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches("Start = 'a' & ?!'b' & ['a'..'z']", input));
 
 	[Theory]
-	[InlineData("Name = \"x\" | \"xy\"", "xy", true)]   // shorter first: "x", then 'y' takes the y
-	[InlineData("Name = \"xy\" | \"x\"", "xy", false)]  // longer first: "xy", and 'y' has nothing left
-	public void A_call_answers_once_and_is_not_asked_again(string name, string input, bool expected) =>
-		// The boundary §4 freezes. Which way round the alternatives are written decides
-		// whether it shows: ordered choice inside `Name` picks the first that matches, and
-		// `Start` cannot send it back for the other one. Written in one rule it could.
-		Assert.Equal(expected, Matches($"Start = Name & 'y'\n{name}", input));
+	[InlineData("Name = \"x\" | \"xy\"")]
+	[InlineData("Name = \"xy\" | \"x\"")]
+	public void Backtracking_crosses_a_rule_boundary(string name) =>
+		Assert.True(Matches($"Start = Name & 'y'\n{name}", "xy"));
+
+	[Fact]
+	public void An_atomic_group_commits_a_called_rule_too() =>
+		Assert.False(Matches("Start = { Name } & 'y'\nName = \"xy\" | \"x\"", "xy"));
 
 	[Fact]
 	public void And_the_same_expressions_in_one_rule_do_backtrack() =>
