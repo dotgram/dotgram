@@ -31,6 +31,7 @@ public sealed class ExecutionComponent(
 /// </summary>
 public sealed class ExecutionPlan(
 	IReadOnlyDictionary<RuleSymbol, IReadOnlyList<RuleSymbol>> calls,
+	IReadOnlyDictionary<RuleSymbol, int> callSites,
 	IReadOnlyList<ExecutionComponent> components,
 	IReadOnlyDictionary<RuleSymbol, ExecutionComponent> componentOf,
 	IReadOnlyDictionary<RuleSymbol, RuleExecutionKind> kinds,
@@ -38,6 +39,13 @@ public sealed class ExecutionPlan(
 {
 	/// <summary>The distinct rules each rule may call, in grammar order.</summary>
 	public IReadOnlyDictionary<RuleSymbol, IReadOnlyList<RuleSymbol>> Calls { get; } = calls;
+
+	/// <summary>
+	/// How many call nodes target each rule. Repeated calls are deliberately not
+	/// collapsed: this is the code-size input that decides whether a rule becomes a
+	/// shared automaton block or is profitable to inline.
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, int> CallSites { get; } = callSites;
 
 	/// <summary>Strongly connected components, ordered by their first rule.</summary>
 	public IReadOnlyList<ExecutionComponent> Components { get; } = components;
@@ -74,6 +82,7 @@ public static class ExecutionPlanner
 			indices[graph.Rules[i]] = i;
 
 		var edges = new List<int>[count];
+		var callSites = new int[count];
 
 		for (var i = 0; i < count; i++)
 		{
@@ -83,7 +92,7 @@ public static class ExecutionPlanner
 				continue;
 
 			var seen = new bool[count];
-			Collect(body, graph, indices, edges[i], seen);
+			Collect(body, graph, indices, edges[i], seen, callSites);
 		}
 
 		var componentIndices = ComponentsOf(edges);
@@ -158,7 +167,12 @@ public static class ExecutionPlanner
 			depths[graph.Rules[i]] = componentDepth[componentByRule[i]];
 		}
 
-		return new ExecutionPlan(calls, components, componentOf, kinds, depths);
+		var sites = new Dictionary<RuleSymbol, int>();
+
+		for (var i = 0; i < count; i++)
+			sites[graph.Rules[i]] = callSites[i];
+
+		return new ExecutionPlan(calls, sites, components, componentOf, kinds, depths);
 	}
 
 	static void Collect(
@@ -166,7 +180,8 @@ public static class ExecutionPlanner
 		RecognitionGraph graph,
 		IReadOnlyDictionary<RuleSymbol, int> indices,
 		List<int> calls,
-		bool[] seen)
+		bool[] seen,
+		int[] callSites)
 	{
 		var pending = new Stack<Node>();
 		pending.Push(root);
@@ -179,10 +194,15 @@ public static class ExecutionPlanner
 			{
 				// Arguments specialize a rule during normalization. CompileCall does not run
 				// them, so they are deliberately not traversed as execution edges.
-				if (indices.TryGetValue(rule, out var called) && !seen[called])
+				if (indices.TryGetValue(rule, out var called))
 				{
-					seen[called] = true;
-					calls.Add(called);
+					callSites[called]++;
+
+					if (!seen[called])
+					{
+						seen[called] = true;
+						calls.Add(called);
+					}
 				}
 
 				continue;

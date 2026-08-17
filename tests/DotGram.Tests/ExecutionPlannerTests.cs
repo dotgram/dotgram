@@ -116,6 +116,24 @@ public sealed class ExecutionPlannerTests
 	}
 
 	[Fact]
+	public void Counts_call_sites_without_duplicating_shared_rule_blocks()
+	{
+		var graph = Normalized(
+			"""
+			Start = Name & Name | { Name & ':' & Name }
+			Name = ['a'..'z']+
+			""");
+		var start = Rule(graph, "Start");
+		var name  = Rule(graph, "Name");
+		var plan  = ExecutionPlanner.Analyze(graph);
+
+		Assert.Empty(graph.Diagnostics);
+		Assert.Equal(0, plan.CallSites[start]);
+		Assert.Equal(4, plan.CallSites[name]);
+		Assert.Equal(new[] { name }, plan.Calls[start]);
+	}
+
+	[Fact]
 	public void A_direct_rule_can_reach_a_recursive_component()
 	{
 		var graph = Normalized(
