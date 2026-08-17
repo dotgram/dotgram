@@ -14,11 +14,19 @@ and what else is owed by a change.
 
 ## Next, in order
 
-**1. Indirect left recursion.** `A = B & x`, `B = A & y`. Refused by the normalizer. The
+**1. §7.4 inside an element set, where the signature *is* inferable.** A bare `@Name`
+standing as an operand cannot be declared, because §7.1 allows two signatures there —
+`bool M(char)` and `bool M(ReadOnlySpan<char>, ref int)` — and nothing in the grammar
+says which. Inside a set there is only one: a set tests exactly one input item, so
+`[@IsVowel | '0'..'9']` can only mean `bool IsVowel(char)`. That position could therefore
+get the partial declaration §7.4 gives a `=>` and a `where`, and the machinery is all
+built. Small, and it closes the last honest gap in §7.4.
+
+**2. Indirect left recursion.** `A = B & x`, `B = A & y`. Refused by the normalizer. The
 direct form is built and rewritten into a fold; the indirect one needs the cycle found
 across rules first. Rare in practice, and the message says so clearly.
 
-**2. Incremental parsing.** The largest, and not worth starting without deciding what is
+**3. Incremental parsing.** The largest, and not worth starting without deciding what is
 incremental — the parse of an edited input, or the generation of an edited grammar. The
 second is already largely there (`Questions`/`Answers`); the first is a different project.
 

@@ -1521,4 +1521,19 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(["aa", "cc"], read);
 		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
 	}
+
+	[Fact]
+	public void A_name_inside_an_element_set_is_asked_about_like_any_other()
+	{
+		// §3.1 allows a C# predicate inside a set, and the question collector did not walk
+		// into one — so the resolver was asked something nobody foresaw and the generator
+		// died with CS8785, taking the whole compilation with it. A grammar naming a method
+		// that is not there deserves a diagnostic, not that.
+		var reported = RunGenerator(
+			"[DotGram.Gram(\"Start = [@IsVowel | \'0\'..\'9\']+\\nparse Start\")]\n"
+			+ "public partial class Sets;").Diagnostics;
+
+		Assert.DoesNotContain(reported, d => d.Id == "CS8785");
+		Assert.Contains(reported, d => d.Id == "GRAM3004");
+	}
 }

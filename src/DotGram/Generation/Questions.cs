@@ -208,6 +208,16 @@ static class Questions
 						Type(argument);
 
 					break;
+
+				// A name inside an element set is §7.1's first row — `bool M(char)` — and is
+				// asked for like any other. `Dump.Children` does not reach into a set, because
+				// what is in one is elements rather than expressions, so it is walked here.
+				case Expr.ElementSet(_, var items):
+					foreach (var item in items)
+						if (item is Elem.Ref(var reference) && reference.IsCSharp)
+							names.Add(new Question(reference.Name, 0));
+
+					break;
 			}
 
 			foreach (var child in Dump.Children(expression))
