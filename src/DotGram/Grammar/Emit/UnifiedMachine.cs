@@ -21,6 +21,7 @@ sealed class UnifiedMachine
 	readonly ResultTypes _results;
 	readonly List<Writer> _states = [];
 	readonly Dictionary<RuleSymbol, int> _entries = [];
+	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
 	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Machine.Factory>> _factories = [];
@@ -55,8 +56,13 @@ sealed class UnifiedMachine
 			_captures += layout.Slots.Count;
 		}
 
-		foreach (var rule in graph.Rules)
+		for (var i = 0; i < graph.Rules.Count; i++)
+		{
+			var rule = graph.Rules[i];
+
+			_ruleIds[rule] = i;
 			_entries[rule] = Reserve(out _);
+		}
 
 		foreach (var rule in graph.Rules)
 		{
@@ -165,7 +171,9 @@ sealed class UnifiedMachine
 
 				file.Line($"var state   = {_entries[root]};");
 				file.Line();
-				file.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, 0));");
+				file.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
+					$"0, {ValueRule(root)}));");
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
 
@@ -182,13 +190,22 @@ sealed class UnifiedMachine
 				file.Line("Return:");
 				file.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
 				file.Line("var returned = entries[call];");
-				file.Line("global::System.Diagnostics.Debug.Assert(returned.Kind == ParserEntry.Call);");
+				file.Line(
+					"global::System.Diagnostics.Debug.Assert(" +
+					"returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);");
 				file.Line("state = returned.State;");
 				file.Line("var previousCall = returned.CallIndex;");
 				file.Line("repeat = returned.RepeatIndex;");
 				file.Line("lookahead = returned.LookaheadIndex;");
 				file.Line();
-				file.Line("if (entries.Count == call + 1)");
+				using (file.Block("if (returned.RuleIndex >= 0)"))
+				{
+					file.Line(
+						"entries[call] = new ParserEntry(ParserEntry.Completed, returned.State, " +
+						"returned.Position, returned.CallIndex, returned.AtomicIndex, " +
+						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex);");
+				}
+				file.Line("else if (entries.Count == call + 1)");
 				file.Then("entries.RemoveAt(call);");
 				file.Line();
 				file.Line("call = previousCall;");
@@ -240,7 +257,7 @@ sealed class UnifiedMachine
 						file.Line();
 					}
 
-					using (file.Block("if (entry.Kind == ParserEntry.Call)"))
+					using (file.Block("if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)"))
 					{
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
@@ -434,7 +451,9 @@ sealed class UnifiedMachine
 				var state = Reserve(out var writer);
 
 				writer.Line("var callIndex = entries.Count;");
-				writer.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, lookahead, 0));");
+				writer.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, " +
+					$"lookahead, 0, {ValueRule(rule)}));");
 				writer.Line("call = callIndex;");
 				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 				writer.Line($"goto {Label(_entries[rule])};");
@@ -586,6 +605,9 @@ sealed class UnifiedMachine
 				throw new InvalidOperationException($"Unsupported unified-automaton node: {node.GetType().Name}.");
 		}
 	}
+
+	int ValueRule(RuleSymbol rule) =>
+		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
 
 	int Reserve(out Writer writer)
 	{

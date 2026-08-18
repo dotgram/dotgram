@@ -153,6 +153,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
 
 		Assert.Contains("ParserEntry.Construct", source);
+		Assert.Contains("entries[call] = new ParserEntry(ParserEntry.Completed", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <

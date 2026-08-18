@@ -470,10 +470,11 @@ public static partial class CSharpEmitter
 			internal const int Lookahead = 5;
 			internal const int Capture = 6;
 			internal const int Construct = 7;
+			internal const int Completed = 8;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
-				int repeatIndex, int lookaheadIndex, int value)
+				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)
 			{
 				Kind        = kind;
 				State       = state;
@@ -483,6 +484,7 @@ public static partial class CSharpEmitter
 				RepeatIndex = repeatIndex;
 				LookaheadIndex = lookaheadIndex;
 				Value       = value;
+				RuleIndex   = ruleIndex;
 			}
 
 			internal int Kind        { get; }
@@ -493,6 +495,7 @@ public static partial class CSharpEmitter
 			internal int RepeatIndex { get; }
 			internal int LookaheadIndex { get; }
 			internal int Value       { get; }
+			internal int RuleIndex   { get; }
 		}
 
 		static partial void RentParser(ref Parser parser);
