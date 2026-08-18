@@ -773,6 +773,16 @@ public sealed class SemanticTests
 			Read(Built("Inner = letter: 'x'\nStart = inner: Inner", "x"), "Inner", "Letter"));
 
 	[Fact]
+	public void A_rule_value_the_match_gave_back_is_not_materialized()
+	{
+		var value = Built(
+			"Item = letter: 'x'\nStart = (item: Item & 'y' | item: Item & 'z')",
+			"xz");
+
+		Assert.Equal("x", Read(value, "Item", "Letter"));
+	}
+
+	[Fact]
 	public void A_capture_the_match_gave_back_is_not_in_the_value()
 	{
 		// The first alternative matches 'a' and then fails on 'c', so the match resumes in

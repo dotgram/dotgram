@@ -157,7 +157,18 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
-			source.LastIndexOf("value = Construct_Start(", StringComparison.Ordinal));
+			source.LastIndexOf("values[completedAt] = Construct_Start(", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Captured_rule_values_are_materialized_from_completed_invocations()
+	{
+		var source = Emit("Inner = letter: 'x'\nStart = inner: Inner\nparse Start");
+
+		Assert.Contains("ParserEntry.RuleCapture", source);
+		Assert.Contains("parser.Materialization(entries.Count)", source);
+		Assert.DoesNotContain("Recognize_Inner(", source);
+		Assert.DoesNotContain("List<Inner>", source);
 	}
 
 	[Fact]

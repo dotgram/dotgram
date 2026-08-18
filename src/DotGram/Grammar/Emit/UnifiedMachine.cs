@@ -24,6 +24,7 @@ sealed class UnifiedMachine
 	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
 	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
+	readonly HashSet<int> _textCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Machine.Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly List<string> _extra = [];
@@ -49,7 +50,15 @@ sealed class UnifiedMachine
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is Node.Capture)
-					_captureSlots[node] = _captures + layout.SlotOf(node);
+				{
+					var slot = _captures + layout.SlotOf(node);
+
+					_captureSlots[node] = slot;
+
+					if (node is not Node.Capture(_, Node.Call(var called, _)) ||
+						graph.Results[called].Count == 0 && !graph.Types.ContainsKey(called))
+						_textCaptures.Add(slot);
+				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node);
 
@@ -82,7 +91,7 @@ sealed class UnifiedMachine
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
-				if (member.Rule is not null || member.IsSequence)
+				if (member.IsSequence || member is { Rule: not null, IsOptional: true })
 					return false;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
@@ -90,9 +99,7 @@ sealed class UnifiedMachine
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
 					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
 					node is Node.Guard && graph.Results[rule].Count > 0 ||
-					node is Node.Capture(_, Node.Lookahead) ||
-					node is Node.Call(var called, _) &&
-						(graph.Results[called].Count > 0 || graph.Types.ContainsKey(called)))
+					node is Node.Capture(_, Node.Lookahead))
 					return false;
 
 			if (CaptureInsideLookahead(graph.Bodies[rule]))
@@ -167,7 +174,8 @@ sealed class UnifiedMachine
 					file.Line("var c       = '\\0';");
 
 				for (var i = 0; i < _captures; i++)
-					file.Line($"var capture{i} = 0;");
+					if (_textCaptures.Contains(i))
+						file.Line($"var capture{i} = 0;");
 
 				file.Line($"var state   = {_entries[root]};");
 				file.Line();
@@ -252,7 +260,9 @@ sealed class UnifiedMachine
 
 					if (_captures > 0 || _constructs.Count > 0)
 					{
-						file.Line("if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct)");
+						file.Line(
+							"if (entry.Kind == ParserEntry.Capture || " +
+							"entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)");
 						file.Then("continue;");
 						file.Line();
 					}
@@ -416,6 +426,24 @@ sealed class UnifiedMachine
 				var close = Reserve(out var atClose);
 				var inner = Compile(body, close);
 				var state = Reserve(out var writer);
+
+				if (body is Node.Call(var capturedRule, _) && ValueRule(capturedRule) >= 0)
+				{
+					writer.Line($"goto {Label(inner)};");
+					atClose.Line("var capturedCall = entries.Count - 1;");
+					atClose.Line(
+						$"while (capturedCall >= 0 && !(entries[capturedCall].Kind == ParserEntry.Completed && " +
+						$"entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == " +
+						$"{_ruleIds[capturedRule]} && entries[capturedCall].Value == p)) capturedCall--;");
+					atClose.Line("global::System.Diagnostics.Debug.Assert(capturedCall >= 0);");
+					atClose.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
+						"call, atomic, repeat, lookahead, p));");
+					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count);");
+					atClose.Line($"goto {Label(next)};");
+
+					return state;
+				}
 
 				writer.Line($"capture{slot} = p;");
 				writer.Line($"goto {Label(inner)};");
@@ -619,106 +647,164 @@ sealed class UnifiedMachine
 
 	void Materialize(Writer file, RuleSymbol root, string type)
 	{
-		var offset  = _captureOffsets[root];
-		var members = _graph.Results[root];
+		file.Line("var values = parser.Materialization(entries.Count);");
 
-		for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+		using (file.Block(
+			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
 		{
-			var member = members[memberIndex];
-			var slots  = new List<string>(member.Slots.Count);
+			file.Line("var completed = entries[completedAt];");
+			file.Line("if (completed.Kind != ParserEntry.Completed) continue;");
 
-			foreach (var slot in member.Slots)
-				slots.Add($"candidate.State == {offset + slot}");
-
-			file.Line($"var captured{memberIndex}From = -1;");
-			file.Line($"var captured{memberIndex}To   = -1;");
-
-			using (file.Block(
-				$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
-			{
-				file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-
-				using (file.Block(
-					$"if (candidate.Kind == ParserEntry.Capture && ({string.Join(" || ", slots)}))"))
-				{
-					file.Line($"if (captured{memberIndex}From < 0)");
-					file.Then($"captured{memberIndex}From = candidate.Position;");
-					file.Line($"captured{memberIndex}To = candidate.Value;");
-				}
-			}
-
-			if (!member.IsOptional)
-				file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}From >= 0);");
-
-			file.Line(
-				$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
-				(member.IsOptional ? "null" : "string.Empty") + " : " +
-				$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
-				$"captured{memberIndex}From).ToString();");
-
-			file.Line();
+			using (file.Block("switch (completed.RuleIndex)"))
+				foreach (var rule in _graph.Rules)
+					if (ValueRule(rule) >= 0)
+						MaterializeRule(file, rule);
 		}
 
-		var factories = _factories[root];
+		file.Line($"value = ({type})values[0]!;");
+	}
+
+	void MaterializeRule(Writer file, RuleSymbol rule)
+	{
+		var offset    = _captureOffsets[rule];
+		var members   = _graph.Results[rule];
+		var type      = _results.QualifiedOf(rule)!;
+		var factories = _factories[rule];
+
+		using (file.Block($"case {_ruleIds[rule]}:"))
+		{
+			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+			{
+				var member = members[memberIndex];
+				var slots  = new List<string>(member.Slots.Count);
+
+				foreach (var slot in member.Slots)
+					slots.Add($"candidate.State == {offset + slot}");
+
+				if (member.Rule is not null)
+				{
+					file.Line($"var captured{memberIndex}At = -1;");
+
+					using (file.Block(
+						$"for (var capturedAt{memberIndex} = entries.Count - 1; capturedAt{memberIndex} >= 0; capturedAt{memberIndex}--)"))
+					{
+						file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+
+						using (file.Block(
+							$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
+							$"({string.Join(" || ", slots)}))"))
+						{
+							file.Line($"captured{memberIndex}At = candidate.Position;");
+							file.Line("break;");
+						}
+					}
+
+					file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}At >= 0);");
+					file.Line(
+						$"var captured{memberIndex} = ({_results.ValueOf(member.Rule)})" +
+						$"values[captured{memberIndex}At]!;");
+					file.Line();
+
+					continue;
+				}
+
+				file.Line($"var captured{memberIndex}From = -1;");
+				file.Line($"var captured{memberIndex}To   = -1;");
+
+				using (file.Block(
+					$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+				{
+					file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+
+					using (file.Block(
+						$"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
+						$"({string.Join(" || ", slots)}))"))
+					{
+						file.Line($"if (captured{memberIndex}From < 0)");
+						file.Then($"captured{memberIndex}From = candidate.Position;");
+						file.Line($"captured{memberIndex}To = candidate.Value;");
+					}
+				}
+
+				if (!member.IsOptional)
+					file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}From >= 0);");
+
+				file.Line(
+					$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
+					(member.IsOptional ? "null" : "string.Empty") + " : " +
+					$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
+					$"captured{memberIndex}From).ToString();");
+				file.Line();
+			}
 
 		if (factories.Count == 0)
 		{
-			file.Line($"value = new {type}(");
+			file.Line($"values[completedAt] = new {type}(");
 
 			using (file.Indent())
 				for (var i = 0; i < members.Count; i++)
 					file.Line(
 						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
 						(i + 1 < members.Count ? "," : ");"));
-
-			return;
 		}
-
-		file.Line("var chosen = -1;");
-
-		using (file.Block("for (var chosenAt = entries.Count - 1; chosenAt >= 0; chosenAt--)"))
+		else
 		{
-			file.Line("var candidate = entries[chosenAt];");
+			file.Line("var chosen = -1;");
 
-			using (file.Block("if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == 0)"))
+			using (file.Block("for (var chosenAt = entries.Count - 1; chosenAt >= 0; chosenAt--)"))
 			{
-				file.Line("chosen = candidate.State;");
-				file.Line("break;");
-			}
-		}
+				file.Line("var candidate = entries[chosenAt];");
 
-		file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
-
-		using (file.Block("switch (chosen)"))
-			for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
-			{
-				var factory   = factories[factoryIndex];
-				var arguments = new List<string> { "text.Slice(pos, p - pos).ToString()" };
-
-				if (CSharpEmitter.Asks(factory, "parserSpan"))
-					arguments.Add("new global::DotGram.SourceSpan(pos, p - pos)");
-
-				foreach (var member in factory.Members)
+				using (file.Block(
+					"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
 				{
-					if (member.Name == "parserText" || member.Name == factory.Accumulator)
-						continue;
-
-					for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
-						if (members[memberIndex].Name == member.Name)
-						{
-							arguments.Add($"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
-							break;
-						}
-				}
-
-				file.Line($"case {factoryIndex}:");
-
-				using (file.Indent())
-				{
-					file.Line($"value = {factory.Method}({string.Join(", ", arguments)});");
+					file.Line("chosen = candidate.State;");
 					file.Line("break;");
 				}
 			}
+
+			file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
+
+			using (file.Block("switch (chosen)"))
+				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+				{
+					var factory = factories[factoryIndex];
+					var arguments = new List<string>
+					{
+						"text.Slice(completed.Position, completed.Value - completed.Position).ToString()",
+					};
+
+					if (CSharpEmitter.Asks(factory, "parserSpan"))
+						arguments.Add(
+							"new global::DotGram.SourceSpan(" +
+							"completed.Position, completed.Value - completed.Position)");
+
+					foreach (var member in factory.Members)
+					{
+						if (member.Name == "parserText" || member.Name == factory.Accumulator)
+							continue;
+
+						for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+							if (members[memberIndex].Name == member.Name)
+							{
+								arguments.Add($"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
+								break;
+							}
+					}
+
+					file.Line($"case {factoryIndex}:");
+
+					using (file.Indent())
+					{
+						file.Line(
+							$"values[completedAt] = {factory.Method}({string.Join(", ", arguments)});");
+						file.Line("break;");
+					}
+				}
+		}
+
+		file.Line("break;");
+	}
 	}
 
 	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");

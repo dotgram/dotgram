@@ -161,13 +161,11 @@ public sealed class UrlTests
 	}
 
 	[Fact]
-	public void An_address_with_five_parts_is_where_rule_boundaries_show()
+	public void A_host_can_reconsider_ipv4_as_a_registered_name()
 	{
-		// Host tries IPv4 first, matches "1.2.3.4", and Url then cannot consume ".5".
-		// Backtracking would go back and take RegName instead — and does not, because it
-		// does not cross a rule boundary. Recorded here rather than left to be found:
-		// docs/status.md says the same thing in prose.
-		Assert.False(Match("https://1.2.3.4.5"));
+		// Host tries IPv4 first and matches "1.2.3.4". When Url cannot consume ".5",
+		// ordinary rule calls remain transparent and Host can take RegName instead.
+		Assert.True(Match("https://1.2.3.4.5"));
 
 		// The same address is fine when nothing tempts IPv4 first.
 		Assert.True(Match("https://1.2.3.4"));

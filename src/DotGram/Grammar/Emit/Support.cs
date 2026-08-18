@@ -457,8 +457,25 @@ public static partial class CSharpEmitter
 		{
 			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
 				new global::System.Collections.Generic.List<ParserEntry>();
+			object?[] _values = global::System.Array.Empty<object?>();
+			int _valuesUsed;
 
-			internal void Reset() => Entries.Clear();
+			internal object?[] Materialization(int count)
+			{
+				if (_values.Length < count)
+					global::System.Array.Resize(ref _values, count);
+
+				_valuesUsed = count;
+
+				return _values;
+			}
+
+			internal void Reset()
+			{
+				Entries.Clear();
+				global::System.Array.Clear(_values, 0, _valuesUsed);
+				_valuesUsed = 0;
+			}
 		}
 
 		private readonly struct ParserEntry
@@ -471,6 +488,7 @@ public static partial class CSharpEmitter
 			internal const int Capture = 6;
 			internal const int Construct = 7;
 			internal const int Completed = 8;
+			internal const int RuleCapture = 9;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

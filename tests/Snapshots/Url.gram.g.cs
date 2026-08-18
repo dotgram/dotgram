@@ -155,297 +155,3361 @@ namespace DotGram.Snapshots
 			public string? Port { get; }
 		}
 
-		// parse Url: scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)?
-		//     & ('#' & fragment: Rest)? & eof
 		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
 		{
 			value = default!;
 
-			global::System.Span<int> bt = stackalloc int[48];
+			Parser parser = null!;
+			RentParser(ref parser);
+			parser ??= new Parser();
 
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var c1    = 0;
-			var state = 29;
-
-			var s0_from = -1; var s0_to = -1;
-			global::DotGram.Snapshots.Url.Authority v1 = default!;
-			var s2_from = -1; var s2_to = -1;
-			var s3_from = -1; var s3_to = -1;
-			var s4_from = -1; var s4_to = -1;
-
-			while (true)
+			try
 			{
-				switch (state)
+				var entries = parser.Entries;
+				var p       = pos;
+				var call    = -1;
+				var atomic  = -1;
+				var repeat  = -1;
+				var lookahead = -1;
+				var c       = '\0';
+				var capture0 = 0;
+				var capture2 = 0;
+				var capture3 = 0;
+				var capture4 = 0;
+				var capture5 = 0;
+				var capture6 = 0;
+				var capture7 = 0;
+				var state   = 3;
+
+				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, 0));
+				call = 0;
+				goto Dispatch;
+
+				S3:
+
 				{
-					case 0:
-						value = new global::DotGram.Snapshots.Url.UrlValue(
-							text.Slice(s0_from, s0_to - s0_from).ToString(),
-							v1,
-							text.Slice(s2_from, s2_to - s2_from).ToString(),
-							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
-							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
+					Trace("enter Url", 3, p, entries.Count);
+					goto S49;
+				}
 
-						return p;
+				S4:
 
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
+				{
+					Trace("enter Scheme", 4, p, entries.Count);
+					goto S54;
+				}
 
-						if (sp == 0)
-							return -1;
+				S5:
 
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
+				{
+					Trace("enter Authority", 5, p, entries.Count);
+					goto S73;
+				}
 
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
+				S6:
+
+				{
+					Trace("enter UserInfo", 6, p, entries.Count);
+					goto S81;
+				}
+
+				S7:
+
+				{
+					Trace("enter Host", 7, p, entries.Count);
+					goto S93;
+				}
+
+				S8:
+
+				{
+					Trace("enter IPv4", 8, p, entries.Count);
+					goto S100;
+				}
+
+				S9:
+
+				{
+					Trace("enter Octet", 9, p, entries.Count);
+					goto S104;
+				}
+
+				S10:
+
+				{
+					Trace("enter RegName", 10, p, entries.Count);
+					goto S109;
+				}
+
+				S11:
+
+				{
+					Trace("enter IPLiteral", 11, p, entries.Count);
+					goto S117;
+				}
+
+				S12:
+
+				{
+					Trace("enter IPv6", 12, p, entries.Count);
+					goto S238;
+				}
+
+				S13:
+
+				{
+					Trace("enter Group", 13, p, entries.Count);
+					goto S240;
+				}
+
+				S14:
+
+				{
+					Trace("enter LS32", 14, p, entries.Count);
+					goto S245;
+				}
+
+				S15:
+
+				{
+					Trace("enter H16", 15, p, entries.Count);
+					goto S249;
+				}
+
+				S16:
+
+				{
+					Trace("enter Path", 16, p, entries.Count);
+					goto S254;
+				}
+
+				S17:
+
+				{
+					Trace("enter Segment", 17, p, entries.Count);
+					goto S260;
+				}
+
+				S18:
+
+				{
+					Trace("enter Rest", 18, p, entries.Count);
+					goto S271;
+				}
+
+				S19:
+
+				{
+					Trace("enter PctEncoded", 19, p, entries.Count);
+					goto S281;
+				}
+
+				S20:
+
+				{
+					Trace("enter Digit", 20, p, entries.Count);
+					goto S282;
+				}
+
+				S21:
+
+				{
+					Trace("enter Hex", 21, p, entries.Count);
+					goto S283;
+				}
+
+				S22:
+
+				{
+					Trace("enter Unreserved", 22, p, entries.Count);
+					goto S284;
+				}
+
+				S23:
+
+				{
+					Trace("enter SubDelim", 23, p, entries.Count);
+					goto S285;
+				}
+
+				S24:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S25:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S24;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
+					goto S31;
+				}
+
+				S26:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S25;
+				}
+
+				S27:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 25, p, entries.Count);
+					goto S25;
+				}
+
+				S28:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
+					Trace("capture", 4, p, entries.Count);
+					goto S26;
+				}
+
+				S29:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Rest", 18, p, entries.Count);
+					goto S18;
+				}
+
+				S30:
+
+				{
+					capture4 = p;
+					goto S29;
+				}
+
+				S31:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '#') goto Fail;
+					p += 1;
+					goto S30;
+				}
+
+				S32:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 27, p, entries.Count);
+					goto S27;
+				}
+
+				S33:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S32;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 32, p, call, atomic, repeat, lookahead, 0));
+					goto S39;
+				}
+
+				S34:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S33;
+				}
+
+				S35:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 33, p, entries.Count);
+					goto S33;
+				}
+
+				S36:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
+					Trace("capture", 3, p, entries.Count);
+					goto S34;
+				}
+
+				S37:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 36, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Rest", 18, p, entries.Count);
+					goto S18;
+				}
+
+				S38:
+
+				{
+					capture3 = p;
+					goto S37;
+				}
+
+				S39:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '?') goto Fail;
+					p += 1;
+					goto S38;
+				}
+
+				S40:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 2, capture2, call, atomic, repeat, lookahead, p));
+					Trace("capture", 2, p, entries.Count);
+					goto S35;
+				}
+
+				S41:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 40, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Path", 16, p, entries.Count);
+					goto S16;
+				}
+
+				S42:
+
+				{
+					capture2 = p;
+					goto S41;
+				}
+
+				S43:
+
+				{
+					var capturedCall = entries.Count - 1;
+					while (capturedCall >= 0 && !(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p)) capturedCall--;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 1, p, entries.Count);
+					goto S42;
+				}
+
+				S44:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 43, p, call, atomic, repeat, lookahead, 0, 2));
+					call = callIndex;
+					Trace("call Authority", 5, p, entries.Count);
+					goto S5;
+				}
+
+				S45:
+
+				{
+					goto S44;
+				}
+
+				S46:
+
+				{
+					if (p + 3 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != '/') goto Fail;
+					if (text[p + 2] != '/') goto Fail;
+					p += 3;
+					goto S45;
+				}
+
+				S47:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
+					Trace("capture", 0, p, entries.Count);
+					goto S46;
+				}
+
+				S48:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 47, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Scheme", 4, p, entries.Count);
+					goto S4;
+				}
+
+				S49:
+
+				{
+					capture0 = p;
+					goto S48;
+				}
+
+				S50:
+
+				{
+					if (p + 3 > text.Length) goto Fail;
+					if (text[p + 0] != 'f') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 'p') goto Fail;
+					p += 3;
+					goto Return;
+				}
+
+				S51:
+
+				{
+					if (p + 4 > text.Length) goto Fail;
+					if (text[p + 0] != 'h') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 't') goto Fail;
+					if (text[p + 3] != 'p') goto Fail;
+					p += 4;
+					goto Return;
+				}
+
+				S52:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 50, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 50, p, entries.Count);
+					goto S51;
+				}
+
+				S53:
+
+				{
+					if (p + 5 > text.Length) goto Fail;
+					if (text[p + 0] != 'h') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 't') goto Fail;
+					if (text[p + 3] != 'p') goto Fail;
+					if (text[p + 4] != 's') goto Fail;
+					p += 5;
+					goto Return;
+				}
+
+				S54:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 52, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 52, p, entries.Count);
+					goto S53;
+				}
+
+				S55:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S56:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S55;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
+					goto S66;
+				}
+
+				S57:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S56;
+				}
+
+				S58:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 56, p, entries.Count);
+					goto S56;
+				}
+
+				S59:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 57, p, entries.Count);
+					goto S57;
+				}
+
+				S60:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
+					goto S65;
+				}
+
+				S61:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S60;
+				}
+
+				S62:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 60, p, entries.Count);
+					goto S60;
+				}
+
+				S63:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 7, capture7, call, atomic, repeat, lookahead, p));
+					Trace("capture", 7, p, entries.Count);
+					goto S61;
+				}
+
+				S64:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 63, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Digit", 20, p, entries.Count);
+					goto S20;
+				}
+
+				S65:
+
+				{
+					capture7 = p;
+					goto S64;
+				}
+
+				S66:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S62;
+				}
+
+				S67:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
+					Trace("capture", 6, p, entries.Count);
+					goto S58;
+				}
+
+				S68:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 67, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Host", 7, p, entries.Count);
+					goto S7;
+				}
+
+				S69:
+
+				{
+					capture6 = p;
+					goto S68;
+				}
+
+				S70:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 69, p, entries.Count);
+					goto S69;
+				}
+
+				S71:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S70;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 70, p, call, atomic, repeat, lookahead, 0));
+					goto S77;
+				}
+
+				S72:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S71;
+				}
+
+				S73:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 71, p, entries.Count);
+					goto S71;
+				}
+
+				S74:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '@') goto Fail;
+					p += 1;
+					goto S72;
+				}
+
+				S75:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
+					Trace("capture", 5, p, entries.Count);
+					goto S74;
+				}
+
+				S76:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 75, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call UserInfo", 6, p, entries.Count);
+					goto S6;
+				}
+
+				S77:
+
+				{
+					capture5 = p;
+					goto S76;
+				}
+
+				S78:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S79:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 78, p, call, atomic, repeat, lookahead, 0));
+					goto S88;
+				}
+
+				S80:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S79;
+				}
+
+				S81:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 79, p, entries.Count);
+					goto S79;
+				}
+
+				S82:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S80;
+				}
+
+				S83:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call PctEncoded", 19, p, entries.Count);
+					goto S19;
+				}
+
+				S84:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 82, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 82, p, entries.Count);
+					goto S83;
+				}
+
+				S85:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call SubDelim", 23, p, entries.Count);
+					goto S23;
+				}
+
+				S86:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 84, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 84, p, entries.Count);
+					goto S85;
+				}
+
+				S87:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Unreserved", 22, p, entries.Count);
+					goto S22;
+				}
+
+				S88:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 86, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 86, p, entries.Count);
+					goto S87;
+				}
+
+				S89:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call RegName", 10, p, entries.Count);
+					goto S10;
+				}
+
+				S90:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call IPv4", 8, p, entries.Count);
+					goto S8;
+				}
+
+				S91:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 89, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 89, p, entries.Count);
+					goto S90;
+				}
+
+				S92:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call IPLiteral", 11, p, entries.Count);
+					goto S11;
+				}
+
+				S93:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 91, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 91, p, entries.Count);
+					goto S92;
+				}
+
+				S94:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Octet", 9, p, entries.Count);
+					goto S9;
+				}
+
+				S95:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S94;
+				}
+
+				S96:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 95, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Octet", 9, p, entries.Count);
+					goto S9;
+				}
+
+				S97:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S96;
+				}
+
+				S98:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 97, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Octet", 9, p, entries.Count);
+					goto S9;
+				}
+
+				S99:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S98;
+				}
+
+				S100:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 99, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Octet", 9, p, entries.Count);
+					goto S9;
+				}
+
+				S101:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S102:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S101;
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 101, p, call, atomic, repeat, lookahead, 0));
+					goto S105;
+				}
+
+				S103:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S102;
+				}
+
+				S104:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 102, p, entries.Count);
+					goto S102;
+				}
+
+				S105:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 103, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Digit", 20, p, entries.Count);
+					goto S20;
+				}
+
+				S106:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S107:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 106, p, call, atomic, repeat, lookahead, 0));
+					goto S114;
+				}
+
+				S108:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S107;
+				}
+
+				S109:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 107, p, entries.Count);
+					goto S107;
+				}
+
+				S110:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call PctEncoded", 19, p, entries.Count);
+					goto S19;
+				}
+
+				S111:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call SubDelim", 23, p, entries.Count);
+					goto S23;
+				}
+
+				S112:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 110, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 110, p, entries.Count);
+					goto S111;
+				}
+
+				S113:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Unreserved", 22, p, entries.Count);
+					goto S22;
+				}
+
+				S114:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 112, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 112, p, entries.Count);
+					goto S113;
+				}
+
+				S115:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ']') goto Fail;
+					p += 1;
+					goto Return;
+				}
+
+				S116:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 115, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call IPv6", 12, p, entries.Count);
+					goto S12;
+				}
+
+				S117:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '[') goto Fail;
+					p += 1;
+					goto S116;
+				}
+
+				S118:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto Return;
+				}
+
+				S119:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 118, p, entries.Count);
+					goto S118;
+				}
+
+				S120:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S119;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 119, p, call, atomic, repeat, lookahead, 0));
+					goto S127;
+				}
+
+				S121:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S120;
+				}
+
+				S122:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 120, p, entries.Count);
+					goto S120;
+				}
+
+				S123:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 121, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S124:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 123, p, entries.Count);
+					goto S123;
+				}
+
+				S125:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S124;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 124, p, call, atomic, repeat, lookahead, 0));
+					goto S128;
+				}
+
+				S126:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S125;
+				}
+
+				S127:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 125, p, entries.Count);
+					goto S125;
+				}
+
+				S128:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 126, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S129:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S130:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S129;
+				}
+
+				S131:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 130, p, entries.Count);
+					goto S130;
+				}
+
+				S132:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S131;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 131, p, call, atomic, repeat, lookahead, 0));
+					goto S139;
+				}
+
+				S133:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S132;
+				}
+
+				S134:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 132, p, entries.Count);
+					goto S132;
+				}
+
+				S135:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 133, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S136:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 135, p, entries.Count);
+					goto S135;
+				}
+
+				S137:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S136;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 136, p, call, atomic, repeat, lookahead, 0));
+					goto S140;
+				}
+
+				S138:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S137;
+				}
+
+				S139:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 137, p, entries.Count);
+					goto S137;
+				}
+
+				S140:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 138, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S141:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 122, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 122, p, entries.Count);
+					goto S134;
+				}
+
+				S142:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S143:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S142;
+				}
+
+				S144:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 143, p, entries.Count);
+					goto S143;
+				}
+
+				S145:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S144;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 144, p, call, atomic, repeat, lookahead, 0));
+					goto S152;
+				}
+
+				S146:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S145;
+				}
+
+				S147:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 145, p, entries.Count);
+					goto S145;
+				}
+
+				S148:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 146, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S149:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 148, p, entries.Count);
+					goto S148;
+				}
+
+				S150:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S149;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 149, p, call, atomic, repeat, lookahead, 0));
+					goto S153;
+				}
+
+				S151:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S150;
+				}
+
+				S152:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 150, p, entries.Count);
+					goto S150;
+				}
+
+				S153:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 151, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S154:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 141, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 141, p, entries.Count);
+					goto S147;
+				}
+
+				S155:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S156:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S155;
+				}
+
+				S157:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 156, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S158:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S157;
+				}
+
+				S159:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 158, p, entries.Count);
+					goto S158;
+				}
+
+				S160:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S159;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 159, p, call, atomic, repeat, lookahead, 0));
+					goto S167;
+				}
+
+				S161:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S160;
+				}
+
+				S162:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 160, p, entries.Count);
+					goto S160;
+				}
+
+				S163:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 161, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S164:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 163, p, entries.Count);
+					goto S163;
+				}
+
+				S165:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S164;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 164, p, call, atomic, repeat, lookahead, 0));
+					goto S168;
+				}
+
+				S166:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S165;
+				}
+
+				S167:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 165, p, entries.Count);
+					goto S165;
+				}
+
+				S168:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 166, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S169:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 154, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 154, p, entries.Count);
+					goto S162;
+				}
+
+				S170:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S171:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 170, p, entries.Count);
+					goto S170;
+				}
+
+				S172:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S171;
+					if (repeating.Value >= 2)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 171, p, call, atomic, repeat, lookahead, 0));
+					goto S176;
+				}
+
+				S173:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S172;
+				}
+
+				S174:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 172, p, entries.Count);
+					goto S172;
+				}
+
+				S175:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S173;
+				}
+
+				S176:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 175, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S177:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S174;
+				}
+
+				S178:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 177, p, entries.Count);
+					goto S177;
+				}
+
+				S179:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S178;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 178, p, call, atomic, repeat, lookahead, 0));
+					goto S186;
+				}
+
+				S180:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S179;
+				}
+
+				S181:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 179, p, entries.Count);
+					goto S179;
+				}
+
+				S182:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 180, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S183:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 182, p, entries.Count);
+					goto S182;
+				}
+
+				S184:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S183;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 183, p, call, atomic, repeat, lookahead, 0));
+					goto S187;
+				}
+
+				S185:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S184;
+				}
+
+				S186:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 184, p, entries.Count);
+					goto S184;
+				}
+
+				S187:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 185, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S188:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 169, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 169, p, entries.Count);
+					goto S181;
+				}
+
+				S189:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S190:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 189, p, entries.Count);
+					goto S189;
+				}
+
+				S191:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S190;
+					if (repeating.Value >= 3)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 190, p, call, atomic, repeat, lookahead, 0));
+					goto S195;
+				}
+
+				S192:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S191;
+				}
+
+				S193:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 191, p, entries.Count);
+					goto S191;
+				}
+
+				S194:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S192;
+				}
+
+				S195:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 194, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S196:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S193;
+				}
+
+				S197:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 196, p, entries.Count);
+					goto S196;
+				}
+
+				S198:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S197;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 197, p, call, atomic, repeat, lookahead, 0));
+					goto S205;
+				}
+
+				S199:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S198;
+				}
+
+				S200:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 198, p, entries.Count);
+					goto S198;
+				}
+
+				S201:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 199, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S202:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 201, p, entries.Count);
+					goto S201;
+				}
+
+				S203:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S202;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 202, p, call, atomic, repeat, lookahead, 0));
+					goto S206;
+				}
+
+				S204:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S203;
+				}
+
+				S205:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 203, p, entries.Count);
+					goto S203;
+				}
+
+				S206:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 204, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Group", 13, p, entries.Count);
+					goto S13;
+				}
+
+				S207:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 188, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 188, p, entries.Count);
+					goto S200;
+				}
+
+				S208:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S209:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 208, p, entries.Count);
+					goto S208;
+				}
+
+				S210:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S209;
+					if (repeating.Value >= 4)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 209, p, call, atomic, repeat, lookahead, 0));
+					goto S214;
+				}
+
+				S211:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S210;
+				}
+
+				S212:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 210, p, entries.Count);
+					goto S210;
+				}
+
+				S213:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S211;
+				}
+
+				S214:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 213, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S215:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S212;
+				}
+
+				S216:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 215, p, entries.Count);
+					goto S215;
+				}
+
+				S217:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S216;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 216, p, call, atomic, repeat, lookahead, 0));
+					goto S220;
+				}
+
+				S218:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S217;
+				}
+
+				S219:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 217, p, entries.Count);
+					goto S217;
+				}
+
+				S220:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 218, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S221:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 207, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 207, p, entries.Count);
+					goto S219;
+				}
+
+				S222:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S223:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 222, p, entries.Count);
+					goto S222;
+				}
+
+				S224:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S223;
+					if (repeating.Value >= 5)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 223, p, call, atomic, repeat, lookahead, 0));
+					goto S228;
+				}
+
+				S225:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S224;
+				}
+
+				S226:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 224, p, entries.Count);
+					goto S224;
+				}
+
+				S227:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S225;
+				}
+
+				S228:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 227, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S229:
+
+				{
+					if (p + 2 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S226;
+				}
+
+				S230:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 221, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 221, p, entries.Count);
+					goto S229;
+				}
+
+				S231:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call LS32", 14, p, entries.Count);
+					goto S14;
+				}
+
+				S232:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 231, p, entries.Count);
+					goto S231;
+				}
+
+				S233:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S232;
+					if (repeating.Value >= 6)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 232, p, call, atomic, repeat, lookahead, 0));
+					goto S237;
+				}
+
+				S234:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S233;
+				}
+
+				S235:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 233, p, entries.Count);
+					goto S233;
+				}
+
+				S236:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S234;
+				}
+
+				S237:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 236, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S238:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 230, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 230, p, entries.Count);
+					goto S235;
+				}
+
+				S239:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto Return;
+				}
+
+				S240:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 239, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S241:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call IPv4", 8, p, entries.Count);
+					goto S8;
+				}
+
+				S242:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S243:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S242;
+				}
+
+				S244:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 243, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call H16", 15, p, entries.Count);
+					goto S15;
+				}
+
+				S245:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 241, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 241, p, entries.Count);
+					goto S244;
+				}
+
+				S246:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S247:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S246;
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 246, p, call, atomic, repeat, lookahead, 0));
+					goto S250;
+				}
+
+				S248:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S247;
+				}
+
+				S249:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 247, p, entries.Count);
+					goto S247;
+				}
+
+				S250:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 248, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Hex", 21, p, entries.Count);
+					goto S21;
+				}
+
+				S251:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S252:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					entries.Add(new ParserEntry(ParserEntry.Choice, 251, p, call, atomic, repeat, lookahead, 0));
+					goto S256;
+				}
+
+				S253:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S252;
+				}
+
+				S254:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 252, p, entries.Count);
+					goto S252;
+				}
+
+				S255:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 253, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Segment", 17, p, entries.Count);
+					goto S17;
+				}
+
+				S256:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '/') goto Fail;
+					p += 1;
+					goto S255;
+				}
+
+				S257:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S258:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					entries.Add(new ParserEntry(ParserEntry.Choice, 257, p, call, atomic, repeat, lookahead, 0));
+					goto S267;
+				}
+
+				S259:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S258;
+				}
+
+				S260:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 258, p, entries.Count);
+					goto S258;
+				}
+
+				S261:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!((c == ':' || c == '@'))) goto Fail;
+					p++;
+					goto S259;
+				}
+
+				S262:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call PctEncoded", 19, p, entries.Count);
+					goto S19;
+				}
+
+				S263:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 261, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 261, p, entries.Count);
+					goto S262;
+				}
+
+				S264:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call SubDelim", 23, p, entries.Count);
+					goto S23;
+				}
+
+				S265:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 263, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 263, p, entries.Count);
+					goto S264;
+				}
+
+				S266:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Unreserved", 22, p, entries.Count);
+					goto S22;
+				}
+
+				S267:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 265, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 265, p, entries.Count);
+					goto S266;
+				}
+
+				S268:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S269:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					entries.Add(new ParserEntry(ParserEntry.Choice, 268, p, call, atomic, repeat, lookahead, 0));
+					goto S278;
+				}
+
+				S270:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S269;
+				}
+
+				S271:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 269, p, entries.Count);
+					goto S269;
+				}
+
+				S272:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
+					p++;
+					goto S270;
+				}
+
+				S273:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call PctEncoded", 19, p, entries.Count);
+					goto S19;
+				}
+
+				S274:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 272, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 272, p, entries.Count);
+					goto S273;
+				}
+
+				S275:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call SubDelim", 23, p, entries.Count);
+					goto S23;
+				}
+
+				S276:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 274, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 274, p, entries.Count);
+					goto S275;
+				}
+
+				S277:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Unreserved", 22, p, entries.Count);
+					goto S22;
+				}
+
+				S278:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 276, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 276, p, entries.Count);
+					goto S277;
+				}
+
+				S279:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Hex", 21, p, entries.Count);
+					goto S21;
+				}
+
+				S280:
+
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 279, p, call, atomic, repeat, lookahead, 0, -1));
+					call = callIndex;
+					Trace("call Hex", 21, p, entries.Count);
+					goto S21;
+				}
+
+				S281:
+
+				{
+					if (p + 1 > text.Length) goto Fail;
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S280;
+				}
+
+				S282:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto Return;
+				}
+
+				S283:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto Return;
+				}
+
+				S284:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto Return;
+				}
+
+				S285:
+
+				{
+					if (p >= text.Length) goto Fail;
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto Return;
+				}
+
+				Return:
+				global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
+				var returned = entries[call];
+				global::System.Diagnostics.Debug.Assert(returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);
+				state = returned.State;
+				var previousCall = returned.CallIndex;
+				repeat = returned.RepeatIndex;
+				lookahead = returned.LookaheadIndex;
+
+				if (returned.RuleIndex >= 0)
+				{
+					entries[call] = new ParserEntry(ParserEntry.Completed, returned.State, returned.Position, returned.CallIndex, returned.AtomicIndex, returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex);
+				}
+				else if (entries.Count == call + 1)
+					entries.RemoveAt(call);
+
+				call = previousCall;
+				Trace("return", state, p, entries.Count);
+				goto Dispatch;
+
+				Accept:
+				if (p != text.Length) goto Fail;
+
+				var values = parser.Materialization(entries.Count);
+				for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
+				{
+					var completed = entries[completedAt];
+					if (completed.Kind != ParserEntry.Completed) continue;
+					switch (completed.RuleIndex)
+					{
+						case 0:
+						{
+							var captured0From = -1;
+							var captured0To   = -1;
+							for (var capturedAt0 = 0; capturedAt0 < entries.Count; capturedAt0++)
+							{
+								var candidate = entries[capturedAt0];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 0))
+								{
+									if (captured0From < 0)
+										captured0From = candidate.Position;
+									captured0To = candidate.Value;
+								}
+							}
+							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
+							var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+							var captured1At = -1;
+							for (var capturedAt1 = entries.Count - 1; capturedAt1 >= 0; capturedAt1--)
+							{
+								var candidate = entries[capturedAt1];
+								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
+								{
+									captured1At = candidate.Position;
+									break;
+								}
+							}
+							global::System.Diagnostics.Debug.Assert(captured1At >= 0);
+							var captured1 = (global::DotGram.Snapshots.Url.Authority)values[captured1At]!;
+
+							var captured2From = -1;
+							var captured2To   = -1;
+							for (var capturedAt2 = 0; capturedAt2 < entries.Count; capturedAt2++)
+							{
+								var candidate = entries[capturedAt2];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 2))
+								{
+									if (captured2From < 0)
+										captured2From = candidate.Position;
+									captured2To = candidate.Value;
+								}
+							}
+							global::System.Diagnostics.Debug.Assert(captured2From >= 0);
+							var captured2 = captured2From < 0 ? string.Empty : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+							var captured3From = -1;
+							var captured3To   = -1;
+							for (var capturedAt3 = 0; capturedAt3 < entries.Count; capturedAt3++)
+							{
+								var candidate = entries[capturedAt3];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
+								{
+									if (captured3From < 0)
+										captured3From = candidate.Position;
+									captured3To = candidate.Value;
+								}
+							}
+							var captured3 = captured3From < 0 ? null : text.Slice(captured3From, captured3To - captured3From).ToString();
+
+							var captured4From = -1;
+							var captured4To   = -1;
+							for (var capturedAt4 = 0; capturedAt4 < entries.Count; capturedAt4++)
+							{
+								var candidate = entries[capturedAt4];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
+								{
+									if (captured4From < 0)
+										captured4From = candidate.Position;
+									captured4To = candidate.Value;
+								}
+							}
+							var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
+
+							values[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
+								captured0!,
+								captured1!,
+								captured2!,
+								captured3,
+								captured4);
+							break;
+						}
+						case 2:
+						{
+							var captured0From = -1;
+							var captured0To   = -1;
+							for (var capturedAt0 = 0; capturedAt0 < entries.Count; capturedAt0++)
+							{
+								var candidate = entries[capturedAt0];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 5))
+								{
+									if (captured0From < 0)
+										captured0From = candidate.Position;
+									captured0To = candidate.Value;
+								}
+							}
+							var captured0 = captured0From < 0 ? null : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+							var captured1From = -1;
+							var captured1To   = -1;
+							for (var capturedAt1 = 0; capturedAt1 < entries.Count; capturedAt1++)
+							{
+								var candidate = entries[capturedAt1];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 6))
+								{
+									if (captured1From < 0)
+										captured1From = candidate.Position;
+									captured1To = candidate.Value;
+								}
+							}
+							global::System.Diagnostics.Debug.Assert(captured1From >= 0);
+							var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
+
+							var captured2From = -1;
+							var captured2To   = -1;
+							for (var capturedAt2 = 0; capturedAt2 < entries.Count; capturedAt2++)
+							{
+								var candidate = entries[capturedAt2];
+								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 7))
+								{
+									if (captured2From < 0)
+										captured2From = candidate.Position;
+									captured2To = candidate.Value;
+								}
+							}
+							var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+							values[completedAt] = new global::DotGram.Snapshots.Url.Authority(
+								captured0,
+								captured1!,
+								captured2);
+							break;
+						}
+					}
+				}
+				value = (global::DotGram.Snapshots.Url.UrlValue)values[0]!;
+				return p;
+
+				Fail:
+				if (lookahead < 0 && p > failure.Position)
+					failure.Position = p;
+				Trace("fail", state, p, entries.Count);
+
+				while (entries.Count > 0)
+				{
+					var last = entries.Count - 1;
+					var entry = entries[last];
+					entries.RemoveAt(last);
+
+					if (entry.Kind == ParserEntry.Choice)
+					{
+						state  = entry.State;
+						p      = entry.Position;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						Trace("resume", state, p, entries.Count);
+						goto Dispatch;
+					}
+					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
 						continue;
 
-					case 2:
-						// ?![^ ]
-						if (Recognize_Url_Whole_Look0(text, p) < 0)
-							goto case 0;
-						goto case 1;
+					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
+					{
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						p      = entry.Position;
+					}
+					else if (entry.Kind == ParserEntry.Atomic)
+					{
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+					}
+					else if (entry.Kind == ParserEntry.Repeat)
+					{
+						p      = entry.Position;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+					}
+					else
 
-					case 3:
-						// ('#' & fragment: Rest)? — stop, and check the count
-						c0 = saved;
+					{
+						global::System.Diagnostics.Debug.Assert(entry.Kind == ParserEntry.Lookahead);
+						p         = entry.Position;
+						call      = entry.CallIndex;
+						atomic    = entry.AtomicIndex;
+						repeat    = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
 
-						goto case 2;
-
-					case 4:
-						// ('#' & fragment: Rest)? — take another, or leave stopping open
-						if (c0 >= 1)
-						{
-							saved = c0;
-							goto case 3;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 11; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 10;
-
-					case 5:
-						// ('#' & fragment: Rest)? — one more taken
-						c0++;
-						goto case 4;
-
-					case 6:
-						// ('#' & fragment: Rest)? — start counting
-						c0 = 0;
-						goto case 4;
-
-					case 7:
-						// fragment: Rest — captured to here
-						s4_to = p;
-						goto case 5;
-
-					case 8:
-						// Rest
-						r = Recognize_Rest(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 7;
-
-					case 9:
-						// fragment: Rest — capture starts here
-						s4_from = p;
-						goto case 8;
-
-					case 10:
-						// '#'
-						if (p + 1 > text.Length)
+						if (entry.Value == 0)
 
 						{
-							failure.Starved = true;
-							goto case 1;
+							state = entry.State;
+							Trace("negative lookahead succeeds", state, p, entries.Count);
+							goto Dispatch;
 						}
-						if (text[p + 0] != '#')
-							goto case 1;
-						p += 1;
-						goto case 9;
+					}
+				}
 
-					case 11:
-						// forget what the abandoned attempt captured
-						s4_from = s4_to = -1;
-						goto case 3;
+				return -1;
 
-					case 12:
-						// ('?' & query: Rest)? — stop, and check the count
-						c1 = saved;
-
-						goto case 6;
-
-					case 13:
-						// ('?' & query: Rest)? — take another, or leave stopping open
-						if (c1 >= 1)
-						{
-							saved = c1;
-							goto case 12;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 20; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 19;
-
-					case 14:
-						// ('?' & query: Rest)? — one more taken
-						c1++;
-						goto case 13;
-
-					case 15:
-						// ('?' & query: Rest)? — start counting
-						c1 = 0;
-						goto case 13;
-
-					case 16:
-						// query: Rest — captured to here
-						s3_to = p;
-						goto case 14;
-
-					case 17:
-						// Rest
-						r = Recognize_Rest(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 16;
-
-					case 18:
-						// query: Rest — capture starts here
-						s3_from = p;
-						goto case 17;
-
-					case 19:
-						// '?'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != '?')
-							goto case 1;
-						p += 1;
-						goto case 18;
-
-					case 20:
-						// forget what the abandoned attempt captured
-						s3_from = s3_to = -1;
-						s4_from = s4_to = -1;
-						goto case 12;
-
-					case 21:
-						// path: Path — captured to here
-						s2_to = p;
-						goto case 15;
-
-					case 22:
-						// Path
-						r = Recognize_Path(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 21;
-
-					case 23:
-						// path: Path — capture starts here
-						s2_from = p;
-						goto case 22;
-
-					case 24:
-						// authority: Authority — captured
-						goto case 23;
-
-					case 25:
-						// Authority
-						r = Recognize_Authority(text, p, ref failure, out v1);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 24;
-
-					case 26:
-						// "://"
-						if (p + 3 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != '/')
-							goto case 1;
-						if (text[p + 2] != '/')
-							goto case 1;
-						p += 3;
-						goto case 25;
-
-					case 27:
-						// scheme: Scheme — captured to here
-						s0_to = p;
-						goto case 26;
-
-					case 28:
-						// Scheme
-						r = Recognize_Scheme(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 27;
-
-					case 29:
-						// scheme: Scheme — capture starts here
-						s0_from = p;
-						goto case 28;
-
-					default:
-						return -1;
+				Dispatch:
+				switch (state)
+				{
+					case 0: goto Return;
+					case 1: goto Accept;
+					case 2:   goto Fail;
+					case 3: goto S3;
+					case 4: goto S4;
+					case 5: goto S5;
+					case 6: goto S6;
+					case 7: goto S7;
+					case 8: goto S8;
+					case 9: goto S9;
+					case 10: goto S10;
+					case 11: goto S11;
+					case 12: goto S12;
+					case 13: goto S13;
+					case 14: goto S14;
+					case 15: goto S15;
+					case 16: goto S16;
+					case 17: goto S17;
+					case 18: goto S18;
+					case 19: goto S19;
+					case 20: goto S20;
+					case 21: goto S21;
+					case 22: goto S22;
+					case 23: goto S23;
+					case 24: goto S24;
+					case 25: goto S25;
+					case 26: goto S26;
+					case 27: goto S27;
+					case 28: goto S28;
+					case 29: goto S29;
+					case 30: goto S30;
+					case 31: goto S31;
+					case 32: goto S32;
+					case 33: goto S33;
+					case 34: goto S34;
+					case 35: goto S35;
+					case 36: goto S36;
+					case 37: goto S37;
+					case 38: goto S38;
+					case 39: goto S39;
+					case 40: goto S40;
+					case 41: goto S41;
+					case 42: goto S42;
+					case 43: goto S43;
+					case 44: goto S44;
+					case 45: goto S45;
+					case 46: goto S46;
+					case 47: goto S47;
+					case 48: goto S48;
+					case 49: goto S49;
+					case 50: goto S50;
+					case 51: goto S51;
+					case 52: goto S52;
+					case 53: goto S53;
+					case 54: goto S54;
+					case 55: goto S55;
+					case 56: goto S56;
+					case 57: goto S57;
+					case 58: goto S58;
+					case 59: goto S59;
+					case 60: goto S60;
+					case 61: goto S61;
+					case 62: goto S62;
+					case 63: goto S63;
+					case 64: goto S64;
+					case 65: goto S65;
+					case 66: goto S66;
+					case 67: goto S67;
+					case 68: goto S68;
+					case 69: goto S69;
+					case 70: goto S70;
+					case 71: goto S71;
+					case 72: goto S72;
+					case 73: goto S73;
+					case 74: goto S74;
+					case 75: goto S75;
+					case 76: goto S76;
+					case 77: goto S77;
+					case 78: goto S78;
+					case 79: goto S79;
+					case 80: goto S80;
+					case 81: goto S81;
+					case 82: goto S82;
+					case 83: goto S83;
+					case 84: goto S84;
+					case 85: goto S85;
+					case 86: goto S86;
+					case 87: goto S87;
+					case 88: goto S88;
+					case 89: goto S89;
+					case 90: goto S90;
+					case 91: goto S91;
+					case 92: goto S92;
+					case 93: goto S93;
+					case 94: goto S94;
+					case 95: goto S95;
+					case 96: goto S96;
+					case 97: goto S97;
+					case 98: goto S98;
+					case 99: goto S99;
+					case 100: goto S100;
+					case 101: goto S101;
+					case 102: goto S102;
+					case 103: goto S103;
+					case 104: goto S104;
+					case 105: goto S105;
+					case 106: goto S106;
+					case 107: goto S107;
+					case 108: goto S108;
+					case 109: goto S109;
+					case 110: goto S110;
+					case 111: goto S111;
+					case 112: goto S112;
+					case 113: goto S113;
+					case 114: goto S114;
+					case 115: goto S115;
+					case 116: goto S116;
+					case 117: goto S117;
+					case 118: goto S118;
+					case 119: goto S119;
+					case 120: goto S120;
+					case 121: goto S121;
+					case 122: goto S122;
+					case 123: goto S123;
+					case 124: goto S124;
+					case 125: goto S125;
+					case 126: goto S126;
+					case 127: goto S127;
+					case 128: goto S128;
+					case 129: goto S129;
+					case 130: goto S130;
+					case 131: goto S131;
+					case 132: goto S132;
+					case 133: goto S133;
+					case 134: goto S134;
+					case 135: goto S135;
+					case 136: goto S136;
+					case 137: goto S137;
+					case 138: goto S138;
+					case 139: goto S139;
+					case 140: goto S140;
+					case 141: goto S141;
+					case 142: goto S142;
+					case 143: goto S143;
+					case 144: goto S144;
+					case 145: goto S145;
+					case 146: goto S146;
+					case 147: goto S147;
+					case 148: goto S148;
+					case 149: goto S149;
+					case 150: goto S150;
+					case 151: goto S151;
+					case 152: goto S152;
+					case 153: goto S153;
+					case 154: goto S154;
+					case 155: goto S155;
+					case 156: goto S156;
+					case 157: goto S157;
+					case 158: goto S158;
+					case 159: goto S159;
+					case 160: goto S160;
+					case 161: goto S161;
+					case 162: goto S162;
+					case 163: goto S163;
+					case 164: goto S164;
+					case 165: goto S165;
+					case 166: goto S166;
+					case 167: goto S167;
+					case 168: goto S168;
+					case 169: goto S169;
+					case 170: goto S170;
+					case 171: goto S171;
+					case 172: goto S172;
+					case 173: goto S173;
+					case 174: goto S174;
+					case 175: goto S175;
+					case 176: goto S176;
+					case 177: goto S177;
+					case 178: goto S178;
+					case 179: goto S179;
+					case 180: goto S180;
+					case 181: goto S181;
+					case 182: goto S182;
+					case 183: goto S183;
+					case 184: goto S184;
+					case 185: goto S185;
+					case 186: goto S186;
+					case 187: goto S187;
+					case 188: goto S188;
+					case 189: goto S189;
+					case 190: goto S190;
+					case 191: goto S191;
+					case 192: goto S192;
+					case 193: goto S193;
+					case 194: goto S194;
+					case 195: goto S195;
+					case 196: goto S196;
+					case 197: goto S197;
+					case 198: goto S198;
+					case 199: goto S199;
+					case 200: goto S200;
+					case 201: goto S201;
+					case 202: goto S202;
+					case 203: goto S203;
+					case 204: goto S204;
+					case 205: goto S205;
+					case 206: goto S206;
+					case 207: goto S207;
+					case 208: goto S208;
+					case 209: goto S209;
+					case 210: goto S210;
+					case 211: goto S211;
+					case 212: goto S212;
+					case 213: goto S213;
+					case 214: goto S214;
+					case 215: goto S215;
+					case 216: goto S216;
+					case 217: goto S217;
+					case 218: goto S218;
+					case 219: goto S219;
+					case 220: goto S220;
+					case 221: goto S221;
+					case 222: goto S222;
+					case 223: goto S223;
+					case 224: goto S224;
+					case 225: goto S225;
+					case 226: goto S226;
+					case 227: goto S227;
+					case 228: goto S228;
+					case 229: goto S229;
+					case 230: goto S230;
+					case 231: goto S231;
+					case 232: goto S232;
+					case 233: goto S233;
+					case 234: goto S234;
+					case 235: goto S235;
+					case 236: goto S236;
+					case 237: goto S237;
+					case 238: goto S238;
+					case 239: goto S239;
+					case 240: goto S240;
+					case 241: goto S241;
+					case 242: goto S242;
+					case 243: goto S243;
+					case 244: goto S244;
+					case 245: goto S245;
+					case 246: goto S246;
+					case 247: goto S247;
+					case 248: goto S248;
+					case 249: goto S249;
+					case 250: goto S250;
+					case 251: goto S251;
+					case 252: goto S252;
+					case 253: goto S253;
+					case 254: goto S254;
+					case 255: goto S255;
+					case 256: goto S256;
+					case 257: goto S257;
+					case 258: goto S258;
+					case 259: goto S259;
+					case 260: goto S260;
+					case 261: goto S261;
+					case 262: goto S262;
+					case 263: goto S263;
+					case 264: goto S264;
+					case 265: goto S265;
+					case 266: goto S266;
+					case 267: goto S267;
+					case 268: goto S268;
+					case 269: goto S269;
+					case 270: goto S270;
+					case 271: goto S271;
+					case 272: goto S272;
+					case 273: goto S273;
+					case 274: goto S274;
+					case 275: goto S275;
+					case 276: goto S276;
+					case 277: goto S277;
+					case 278: goto S278;
+					case 279: goto S279;
+					case 280: goto S280;
+					case 281: goto S281;
+					case 282: goto S282;
+					case 283: goto S283;
+					case 284: goto S284;
+					case 285: goto S285;
+					default: goto Fail;
 				}
 			}
-		}
+			finally
 
-		// the lookahead [^ ]
-		static int Recognize_Url_Whole_Look0(global::System.ReadOnlySpan<char> text, int pos)
-		{
-			var p     = pos;
-			var state = 2;
-
-			switch (state)
 			{
-				case 0:
-					return p;
-
-				case 1:
-					return -1;
-
-				case 2:
-					// [^ ]
-					if (p >= text.Length)
-						goto case 1;
-					p++;
-					goto case 0;
-
-				default:
-					return -1;
+				parser.Reset();
+				ReturnParser(parser);
 			}
 		}
 
@@ -3760,6 +6824,80 @@ namespace DotGram.Snapshots
 			from.CopyTo(bigger);
 
 			return bigger;
+		}
+
+		private sealed class Parser
+		{
+			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
+				new global::System.Collections.Generic.List<ParserEntry>();
+			object?[] _values = global::System.Array.Empty<object?>();
+			int _valuesUsed;
+
+			internal object?[] Materialization(int count)
+			{
+				if (_values.Length < count)
+					global::System.Array.Resize(ref _values, count);
+
+				_valuesUsed = count;
+
+				return _values;
+			}
+
+			internal void Reset()
+			{
+				Entries.Clear();
+				global::System.Array.Clear(_values, 0, _valuesUsed);
+				_valuesUsed = 0;
+			}
+		}
+
+		private readonly struct ParserEntry
+		{
+			internal const int Choice = 1;
+			internal const int Call   = 2;
+			internal const int Atomic = 3;
+			internal const int Repeat = 4;
+			internal const int Lookahead = 5;
+			internal const int Capture = 6;
+			internal const int Construct = 7;
+			internal const int Completed = 8;
+			internal const int RuleCapture = 9;
+
+			internal ParserEntry(
+				int kind, int state, int position, int callIndex, int atomicIndex,
+				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)
+			{
+				Kind        = kind;
+				State       = state;
+				Position    = position;
+				CallIndex   = callIndex;
+				AtomicIndex = atomicIndex;
+				RepeatIndex = repeatIndex;
+				LookaheadIndex = lookaheadIndex;
+				Value       = value;
+				RuleIndex   = ruleIndex;
+			}
+
+			internal int Kind        { get; }
+			internal int State       { get; }
+			internal int Position    { get; }
+			internal int CallIndex   { get; }
+			internal int AtomicIndex { get; }
+			internal int RepeatIndex { get; }
+			internal int LookaheadIndex { get; }
+			internal int Value       { get; }
+			internal int RuleIndex   { get; }
+		}
+
+		static partial void RentParser(ref Parser parser);
+		static partial void ReturnParser(Parser parser);
+
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(string action, int state, int position, int arena)
+		{
+			global::System.Diagnostics.Debug.WriteLine(
+				".Gram " + action + " state=" + state.ToString() +
+				" position=" + position.ToString() + " arena=" + arena.ToString());
 		}
 	}
 }
