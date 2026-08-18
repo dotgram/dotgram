@@ -148,6 +148,18 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Construction_is_recorded_and_runs_only_after_acceptance()
+	{
+		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
+
+		Assert.Contains("ParserEntry.Construct", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.True(
+			source.IndexOf("Accept:", StringComparison.Ordinal) <
+			source.LastIndexOf("value = Construct_Start(", StringComparison.Ordinal));
+	}
+
+	[Fact]
 	public void Typed_recursive_results_return_through_explicit_frames()
 	{
 		const int depth = 20_000;

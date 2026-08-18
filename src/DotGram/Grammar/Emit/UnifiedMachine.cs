@@ -23,6 +23,8 @@ sealed class UnifiedMachine
 	readonly Dictionary<RuleSymbol, int> _entries = [];
 	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
+	readonly Dictionary<RuleSymbol, IReadOnlyList<Machine.Factory>> _factories = [];
+	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly List<string> _extra = [];
 	readonly ILineMap? _lines;
 	bool _usesChar;
@@ -39,12 +41,16 @@ sealed class UnifiedMachine
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
+			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
 
 			_captureOffsets[rule] = _captures;
+			_factories[rule] = factories;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is Node.Capture)
 					_captureSlots[node] = _captures + layout.SlotOf(node);
+				else if (node is Node.Construct)
+					_constructs[node] = IndexOf(factories, node);
 
 			_captures += layout.Slots.Count;
 		}
@@ -64,7 +70,7 @@ sealed class UnifiedMachine
 
 	public static bool Supports(RecognitionGraph graph)
 	{
-		if (graph.Types.Count > 0 || graph.Recoveries.Count > 0 || graph.Climbing.Count > 0)
+		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0)
 			return false;
 
 		foreach (var rule in graph.Rules)
@@ -76,9 +82,11 @@ sealed class UnifiedMachine
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
-					Node.External or Node.Atomic or Node.Capture) ||
+					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
 					node is Node.Guard && graph.Results[rule].Count > 0 ||
-					node is Node.Call(var called, _) && graph.Results[called].Count > 0)
+					node is Node.Capture(_, Node.Lookahead) ||
+					node is Node.Call(var called, _) &&
+						(graph.Results[called].Count > 0 || graph.Types.ContainsKey(called)))
 					return false;
 
 			if (CaptureInsideLookahead(graph.Bodies[rule]))
@@ -86,6 +94,15 @@ sealed class UnifiedMachine
 		}
 
 		return true;
+	}
+
+	static int IndexOf(IReadOnlyList<Machine.Factory> factories, Node construct)
+	{
+		for (var i = 0; i < factories.Count; i++)
+			if (ReferenceEquals(factories[i].Of, construct))
+				return i;
+
+		throw new InvalidOperationException("A construction has no factory.");
 	}
 
 	static bool CaptureInsideLookahead(Node root)
@@ -216,9 +233,9 @@ sealed class UnifiedMachine
 						file.Line("goto Dispatch;");
 					}
 
-					if (_captures > 0)
+					if (_captures > 0 || _constructs.Count > 0)
 					{
-						file.Line("if (entry.Kind == ParserEntry.Capture)");
+						file.Line("if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct)");
 						file.Then("continue;");
 						file.Line();
 					}
@@ -390,6 +407,23 @@ sealed class UnifiedMachine
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
 				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+				atClose.Line($"goto {Label(next)};");
+
+				return state;
+			}
+
+			case Node.Construct(var body, _):
+			{
+				var factory = _constructs[node];
+				var close   = Reserve(out var atClose);
+				var inner   = Compile(body, close);
+				var state   = Reserve(out var writer);
+
+				writer.Line($"goto {Label(inner)};");
+				atClose.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
+					"call, atomic, repeat, lookahead, 0));");
+				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count);");
 				atClose.Line($"goto {Label(next)};");
 
 				return state;
@@ -603,13 +637,66 @@ sealed class UnifiedMachine
 			file.Line();
 		}
 
-		file.Line($"value = new {type}(");
+		var factories = _factories[root];
 
-		using (file.Indent())
-			for (var i = 0; i < members.Count; i++)
-				file.Line(
-					$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
-					(i + 1 < members.Count ? "," : ");"));
+		if (factories.Count == 0)
+		{
+			file.Line($"value = new {type}(");
+
+			using (file.Indent())
+				for (var i = 0; i < members.Count; i++)
+					file.Line(
+						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
+						(i + 1 < members.Count ? "," : ");"));
+
+			return;
+		}
+
+		file.Line("var chosen = -1;");
+
+		using (file.Block("for (var chosenAt = entries.Count - 1; chosenAt >= 0; chosenAt--)"))
+		{
+			file.Line("var candidate = entries[chosenAt];");
+
+			using (file.Block("if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == 0)"))
+			{
+				file.Line("chosen = candidate.State;");
+				file.Line("break;");
+			}
+		}
+
+		file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
+
+		using (file.Block("switch (chosen)"))
+			for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+			{
+				var factory   = factories[factoryIndex];
+				var arguments = new List<string> { "text.Slice(pos, p - pos).ToString()" };
+
+				if (CSharpEmitter.Asks(factory, "parserSpan"))
+					arguments.Add("new global::DotGram.SourceSpan(pos, p - pos)");
+
+				foreach (var member in factory.Members)
+				{
+					if (member.Name == "parserText" || member.Name == factory.Accumulator)
+						continue;
+
+					for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+						if (members[memberIndex].Name == member.Name)
+						{
+							arguments.Add($"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
+							break;
+						}
+				}
+
+				file.Line($"case {factoryIndex}:");
+
+				using (file.Indent())
+				{
+					file.Line($"value = {factory.Method}({string.Join(", ", arguments)});");
+					file.Line("break;");
+				}
+			}
 	}
 
 	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");

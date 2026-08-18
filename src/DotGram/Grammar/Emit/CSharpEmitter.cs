@@ -475,7 +475,7 @@ public static partial class CSharpEmitter
 	/// which is the order the machine numbers them by.
 	/// </para>
 	/// </remarks>
-	static IReadOnlyList<Machine.Factory> FactoriesOf(
+	internal static IReadOnlyList<Machine.Factory> FactoriesOf(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
 		var name   = "Construct_" + IdentifierOf(rule);
