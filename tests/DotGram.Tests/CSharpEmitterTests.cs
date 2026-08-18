@@ -192,6 +192,15 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_negative_lookahead_capture_is_recorded_only_on_its_success_path()
+	{
+		var source = Emit("Start = seen: ?!'z' & 'a'\nparse Start");
+
+		Assert.Contains("capture negative lookahead", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+	}
+
+	[Fact]
 	public void Typed_recursive_results_return_through_explicit_frames()
 	{
 		const int depth = 20_000;

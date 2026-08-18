@@ -103,8 +103,7 @@ sealed class UnifiedMachine
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
 					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
-					node is Node.Guard && graph.Results[rule].Count > 0 ||
-					node is Node.Capture(_, Node.Lookahead(false, _)))
+					node is Node.Guard && graph.Results[rule].Count > 0)
 					return false;
 
 			if (CaptureInsideLookahead(graph.Bodies[rule]))
@@ -311,6 +310,14 @@ sealed class UnifiedMachine
 						using (file.Block(""))
 						{
 							file.Line("state = entry.State;");
+							using (file.Block("if (entry.RuleIndex >= 0)"))
+							{
+								file.Line(
+									"entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, " +
+									"call, atomic, repeat, lookahead, p));");
+								file.Line(
+									"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count);");
+							}
 							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count);");
 							file.Line("goto Dispatch;");
 						}
@@ -431,6 +438,8 @@ sealed class UnifiedMachine
 
 				if (body is Node.Lookahead(true, var seen))
 					return CompileLookaheadCapture(slot, seen, next);
+				if (body is Node.Lookahead(false, var rejected))
+					return CompileNegativeLookaheadCapture(slot, rejected, next);
 
 				var close = Reserve(out var atClose);
 				var inner = Compile(body, close);
@@ -672,6 +681,34 @@ sealed class UnifiedMachine
 			"repeat, lookahead, seenTo));");
 		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count);");
 		atSuccess.Line($"goto {Label(next)};");
+
+		return state;
+	}
+
+	int CompileNegativeLookaheadCapture(int slot, Node rejected, int next)
+	{
+		var matched = Reserve(out var atMatched);
+		var inner   = Compile(rejected, matched);
+		var state   = Reserve(out var writer);
+
+		writer.Line("var lookaheadIndex = entries.Count;");
+		writer.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			$"repeat, lookahead, 0, {slot}));");
+		writer.Line("lookahead = lookaheadIndex;");
+		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"goto {Label(inner)};");
+
+		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
+		atMatched.Line("var looked = entries[lookahead];");
+		atMatched.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+		atMatched.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
+		atMatched.Line("p         = looked.Position;");
+		atMatched.Line("call      = looked.CallIndex;");
+		atMatched.Line("atomic    = looked.AtomicIndex;");
+		atMatched.Line("repeat    = looked.RepeatIndex;");
+		atMatched.Line("lookahead = looked.LookaheadIndex;");
+		atMatched.Line("goto Fail;");
 
 		return state;
 	}

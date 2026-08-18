@@ -3216,6 +3216,11 @@ namespace DotGram.Snapshots
 
 						{
 							state = entry.State;
+							if (entry.RuleIndex >= 0)
+							{
+								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+							}
 							Trace("negative lookahead succeeds", state, p, entries.Count);
 							goto Dispatch;
 						}
