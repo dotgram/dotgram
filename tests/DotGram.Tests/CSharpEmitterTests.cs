@@ -93,9 +93,12 @@ public sealed class CSharpEmitterTests
 		const int depth = 20_000;
 		const string grammar = "Start = 'a'* & ('(' & Start & ')' | 'x')\nparse Start";
 
-		var parser = EmittedCode.Compile(Emit(grammar));
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
 		var input = string.Concat(Enumerable.Repeat("a(", depth)) + "ax" + new string(')', depth);
 
+		Assert.Contains("ParserEntry.Repeat", source);
+		Assert.DoesNotContain("Span<int> calls", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
 	}
 
@@ -382,7 +385,7 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void Blocks_written_in_one_piece_land_at_the_depth_they_are_written_at()
 	{
-		// `Match<T>`, `Failure` and `Grow` are raw string literals in the emitter, which
+		// `Match<T>`, `Failure` and the parser runtime are raw string literals in the emitter, which
 		// carry whatever line endings the emitter's own file was saved with. Read as one
 		// line — which is what happens when those endings are not the ones the writer
 		// splits on — they arrive indented once and flat after that. The code still
@@ -395,7 +398,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\tprivate Match(", source);
 		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\t/// <summary>",                    source);
-		Assert.Contains("\t\tstatic int[] Grow(global::System.Span<int> from)\r\n\t\t{\r\n",     source);
+		Assert.Contains("\t\tprivate sealed class Parser\r\n\t\t{\r\n", source);
 	}
 
 	[Fact]

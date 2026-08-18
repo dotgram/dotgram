@@ -244,9 +244,7 @@ public sealed class SemanticTests
 			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Comma)\nparse Start")
 			.Sources[0].Text;
 
-		Assert.Equal(
-			1,
-			source.Split("static int Recognize_List_Word_Comma(").Length - 1);
+		Assert.Equal(1, source.Split(["enter List_Word_Comma"], StringSplitOptions.None).Length - 1);
 	}
 
 	[Fact]
@@ -573,6 +571,13 @@ public sealed class SemanticTests
 	[InlineData("Name = \"xy\" | \"x\"")]
 	public void Backtracking_crosses_a_rule_boundary(string name) =>
 		Assert.True(Matches($"Start = Name & 'y'\n{name}", "xy"));
+
+	[Fact]
+	public void A_repetition_can_give_input_back_across_a_rule_boundary()
+	{
+		Assert.True(Matches("Start = Run & 'a' & 'b'\nRun = 'a'+", "aaab"));
+		Assert.False(Matches("Start = { Run } & 'a' & 'b'\nRun = 'a'+", "aaab"));
+	}
 
 	[Fact]
 	public void An_atomic_group_commits_a_called_rule_too() =>

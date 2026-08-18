@@ -466,14 +466,18 @@ public static partial class CSharpEmitter
 			internal const int Choice = 1;
 			internal const int Call   = 2;
 			internal const int Atomic = 3;
+			internal const int Repeat = 4;
 
-			internal ParserEntry(int kind, int state, int position, int callIndex, int atomicIndex)
+			internal ParserEntry(
+				int kind, int state, int position, int callIndex, int atomicIndex, int repeatIndex, int value)
 			{
 				Kind        = kind;
 				State       = state;
 				Position    = position;
 				CallIndex   = callIndex;
 				AtomicIndex = atomicIndex;
+				RepeatIndex = repeatIndex;
+				Value       = value;
 			}
 
 			internal int Kind        { get; }
@@ -481,6 +485,8 @@ public static partial class CSharpEmitter
 			internal int Position    { get; }
 			internal int CallIndex   { get; }
 			internal int AtomicIndex { get; }
+			internal int RepeatIndex { get; }
+			internal int Value       { get; }
 		}
 
 		static partial void RentParser(ref Parser parser);
