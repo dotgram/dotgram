@@ -20,11 +20,15 @@ sealed class UnifiedMachine
 	readonly RecognitionGraph _graph;
 	readonly List<Writer> _states = [];
 	readonly Dictionary<RuleSymbol, int> _entries = [];
+	readonly List<string> _extra = [];
+	readonly ILineMap? _lines;
 	bool _usesChar;
+	int _guards;
 
-	public UnifiedMachine(RecognitionGraph graph)
+	public UnifiedMachine(RecognitionGraph graph, ILineMap? lines)
 	{
 		_graph = graph;
+		_lines = lines;
 
 		foreach (var rule in graph.Rules)
 			_entries[rule] = Reserve(out _);
@@ -47,11 +51,14 @@ sealed class UnifiedMachine
 		foreach (var rule in graph.Rules)
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
-					Node.Choice or Node.Repeat or Node.Lookahead or Node.Call or Node.External or Node.Atomic))
+					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
+					Node.External or Node.Atomic))
 					return false;
 
 		return true;
 	}
+
+	public IReadOnlyList<string> Extra => _extra;
 
 	public string Render(RuleSymbol root, string name)
 	{
@@ -311,6 +318,26 @@ sealed class UnifiedMachine
 				var state = Reserve(out var writer);
 
 				writer.Line($"if (!{method}(text, ref p)) goto Fail;");
+				writer.Line($"goto {Label(next)};");
+
+				return state;
+			}
+
+			case Node.Guard(var condition):
+			{
+				var method = "Recognize_DotGram_Guard" + _guards++;
+				var helper = new Writer(0);
+
+				helper.Line($"static bool {method}(string parserText) =>");
+				CSharpEmitter.Handed(
+					helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+				_extra.Add(helper.ToString());
+
+				var state = Reserve(out var writer);
+
+				writer.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
+				writer.Line("var ruleStart = entries[call].Position;");
+				writer.Line($"if (!{method}(text.Slice(ruleStart, p - ruleStart).ToString())) goto Fail;");
 				writer.Line($"goto {Label(next)};");
 
 				return state;

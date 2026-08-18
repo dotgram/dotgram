@@ -55,7 +55,7 @@ public static partial class CSharpEmitter
 		var execution = ExecutionPlanner.Analyze(graph);
 		var unified = graph.Publications.Any(publication => publication.Kind == PublishKind.Parse) &&
 			UnifiedMachine.Supports(graph)
-				? new UnifiedMachine(graph)
+				? new UnifiedMachine(graph, lines)
 				: null;
 		var needsLegacyRules = unified is null ||
 			graph.Publications.Any(publication => publication.Kind == PublishKind.Find);
@@ -213,6 +213,13 @@ public static partial class CSharpEmitter
 		}
 
 		var emittedRecursive = new HashSet<ExecutionComponent>();
+
+		if (unified is not null)
+			foreach (var extra in unified.Extra)
+			{
+				file.Write(extra);
+				file.Line();
+			}
 
 		if (needsLegacyRules)
 			foreach (var rule in graph.Rules)
