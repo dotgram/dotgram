@@ -47,7 +47,7 @@ sealed class UnifiedMachine
 		foreach (var rule in graph.Rules)
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
-					Node.Choice or Node.Repeat or Node.Lookahead or Node.Call or Node.Atomic))
+					Node.Choice or Node.Repeat or Node.Lookahead or Node.Call or Node.External or Node.Atomic))
 					return false;
 
 		return true;
@@ -302,6 +302,16 @@ sealed class UnifiedMachine
 				writer.Line("call = callIndex;");
 				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 				writer.Line($"goto {Label(_entries[rule])};");
+
+				return state;
+			}
+
+			case Node.External(var method):
+			{
+				var state = Reserve(out var writer);
+
+				writer.Line($"if (!{method}(text, ref p)) goto Fail;");
+				writer.Line($"goto {Label(next)};");
 
 				return state;
 			}
