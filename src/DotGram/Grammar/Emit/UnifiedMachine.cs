@@ -47,7 +47,7 @@ sealed class UnifiedMachine
 		foreach (var rule in graph.Rules)
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
-					Node.Choice or Node.Repeat or Node.Call or Node.Atomic))
+					Node.Choice or Node.Repeat or Node.Lookahead or Node.Call or Node.Atomic))
 					return false;
 
 		return true;
@@ -72,12 +72,13 @@ sealed class UnifiedMachine
 				file.Line("var call    = -1;");
 				file.Line("var atomic  = -1;");
 				file.Line("var repeat  = -1;");
+				file.Line("var lookahead = -1;");
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
 				file.Line($"var state   = {_entries[root]};");
 				file.Line();
-				file.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, 0));");
+				file.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, 0));");
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
 
@@ -98,6 +99,7 @@ sealed class UnifiedMachine
 				file.Line("state = returned.State;");
 				file.Line("var previousCall = returned.CallIndex;");
 				file.Line("repeat = returned.RepeatIndex;");
+				file.Line("lookahead = returned.LookaheadIndex;");
 				file.Line();
 				file.Line("if (entries.Count == call + 1)");
 				file.Then("entries.RemoveAt(call);");
@@ -114,7 +116,7 @@ sealed class UnifiedMachine
 
 				file.Line();
 				file.Line("Fail:");
-				file.Line("if (p > failure.Position)");
+				file.Line("if (lookahead < 0 && p > failure.Position)");
 				file.Then("failure.Position = p;");
 				file.Line("Trace(\"fail\", state, p, entries.Count);");
 				file.Line();
@@ -133,6 +135,7 @@ sealed class UnifiedMachine
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
+						file.Line("lookahead = entry.LookaheadIndex;");
 						file.Line("Trace(\"resume\", state, p, entries.Count);");
 						file.Line("goto Dispatch;");
 					}
@@ -142,22 +145,43 @@ sealed class UnifiedMachine
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
+						file.Line("lookahead = entry.LookaheadIndex;");
 						file.Line("p      = entry.Position;");
 					}
 					using (file.Block("else if (entry.Kind == ParserEntry.Atomic)"))
 					{
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
+						file.Line("lookahead = entry.LookaheadIndex;");
+					}
+					using (file.Block("else if (entry.Kind == ParserEntry.Repeat)"))
+
+					{
+						file.Line("p      = entry.Position;");
+						file.Line("call   = entry.CallIndex;");
+						file.Line("atomic = entry.AtomicIndex;");
+						file.Line("repeat = entry.RepeatIndex;");
+						file.Line("lookahead = entry.LookaheadIndex;");
 					}
 					file.Line("else");
 
 					using (file.Block(""))
 					{
-						file.Line("global::System.Diagnostics.Debug.Assert(entry.Kind == ParserEntry.Repeat);");
-						file.Line("p      = entry.Position;");
-						file.Line("call   = entry.CallIndex;");
-						file.Line("atomic = entry.AtomicIndex;");
-						file.Line("repeat = entry.RepeatIndex;");
+						file.Line("global::System.Diagnostics.Debug.Assert(entry.Kind == ParserEntry.Lookahead);");
+						file.Line("p         = entry.Position;");
+						file.Line("call      = entry.CallIndex;");
+						file.Line("atomic    = entry.AtomicIndex;");
+						file.Line("repeat    = entry.RepeatIndex;");
+						file.Line("lookahead = entry.LookaheadIndex;");
+						file.Line();
+						file.Line("if (entry.Value == 0)");
+
+						using (file.Block(""))
+						{
+							file.Line("state = entry.State;");
+							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count);");
+							file.Line("goto Dispatch;");
+						}
 					}
 				}
 
@@ -260,7 +284,7 @@ sealed class UnifiedMachine
 					var first = Compile(alternatives[i], next);
 					var state = Reserve(out var writer);
 
-					writer.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, repeat, 0));");
+					writer.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
 					writer.Line($"goto {Label(first)};");
 					target = state;
@@ -274,7 +298,7 @@ sealed class UnifiedMachine
 				var state = Reserve(out var writer);
 
 				writer.Line("var callIndex = entries.Count;");
-				writer.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, 0));");
+				writer.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("call = callIndex;");
 				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 				writer.Line($"goto {Label(_entries[rule])};");
@@ -289,7 +313,7 @@ sealed class UnifiedMachine
 				var state  = Reserve(out var writer);
 
 				writer.Line("var atomicIndex = entries.Count;");
-				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, 0));");
+				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
 				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count);");
 				writer.Line($"goto {Label(inner)};");
@@ -300,6 +324,7 @@ sealed class UnifiedMachine
 				atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
+				atCommit.Line("lookahead = boundary.LookaheadIndex;");
 				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count);");
 				atCommit.Line($"goto {Label(next)};");
 
@@ -318,7 +343,7 @@ sealed class UnifiedMachine
 				var inner = Compile(body, after);
 
 				atEntry.Line("var repeatIndex = entries.Count;");
-				atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, 0));");
+				atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 				atEntry.Line("repeat = repeatIndex;");
 				atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
 				atEntry.Line($"goto {Label(loop)};");
@@ -336,7 +361,7 @@ sealed class UnifiedMachine
 				{
 					atLoop.Line($"if (repeating.Value >= {min})");
 					atLoop.Then(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, 0));");
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
 				}
 
 				atLoop.Line($"goto {Label(inner)};");
@@ -345,7 +370,8 @@ sealed class UnifiedMachine
 				atAfter.Line("var repeated = entries[repeat];");
 				atAfter.Line(
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
-					"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.Value + 1);");
+					"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+					"repeated.LookaheadIndex, repeated.Value + 1);");
 				atAfter.Line($"goto {Label(loop)};");
 
 				atExit.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
@@ -354,10 +380,40 @@ sealed class UnifiedMachine
 				atExit.Line("var previousRepeat = finished.RepeatIndex;");
 				atExit.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 				atExit.Line("repeat = previousRepeat;");
+				atExit.Line("lookahead = finished.LookaheadIndex;");
 				atExit.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
 				atExit.Line($"goto {Label(next)};");
 
 				return entry;
+			}
+
+			case Node.Lookahead(var isPositive, var body):
+			{
+				var success = Reserve(out var atSuccess);
+				var inner   = Compile(body, success);
+				var state   = Reserve(out var writer);
+
+				writer.Line("var lookaheadIndex = entries.Count;");
+				writer.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
+				writer.Line("lookahead = lookaheadIndex;");
+				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count);");
+				writer.Line($"goto {Label(inner)};");
+
+				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
+				atSuccess.Line("var looked = entries[lookahead];");
+				atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+				atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
+				atSuccess.Line("p         = looked.Position;");
+				atSuccess.Line("call      = looked.CallIndex;");
+				atSuccess.Line("atomic    = looked.AtomicIndex;");
+				atSuccess.Line("repeat    = looked.RepeatIndex;");
+				atSuccess.Line("lookahead = looked.LookaheadIndex;");
+				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count);");
+				atSuccess.Line($"goto {(isPositive ? Label(next) : "Fail")};");
+
+				return state;
 			}
 
 			default:
@@ -377,7 +433,7 @@ sealed class UnifiedMachine
 
 	static void PushRepeatExit(Writer writer, int exit) =>
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, 0));");
+			$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
 
 	static string Label(int state) => state switch
 	{

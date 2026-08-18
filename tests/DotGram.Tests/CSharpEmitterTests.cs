@@ -250,6 +250,22 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(expected, Run("Start = 'a' & ?='b' & 'b'", input).Matched);
 
 	[Fact]
+	public void A_lookahead_runs_recursive_rules_on_the_same_arena()
+	{
+		const int depth = 10_000;
+		const string grammar =
+			"Start = ?=Value & Value\n" +
+			"Value = '(' & Value & ')' | 'x'\n" +
+			"parse Start";
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var input = new string('(', depth) + "x" + new string(')', depth);
+
+		Assert.Contains("ParserEntry.Lookahead", source);
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
+	[Fact]
 	public void The_value_is_the_matched_text() =>
 		Assert.Equal("hello", Run("Start = ['a'..'z']+", "hello").Value);
 

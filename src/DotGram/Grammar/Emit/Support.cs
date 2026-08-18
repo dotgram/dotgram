@@ -467,9 +467,11 @@ public static partial class CSharpEmitter
 			internal const int Call   = 2;
 			internal const int Atomic = 3;
 			internal const int Repeat = 4;
+			internal const int Lookahead = 5;
 
 			internal ParserEntry(
-				int kind, int state, int position, int callIndex, int atomicIndex, int repeatIndex, int value)
+				int kind, int state, int position, int callIndex, int atomicIndex,
+				int repeatIndex, int lookaheadIndex, int value)
 			{
 				Kind        = kind;
 				State       = state;
@@ -477,6 +479,7 @@ public static partial class CSharpEmitter
 				CallIndex   = callIndex;
 				AtomicIndex = atomicIndex;
 				RepeatIndex = repeatIndex;
+				LookaheadIndex = lookaheadIndex;
 				Value       = value;
 			}
 
@@ -486,6 +489,7 @@ public static partial class CSharpEmitter
 			internal int CallIndex   { get; }
 			internal int AtomicIndex { get; }
 			internal int RepeatIndex { get; }
+			internal int LookaheadIndex { get; }
 			internal int Value       { get; }
 		}
 
