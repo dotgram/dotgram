@@ -172,6 +172,16 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Captured_rule_sequences_use_exact_arrays_not_typed_lists()
+	{
+		var source = Emit("Item = letter: 'x'\nStart = items: Item*\nparse Start");
+
+		Assert.Contains("captured0Count", source);
+		Assert.Contains("new global::Grammar.Item[captured0Count]", source);
+		Assert.DoesNotContain("List<global::Grammar.Item>", source);
+	}
+
+	[Fact]
 	public void Typed_recursive_results_return_through_explicit_frames()
 	{
 		const int depth = 20_000;

@@ -85,13 +85,17 @@ sealed class UnifiedMachine
 
 	public static bool Supports(RecognitionGraph graph)
 	{
-		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0)
+		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0 || graph.Folds.Count > 0)
 			return false;
+
+		foreach (var type in graph.Types.Values)
+			if (type.EndsWith("[]", StringComparison.Ordinal))
+				return false;
 
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
-				if (member.IsSequence || member is { Rule: not null, IsOptional: true })
+				if (member is { Rule: null, IsSequence: true } or { Rule: not null, IsOptional: true })
 					return false;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
@@ -683,6 +687,44 @@ sealed class UnifiedMachine
 
 				if (member.Rule is not null)
 				{
+					if (member.IsSequence)
+					{
+						var element = _results.ValueOf(member.Rule);
+
+						file.Line($"var captured{memberIndex}Count = 0;");
+
+						using (file.Block(
+							$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+						{
+							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+							file.Line(
+								$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
+								$"({string.Join(" || ", slots)})) captured{memberIndex}Count++;");
+						}
+
+						file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
+						file.Line($"var captured{memberIndex}Item = 0;");
+
+						using (file.Block(
+							$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+						{
+							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+
+							using (file.Block(
+								$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
+								$"({string.Join(" || ", slots)}))"))
+							{
+								file.Line(
+									$"captured{memberIndex}[captured{memberIndex}Item++] = " +
+									$"({element})values[candidate.Position]!;");
+							}
+						}
+
+						file.Line();
+
+						continue;
+					}
+
 					file.Line($"var captured{memberIndex}At = -1;");
 
 					using (file.Block(

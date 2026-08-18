@@ -54,6 +54,7 @@ public static partial class CSharpEmitter
 		var results = new ResultTypes(graph, className, @namespace);
 		var execution = ExecutionPlanner.Analyze(graph);
 		var unified = graph.Publications.Any(publication => publication.Kind == PublishKind.Parse) &&
+			!graph.Publications.Any(publication => publication.Kind == PublishKind.Parse && Streams(graph, publication)) &&
 			UnifiedMachine.Supports(graph)
 				? new UnifiedMachine(graph, results, lines)
 				: null;
