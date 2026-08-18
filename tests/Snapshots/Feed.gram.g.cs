@@ -1310,6 +1310,17 @@ namespace DotGram.Snapshots
 				if (p != text.Length) goto Fail;
 
 				var values = parser.Materialization(entries.Count);
+				var links  = parser.MaterializationLinks(entries.Count);
+
+				for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
+				{
+					var derivation = entries[derivationAt];
+					if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
+					{
+						links[entries.Count + derivationAt] = links[derivation.CallIndex];
+						links[derivation.CallIndex] = derivationAt;
+					}
+				}
 				for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
 				{
 					var completed = entries[completedAt];
@@ -1319,7 +1330,7 @@ namespace DotGram.Snapshots
 						case 0:
 						{
 							var captured0At = -1;
-							for (var capturedAt0 = entries.Count - 1; capturedAt0 >= 0; capturedAt0--)
+							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
 							{
 								var candidate = entries[capturedAt0];
 								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
@@ -1332,24 +1343,24 @@ namespace DotGram.Snapshots
 							var captured0 = (global::DotGram.Snapshots.Feed.Header)values[captured0At]!;
 
 							var captured1Count = 0;
-							for (var capturedAt1 = 0; capturedAt1 < entries.Count; capturedAt1++)
+							for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
 							{
 								var candidate = entries[capturedAt1];
 								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1)) captured1Count++;
 							}
 							var captured1 = new global::DotGram.Snapshots.Feed.Row[captured1Count];
-							var captured1Item = 0;
-							for (var capturedAt1 = 0; capturedAt1 < entries.Count; capturedAt1++)
+							var captured1Item = captured1Count;
+							for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
 							{
 								var candidate = entries[capturedAt1];
 								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
 								{
-									captured1[captured1Item++] = (global::DotGram.Snapshots.Feed.Row)values[candidate.Position]!;
+									captured1[--captured1Item] = (global::DotGram.Snapshots.Feed.Row)values[candidate.Position]!;
 								}
 							}
 
 							var captured2At = -1;
-							for (var capturedAt2 = entries.Count - 1; capturedAt2 >= 0; capturedAt2--)
+							for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
 							{
 								var candidate = entries[capturedAt2];
 								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 2))
@@ -1371,14 +1382,14 @@ namespace DotGram.Snapshots
 						{
 							var captured0From = -1;
 							var captured0To   = -1;
-							for (var capturedAt0 = 0; capturedAt0 < entries.Count; capturedAt0++)
+							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
 							{
 								var candidate = entries[capturedAt0];
 								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
 								{
-									if (captured0From < 0)
-										captured0From = candidate.Position;
-									captured0To = candidate.Value;
+									if (captured0To < 0)
+										captured0To = candidate.Value;
+									captured0From = candidate.Position;
 								}
 							}
 							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
@@ -1392,14 +1403,14 @@ namespace DotGram.Snapshots
 						{
 							var captured0From = -1;
 							var captured0To   = -1;
-							for (var capturedAt0 = 0; capturedAt0 < entries.Count; capturedAt0++)
+							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
 							{
 								var candidate = entries[capturedAt0];
 								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
 								{
-									if (captured0From < 0)
-										captured0From = candidate.Position;
-									captured0To = candidate.Value;
+									if (captured0To < 0)
+										captured0To = candidate.Value;
+									captured0From = candidate.Position;
 								}
 							}
 							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
@@ -1407,14 +1418,14 @@ namespace DotGram.Snapshots
 
 							var captured1From = -1;
 							var captured1To   = -1;
-							for (var capturedAt1 = 0; capturedAt1 < entries.Count; capturedAt1++)
+							for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
 							{
 								var candidate = entries[capturedAt1];
 								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 5))
 								{
-									if (captured1From < 0)
-										captured1From = candidate.Position;
-									captured1To = candidate.Value;
+									if (captured1To < 0)
+										captured1To = candidate.Value;
+									captured1From = candidate.Position;
 								}
 							}
 							global::System.Diagnostics.Debug.Assert(captured1From >= 0);
@@ -1429,14 +1440,14 @@ namespace DotGram.Snapshots
 						{
 							var captured0From = -1;
 							var captured0To   = -1;
-							for (var capturedAt0 = 0; capturedAt0 < entries.Count; capturedAt0++)
+							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
 							{
 								var candidate = entries[capturedAt0];
 								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 6))
 								{
-									if (captured0From < 0)
-										captured0From = candidate.Position;
-									captured0To = candidate.Value;
+									if (captured0To < 0)
+										captured0To = candidate.Value;
+									captured0From = candidate.Position;
 								}
 							}
 							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
@@ -3118,6 +3129,7 @@ namespace DotGram.Snapshots
 			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
 				new global::System.Collections.Generic.List<ParserEntry>();
 			object?[] _values = global::System.Array.Empty<object?>();
+			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
 
 			internal object?[] Materialization(int count)
@@ -3128,6 +3140,17 @@ namespace DotGram.Snapshots
 				_valuesUsed = count;
 
 				return _values;
+			}
+
+			internal int[] MaterializationLinks(int count)
+			{
+				if (_links.Length < count * 2)
+					global::System.Array.Resize(ref _links, count * 2);
+
+				for (var i = 0; i < count; i++)
+					_links[i] = -1;
+
+				return _links;
 			}
 
 			internal void Reset()

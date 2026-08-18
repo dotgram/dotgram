@@ -458,6 +458,7 @@ public static partial class CSharpEmitter
 			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
 				new global::System.Collections.Generic.List<ParserEntry>();
 			object?[] _values = global::System.Array.Empty<object?>();
+			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
 
 			internal object?[] Materialization(int count)
@@ -468,6 +469,17 @@ public static partial class CSharpEmitter
 				_valuesUsed = count;
 
 				return _values;
+			}
+
+			internal int[] MaterializationLinks(int count)
+			{
+				if (_links.Length < count * 2)
+					global::System.Array.Resize(ref _links, count * 2);
+
+				for (var i = 0; i < count; i++)
+					_links[i] = -1;
+
+				return _links;
 			}
 
 			internal void Reset()

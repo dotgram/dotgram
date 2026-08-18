@@ -772,6 +772,23 @@ public sealed class SemanticTests
 			"x",
 			Read(Built("Inner = letter: 'x'\nStart = inner: Inner", "x"), "Inner", "Letter"));
 
+	[Theory]
+	[InlineData("y",  null)]
+	[InlineData("xy", "x")]
+	public void An_optional_rule_capture_is_absent_or_its_value(string input, string? expected) =>
+		Assert.Equal(
+			expected,
+			Read(Built("Item = letter: 'x'\nStart = (item: Item)? & 'y'", input), "Item", "Letter"));
+
+	[Fact]
+	public void An_optional_value_type_rule_capture_is_nullable()
+	{
+		const string grammar = "Item : @int = 'x' => @(1)\nStart = (item: Item)? & 'y'";
+
+		Assert.Null(Read(Built(grammar, "y"), "Item"));
+		Assert.Equal(1, Read(Built(grammar, "xy"), "Item"));
+	}
+
 	[Fact]
 	public void A_rule_value_the_match_gave_back_is_not_materialized()
 	{

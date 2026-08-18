@@ -95,7 +95,7 @@ sealed class UnifiedMachine
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
-				if (member is { Rule: null, IsSequence: true } or { Rule: not null, IsOptional: true })
+				if (member is { Rule: null, IsSequence: true })
 					return false;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
@@ -652,6 +652,21 @@ sealed class UnifiedMachine
 	void Materialize(Writer file, RuleSymbol root, string type)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
+		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
+		file.Line();
+
+		using (file.Block("for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)"))
+		{
+			file.Line("var derivation = entries[derivationAt];");
+
+			using (file.Block(
+				"if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || " +
+				"derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))"))
+			{
+				file.Line("links[entries.Count + derivationAt] = links[derivation.CallIndex];");
+				file.Line("links[derivation.CallIndex] = derivationAt;");
+			}
+		}
 
 		using (file.Block(
 			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
@@ -694,7 +709,8 @@ sealed class UnifiedMachine
 						file.Line($"var captured{memberIndex}Count = 0;");
 
 						using (file.Block(
-							$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+							$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
+							$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 							file.Line(
@@ -703,10 +719,11 @@ sealed class UnifiedMachine
 						}
 
 						file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
-						file.Line($"var captured{memberIndex}Item = 0;");
+						file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
 
 						using (file.Block(
-							$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+							$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
+							$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -715,7 +732,7 @@ sealed class UnifiedMachine
 								$"({string.Join(" || ", slots)}))"))
 							{
 								file.Line(
-									$"captured{memberIndex}[captured{memberIndex}Item++] = " +
+									$"captured{memberIndex}[--captured{memberIndex}Item] = " +
 									$"({element})values[candidate.Position]!;");
 							}
 						}
@@ -728,7 +745,8 @@ sealed class UnifiedMachine
 					file.Line($"var captured{memberIndex}At = -1;");
 
 					using (file.Block(
-						$"for (var capturedAt{memberIndex} = entries.Count - 1; capturedAt{memberIndex} >= 0; capturedAt{memberIndex}--)"))
+						$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
+						$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
 					{
 						file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -741,10 +759,15 @@ sealed class UnifiedMachine
 						}
 					}
 
-					file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}At >= 0);");
-					file.Line(
-						$"var captured{memberIndex} = ({_results.ValueOf(member.Rule)})" +
-						$"values[captured{memberIndex}At]!;");
+					var capturedType = _results.ValueOf(member.Rule);
+
+					if (!member.IsOptional)
+						file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}At >= 0);");
+
+					file.Line(member.IsOptional
+						? $"{capturedType}? captured{memberIndex} = captured{memberIndex}At < 0 ? " +
+							$"default({capturedType}?) : ({capturedType})values[captured{memberIndex}At]!;"
+						: $"var captured{memberIndex} = ({capturedType})values[captured{memberIndex}At]!;");
 					file.Line();
 
 					continue;
@@ -754,7 +777,8 @@ sealed class UnifiedMachine
 				file.Line($"var captured{memberIndex}To   = -1;");
 
 				using (file.Block(
-					$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+					$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
+					$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
 				{
 					file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -762,9 +786,9 @@ sealed class UnifiedMachine
 						$"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
 						$"({string.Join(" || ", slots)}))"))
 					{
-						file.Line($"if (captured{memberIndex}From < 0)");
-						file.Then($"captured{memberIndex}From = candidate.Position;");
-						file.Line($"captured{memberIndex}To = candidate.Value;");
+						file.Line($"if (captured{memberIndex}To < 0)");
+						file.Then($"captured{memberIndex}To = candidate.Value;");
+						file.Line($"captured{memberIndex}From = candidate.Position;");
 					}
 				}
 
@@ -793,7 +817,9 @@ sealed class UnifiedMachine
 		{
 			file.Line("var chosen = -1;");
 
-			using (file.Block("for (var chosenAt = entries.Count - 1; chosenAt >= 0; chosenAt--)"))
+			using (file.Block(
+				"for (var chosenAt = links[completedAt]; chosenAt >= 0; " +
+				"chosenAt = links[entries.Count + chosenAt])"))
 			{
 				file.Line("var candidate = entries[chosenAt];");
 
@@ -829,7 +855,10 @@ sealed class UnifiedMachine
 						for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
 							if (members[memberIndex].Name == member.Name)
 							{
-								arguments.Add($"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
+								arguments.Add(
+									!member.IsOptional && members[memberIndex] is { Rule: not null, IsOptional: true }
+										? $"({_results.ValueOf(members[memberIndex].Rule)})captured{memberIndex}!"
+										: $"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
 								break;
 							}
 					}
