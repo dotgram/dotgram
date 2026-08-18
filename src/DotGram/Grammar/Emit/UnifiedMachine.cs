@@ -55,8 +55,9 @@ sealed class UnifiedMachine
 
 					_captureSlots[node] = slot;
 
-					if (node is not Node.Capture(_, Node.Call(var called, _)) ||
-						graph.Results[called].Count == 0 && !graph.Types.ContainsKey(called))
+					if (node is not Node.Capture(_, Node.Lookahead) &&
+						(node is not Node.Capture(_, Node.Call(var called, _)) ||
+						graph.Results[called].Count == 0 && !graph.Types.ContainsKey(called)))
 						_textCaptures.Add(slot);
 				}
 				else if (node is Node.Construct)
@@ -103,7 +104,7 @@ sealed class UnifiedMachine
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
 					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
 					node is Node.Guard && graph.Results[rule].Count > 0 ||
-					node is Node.Capture(_, Node.Lookahead))
+					node is Node.Capture(_, Node.Lookahead(false, _)))
 					return false;
 
 			if (CaptureInsideLookahead(graph.Bodies[rule]))
@@ -426,7 +427,11 @@ sealed class UnifiedMachine
 
 			case Node.Capture(_, var body):
 			{
-				var slot  = _captureSlots[node];
+				var slot = _captureSlots[node];
+
+				if (body is Node.Lookahead(true, var seen))
+					return CompileLookaheadCapture(slot, seen, next);
+
 				var close = Reserve(out var atClose);
 				var inner = Compile(body, close);
 				var state = Reserve(out var writer);
@@ -636,6 +641,39 @@ sealed class UnifiedMachine
 			default:
 				throw new InvalidOperationException($"Unsupported unified-automaton node: {node.GetType().Name}.");
 		}
+	}
+
+	int CompileLookaheadCapture(int slot, Node seen, int next)
+	{
+		var success = Reserve(out var atSuccess);
+		var inner   = Compile(seen, success);
+		var state   = Reserve(out var writer);
+
+		writer.Line("var lookaheadIndex = entries.Count;");
+		writer.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			"repeat, lookahead, 1));");
+		writer.Line("lookahead = lookaheadIndex;");
+		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"goto {Label(inner)};");
+
+		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
+		atSuccess.Line("var seenTo = p;");
+		atSuccess.Line("var looked = entries[lookahead];");
+		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+		atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
+		atSuccess.Line("p         = looked.Position;");
+		atSuccess.Line("call      = looked.CallIndex;");
+		atSuccess.Line("atomic    = looked.AtomicIndex;");
+		atSuccess.Line("repeat    = looked.RepeatIndex;");
+		atSuccess.Line("lookahead = looked.LookaheadIndex;");
+		atSuccess.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
+			"repeat, lookahead, seenTo));");
+		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count);");
+		atSuccess.Line($"goto {Label(next)};");
+
+		return state;
 	}
 
 	int ValueRule(RuleSymbol rule) =>

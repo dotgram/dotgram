@@ -182,6 +182,16 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_positive_lookahead_capture_records_the_extent_it_saw()
+	{
+		var source = Emit("Word = ['a'..'z']+\nStart = seen: ?=Word & Word\nparse Start");
+
+		Assert.Contains("capture lookahead", source);
+		Assert.Contains("var seenTo = p;", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+	}
+
+	[Fact]
 	public void Typed_recursive_results_return_through_explicit_frames()
 	{
 		const int depth = 20_000;
