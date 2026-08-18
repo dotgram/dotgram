@@ -18,17 +18,36 @@ sealed class UnifiedMachine
 	const int First  = 3;
 
 	readonly RecognitionGraph _graph;
+	readonly ResultTypes _results;
 	readonly List<Writer> _states = [];
 	readonly Dictionary<RuleSymbol, int> _entries = [];
+	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
+	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
 	readonly List<string> _extra = [];
 	readonly ILineMap? _lines;
 	bool _usesChar;
 	int _guards;
+	int _captures;
 
-	public UnifiedMachine(RecognitionGraph graph, ILineMap? lines)
+	public UnifiedMachine(RecognitionGraph graph, ResultTypes results, ILineMap? lines)
 	{
 		_graph = graph;
+		_results = results;
 		_lines = lines;
+
+		foreach (var rule in graph.Rules)
+		{
+			var layout = CaptureLayout.Of(
+				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
+
+			_captureOffsets[rule] = _captures;
+
+			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+				if (node is Node.Capture)
+					_captureSlots[node] = _captures + layout.SlotOf(node);
+
+			_captures += layout.Slots.Count;
+		}
 
 		foreach (var rule in graph.Rules)
 			_entries[rule] = Reserve(out _);
@@ -49,13 +68,44 @@ sealed class UnifiedMachine
 			return false;
 
 		foreach (var rule in graph.Rules)
+		{
+			foreach (var member in graph.Results[rule])
+				if (member.Rule is not null || member.IsSequence)
+					return false;
+
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
-					Node.External or Node.Atomic))
+					Node.External or Node.Atomic or Node.Capture) ||
+					node is Node.Guard && graph.Results[rule].Count > 0 ||
+					node is Node.Call(var called, _) && graph.Results[called].Count > 0)
 					return false;
 
+			if (CaptureInsideLookahead(graph.Bodies[rule]))
+				return false;
+		}
+
 		return true;
+	}
+
+	static bool CaptureInsideLookahead(Node root)
+	{
+		var pending = new Stack<(Node Node, bool Inside)>();
+		pending.Push((root, false));
+
+		while (pending.Count > 0)
+		{
+			var (node, inside) = pending.Pop();
+			var nested = inside || node is Node.Lookahead;
+
+			if (nested && node is Node.Capture)
+				return true;
+
+			foreach (var child in node.Children)
+				pending.Push((child, nested));
+		}
+
+		return false;
 	}
 
 	public IReadOnlyList<string> Extra => _extra;
@@ -63,10 +113,19 @@ sealed class UnifiedMachine
 	public string Render(RuleSymbol root, string name)
 	{
 		var file = new Writer(0);
+		var type = _results.QualifiedOf(root);
+		var output = type is null ? "" : $", out {type} value";
 
 		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, ref {CSharpEmitter.FailureType} failure)"))
+			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
+			$"ref {CSharpEmitter.FailureType} failure{output})"))
 		{
+			if (type is not null)
+			{
+				file.Line("value = default!;");
+				file.Line();
+			}
+
 			file.Line("Parser parser = null!;");
 			file.Line("RentParser(ref parser);");
 			file.Line("parser ??= new Parser();");
@@ -83,6 +142,10 @@ sealed class UnifiedMachine
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
+
+				for (var i = 0; i < _captures; i++)
+					file.Line($"var capture{i} = 0;");
+
 				file.Line($"var state   = {_entries[root]};");
 				file.Line();
 				file.Line($"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, 0));");
@@ -117,9 +180,15 @@ sealed class UnifiedMachine
 
 				file.Line();
 				file.Line("Accept:");
-				file.Line("if (p == text.Length)");
-				file.Then("return p;");
-				file.Line("goto Fail;");
+				file.Line("if (p != text.Length) goto Fail;");
+
+				if (type is not null)
+				{
+					file.Line();
+					Materialize(file, root, type);
+				}
+
+				file.Line("return p;");
 
 				file.Line();
 				file.Line("Fail:");
@@ -145,6 +214,13 @@ sealed class UnifiedMachine
 						file.Line("lookahead = entry.LookaheadIndex;");
 						file.Line("Trace(\"resume\", state, p, entries.Count);");
 						file.Line("goto Dispatch;");
+					}
+
+					if (_captures > 0)
+					{
+						file.Line("if (entry.Kind == ParserEntry.Capture)");
+						file.Then("continue;");
+						file.Line();
 					}
 
 					using (file.Block("if (entry.Kind == ParserEntry.Call)"))
@@ -298,6 +374,25 @@ sealed class UnifiedMachine
 				}
 
 				return target;
+			}
+
+			case Node.Capture(_, var body):
+			{
+				var slot  = _captureSlots[node];
+				var close = Reserve(out var atClose);
+				var inner = Compile(body, close);
+				var state = Reserve(out var writer);
+
+				writer.Line($"capture{slot} = p;");
+				writer.Line($"goto {Label(inner)};");
+
+				atClose.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
+					"call, atomic, repeat, lookahead, p));");
+				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+				atClose.Line($"goto {Label(next)};");
+
+				return state;
 			}
 
 			case Node.Call(var rule, _):
@@ -464,6 +559,57 @@ sealed class UnifiedMachine
 		_states.Add(writer);
 
 		return _states.Count - 1 + First;
+	}
+
+	void Materialize(Writer file, RuleSymbol root, string type)
+	{
+		var offset  = _captureOffsets[root];
+		var members = _graph.Results[root];
+
+		for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+		{
+			var member = members[memberIndex];
+			var slots  = new List<string>(member.Slots.Count);
+
+			foreach (var slot in member.Slots)
+				slots.Add($"candidate.State == {offset + slot}");
+
+			file.Line($"var captured{memberIndex}From = -1;");
+			file.Line($"var captured{memberIndex}To   = -1;");
+
+			using (file.Block(
+				$"for (var capturedAt{memberIndex} = 0; capturedAt{memberIndex} < entries.Count; capturedAt{memberIndex}++)"))
+			{
+				file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+
+				using (file.Block(
+					$"if (candidate.Kind == ParserEntry.Capture && ({string.Join(" || ", slots)}))"))
+				{
+					file.Line($"if (captured{memberIndex}From < 0)");
+					file.Then($"captured{memberIndex}From = candidate.Position;");
+					file.Line($"captured{memberIndex}To = candidate.Value;");
+				}
+			}
+
+			if (!member.IsOptional)
+				file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}From >= 0);");
+
+			file.Line(
+				$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
+				(member.IsOptional ? "null" : "string.Empty") + " : " +
+				$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
+				$"captured{memberIndex}From).ToString();");
+
+			file.Line();
+		}
+
+		file.Line($"value = new {type}(");
+
+		using (file.Indent())
+			for (var i = 0; i < members.Count; i++)
+				file.Line(
+					$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
+					(i + 1 < members.Count ? "," : ");"));
 	}
 
 	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");

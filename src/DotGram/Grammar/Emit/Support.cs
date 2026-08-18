@@ -468,6 +468,7 @@ public static partial class CSharpEmitter
 			internal const int Atomic = 3;
 			internal const int Repeat = 4;
 			internal const int Lookahead = 5;
+			internal const int Capture = 6;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

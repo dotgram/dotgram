@@ -55,7 +55,7 @@ public static partial class CSharpEmitter
 		var execution = ExecutionPlanner.Analyze(graph);
 		var unified = graph.Publications.Any(publication => publication.Kind == PublishKind.Parse) &&
 			UnifiedMachine.Supports(graph)
-				? new UnifiedMachine(graph, lines)
+				? new UnifiedMachine(graph, results, lines)
 				: null;
 		var needsLegacyRules = unified is null ||
 			graph.Publications.Any(publication => publication.Kind == PublishKind.Find);

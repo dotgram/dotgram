@@ -138,6 +138,16 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Text_captures_are_records_in_the_shared_parser_arena()
+	{
+		var source = Emit("Start = digits: ['0'..'9']+\nparse Start");
+
+		Assert.Contains("ParserEntry.Capture", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.DoesNotContain("List<string>", source);
+	}
+
+	[Fact]
 	public void Typed_recursive_results_return_through_explicit_frames()
 	{
 		const int depth = 20_000;
