@@ -686,28 +686,52 @@ public static partial class CSharpEmitter
 
 				using (file.Block(head))
 				{
-					file.Line($"var items = new global::System.Collections.Generic.List<{element}>();");
+					file.Line("var count = 0;");
+
+					foreach (var member in factory.Members)
+					{
+						var value = ResultTypes.ParameterOf(member);
+
+						if (member.IsSequence)
+							file.Line($"if ({value} != null) count += {value}.Length;");
+						else if (member.IsOptional)
+							file.Line($"if ({value} != null) count++;");
+						else
+							file.Line("count++;");
+					}
+
+					file.Line();
+					file.Line($"var items = new {element}[count];");
+					file.Line("var at    = 0;");
 					file.Line();
 
 					foreach (var member in factory.Members)
 					{
 						var value = ResultTypes.ParameterOf(member);
 
-						// Null where the alternative that captured it was not the one that
-						// matched, and an empty run is an empty array that adds nothing.
-						if (member.IsSequence || member.IsOptional)
+						// A sequence capture already has its exact array. Copy it into this
+						// rule's exact result rather than introducing a typed accumulator.
+						if (member.IsSequence)
+						{
+							using (file.Block($"if ({value} != null)"))
+							{
+								file.Line($"global::System.Array.Copy({value}, 0, items, at, {value}.Length);");
+								file.Line($"at += {value}.Length;");
+							}
+						}
+						else if (member.IsOptional)
 						{
 							file.Line($"if ({value} != null)");
-							file.Then($"items.{(member.IsSequence ? "AddRange" : "Add")}({value});");
+							file.Then($"items[at++] = ({element}){value};");
 						}
 						else
 						{
-							file.Line($"items.Add({value});");
+							file.Line($"items[at++] = {value};");
 						}
 					}
 
 					file.Line();
-					file.Line("return items.ToArray();");
+					file.Line("return items;");
 				}
 
 				break;

@@ -8,12 +8,19 @@ namespace DotGram.Snapshots
 		/// <summary>Everything <c>Csv</c> is made of, in order (§4.1 case 2).</summary>
 		static string[] Construct_Csv(string parserText, string[] item0)
 		{
-			var items = new global::System.Collections.Generic.List<string>();
+			var count = 0;
+			if (item0 != null) count += item0.Length;
+
+			var items = new string[count];
+			var at    = 0;
 
 			if (item0 != null)
-				items.AddRange(item0);
+			{
+				global::System.Array.Copy(item0, 0, items, at, item0.Length);
+				at += item0.Length;
+			}
 
-			return items.ToArray();
+			return items;
 		}
 
 		/// <summary>What <c>Row</c> builds its value with (docs/syntax.md §7.3).</summary>

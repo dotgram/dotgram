@@ -1321,10 +1321,22 @@ namespace DotGram.Snapshots
 						links[derivation.CallIndex] = derivationAt;
 					}
 				}
+
+				values[0] = parser;
+				for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
+				{
+					if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
+					for (var capturedAt = links[ownerAt]; capturedAt >= 0; capturedAt = links[entries.Count + capturedAt])
+					{
+						var candidate = entries[capturedAt];
+						if (candidate.Kind == ParserEntry.RuleCapture)
+							values[candidate.Position] = parser;
+					}
+				}
 				for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
 				{
 					var completed = entries[completedAt];
-					if (completed.Kind != ParserEntry.Completed) continue;
+					if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
 					switch (completed.RuleIndex)
 					{
 						case 0:
@@ -1392,7 +1404,6 @@ namespace DotGram.Snapshots
 									captured0From = candidate.Position;
 								}
 							}
-							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
 							var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 							values[completedAt] = new global::DotGram.Snapshots.Feed.Header(
@@ -1413,7 +1424,6 @@ namespace DotGram.Snapshots
 									captured0From = candidate.Position;
 								}
 							}
-							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
 							var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 							var captured1From = -1;
@@ -1428,7 +1438,6 @@ namespace DotGram.Snapshots
 									captured1From = candidate.Position;
 								}
 							}
-							global::System.Diagnostics.Debug.Assert(captured1From >= 0);
 							var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
 
 							values[completedAt] = new global::DotGram.Snapshots.Feed.Row(
@@ -1450,7 +1459,6 @@ namespace DotGram.Snapshots
 									captured0From = candidate.Position;
 								}
 							}
-							global::System.Diagnostics.Debug.Assert(captured0From >= 0);
 							var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 							values[completedAt] = new global::DotGram.Snapshots.Feed.Trailer(

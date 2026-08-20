@@ -157,7 +157,22 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
-			source.LastIndexOf("values[completedAt] = Construct_Start(", StringComparison.Ordinal));
+			 source.LastIndexOf("values[completedAt] = Construct_Start(", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Construction_runs_only_for_values_reachable_from_the_accepted_derivation()
+	{
+		const string grammar =
+			"Start : @int = value: Value & 'x' => @(value)\n" +
+			"             | 'a'                => @(0)\n" +
+			"Value : @int = 'a' => @int.Parse(\"not a number\")\n" +
+			"parse Start";
+
+		var result = Invoke(grammar, "ParseStart", "a");
+
+		Assert.True(result.Matched);
+		Assert.Equal(0, result.Value);
 	}
 
 	[Fact]
@@ -179,6 +194,25 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("captured0Count", source);
 		Assert.Contains("new global::Grammar.Item[captured0Count]", source);
 		Assert.DoesNotContain("List<global::Grammar.Item>", source);
+	}
+
+	[Fact]
+	public void Declared_sequence_results_use_the_shared_arena_and_exact_arrays()
+	{
+		const string grammar =
+			"Start : Items = Items & eof\n" +
+			"Items : @string[] = Item*\n" +
+			"Item : @string = value: 'a' => @(value)\n" +
+			"parse Start";
+		var source = Emit(grammar);
+		var result = Invoke(grammar, "ParseStart", "aaa");
+
+		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.Contains("var items = new string[count];", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.DoesNotContain("List<string>", source);
+		Assert.True(result.Matched);
+		Assert.Equal(new[] { "a", "a", "a" }, Assert.IsType<string[]>(result.Value));
 	}
 
 	[Fact]

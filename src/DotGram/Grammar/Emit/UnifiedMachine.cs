@@ -89,10 +89,6 @@ sealed class UnifiedMachine
 		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0 || graph.Folds.Count > 0)
 			return false;
 
-		foreach (var type in graph.Types.Values)
-			if (type.EndsWith("[]", StringComparison.Ordinal))
-				return false;
-
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
@@ -743,11 +739,35 @@ sealed class UnifiedMachine
 			}
 		}
 
+		// A transparent rule may have completed before a surrounding path backtracked and
+		// selected another derivation. Such completed entries can remain useful as history,
+		// but only calls reached through RuleCapture from the accepted root may run user
+		// construction code. Call entries precede their children, so one forward pass marks
+		// the complete accepted value tree without recursion or another typed collection.
+		file.Line();
+		file.Line("values[0] = parser;");
+
+		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
+		{
+			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
+
+			using (file.Block(
+				"for (var capturedAt = links[ownerAt]; capturedAt >= 0; " +
+				"capturedAt = links[entries.Count + capturedAt])"))
+			{
+				file.Line("var candidate = entries[capturedAt];");
+				file.Line("if (candidate.Kind == ParserEntry.RuleCapture)");
+				file.Then("values[candidate.Position] = parser;");
+			}
+		}
+
 		using (file.Block(
 			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
 		{
 			file.Line("var completed = entries[completedAt];");
-			file.Line("if (completed.Kind != ParserEntry.Completed) continue;");
+			file.Line(
+				"if (completed.Kind != ParserEntry.Completed || " +
+				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
 				foreach (var rule in _graph.Rules)
@@ -866,9 +886,6 @@ sealed class UnifiedMachine
 						file.Line($"captured{memberIndex}From = candidate.Position;");
 					}
 				}
-
-				if (!member.IsOptional)
-					file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}From >= 0);");
 
 				file.Line(
 					$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +

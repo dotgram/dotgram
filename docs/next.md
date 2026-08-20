@@ -163,6 +163,13 @@ Rule sequences do not allocate `List<T>`. Materialization counts matching rule c
 allocates an exact `T[]`, and fills it from the end because owner links are newest-first.
 Empty and rollback cases are covered.
 
+Declared `@T[]` results and `Construction.Sequence` now use the unified path for eligible
+non-streaming publications. Their generated factory counts scalar, optional, and sequence
+members, allocates one exact `T[]`, and fills it in grammar order; it no longer builds a
+typed `List<T>`. Materialization first marks the completed invocations reachable from the
+accepted root, so construction code belonging only to an abandoned derivation is never
+called.
+
 Positive lookahead records the furthest seen position before restoring the input cursor.
 Negative lookahead stores its capture slot in the frame and creates an empty successful
 capture only on the inner-failure path. A capture around lookahead works; captures nested
@@ -191,7 +198,6 @@ It currently excludes:
 
 - recovery;
 - climbing and folds;
-- explicitly declared array result types such as `Rule : @T[]`;
 - captures nested inside lookahead;
 - guards in capture-bearing rules;
 - unknown node forms;
@@ -222,17 +228,15 @@ in the language reference.
 
 ## Recommended continuation order
 
-1. Add declared `@T[]` and `Construction.Sequence` to the unified path, initially only
-   for non-streaming, non-recovery publications. Preserve exact-array materialization.
-2. Implement folds as a base construction plus ordered step markers/captures, then apply
+1. Implement folds as a base construction plus ordered step markers/captures, then apply
    steps iteratively after acceptance.
-3. Decide and implement capture-aware `when` semantics.
-4. Port recovery without reintroducing implicit rule atomicity.
-5. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
+2. Decide and implement capture-aware `when` semantics.
+3. Port recovery without reintroducing implicit rule atomicity.
+4. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
    generated engines.
-6. Remove the legacy semantic path, update public atomicity/compatibility documentation
+5. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
-7. Only then benchmark generated size and hot paths and decide whether additional inlining
+6. Only then benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map
