@@ -110,10 +110,6 @@ sealed class UnifiedMachine
 	{
 		foreach (var rule in graph.Rules)
 		{
-			foreach (var member in graph.Results[rule])
-				if (member is { Rule: null, IsSequence: true } && !graph.Folds.ContainsKey(rule))
-					return false;
-
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
 				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
@@ -124,9 +120,6 @@ sealed class UnifiedMachine
 					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
 					node is Node.Guard && !SupportsGuard(graph, rule, layout, node))
 					return false;
-
-			if (CaptureInsideLookahead(graph.Bodies[rule]))
-				return false;
 		}
 
 		return true;
@@ -155,26 +148,6 @@ sealed class UnifiedMachine
 				return i;
 
 		throw new InvalidOperationException("A construction has no factory.");
-	}
-
-	static bool CaptureInsideLookahead(Node root)
-	{
-		var pending = new Stack<(Node Node, bool Inside)>();
-		pending.Push((root, false));
-
-		while (pending.Count > 0)
-		{
-			var (node, inside) = pending.Pop();
-			var nested = inside || node is Node.Lookahead;
-
-			if (nested && node is Node.Capture)
-				return true;
-
-			foreach (var child in node.Children)
-				pending.Push((child, nested));
-		}
-
-		return false;
 	}
 
 	public IReadOnlyList<string> Extra => _extra;

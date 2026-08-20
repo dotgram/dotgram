@@ -190,8 +190,9 @@ below and must not cause early `=>` execution.
 
 Positive lookahead records the furthest seen position before restoring the input cursor.
 Negative lookahead stores its capture slot in the frame and creates an empty successful
-capture only on the inner-failure path. A capture around lookahead works; captures nested
-inside lookahead are deliberately still excluded from unified generation.
+capture only on the inner-failure path. A capture around lookahead works. A capture nested
+inside lookahead is rejected by language validation (`GRAM4006`), not routed to legacy
+generation.
 
 ### Diagnostics and tracing
 
@@ -218,7 +219,6 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 
 It currently excludes:
 
-- captures nested inside lookahead;
 - guards whose visible captures include typed values or sequences;
 - unknown node forms.
 
