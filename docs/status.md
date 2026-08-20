@@ -1121,7 +1121,7 @@ number because none of them is about a particular number.
   reported seven times: by the lexer, then by the parser about the same character, twice
   more about where it ended up, and then by the binder and the normalizer describing the
   tree the parser had guessed at — including `No rule, parameter or capture named ''`,
-  which is about nothing at all. Now three, and the first one says what happened.
+  which is about nothing at all. Now two, and the first one says what happened.
 
   Two rules do it. At most one **error** per position, because the second thing said
   about a place is the first stage's failure told again by the next one; warnings and
@@ -1131,8 +1131,10 @@ number because none of them is about a particular number.
   where it begins to where the next one does, so a rule below it is still checked, which
   is what implementation.md §0 asks for and there is a test for.
 
-  What is left is the parser's own recovery: two of the three remaining messages are it
-  finding its feet, and a proper synchronization point would make them one.
+  Recovery validates the complete `name: Type =` prefix before treating it as a new rule,
+  so a capture such as `date: Digit{4}` in the damaged expression cannot start another
+  diagnostic cascade. What remains after the lexer error is one parser message at the
+  synchronization point.
 - **An ambiguous grammar is only called one where it asks to be streamed.** `GRAM5002`
   compares first sets, and only for a rule declaring `: @T[]` — everywhere else leaning
   on backtracking is legitimate and saying otherwise would be wrong. A grammar that is

@@ -195,7 +195,37 @@ public sealed class GramParser
 	/// </summary>
 	bool StartsRule() =>
 		At(TokenKind.Identifier) &&
-		Next.Kind is TokenKind.Equals or TokenKind.Colon or TokenKind.OpenParen;
+		(Next.Kind is TokenKind.Equals or TokenKind.OpenParen || StartsTypedRule());
+
+	/// <summary>
+	/// Whether the current identifier begins a typed rule rather than a capture left in
+	/// the wreckage of a broken expression. Recovery needs the whole <c>: Type =</c>
+	/// prefix: <c>date: Digit{4}</c> inside a rule is otherwise indistinguishable from a
+	/// declaration at the colon and produces a second cascade.
+	/// </summary>
+	bool StartsTypedRule()
+	{
+		if (Next.Kind != TokenKind.Colon)
+			return false;
+
+		var at = _index + 2;
+
+		if (_tokens[at].Kind == TokenKind.At)
+			at++;
+
+		if (_tokens[at].Kind != TokenKind.Identifier)
+			return false;
+
+		at++;
+
+		while (_tokens[at].Kind == TokenKind.Dot && _tokens[at + 1].Kind == TokenKind.Identifier)
+			at += 2;
+
+		if (_tokens[at].Kind == TokenKind.OpenBracket && _tokens[at + 1].Kind == TokenKind.CloseBracket)
+			at += 2;
+
+		return _tokens[at].Kind == TokenKind.Equals;
+	}
 
 	bool AtPublication() =>
 		!StartsRule() &&

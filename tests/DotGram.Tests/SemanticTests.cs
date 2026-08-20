@@ -62,8 +62,9 @@ public sealed class SemanticTests
 
 		// The first one is the one that says what happened; what follows is the parser
 		// finding its feet again, which is worth seeing and is not the same message.
+		Assert.Equal(2, reported.Count);
 		Assert.Equal(GramLexer.UnexpectedCharacter, reported[0].Id);
-		Assert.Equal(3, reported.Count);
+		Assert.Equal(GramParser.ExpectedDeclaration, reported[1].Id);
 		Assert.DoesNotContain(reported, diagnostic => diagnostic.Id.StartsWith("GRAM3", StringComparison.Ordinal));
 		Assert.DoesNotContain(reported, diagnostic => diagnostic.Id.StartsWith("GRAM4", StringComparison.Ordinal));
 	}

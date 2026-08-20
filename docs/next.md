@@ -12,8 +12,8 @@ shared generated automaton. Recognition records an all-integer derivation arena;
 user-visible values and `=>` calls are materialized only after the parse has been
 accepted. Recursive rules use explicit frames rather than the C# call stack.
 
-The checkout was clean before this handoff was written. The latest implementation commit
-is `d074b2d` (`Capture negative lookahead success in the arena`).
+The checkout was clean before this handoff was written. The latest unified-parser commit
+is `fb0fbea` (`Run binding powers in the unified parser`).
 
 ## Repository conventions and verification
 
@@ -37,11 +37,9 @@ is `d074b2d` (`Capture negative lookahead success in the arena`).
   inspect generated snapshot changes rather than accepting them mechanically.
 
 Current baseline: the build succeeds with no warnings or errors. The runner discovers
-813 tests; 812 pass. The one known failure is
-`SemanticTests.A_stray_character_is_not_reported_seven_times`: it expects three
-diagnostics but currently receives four (`GRAM1005`, `GRAM2001`, `GRAM2003`, and
-`GRAM2002`). This failure predates the latest unified-machine steps and remains to be
-diagnosed separately.
+822 tests and all 822 pass. The stray-character recovery regression is fixed: a broken
+expression now produces the lexer error and one parser synchronization diagnostic, while
+rules following the broken declaration are still bound and checked.
 
 ## Language decisions already made
 
@@ -273,8 +271,8 @@ case needs it; the legacy path remains the compatibility implementation.
   `src/DotGram/Grammar/Model/Retention.cs`: graph and retention/streaming analyses that
   constrain eligibility.
 - `tests/DotGram.Tests/CSharpEmitterTests.cs`: generated-code shape and snapshot coverage.
-- `tests/DotGram.Tests/SemanticTests.cs`: language semantics and the one known failing
-  diagnostic-count test.
+- `tests/DotGram.Tests/SemanticTests.cs`: language semantics, including recovery without
+  diagnostic cascades.
 - `tests/DotGram.Tests/UrlTests.cs`: transparent rule backtracking regression coverage.
 
 ## Commit sequence for the current work
