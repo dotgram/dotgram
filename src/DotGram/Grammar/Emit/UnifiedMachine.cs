@@ -30,17 +30,20 @@ sealed class UnifiedMachine
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
 	readonly List<RecoveryPlan> _recoveryPlans = [];
+	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
 	readonly List<string> _extra = [];
 	readonly ILineMap? _lines;
+	readonly bool _starves;
 	bool _usesChar;
 	int _guards;
 	int _captures;
 
-	public UnifiedMachine(RecognitionGraph graph, ResultTypes results, ILineMap? lines)
+	public UnifiedMachine(RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false)
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
+		_starves = starves;
 
 		foreach (var rule in graph.Rules)
 		{
@@ -179,24 +182,51 @@ sealed class UnifiedMachine
 
 	public IReadOnlyList<string> Extra => _extra;
 
-	public string Render(RuleSymbol root, string name)
+	public void Register(RuleSymbol root, bool whole)
 	{
-		var file = new Writer(0);
-		var type = _results.QualifiedOf(root);
-		var output = type is null ? "" : $", out {type} value";
-		var entry = _graph.Trivia.TryGetValue(root, out var trivia)
+		if (!whole || _wholeEntries.ContainsKey(root))
+			return;
+
+		_wholeEntries[root] = _graph.Trivia.TryGetValue(root, out var trivia)
 			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return)
 			: _entries[root];
+	}
+
+	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole)
+	{
+		var file  = new Writer(0);
+		var type  = _results.QualifiedOf(root);
+		var output = type is null ? "" : $", out {type} value";
+		var entry = whole ? _wholeEntries[root] : _entries[root];
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"ref {CSharpEmitter.FailureType} failure{output})"))
 		{
+			file.Line("object? recognized;");
+			file.Line(
+				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}, " +
+				$"{(whole ? "true" : "false")}, ref failure, out recognized);");
+
 			if (type is not null)
-			{
-				file.Line("value = default!;");
-				file.Line();
-			}
+				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
+
+			file.Line("return end;");
+		}
+
+		return file.ToString();
+	}
+
+	public string RenderEngine(string name)
+	{
+		var file = new Writer(0);
+
+		using (file.Block(
+			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
+			$"int rootRule, bool whole, ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
+		{
+			file.Line("recognized = null;");
+			file.Line();
 
 			file.Line("Parser parser = null!;");
 			file.Line("RentParser(ref parser);");
@@ -225,11 +255,10 @@ sealed class UnifiedMachine
 					if (_textCaptures.Contains(i))
 						file.Line($"var capture{i} = 0;");
 
-				file.Line($"var state   = {entry};");
 				file.Line();
 				file.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
-					$"0, {ValueRule(root)}));");
+					"0, rootRule));");
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
 
@@ -270,17 +299,30 @@ sealed class UnifiedMachine
 
 				file.Line();
 				file.Line("Accept:");
-				file.Line("if (p != text.Length) goto Fail;");
+				file.Line("if (whole && p != text.Length) goto Fail;");
 
-				if (type is not null)
+				var hasValues = false;
+
+				foreach (var rule in _graph.Rules)
+					hasValues |= ValueRule(rule) >= 0;
+
+				if (hasValues)
 				{
-					file.Line();
-					Materialize(file, root, type);
+					using (file.Block("if (rootRule >= 0)"))
+					{
+						file.Line();
+						Materialize(file);
+					}
 				}
-				else if (_recoveryPlans.Count > 0)
+				if (_recoveryPlans.Count > 0)
 				{
-					file.Line();
-					ReportRecoveries(file);
+					if (hasValues)
+						file.Line("else");
+					using (file.Block(""))
+					{
+						file.Line();
+						ReportRecoveries(file);
+					}
 				}
 
 				file.Line("return p;");
@@ -426,7 +468,17 @@ sealed class UnifiedMachine
 			{
 				var state = Reserve(out var writer);
 
-				writer.Line($"if (p + {value.Length} > text.Length) goto Fail;");
+				if (_starves)
+				{
+					writer.Line($"if (p + {value.Length} > text.Length)");
+					using (writer.Block(""))
+					{
+						writer.Line("failure.Starved = true;");
+						writer.Line("goto Fail;");
+					}
+				}
+				else
+					writer.Line($"if (p + {value.Length} > text.Length) goto Fail;");
 
 				for (var i = 0; i < value.Length; i++)
 					writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(value[i])}) goto Fail;");
@@ -449,7 +501,17 @@ sealed class UnifiedMachine
 					return state;
 				}
 
-				writer.Line("if (p >= text.Length) goto Fail;");
+				if (_starves)
+				{
+					writer.Line("if (p >= text.Length)");
+					using (writer.Block(""))
+					{
+						writer.Line("failure.Starved = true;");
+						writer.Line("goto Fail;");
+					}
+				}
+				else
+					writer.Line("if (p >= text.Length) goto Fail;");
 
 				if (test != "true")
 				{
@@ -977,7 +1039,7 @@ sealed class UnifiedMachine
 		return _states.Count - 1 + First;
 	}
 
-	void Materialize(Writer file, RuleSymbol root, string type)
+	void Materialize(Writer file)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
 		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
@@ -1054,7 +1116,7 @@ sealed class UnifiedMachine
 						MaterializeRule(file, rule);
 		}
 
-		file.Line($"value = ({type})values[0]!;");
+		file.Line("recognized = values[0];");
 	}
 
 	void ReportRecoveries(Writer file)

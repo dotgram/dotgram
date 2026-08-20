@@ -486,6 +486,18 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Parse_and_find_share_one_automaton()
+	{
+		var source = Emit(Digits + """
+			parse Start
+			find Start
+			""");
+
+		Assert.Equal(1, source.Split("static int Recognize_DotGram(", StringSplitOptions.None).Length - 1);
+		Assert.Contains("Recognize_DotGram(text, pos", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void Two_directives_wanting_one_name_is_a_diagnostic()
 	{
 		var result = GramCompiler.Compile("""

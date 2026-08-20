@@ -155,9 +155,9 @@ namespace DotGram.Snapshots
 			public string? Port { get; }
 		}
 
-		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
+		static int Recognize_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, ref Failure failure, out object? recognized)
 		{
-			value = default!;
+			recognized = null;
 
 			Parser parser = null!;
 			RentParser(ref parser);
@@ -179,9 +179,8 @@ namespace DotGram.Snapshots
 				var capture5 = 0;
 				var capture6 = 0;
 				var capture7 = 0;
-				var state   = 3;
 
-				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, 0));
+				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
 				goto Dispatch;
 
@@ -404,7 +403,12 @@ namespace DotGram.Snapshots
 				S31:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '#') goto Fail;
 					p += 1;
 					goto S30;
@@ -482,7 +486,12 @@ namespace DotGram.Snapshots
 				S39:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '?') goto Fail;
 					p += 1;
 					goto S38;
@@ -543,7 +552,12 @@ namespace DotGram.Snapshots
 				S46:
 
 				{
-					if (p + 3 > text.Length) goto Fail;
+					if (p + 3 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != '/') goto Fail;
 					if (text[p + 2] != '/') goto Fail;
@@ -579,7 +593,12 @@ namespace DotGram.Snapshots
 				S50:
 
 				{
-					if (p + 3 > text.Length) goto Fail;
+					if (p + 3 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != 'f') goto Fail;
 					if (text[p + 1] != 't') goto Fail;
 					if (text[p + 2] != 'p') goto Fail;
@@ -590,7 +609,12 @@ namespace DotGram.Snapshots
 				S51:
 
 				{
-					if (p + 4 > text.Length) goto Fail;
+					if (p + 4 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != 'h') goto Fail;
 					if (text[p + 1] != 't') goto Fail;
 					if (text[p + 2] != 't') goto Fail;
@@ -610,7 +634,12 @@ namespace DotGram.Snapshots
 				S53:
 
 				{
-					if (p + 5 > text.Length) goto Fail;
+					if (p + 5 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != 'h') goto Fail;
 					if (text[p + 1] != 't') goto Fail;
 					if (text[p + 2] != 't') goto Fail;
@@ -744,7 +773,12 @@ namespace DotGram.Snapshots
 				S66:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S62;
@@ -822,7 +856,12 @@ namespace DotGram.Snapshots
 				S74:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '@') goto Fail;
 					p += 1;
 					goto S72;
@@ -900,7 +939,12 @@ namespace DotGram.Snapshots
 				S82:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S80;
@@ -1019,7 +1063,12 @@ namespace DotGram.Snapshots
 				S95:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '.') goto Fail;
 					p += 1;
 					goto S94;
@@ -1038,7 +1087,12 @@ namespace DotGram.Snapshots
 				S97:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '.') goto Fail;
 					p += 1;
 					goto S96;
@@ -1057,7 +1111,12 @@ namespace DotGram.Snapshots
 				S99:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '.') goto Fail;
 					p += 1;
 					goto S98;
@@ -1221,7 +1280,12 @@ namespace DotGram.Snapshots
 				S115:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ']') goto Fail;
 					p += 1;
 					goto Return;
@@ -1240,7 +1304,12 @@ namespace DotGram.Snapshots
 				S117:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '[') goto Fail;
 					p += 1;
 					goto S116;
@@ -1249,7 +1318,12 @@ namespace DotGram.Snapshots
 				S118:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -1377,7 +1451,12 @@ namespace DotGram.Snapshots
 				S130:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -1513,7 +1592,12 @@ namespace DotGram.Snapshots
 				S143:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -1649,7 +1733,12 @@ namespace DotGram.Snapshots
 				S156:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S155;
@@ -1668,7 +1757,12 @@ namespace DotGram.Snapshots
 				S158:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -1849,7 +1943,12 @@ namespace DotGram.Snapshots
 				S175:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S173;
@@ -1868,7 +1967,12 @@ namespace DotGram.Snapshots
 				S177:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -2049,7 +2153,12 @@ namespace DotGram.Snapshots
 				S194:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S192;
@@ -2068,7 +2177,12 @@ namespace DotGram.Snapshots
 				S196:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -2249,7 +2363,12 @@ namespace DotGram.Snapshots
 				S213:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S211;
@@ -2268,7 +2387,12 @@ namespace DotGram.Snapshots
 				S215:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -2395,7 +2519,12 @@ namespace DotGram.Snapshots
 				S227:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S225;
@@ -2414,7 +2543,12 @@ namespace DotGram.Snapshots
 				S229:
 
 				{
-					if (p + 2 > text.Length) goto Fail;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					if (text[p + 1] != ':') goto Fail;
 					p += 2;
@@ -2487,7 +2621,12 @@ namespace DotGram.Snapshots
 				S236:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S234;
@@ -2514,7 +2653,12 @@ namespace DotGram.Snapshots
 				S239:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto Return;
@@ -2553,7 +2697,12 @@ namespace DotGram.Snapshots
 				S243:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
 					goto S242;
@@ -2688,7 +2837,12 @@ namespace DotGram.Snapshots
 				S256:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '/') goto Fail;
 					p += 1;
 					goto S255;
@@ -2740,7 +2894,12 @@ namespace DotGram.Snapshots
 				S261:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!((c == ':' || c == '@'))) goto Fail;
 					p++;
@@ -2847,7 +3006,12 @@ namespace DotGram.Snapshots
 				S272:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
 					p++;
@@ -2931,7 +3095,12 @@ namespace DotGram.Snapshots
 				S281:
 
 				{
-					if (p + 1 > text.Length) goto Fail;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					if (text[p + 0] != '%') goto Fail;
 					p += 1;
 					goto S280;
@@ -2940,7 +3109,12 @@ namespace DotGram.Snapshots
 				S282:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
@@ -2950,7 +3124,12 @@ namespace DotGram.Snapshots
 				S283:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
@@ -2960,7 +3139,12 @@ namespace DotGram.Snapshots
 				S284:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
 					p++;
@@ -2970,7 +3154,12 @@ namespace DotGram.Snapshots
 				S285:
 
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
 					c = text[p];
 					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
 					p++;
@@ -2998,170 +3187,173 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (p != text.Length) goto Fail;
-
-				var values = parser.Materialization(entries.Count);
-				var links  = parser.MaterializationLinks(entries.Count);
-
-				for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
+				if (whole && p != text.Length) goto Fail;
+				if (rootRule >= 0)
 				{
-					var derivation = entries[derivationAt];
-					if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
-					{
-						links[entries.Count + derivationAt] = links[derivation.CallIndex];
-						links[derivation.CallIndex] = derivationAt;
-					}
-				}
 
-				values[0] = parser;
-				for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
-				{
-					if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
-					for (var capturedAt = links[ownerAt]; capturedAt >= 0; capturedAt = links[entries.Count + capturedAt])
+					var values = parser.Materialization(entries.Count);
+					var links  = parser.MaterializationLinks(entries.Count);
+
+					for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
 					{
-						var candidate = entries[capturedAt];
-						if (candidate.Kind == ParserEntry.RuleCapture)
-							values[candidate.Position] = parser;
-					}
-				}
-				for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
-				{
-					var completed = entries[completedAt];
-					if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
-					switch (completed.RuleIndex)
-					{
-						case 0:
+						var derivation = entries[derivationAt];
+						if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
 						{
-							var captured0From = -1;
-							var captured0To   = -1;
-							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
-							{
-								var candidate = entries[capturedAt0];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 0))
-								{
-									if (captured0To < 0)
-										captured0To = candidate.Value;
-									captured0From = candidate.Position;
-								}
-							}
-							var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-							var captured1At = -1;
-							for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
-							{
-								var candidate = entries[capturedAt1];
-								if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
-								{
-									captured1At = candidate.Position;
-									break;
-								}
-							}
-							global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-							var captured1 = (global::DotGram.Snapshots.Url.Authority)values[captured1At]!;
-
-							var captured2From = -1;
-							var captured2To   = -1;
-							for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
-							{
-								var candidate = entries[capturedAt2];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 2))
-								{
-									if (captured2To < 0)
-										captured2To = candidate.Value;
-									captured2From = candidate.Position;
-								}
-							}
-							var captured2 = captured2From < 0 ? string.Empty : text.Slice(captured2From, captured2To - captured2From).ToString();
-
-							var captured3From = -1;
-							var captured3To   = -1;
-							for (var capturedAt3 = links[completedAt]; capturedAt3 >= 0; capturedAt3 = links[entries.Count + capturedAt3])
-							{
-								var candidate = entries[capturedAt3];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
-								{
-									if (captured3To < 0)
-										captured3To = candidate.Value;
-									captured3From = candidate.Position;
-								}
-							}
-							var captured3 = captured3From < 0 ? null : text.Slice(captured3From, captured3To - captured3From).ToString();
-
-							var captured4From = -1;
-							var captured4To   = -1;
-							for (var capturedAt4 = links[completedAt]; capturedAt4 >= 0; capturedAt4 = links[entries.Count + capturedAt4])
-							{
-								var candidate = entries[capturedAt4];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
-								{
-									if (captured4To < 0)
-										captured4To = candidate.Value;
-									captured4From = candidate.Position;
-								}
-							}
-							var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
-
-							values[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
-								captured0!,
-								captured1!,
-								captured2!,
-								captured3,
-								captured4);
-							break;
-						}
-						case 2:
-						{
-							var captured0From = -1;
-							var captured0To   = -1;
-							for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
-							{
-								var candidate = entries[capturedAt0];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 5))
-								{
-									if (captured0To < 0)
-										captured0To = candidate.Value;
-									captured0From = candidate.Position;
-								}
-							}
-							var captured0 = captured0From < 0 ? null : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-							var captured1From = -1;
-							var captured1To   = -1;
-							for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
-							{
-								var candidate = entries[capturedAt1];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 6))
-								{
-									if (captured1To < 0)
-										captured1To = candidate.Value;
-									captured1From = candidate.Position;
-								}
-							}
-							var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
-
-							var captured2From = -1;
-							var captured2To   = -1;
-							for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
-							{
-								var candidate = entries[capturedAt2];
-								if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 7))
-								{
-									if (captured2To < 0)
-										captured2To = candidate.Value;
-									captured2From = candidate.Position;
-								}
-							}
-							var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
-
-							values[completedAt] = new global::DotGram.Snapshots.Url.Authority(
-								captured0,
-								captured1!,
-								captured2);
-							break;
+							links[entries.Count + derivationAt] = links[derivation.CallIndex];
+							links[derivation.CallIndex] = derivationAt;
 						}
 					}
+
+					values[0] = parser;
+					for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
+					{
+						if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
+						for (var capturedAt = links[ownerAt]; capturedAt >= 0; capturedAt = links[entries.Count + capturedAt])
+						{
+							var candidate = entries[capturedAt];
+							if (candidate.Kind == ParserEntry.RuleCapture)
+								values[candidate.Position] = parser;
+						}
+					}
+					for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
+					{
+						var completed = entries[completedAt];
+						if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
+						switch (completed.RuleIndex)
+						{
+							case 0:
+							{
+								var captured0From = -1;
+								var captured0To   = -1;
+								for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
+								{
+									var candidate = entries[capturedAt0];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 0))
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+								}
+								var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+								var captured1At = -1;
+								for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
+								{
+									var candidate = entries[capturedAt1];
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
+									{
+										captured1At = candidate.Position;
+										break;
+									}
+								}
+								global::System.Diagnostics.Debug.Assert(captured1At >= 0);
+								var captured1 = (global::DotGram.Snapshots.Url.Authority)values[captured1At]!;
+
+								var captured2From = -1;
+								var captured2To   = -1;
+								for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
+								{
+									var candidate = entries[capturedAt2];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 2))
+									{
+										if (captured2To < 0)
+											captured2To = candidate.Value;
+										captured2From = candidate.Position;
+									}
+								}
+								var captured2 = captured2From < 0 ? string.Empty : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+								var captured3From = -1;
+								var captured3To   = -1;
+								for (var capturedAt3 = links[completedAt]; capturedAt3 >= 0; capturedAt3 = links[entries.Count + capturedAt3])
+								{
+									var candidate = entries[capturedAt3];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
+									{
+										if (captured3To < 0)
+											captured3To = candidate.Value;
+										captured3From = candidate.Position;
+									}
+								}
+								var captured3 = captured3From < 0 ? null : text.Slice(captured3From, captured3To - captured3From).ToString();
+
+								var captured4From = -1;
+								var captured4To   = -1;
+								for (var capturedAt4 = links[completedAt]; capturedAt4 >= 0; capturedAt4 = links[entries.Count + capturedAt4])
+								{
+									var candidate = entries[capturedAt4];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
+									{
+										if (captured4To < 0)
+											captured4To = candidate.Value;
+										captured4From = candidate.Position;
+									}
+								}
+								var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
+
+								values[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
+									captured0!,
+									captured1!,
+									captured2!,
+									captured3,
+									captured4);
+								break;
+							}
+							case 2:
+							{
+								var captured0From = -1;
+								var captured0To   = -1;
+								for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
+								{
+									var candidate = entries[capturedAt0];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 5))
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+								}
+								var captured0 = captured0From < 0 ? null : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+								var captured1From = -1;
+								var captured1To   = -1;
+								for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
+								{
+									var candidate = entries[capturedAt1];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 6))
+									{
+										if (captured1To < 0)
+											captured1To = candidate.Value;
+										captured1From = candidate.Position;
+									}
+								}
+								var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
+
+								var captured2From = -1;
+								var captured2To   = -1;
+								for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
+								{
+									var candidate = entries[capturedAt2];
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 7))
+									{
+										if (captured2To < 0)
+											captured2To = candidate.Value;
+										captured2From = candidate.Position;
+									}
+								}
+								var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+								values[completedAt] = new global::DotGram.Snapshots.Url.Authority(
+									captured0,
+									captured1!,
+									captured2);
+								break;
+							}
+						}
+					}
+					recognized = values[0];
 				}
-				value = (global::DotGram.Snapshots.Url.UrlValue)values[0]!;
 				return p;
 
 				Fail:
@@ -3538,3036 +3730,20 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		// Url = scheme: Scheme & "://" & authority: Authority & path: Path & ('?' & query: Rest)? &
-		//     ('#' & fragment: Rest)?
+		static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
+		{
+			object? recognized;
+			var end = Recognize_DotGram(text, pos, 3, 0, true, ref failure, out recognized);
+			value = end < 0 ? default! : (global::DotGram.Snapshots.Url.UrlValue)recognized!;
+			return end;
+		}
+
 		static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.UrlValue value)
 		{
-			value = default!;
-
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var c1    = 0;
-			var state = 28;
-
-			var s0_from = -1; var s0_to = -1;
-			global::DotGram.Snapshots.Url.Authority v1 = default!;
-			var s2_from = -1; var s2_to = -1;
-			var s3_from = -1; var s3_to = -1;
-			var s4_from = -1; var s4_to = -1;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						value = new global::DotGram.Snapshots.Url.UrlValue(
-							text.Slice(s0_from, s0_to - s0_from).ToString(),
-							v1,
-							text.Slice(s2_from, s2_to - s2_from).ToString(),
-							s3_from >= 0 ? text.Slice(s3_from, s3_to - s3_from).ToString() : null,
-							s4_from >= 0 ? text.Slice(s4_from, s4_to - s4_from).ToString() : null);
-
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// ('#' & fragment: Rest)? — stop, and check the count
-						c0 = saved;
-
-						goto case 0;
-
-					case 3:
-						// ('#' & fragment: Rest)? — take another, or leave stopping open
-						if (c0 >= 1)
-						{
-							saved = c0;
-							goto case 2;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 9;
-
-					case 4:
-						// ('#' & fragment: Rest)? — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// ('#' & fragment: Rest)? — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// fragment: Rest — captured to here
-						s4_to = p;
-						goto case 4;
-
-					case 7:
-						// Rest
-						r = Recognize_Rest(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 6;
-
-					case 8:
-						// fragment: Rest — capture starts here
-						s4_from = p;
-						goto case 7;
-
-					case 9:
-						// '#'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != '#')
-							goto case 1;
-						p += 1;
-						goto case 8;
-
-					case 10:
-						// forget what the abandoned attempt captured
-						s4_from = s4_to = -1;
-						goto case 2;
-
-					case 11:
-						// ('?' & query: Rest)? — stop, and check the count
-						c1 = saved;
-
-						goto case 5;
-
-					case 12:
-						// ('?' & query: Rest)? — take another, or leave stopping open
-						if (c1 >= 1)
-						{
-							saved = c1;
-							goto case 11;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 19; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 18;
-
-					case 13:
-						// ('?' & query: Rest)? — one more taken
-						c1++;
-						goto case 12;
-
-					case 14:
-						// ('?' & query: Rest)? — start counting
-						c1 = 0;
-						goto case 12;
-
-					case 15:
-						// query: Rest — captured to here
-						s3_to = p;
-						goto case 13;
-
-					case 16:
-						// Rest
-						r = Recognize_Rest(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 15;
-
-					case 17:
-						// query: Rest — capture starts here
-						s3_from = p;
-						goto case 16;
-
-					case 18:
-						// '?'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != '?')
-							goto case 1;
-						p += 1;
-						goto case 17;
-
-					case 19:
-						// forget what the abandoned attempt captured
-						s3_from = s3_to = -1;
-						s4_from = s4_to = -1;
-						goto case 11;
-
-					case 20:
-						// path: Path — captured to here
-						s2_to = p;
-						goto case 14;
-
-					case 21:
-						// Path
-						r = Recognize_Path(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 20;
-
-					case 22:
-						// path: Path — capture starts here
-						s2_from = p;
-						goto case 21;
-
-					case 23:
-						// authority: Authority — captured
-						goto case 22;
-
-					case 24:
-						// Authority
-						r = Recognize_Authority(text, p, ref failure, out v1);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 23;
-
-					case 25:
-						// "://"
-						if (p + 3 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != '/')
-							goto case 1;
-						if (text[p + 2] != '/')
-							goto case 1;
-						p += 3;
-						goto case 24;
-
-					case 26:
-						// scheme: Scheme — captured to here
-						s0_to = p;
-						goto case 25;
-
-					case 27:
-						// Scheme
-						r = Recognize_Scheme(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 26;
-
-					case 28:
-						// scheme: Scheme — capture starts here
-						s0_from = p;
-						goto case 27;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Scheme = ("https" | "http" | "ftp")
-		static int Recognize_Scheme(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var state = 6;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// "ftp"
-						if (p + 3 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != 'f')
-							goto case 1;
-						if (text[p + 1] != 't')
-							goto case 1;
-						if (text[p + 2] != 'p')
-							goto case 1;
-						p += 3;
-						goto case 0;
-
-					case 3:
-						// "http"
-						if (p + 4 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != 'h')
-							goto case 1;
-						if (text[p + 1] != 't')
-							goto case 1;
-						if (text[p + 2] != 't')
-							goto case 1;
-						if (text[p + 3] != 'p')
-							goto case 1;
-						p += 4;
-						goto case 0;
-
-					case 4:
-						// "http" — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 3;
-
-					case 5:
-						// "https"
-						if (p + 5 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != 'h')
-							goto case 1;
-						if (text[p + 1] != 't')
-							goto case 1;
-						if (text[p + 2] != 't')
-							goto case 1;
-						if (text[p + 3] != 'p')
-							goto case 1;
-						if (text[p + 4] != 's')
-							goto case 1;
-						p += 5;
-						goto case 0;
-
-					case 6:
-						// "https" — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 5;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Authority = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
-		static int Recognize_Authority(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Authority value)
-		{
-			value = default!;
-
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var c1    = 0;
-			var c2    = 0;
-			var state = 20;
-
-			var s0_from = -1; var s0_to = -1;
-			var s1_from = -1; var s1_to = -1;
-			var s2_from = -1; var s2_to = -1;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						value = new global::DotGram.Snapshots.Url.Authority(
-							s0_from >= 0 ? text.Slice(s0_from, s0_to - s0_from).ToString() : null,
-							text.Slice(s1_from, s1_to - s1_from).ToString(),
-							s2_from >= 0 ? text.Slice(s2_from, s2_to - s2_from).ToString() : null);
-
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// (':' & port: Digit+)? — stop, and check the count
-						c0 = saved;
-
-						goto case 0;
-
-					case 3:
-						// (':' & port: Digit+)? — take another, or leave stopping open
-						if (c0 >= 1)
-						{
-							saved = c0;
-							goto case 2;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 13; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 12;
-
-					case 4:
-						// (':' & port: Digit+)? — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// (':' & port: Digit+)? — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// port: Digit+ — stop, and check the count
-						c1 = saved;
-
-						if (c1 < 1)
-							goto case 1;
-
-						goto case 4;
-
-					case 7:
-						// port: Digit+ — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 11;
-
-					case 8:
-						// port: Digit+ — one more taken
-						c1++;
-						goto case 7;
-
-					case 9:
-						// port: Digit+ — start counting
-						c1 = 0;
-						s2_from = s2_to = p;
-						goto case 7;
-
-					case 10:
-						// port: Digit — one more iteration is part of the run
-						s2_to = p;
-						goto case 8;
-
-					case 11:
-						// Digit
-						r = Recognize_Digit(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 10;
-
-					case 12:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 9;
-
-					case 13:
-						// forget what the abandoned attempt captured
-						s2_from = s2_to = -1;
-						goto case 2;
-
-					case 14:
-						// host: Host — captured to here
-						s1_to = p;
-						goto case 5;
-
-					case 15:
-						// Host
-						r = Recognize_Host(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 14;
-
-					case 16:
-						// host: Host — capture starts here
-						s1_from = p;
-						goto case 15;
-
-					case 17:
-						// (user: UserInfo & '@')? — stop, and check the count
-						c2 = saved;
-
-						goto case 16;
-
-					case 18:
-						// (user: UserInfo & '@')? — take another, or leave stopping open
-						if (c2 >= 1)
-						{
-							saved = c2;
-							goto case 17;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 25; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
-						goto case 24;
-
-					case 19:
-						// (user: UserInfo & '@')? — one more taken
-						c2++;
-						goto case 18;
-
-					case 20:
-						// (user: UserInfo & '@')? — start counting
-						c2 = 0;
-						goto case 18;
-
-					case 21:
-						// '@'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != '@')
-							goto case 1;
-						p += 1;
-						goto case 19;
-
-					case 22:
-						// user: UserInfo — captured to here
-						s0_to = p;
-						goto case 21;
-
-					case 23:
-						// UserInfo
-						r = Recognize_UserInfo(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 22;
-
-					case 24:
-						// user: UserInfo — capture starts here
-						s0_from = p;
-						goto case 23;
-
-					case 25:
-						// forget what the abandoned attempt captured
-						s0_from = s0_to = -1;
-						s1_from = s1_to = -1;
-						s2_from = s2_to = -1;
-						goto case 17;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// UserInfo = (Unreserved | SubDelim | PctEncoded | ':')+
-		static int Recognize_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// (Unreserved | SubDelim | PctEncoded | ':')+ — stop, and check the count
-						c0 = saved;
-
-						if (c0 < 1)
-							goto case 1;
-
-						goto case 0;
-
-					case 3:
-						// (Unreserved | SubDelim | PctEncoded | ':')+ — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 12;
-
-					case 4:
-						// (Unreserved | SubDelim | PctEncoded | ':')+ — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// (Unreserved | SubDelim | PctEncoded | ':')+ — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 4;
-
-					case 7:
-						// PctEncoded
-						r = Recognize_PctEncoded(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 8:
-						// PctEncoded — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 7;
-
-					case 9:
-						// SubDelim
-						r = Recognize_SubDelim(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 10:
-						// SubDelim — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 9;
-
-					case 11:
-						// Unreserved
-						r = Recognize_Unreserved(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 12:
-						// Unreserved — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 11;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Host = (IPLiteral | IPv4 | RegName)
-		static int Recognize_Host(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var state = 6;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// RegName
-						r = Recognize_RegName(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 3:
-						// IPv4
-						r = Recognize_IPv4(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 4:
-						// IPv4 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 3;
-
-					case 5:
-						// IPLiteral
-						r = Recognize_IPLiteral(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 6:
-						// IPLiteral — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 4; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 5;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// IPv4 = Octet & '.' & Octet & '.' & Octet & '.' & Octet
-		static int Recognize_IPv4(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 8;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// Octet
-					r = Recognize_Octet(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 0;
-
-				case 3:
-					// '.'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != '.')
-						goto case 1;
-					p += 1;
-					goto case 2;
-
-				case 4:
-					// Octet
-					r = Recognize_Octet(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 3;
-
-				case 5:
-					// '.'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != '.')
-						goto case 1;
-					p += 1;
-					goto case 4;
-
-				case 6:
-					// Octet
-					r = Recognize_Octet(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 5;
-
-				case 7:
-					// '.'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != '.')
-						goto case 1;
-					p += 1;
-					goto case 6;
-
-				case 8:
-					// Octet
-					r = Recognize_Octet(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 7;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Octet = Digit{1,3}
-		static int Recognize_Octet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// Digit{1,3} — stop, and check the count
-						c0 = saved;
-
-						if (c0 < 1)
-							goto case 1;
-
-						goto case 0;
-
-					case 3:
-						// Digit{1,3} — take another, or leave stopping open
-						if (c0 >= 3)
-						{
-							saved = c0;
-							goto case 2;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 6;
-
-					case 4:
-						// Digit{1,3} — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// Digit{1,3} — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// Digit
-						r = Recognize_Digit(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// RegName = (Unreserved | SubDelim | PctEncoded)+
-		static int Recognize_RegName(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// (Unreserved | SubDelim | PctEncoded)+ — stop, and check the count
-						c0 = saved;
-
-						if (c0 < 1)
-							goto case 1;
-
-						goto case 0;
-
-					case 3:
-						// (Unreserved | SubDelim | PctEncoded)+ — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 10;
-
-					case 4:
-						// (Unreserved | SubDelim | PctEncoded)+ — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// (Unreserved | SubDelim | PctEncoded)+ — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// PctEncoded
-						r = Recognize_PctEncoded(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 7:
-						// SubDelim
-						r = Recognize_SubDelim(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 8:
-						// SubDelim — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 7;
-
-					case 9:
-						// Unreserved
-						r = Recognize_Unreserved(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 10:
-						// Unreserved — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 9;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// IPLiteral = '[' & IPv6 & ']'
-		static int Recognize_IPLiteral(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 4;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ']'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != ']')
-						goto case 1;
-					p += 1;
-					goto case 0;
-
-				case 3:
-					// IPv6
-					r = Recognize_IPv6(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 2;
-
-				case 4:
-					// '['
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != '[')
-						goto case 1;
-					p += 1;
-					goto case 3;
-
-				default:
-					return -1;
-			}
-		}
-
-		// IPv6 = ((H16 & ':'){6} & LS32 | "::" & (H16 & ':'){5} & LS32 | H16? & "::" & (H16 & ':'){4}
-		//     & LS32 | (Group? & H16)? & "::" & (H16 & ':'){3} & LS32 | (Group{0,2} & H16)? & "::" &
-		//     (H16 & ':'){2} & LS32 | (Group{0,3} & H16)? & "::" & H16 & ':' & LS32 | (Group{0,4} &
-		//     H16)? & "::" & LS32 | (Group{0,5} & H16)? & "::" & H16 | (Group{0,6} & H16)? & "::")
-		static int Recognize_IPv6(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var c1    = 0;
-			var c2    = 0;
-			var c3    = 0;
-			var c4    = 0;
-			var c5    = 0;
-			var c6    = 0;
-			var c7    = 0;
-			var c8    = 0;
-			var c9    = 0;
-			var c10    = 0;
-			var c11    = 0;
-			var c12    = 0;
-			var c13    = 0;
-			var c14    = 0;
-			var c15    = 0;
-			var c16    = 0;
-			var c17    = 0;
-			var state = 122;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 0;
-
-					case 3:
-						// (Group{0,6} & H16)? — stop, and check the count
-						c0 = saved;
-
-						goto case 2;
-
-					case 4:
-						// (Group{0,6} & H16)? — take another, or leave stopping open
-						if (c0 >= 1)
-						{
-							saved = c0;
-							goto case 3;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 3; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 11;
-
-					case 5:
-						// (Group{0,6} & H16)? — one more taken
-						c0++;
-						goto case 4;
-
-					case 6:
-						// (Group{0,6} & H16)? — start counting
-						c0 = 0;
-						goto case 4;
-
-					case 7:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 5;
-
-					case 8:
-						// Group{0,6} — stop, and check the count
-						c1 = saved;
-
-						goto case 7;
-
-					case 9:
-						// Group{0,6} — take another, or leave stopping open
-						if (c1 >= 6)
-						{
-							saved = c1;
-							goto case 8;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = c1; sp += 3;
-						goto case 12;
-
-					case 10:
-						// Group{0,6} — one more taken
-						c1++;
-						goto case 9;
-
-					case 11:
-						// Group{0,6} — start counting
-						c1 = 0;
-						goto case 9;
-
-					case 12:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 10;
-
-					case 13:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 14:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 13;
-
-					case 15:
-						// (Group{0,5} & H16)? — stop, and check the count
-						c2 = saved;
-
-						goto case 14;
-
-					case 16:
-						// (Group{0,5} & H16)? — take another, or leave stopping open
-						if (c2 >= 1)
-						{
-							saved = c2;
-							goto case 15;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 15; bt[sp + 1] = p; bt[sp + 2] = c2; sp += 3;
-						goto case 23;
-
-					case 17:
-						// (Group{0,5} & H16)? — one more taken
-						c2++;
-						goto case 16;
-
-					case 18:
-						// (Group{0,5} & H16)? — start counting
-						c2 = 0;
-						goto case 16;
-
-					case 19:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 17;
-
-					case 20:
-						// Group{0,5} — stop, and check the count
-						c3 = saved;
-
-						goto case 19;
-
-					case 21:
-						// Group{0,5} — take another, or leave stopping open
-						if (c3 >= 5)
-						{
-							saved = c3;
-							goto case 20;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 20; bt[sp + 1] = p; bt[sp + 2] = c3; sp += 3;
-						goto case 24;
-
-					case 22:
-						// Group{0,5} — one more taken
-						c3++;
-						goto case 21;
-
-					case 23:
-						// Group{0,5} — start counting
-						c3 = 0;
-						goto case 21;
-
-					case 24:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 22;
-
-					case 25:
-						// (Group{0,5} & H16)? & "::" & H16 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 18;
-
-					case 26:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 27:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 26;
-
-					case 28:
-						// (Group{0,4} & H16)? — stop, and check the count
-						c4 = saved;
-
-						goto case 27;
-
-					case 29:
-						// (Group{0,4} & H16)? — take another, or leave stopping open
-						if (c4 >= 1)
-						{
-							saved = c4;
-							goto case 28;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 28; bt[sp + 1] = p; bt[sp + 2] = c4; sp += 3;
-						goto case 36;
-
-					case 30:
-						// (Group{0,4} & H16)? — one more taken
-						c4++;
-						goto case 29;
-
-					case 31:
-						// (Group{0,4} & H16)? — start counting
-						c4 = 0;
-						goto case 29;
-
-					case 32:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 30;
-
-					case 33:
-						// Group{0,4} — stop, and check the count
-						c5 = saved;
-
-						goto case 32;
-
-					case 34:
-						// Group{0,4} — take another, or leave stopping open
-						if (c5 >= 4)
-						{
-							saved = c5;
-							goto case 33;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 33; bt[sp + 1] = p; bt[sp + 2] = c5; sp += 3;
-						goto case 37;
-
-					case 35:
-						// Group{0,4} — one more taken
-						c5++;
-						goto case 34;
-
-					case 36:
-						// Group{0,4} — start counting
-						c5 = 0;
-						goto case 34;
-
-					case 37:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 35;
-
-					case 38:
-						// (Group{0,4} & H16)? & "::" & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 25; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 31;
-
-					case 39:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 40:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 39;
-
-					case 41:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 40;
-
-					case 42:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 41;
-
-					case 43:
-						// (Group{0,3} & H16)? — stop, and check the count
-						c6 = saved;
-
-						goto case 42;
-
-					case 44:
-						// (Group{0,3} & H16)? — take another, or leave stopping open
-						if (c6 >= 1)
-						{
-							saved = c6;
-							goto case 43;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 43; bt[sp + 1] = p; bt[sp + 2] = c6; sp += 3;
-						goto case 51;
-
-					case 45:
-						// (Group{0,3} & H16)? — one more taken
-						c6++;
-						goto case 44;
-
-					case 46:
-						// (Group{0,3} & H16)? — start counting
-						c6 = 0;
-						goto case 44;
-
-					case 47:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 45;
-
-					case 48:
-						// Group{0,3} — stop, and check the count
-						c7 = saved;
-
-						goto case 47;
-
-					case 49:
-						// Group{0,3} — take another, or leave stopping open
-						if (c7 >= 3)
-						{
-							saved = c7;
-							goto case 48;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 48; bt[sp + 1] = p; bt[sp + 2] = c7; sp += 3;
-						goto case 52;
-
-					case 50:
-						// Group{0,3} — one more taken
-						c7++;
-						goto case 49;
-
-					case 51:
-						// Group{0,3} — start counting
-						c7 = 0;
-						goto case 49;
-
-					case 52:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 50;
-
-					case 53:
-						// (Group{0,3} & H16)? & "::" & H16 & ':' & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 38; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 46;
-
-					case 54:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 55:
-						// (H16 & ':'){2} — stop, and check the count
-						c8 = saved;
-
-						if (c8 < 2)
-							goto case 1;
-
-						goto case 54;
-
-					case 56:
-						// (H16 & ':'){2} — take another, or leave stopping open
-						if (c8 >= 2)
-						{
-							saved = c8;
-							goto case 55;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 55; bt[sp + 1] = p; bt[sp + 2] = c8; sp += 3;
-						goto case 60;
-
-					case 57:
-						// (H16 & ':'){2} — one more taken
-						c8++;
-						goto case 56;
-
-					case 58:
-						// (H16 & ':'){2} — start counting
-						c8 = 0;
-						goto case 56;
-
-					case 59:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 57;
-
-					case 60:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 59;
-
-					case 61:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 58;
-
-					case 62:
-						// (Group{0,2} & H16)? — stop, and check the count
-						c9 = saved;
-
-						goto case 61;
-
-					case 63:
-						// (Group{0,2} & H16)? — take another, or leave stopping open
-						if (c9 >= 1)
-						{
-							saved = c9;
-							goto case 62;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 62; bt[sp + 1] = p; bt[sp + 2] = c9; sp += 3;
-						goto case 70;
-
-					case 64:
-						// (Group{0,2} & H16)? — one more taken
-						c9++;
-						goto case 63;
-
-					case 65:
-						// (Group{0,2} & H16)? — start counting
-						c9 = 0;
-						goto case 63;
-
-					case 66:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 64;
-
-					case 67:
-						// Group{0,2} — stop, and check the count
-						c10 = saved;
-
-						goto case 66;
-
-					case 68:
-						// Group{0,2} — take another, or leave stopping open
-						if (c10 >= 2)
-						{
-							saved = c10;
-							goto case 67;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 67; bt[sp + 1] = p; bt[sp + 2] = c10; sp += 3;
-						goto case 71;
-
-					case 69:
-						// Group{0,2} — one more taken
-						c10++;
-						goto case 68;
-
-					case 70:
-						// Group{0,2} — start counting
-						c10 = 0;
-						goto case 68;
-
-					case 71:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 69;
-
-					case 72:
-						// (Group{0,2} & H16)? & "::" & (H16 & ':'){2} & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 53; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 65;
-
-					case 73:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 74:
-						// (H16 & ':'){3} — stop, and check the count
-						c11 = saved;
-
-						if (c11 < 3)
-							goto case 1;
-
-						goto case 73;
-
-					case 75:
-						// (H16 & ':'){3} — take another, or leave stopping open
-						if (c11 >= 3)
-						{
-							saved = c11;
-							goto case 74;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 74; bt[sp + 1] = p; bt[sp + 2] = c11; sp += 3;
-						goto case 79;
-
-					case 76:
-						// (H16 & ':'){3} — one more taken
-						c11++;
-						goto case 75;
-
-					case 77:
-						// (H16 & ':'){3} — start counting
-						c11 = 0;
-						goto case 75;
-
-					case 78:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 76;
-
-					case 79:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 78;
-
-					case 80:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 77;
-
-					case 81:
-						// (Group? & H16)? — stop, and check the count
-						c12 = saved;
-
-						goto case 80;
-
-					case 82:
-						// (Group? & H16)? — take another, or leave stopping open
-						if (c12 >= 1)
-						{
-							saved = c12;
-							goto case 81;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 81; bt[sp + 1] = p; bt[sp + 2] = c12; sp += 3;
-						goto case 89;
-
-					case 83:
-						// (Group? & H16)? — one more taken
-						c12++;
-						goto case 82;
-
-					case 84:
-						// (Group? & H16)? — start counting
-						c12 = 0;
-						goto case 82;
-
-					case 85:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 83;
-
-					case 86:
-						// Group? — stop, and check the count
-						c13 = saved;
-
-						goto case 85;
-
-					case 87:
-						// Group? — take another, or leave stopping open
-						if (c13 >= 1)
-						{
-							saved = c13;
-							goto case 86;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 86; bt[sp + 1] = p; bt[sp + 2] = c13; sp += 3;
-						goto case 90;
-
-					case 88:
-						// Group? — one more taken
-						c13++;
-						goto case 87;
-
-					case 89:
-						// Group? — start counting
-						c13 = 0;
-						goto case 87;
-
-					case 90:
-						// Group
-						r = Recognize_Group(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 88;
-
-					case 91:
-						// (Group? & H16)? & "::" & (H16 & ':'){3} & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 72; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 84;
-
-					case 92:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 93:
-						// (H16 & ':'){4} — stop, and check the count
-						c14 = saved;
-
-						if (c14 < 4)
-							goto case 1;
-
-						goto case 92;
-
-					case 94:
-						// (H16 & ':'){4} — take another, or leave stopping open
-						if (c14 >= 4)
-						{
-							saved = c14;
-							goto case 93;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 93; bt[sp + 1] = p; bt[sp + 2] = c14; sp += 3;
-						goto case 98;
-
-					case 95:
-						// (H16 & ':'){4} — one more taken
-						c14++;
-						goto case 94;
-
-					case 96:
-						// (H16 & ':'){4} — start counting
-						c14 = 0;
-						goto case 94;
-
-					case 97:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 95;
-
-					case 98:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 97;
-
-					case 99:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 96;
-
-					case 100:
-						// H16? — stop, and check the count
-						c15 = saved;
-
-						goto case 99;
-
-					case 101:
-						// H16? — take another, or leave stopping open
-						if (c15 >= 1)
-						{
-							saved = c15;
-							goto case 100;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 100; bt[sp + 1] = p; bt[sp + 2] = c15; sp += 3;
-						goto case 104;
-
-					case 102:
-						// H16? — one more taken
-						c15++;
-						goto case 101;
-
-					case 103:
-						// H16? — start counting
-						c15 = 0;
-						goto case 101;
-
-					case 104:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 102;
-
-					case 105:
-						// H16? & "::" & (H16 & ':'){4} & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 91; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 103;
-
-					case 106:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 107:
-						// (H16 & ':'){5} — stop, and check the count
-						c16 = saved;
-
-						if (c16 < 5)
-							goto case 1;
-
-						goto case 106;
-
-					case 108:
-						// (H16 & ':'){5} — take another, or leave stopping open
-						if (c16 >= 5)
-						{
-							saved = c16;
-							goto case 107;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 107; bt[sp + 1] = p; bt[sp + 2] = c16; sp += 3;
-						goto case 112;
-
-					case 109:
-						// (H16 & ':'){5} — one more taken
-						c16++;
-						goto case 108;
-
-					case 110:
-						// (H16 & ':'){5} — start counting
-						c16 = 0;
-						goto case 108;
-
-					case 111:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 109;
-
-					case 112:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 111;
-
-					case 113:
-						// "::"
-						if (p + 2 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						if (text[p + 1] != ':')
-							goto case 1;
-						p += 2;
-						goto case 110;
-
-					case 114:
-						// "::" & (H16 & ':'){5} & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 105; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 113;
-
-					case 115:
-						// LS32
-						r = Recognize_LS32(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 116:
-						// (H16 & ':'){6} — stop, and check the count
-						c17 = saved;
-
-						if (c17 < 6)
-							goto case 1;
-
-						goto case 115;
-
-					case 117:
-						// (H16 & ':'){6} — take another, or leave stopping open
-						if (c17 >= 6)
-						{
-							saved = c17;
-							goto case 116;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 116; bt[sp + 1] = p; bt[sp + 2] = c17; sp += 3;
-						goto case 121;
-
-					case 118:
-						// (H16 & ':'){6} — one more taken
-						c17++;
-						goto case 117;
-
-					case 119:
-						// (H16 & ':'){6} — start counting
-						c17 = 0;
-						goto case 117;
-
-					case 120:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 118;
-
-					case 121:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 120;
-
-					case 122:
-						// (H16 & ':'){6} & LS32 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 114; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 119;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Group = H16 & ':'
-		static int Recognize_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 3;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ':'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != ':')
-						goto case 1;
-					p += 1;
-					goto case 0;
-
-				case 3:
-					// H16
-					r = Recognize_H16(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 2;
-
-				default:
-					return -1;
-			}
-		}
-
-		// LS32 = (H16 & ':' & H16 | IPv4)
-		static int Recognize_LS32(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var state = 6;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// IPv4
-						r = Recognize_IPv4(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 3:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 0;
-
-					case 4:
-						// ':'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != ':')
-							goto case 1;
-						p += 1;
-						goto case 3;
-
-					case 5:
-						// H16
-						r = Recognize_H16(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 6:
-						// H16 & ':' & H16 — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 5;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// H16 = Hex{1,4}
-		static int Recognize_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// Hex{1,4} — stop, and check the count
-						c0 = saved;
-
-						if (c0 < 1)
-							goto case 1;
-
-						goto case 0;
-
-					case 3:
-						// Hex{1,4} — take another, or leave stopping open
-						if (c0 >= 4)
-						{
-							saved = c0;
-							goto case 2;
-						}
-
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 6;
-
-					case 4:
-						// Hex{1,4} — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// Hex{1,4} — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// Hex
-						r = Recognize_Hex(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Path = ('/' & Segment)*
-		static int Recognize_Path(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// ('/' & Segment)* — stop, and check the count
-						c0 = saved;
-
-						goto case 0;
-
-					case 3:
-						// ('/' & Segment)* — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 7;
-
-					case 4:
-						// ('/' & Segment)* — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// ('/' & Segment)* — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// Segment
-						r = Recognize_Segment(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 7:
-						// '/'
-						if (p + 1 > text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-						if (text[p + 0] != '/')
-							goto case 1;
-						p += 1;
-						goto case 6;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Segment = (Unreserved | SubDelim | PctEncoded | [':' | '@'])*
-		static int Recognize_Segment(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c     = '\0';
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// (Unreserved | SubDelim | PctEncoded | [':' | '@'])* — stop, and check the count
-						c0 = saved;
-
-						goto case 0;
-
-					case 3:
-						// (Unreserved | SubDelim | PctEncoded | [':' | '@'])* — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 12;
-
-					case 4:
-						// (Unreserved | SubDelim | PctEncoded | [':' | '@'])* — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// (Unreserved | SubDelim | PctEncoded | [':' | '@'])* — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// [':' | '@']
-						if (p >= text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-
-						c = text[p];
-
-						if (!(c == ':' || c == '@'))
-							goto case 1;
-
-						p++;
-						goto case 4;
-
-					case 7:
-						// PctEncoded
-						r = Recognize_PctEncoded(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 8:
-						// PctEncoded — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 7;
-
-					case 9:
-						// SubDelim
-						r = Recognize_SubDelim(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 10:
-						// SubDelim — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 9;
-
-					case 11:
-						// Unreserved
-						r = Recognize_Unreserved(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 12:
-						// Unreserved — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 11;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// Rest = (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])*
-		static int Recognize_Rest(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			global::System.Span<int> bt = stackalloc int[48];
-
-			var sp    = 0;
-			var saved = 0;
-			var p     = pos;
-			var r     = 0;
-			var c     = '\0';
-			var c0    = 0;
-			var state = 5;
-
-			while (true)
-			{
-				switch (state)
-				{
-					case 0:
-						return p;
-
-					case 1:
-						if (p > failure.Position)
-							failure.Position = p;
-
-						if (sp == 0)
-							return -1;
-
-						sp    -= 3;
-						state  = bt[sp];
-						p      = bt[sp + 1];
-						saved  = bt[sp + 2];
-
-						// The one transition whose target is not known until now,
-						// and so the one that goes through the switch again.
-						continue;
-
-					case 2:
-						// (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])* — stop, and check the count
-						c0 = saved;
-
-						goto case 0;
-
-					case 3:
-						// (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])* — take another, or leave stopping open
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 2; bt[sp + 1] = p; bt[sp + 2] = c0; sp += 3;
-						goto case 12;
-
-					case 4:
-						// (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])* — one more taken
-						c0++;
-						goto case 3;
-
-					case 5:
-						// (Unreserved | SubDelim | PctEncoded | ['/' | ':' | '?'..'@'])* — start counting
-						c0 = 0;
-						goto case 3;
-
-					case 6:
-						// ['/' | ':' | '?'..'@']
-						if (p >= text.Length)
-
-						{
-							failure.Starved = true;
-							goto case 1;
-						}
-
-						c = text[p];
-
-						if (!(c == '/' || c == ':' || (c >= '?' && c <= '@')))
-							goto case 1;
-
-						p++;
-						goto case 4;
-
-					case 7:
-						// PctEncoded
-						r = Recognize_PctEncoded(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 8:
-						// PctEncoded — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 6; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 7;
-
-					case 9:
-						// SubDelim
-						r = Recognize_SubDelim(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 10:
-						// SubDelim — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 8; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 9;
-
-					case 11:
-						// Unreserved
-						r = Recognize_Unreserved(text, p, ref failure);
-
-						if (r < 0)
-							goto case 1;
-
-						p = r;
-						goto case 4;
-
-					case 12:
-						// Unreserved — try this one, or the next
-						if (sp + 3 > bt.Length) bt = Grow(bt);
-						bt[sp] = 10; bt[sp + 1] = p; bt[sp + 2] = 0; sp += 3;
-						goto case 11;
-
-					default:
-						return -1;
-				}
-			}
-		}
-
-		// PctEncoded = '%' & Hex & Hex
-		static int Recognize_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var r     = 0;
-			var state = 4;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// Hex
-					r = Recognize_Hex(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 0;
-
-				case 3:
-					// Hex
-					r = Recognize_Hex(text, p, ref failure);
-
-					if (r < 0)
-						goto case 1;
-
-					p = r;
-					goto case 2;
-
-				case 4:
-					// '%'
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-					if (text[p + 0] != '%')
-						goto case 1;
-					p += 1;
-					goto case 3;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Digit = ['0'..'9']
-		static int Recognize_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var c     = '\0';
-			var state = 2;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ['0'..'9']
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-
-					c = text[p];
-
-					if (!((c >= '0' && c <= '9')))
-						goto case 1;
-
-					p++;
-					goto case 0;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Hex = ['0'..'9' | 'A'..'F' | 'a'..'f']
-		static int Recognize_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var c     = '\0';
-			var state = 2;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ['0'..'9' | 'A'..'F' | 'a'..'f']
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-
-					c = text[p];
-
-					if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
-						goto case 1;
-
-					p++;
-					goto case 0;
-
-				default:
-					return -1;
-			}
-		}
-
-		// Unreserved = ['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']
-		static int Recognize_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var c     = '\0';
-			var state = 2;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-
-					c = text[p];
-
-					if (!((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))
-						goto case 1;
-
-					p++;
-					goto case 0;
-
-				default:
-					return -1;
-			}
-		}
-
-		// SubDelim = ['!' | '$' | '&'..',' | ';' | '=']
-		static int Recognize_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p     = pos;
-			var c     = '\0';
-			var state = 2;
-
-			switch (state)
-			{
-				case 0:
-					return p;
-
-				case 1:
-					if (p > failure.Position)
-						failure.Position = p;
-
-					return -1;
-
-				case 2:
-					// ['!' | '$' | '&'..',' | ';' | '=']
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto case 1;
-					}
-
-					c = text[p];
-
-					if (!(c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))
-						goto case 1;
-
-					p++;
-					goto case 0;
-
-				default:
-					return -1;
-			}
+			object? recognized;
+			var end = Recognize_DotGram(text, pos, 3, 0, false, ref failure, out recognized);
+			value = end < 0 ? default! : (global::DotGram.Snapshots.Url.UrlValue)recognized!;
+			return end;
 		}
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
@@ -6840,15 +4016,6 @@ namespace DotGram.Snapshots
 
 				base.Dispose(disposing);
 			}
-		}
-
-		static int[] Grow(global::System.Span<int> from)
-		{
-			var bigger = new int[from.Length * 2];
-
-			from.CopyTo(bigger);
-
-			return bigger;
 		}
 
 		private sealed class Parser

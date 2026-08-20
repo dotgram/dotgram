@@ -128,11 +128,11 @@ continuation field broke EOF backtracking.
 
 ### Shared automaton and recursion
 
-A supported parse publication is emitted as one automaton with shared label blocks.
+A supported set of parse and find publications is emitted as one automaton with shared label blocks.
 Static transitions use direct `goto`; dynamic returns and backtracking use dispatchers.
 Frequently called rules therefore remain shared instead of being expanded at every call
-site, while simple grammar paths can still stay in one generated method. Recursive calls
-are explicit arena frames and do not consume the C# stack.
+site, while thin typed wrappers select each publication's entry label and result id.
+Recursive calls are explicit arena frames and do not consume the C# stack.
 
 Verified stress cases include roughly 100,000 levels of direct recognition recursion,
 50,000 mutual-recursion steps, 20,000 recursive repetition steps, deep lookahead, and
@@ -222,9 +222,9 @@ It currently excludes:
 - unknown node forms;
 - parse publications needing the streaming driver.
 
-`find` is not unified. If a grammar has a `find` publication, `CSharpEmitter` also emits
-legacy methods. Feed and URL snapshots therefore contain a transitional duplication:
-unified parse code plus legacy find/stream code, which explains their size.
+String and reader `find` now call the same unified engine as `parse`; the reader driver
+only owns window extension and occurrence iteration. Feed and URL no longer carry a
+second legacy recognizer graph merely because they publish `find`.
 
 Do not broaden `Supports` casually. Previous broad attempts admitted explicit array types
 and folds, then broke `TextReader`/chunk overloads, special sequence factories, or emitted
@@ -248,8 +248,8 @@ case needs it; the legacy path remains the compatibility implementation.
 1. Keep typed/sequence capture-aware `when` on the legacy path for now; scalar text guards
    are already unified. If it moves later, cache the value obtained for the guard rather
    than invoking user C# twice.
-2. Move `find` and streaming recovery onto shared automaton blocks and remove transitional
-   duplicate generated engines.
+2. Move streaming parse/recovery onto the shared automaton while preserving window
+   retention and continuation-first boundaries.
 3. Port binding-power climbing after ordinary folds, retaining power-aware calls without
    reintroducing C# recursion.
 4. Remove the legacy semantic path, update public atomicity/compatibility documentation
