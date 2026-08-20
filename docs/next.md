@@ -170,6 +170,17 @@ typed `List<T>`. Materialization first marks the completed invocations reachable
 accepted root, so construction code belonging only to an abandoned derivation is never
 called.
 
+Ordinary left-recursive folds now use the unified path. Recognition records each base or
+step `Construct` in arena order. After acceptance, materialization builds the base once,
+then walks the step markers from left to right and applies each factory to one accumulator.
+Captures are read only from the arena segment belonging to that marker, so no per-fold
+typed list is needed and a chain of 20,000 terms materializes iteratively. Binding-power
+climbing remains separate because its recognition calls additionally carry a power.
+
+Whole unified publications also compile the root rule's external leading and trailing
+`Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
+inserted between sequence operands and fixes published folds beginning with whitespace.
+
 Positive lookahead records the furthest seen position before restoring the input cursor.
 Negative lookahead stores its capture slot in the frame and creates an empty successful
 capture only on the inner-failure path. A capture around lookahead works; captures nested
@@ -197,7 +208,7 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 It currently excludes:
 
 - recovery;
-- climbing and folds;
+- binding-power climbing;
 - captures nested inside lookahead;
 - guards in capture-bearing rules;
 - unknown node forms;
@@ -228,12 +239,12 @@ in the language reference.
 
 ## Recommended continuation order
 
-1. Implement folds as a base construction plus ordered step markers/captures, then apply
-   steps iteratively after acceptance.
-2. Decide and implement capture-aware `when` semantics.
-3. Port recovery without reintroducing implicit rule atomicity.
-4. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
+1. Decide and implement capture-aware `when` semantics.
+2. Port recovery without reintroducing implicit rule atomicity.
+3. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
    generated engines.
+4. Port binding-power climbing after ordinary folds, retaining power-aware calls without
+   reintroducing C# recursion.
 5. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
 6. Only then benchmark generated size and hot paths and decide whether additional inlining

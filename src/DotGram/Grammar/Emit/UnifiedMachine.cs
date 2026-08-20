@@ -86,13 +86,13 @@ sealed class UnifiedMachine
 
 	public static bool Supports(RecognitionGraph graph)
 	{
-		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0 || graph.Folds.Count > 0)
+		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0)
 			return false;
 
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
-				if (member is { Rule: null, IsSequence: true })
+				if (member is { Rule: null, IsSequence: true } && !graph.Folds.ContainsKey(rule))
 					return false;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
@@ -145,6 +145,9 @@ sealed class UnifiedMachine
 		var file = new Writer(0);
 		var type = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
+		var entry = _graph.Trivia.TryGetValue(root, out var trivia)
+			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return)
+			: _entries[root];
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
@@ -177,7 +180,7 @@ sealed class UnifiedMachine
 					if (_textCaptures.Contains(i))
 						file.Line($"var capture{i} = 0;");
 
-				file.Line($"var state   = {_entries[root]};");
+				file.Line($"var state   = {entry};");
 				file.Line();
 				file.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
@@ -787,6 +790,14 @@ sealed class UnifiedMachine
 
 		using (file.Block($"case {_ruleIds[rule]}:"))
 		{
+			if (_graph.Folds.ContainsKey(rule))
+			{
+				MaterializeFold(file, rule, type, offset, factories);
+				file.Line("break;");
+
+				return;
+			}
+
 			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
 			{
 				var member = members[memberIndex];
@@ -968,6 +979,153 @@ sealed class UnifiedMachine
 
 		file.Line("break;");
 	}
+	}
+
+	void MaterializeFold(
+		Writer file, RuleSymbol rule, string type, int offset,
+		IReadOnlyList<Machine.Factory> factories)
+	{
+		file.Line($"{type} accumulated = default!;");
+		file.Line("var hasAccumulated = false;");
+		file.Line("var partFrom = completedAt + 1;");
+		file.Line();
+
+		using (file.Block(
+			"for (var constructAt = completedAt + 1; constructAt < entries.Count; constructAt++)"))
+		{
+			file.Line("var construct = entries[constructAt];");
+			file.Line(
+				"if (construct.Kind != ParserEntry.Construct || construct.CallIndex != completedAt) continue;");
+			file.Line();
+
+			using (file.Block("switch (construct.State)"))
+				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+				{
+					var factory = factories[factoryIndex];
+
+					file.Line($"case {factoryIndex}:");
+
+					using (file.Indent())
+					using (file.Block(""))
+					{
+						var arguments = new List<string>
+						{
+							"text.Slice(completed.Position, completed.Value - completed.Position).ToString()",
+						};
+
+						if (CSharpEmitter.Asks(factory, "parserSpan"))
+							arguments.Add(
+								"new global::DotGram.SourceSpan(" +
+								"completed.Position, completed.Value - completed.Position)");
+
+						if (factory.Accumulator is not null)
+						{
+							file.Line("global::System.Diagnostics.Debug.Assert(hasAccumulated);");
+							arguments.Add("accumulated");
+						}
+
+						var captured = 0;
+
+						foreach (var member in factory.Members)
+						{
+							if (member.Name == "parserText" || member.Name == factory.Accumulator)
+								continue;
+
+							arguments.Add(MaterializeFoldMember(
+								file, rule, member, captured++, offset,
+								sequence: member.IsSequence && factory.Accumulator is null));
+						}
+
+						file.Line(
+							$"accumulated = {factory.Method}({string.Join(", ", arguments)});");
+						file.Line("hasAccumulated = true;");
+						file.Line("break;");
+					}
+				}
+
+			file.Line();
+			file.Line("partFrom = constructAt + 1;");
+		}
+
+		file.Line();
+		file.Line("global::System.Diagnostics.Debug.Assert(hasAccumulated);");
+		file.Line("values[completedAt] = accumulated;");
+	}
+
+	string MaterializeFoldMember(
+		Writer file, RuleSymbol rule, ResultMember member, int memberIndex, int offset, bool sequence)
+	{
+		var slots = new List<string>(member.Slots.Count);
+
+		foreach (var slot in member.Slots)
+			slots.Add($"candidate.State == {offset + slot}");
+
+		var kind = member.Rule is null ? "ParserEntry.Capture" : "ParserEntry.RuleCapture";
+		var test =
+			$"candidate.Kind == {kind} && candidate.CallIndex == completedAt && " +
+			$"({string.Join(" || ", slots)})";
+
+		if (sequence)
+		{
+			var element = member.Rule is null ? "string" : _results.ValueOf(member.Rule);
+
+			file.Line($"var foldCaptured{memberIndex}Count = 0;");
+
+			using (file.Block(
+				$"for (var candidateAt = partFrom; candidateAt < constructAt; candidateAt++)"))
+			{
+				file.Line("var candidate = entries[candidateAt];");
+				file.Line($"if ({test}) foldCaptured{memberIndex}Count++;");
+			}
+
+			file.Line($"var foldCaptured{memberIndex} = new {element}[foldCaptured{memberIndex}Count];");
+			file.Line($"var foldCaptured{memberIndex}Item = 0;");
+
+			using (file.Block(
+				$"for (var candidateAt = partFrom; candidateAt < constructAt; candidateAt++)"))
+			{
+				file.Line("var candidate = entries[candidateAt];");
+
+				using (file.Block($"if ({test})"))
+					file.Line(member.Rule is null
+						? $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
+							"text.Slice(candidate.Position, candidate.Value - candidate.Position).ToString();"
+						: $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
+							$"({element})values[candidate.Position]!;");
+			}
+
+			return $"foldCaptured{memberIndex}";
+		}
+
+		file.Line($"var foldCaptured{memberIndex}At = -1;");
+
+		using (file.Block(
+			$"for (var candidateAt = partFrom; candidateAt < constructAt; candidateAt++)"))
+		{
+			file.Line("var candidate = entries[candidateAt];");
+
+			using (file.Block($"if ({test})"))
+				file.Line($"foldCaptured{memberIndex}At = candidateAt;");
+		}
+
+		var type = member.Rule is null ? "string" : _results.ValueOf(member.Rule);
+
+		if (!member.IsOptional)
+			file.Line($"global::System.Diagnostics.Debug.Assert(foldCaptured{memberIndex}At >= 0);");
+
+		file.Line(member.Rule is null
+			? $"var foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
+				(member.IsOptional ? "null" : "string.Empty") + " : " +
+				$"text.Slice(entries[foldCaptured{memberIndex}At].Position, " +
+				$"entries[foldCaptured{memberIndex}At].Value - " +
+				$"entries[foldCaptured{memberIndex}At].Position).ToString();"
+			: member.IsOptional
+				? $"{type}? foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
+					$"default({type}?) : ({type})values[entries[foldCaptured{memberIndex}At].Position]!;"
+				: $"var foldCaptured{memberIndex} = " +
+					$"({type})values[entries[foldCaptured{memberIndex}At].Position]!;");
+
+		return $"foldCaptured{memberIndex}{(member.IsOptional ? "" : "!")}";
 	}
 
 	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");

@@ -216,6 +216,27 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_deep_fold_is_materialized_iteratively_from_the_shared_arena()
+	{
+		const int terms = 20_000;
+		const string grammar =
+			"Start : @int = left: Start & '+' & right: Number => @(left + right)\n" +
+			"             | value: Number                    => @(value)\n" +
+			"Number : @int = '1' => @(1)\n" +
+			"parse Start";
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var input = string.Join("+", Enumerable.Repeat("1", terms));
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+		Assert.Contains("var hasAccumulated = false;", source);
+		Assert.Contains("for (var constructAt = completedAt + 1;", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.True(match.IsSuccess);
+		Assert.Equal(terms, match.Value);
+	}
+
+	[Fact]
 	public void A_positive_lookahead_capture_records_the_extent_it_saw()
 	{
 		var source = Emit("Word = ['a'..'z']+\nStart = seen: ?=Word & Word\nparse Start");
