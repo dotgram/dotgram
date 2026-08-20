@@ -108,9 +108,6 @@ sealed class UnifiedMachine
 
 	public static bool Supports(RecognitionGraph graph)
 	{
-		if (graph.Climbing.Count > 0)
-			return false;
-
 		foreach (var rule in graph.Rules)
 		{
 			foreach (var member in graph.Results[rule])
@@ -194,7 +191,7 @@ sealed class UnifiedMachine
 
 	public int Register(Node node) => Compile(node, Return);
 
-	public static string RenderProbe(string name, string engine, int entry)
+	public static string RenderProbe(string name, string engine, int entry, bool powers)
 	{
 		var file = new Writer(0);
 
@@ -203,13 +200,15 @@ sealed class UnifiedMachine
 			$"ref {CSharpEmitter.FailureType} failure)"))
 		{
 			file.Line("object? ignored;");
-			file.Line($"return {engine}(text, pos, {entry}, -1, false, false, ref failure, out ignored);");
+			file.Line(
+				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
+				"false, false, ref failure, out ignored);");
 		}
 
 		return file.ToString();
 	}
 
-	public static string RenderSyncProbe(string name, string engine, int entry)
+	public static string RenderSyncProbe(string name, string engine, int entry, bool powers)
 	{
 		var file = new Writer(0);
 
@@ -218,7 +217,9 @@ sealed class UnifiedMachine
 		{
 			file.Line($"var failure = new {CSharpEmitter.FailureType}();");
 			file.Line("object? ignored;");
-			file.Line($"return {engine}(text, pos, {entry}, -1, false, false, ref failure, out ignored);");
+			file.Line(
+				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
+				"false, false, ref failure, out ignored);");
 		}
 
 		return file.ToString();
@@ -230,14 +231,19 @@ sealed class UnifiedMachine
 		var type  = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
 		var entry = whole ? _wholeEntries[root] : _entries[root];
+		var strength = _graph.Climbing.ContainsKey(root) ? ", int power" : "";
+		var enginePower = _graph.Climbing.Count > 0
+			? ", " + (_graph.Climbing.ContainsKey(root) ? "power" : "0")
+			: "";
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
+			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
 			$"ref {CSharpEmitter.FailureType} failure{output})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
-				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}, " +
+				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
 				$"{(whole ? "true" : "false")}, true, ref failure, out recognized);");
 
 			if (type is not null)
@@ -252,10 +258,11 @@ sealed class UnifiedMachine
 	public string RenderEngine(string name)
 	{
 		var file = new Writer(0);
+		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
+			$"int rootRule{strength}, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
 			"out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -274,6 +281,8 @@ sealed class UnifiedMachine
 				file.Line("var atomic  = -1;");
 				file.Line("var repeat  = -1;");
 				file.Line("var lookahead = -1;");
+				if (_graph.Climbing.Count > 0)
+					file.Line("var power   = initialPower;");
 				if (_recoveries.Count > 0)
 				{
 					file.Line("var reach   = 0;");
@@ -312,6 +321,8 @@ sealed class UnifiedMachine
 					"global::System.Diagnostics.Debug.Assert(" +
 					"returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);");
 				file.Line("state = returned.State;");
+				if (_graph.Climbing.Count > 0)
+					file.Line("power = returned.Power;");
 				file.Line("var previousCall = returned.CallIndex;");
 				file.Line("repeat = returned.RepeatIndex;");
 				file.Line("lookahead = returned.LookaheadIndex;");
@@ -321,7 +332,8 @@ sealed class UnifiedMachine
 					file.Line(
 						"entries[call] = new ParserEntry(ParserEntry.Completed, returned.State, " +
 						"returned.Position, returned.CallIndex, returned.AtomicIndex, " +
-						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex);");
+						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex" +
+						(_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
 				}
 				file.Line("else if (entries.Count == call + 1)");
 				file.Then("entries.RemoveAt(call);");
@@ -418,6 +430,8 @@ sealed class UnifiedMachine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
+						if (_graph.Climbing.Count > 0)
+							file.Line("power  = entry.Power;");
 						file.Line("p      = entry.Position;");
 					}
 					using (file.Block("else if (entry.Kind == ParserEntry.Atomic)"))
@@ -500,6 +514,24 @@ sealed class UnifiedMachine
 	}
 
 	int Compile(Node node, int next)
+	{
+		if (_owners.TryGetValue(node, out var owner) &&
+			_graph.Climbing.TryGetValue(owner, out var levels) &&
+			levels.TryGetValue(node, out var level))
+		{
+			var inner = CompileUnguarded(node, next);
+			var state = Reserve(out var writer);
+
+			writer.Line($"if ({level} < power) goto Fail;");
+			writer.Line($"goto {Label(inner)};");
+
+			return state;
+		}
+
+		return CompileUnguarded(node, next);
+	}
+
+	int CompileUnguarded(Node node, int next)
 	{
 		switch (node)
 		{
@@ -659,12 +691,18 @@ sealed class UnifiedMachine
 			case Node.Call(var rule, _):
 			{
 				var state = Reserve(out var writer);
+				var calledPower = _graph.Climbing.ContainsKey(rule)
+					? (_graph.Powers.TryGetValue(node, out var requested) ? requested : 0)
+					: 0;
 
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, " +
-					$"lookahead, 0, {ValueRule(rule)}));");
+					$"lookahead, 0, {ValueRule(rule)}" +
+					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 				writer.Line("call = callIndex;");
+				if (_graph.Climbing.Count > 0)
+					writer.Line($"power = {calledPower};");
 				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 				writer.Line($"goto {Label(_entries[rule])};");
 

@@ -452,7 +452,7 @@ public static partial class CSharpEmitter
 		""";
 
 	/// <summary>The reusable state owned by the unified automaton.</summary>
-	internal const string ParserRuntime = """
+	const string ParserRuntimeTemplate = """
 		private sealed class Parser
 		{
 			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
@@ -507,7 +507,7 @@ public static partial class CSharpEmitter
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
-				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)
+				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1/*POWER_PARAMETER*/)
 			{
 				Kind        = kind;
 				State       = state;
@@ -518,6 +518,7 @@ public static partial class CSharpEmitter
 				LookaheadIndex = lookaheadIndex;
 				Value       = value;
 				RuleIndex   = ruleIndex;
+				/*POWER_ASSIGNMENT*/
 			}
 
 			internal int Kind        { get; }
@@ -529,6 +530,7 @@ public static partial class CSharpEmitter
 			internal int LookaheadIndex { get; }
 			internal int Value       { get; }
 			internal int RuleIndex   { get; }
+			/*POWER_PROPERTY*/
 		}
 
 		static partial void RentParser(ref Parser parser);
@@ -542,6 +544,13 @@ public static partial class CSharpEmitter
 				" position=" + position.ToString() + " arena=" + arena.ToString());
 		}
 		""";
+
+	internal static string ParserRuntime(bool powers) => ParserRuntimeTemplate
+		.Replace("/*POWER_PARAMETER*/", powers ? ", int power = 0" : "")
+		.Replace("\t\t/*POWER_ASSIGNMENT*/\r\n", powers ? "\t\tPower       = power;\r\n" : "")
+		.Replace("\t\t/*POWER_ASSIGNMENT*/\n", powers ? "\t\tPower       = power;\n" : "")
+		.Replace("\t/*POWER_PROPERTY*/\r\n", powers ? "\tinternal int Power       { get; }\r\n" : "")
+		.Replace("\t/*POWER_PROPERTY*/\n", powers ? "\tinternal int Power       { get; }\n" : "");
 
 	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
 	internal const string RecoveredMethod = "OnRecovered";

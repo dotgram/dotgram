@@ -175,7 +175,9 @@ step `Construct` in arena order. After acceptance, materialization builds the ba
 then walks the step markers from left to right and applies each factory to one accumulator.
 Captures are read only from the arena segment belonging to that marker, so no per-fold
 typed list is needed and a chain of 20,000 terms materializes iteratively. Binding-power
-climbing remains separate because its recognition calls additionally carry a power.
+climbing now uses the same path: the current power is carried by explicit call frames,
+alternatives test their normalized level before recognition, and `<<`/`>>` calls enter
+the operand at the normalized requested power. There is still no C# recursion.
 
 Whole unified publications also compile the root rule's external leading and trailing
 `Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
@@ -213,15 +215,14 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - recovery, including continuation-first boundaries, synchronization, deferred recovery
   factories, the optional reporting hook, and recognition-only continuation probes for
   streamed repetitions;
+- binding-power climbing with power-aware arena call frames;
 - direct and mutual recursion through explicit frames.
 
 It currently excludes:
 
-- binding-power climbing;
 - captures nested inside lookahead;
 - guards whose visible captures include typed values or sequences;
-- unknown node forms;
-- parse publications needing the streaming driver.
+- unknown node forms.
 
 String and reader `find`, whole parse, and every stage of a streamed parse now call the
 same unified engine. Reader drivers own only window extension, iteration, yielding, and
@@ -251,11 +252,9 @@ case needs it; the legacy path remains the compatibility implementation.
 1. Keep typed/sequence capture-aware `when` on the legacy path for now; scalar text guards
    are already unified. If it moves later, cache the value obtained for the guard rather
    than invoking user C# twice.
-2. Port binding-power climbing after ordinary folds, retaining power-aware calls without
-   reintroducing C# recursion.
-3. Remove the legacy semantic path, update public atomicity/compatibility documentation
+2. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
-4. Only then benchmark generated size and hot paths and decide whether additional inlining
+3. Only then benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map

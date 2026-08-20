@@ -210,19 +210,22 @@ public static partial class CSharpEmitter
 
 			foreach (var probe in continuationProbes.Values)
 			{
-				file.Write(UnifiedMachine.RenderProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Write(UnifiedMachine.RenderProbe(
+					probe.Name, unifiedEngine, probe.Entry, graph.Climbing.Count > 0));
 				file.Line();
 			}
 
 			foreach (var probe in streamedParts.Values)
 			{
-				file.Write(UnifiedMachine.RenderProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Write(UnifiedMachine.RenderProbe(
+					probe.Name, unifiedEngine, probe.Entry, graph.Climbing.Count > 0));
 				file.Line();
 			}
 
 			foreach (var probe in streamedSyncs.Values)
 			{
-				file.Write(UnifiedMachine.RenderSyncProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Write(UnifiedMachine.RenderSyncProbe(
+					probe.Name, unifiedEngine, probe.Entry, graph.Climbing.Count > 0));
 				file.Line();
 			}
 		}
@@ -402,7 +405,7 @@ public static partial class CSharpEmitter
 			if (needsStack)
 				file.Line();
 
-			file.Write(ParserRuntime);
+			file.Write(ParserRuntime(graph.Climbing.Count > 0));
 		}
 
 		while (scope.Count > 0)

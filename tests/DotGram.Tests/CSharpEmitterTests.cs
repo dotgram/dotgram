@@ -573,13 +573,15 @@ public sealed class CSharpEmitterTests
 			parse E
 			""");
 
-		// The rule that climbs takes the strength; the one beside it is untouched, which is
-		// the whole of what variant A buys.
-		Assert.Contains("static int Recognize_E(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
-		Assert.Contains("static int Recognize_D(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)", source);
+		// The published climbing entry takes the strength. The other rule is a shared label
+		// in the same automaton, so it needs neither a method nor a strength parameter.
+		Assert.Contains("static int Recognize_E_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
+		Assert.DoesNotContain("static int Recognize_D(", source);
+		Assert.Contains("int rootRule, int initialPower, bool whole", source);
+		Assert.Contains("if (1 < power) goto Fail;", source);
 
 		// `<< 1` reads its right operand at 2 — one tighter, so a `+` cannot appear in it.
-		Assert.Contains("Recognize_E(text, p, 2, ref failure, out v1);", source);
+		Assert.Contains("power = 2;", source);
 
 		// And publication asks at 0, which admits everything.
 		Assert.Contains("Recognize_E_Whole(text, 0, 0, ref failure, out var recognized);", source);
