@@ -237,6 +237,22 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_text_capture_guard_reads_the_current_path_from_the_shared_arena()
+	{
+		const string grammar =
+			"Start = (value: \"ab\" & when @(value == \"xy\") | value: \"ab\") & 'c'\n" +
+			"parse Start";
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", "abc");
+
+		Assert.Contains("Recognize_DotGram_Guard0(string parserText, string? value)", source);
+		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.True(match.IsSuccess);
+	}
+
+	[Fact]
 	public void A_positive_lookahead_capture_records_the_extent_it_saw()
 	{
 		var source = Emit("Word = ['a'..'z']+\nStart = seen: ?=Word & Word\nparse Start");

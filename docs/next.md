@@ -181,6 +181,13 @@ Whole unified publications also compile the root rule's external leading and tra
 `Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
 inserted between sequence operands and fixes published folds beginning with whitespace.
 
+Capture-aware `when` uses the unified path when every value visible at the guard is a
+scalar text capture. The guard scans only `Capture` entries owned by the current rule
+invocation, passes nullable text where only some earlier alternatives wrote the name, and
+fails through the ordinary backtracking dispatcher. Typed and sequence captures still
+keep the graph on the legacy path; admitting them would require the semantic decision
+below and must not cause early `=>` execution.
+
 Positive lookahead records the furthest seen position before restoring the input cursor.
 Negative lookahead stores its capture slot in the frame and creates an empty successful
 capture only on the inner-failure path. A capture around lookahead works; captures nested
@@ -210,7 +217,7 @@ It currently excludes:
 - recovery;
 - binding-power climbing;
 - captures nested inside lookahead;
-- guards in capture-bearing rules;
+- guards whose visible captures include typed values or sequences;
 - unknown node forms;
 - parse publications needing the streaming driver.
 
@@ -239,7 +246,8 @@ in the language reference.
 
 ## Recommended continuation order
 
-1. Decide and implement capture-aware `when` semantics.
+1. Decide typed/sequence capture-aware `when` semantics; scalar text guards are already
+   unified.
 2. Port recovery without reintroducing implicit rule atomicity.
 3. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
    generated engines.

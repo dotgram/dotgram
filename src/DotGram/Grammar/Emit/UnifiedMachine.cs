@@ -24,6 +24,7 @@ sealed class UnifiedMachine
 	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
 	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
+	readonly Dictionary<Node, RuleSymbol> _owners = new(NodeIdentity.Instance);
 	readonly HashSet<int> _textCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Machine.Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
@@ -49,6 +50,9 @@ sealed class UnifiedMachine
 			_factories[rule] = factories;
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+			{
+				_owners[node] = rule;
+
 				if (node is Node.Capture)
 				{
 					var slot = _captures + layout.SlotOf(node);
@@ -62,6 +66,7 @@ sealed class UnifiedMachine
 				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node);
+			}
 
 			_captures += layout.Slots.Count;
 		}
@@ -95,16 +100,33 @@ sealed class UnifiedMachine
 				if (member is { Rule: null, IsSequence: true } && !graph.Folds.ContainsKey(rule))
 					return false;
 
+			var layout = CaptureLayout.Of(
+				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
+				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
 					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
-					node is Node.Guard && graph.Results[rule].Count > 0)
+					node is Node.Guard && !SupportsGuard(graph, rule, layout, node))
 					return false;
 
 			if (CaptureInsideLookahead(graph.Bodies[rule]))
 				return false;
 		}
+
+		return true;
+	}
+
+	static bool SupportsGuard(
+		RecognitionGraph graph, RuleSymbol rule, CaptureLayout layout, Node guard)
+	{
+		var before = layout.Before(guard);
+
+		foreach (var member in graph.Results[rule])
+			foreach (var slot in member.Slots)
+				if (slot < before && (member.Rule is not null || member.IsSequence))
+					return false;
 
 		return true;
 	}
@@ -518,10 +540,40 @@ sealed class UnifiedMachine
 
 			case Node.Guard(var condition):
 			{
+				var rule = _owners[node];
+				var layout = CaptureLayout.Of(
+					_graph.Bodies[rule],
+					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+				var before = layout.Before(node);
 				var method = "Recognize_DotGram_Guard" + _guards++;
 				var helper = new Writer(0);
+				var parameters = new List<string> { "string parserText" };
+				var arguments = new List<string>
+				{
+					"text.Slice(ruleStart, p - ruleStart).ToString()",
+				};
+				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
-				helper.Line($"static bool {method}(string parserText) =>");
+				foreach (var member in _graph.Results[rule])
+				{
+					var slots = new List<int>();
+
+					foreach (var slot in member.Slots)
+						if (slot < before)
+							slots.Add(slot);
+
+					if (slots.Count == 0)
+						continue;
+
+					var optional = member.IsOptional || slots.Count != member.Slots.Count;
+
+					parameters.Add($"string{(optional ? "?" : "")} {ResultTypes.ParameterOf(member)}");
+					arguments.Add($"guardCaptured{visible.Count}");
+					visible.Add((member with { IsOptional = optional }, slots));
+				}
+
+				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
 				CSharpEmitter.Handed(
 					helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
 				_extra.Add(helper.ToString());
@@ -530,7 +582,39 @@ sealed class UnifiedMachine
 
 				writer.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
 				writer.Line("var ruleStart = entries[call].Position;");
-				writer.Line($"if (!{method}(text.Slice(ruleStart, p - ruleStart).ToString())) goto Fail;");
+
+				for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
+				{
+					var (member, slots) = visible[memberIndex];
+					var tests = new List<string>(slots.Count);
+
+					foreach (var slot in slots)
+						tests.Add($"candidate.State == {_captureOffsets[rule] + slot}");
+
+					writer.Line($"var guardCaptured{memberIndex}At = -1;");
+
+					using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+					{
+						writer.Line("var candidate = entries[candidateAt];");
+
+						using (writer.Block(
+							"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
+							$"({string.Join(" || ", tests)}))"))
+						{
+							writer.Line($"guardCaptured{memberIndex}At = candidateAt;");
+							writer.Line("break;");
+						}
+					}
+
+					writer.Line(
+						$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
+						(member.IsOptional ? "null" : "string.Empty") + " : " +
+						$"text.Slice(entries[guardCaptured{memberIndex}At].Position, " +
+						$"entries[guardCaptured{memberIndex}At].Value - " +
+						$"entries[guardCaptured{memberIndex}At].Position).ToString();");
+				}
+
+				writer.Line($"if (!{method}({string.Join(", ", arguments)})) goto Fail;");
 				writer.Line($"goto {Label(next)};");
 
 				return state;
