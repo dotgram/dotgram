@@ -53,7 +53,6 @@ public static partial class CSharpEmitter
 		var results = new ResultTypes(graph, className, @namespace);
 		var execution = ExecutionPlanner.Analyze(graph);
 		var unified = graph.Publications.Count > 0 &&
-			!graph.Publications.Any(publication => publication.Kind == PublishKind.Parse && Streams(graph, publication)) &&
 			UnifiedMachine.Supports(graph)
 				? new UnifiedMachine(graph, results, lines, Streaming(graph))
 				: null;
@@ -124,11 +123,63 @@ public static partial class CSharpEmitter
 
 		var needsStack = false;
 		const string unifiedEngine = "Recognize_DotGram";
+		var continuationProbes = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
+		var streamedParts = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
+		var streamedSyncs = new Dictionary<RuleSymbol, (string Name, int Entry)>();
+		var streamedRules = new HashSet<RuleSymbol>();
 
 		if (unified is not null)
 		{
 			foreach (var publication in graph.Publications)
+			{
 				unified.Register(publication.Rule, publication.Kind == PublishKind.Parse);
+
+				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication) ||
+					StagesOf(graph, publication.Rule) is not { } stages)
+					continue;
+
+				for (var stage = 0; stage < stages.Count; stage++)
+				{
+					if (stages[stage].Rule is { } stagedRule)
+					{
+						streamedRules.Add(stagedRule);
+						unified.Register(stagedRule, whole: false);
+					}
+					else
+					{
+						var part = WholeOf(publication.Rule) + "_Part" + stage;
+						streamedParts[(publication.Rule, stage)] =
+							(part, unified.Register(stages[stage].Node));
+					}
+
+					if (!stages[stage].Repeated || continuationProbes.ContainsKey((publication.Rule, stage)))
+						continue;
+
+					var suffix = new List<Node>(stages.Count - stage - 1);
+
+					for (var after = stage + 1; after < stages.Count; after++)
+						suffix.Add(stages[after].Node);
+
+					var continuation = suffix.Count switch
+					{
+						0 => new Node.Empty(),
+						1 => suffix[0],
+						_ => new Node.Sequence(suffix),
+					};
+					var probe = WholeOf(publication.Rule) + "_Continue" + stage;
+
+					continuationProbes[(publication.Rule, stage)] =
+						(probe, unified.Register(continuation));
+				}
+
+				if (RecoveryIn(graph, results, publication.Rule) is { } recoveryFound &&
+					!streamedSyncs.ContainsKey(publication.Rule))
+				{
+					var sync = WholeOf(publication.Rule) + "_Sync";
+					streamedSyncs[publication.Rule] =
+						(sync, unified.Register(recoveryFound.Recovery.Sync));
+				}
+			}
 
 			file.Write(unified.RenderEngine(unifiedEngine));
 			file.Line();
@@ -149,6 +200,31 @@ public static partial class CSharpEmitter
 					whole));
 				file.Line();
 			}
+
+			foreach (var rule in streamedRules)
+				if (wrappers.Add((rule, false)))
+				{
+					file.Write(unified.RenderWrapper(rule, MethodOf(rule), unifiedEngine, whole: false));
+					file.Line();
+				}
+
+			foreach (var probe in continuationProbes.Values)
+			{
+				file.Write(UnifiedMachine.RenderProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Line();
+			}
+
+			foreach (var probe in streamedParts.Values)
+			{
+				file.Write(UnifiedMachine.RenderProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Line();
+			}
+
+			foreach (var probe in streamedSyncs.Values)
+			{
+				file.Write(UnifiedMachine.RenderSyncProbe(probe.Name, unifiedEngine, probe.Entry));
+				file.Line();
+			}
 		}
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -163,26 +239,28 @@ public static partial class CSharpEmitter
 			// The same body compiled a second time, so it is told the same things by the
 			// same code: it climbs the same way, recovers the same way, and calls the one
 			// recovery factory that the rule's own machine emits.
-			if (unified is not null)
-				continue;
-
-			var whole = MachineFor(graph, results, publication.Rule, whole: true, lines: lines);
-
-			// The two ends normalization cannot reach: it inserts Trivia between operands,
-			// and a whole parse has an outside (§4.5).
-			var body = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
-				? new Node.Sequence([trivia, graph.Bodies[publication.Rule], trivia, EndOfInput])
-				: new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
-
-			file.Write(whole.Render(
-				whole.Compile(body, Machine.Accept),
-				$"parse {publication.Rule.Name}: {graph.Bodies[publication.Rule]} & eof"));
-			file.Line();
-
-			foreach (var extra in whole.Extra)
+			if (unified is null)
 			{
-				file.Write(extra);
+				var whole = MachineFor(graph, results, publication.Rule, whole: true, lines: lines);
+
+				// The two ends normalization cannot reach: it inserts Trivia between operands,
+				// and a whole parse has an outside (§4.5).
+				var body = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
+					? new Node.Sequence([trivia, graph.Bodies[publication.Rule], trivia, EndOfInput])
+					: new Node.Sequence([graph.Bodies[publication.Rule], EndOfInput]);
+
+				file.Write(whole.Render(
+					whole.Compile(body, Machine.Accept),
+					$"parse {publication.Rule.Name}: {graph.Bodies[publication.Rule]} & eof"));
 				file.Line();
+
+				foreach (var extra in whole.Extra)
+				{
+					file.Write(extra);
+					file.Line();
+				}
+
+				needsStack = true;
 			}
 
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
@@ -197,6 +275,13 @@ public static partial class CSharpEmitter
 					if (stages[i].Rule is not null)
 					{
 						parts.Add("");
+
+						continue;
+					}
+
+					if (unified is not null)
+					{
+						parts.Add(streamedParts[(publication.Rule, i)].Name);
 
 						continue;
 					}
@@ -218,7 +303,9 @@ public static partial class CSharpEmitter
 				var sync    = (string?)null;
 				var factory = MethodOf(publication.Rule) + "_Recover";
 
-				if (found is { } recoveryFound && recoveryFound.Recovery.Sync is { } expression)
+				if (found is { } recoveryFound && unified is not null)
+					sync = streamedSyncs[publication.Rule].Name;
+				else if (found is { } legacyRecovery && legacyRecovery.Recovery.Sync is { } expression)
 				{
 					var machine = new Machine($"{WholeOf(publication.Rule)}_Sync", results)
 					{
@@ -236,11 +323,13 @@ public static partial class CSharpEmitter
 
 				EmitStreamingParse(
 					file, graph, publication, results, stages, parts,
-					found?.Recovery, sync, factory);
+					found?.Recovery, sync, factory,
+					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
+						? probe.Name
+						: null);
 				file.Line();
+				needsStack |= unified is null;
 			}
-
-			needsStack = true;
 		}
 
 		var emittedRecursive = new HashSet<ExecutionComponent>();
@@ -280,7 +369,7 @@ public static partial class CSharpEmitter
 		if (graph.Rules.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0 && needsLegacyRules,
+				reach: graph.Recoveries.Count > 0 && (needsLegacyRules || Streaming(graph)),
 				starved: Streaming(graph)));
 			file.Line();
 		}

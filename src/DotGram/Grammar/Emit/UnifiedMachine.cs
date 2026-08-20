@@ -192,6 +192,38 @@ sealed class UnifiedMachine
 			: _entries[root];
 	}
 
+	public int Register(Node node) => Compile(node, Return);
+
+	public static string RenderProbe(string name, string engine, int entry)
+	{
+		var file = new Writer(0);
+
+		using (file.Block(
+			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
+			$"ref {CSharpEmitter.FailureType} failure)"))
+		{
+			file.Line("object? ignored;");
+			file.Line($"return {engine}(text, pos, {entry}, -1, false, false, ref failure, out ignored);");
+		}
+
+		return file.ToString();
+	}
+
+	public static string RenderSyncProbe(string name, string engine, int entry)
+	{
+		var file = new Writer(0);
+
+		using (file.Block(
+			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos)"))
+		{
+			file.Line($"var failure = new {CSharpEmitter.FailureType}();");
+			file.Line("object? ignored;");
+			file.Line($"return {engine}(text, pos, {entry}, -1, false, false, ref failure, out ignored);");
+		}
+
+		return file.ToString();
+	}
+
 	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole)
 	{
 		var file  = new Writer(0);
@@ -206,7 +238,7 @@ sealed class UnifiedMachine
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}, " +
-				$"{(whole ? "true" : "false")}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true, ref failure, out recognized);");
 
 			if (type is not null)
 				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
@@ -223,7 +255,8 @@ sealed class UnifiedMachine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule, bool whole, ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
+			$"int rootRule, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
+			"out object? recognized)"))
 		{
 			file.Line("recognized = null;");
 			file.Line();
@@ -306,22 +339,28 @@ sealed class UnifiedMachine
 				foreach (var rule in _graph.Rules)
 					hasValues |= ValueRule(rule) >= 0;
 
-				if (hasValues)
+				if (hasValues || _recoveryPlans.Count > 0)
 				{
-					using (file.Block("if (rootRule >= 0)"))
+					using (file.Block("if (materialize)"))
 					{
-						file.Line();
-						Materialize(file);
-					}
-				}
-				if (_recoveryPlans.Count > 0)
-				{
-					if (hasValues)
-						file.Line("else");
-					using (file.Block(""))
-					{
-						file.Line();
-						ReportRecoveries(file);
+						if (hasValues)
+						{
+							using (file.Block("if (rootRule >= 0)"))
+							{
+								file.Line();
+								Materialize(file);
+							}
+						}
+						if (_recoveryPlans.Count > 0)
+						{
+							if (hasValues)
+								file.Line("else");
+							using (file.Block(""))
+							{
+								file.Line();
+								ReportRecoveries(file);
+							}
+						}
 					}
 				}
 
@@ -425,6 +464,9 @@ sealed class UnifiedMachine
 						}
 					}
 				}
+
+				if (_recoveries.Count > 0 && _starves)
+					file.Line("failure.Reach = reach;");
 
 				file.Line();
 				file.Line("return -1;");

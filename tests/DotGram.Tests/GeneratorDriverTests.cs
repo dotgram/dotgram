@@ -764,9 +764,8 @@ public sealed class GeneratorDriverTests
 	[Fact]
 	public void And_the_mark_settles_it_where_the_grammar_does_not()
 	{
-		// The same ambiguous grammar with the repetition marked. It is possessive, so where
-		// it ends is decided rather than searched for, and the overload comes back — which
-		// is not to say the grammar is a good one, and GRAM5002 still says so.
+		// The same ambiguous grammar with the repetition marked. The continuation gets first
+		// refusal at each boundary, so where it ends is decided before another Row is tried.
 		var marked = Stream.Replace(
 			"Trailer : @Item = 'T' & eol",
 			"Trailer : @Item = 't' & eol",
@@ -776,6 +775,27 @@ public sealed class GeneratorDriverTests
 
 		Assert.Empty(run.Diagnostics.Where(d => d.Id == "GRAM5001"));
 		Assert.NotEmpty(run.Diagnostics.Where(d => d.Id == "GRAM5002"));
+
+		Assert.Equal(
+			["Head", "Line:aa", "Tail"],
+			Read(Build(marked), "Streamed", "ParseFeed", new StringReader("H\naa\nt\n")));
+	}
+
+	[Fact]
+	public void A_stream_tries_the_whole_continuation_before_another_row()
+	{
+		var grammar = Stream
+			.Replace("& Trailer & eof", "& Trailer & \\\"END\\\" & eol & eof", StringComparison.Ordinal)
+			.Replace("Trailer : @Item = 'T' & eol", "Trailer : @Item = 't' & eol", StringComparison.Ordinal);
+		var assembly = Build(grammar);
+		var text = "H\nt\nt\nEND\n";
+
+		Assert.Equal(
+			["Head", "Line:t", "Tail"],
+			Read(assembly, "Streamed", "ParseFeed", new StringReader(text)));
+		Assert.Equal(
+			["Head", "Line:t", "Tail"],
+			Read(assembly, "Streamed", "ParseFeed", text));
 	}
 
 	[Fact]

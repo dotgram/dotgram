@@ -154,9 +154,9 @@ public static partial class CSharpEmitter
 	/// The stages are run in order rather than compiled into one machine, and that is the
 	/// whole difference from the parse over a string. A machine may backtrack anywhere
 	/// inside the rule; a stream may not go back past what it has handed over. What makes
-	/// the two agree is the mark: §8.2's <c>recover</c> is possessive, so the repetition in
-	/// the middle never wants to give an element back, and the stages around it are read
-	/// once each.
+/// the two agree is the mark: at every boundary the complete continuation gets first
+/// refusal, and an element actually accepted or recovered is then committed. The stages
+/// around it are read once each.
 	/// </para>
 	/// <para>
 	/// Each stage reads through the window with the same provisional rule <c>find</c> uses:
@@ -167,7 +167,7 @@ public static partial class CSharpEmitter
 	static void EmitStreamingParse(
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
-		Recovery? recovery, string? sync, string factory)
+		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation)
 	{
 		var element = graph.Types[publication.Rule];
 
@@ -202,6 +202,36 @@ public static partial class CSharpEmitter
 					file.Line($"var ordinal{i} = 0;");
 
 				var loop = stage.Repeated ? file.Block("while (true)") : null;
+
+				if (stage.Repeated && continuation(i) is { } probe)
+				{
+					file.Line($"var continuationFailure{i} = new {FailureType}();");
+					file.Line($"var continuationEnd{i} = -1;");
+					file.Line();
+
+					using (file.Block("while (true)"))
+					{
+						file.Line($"continuationFailure{i} = new {FailureType}();");
+						file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i});");
+						file.Line();
+
+						using (file.Block(
+							$"if (((continuationEnd{i} < 0 ? continuationFailure{i}.Position : continuationEnd{i}) " +
+							$">= window.Length || continuationFailure{i}.Starved) && !window.Ended)"))
+						{
+							file.Line("window.Extend(ref start);");
+							file.Line("continue;");
+						}
+
+						file.Line();
+						file.Line("break;");
+					}
+
+					file.Line();
+					file.Line($"if (continuationEnd{i} >= 0)");
+					file.Then("break;");
+					file.Line();
+				}
 
 				Read(i, stage, method, built);
 
@@ -314,7 +344,7 @@ public static partial class CSharpEmitter
 					file.Line($"if (end{i} < 0)");
 					file.Then(
 						"throw new global::System.FormatException(" +
-						$"\"Input does not match '{Named(stage)}' at \" + " +
+						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
 						$"(window.Offset + failure{i}.Position).ToString(" +
 						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
 				}
@@ -346,6 +376,9 @@ public static partial class CSharpEmitter
 			: stage.Node.ToString();
 
 	static string Named(Stage stage) => stage.Rule?.Name ?? stage.Node.ToString();
+
+	static string EscapeDiagnostic(string value) =>
+		value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
 	/// <summary>
 	/// What a streamed parse does with an element it could not read (§8.2, §8.3).

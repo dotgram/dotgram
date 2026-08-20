@@ -210,8 +210,9 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - external recognizers;
 - capture-free guards;
 - text/rule captures and supported construction;
-- non-streaming recovery, including continuation-first boundaries, synchronization,
-  deferred recovery factories, and the optional reporting hook;
+- recovery, including continuation-first boundaries, synchronization, deferred recovery
+  factories, the optional reporting hook, and recognition-only continuation probes for
+  streamed repetitions;
 - direct and mutual recursion through explicit frames.
 
 It currently excludes:
@@ -222,9 +223,11 @@ It currently excludes:
 - unknown node forms;
 - parse publications needing the streaming driver.
 
-String and reader `find` now call the same unified engine as `parse`; the reader driver
-only owns window extension and occurrence iteration. Feed and URL no longer carry a
-second legacy recognizer graph merely because they publish `find`.
+String and reader `find`, whole parse, and every stage of a streamed parse now call the
+same unified engine. Reader drivers own only window extension, iteration, yielding, and
+recovery scanning. Recognition-only entries test the complete continuation before each
+streamed element without invoking `=>`, a recovery factory, or `OnRecovered`. Feed and
+URL no longer carry a second legacy recognizer graph merely because they publish `find`.
 
 Do not broaden `Supports` casually. Previous broad attempts admitted explicit array types
 and folds, then broke `TextReader`/chunk overloads, special sequence factories, or emitted
@@ -248,13 +251,11 @@ case needs it; the legacy path remains the compatibility implementation.
 1. Keep typed/sequence capture-aware `when` on the legacy path for now; scalar text guards
    are already unified. If it moves later, cache the value obtained for the guard rather
    than invoking user C# twice.
-2. Move streaming parse/recovery onto the shared automaton while preserving window
-   retention and continuation-first boundaries.
-3. Port binding-power climbing after ordinary folds, retaining power-aware calls without
+2. Port binding-power climbing after ordinary folds, retaining power-aware calls without
    reintroducing C# recursion.
-4. Remove the legacy semantic path, update public atomicity/compatibility documentation
+3. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
-5. Only then benchmark generated size and hot paths and decide whether additional inlining
+4. Only then benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map

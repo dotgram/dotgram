@@ -658,8 +658,8 @@ The second is the requirement itself rather than a stand-in for it: no element h
 over may ever have been wanted back. A repetition whose first set does not meet what
 follows it stops where the grammar says and nothing has to commit it — that is the
 ordinary feed, and it streams with no mark at all. Where the two do meet, `recover`
-settles it, because §8.2 makes a marked repetition possessive: an element it took was
-either read or explicitly rejected, and there is no shorter reading to come back for.
+settles it: the complete continuation gets first refusal at an element boundary, after
+which an element actually read or explicitly rejected cannot be offered back.
 
 It used to demand the mark outright, which was a conservative test standing in for this
 one. `recover` is now back to meaning only what it says — survive a bad record — rather
