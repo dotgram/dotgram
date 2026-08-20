@@ -832,7 +832,8 @@ public sealed class GeneratorDriverTests
 			"PlainFeed.g.cs");
 
 		Assert.DoesNotContain("Refused", source, StringComparison.Ordinal);
-		Assert.Contains("failure.Reach", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("failure.Reach", source, StringComparison.Ordinal);
+		Assert.Contains("var reach", source, StringComparison.Ordinal);
 	}
 
 	// ── Captures matched to a constructor (§7.3) ─────────────────────────────────
@@ -1512,6 +1513,26 @@ public sealed class GeneratorDriverTests
 
 		// The good records arrive; the bad one is dropped and reported instead.
 		Assert.Equal(["aa", "cc"], read);
+		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
+	}
+
+	[Fact]
+	public void A_valueless_parse_reports_only_the_accepted_recoveries()
+	{
+		var assembly = Build(
+			"using System.Collections.Generic;\n"
+			+ "[DotGram.Gram(\"Feed = Row* recover eol & eof\\n"
+			+ "Row = ['a'..'z']+ & eol\\nparse Feed\")]\n"
+			+ "public partial class Valueless\n"
+			+ "{\n"
+			+ "\tpublic static List<string> Bad = new();\n"
+			+ "\tstatic partial void OnRecovered(string element, string text, long position,\n"
+			+ "\t\tint line, int column, int ordinal, string message) => Bad.Add(text.Trim());\n"
+			+ "}");
+
+		var type = assembly.GetType("Valueless")!;
+		type.GetMethod("ParseFeed", [typeof(string)])!.Invoke(null, ["aa\nab1\ncc\n"]);
+
 		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
 	}
 

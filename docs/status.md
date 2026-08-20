@@ -195,22 +195,22 @@ end of the run, so anything starting `R|` and failing afterwards is a broken rec
 rather than a trailer. A grammar whose records begin with the same characters as whatever
 follows them has told the parser nothing to recover with.
 
-**A repetition marked `recover` is possessive.** §8.2 calls the mark a commit point,
-and this is what that costs: the elements it took are not on offer to what follows.
+**A repetition marked `recover` commits each element it actually takes.** Before asking
+for another element, it first tries the complete continuation after the repetition.
+That continuation therefore gets first refusal at every element boundary:
 
 ```dotgram
 Row   = name: ['a'..'z']+ & eol
 Start = rows: Row*                        & tail: ['a'..'z']+ & eol   // matches "aa\nbb\n"
-Start = rows: Row* recover eol => @(…)    & tail: ['a'..'z']+ & eol   // does not
+Start = rows: Row* recover eol => @(…)    & tail: ['a'..'z']+ & eol   // also matches
 ```
 
-Unmarked, the repetition takes both lines, fails on `tail`, and hands the second one
-back. Marked, it does not: an element it took was either read or explicitly rejected,
-and there is no shorter reading to come back for. That is also what keeps *did an
-element begin here* answerable — the question is asked where the repetition would
-otherwise have ended, and it is answered by how far the attempt starting there reached.
-With the iterations still on the stack, a failure after the repetition would resume at a
-position whose element had matched and be told one broke there.
+The marked form does not first take `bb` and later hand it back. At the boundary before
+`bb`, it tries `tail` together with everything following it; because that complete path
+succeeds, no second Row is attempted. If the continuation failed, Row would be tried.
+Once that Row either matched or was explicitly recovered, it would not be offered back
+to a later path. This keeps *did an element begin here* answerable without stealing a
+trailer or other valid continuation from the surrounding grammar.
 
 ## What a rejection is told
 
@@ -700,9 +700,9 @@ time, and an element handed over cannot be taken back. So the check runs on thos
 and no others.
 
 That measurement is also what the streaming test runs on now. It used to demand a
-`recover` outright, because possessiveness is a property that can be checked; this is the
-property that actually matters, and having it measured let the requirement become "no
-overlap, or marked".
+`recover` outright, because committed element delivery is a property that can be checked;
+this is the property that actually matters, and having it measured let the requirement
+become "no overlap, or marked".
 
 The sets are approximate and in the safe direction: a complement, a Unicode category or
 a C# predicate answers "anything", two of those overlap, and the result is a note rather

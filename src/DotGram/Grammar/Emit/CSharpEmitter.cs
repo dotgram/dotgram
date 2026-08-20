@@ -114,6 +114,16 @@ public static partial class CSharpEmitter
 			}
 		}
 
+		if (unified is not null && !needsLegacyRules)
+			foreach (var rule in graph.Rules)
+				if (RecoveryIn(graph, results, rule) is { } recoveryFound)
+				{
+					var (_, recovery, slot) = recoveryFound;
+
+					if (recovery.Factory is not null && slot >= 0)
+						EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
+				}
+
 		var needsStack = false;
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -188,7 +198,7 @@ public static partial class CSharpEmitter
 				var sync    = (string?)null;
 				var factory = MethodOf(publication.Rule) + "_Recover";
 
-				if (found is var (_, recovered, _) && recovered.Sync is { } expression)
+				if (found is { } recoveryFound && recoveryFound.Recovery.Sync is { } expression)
 				{
 					var machine = new Machine($"{WholeOf(publication.Rule)}_Sync", results)
 					{
@@ -250,7 +260,7 @@ public static partial class CSharpEmitter
 		if (graph.Rules.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0,
+				reach: graph.Recoveries.Count > 0 && needsLegacyRules,
 				starved: Streaming(graph)));
 			file.Line();
 		}
@@ -748,7 +758,7 @@ public static partial class CSharpEmitter
 	/// The repetition of a rule that was marked <c>recover</c>, the slot its elements
 	/// collect into, and what it was told (§8.2).
 	/// </summary>
-	static (Node Repetition, Recovery Recovery, int Slot)? RecoveryIn(
+	internal static (Node Repetition, Recovery Recovery, int Slot)? RecoveryIn(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
 		if (graph.Recoveries.Count == 0)
@@ -791,7 +801,7 @@ public static partial class CSharpEmitter
 	/// What a broken element becomes: the C# the <c>recover</c> named, with the extent it
 	/// covered and where in the sequence it was.
 	/// </summary>
-	static void EmitRecoveryFactory(
+	internal static void EmitRecoveryFactory(
 		Writer file, ResultTypes results, RuleSymbol rule, string owner, Recovery recovery,
 		RecognitionGraph graph, int slot)
 	{
@@ -901,8 +911,11 @@ public static partial class CSharpEmitter
 			graph.Powers,
 			graph.Climbing.TryGetValue(rule, out var levels) ? levels : new Dictionary<Node, int>());
 
-		if (RecoveryIn(graph, results, rule) is var (repetition, recovery, slot))
+		if (RecoveryIn(graph, results, rule) is { } recoveryFound)
+		{
+			var (repetition, recovery, slot) = recoveryFound;
 			machine.Recovers(repetition, recovery, slot, MethodOf(rule) + "_Recover");
+		}
 
 		return machine;
 	}
@@ -917,10 +930,12 @@ public static partial class CSharpEmitter
 
 		// The factory a recovery calls is emitted beside the rule's own machine and not
 		// beside the end-of-input copy, which calls the same one.
-		if (RecoveryIn(graph, results, rule) is var (_, recovery, slot) &&
-			recovery.Factory is not null && slot >= 0)
+		if (RecoveryIn(graph, results, rule) is { } recoveryFound)
 		{
-			EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
+			var (_, recovery, slot) = recoveryFound;
+
+			if (recovery.Factory is not null && slot >= 0)
+				EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
 		}
 
 		var entry   = machine.Compile(graph.Bodies[rule], Machine.Accept);

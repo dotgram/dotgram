@@ -3185,6 +3185,9 @@ namespace DotGram.Snapshots
 			internal const int Construct = 7;
 			internal const int Completed = 8;
 			internal const int RuleCapture = 9;
+			internal const int Dead = 10;
+			internal const int Recovery = 11;
+			internal const int PendingRecovery = 12;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

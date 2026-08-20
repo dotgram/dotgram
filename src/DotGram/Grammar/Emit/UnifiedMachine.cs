@@ -28,6 +28,8 @@ sealed class UnifiedMachine
 	readonly HashSet<int> _textCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Machine.Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
+	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
+	readonly List<RecoveryPlan> _recoveryPlans = [];
 	readonly List<string> _extra = [];
 	readonly ILineMap? _lines;
 	bool _usesChar;
@@ -69,6 +71,18 @@ sealed class UnifiedMachine
 			}
 
 			_captures += layout.Slots.Count;
+
+			if (CSharpEmitter.RecoveryIn(graph, results, rule) is { } recoveryFound)
+			{
+				var (repetition, recovery, recoverySlot) = recoveryFound;
+				var plan = new RecoveryPlan(
+					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
+					_recoveryPlans.Count, CSharpEmitter.MethodOf(rule) + "_Recover",
+					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
+
+				_recoveries[repetition] = plan;
+				_recoveryPlans.Add(plan);
+			}
 		}
 
 		for (var i = 0; i < graph.Rules.Count; i++)
@@ -91,7 +105,7 @@ sealed class UnifiedMachine
 
 	public static bool Supports(RecognitionGraph graph)
 	{
-		if (graph.Recoveries.Count > 0 || graph.Climbing.Count > 0)
+		if (graph.Climbing.Count > 0)
 			return false;
 
 		foreach (var rule in graph.Rules)
@@ -117,6 +131,9 @@ sealed class UnifiedMachine
 
 		return true;
 	}
+
+	sealed record RecoveryPlan(
+		RuleSymbol Rule, Recovery Recovery, int Slot, int Id, string Method, RuleSymbol? Element);
 
 	static bool SupportsGuard(
 		RecognitionGraph graph, RuleSymbol rule, CaptureLayout layout, Node guard)
@@ -194,6 +211,12 @@ sealed class UnifiedMachine
 				file.Line("var atomic  = -1;");
 				file.Line("var repeat  = -1;");
 				file.Line("var lookahead = -1;");
+				if (_recoveries.Count > 0)
+				{
+					file.Line("var reach   = 0;");
+					file.Line("var owned   = false;");
+					file.Line("var syncFrom = 0;");
+				}
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
@@ -254,6 +277,11 @@ sealed class UnifiedMachine
 					file.Line();
 					Materialize(file, root, type);
 				}
+				else if (_recoveryPlans.Count > 0)
+				{
+					file.Line();
+					ReportRecoveries(file);
+				}
 
 				file.Line("return p;");
 
@@ -261,6 +289,11 @@ sealed class UnifiedMachine
 				file.Line("Fail:");
 				file.Line("if (lookahead < 0 && p > failure.Position)");
 				file.Then("failure.Position = p;");
+				if (_recoveries.Count > 0)
+				{
+					file.Line("if (lookahead < 0 && p > reach)");
+					file.Then("reach = p;");
+				}
 				file.Line("Trace(\"fail\", state, p, entries.Count);");
 				file.Line();
 
@@ -283,11 +316,17 @@ sealed class UnifiedMachine
 						file.Line("goto Dispatch;");
 					}
 
-					if (_captures > 0 || _constructs.Count > 0)
+					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0)
 					{
-						file.Line(
-							"if (entry.Kind == ParserEntry.Capture || " +
-							"entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)");
+						var ignored =
+							"entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || " +
+							"entry.Kind == ParserEntry.RuleCapture";
+
+						if (_recoveries.Count > 0)
+							ignored += " || entry.Kind == ParserEntry.Recovery || entry.Kind == ParserEntry.Dead || " +
+								"entry.Kind == ParserEntry.PendingRecovery";
+
+						file.Line($"if ({ignored})");
 						file.Then("continue;");
 						file.Line();
 					}
@@ -635,6 +674,8 @@ sealed class UnifiedMachine
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
 				atCommit.Line("var boundary = entries[atomic];");
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
+				if (_recoveries.Count > 0)
+					atCommit.Line("owned = true;");
 				atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
@@ -645,61 +686,10 @@ sealed class UnifiedMachine
 				return state;
 			}
 
-			case Node.Repeat(var body, var min, var max):
-			{
-				if (max == 0)
-					return next;
-
-				var exit  = Reserve(out var atExit);
-				var loop  = Reserve(out var atLoop);
-				var after = Reserve(out var atAfter);
-				var entry = Reserve(out var atEntry);
-				var inner = Compile(body, after);
-
-				atEntry.Line("var repeatIndex = entries.Count;");
-				atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
-				atEntry.Line("repeat = repeatIndex;");
-				atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
-				atEntry.Line($"goto {Label(loop)};");
-
-				atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-				atLoop.Line("var repeating = entries[repeat];");
-				atLoop.Line("global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);");
-
-				if (max is { } limit)
-					atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
-
-				if (min == 0)
-					PushRepeatExit(atLoop, exit);
-				else
-				{
-					atLoop.Line($"if (repeating.Value >= {min})");
-					atLoop.Then(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
-				}
-
-				atLoop.Line($"goto {Label(inner)};");
-
-				atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-				atAfter.Line("var repeated = entries[repeat];");
-				atAfter.Line(
-					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
-					"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
-					"repeated.LookaheadIndex, repeated.Value + 1);");
-				atAfter.Line($"goto {Label(loop)};");
-
-				atExit.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-				atExit.Line("var finished = entries[repeat];");
-				atExit.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
-				atExit.Line("var previousRepeat = finished.RepeatIndex;");
-				atExit.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
-				atExit.Line("repeat = previousRepeat;");
-				atExit.Line("lookahead = finished.LookaheadIndex;");
-				atExit.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
-				atExit.Line($"goto {Label(next)};");
-
-				return entry;
-			}
+			case Node.Repeat repeat:
+				return _recoveries.TryGetValue(node, out var recovery)
+					? CompileRecoveringRepeat(repeat, recovery, next)
+					: CompileRepeat(repeat, next);
 
 			case Node.Lookahead(var isPositive, var body):
 			{
@@ -796,6 +786,186 @@ sealed class UnifiedMachine
 		return state;
 	}
 
+	int CompileRepeat(Node.Repeat repeatNode, int next)
+	{
+		var (body, min, max) = repeatNode;
+
+		if (max == 0)
+			return next;
+
+		var exit  = Reserve(out var atExit);
+		var loop  = Reserve(out var atLoop);
+		var after = Reserve(out var atAfter);
+		var entry = Reserve(out var atEntry);
+		var inner = Compile(body, after);
+
+		atEntry.Line("var repeatIndex = entries.Count;");
+		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line("repeat = repeatIndex;");
+		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
+		atEntry.Line($"goto {Label(loop)};");
+
+		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atLoop.Line("var repeating = entries[repeat];");
+		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);");
+
+		if (max is { } limit)
+			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
+
+		if (min == 0)
+			PushRepeatExit(atLoop, exit);
+		else
+		{
+			atLoop.Line($"if (repeating.Value >= {min})");
+			atLoop.Then(
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
+		}
+
+		atLoop.Line($"goto {Label(inner)};");
+
+		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atAfter.Line("var repeated = entries[repeat];");
+		atAfter.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
+			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+			"repeated.LookaheadIndex, repeated.Value + 1);");
+		atAfter.Line($"goto {Label(loop)};");
+
+		LeaveRepeat(atExit, next);
+
+		return entry;
+	}
+
+	int CompileRecoveringRepeat(Node.Repeat repeatNode, RecoveryPlan recovery, int next)
+	{
+		var (body, min, max) = repeatNode;
+
+		if (max == 0)
+			return next;
+
+		var exit      = Reserve(out var atExit);
+		var loop      = Reserve(out var atLoop);
+		var attempt   = Reserve(out var atAttempt);
+		var recovered = Reserve(out var atRecovered);
+		var synced    = Reserve(out var atSynced);
+		var advance   = Reserve(out var atAdvance);
+		var scan      = Reserve(out var atScan);
+		var asked     = Reserve(out var atAsked);
+		var after     = Reserve(out var atAfter);
+		var entry     = Reserve(out var atEntry);
+		var inner     = Compile(body, after);
+		var sync      = Compile(recovery.Recovery.Sync, synced);
+
+		atEntry.Line("var repeatIndex = entries.Count;");
+		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line("repeat = repeatIndex;");
+		atEntry.Line($"goto {Label(loop)};");
+
+		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atLoop.Line("var repeating = entries[repeat];");
+
+		if (max is { } limit)
+			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
+
+		atLoop.Line($"if (repeating.Value >= {min})");
+		atLoop.Then($"entries.Add(new ParserEntry(ParserEntry.Choice, {attempt}, p, call, atomic, repeat, lookahead, 0));");
+		atLoop.Line($"if (repeating.Value >= {min}) goto {Label(exit)};");
+		atLoop.Line($"goto {Label(attempt)};");
+
+		atAttempt.Line("reach = p;");
+		atAttempt.Line("owned = false;");
+		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {asked}, p, call, atomic, repeat, lookahead, 0));");
+		atAttempt.Line($"goto {Label(inner)};");
+
+		atAsked.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atAsked.Line("if (!owned && reach <= p) goto Fail;");
+		atAsked.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {asked}, p, call, reach, repeat, lookahead, 0));");
+		atAsked.Line($"goto {Label(scan)};");
+
+		atScan.Line($"if (p >= text.Length) goto {Label(recovered)};");
+		atScan.Line("syncFrom = p;");
+		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {advance}, p, call, atomic, repeat, lookahead, 0));");
+		atScan.Line($"goto {Label(sync)};");
+
+		atSynced.Line($"if (p <= syncFrom) goto Fail;");
+		atSynced.Line($"goto {Label(recovered)};");
+
+		atAdvance.Line("p++;");
+		atAdvance.Line($"goto {Label(scan)};");
+
+		atRecovered.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atRecovered.Line("var recoveryFrom = p;");
+		atRecovered.Line("var recoveryReach = p;");
+		atRecovered.Line("var recoveryTo = p;");
+		atRecovered.Line("var recoveryBoundary = false;");
+		atRecovered.Line("for (var recoveryAt = entries.Count - 1; recoveryAt > repeat; recoveryAt--)");
+		using (atRecovered.Block(""))
+		{
+			atRecovered.Line("var candidate = entries[recoveryAt];");
+			atRecovered.Line($"if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == {asked})");
+			using (atRecovered.Block(""))
+			{
+				atRecovered.Line("recoveryFrom = candidate.Position;");
+				atRecovered.Line("recoveryReach = candidate.AtomicIndex;");
+			}
+			atRecovered.Line($"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && candidate.State == {advance})");
+			using (atRecovered.Block(""))
+			{
+				atRecovered.Line("recoveryTo = candidate.Position;");
+				atRecovered.Line("recoveryBoundary = true;");
+			}
+		}
+		DeactivateChoices(atRecovered, "repeat");
+		atRecovered.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
+			"repeat, lookahead, recoveryTo, entries[repeat].Value));");
+		atRecovered.Line("var recoveredRepeat = entries[repeat];");
+		atRecovered.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +
+			"recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, " +
+			"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);");
+		atRecovered.Line($"goto {Label(loop)};");
+
+		DeactivateChoices(atAfter, "repeat");
+		atAfter.Line("var acceptedRepeat = entries[repeat];");
+		atAfter.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
+			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +
+			"acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);");
+		atAfter.Line($"goto {Label(loop)};");
+
+		LeaveRepeat(atExit, next);
+
+		return entry;
+	}
+
+	static void DeactivateChoices(Writer writer, string from)
+	{
+		using (writer.Block($"for (var choiceAt = entries.Count - 1; choiceAt > {from}; choiceAt--)"))
+		{
+			writer.Line("var choice = entries[choiceAt];");
+			writer.Line("if (choice.Kind != ParserEntry.Choice) continue;");
+			writer.Line(
+				"entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, " +
+				"choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, " +
+				"choice.Value, choice.RuleIndex);");
+		}
+	}
+
+	static void LeaveRepeat(Writer writer, int next)
+	{
+		writer.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		writer.Line("var finished = entries[repeat];");
+		writer.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
+		writer.Line("var previousRepeat = finished.RepeatIndex;");
+		writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
+		writer.Line("repeat = previousRepeat;");
+		writer.Line("lookahead = finished.LookaheadIndex;");
+		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
+		writer.Line($"goto {Label(next)};");
+	}
+
 	int ValueRule(RuleSymbol rule) =>
 		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
 
@@ -817,9 +987,14 @@ sealed class UnifiedMachine
 		{
 			file.Line("var derivation = entries[derivationAt];");
 
-			using (file.Block(
-				"if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || " +
-				"derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))"))
+			var linked =
+				"derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || " +
+				"derivation.Kind == ParserEntry.Construct";
+
+			if (_recoveryPlans.Count > 0)
+				linked += " || derivation.Kind == ParserEntry.Recovery";
+
+			using (file.Block($"if (derivation.CallIndex >= 0 && ({linked}))"))
 			{
 				file.Line("links[entries.Count + derivationAt] = links[derivation.CallIndex];");
 				file.Line("links[derivation.CallIndex] = derivationAt;");
@@ -848,6 +1023,23 @@ sealed class UnifiedMachine
 			}
 		}
 
+		if (_recoveryPlans.Count > 0)
+		{
+			file.Line();
+
+			using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
+			{
+				file.Line("var recovered = entries[recoveryAt];");
+				file.Line(
+					"if (recovered.Kind != ParserEntry.Recovery || recovered.CallIndex < 0 || " +
+					"!global::System.Object.ReferenceEquals(values[recovered.CallIndex], parser)) continue;");
+
+				using (file.Block("switch (recovered.State)"))
+					foreach (var recovery in _recoveryPlans)
+						MaterializeRecovery(file, recovery);
+			}
+		}
+
 		using (file.Block(
 			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
 		{
@@ -864,6 +1056,68 @@ sealed class UnifiedMachine
 
 		file.Line($"value = ({type})values[0]!;");
 	}
+
+	void ReportRecoveries(Writer file)
+	{
+		using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
+		{
+			file.Line("var recovered = entries[recoveryAt];");
+			file.Line("if (recovered.Kind != ParserEntry.Recovery) continue;");
+
+			using (file.Block("switch (recovered.State)"))
+				foreach (var recovery in _recoveryPlans)
+					using (file.Block($"case {recovery.Id}:"))
+					{
+						if (recovery.Recovery.Factory is null)
+							file.Line(
+								$"{CSharpEmitter.RecoveredMethod}(\"{Escape(recovery.Element?.Name ?? "an element")}\", " +
+								$"{RecoverySupplied("parserText", recovery)}, {RecoverySupplied("parserPosition", recovery)}, " +
+								$"{RecoverySupplied("parserLine", recovery)}, {RecoverySupplied("parserColumn", recovery)}, " +
+								$"{RecoverySupplied("parserOrdinal", recovery)}, {RecoverySupplied("parserMessage", recovery)});");
+
+						file.Line("break;");
+					}
+		}
+	}
+
+	void MaterializeRecovery(Writer file, RecoveryPlan plan)
+	{
+		using (file.Block($"case {plan.Id}:"))
+		{
+			if (plan.Recovery.Factory is null)
+			{
+				file.Line(
+					$"{CSharpEmitter.RecoveredMethod}(\"{Escape(plan.Element?.Name ?? "an element")}\", " +
+					$"{RecoverySupplied("parserText", plan)}, {RecoverySupplied("parserPosition", plan)}, " +
+					$"{RecoverySupplied("parserLine", plan)}, {RecoverySupplied("parserColumn", plan)}, " +
+					$"{RecoverySupplied("parserOrdinal", plan)}, {RecoverySupplied("parserMessage", plan)});");
+			}
+			else if (plan.Slot >= 0)
+			{
+				var arguments = new List<string>();
+
+				foreach (var name in plan.Recovery.Asks)
+					arguments.Add(RecoverySupplied(name, plan));
+
+				file.Line($"values[recoveryAt] = {plan.Method}({string.Join(", ", arguments)});");
+			}
+
+			file.Line("break;");
+		}
+	}
+
+	static string RecoverySupplied(string name, RecoveryPlan plan) => name switch
+	{
+		"parserText"     => "text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString()",
+		"parserPosition" => "recovered.Position",
+		"parserOrdinal"  => "recovered.RuleIndex",
+		"parserLine"     => "LineAt(text, recovered.Position)",
+		"parserColumn"   => "ColumnAt(text, recovered.Position)",
+		"parserSpan"     => "new global::DotGram.SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
+		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
+			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+		_                => "default",
+	};
 
 	void MaterializeRule(Writer file, RuleSymbol rule)
 	{
@@ -895,6 +1149,20 @@ sealed class UnifiedMachine
 					if (member.IsSequence)
 					{
 						var element = _results.ValueOf(member.Rule);
+						var recovered = new List<string>();
+
+						foreach (var plan in _recoveryPlans)
+							if (plan.Rule == rule && plan.Recovery.Factory is not null)
+								foreach (var slot in member.Slots)
+									if (plan.Slot == offset + slot)
+										recovered.Add($"candidate.Kind == ParserEntry.Recovery && candidate.State == {plan.Id}");
+
+						var accepted =
+							$"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
+							$"({string.Join(" || ", slots)})";
+						var collected = recovered.Count == 0
+							? accepted
+							: $"({accepted}) || ({string.Join(" || ", recovered)})";
 
 						file.Line($"var captured{memberIndex}Count = 0;");
 
@@ -903,9 +1171,7 @@ sealed class UnifiedMachine
 							$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-							file.Line(
-								$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
-								$"({string.Join(" || ", slots)})) captured{memberIndex}Count++;");
+							file.Line($"if ({collected}) captured{memberIndex}Count++;");
 						}
 
 						file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
@@ -917,13 +1183,19 @@ sealed class UnifiedMachine
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
-							using (file.Block(
-								$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
-								$"({string.Join(" || ", slots)}))"))
+							using (file.Block($"if ({collected})"))
 							{
-								file.Line(
-									$"captured{memberIndex}[--captured{memberIndex}Item] = " +
-									$"({element})values[candidate.Position]!;");
+								if (recovered.Count > 0)
+								{
+									file.Line($"var capturedValueAt = candidate.Kind == ParserEntry.Recovery ? capturedAt{memberIndex} : candidate.Position;");
+									file.Line(
+										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
+										$"({element})values[capturedValueAt]!;");
+								}
+								else
+									file.Line(
+										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
+										$"({element})values[candidate.Position]!;");
 							}
 						}
 

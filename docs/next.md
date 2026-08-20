@@ -210,11 +210,12 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - external recognizers;
 - capture-free guards;
 - text/rule captures and supported construction;
+- non-streaming recovery, including continuation-first boundaries, synchronization,
+  deferred recovery factories, and the optional reporting hook;
 - direct and mutual recursion through explicit frames.
 
 It currently excludes:
 
-- recovery;
 - binding-power climbing;
 - captures nested inside lookahead;
 - guards whose visible captures include typed values or sequences;
@@ -229,33 +230,31 @@ Do not broaden `Supports` casually. Previous broad attempts admitted explicit ar
 and folds, then broke `TextReader`/chunk overloads, special sequence factories, or emitted
 fold calls without their required scalar arguments.
 
-## The unresolved guard problem
+## Typed guard work deliberately left on the legacy path
 
-Capture-aware `when` needs an explicit language decision. Text captures can be available
-as extents during recognition, but a typed captured rule result does not exist until its
-deferred `=>` has run. The coherent options are:
+Text captures are available as extents during recognition. A typed captured rule result
+does not exist until its deferred `=>` has run, so supporting one in `when` requires
+materializing that value when the guard asks for it.
 
-1. restrict recognition-time guards to text/extents and other already available data;
-2. materialize typed values early, weakening the deferred-construction guarantee and
-   complicating rollback and side effects;
-3. evaluate guards in a post-recognition candidate/derivation model, which is a larger
-   architectural change.
-
-Do not silently implement option 2. The semantics should be decided first and then stated
-in the language reference.
+The decision is: if the author uses a computed value in `when`, compute it there, cache it
+with the candidate derivation, and reuse exactly that value after acceptance. Never invoke
+the same user construction twice. Work and side effects on a path later rejected by the
+guard follow from the author's choice to inspect that value. This is deliberately not in
+the unified machine yet because the extra arena state is not justified until a real use
+case needs it; the legacy path remains the compatibility implementation.
 
 ## Recommended continuation order
 
-1. Decide typed/sequence capture-aware `when` semantics; scalar text guards are already
-   unified.
-2. Port recovery without reintroducing implicit rule atomicity.
-3. Move `find` and streaming onto shared automaton blocks and remove transitional duplicate
-   generated engines.
-4. Port binding-power climbing after ordinary folds, retaining power-aware calls without
+1. Keep typed/sequence capture-aware `when` on the legacy path for now; scalar text guards
+   are already unified. If it moves later, cache the value obtained for the guard rather
+   than invoking user C# twice.
+2. Move `find` and streaming recovery onto shared automaton blocks and remove transitional
+   duplicate generated engines.
+3. Port binding-power climbing after ordinary folds, retaining power-aware calls without
    reintroducing C# recursion.
-5. Remove the legacy semantic path, update public atomicity/compatibility documentation
+4. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
-6. Only then benchmark generated size and hot paths and decide whether additional inlining
+5. Only then benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map

@@ -1131,6 +1131,20 @@ Feed : FeedItem[] = Header
 3. **What follows the repetition is not tried on the error path.** An error means the
    element was there and was broken, not that the repetition ended.
 
+At a boundary between elements, however, the parser first tries the **complete
+continuation after the repetition**. If that continuation succeeds, the repetition is
+finished. If it fails anywhere along that path, its work is undone and the parser tries
+another element. This is what lets a broad row shape coexist with a specific trailer:
+
+```dotgram
+Feed = Header & Row* recover eol & Trailer & eof
+```
+
+`Trailer & eof` gets first refusal at every boundary. Usually it fails on its first
+character and costs almost nothing; at the actual trailer it wins even if `Row` could
+also have consumed that line. This is general sequence/repetition behavior, not a
+feed-specific rule.
+
 **Nothing is ever caught.** An exception out of a `=>` leaves the parse, inside a marked
 repetition as anywhere else. Catching would mean catching `Exception` — there is no way
 to tell "this record's quantity is not a number" from `NullReferenceException` by type —

@@ -1137,10 +1137,38 @@ public sealed class SemanticTests
 				.Select(row => Read(row, "Name")));
 
 	[Fact]
+	public void An_atomic_discriminator_can_claim_an_element_without_consuming_input() =>
+		Assert.Equal(
+			["!X"],
+			((Array)Read(
+				Built("""
+					Row   = { ?!"T|" } & "R|" & name: ['a'..'z']+ & eol
+					Start = rows: Row* recover eol => @(new Row("!" + parserText)) & "T|" & eol
+					""",
+					"X\nT|\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
 	public void A_broken_element_at_the_end_takes_what_is_left() =>
 		Assert.Equal(
 			["aa", "!b1b"],
 			((Array)Read(Built(Records, "aa\nb1b"), "Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+
+	[Fact]
+	public void A_synchronization_match_must_consume_input() =>
+		Assert.Equal(
+			["aa", "!b1b", "cc"],
+			((Array)Read(
+				Built("""
+					Row   = name: ['a'..'z']+ & eol
+					Start = rows: Row* recover (?='1' | eol) => @(new Row("!" + parserText))
+					""",
+					"aa\nb1b\ncc\n"),
+				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
 
@@ -1221,11 +1249,10 @@ public sealed class SemanticTests
 				"aa\nbb\n"));
 
 	[Fact]
-	public void A_recovering_repetition_gives_nothing_back() =>
-		// The same grammar, marked. §8.2 calls the mark a commit point: an element it took
-		// was either good or explicitly rejected, so there is no shorter reading to come
-		// back for, and `tail` is left with nothing.
-		Assert.False(
+	public void A_recovering_repetition_asks_the_continuation_before_another_element() =>
+		// At every element boundary the complete continuation gets first refusal. Only if
+		// it fails does the repetition ask for another Row, so `tail` owns the second line.
+		Assert.True(
 			Matches("""
 				Row   = name: ['a'..'z']+ & eol
 				Start = rows: Row* recover eol => @(new Row("!" + parserText)) & tail: ['a'..'z']+ & eol
@@ -1252,11 +1279,11 @@ public sealed class SemanticTests
 		// Everything the hook is told is an argument. Nothing is computed into a local
 		// first, because a statement would survive the erasure and the scan would happen
 		// whether or not anybody is listening.
-		Assert.Contains("OnRecovered(\"Row\", text.Slice(from, to - from).ToString(), from, LineAt(text, from), ColumnAt(text, from), c", source);
+		Assert.Contains("OnRecovered(\"Row\", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, LineAt(text, recovered.Position), ColumnAt(text, recovered.Position), recovered.RuleIndex", source);
 
 		// The elements that did match still collect — it is only the broken one that is
 		// dropped — so what must be absent is a factory, not the collecting.
-		Assert.Contains("l0.Add(v0);",  source);
+		Assert.Contains("captured0Count", source);
 		Assert.DoesNotContain("_Recover(", source);
 	}
 

@@ -158,7 +158,9 @@ Working end to end — a `.gram` file becomes a parser that runs:
   ```
 
   A rejection arrives in its place, carrying which record it was, where a person would
-  open the file, and why — so nothing has to be joined back up afterwards
+  open the file, and why — so nothing has to be joined back up afterwards. At each row
+  boundary the complete continuation after the repetition is tried first, so a trailer
+  wins there even when the row rule itself is broad
 
 - **a C# predicate inside an element set** — `bool M(char c)` asks the same question
   about one input item that a range does. The brackets establish that contract and let
