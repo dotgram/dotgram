@@ -1298,7 +1298,7 @@ sealed class Machine
 
 		using (helper.Block(
 			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			"global::System.Collections.Generic.List<ParserEntry> entries)"))
+			"ParserArena entries)"))
 			Materialize(helper, cached: true);
 
 		_extra.Add(helper.ToString());

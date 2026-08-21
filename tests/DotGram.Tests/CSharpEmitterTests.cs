@@ -81,7 +81,8 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = new string('(', depth) + "x" + new string(')', depth);
 
-		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.Contains("ParserArena Entries", source);
+		Assert.DoesNotContain("List<ParserEntry>", source);
 		Assert.DoesNotContain("Span<int> calls", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", input + ")").IsSuccess);
@@ -115,7 +116,8 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = string.Concat(Enumerable.Repeat("ab", depth)) + "x";
 
-		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.Contains("ParserArena Entries", source);
+		Assert.DoesNotContain("List<ParserEntry>", source);
 		Assert.DoesNotContain("Recognize_A(", source);
 		Assert.DoesNotContain("Recognize_B(", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseA", input).IsSuccess);
@@ -207,7 +209,8 @@ public sealed class CSharpEmitterTests
 		var source = Emit(grammar);
 		var result = Invoke(grammar, "ParseStart", "aaa");
 
-		Assert.Contains("List<ParserEntry> Entries", source);
+		Assert.Contains("ParserArena Entries", source);
+		Assert.DoesNotContain("List<ParserEntry>", source);
 		Assert.Contains("var items = new string[count];", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.DoesNotContain("List<string>", source);

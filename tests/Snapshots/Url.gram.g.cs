@@ -4088,8 +4088,7 @@ namespace DotGram.Snapshots
 
 		private sealed class Parser
 		{
-			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
-				new global::System.Collections.Generic.List<ParserEntry>();
+			internal readonly ParserArena Entries = new ParserArena();
 			object?[] _values = global::System.Array.Empty<object?>();
 			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
@@ -4120,6 +4119,55 @@ namespace DotGram.Snapshots
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
 				_valuesUsed = 0;
+			}
+		}
+
+		private sealed class ParserArena
+		{
+			ParserEntry[] _items = global::System.Array.Empty<ParserEntry>();
+
+			internal int Count { get; private set; }
+
+			internal ParserEntry this[int index]
+			{
+				get => _items[index];
+				set => _items[index] = value;
+			}
+
+			internal void Add(ParserEntry entry)
+			{
+				if (Count == _items.Length)
+					global::System.Array.Resize(ref _items, Count == 0 ? 16 : Count * 2);
+
+				_items[Count++] = entry;
+			}
+
+			internal void RemoveAt(int index)
+			{
+				var after = Count - index - 1;
+
+				if (after > 0)
+					global::System.Array.Copy(_items, index + 1, _items, index, after);
+
+				Count--;
+			}
+
+			internal void RemoveRange(int index, int count)
+			{
+				if (count == 0)
+					return;
+
+				var after = Count - index - count;
+
+				if (after > 0)
+					global::System.Array.Copy(_items, index + count, _items, index, after);
+
+				Count -= count;
+			}
+
+			internal void Clear()
+			{
+				Count = 0;
 			}
 		}
 

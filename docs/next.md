@@ -112,8 +112,8 @@ or pool. The internal storage is not parameterized by grammar value types.
 
 ### One shared recognition arena
 
-Recognition uses one `List<ParserEntry>` for the whole parse. `ParserEntry` is a readonly
-internal all-integer record. It currently represents choices, calls, atomic boundaries,
+Recognition uses one array-backed `ParserArena` for the whole parse. `ParserEntry` is a
+readonly internal all-integer record. It currently represents choices, calls, atomic boundaries,
 repetitions, lookahead, captures, pending constructions, completed invocations, and rule
 captures.
 
@@ -255,6 +255,14 @@ shared block. On the short run this reduced the 84-character URL from 3.27 us to
 and the full 47-character URL from 1.51 us to 1.17 us. Generated source also shrank from
 56,749 to 56,325 bytes for URL and from 127,292 to 124,288 bytes for Settlements. Results
 on the shortest cases were mixed, so broader inlining is not currently warranted.
+
+`ParserArena` replaces `List<ParserEntry>` with the five operations the generated engine
+actually needs. Because entries contain only integers, removal and reset only move the
+live suffix and adjust `Count`; clearing dead slots would release no references. With
+parser reuse, this reduced the short URL from 837 ns to 774 ns and the full URL from
+1.17 us to 1.05 us. It adds about 1 KB of support source per generated class. Combined
+with atom inlining, URL is 57,370 bytes versus the pre-optimization 56,749, while the
+larger Settlements parser remains smaller at 125,333 versus 127,292 bytes.
 
 ## Implementation map
 
