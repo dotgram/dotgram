@@ -44,6 +44,15 @@ namespace DotGram.Benchmarks;
 /// term and the third.
 /// </para>
 /// <para>
+/// The obvious structural suspect was checked and is not it. RyuJIT gives up on optimizing
+/// a method past certain sizes — five thousand basic blocks among them, and the URL parser
+/// has eight hundred states of several blocks each — but raising those thresholds
+/// (<c>DOTNET_JitMinOptsBbCount</c> and its neighbours) changes nothing: 364/320/274/611/534
+/// against 361/294/274/598/525. The method is compiled properly. What is left is ordinary
+/// register allocation and block layout at a size where they are hard, which is not a
+/// threshold to move but an amount of code to reduce.
+/// </para>
+/// <para>
 /// <b>And none of it shows in a parser.</b> Ordering was tried on the emitter twice — by
 /// width, then by width with lower case preferred on a tie, applied to both chains the
 /// generator writes — and both came out level on the URL grammar, within the same few
