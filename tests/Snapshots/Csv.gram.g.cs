@@ -76,31 +76,31 @@ namespace DotGram.Snapshots
 				S4:
 				{
 					Trace("enter Row", 4, p, entries.Count);
-					goto S32;
+					goto S29;
 				}
 
 				S5:
 				{
 					Trace("enter Name", 5, p, entries.Count);
-					goto S40;
+					goto S37;
 				}
 
 				S6:
 				{
 					Trace("enter Amount", 6, p, entries.Count);
-					goto S49;
+					goto S46;
 				}
 
 				S7:
 				{
 					Trace("enter eof", 7, p, entries.Count);
-					goto S56;
+					goto S53;
 				}
 
 				S8:
 				{
 					Trace("enter eol", 8, p, entries.Count);
-					goto S61;
+					goto S55;
 				}
 
 				S9:
@@ -205,101 +205,73 @@ namespace DotGram.Snapshots
 
 				S23:
 				{
-					if (p + 1 > text.Length) goto Fail;
-					if (text[p + 0] != '\n') goto Fail;
-					p += 1;
-					goto S21;
+					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					{
+						p += 2;
+						goto S21;
+					}
+					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					{
+						p += 1;
+						goto S21;
+					}
+					goto S22;
 				}
 
 				S24:
-				{
-					if (p < text.Length)
-					{
-						c = text[p];
-						if (!(c == '\n')) goto S22;
-						if (!(c == '\r')) goto S23;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 22, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 22, p, entries.Count);
-					goto S23;
-				}
-
-				S25:
-				{
-					if (p + 2 > text.Length) goto Fail;
-					if (text[p + 0] != '\r') goto Fail;
-					if (text[p + 1] != '\n') goto Fail;
-					p += 2;
-					goto S21;
-				}
-
-				S26:
-				{
-					if (p < text.Length)
-					{
-						c = text[p];
-						if (!(c == '\r')) goto S24;
-						if (!(c == '\n' || c == '\r')) goto S25;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 24, p, entries.Count);
-					goto S25;
-				}
-
-				S27:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 3 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
 					Trace("rule capture", 2, p, entries.Count);
-					goto S26;
+					goto S23;
 				}
 
-				S28:
+				S25:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 3));
+					entries.Add(new ParserEntry(ParserEntry.Call, 24, p, call, atomic, repeat, lookahead, 0, 3));
 					call = callIndex;
 					Trace("call Amount", 6, p, entries.Count);
 					goto S6;
 				}
 
-				S30:
+				S27:
 				{
 					if (p + 1 > text.Length) goto Fail;
 					if (text[p + 0] != ',') goto Fail;
 					p += 1;
-					goto S28;
+					goto S25;
 				}
 
-				S31:
+				S28:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
 					Trace("rule capture", 1, p, entries.Count);
-					goto S30;
+					goto S27;
 				}
 
-				S32:
+				S29:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 31, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Name", 5, p, entries.Count);
 					goto S5;
 				}
 
-				S35:
+				S32:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 0, p, entries.Count);
 					goto Return;
 				}
 
-				S36:
+				S33:
 				{
 					global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
 					var ruleStart = entries[call].Position;
@@ -315,10 +287,10 @@ namespace DotGram.Snapshots
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
 					if (!Recognize_DotGram_Guard0(guardCaptured0)) goto Fail;
-					goto S35;
+					goto S32;
 				}
 
-				S37:
+				S34:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -327,67 +299,67 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 36, p, entries.Count);
-					goto S36;
+					Trace("leave repeat", 33, p, entries.Count);
+					goto S33;
 				}
 
-				S38:
+				S35:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 37, p, call, atomic, repeat, lookahead, 0));
-					goto S43;
+						entries.Add(new ParserEntry(ParserEntry.Choice, 34, p, call, atomic, repeat, lookahead, 0));
+					goto S40;
 				}
 
-				S39:
+				S36:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S38;
+					goto S35;
 				}
 
-				S40:
+				S37:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 38, p, entries.Count);
-					goto S38;
+					Trace("enter repeat", 35, p, entries.Count);
+					goto S35;
 				}
 
-				S41:
+				S38:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
 					Trace("capture", 3, p, entries.Count);
-					goto S39;
+					goto S36;
 				}
 
-				S42:
+				S39:
 				{
 					if (p >= text.Length) goto Fail;
 					c = text[p];
 					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))) goto Fail;
 					p++;
-					goto S41;
+					goto S38;
 				}
 
-				S43:
+				S40:
 				{
 					capture3 = p;
-					goto S42;
+					goto S39;
 				}
 
-				S45:
+				S42:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 0, p, entries.Count);
 					goto Return;
 				}
 
-				S46:
+				S43:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -396,60 +368,60 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 45, p, entries.Count);
-					goto S45;
+					Trace("leave repeat", 42, p, entries.Count);
+					goto S42;
 				}
 
-				S47:
+				S44:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 46, p, call, atomic, repeat, lookahead, 0));
-					goto S52;
+						entries.Add(new ParserEntry(ParserEntry.Choice, 43, p, call, atomic, repeat, lookahead, 0));
+					goto S49;
 				}
 
-				S48:
+				S45:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S47;
+					goto S44;
 				}
 
-				S49:
+				S46:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 47, p, entries.Count);
-					goto S47;
+					Trace("enter repeat", 44, p, entries.Count);
+					goto S44;
 				}
 
-				S50:
+				S47:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count);
-					goto S48;
+					goto S45;
 				}
 
-				S51:
+				S48:
 				{
 					if (p >= text.Length) goto Fail;
 					c = text[p];
 					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
-					goto S50;
+					goto S47;
 				}
 
-				S52:
+				S49:
 				{
 					capture4 = p;
-					goto S51;
+					goto S48;
 				}
 
-				S54:
+				S51:
 				{
 					global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);
 					var looked = entries[lookahead];
@@ -464,23 +436,23 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 
-				S55:
+				S52:
 				{
 					if (p >= text.Length) goto Fail;
 					p++;
-					goto S54;
+					goto S51;
 				}
 
-				S56:
+				S53:
 				{
 					var lookaheadIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
 					lookahead = lookaheadIndex;
-					Trace("enter negative lookahead", 55, p, entries.Count);
-					goto S55;
+					Trace("enter negative lookahead", 52, p, entries.Count);
+					goto S52;
 				}
 
-				S57:
+				S54:
 				{
 					if (p + 1 > text.Length) goto Fail;
 					if (text[p + 0] != '\r') goto Fail;
@@ -488,47 +460,19 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S58:
+				S55:
 				{
-					if (p + 1 > text.Length) goto Fail;
-					if (text[p + 0] != '\n') goto Fail;
-					p += 1;
-					goto Return;
-				}
-
-				S59:
-				{
-					if (p < text.Length)
+					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
 					{
-						c = text[p];
-						if (!(c == '\n')) goto S57;
-						if (!(c == '\r')) goto S58;
+						p += 2;
+						goto Return;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 57, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 57, p, entries.Count);
-					goto S58;
-				}
-
-				S60:
-				{
-					if (p + 2 > text.Length) goto Fail;
-					if (text[p + 0] != '\r') goto Fail;
-					if (text[p + 1] != '\n') goto Fail;
-					p += 2;
-					goto Return;
-				}
-
-				S61:
-				{
-					if (p < text.Length)
+					if (p + 1 <= text.Length && text[p + 0] == '\n')
 					{
-						c = text[p];
-						if (!(c == '\r')) goto S59;
-						if (!(c == '\n' || c == '\r')) goto S60;
+						p += 1;
+						goto Return;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 59, p, entries.Count);
-					goto S60;
+					goto S54;
 				}
 
 				Return:
@@ -872,42 +816,36 @@ namespace DotGram.Snapshots
 					case 23: goto S23;
 					case 24: goto S24;
 					case 25: goto S25;
-					case 26: goto S26;
+					case 26: goto S25;
 					case 27: goto S27;
 					case 28: goto S28;
-					case 29: goto S28;
-					case 30: goto S30;
-					case 31: goto S31;
+					case 29: goto S29;
+					case 30: goto S29;
+					case 31: goto S29;
 					case 32: goto S32;
-					case 33: goto S32;
-					case 34: goto S32;
+					case 33: goto S33;
+					case 34: goto S34;
 					case 35: goto S35;
 					case 36: goto S36;
 					case 37: goto S37;
 					case 38: goto S38;
 					case 39: goto S39;
 					case 40: goto S40;
-					case 41: goto S41;
+					case 41: goto S37;
 					case 42: goto S42;
 					case 43: goto S43;
-					case 44: goto S40;
+					case 44: goto S44;
 					case 45: goto S45;
 					case 46: goto S46;
 					case 47: goto S47;
 					case 48: goto S48;
 					case 49: goto S49;
-					case 50: goto S50;
+					case 50: goto S46;
 					case 51: goto S51;
 					case 52: goto S52;
-					case 53: goto S49;
+					case 53: goto S53;
 					case 54: goto S54;
 					case 55: goto S55;
-					case 56: goto S56;
-					case 57: goto S57;
-					case 58: goto S58;
-					case 59: goto S59;
-					case 60: goto S60;
-					case 61: goto S61;
 					default: goto Fail;
 				}
 			}

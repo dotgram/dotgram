@@ -176,6 +176,33 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Text_alternatives_that_cannot_both_match_need_nothing_written_down()
+	{
+		// At most one of them matches anywhere, so there is no second reading to come back
+		// for. What they share is read once, and the position is not moved until one of them
+		// has matched whole, which is what makes reading it once possible.
+		const string grammar = """Start = "abc_x" | "abc_y" """;
+
+		Assert.DoesNotContain(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "abc_y").Matched);
+		Assert.False(Run(grammar, "abc_z").Matched);
+	}
+
+	[Fact]
+	public void But_one_that_begins_another_still_needs_it()
+	{
+		// Both match at the same place, the shorter is taken, and if what follows the choice
+		// then fails the longer has to be tried. That is a way back, and a way back is what
+		// the entry is.
+		const string grammar = """Start = ("ab" | "abc") & 'c' """;
+
+		Assert.Contains(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "abc").Matched);
+	}
+
+	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
 	{
 		var source = Emit("Start = digits: ['0'..'9']+\nparse Start");

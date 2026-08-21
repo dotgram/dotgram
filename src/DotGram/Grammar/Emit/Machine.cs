@@ -777,15 +777,34 @@ sealed class Machine
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
-				var target = Compile(alternatives[alternatives.Count - 1], next, following);
-				var rest   = Decidable(alternatives[alternatives.Count - 1]);
+				var last   = alternatives.Count - 1;
+				var run    = LiteralRun(alternatives, last);
+				var target = run > 0
+					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
+					: Compile(alternatives[last], next, following);
+				var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
-				for (var i = alternatives.Count - 2; i >= 0; i--)
+				for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
 				{
+					// Alternatives that are all text need neither. Nothing is written down to
+					// come back to and the position is not moved until one of them has
+					// matched, so where they differ is where the next is tried — which is
+					// what a common prefix is worth, and it is worth it whether or not there
+					// is one.
+					if (LiteralRun(alternatives, i) is var here and > 0)
+					{
+						var from = i - here + 1;
+
+						rest   = Begins(alternatives, from, i).Or(rest is null ? FirstSets.First.All : rest);
+						target = CompileLiterals(alternatives, from, i, next, target);
+						i      = from;
+
+						continue;
+					}
+
 					var first = Compile(alternatives[i], next, following);
 					var mine  = Decidable(alternatives[i]);
 					var state = Reserve(out var writer);
-
 
 					// One character can say two things here, and each saves something
 					// different. That this alternative cannot begin here saves going into it;
@@ -1672,6 +1691,147 @@ sealed class Machine
 			tests[i] = RangesTest(firsts[i].Ranges);
 
 		return tests;
+	}
+
+	/// <summary>
+	/// How many alternatives ending at <paramref name="at"/> are plain text, up to two or
+	/// more.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Two is where it starts paying: one literal alternative is compiled as it always was,
+	/// and the saving is in not writing down where to come back to between one literal and
+	/// the next.
+	/// </para>
+	/// <para>
+	/// And only where none of them is the beginning of another. Where one is, both match at
+	/// the same place — the shorter is taken, being first or not — and if what follows the
+	/// choice then fails, the longer has to be tried. That is a way back, and a way back is
+	/// what the entry is. <c>"ab" | "abc"</c> is such a pair and is compiled as it always
+	/// was; <c>"abc_x" | "abc_y"</c> is not, and at most one of them can match anywhere.
+	/// </para>
+	/// </remarks>
+	static int LiteralRun(IReadOnlyList<Node> alternatives, int at)
+	{
+		var run = 0;
+
+		while (at - run >= 0 && alternatives[at - run] is Node.Literal)
+			run++;
+
+		if (run < 2)
+			return 0;
+
+		for (var i = at - run + 1; i <= at; i++)
+			for (var j = i + 1; j <= at; j++)
+				if (alternatives[i] is Node.Literal(var one) &&
+					alternatives[j] is Node.Literal(var other) &&
+					(one.StartsWith(other, StringComparison.Ordinal) ||
+					 other.StartsWith(one, StringComparison.Ordinal)))
+				{
+					return 0;
+				}
+
+		return run;
+	}
+
+	/// <summary>What a run of literal alternatives can begin with.</summary>
+	static FirstSets.First Begins(IReadOnlyList<Node> alternatives, int from, int to)
+	{
+		var ranges = new List<CharRange>();
+
+		for (var i = from; i <= to; i++)
+			if (alternatives[i] is Node.Literal(var text))
+			{
+				if (text.Length == 0)
+					return FirstSets.First.All;
+
+				ranges.Add(new CharRange(text[0], text[0]));
+			}
+
+		return new FirstSets.First(false, false, ranges);
+	}
+
+	/// <summary>
+	/// A run of literal alternatives, read once and decided in place.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Ordinarily a choice writes down where to come back to, goes into the first
+	/// alternative, and — when that one fails halfway through — unwinds to the entry, puts
+	/// the position back and reads the same characters again from the start.
+	/// <c>"abc_x" | "abc_y"</c> reads <c>abc_</c> twice for one character of disagreement.
+	/// </para>
+	/// <para>
+	/// Text alternatives need none of it. What they have in common is read once, and the
+	/// position is not moved until one of them has matched whole — so where two of them
+	/// differ is simply where the next one is tried, with nothing written down and nothing
+	/// unwound. The prefix is what makes it cheap; not moving the position is what makes it
+	/// possible, and that holds whether there is a prefix or not.
+	/// </para>
+	/// </remarks>
+	int CompileLiterals(IReadOnlyList<Node> alternatives, int from, int to, int next, int fail)
+	{
+		var texts = new List<string>(to - from + 1);
+
+		for (var i = from; i <= to; i++)
+			if (alternatives[i] is Node.Literal(var text))
+				texts.Add(text);
+
+		var shared = texts[0];
+
+		foreach (var text in texts)
+		{
+			var common = 0;
+
+			while (common < shared.Length && common < text.Length && shared[common] == text[common])
+				common++;
+
+			shared = shared.Substring(0, common);
+		}
+
+		var state = Reserve(out var writer);
+
+		if (shared.Length > 0)
+		{
+			if (_starves)
+			{
+				writer.Line($"if (p + {shared.Length} > text.Length)");
+				using (writer.Block(""))
+				{
+					writer.Line("failure.Starved = true;");
+					writer.Line($"goto {Label(fail)};");
+				}
+			}
+			else
+				writer.Line($"if (p + {shared.Length} > text.Length) goto {Label(fail)};");
+
+			for (var i = 0; i < shared.Length; i++)
+				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])}) goto {Label(fail)};");
+		}
+
+		foreach (var text in texts)
+		{
+			var tests = new List<string>();
+
+			if (text.Length > shared.Length)
+				tests.Add($"p + {text.Length} <= text.Length");
+
+			for (var i = shared.Length; i < text.Length; i++)
+				tests.Add($"text[p + {i}] == {CSharpEmitter.Char(text[i])}");
+
+			using (writer.Block(tests.Count == 0 ? "" : $"if ({string.Join(" && ", tests)})"))
+			{
+				if (text.Length > 0)
+					writer.Line($"p += {text.Length};");
+
+				writer.Line($"goto {Label(next)};");
+			}
+
+		}
+
+		writer.Line($"goto {Label(fail)};");
+
+		return state;
 	}
 
 	/// <summary>
