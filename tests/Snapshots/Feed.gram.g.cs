@@ -259,6 +259,10 @@ namespace DotGram.Snapshots
 				var repeat  = -1;
 				var lookahead = -1;
 				var c       = '\0';
+				var turn0 = 0;
+				var turn1 = 0;
+				var turn2 = 0;
+				var turn3 = 0;
 				var completedCall = -1;
 				var capture3 = 0;
 				var capture4 = 0;
@@ -284,19 +288,19 @@ namespace DotGram.Snapshots
 				S5:
 				{
 					Trace("enter Row", 5, p, entries.Count);
-					goto S63;
+					goto S68;
 				}
 
 				S6:
 				{
 					Trace("enter Trailer", 6, p, entries.Count);
-					goto S72;
+					goto S78;
 				}
 
 				S12:
 				{
 					Trace("enter Name", 12, p, entries.Count);
-					goto S93;
+					goto S107;
 				}
 
 				S15:
@@ -647,14 +651,7 @@ namespace DotGram.Snapshots
 
 				S50:
 				{
-					if (p >= text.Length)
-					{
-						failure.Starved = true;
-						goto S49;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto S49;
-					p++;
+					p = turn0;
 					goto S49;
 				}
 
@@ -663,40 +660,71 @@ namespace DotGram.Snapshots
 					if (p >= text.Length)
 					{
 						failure.Starved = true;
-						goto S49;
+						goto S50;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto S49;
+					if (!(((c >= '0' && c <= '9')))) goto S50;
 					p++;
-					goto S50;
+					goto S49;
 				}
 
 				S52:
 				{
+					if (p >= text.Length)
+					{
+						failure.Starved = true;
+						goto S50;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S50;
+					p++;
+					goto S51;
+				}
+
+				S53:
+				{
 					if (p + 1 > text.Length)
 					{
 						failure.Starved = true;
-						goto S49;
+						goto S50;
 					}
-					if (text[p + 0] != '.') goto S49;
+					if (text[p + 0] != '.') goto S50;
 					p += 1;
-					goto S51;
+					goto S52;
 				}
 
 				S54:
 				{
-					if (p >= text.Length)
-					{
-						failure.Starved = true;
-						goto S52;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto S52;
-					p++;
-					goto S54;
+					turn0 = p;
+					goto S53;
 				}
 
 				S55:
+				{
+					turn1 = p;
+					goto S57;
+				}
+
+				S56:
+				{
+					p = turn1;
+					goto S54;
+				}
+
+				S57:
+				{
+					if (p >= text.Length)
+					{
+						failure.Starved = true;
+						goto S56;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S56;
+					p++;
+					goto S55;
+				}
+
+				S58:
 				{
 					if (p >= text.Length)
 					{
@@ -706,28 +734,40 @@ namespace DotGram.Snapshots
 					c = text[p];
 					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
-					goto S54;
+					goto S55;
 				}
 
-				S56:
+				S59:
+				{
+					p = turn2;
+					goto S58;
+				}
+
+				S60:
 				{
 					if (p + 1 > text.Length)
 					{
 						failure.Starved = true;
-						goto S55;
+						goto S59;
 					}
-					if (text[p + 0] != '-') goto S55;
+					if (text[p + 0] != '-') goto S59;
 					p += 1;
-					goto S55;
+					goto S58;
 				}
 
-				S57:
+				S61:
+				{
+					turn2 = p;
+					goto S60;
+				}
+
+				S62:
 				{
 					capture5 = p;
-					goto S56;
+					goto S61;
 				}
 
-				S58:
+				S63:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -736,17 +776,17 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '|') goto Fail;
 					p += 1;
-					goto S57;
+					goto S62;
 				}
 
-				S59:
+				S64:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count);
-					goto S58;
+					goto S63;
 				}
 
-				S60:
+				S65:
 				{
 					var runStart = p;
 					while (true)
@@ -762,18 +802,18 @@ namespace DotGram.Snapshots
 					}
 					if (p < runStart + 1) goto Fail;
 					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 59, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 59, p, entries.Count);
-					goto S59;
+						entries.Add(new ParserEntry(ParserEntry.Run, 64, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 64, p, entries.Count);
+					goto S64;
 				}
 
-				S61:
+				S66:
 				{
 					capture4 = p;
-					goto S60;
+					goto S65;
 				}
 
-				S62:
+				S67:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -782,10 +822,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '|') goto Fail;
 					p += 1;
-					goto S61;
+					goto S66;
 				}
 
-				S63:
+				S68:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -794,10 +834,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != 'R') goto Fail;
 					p += 1;
-					goto S62;
+					goto S67;
 				}
 
-				S64:
+				S69:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -809,7 +849,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S65:
+				S70:
 				{
 					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
 					{
@@ -821,30 +861,42 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					goto S64;
+					goto S69;
 				}
 
-				S66:
+				S71:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
 					Trace("capture", 6, p, entries.Count);
-					goto S65;
+					goto S70;
 				}
 
-				S68:
+				S72:
+				{
+					turn3 = p;
+					goto S74;
+				}
+
+				S73:
+				{
+					p = turn3;
+					goto S71;
+				}
+
+				S74:
 				{
 					if (p >= text.Length)
 					{
 						failure.Starved = true;
-						goto S66;
+						goto S73;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto S66;
+					if (!(((c >= '0' && c <= '9')))) goto S73;
 					p++;
-					goto S68;
+					goto S72;
 				}
 
-				S69:
+				S75:
 				{
 					if (p >= text.Length)
 					{
@@ -854,16 +906,16 @@ namespace DotGram.Snapshots
 					c = text[p];
 					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
-					goto S68;
+					goto S72;
 				}
 
-				S70:
+				S76:
 				{
 					capture6 = p;
-					goto S69;
+					goto S75;
 				}
 
-				S71:
+				S77:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -872,10 +924,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '|') goto Fail;
 					p += 1;
-					goto S70;
+					goto S76;
 				}
 
-				S72:
+				S78:
 				{
 					if (p + 1 > text.Length)
 					{
@@ -884,10 +936,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != 'T') goto Fail;
 					p += 1;
-					goto S71;
+					goto S77;
 				}
 
-				S93:
+				S107:
 				{
 					var runStart = p;
 					while (true)
@@ -1256,7 +1308,7 @@ namespace DotGram.Snapshots
 					case 50: goto S50;
 					case 51: goto S51;
 					case 52: goto S52;
-					case 53: goto S54;
+					case 53: goto S53;
 					case 54: goto S54;
 					case 55: goto S55;
 					case 56: goto S56;
@@ -1270,13 +1322,19 @@ namespace DotGram.Snapshots
 					case 64: goto S64;
 					case 65: goto S65;
 					case 66: goto S66;
-					case 67: goto S68;
+					case 67: goto S67;
 					case 68: goto S68;
 					case 69: goto S69;
 					case 70: goto S70;
 					case 71: goto S71;
 					case 72: goto S72;
-					case 93: goto S93;
+					case 73: goto S73;
+					case 74: goto S74;
+					case 75: goto S75;
+					case 76: goto S76;
+					case 77: goto S77;
+					case 78: goto S78;
+					case 107: goto S107;
 					default: goto Fail;
 				}
 			}

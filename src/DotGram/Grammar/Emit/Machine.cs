@@ -41,6 +41,7 @@ sealed class Machine
 	bool _usesRuns;
 	bool _usesCompleted;
 	bool _usesDead;
+	readonly List<int> _turns = [];
 
 	/// <summary>
 	/// Where a failure goes from here — <see cref="Fail"/>, the arena's dispatcher, unless
@@ -118,9 +119,14 @@ sealed class Machine
 
 		CollectValueTypes();
 
+		// What follows each rule, before any of them is compiled. A body is compiled once and
+		// called from everywhere, so what it is told has to be the union over its callers —
+		// and that is only known once every one of them has been looked at.
+		_follow = FollowSets.Of(graph);
+
 		foreach (var rule in graph.Rules)
 		{
-			var body = Compile(graph.Bodies[rule], Return, FirstSets.First.All);
+			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
 
 			entry.Line($"Trace(\"enter {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
@@ -255,6 +261,12 @@ sealed class Machine
 	/// <summary>The states something outside the table jumps to.</summary>
 	readonly HashSet<int> _roots = [];
 
+	IReadOnlyDictionary<RuleSymbol, FirstSets.First> _follow =
+		new Dictionary<RuleSymbol, FirstSets.First>();
+
+	FirstSets.First Follows(RuleSymbol rule) =>
+		_follow.TryGetValue(rule, out var after) ? after : FirstSets.First.All;
+
 	public static string RenderProbe(string name, string engine, int entry, bool powers)
 	{
 		var file = new Writer(0);
@@ -343,6 +355,10 @@ sealed class Machine
 			file.Line("recognized = null;");
 			file.Line();
 
+			// Settled before a line of it is written, because what it decides — which states
+			// exist — is what says which of the locals below anything still reads.
+			PlanLayout();
+
 			file.Line("Parser parser = null!;");
 			file.Line("RentParser(ref parser);");
 			// Whoever handed it over takes it back: a caller that pools its own gets it
@@ -370,6 +386,13 @@ sealed class Machine
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
+
+				// One per repetition written as a loop, and only where the way out that reads
+				// it was kept: a turn that cannot fail after consuming has no way back to
+				// write, and its state is dropped as unreachable.
+				for (var i = 0; i < _turns.Count; i++)
+					if (Written(_turns[i]))
+						file.Line($"var turn{i} = 0;");
 				if (_usesCompleted)
 					file.Line("var completedCall = -1;");
 
@@ -383,8 +406,6 @@ sealed class Machine
 					"0, rootRule));");
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
-
-				PlanLayout();
 
 				for (var written = 0; written < _order.Count; written++)
 				{
@@ -1577,8 +1598,7 @@ sealed class Machine
 	/// </para>
 	/// </remarks>
 	bool Possessive(Node body, FirstSets.First following, HashSet<RuleSymbol>? seen = null) =>
-		!following.Anything &&
-		!following.Nothing &&
+		following.IsKnown &&
 		!FirstSets.Nullable(body, _graph) &&
 		!FirstSets.Of(body, _graph).Overlaps(following) &&
 		Deterministic(body, seen ?? [], FirstSets.Of(body, _graph).Or(following));
@@ -2049,6 +2069,32 @@ sealed class Machine
 	/// failing one of those is the repetition failing rather than ending.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// The way out of a turn that failed after consuming: put the position back to where the
+	/// turn began, then leave.
+	/// </summary>
+	/// <remarks>
+	/// A body of one character cannot fail after consuming, which is why the run form needs
+	/// none of this. A body of several parts can — <c>'%' &amp; Hex &amp; Hex</c> eats the
+	/// per cent and then finds no digit — and the general machinery puts the position back
+	/// out of the entry it wrote. Written out as a loop there is no entry, so where the turn
+	/// began is kept in a local of its own and the way out reads it. The repetition ends
+	/// where its last whole turn ended, not where a broken one stopped.
+	/// </remarks>
+	int GiveBack(int next, out string start)
+	{
+		start = "turn" + _turns.Count;
+
+		var state = Reserve(out var writer);
+
+		writer.Line($"p = {start};");
+		writer.Line($"goto {Label(next)};");
+
+		_turns.Add(state);
+
+		return state;
+	}
+
 	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
 	{
 		var (body, min, max) = repeatNode;
@@ -2060,13 +2106,14 @@ sealed class Machine
 			var loop  = Reserve(out var atLoop);
 			var saved = _fail;
 
-			// Round again, or out — and out is where the body's own failure now goes.
-			_fail = next;
+			// Round again, or out — and out is through the door that puts the position back.
+			_fail = GiveBack(next, out var start);
 
 			var inner = Compile(body, loop, inside);
 
 			_fail = saved;
 
+			atLoop.Line($"{start} = p;");
 			atLoop.Line($"goto {Label(inner)};");
 
 			target = loop;
@@ -2075,10 +2122,18 @@ sealed class Machine
 			for (var turn = min; turn < max; turn++)
 			{
 				var saved = _fail;
+				var after = target;
 
-				_fail  = target;
-				target = Compile(body, target, inside);
+				_fail  = GiveBack(after, out var start);
+				target = Compile(body, after, inside);
 				_fail  = saved;
+
+				var began = Reserve(out var atBegan);
+
+				atBegan.Line($"{start} = p;");
+				atBegan.Line($"goto {Label(target)};");
+
+				target = began;
 			}
 
 		for (var turn = 0; turn < min; turn++)

@@ -44,10 +44,23 @@ public static class FirstSets
 	/// as overlapping everything, which is the direction that reports too much.
 	/// </param>
 	/// <param name="Nothing">It consumes nothing at all, so it begins with nothing.</param>
-	public sealed record First(bool Anything, bool Nothing, IReadOnlyList<CharRange> Ranges)
+	/// <param name="Ends">
+	/// The input may end here. Not a character and not the absence of knowledge: a place
+	/// where a parse that must read everything has read it. It is what tells a repetition at
+	/// the end of a whole parse that nothing is waiting for the input it took — and it
+	/// overlaps nothing, because no character is the end of the text.
+	/// </param>
+	public sealed record First(
+		bool Anything, bool Nothing, IReadOnlyList<CharRange> Ranges, bool Ends = false)
 	{
 		public static readonly First All  = new(true,  false, []);
 		public static readonly First None = new(false, true,  []);
+
+		/// <summary>Nothing follows but the end of the input.</summary>
+		public static readonly First End = new(false, false, [], Ends: true);
+
+		/// <summary>Whether it says anything a repetition can be held to.</summary>
+		public bool IsKnown => !Anything && !Nothing;
 
 		/// <summary>Both, for a place either could begin.</summary>
 		public First Or(First other)
@@ -66,7 +79,31 @@ public static class FirstSets
 			ranges.AddRange(Ranges);
 			ranges.AddRange(other.Ranges);
 
-			return new First(false, false, ranges);
+			return new First(false, false, ranges, Ends || other.Ends);
+		}
+
+		/// <summary>Whether this says everything that one does.</summary>
+		/// <remarks>What a fixed point is reached by: nothing new was said this time round.</remarks>
+		public bool Covers(First other)
+		{
+			if (Anything)
+				return true;
+
+			if (other.Anything || other.Ends && !Ends)
+				return false;
+
+			foreach (var theirs in other.Ranges)
+			{
+				var held = false;
+
+				foreach (var mine in Ranges)
+					held |= mine.From <= theirs.From && theirs.To <= mine.To;
+
+				if (!held)
+					return false;
+			}
+
+			return true;
 		}
 
 		public bool Overlaps(First other)
