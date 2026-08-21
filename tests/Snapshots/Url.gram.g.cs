@@ -10198,6 +10198,8 @@ namespace DotGram.Snapshots
 					{
 
 						var values = parser.Materialization(entries.Count);
+						var values0 = parser.Materialization0();
+						var values1 = parser.Materialization1();
 						var links  = parser.MaterializationLinks(entries.Count);
 
 						for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
@@ -10254,7 +10256,7 @@ namespace DotGram.Snapshots
 										}
 									}
 									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-									var captured1 = (global::DotGram.Snapshots.Url.Authority)values[captured1At]!;
+									var captured1 = values1[captured1At];
 
 									var captured2From = -1;
 									var captured2To   = -1;
@@ -10298,7 +10300,7 @@ namespace DotGram.Snapshots
 									}
 									var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
 
-									values[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
+									values0[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
 										captured0!,
 										captured1!,
 										captured2!,
@@ -10350,7 +10352,7 @@ namespace DotGram.Snapshots
 									}
 									var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
 
-									values[completedAt] = new global::DotGram.Snapshots.Url.Authority(
+									values1[completedAt] = new global::DotGram.Snapshots.Url.Authority(
 										captured0,
 										captured1!,
 										captured2);
@@ -10358,7 +10360,18 @@ namespace DotGram.Snapshots
 								}
 							}
 						}
-						recognized = values[0];
+						switch (rootRule)
+						{
+							case 0:
+								recognized = values0[0];
+								break;
+							case 2:
+								recognized = values1[0];
+								break;
+							default:
+								recognized = values[0];
+								break;
+						}
 					}
 				}
 				return p;
@@ -11598,6 +11611,8 @@ namespace DotGram.Snapshots
 		{
 			internal readonly ParserArena Entries = new ParserArena();
 			object?[] _values = global::System.Array.Empty<object?>();
+			global::DotGram.Snapshots.Url.UrlValue[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.UrlValue>();
+			global::DotGram.Snapshots.Url.Authority[] _values1 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Authority>();
 			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
 
@@ -11605,12 +11620,19 @@ namespace DotGram.Snapshots
 			{
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, count);
+				if (_values0.Length < count)
+					global::System.Array.Resize(ref _values0, count);
+				if (_values1.Length < count)
+					global::System.Array.Resize(ref _values1, count);
 
 				_valuesUsed = count;
 
 				return _values;
 			}
 
+			internal global::DotGram.Snapshots.Url.UrlValue[] Materialization0() { return _values0; }
+			internal global::DotGram.Snapshots.Url.Authority[] Materialization1() { return _values1; }
+			
 			internal int[] MaterializationLinks(int count)
 			{
 				if (_links.Length < count * 2)

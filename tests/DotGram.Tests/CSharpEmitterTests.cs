@@ -195,7 +195,7 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
-			 source.LastIndexOf("values[completedAt] = Construct_Start(", StringComparison.Ordinal));
+			 source.LastIndexOf("[completedAt] = Construct_Start(", StringComparison.Ordinal));
 	}
 
 	[Fact]

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace DotGram.Grammar.Emit;
 
@@ -498,6 +500,7 @@ public static partial class CSharpEmitter
 		{
 			internal readonly ParserArena Entries = new ParserArena();
 			object?[] _values = global::System.Array.Empty<object?>();
+			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
 			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
@@ -506,6 +509,7 @@ public static partial class CSharpEmitter
 			{
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, count);
+				/*TYPED_RESIZE*/
 				/*CACHE_RESIZE*/
 
 				_valuesUsed = count;
@@ -513,6 +517,7 @@ public static partial class CSharpEmitter
 				return _values;
 			}
 
+			/*TYPED_ACCESS*/
 			/*CACHE_ACCESS*/
 			internal int[] MaterializationLinks(int count)
 			{
@@ -679,14 +684,56 @@ public static partial class CSharpEmitter
 		}
 		""";
 
-	internal static string ParserRuntime(bool powers, bool caches)
+	/// <summary>
+	/// A table of its own for every type a rule's value can have.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One automaton serves every rule, so what completed at a position could be any of
+	/// their types, and one table held them all — which is what <c>object?</c> is for, and
+	/// what boxes every value that is a struct. A <c>: @int</c> inside a repetition pays for
+	/// it once a turn.
+	/// </para>
+	/// <para>
+	/// So each type gets its own array instead, indexed the same way, and the object table
+	/// keeps only the mark that says a value is reachable and unbuilt — a reference either
+	/// way, and never a value. Nothing is boxed on the way in, and nothing is cast on the way
+	/// out. What it costs is an array per type rather than one, pooled with the parser and
+	/// grown once.
+	/// </para>
+	/// </remarks>
+	internal static string ParserRuntime(bool powers, bool caches, IReadOnlyList<string> valueTypes)
 	{
+		var fields = new StringBuilder();
+		var resize = new StringBuilder();
+		var access = new StringBuilder();
+
+		for (var i = 0; i < valueTypes.Count; i++)
+		{
+			fields.Append(valueTypes[i]).Append("[] _values").Append(i)
+				.Append(" = global::System.Array.Empty<").Append(valueTypes[i]).Append(">();");
+			resize.Append("if (_values").Append(i).Append(".Length < count)\n\tglobal::System.Array.Resize(ref _values")
+				.Append(i).Append(", count);");
+			access.Append("internal ").Append(valueTypes[i]).Append("[] Materialization").Append(i)
+				.Append("() { return _values").Append(i).Append("; }\n");
+
+			if (i + 1 >= valueTypes.Count)
+				continue;
+
+			fields.Append('\n');
+			resize.Append('\n');
+		}
+
 		var runtime = ParserRuntimeTemplate
 			.Replace("/*POWER_PARAMETER*/", powers ? ", int power = 0" : "")
 			.Replace("\t\t/*POWER_ASSIGNMENT*/\r\n", powers ? "\t\tPower       = power;\r\n" : "")
 			.Replace("\t\t/*POWER_ASSIGNMENT*/\n", powers ? "\t\tPower       = power;\n" : "")
 			.Replace("\t/*POWER_PROPERTY*/\r\n", powers ? "\tinternal int Power       { get; }\r\n" : "")
 			.Replace("\t/*POWER_PROPERTY*/\n", powers ? "\tinternal int Power       { get; }\n" : "");
+
+		runtime = CacheRuntime(runtime, "TYPED_FIELDS", fields.ToString(), valueTypes.Count > 0);
+		runtime = CacheRuntime(runtime, "TYPED_RESIZE", resize.ToString(), valueTypes.Count > 0);
+		runtime = CacheRuntime(runtime, "TYPED_ACCESS", access.ToString(), valueTypes.Count > 0);
 
 		runtime = CacheRuntime(runtime, "CACHE_FIELD",
 			"bool[] _built = global::System.Array.Empty<bool>();", caches);

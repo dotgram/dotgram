@@ -1,8 +1,24 @@
 ﻿using System;
+using System.Linq;
 
 using DotGram;
 
 namespace DotGram.Benchmarks;
+
+/// <summary>Twenty numbers, each the value of a rule — which is to say, twenty structs.</summary>
+/// <remarks>
+/// The case the value table's <c>object?</c> costs something for. A rule whose value is a
+/// struct is boxed on its way into the table, once per time the rule matches, so a
+/// repetition of them pays for every turn.
+/// </remarks>
+[Gram("""
+	@using System.Linq;
+
+	Sum     : @int = (n: Number & ' '?)+ => @(n.Sum())
+	Number  : @int = d: ['0'..'9']+ => @int.Parse(d)
+	parse Sum
+	""")]
+public static partial class Numbers;
 
 /// <summary>The same forty letters, kept as where they were rather than as what they are.</summary>
 [Gram("Letters : @SourceSpan = ['a'..'z']+\nparse Letters")]
@@ -62,6 +78,9 @@ static class Allocation
 
 		Measure("a hundred letters, kept as a span", new string('x', 100),
 			text => Extents.ParseLetters(text).Length == 100);
+
+		Measure("twenty numbers, each a struct value", string.Join(" ", Enumerable.Range(1, 20)),
+			text => Numbers.ParseSum(text) > 0);
 	}
 
 	static void Measure(string what, string text, Func<string, bool> parse)

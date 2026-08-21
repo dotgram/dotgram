@@ -534,6 +534,9 @@ namespace DotGram.Snapshots
 					{
 
 						var values = parser.Materialization(entries.Count);
+						var values0 = parser.Materialization0();
+						var values1 = parser.Materialization1();
+						var values2 = parser.Materialization2();
 						var links  = parser.MaterializationLinks(entries.Count);
 
 						for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
@@ -578,7 +581,7 @@ namespace DotGram.Snapshots
 										var candidate = entries[capturedAt0];
 										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
 										{
-											captured0[--captured0Item] = (string)values[candidate.Position]!;
+											captured0[--captured0Item] = values1[candidate.Position];
 										}
 									}
 
@@ -596,7 +599,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Csv(captured0!);
+											values0[completedAt] = Construct_Csv(captured0!);
 											break;
 									}
 									break;
@@ -614,7 +617,7 @@ namespace DotGram.Snapshots
 										}
 									}
 									global::System.Diagnostics.Debug.Assert(captured0At >= 0);
-									var captured0 = (string)values[captured0At]!;
+									var captured0 = values1[captured0At];
 
 									var captured1At = -1;
 									for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
@@ -627,7 +630,7 @@ namespace DotGram.Snapshots
 										}
 									}
 									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-									var captured1 = (int)values[captured1At]!;
+									var captured1 = values2[captured1At];
 
 									var chosen = -1;
 									for (var chosenAt = links[completedAt]; chosenAt >= 0; chosenAt = links[entries.Count + chosenAt])
@@ -643,7 +646,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Row(captured0!, captured1!);
+											values1[completedAt] = Construct_Row(captured0!, captured1!);
 											break;
 									}
 									break;
@@ -678,7 +681,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Name(captured0!);
+											values1[completedAt] = Construct_Name(captured0!);
 											break;
 									}
 									break;
@@ -713,14 +716,31 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Amount(captured0!);
+											values2[completedAt] = Construct_Amount(captured0!);
 											break;
 									}
 									break;
 								}
 							}
 						}
-						recognized = values[0];
+						switch (rootRule)
+						{
+							case 0:
+								recognized = values0[0];
+								break;
+							case 1:
+								recognized = values1[0];
+								break;
+							case 2:
+								recognized = values1[0];
+								break;
+							case 3:
+								recognized = values2[0];
+								break;
+							default:
+								recognized = values[0];
+								break;
+						}
 					}
 				}
 				return p;
@@ -937,6 +957,9 @@ namespace DotGram.Snapshots
 		{
 			internal readonly ParserArena Entries = new ParserArena();
 			object?[] _values = global::System.Array.Empty<object?>();
+			string[][] _values0 = global::System.Array.Empty<string[]>();
+			string[] _values1 = global::System.Array.Empty<string>();
+			int[] _values2 = global::System.Array.Empty<int>();
 			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
 
@@ -944,12 +967,22 @@ namespace DotGram.Snapshots
 			{
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, count);
+				if (_values0.Length < count)
+					global::System.Array.Resize(ref _values0, count);
+				if (_values1.Length < count)
+					global::System.Array.Resize(ref _values1, count);
+				if (_values2.Length < count)
+					global::System.Array.Resize(ref _values2, count);
 
 				_valuesUsed = count;
 
 				return _values;
 			}
 
+			internal string[][] Materialization0() { return _values0; }
+			internal string[] Materialization1() { return _values1; }
+			internal int[] Materialization2() { return _values2; }
+			
 			internal int[] MaterializationLinks(int count)
 			{
 				if (_links.Length < count * 2)

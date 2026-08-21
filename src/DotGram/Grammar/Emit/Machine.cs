@@ -114,6 +114,8 @@ sealed class Machine
 			_entries[rule] = Reserve(out _);
 		}
 
+		CollectValueTypes();
+
 		foreach (var rule in graph.Rules)
 		{
 			var body = Compile(graph.Bodies[rule], Return, FirstSets.First.All);
@@ -170,6 +172,58 @@ sealed class Machine
 
 	public IReadOnlyList<string> Extra => _extra;
 	public bool CachesGuardValues => _guardValues;
+
+	/// <summary>
+	/// Every type a rule's value can have, each with a table of its own to sit in.
+	/// </summary>
+	/// <remarks>
+	/// Ordered, and the order is the index: a value of the type at position <c>i</c> is
+	/// written to and read from <c>values{i}</c>. Recovery values join them, because a
+	/// recovered element is a value of the same kind as the ones around it.
+	/// </remarks>
+	public IReadOnlyList<string> ValueTypes => _valueTypes;
+
+	readonly List<string> _valueTypes = [];
+
+	/// <summary>
+	/// Every type that will be stored, gathered before anything is written.
+	/// </summary>
+	/// <remarks>
+	/// The tables are declared at the top of the code that uses them, so what they are has
+	/// to be settled before that line is written rather than discovered while writing the
+	/// ones below it. The stores are the authority: a value only ever enters a table through
+	/// one of them, and each says the type it is storing.
+	/// </remarks>
+	void CollectValueTypes()
+	{
+		foreach (var rule in _graph.Rules)
+			if (ValueRule(rule) >= 0 && _results.QualifiedOf(rule) is { } type)
+				Add(type);
+
+		// A recovered element is a value of the kind the repetition collects, not of the
+		// rule that holds the repetition.
+		foreach (var plan in _recoveryPlans)
+			Add(RecoveredType(plan));
+
+		void Add(string type)
+		{
+			if (type != "SourceSpan" && !_valueTypes.Contains(type))
+				_valueTypes.Add(type);
+		}
+	}
+
+	/// <summary>
+	/// The table a type is kept in, or −1 for a type nothing was gathered for.
+	/// </summary>
+	/// <remarks>
+	/// A spelling that was not gathered has no table, and falls back to the object one it
+	/// always used. That costs the boxing this exists to avoid and nothing else — the wrong
+	/// answer here would be a table that does not exist, and this cannot give one.
+	/// </remarks>
+	int TableFor(string type) => _valueTypes.IndexOf(type);
+
+	string RecoveredType(RecoveryPlan plan) =>
+		plan.Element is { } element ? _results.ValueOf(element) : _results.ValueOf(plan.Rule);
 
 	public void Register(RuleSymbol root, bool whole)
 	{
@@ -404,16 +458,17 @@ sealed class Machine
 								if (_guardValues)
 								{
 									file.Line("var values = parser.Materialization(entries.Count);");
+									DeclareTables(file);
 									file.Line("var built  = parser.Materialized();");
 									file.Line("if (!built[0]) values[0] = parser;");
 									file.Line("Materialize_DotGram(text, parser, entries);");
-									file.Line("recognized = values[0];");
+									RootValue(file);
 								}
 								else
 								{
 									file.Line();
 									Materialize(file, cached: false);
-									file.Line("recognized = values[0];");
+									RootValue(file);
 								}
 							}
 						}
@@ -885,6 +940,7 @@ sealed class Machine
 				if (hasTyped)
 				{
 					writer.Line("var guardValues = parser.Materialization(entries.Count);");
+					DeclareTables(writer);
 					writer.Line("var guardBuilt  = parser.Materialized();");
 					writer.Line("var guardNeedsMaterialization = false;");
 				}
@@ -973,9 +1029,9 @@ sealed class Machine
 							writer.Line(member.IsOptional
 								? $"{type}? guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
 									$"default({type}?) : " +
-									ValueFrom(type, $"guardCaptured{memberIndex}At", "guardValues") + ";"
+									ValueFrom(type, $"guardCaptured{memberIndex}At") + ";"
 								: $"var guardCaptured{memberIndex} = " +
-									ValueFrom(type, $"guardCaptured{memberIndex}At", "guardValues") + ";");
+									ValueFrom(type, $"guardCaptured{memberIndex}At") + ";");
 
 							continue;
 						}
@@ -1007,7 +1063,7 @@ sealed class Machine
 								writer.Line("var guardValueAt = candidate.Kind == ParserEntry.Recovery ? candidateAt : candidate.Position;");
 								writer.Line(
 									$"guardCaptured{memberIndex}[guardCaptured{memberIndex}Item++] = " +
-									ValueFrom(type, "guardValueAt", "guardValues") + ";");
+									ValueFrom(type, "guardValueAt") + ";");
 							}
 						}
 					}
@@ -2159,6 +2215,7 @@ sealed class Machine
 	void Materialize(Writer file, bool cached)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
+		DeclareTables(file);
 		if (cached)
 			file.Line("var built  = parser.Materialized();");
 		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
@@ -2288,7 +2345,9 @@ sealed class Machine
 				foreach (var name in plan.Recovery.Asks)
 					arguments.Add(RecoverySupplied(name, plan));
 
-				file.Line($"values[recoveryAt] = {plan.Method}({string.Join(", ", arguments)});");
+				file.Line(
+					$"{ValueInto(RecoveredType(plan), "recoveryAt")} = " +
+					$"{plan.Method}({string.Join(", ", arguments)});");
 			}
 
 			file.Line("break;");
@@ -2328,10 +2387,76 @@ sealed class Machine
 	/// said.
 	/// </para>
 	/// </remarks>
-	string ValueFrom(string type, string index, string table = "values") =>
+	string ValueFrom(string type, string index) =>
 		type == "SourceSpan"
 			? $"new SourceSpan(entries[{index}].Position, entries[{index}].Value - entries[{index}].Position)"
-			: $"({type}){table}[{index}]!";
+			: TableFor(type) is var table && table >= 0
+				? $"values{table}[{index}]"
+				: $"({type})values[{index}]!";
+
+	/// <summary>Writing a rule's value where whatever reads it will look.</summary>
+	/// <remarks>
+	/// The object table keeps the mark rather than the value, so it is cleared here: what
+	/// stops a value being built twice is that the mark is gone, and the mark is the only
+	/// thing that was ever in there.
+	/// </remarks>
+	/// <remarks>
+	/// A value used to take the mark's place by being written over it. It no longer does —
+	/// the mark says a value is reachable and unbuilt, and it now outlives the building. What
+	/// stops a second build is <c>built</c>, which is what the guard path always used; the
+	/// walk that only runs once never needed either.
+	/// </remarks>
+	string ValueInto(string type, string index) =>
+		TableFor(type) is var table && table >= 0 ? $"values{table}[{index}]" : $"values[{index}]";
+
+	/// <summary>
+	/// Handing the root's value out, which is the one place a type has to be forgotten.
+	/// </summary>
+	/// <remarks>
+	/// It leaves through <c>out object?</c>, because the recognizer serves every publication
+	/// and they do not agree on a type. So a struct is boxed here — once, at the boundary,
+	/// where a caller is about to be handed the answer anyway, rather than once per value
+	/// built on the way to it. Which table to take it from is the one thing not known until
+	/// the call: <c>rootRule</c> says which rule was asked for.
+	/// </remarks>
+	void RootValue(Writer file)
+	{
+		using (file.Block("switch (rootRule)"))
+		{
+			foreach (var rule in _graph.Rules)
+			{
+				if (ValueRule(rule) < 0)
+					continue;
+
+				file.Line($"case {_ruleIds[rule]}:");
+
+				using (file.Indent())
+				{
+					// An extent was never put anywhere: the wrapper works it out from the
+					// position it gave and the one it was told.
+					file.Line(IsExtent(rule)
+						? "recognized = null;"
+						: $"recognized = {ValueFrom(_results.QualifiedOf(rule)!, "0")};");
+					file.Line("break;");
+				}
+			}
+
+			file.Line("default:");
+
+			using (file.Indent())
+			{
+				file.Line("recognized = values[0];");
+				file.Line("break;");
+			}
+		}
+	}
+
+	/// <summary>The tables in view wherever values are read or written.</summary>
+	void DeclareTables(Writer writer)
+	{
+		for (var i = 0; i < _valueTypes.Count; i++)
+			writer.Line($"var values{i} = parser.Materialization{i}();");
+	}
 
 	void MaterializeRule(Writer file, RuleSymbol rule)
 	{
@@ -2490,7 +2615,7 @@ sealed class Machine
 
 		if (factories.Count == 0)
 		{
-			file.Line($"values[completedAt] = new {type}(");
+			file.Line($"{ValueInto(type, "completedAt")} = new {type}(");
 
 			using (file.Indent())
 				for (var i = 0; i < members.Count; i++)
@@ -2558,7 +2683,8 @@ sealed class Machine
 					using (file.Indent())
 					{
 						file.Line(
-							$"values[completedAt] = {factory.Method}({string.Join(", ", arguments)});");
+							$"{ValueInto(type, "completedAt")} = " +
+							$"{factory.Method}({string.Join(", ", arguments)});");
 						file.Line("break;");
 					}
 				}
@@ -2637,7 +2763,7 @@ sealed class Machine
 
 		file.Line();
 		file.Line("global::System.Diagnostics.Debug.Assert(hasAccumulated);");
-		file.Line("values[completedAt] = accumulated;");
+		file.Line($"{ValueInto(type, "completedAt")} = accumulated;");
 	}
 
 	string MaterializeFoldMember(
