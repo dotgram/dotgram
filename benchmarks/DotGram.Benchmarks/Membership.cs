@@ -26,7 +26,16 @@ namespace DotGram.Benchmarks;
 /// <c>Run_</c>. That a parser reads a run of members and the chain settles on its first
 /// comparison every time: it does, and the window still beats it, 19.7 against 24.6. That
 /// the window as generated subtracted the low character three times: it did, and doing it
-/// once instead changes nothing, 20.0 against 19.7 — the compiler had already noticed.
+/// once instead changes nothing, 20.0 against 19.7.
+/// </para>
+/// <para>
+/// That last one is worth being careful about. Equal time does not say the subtractions were
+/// removed; it says they cost nothing, and two more of an operation that issues four to the
+/// cycle cost nothing in a loop already doing a load, a shift and a branch whether or not
+/// anything removed them. Telling those apart wants the disassembly —
+/// <c>[DisassemblyDiagnoser]</c> writes it out beside the results — and nothing here has
+/// looked at it. The same reading would settle what a parser does with the sixty-four-bit
+/// constants, which is the open question above.
 /// </para>
 /// <para>
 /// So the cost is somewhere the shape of the test does not reach: the emitted method is one
