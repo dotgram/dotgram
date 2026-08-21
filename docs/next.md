@@ -199,6 +199,40 @@ Generated development checks use `Debug.Assert`. Detailed tracing is emitted thr
 method marked `[Conditional("DOTGRAM_TRACE")]` and writes to `Debug.WriteLine`, so release
 calls and argument evaluation disappear when the symbol is absent.
 
+## Known defect: an atomic group loses what was recognised inside it
+
+P0, confirmed by measurement and pinned as a skipped test
+(`SemanticTests.An_atomic_group_carries_its_captures_out`).
+
+```dotgram
+Start : @string = { x: "a" } => @(x)          // succeeds, x is empty
+Start : @string = { x: Child } => @(x)        // IndexOutOfRangeException
+```
+
+A text capture vanishes silently; a typed one throws, and so do a nested `{ { … } }` and a
+`when` written inside the group. One line does it:
+
+```csharp
+entries.RemoveRange(atomic, entries.Count - atomic);
+```
+
+The arena holds two kinds of entry. The ways back into the group — `Choice`, `Call`,
+`Repeat`, `Lookahead` — are what commit exists to drop. The derivation — `Capture`,
+`RuleCapture`, `Construct`, `Completed` — is what the value is built from after
+acceptance. Commit removes both.
+
+**Marking the resume points `Dead` and leaving the rest in place does not work.** Tried,
+measured, reverted: all five capture cases come back correct and all three atomicity tests
+break, because the failure path unwinds the arena by removing entries from the end — so
+anything left in place is still there for the unwinder to find. The repair has to change
+what the arena is, not what commit deletes:
+
+- compact the derivation entries down to the boundary and truncate above them, keeping the
+  arena a stack — but indexes into it are links between entries, so every reference into
+  the moved range has to be rewritten;
+- or keep resume points and derivation in two arenas, so commit truncates one and leaves
+  the other. Larger, and it makes the invariant obvious instead of delicate.
+
 ## What the machine supports now
 
 `Machine` handles every normalized node form:
