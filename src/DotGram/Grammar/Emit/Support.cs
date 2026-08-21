@@ -542,6 +542,7 @@ public static partial class CSharpEmitter
 			internal const int Dead = 10;
 			internal const int Recovery = 11;
 			internal const int PendingRecovery = 12;
+			internal const int Run = 13;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

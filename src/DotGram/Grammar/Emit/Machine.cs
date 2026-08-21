@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -35,6 +36,18 @@ sealed class Machine
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
+	bool _usesRuns;
+
+	/// <summary>
+	/// Where a failure goes from here — <see cref="Fail"/>, the arena's dispatcher, unless
+	/// something has taken responsibility for the failure itself.
+	/// </summary>
+	/// <remarks>
+	/// Only code that has written nothing into the arena may be redirected, because the
+	/// dispatcher is what would otherwise take back what was written. <see cref="Silent"/>
+	/// is the test for that, and it is the only thing that sets this.
+	/// </remarks>
+	int _fail = Fail;
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
@@ -101,7 +114,7 @@ sealed class Machine
 
 		foreach (var rule in graph.Rules)
 		{
-			var body = Compile(graph.Bodies[rule], Return);
+			var body = Compile(graph.Bodies[rule], Return, FirstSets.First.All);
 			var entry = _states[_entries[rule] - First];
 
 			entry.Line($"Trace(\"enter {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
@@ -162,11 +175,11 @@ sealed class Machine
 			return;
 
 		_wholeEntries[root] = _graph.Trivia.TryGetValue(root, out var trivia)
-			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return)
+			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return, FirstSets.First.All)
 			: _entries[root];
 	}
 
-	public int Register(Node node) => Compile(node, Return);
+	public int Register(Node node) => Compile(node, Return, FirstSets.First.All);
 
 	public static string RenderProbe(string name, string engine, int entry, bool powers)
 	{
@@ -413,6 +426,29 @@ sealed class Machine
 						file.Line("goto Dispatch;");
 					}
 
+					if (_usesRuns)
+					{
+						using (file.Block("if (entry.Kind == ParserEntry.Run)"))
+						{
+							file.Line("if (entry.Value <= entry.Position) continue;");
+							file.Line();
+							file.Line("state  = entry.State;");
+							file.Line("p      = entry.Value - 1;");
+							file.Line("call   = entry.CallIndex;");
+							file.Line("atomic = entry.AtomicIndex;");
+							file.Line("repeat = entry.RepeatIndex;");
+							file.Line("lookahead = entry.LookaheadIndex;");
+							file.Line(
+								"entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, " +
+								"entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, " +
+								"entry.LookaheadIndex, p));");
+							file.Line("Trace(\"shorten run\", state, p, entries.Count);");
+							file.Line("goto Dispatch;");
+						}
+
+						file.Line();
+					}
+
 					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0)
 					{
 						var ignored =
@@ -517,13 +553,20 @@ sealed class Machine
 		return file.ToString();
 	}
 
-	int Compile(Node node, int next)
+	/// <param name="following">
+	/// What the input must begin with once this node has matched, as far as that is known
+	/// here — <see cref="FirstSets.First.All"/> where it is not. It is what tells a
+	/// repetition whether handing input back could ever help, so it is threaded down the
+	/// tree rather than looked up: a rule compiled into its caller follows that caller's
+	/// text, and the same rule compiled on its own follows whatever any caller has.
+	/// </param>
+	int Compile(Node node, int next, FirstSets.First following)
 	{
 		if (_owners.TryGetValue(node, out var owner) &&
 			_graph.Climbing.TryGetValue(owner, out var levels) &&
 			levels.TryGetValue(node, out var level))
 		{
-			var inner = CompileUnguarded(node, next);
+			var inner = CompileUnguarded(node, next, following);
 			var state = Reserve(out var writer);
 
 			writer.Line($"if ({level} < power) goto Fail;");
@@ -532,10 +575,10 @@ sealed class Machine
 			return state;
 		}
 
-		return CompileUnguarded(node, next);
+		return CompileUnguarded(node, next, following);
 	}
 
-	int CompileUnguarded(Node node, int next)
+	int CompileUnguarded(Node node, int next, FirstSets.First following)
 	{
 		switch (node)
 		{
@@ -552,14 +595,15 @@ sealed class Machine
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
-						writer.Line("goto Fail;");
+						writer.Line($"goto {Label(_fail)};");
 					}
 				}
 				else
-					writer.Line($"if (p + {value.Length} > text.Length) goto Fail;");
+					writer.Line($"if (p + {value.Length} > text.Length) goto {Label(_fail)};");
 
 				for (var i = 0; i < value.Length; i++)
-					writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(value[i])}) goto Fail;");
+					writer.Line(
+						$"if (text[p + {i}] != {CSharpEmitter.Char(value[i])}) goto {Label(_fail)};");
 
 				writer.Line($"p += {value.Length};");
 				writer.Line($"goto {Label(next)};");
@@ -574,7 +618,7 @@ sealed class Machine
 
 				if (test == "false")
 				{
-					writer.Line("goto Fail;");
+					writer.Line($"goto {Label(_fail)};");
 
 					return state;
 				}
@@ -585,17 +629,17 @@ sealed class Machine
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
-						writer.Line("goto Fail;");
+						writer.Line($"goto {Label(_fail)};");
 					}
 				}
 				else
-					writer.Line("if (p >= text.Length) goto Fail;");
+					writer.Line($"if (p >= text.Length) goto {Label(_fail)};");
 
 				if (test != "true")
 				{
 					_usesChar = true;
 					writer.Line("c = text[p];");
-					writer.Line($"if (!({test})) goto Fail;");
+					writer.Line($"if (!({test})) goto {Label(_fail)};");
 				}
 
 				writer.Line("p++;");
@@ -607,20 +651,27 @@ sealed class Machine
 			case Node.Sequence(var nodes):
 			{
 				var target = next;
+				var after  = following;
 
 				for (var i = nodes.Count - 1; i >= 0; i--)
-					target = Compile(nodes[i], target);
+				{
+					target = Compile(nodes[i], target, after);
+					after  = Precedes(nodes[i], after);
+				}
 
 				return target;
 			}
 
 			case Node.Choice(var alternatives):
 			{
-				var target = Compile(alternatives[alternatives.Count - 1], next);
+				if (Predictive(alternatives) is { } predicted)
+					return CompilePredictedChoice(alternatives, predicted, next, following);
+
+				var target = Compile(alternatives[alternatives.Count - 1], next, following);
 
 				for (var i = alternatives.Count - 2; i >= 0; i--)
 				{
-					var first = Compile(alternatives[i], next);
+					var first = Compile(alternatives[i], next, following);
 					var state = Reserve(out var writer);
 
 					writer.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, repeat, lookahead, 0));");
@@ -642,7 +693,7 @@ sealed class Machine
 					return CompileNegativeLookaheadCapture(slot, rejected, next);
 
 				var close = Reserve(out var atClose);
-				var inner = Compile(body, close);
+				var inner = Compile(body, close, following);
 				var state = Reserve(out var writer);
 
 				if (body is Node.Call(var capturedRule, _) && ValueRule(capturedRule) >= 0)
@@ -679,7 +730,7 @@ sealed class Machine
 			{
 				var factory = _constructs[node];
 				var close   = Reserve(out var atClose);
-				var inner   = Compile(body, close);
+				var inner   = Compile(body, close, following);
 				var state   = Reserve(out var writer);
 
 				writer.Line($"goto {Label(inner)};");
@@ -695,7 +746,7 @@ sealed class Machine
 			case Node.Call(var rule, _):
 			{
 				if (CanInline(rule))
-					return Compile(_graph.Bodies[rule], next);
+					return Compile(_graph.Bodies[rule], next, following);
 
 				var state = Reserve(out var writer);
 				var calledPower = _graph.Climbing.ContainsKey(rule)
@@ -920,7 +971,7 @@ sealed class Machine
 			case Node.Atomic(var body):
 			{
 				var commit = Reserve(out var atCommit);
-				var inner  = Compile(body, commit);
+				var inner  = Compile(body, commit, following);
 				var state  = Reserve(out var writer);
 
 				writer.Line("var atomicIndex = entries.Count;");
@@ -947,14 +998,27 @@ sealed class Machine
 			}
 
 			case Node.Repeat repeat:
-				return _recoveries.TryGetValue(node, out var recovery)
-					? CompileRecoveringRepeat(repeat, recovery, next)
-					: CompileRepeat(repeat, next);
+			{
+				if (_recoveries.TryGetValue(node, out var recovery))
+					return CompileRecoveringRepeat(repeat, recovery, next, following);
+
+				if (repeat.Min <= Unrollable &&
+					(repeat.Max is null || repeat.Max - repeat.Min <= Unrollable) &&
+					Possessive(repeat.Body, following) &&
+					Silent(repeat.Body))
+				{
+					return CompileSilentRepeat(repeat, next, following);
+				}
+
+				return RunTest(repeat.Body) is { } runTest
+					? CompileRun(repeat, runTest, next, following)
+					: CompileRepeat(repeat, next, following);
+			}
 
 			case Node.Lookahead(var isPositive, var body):
 			{
 				var success = Reserve(out var atSuccess);
-				var inner   = Compile(body, success);
+				var inner   = Compile(body, success, FirstSets.First.All);
 				var state   = Reserve(out var writer);
 
 				writer.Line("var lookaheadIndex = entries.Count;");
@@ -988,19 +1052,36 @@ sealed class Machine
 	}
 
 	/// <summary>
-	/// Lexical atoms do not need a call frame: their body cannot contain a choice that a
-	/// later failure must resume, and they produce no independently materialized value.
-	/// Keeping the boundary for every other rule prevents unbounded tree expansion.
+	/// Whether a call to this rule is compiled as the rule's own code, in place of the call.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A call costs a frame in the arena, a jump away and a dispatch back. None of that buys
+	/// anything for a rule that produces no value and cannot reach itself: its body is
+	/// ordinary control flow, and control flow is what the caller already is. Expansion
+	/// terminates because the call graph beneath a non-recursive rule is a DAG, and what the
+	/// duplication costs is code size, which this project spends freely.
+	/// </para>
+	/// <para>
+	/// The conditions are each about something the frame is the only place to keep. A
+	/// declared type or a result means a value is materialized at the rule's boundary; a
+	/// capture inside the body means a span is recorded against that boundary; recursion
+	/// means the depth is bounded by the input rather than by the grammar. Anything else is
+	/// a rule only in the source text.
+	/// </para>
+	/// </remarks>
 	bool CanInline(RuleSymbol rule) =>
-		!_graph.Types.ContainsKey(rule) &&
-		_graph.Results[rule].Count == 0 &&
-		_graph.Bodies[rule] is Node.Literal or Node.Element;
+		!_graph.Types.ContainsKey(rule)                &&
+		_graph.Results[rule].Count == 0                &&
+		!_graph.Recursive.Contains(rule)               &&
+		!_graph.Climbing.ContainsKey(rule)             &&
+		_graph.Bodies.TryGetValue(rule, out var body)  &&
+		!NodeWalk.Descendants(body).Any(n => n is Node.Capture or Node.Construct);
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
 		var success = Reserve(out var atSuccess);
-		var inner   = Compile(seen, success);
+		var inner   = Compile(seen, success, FirstSets.First.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -1060,7 +1141,7 @@ sealed class Machine
 	int CompileNegativeLookaheadCapture(int slot, Node rejected, int next)
 	{
 		var matched = Reserve(out var atMatched);
-		var inner   = Compile(rejected, matched);
+		var inner   = Compile(rejected, matched, FirstSets.First.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -1087,7 +1168,429 @@ sealed class Machine
 		return state;
 	}
 
-	int CompileRepeat(Node.Repeat repeatNode, int next)
+	/// <summary>
+	/// What must begin the input where <paramref name="node"/> begins, given what must
+	/// begin it where the node ends.
+	/// </summary>
+	/// <remarks>
+	/// A node that must consume something answers for itself. One that may match nothing
+	/// leaves the question to what comes after it as well as to itself, so the two are taken
+	/// together — the direction that admits too much, and so proves too little, rather than
+	/// the one that proves something false.
+	/// </remarks>
+	FirstSets.First Precedes(Node node, FirstSets.First after)
+	{
+		var first = FirstSets.Of(node, _graph);
+
+		return first.Nothing                      ? after :
+			FirstSets.Nullable(node, _graph) ? first.Or(after) :
+			first;
+	}
+
+	/// <summary>
+	/// Whether a node writes nothing into the arena, so that its failure is nobody's business
+	/// but its own.
+	/// </summary>
+	/// <remarks>
+	/// The arena is what a failure is unwound through: an entry written on the way in is
+	/// taken back on the way out, and jumping past the dispatcher would leave it there. A
+	/// node that writes none — text matched against the input, alternatives one character
+	/// tells apart, rules small enough to be compiled in place — has nothing to take back,
+	/// and its failure can go straight wherever the caller wants it.
+	/// </remarks>
+	bool Silent(Node node) =>
+		(_graph.Climbing.Count == 0 || !_owners.ContainsKey(node)) &&
+		node switch
+		{
+			Node.Empty or Node.Literal or Node.Element => true,
+			Node.Sequence(var parts)                   => AllSilent(parts),
+			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
+			                                              AllSilent(alternatives),
+			Node.Call(var rule, _)                     => CanInline(rule) &&
+			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
+			                                              Silent(called),
+			_                                          => false,
+		};
+
+	bool AllSilent(IReadOnlyList<Node> nodes)
+	{
+		foreach (var node in nodes)
+			if (!Silent(node))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// How many turns of a repetition may be written out one after another rather than
+	/// looped.
+	/// </summary>
+	/// <remarks>
+	/// Unrolling is what removes the count, and with it the last thing the arena was holding
+	/// for a repetition that needs it for nothing else. Generated size is not a cost this
+	/// project minimizes, but it is not unbounded either: <c>X{1,1000}</c> is a thousand
+	/// copies, and past a handful the loop is the better shape.
+	/// </remarks>
+	const int Unrollable = 8;
+
+	/// <summary>
+	/// Whether a repetition can be run to its end and never asked to give any of it back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A repetition normally leaves one resume point per turn, because a later failure may
+	/// mean it went one turn too far. Two facts together say it never did.
+	/// </para>
+	/// <para>
+	/// The first is that what follows cannot begin with what the body begins with. Every
+	/// place the repetition could stop short is a place a turn began, so the character there
+	/// is one the body starts with; the continuation would have to start with that same
+	/// character and, by disjointness, cannot. The second is that the body matches in one way
+	/// only. Without it the first is not enough: a body that can match two lengths can end
+	/// the repetition somewhere no turn ever began, and nothing has been said about the
+	/// character there. <c>("ab" | "a")*</c> against <c>aab</c> is that case, and it is why
+	/// the length has to be settled before the first sets are allowed to decide anything.
+	/// </para>
+	/// <para>
+	/// Both are asked of what is known here. An unknown first set is "anything", which
+	/// overlaps; an unknown continuation is nothing, which proves nothing; either answers no,
+	/// and the general machinery stays.
+	/// </para>
+	/// </remarks>
+	bool Possessive(Node body, FirstSets.First following) =>
+		!following.Anything &&
+		!following.Nothing &&
+		!FirstSets.Nullable(body, _graph) &&
+		!FirstSets.Of(body, _graph).Overlaps(following) &&
+		Deterministic(body, []);
+
+	/// <summary>
+	/// Whether a node has at most one match at any position — one length, not a choice of
+	/// them.
+	/// </summary>
+	/// <remarks>
+	/// Alternatives settle it when one character tells them apart, which is what
+	/// <see cref="Predictive"/> already decides. A repetition never settles it: where it
+	/// stops is itself the choice this is asking about.
+	/// </remarks>
+	bool Deterministic(Node node, HashSet<RuleSymbol> seen) =>
+		node switch
+		{
+			Node.Empty or Node.Guard or Node.Lookahead => true,
+			Node.Literal or Node.Element               => true,
+			Node.Capture(_, var body)                  => Deterministic(body, seen),
+			Node.Construct(var body, _)                => Deterministic(body, seen),
+			Node.Atomic(var body)                      => Deterministic(body, seen),
+			Node.Sequence(var parts)                   => AllDeterministic(parts, seen),
+			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
+			                                              AllDeterministic(alternatives, seen),
+			Node.Call(var rule, _)                     => seen.Add(rule) &&
+			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
+			                                              Deterministic(called, seen),
+			_                                          => false,
+		};
+
+	bool AllDeterministic(IReadOnlyList<Node> nodes, HashSet<RuleSymbol> seen)
+	{
+		foreach (var node in nodes)
+			if (!Deterministic(node, seen))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The character tests that decide a choice outright, or null where the input does not.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A choice normally has to be able to come back: it takes the first alternative that
+	/// starts and, if that one fails later, tries the next. The entry it leaves behind is
+	/// what makes coming back possible, and it is written on every visit whether or not
+	/// anything ever comes back for it.
+	/// </para>
+	/// <para>
+	/// Nothing ever does when the alternatives cannot begin with the same character. Suppose
+	/// the character at hand belongs to the first set of one alternative and that alternative
+	/// then fails. Any other alternative that could match here would have to begin with that
+	/// same character, and by disjointness none does — so the choice fails with it, and the
+	/// entry that would have been popped to discover this is pure cost. One character decides
+	/// which alternative it is, and having decided, there is no second reading to keep.
+	/// </para>
+	/// <para>
+	/// Every alternative must also consume something. An alternative that can match nothing
+	/// matches everywhere, so it stays reachable after another has failed, and that is
+	/// exactly the alternative an entry is needed for. First sets are approximate in the
+	/// direction that says "anything" when unsure, and two of those overlap, so an
+	/// alternative this cannot read gives up the optimization rather than mis-taking it.
+	/// </para>
+	/// </remarks>
+	string[]? Predictive(IReadOnlyList<Node> alternatives)
+	{
+		if (alternatives.Count < 2)
+			return null;
+
+		var firsts = new FirstSets.First[alternatives.Count];
+
+		for (var i = 0; i < alternatives.Count; i++)
+		{
+			var first = FirstSets.Of(alternatives[i], _graph);
+
+			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[i], _graph))
+				return null;
+
+			firsts[i] = first;
+		}
+
+		for (var i = 0; i < firsts.Length; i++)
+			for (var j = i + 1; j < firsts.Length; j++)
+				if (firsts[i].Overlaps(firsts[j]))
+					return null;
+
+		var tests = new string[firsts.Length];
+
+		for (var i = 0; i < firsts.Length; i++)
+			tests[i] = RangesTest(firsts[i].Ranges);
+
+		return tests;
+	}
+
+	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
+	static string RangesTest(IReadOnlyList<CharRange> ranges)
+	{
+		var tests = new string[ranges.Count];
+
+		for (var i = 0; i < ranges.Count; i++)
+			tests[i] = ranges[i].IsSingle
+				? $"c == {CSharpEmitter.Char(ranges[i].From)}"
+				: $"(c >= {CSharpEmitter.Char(ranges[i].From)} && c <= {CSharpEmitter.Char(ranges[i].To)})";
+
+		return string.Join(" || ", tests);
+	}
+
+	/// <summary>
+	/// A choice one character decides: read it, jump to the alternative it belongs to.
+	/// </summary>
+	int CompilePredictedChoice(
+		IReadOnlyList<Node> alternatives, string[] tests, int next, FirstSets.First following)
+	{
+		var targets = new int[alternatives.Count];
+
+		for (var i = 0; i < alternatives.Count; i++)
+			targets[i] = Compile(alternatives[i], next, following);
+
+		var state = Reserve(out var writer);
+
+		_usesChar = true;
+
+		if (_starves)
+		{
+			writer.Line("if (p >= text.Length)");
+			using (writer.Block(""))
+			{
+				writer.Line("failure.Starved = true;");
+				writer.Line($"goto {Label(_fail)};");
+			}
+		}
+		else
+			writer.Line($"if (p >= text.Length) goto {Label(_fail)};");
+
+		writer.Line("c = text[p];");
+
+		for (var i = 0; i < targets.Length; i++)
+			writer.Line($"if ({tests[i]}) goto {Label(targets[i])};");
+
+		writer.Line($"goto {Label(_fail)};");
+
+		return state;
+	}
+
+	/// <summary>
+	/// The character test a repetition's body is, or null where the body is anything more.
+	/// </summary>
+	/// <remarks>
+	/// A body that consumes exactly one character and keeps nothing is the case where the
+	/// general machinery is pure overhead: it has no choice to resume, no capture to record
+	/// and no frame to return to, so every iteration's arena traffic is bookkeeping about
+	/// nothing. The test is written against <c>c</c>, like every other element test.
+	/// </remarks>
+	string? RunTest(Node body)
+	{
+		switch (body)
+		{
+			case Node.Element element:
+			{
+				var test = CSharpEmitter.Test(element);
+
+				return test == "false" ? null : test;
+			}
+
+			case Node.Literal(var value) when value.Length == 1:
+				return $"c == {CSharpEmitter.Char(value[0])}";
+
+			// A rule that is inlined anyway is its body written somewhere else, and a grammar
+			// names its character classes far more often than it spells them out.
+			case Node.Call(var rule, _) when CanInline(rule):
+				return RunTest(_graph.Bodies[rule]);
+
+			case Node.Sequence(var nodes) when nodes.Count == 1:
+				return RunTest(nodes[0]);
+
+			// Alternatives that each consume exactly one character and keep nothing are a
+			// disjunction, not a choice: whichever one matched, the position afterwards is the
+			// same and so is the continuation, so there is nothing to come back to.
+			case Node.Choice(var alternatives):
+			{
+				var tests = new string[alternatives.Count];
+
+				for (var i = 0; i < alternatives.Count; i++)
+					if (RunTest(alternatives[i]) is { } test)
+						tests[i] = test == "true" ? "true" : $"({test})";
+					else
+						return null;
+
+				return string.Join(" || ", tests);
+			}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// A repetition of a single-character body, compiled as a run: one scan, one entry.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The general form pays a list append and two struct rewrites per character, because it
+	/// must be able to resume the body at each iteration. Here the body cannot be resumed —
+	/// it either matched that one character or it did not — so the only thing a later failure
+	/// can ask for is a shorter run. The states a shorter run can take are the interval from
+	/// the minimum to the end reached, and an interval is two integers rather than a stack of
+	/// them.
+	/// </para>
+	/// <para>
+	/// So the scan is a plain loop over the span, and what it leaves behind is one
+	/// <c>Run</c> entry holding the floor and the end. Failing back into it hands one
+	/// character back and re-enters the continuation, which is exactly what unwinding the
+	/// per-iteration choices did, at one entry instead of one per character. The entry is
+	/// only written at all when the run is longer than the minimum: a run with nothing to
+	/// give back leaves no trace.
+	/// </para>
+	/// </remarks>
+	int CompileRun(Node.Repeat repeatNode, string test, int next, FirstSets.First following)
+	{
+		var (_, min, max) = repeatNode;
+
+		if (max == 0)
+			return next;
+
+		var state = Reserve(out var writer);
+
+		_usesRuns = true;
+
+		writer.Line("var runStart = p;");
+
+		using (writer.Block("while (true)"))
+		{
+			if (max is { } limit)
+				writer.Line($"if (p - runStart >= {limit}) break;");
+
+			if (_starves)
+			{
+				writer.Line("if (p >= text.Length)");
+				using (writer.Block(""))
+				{
+					writer.Line("failure.Starved = true;");
+					writer.Line("break;");
+				}
+			}
+			else
+				writer.Line("if (p >= text.Length) break;");
+
+			if (test != "true")
+			{
+				_usesChar = true;
+				writer.Line("c = text[p];");
+				writer.Line($"if (!({test})) break;");
+			}
+
+			writer.Line("p++;");
+		}
+
+		var floor = min == 0 ? "runStart" : $"runStart + {min}";
+
+		if (min > 0)
+			writer.Line($"if (p < {floor}) goto Fail;");
+
+		writer.Line($"if (p > {floor})");
+		writer.Then(
+			$"entries.Add(new ParserEntry(ParserEntry.Run, {next}, {floor}, " +
+			"call, atomic, repeat, lookahead, p));");
+
+		writer.Line($"Trace(\"run\", {next}, p, entries.Count);");
+		writer.Line($"goto {Label(next)};");
+
+		return state;
+	}
+
+	/// <summary>
+	/// A repetition that is a loop and nothing else: no entry, no count, no way back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Everything the arena was doing for a repetition is gone here, and each piece for its
+	/// own reason. The resume points are gone because <see cref="Possessive"/> proved nothing
+	/// would come back for them. The entry that held the count is gone because the required
+	/// turns are written out one after another instead of counted. And the way out is a plain
+	/// jump because <see cref="Silent"/> proved the body leaves nothing behind that failing
+	/// past the dispatcher would strand.
+	/// </para>
+	/// <para>
+	/// What is left is the loop the grammar meant: match, go round, and leave by the door
+	/// when the input stops matching. A required turn keeps the ordinary failure, because
+	/// failing one of those is the repetition failing rather than ending.
+	/// </para>
+	/// </remarks>
+	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
+	{
+		var (body, min, max) = repeatNode;
+		var inside = FirstSets.Of(body, _graph).Or(following);
+		var target = next;
+
+		if (max is null)
+		{
+			var loop  = Reserve(out var atLoop);
+			var saved = _fail;
+
+			// Round again, or out — and out is where the body's own failure now goes.
+			_fail = next;
+
+			var inner = Compile(body, loop, inside);
+
+			_fail = saved;
+
+			atLoop.Line($"goto {Label(inner)};");
+
+			target = loop;
+		}
+		else
+			for (var turn = min; turn < max; turn++)
+			{
+				var saved = _fail;
+
+				_fail  = target;
+				target = Compile(body, target, inside);
+				_fail  = saved;
+			}
+
+		for (var turn = 0; turn < min; turn++)
+			target = Compile(body, target, inside);
+
+		return target;
+	}
+
+	int CompileRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
 	{
 		var (body, min, max) = repeatNode;
 
@@ -1098,7 +1601,7 @@ sealed class Machine
 		var loop  = Reserve(out var atLoop);
 		var after = Reserve(out var atAfter);
 		var entry = Reserve(out var atEntry);
-		var inner = Compile(body, after);
+		var inner = Compile(body, after, FirstSets.Of(body, _graph).Or(following));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
@@ -1106,9 +1609,12 @@ sealed class Machine
 		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
 		atEntry.Line($"goto {Label(loop)};");
 
-		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-		atLoop.Line("var repeating = entries[repeat];");
-		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);");
+		if (min > 0 || max is not null)
+		{
+			atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+			atLoop.Line("var repeating = entries[repeat];");
+			atLoop.Line("global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);");
+		}
 
 		if (max is { } limit)
 			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
@@ -1119,17 +1625,26 @@ sealed class Machine
 		{
 			atLoop.Line($"if (repeating.Value >= {min})");
 			atLoop.Then(
-				$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, " +
+				"lookahead, 0));");
 		}
 
 		atLoop.Line($"goto {Label(inner)};");
 
-		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-		atAfter.Line("var repeated = entries[repeat];");
-		atAfter.Line(
-			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
-			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
-			"repeated.LookaheadIndex, repeated.Value + 1);");
+		// The count is only ever read to decide whether a bound has been reached. An
+		// unbounded repetition with nothing to reach has no such decision to make, and
+		// counting for a reader that does not exist costs a read and a write of the entry
+		// on every iteration.
+		if (min > 0 || max is not null)
+		{
+			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+			atAfter.Line("var repeated = entries[repeat];");
+			atAfter.Line(
+				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
+				"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+				"repeated.LookaheadIndex, repeated.Value + 1);");
+		}
+
 		atAfter.Line($"goto {Label(loop)};");
 
 		LeaveRepeat(atExit, next);
@@ -1137,7 +1652,8 @@ sealed class Machine
 		return entry;
 	}
 
-	int CompileRecoveringRepeat(Node.Repeat repeatNode, RecoveryPlan recovery, int next)
+	int CompileRecoveringRepeat(
+		Node.Repeat repeatNode, RecoveryPlan recovery, int next, FirstSets.First following)
 	{
 		var (body, min, max) = repeatNode;
 
@@ -1154,8 +1670,8 @@ sealed class Machine
 		var asked     = Reserve(out var atAsked);
 		var after     = Reserve(out var atAfter);
 		var entry     = Reserve(out var atEntry);
-		var inner     = Compile(body, after);
-		var sync      = Compile(recovery.Recovery.Sync, synced);
+		var inner     = Compile(body, after, FirstSets.Of(body, _graph).Or(following));
+		var sync      = Compile(recovery.Recovery.Sync, synced, FirstSets.First.All);
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");

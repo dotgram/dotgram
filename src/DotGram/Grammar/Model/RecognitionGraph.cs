@@ -319,6 +319,76 @@ public sealed class RecognitionGraph(
 	}
 
 	/// <summary>
+	/// The rules that can reach themselves through calls, directly or round a cycle.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What it decides is how a call is executed. A rule outside every cycle can be
+	/// compiled into its caller — the expansion terminates, because the call graph beneath
+	/// it is a DAG — and a call that becomes ordinary control flow costs no frame, no arena
+	/// entry and no dispatch. A rule inside one has to keep the frame, since the only bound
+	/// on its depth is the input.
+	/// </para>
+	/// <para>
+	/// Computed once and cached: it is a property of the graph, and the emitter asks about
+	/// it at every call site.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyCollection<RuleSymbol> Recursive => _recursive ??= FindRecursive();
+
+	IReadOnlyCollection<RuleSymbol>? _recursive;
+
+	HashSet<RuleSymbol> FindRecursive()
+	{
+		var calls = new Dictionary<RuleSymbol, List<RuleSymbol>>();
+
+		foreach (var rule in Rules)
+		{
+			var called = new List<RuleSymbol>();
+
+			if (Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var target, _) && !called.Contains(target))
+						called.Add(target);
+
+			calls[rule] = called;
+		}
+
+		var recursive = new HashSet<RuleSymbol>();
+
+		// Reachability from each rule to itself. Quadratic in the number of rules and run
+		// once per grammar, which is nothing beside what it saves at every call site.
+		foreach (var rule in Rules)
+		{
+			var seen    = new HashSet<RuleSymbol>();
+			var pending = new Stack<RuleSymbol>();
+
+			foreach (var target in calls[rule])
+				pending.Push(target);
+
+			while (pending.Count > 0)
+			{
+				var at = pending.Pop();
+
+				if (ReferenceEquals(at, rule))
+				{
+					recursive.Add(rule);
+
+					break;
+				}
+
+				if (!seen.Add(at) || !calls.TryGetValue(at, out var next))
+					continue;
+
+				foreach (var target in next)
+					pending.Push(target);
+			}
+		}
+
+		return recursive;
+	}
+
+	/// <summary>
 	/// Every node this graph says something about that is no longer in it, named. Empty
 	/// for a graph that holds together, which is every graph this compiler should build.
 	/// </summary>

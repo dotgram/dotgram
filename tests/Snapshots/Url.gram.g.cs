@@ -188,147 +188,147 @@ namespace DotGram.Snapshots
 
 				{
 					Trace("enter Url", 3, p, entries.Count);
-					goto S49;
+					goto S88;
 				}
 
 				S4:
 
 				{
 					Trace("enter Scheme", 4, p, entries.Count);
-					goto S54;
+					goto S93;
 				}
 
 				S5:
 
 				{
 					Trace("enter Authority", 5, p, entries.Count);
-					goto S73;
+					goto S472;
 				}
 
 				S6:
 
 				{
 					Trace("enter UserInfo", 6, p, entries.Count);
-					goto S81;
+					goto S490;
 				}
 
 				S7:
 
 				{
 					Trace("enter Host", 7, p, entries.Count);
-					goto S93;
+					goto S858;
 				}
 
 				S8:
 
 				{
 					Trace("enter IPv4", 8, p, entries.Count);
-					goto S100;
+					goto S871;
 				}
 
 				S9:
 
 				{
 					Trace("enter Octet", 9, p, entries.Count);
-					goto S104;
+					goto S872;
 				}
 
 				S10:
 
 				{
 					Trace("enter RegName", 10, p, entries.Count);
-					goto S109;
+					goto S876;
 				}
 
 				S11:
 
 				{
 					Trace("enter IPLiteral", 11, p, entries.Count);
-					goto S117;
+					goto S1218;
 				}
 
 				S12:
 
 				{
 					Trace("enter IPv6", 12, p, entries.Count);
-					goto S238;
+					goto S1514;
 				}
 
 				S13:
 
 				{
 					Trace("enter Group", 13, p, entries.Count);
-					goto S240;
+					goto S1519;
 				}
 
 				S14:
 
 				{
 					Trace("enter LS32", 14, p, entries.Count);
-					goto S245;
+					goto S1539;
 				}
 
 				S15:
 
 				{
 					Trace("enter H16", 15, p, entries.Count);
-					goto S249;
+					goto S1540;
 				}
 
 				S16:
 
 				{
 					Trace("enter Path", 16, p, entries.Count);
-					goto S254;
+					goto S1544;
 				}
 
 				S17:
 
 				{
 					Trace("enter Segment", 17, p, entries.Count);
-					goto S260;
+					goto S1560;
 				}
 
 				S18:
 
 				{
 					Trace("enter Rest", 18, p, entries.Count);
-					goto S271;
+					goto S1571;
 				}
 
 				S19:
 
 				{
 					Trace("enter PctEncoded", 19, p, entries.Count);
-					goto S281;
+					goto S1581;
 				}
 
 				S20:
 
 				{
 					Trace("enter Digit", 20, p, entries.Count);
-					goto S282;
+					goto S1582;
 				}
 
 				S21:
 
 				{
 					Trace("enter Hex", 21, p, entries.Count);
-					goto S283;
+					goto S1583;
 				}
 
 				S22:
 
 				{
 					Trace("enter Unreserved", 22, p, entries.Count);
-					goto S284;
+					goto S1584;
 				}
 
 				S23:
 
 				{
 					Trace("enter SubDelim", 23, p, entries.Count);
-					goto S285;
+					goto S1585;
 				}
 
 				S24:
@@ -353,7 +353,7 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S24;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
-					goto S31;
+					goto S41;
 				}
 
 				S26:
@@ -386,21 +386,154 @@ namespace DotGram.Snapshots
 				S29:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Rest", 18, p, entries.Count);
-					goto S18;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 28, p, entries.Count);
+					goto S28;
 				}
 
 				S30:
 
 				{
-					capture4 = p;
-					goto S29;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 29, p, call, atomic, repeat, lookahead, 0));
+					goto S39;
 				}
 
 				S31:
+
+				{
+					goto S30;
+				}
+
+				S32:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 30, p, entries.Count);
+					goto S30;
+				}
+
+				S33:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S31;
+				}
+
+				S34:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S31;
+				}
+
+				S35:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S31;
+				}
+
+				S36:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S35;
+				}
+
+				S37:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S36;
+				}
+
+				S38:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
+					p++;
+					goto S31;
+				}
+
+				S39:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S33;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S34;
+					if (c == '%') goto S37;
+					if (c == '/' || c == ':' || (c >= '?' && c <= '@')) goto S38;
+					goto Fail;
+				}
+
+				S40:
+
+				{
+					capture4 = p;
+					goto S32;
+				}
+
+				S41:
 
 				{
 					if (p + 1 > text.Length)
@@ -411,10 +544,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '#') goto Fail;
 					p += 1;
-					goto S30;
+					goto S40;
 				}
 
-				S32:
+				S42:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
@@ -428,62 +561,195 @@ namespace DotGram.Snapshots
 					goto S27;
 				}
 
-				S33:
+				S43:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S32;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 32, p, call, atomic, repeat, lookahead, 0));
-					goto S39;
+					if (repeating.Value >= 1) goto S42;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 42, p, call, atomic, repeat, lookahead, 0));
+					goto S59;
 				}
 
-				S34:
+				S44:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S33;
+					goto S43;
 				}
 
-				S35:
+				S45:
 
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 33, p, entries.Count);
-					goto S33;
+					Trace("enter repeat", 43, p, entries.Count);
+					goto S43;
 				}
 
-				S36:
+				S46:
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
 					Trace("capture", 3, p, entries.Count);
-					goto S34;
+					goto S44;
 				}
 
-				S37:
+				S47:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 36, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Rest", 18, p, entries.Count);
-					goto S18;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 46, p, entries.Count);
+					goto S46;
 				}
 
-				S38:
+				S48:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 47, p, call, atomic, repeat, lookahead, 0));
+					goto S57;
+				}
+
+				S49:
+
+				{
+					goto S48;
+				}
+
+				S50:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 48, p, entries.Count);
+					goto S48;
+				}
+
+				S51:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S49;
+				}
+
+				S52:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S49;
+				}
+
+				S53:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S49;
+				}
+
+				S54:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S53;
+				}
+
+				S55:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S54;
+				}
+
+				S56:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
+					p++;
+					goto S49;
+				}
+
+				S57:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S51;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S52;
+					if (c == '%') goto S55;
+					if (c == '/' || c == ':' || (c >= '?' && c <= '@')) goto S56;
+					goto Fail;
+				}
+
+				S58:
 
 				{
 					capture3 = p;
-					goto S37;
+					goto S50;
 				}
 
-				S39:
+				S59:
 
 				{
 					if (p + 1 > text.Length)
@@ -494,35 +760,219 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '?') goto Fail;
 					p += 1;
-					goto S38;
+					goto S58;
 				}
 
-				S40:
+				S60:
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 2, capture2, call, atomic, repeat, lookahead, p));
 					Trace("capture", 2, p, entries.Count);
-					goto S35;
+					goto S45;
 				}
 
-				S41:
+				S61:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 40, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Path", 16, p, entries.Count);
-					goto S16;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 60, p, entries.Count);
+					goto S60;
 				}
 
-				S42:
+				S62:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 61, p, call, atomic, repeat, lookahead, 0));
+					goto S76;
+				}
+
+				S63:
+
+				{
+					goto S62;
+				}
+
+				S64:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 62, p, entries.Count);
+					goto S62;
+				}
+
+				S65:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 63, p, entries.Count);
+					goto S63;
+				}
+
+				S66:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 65, p, call, atomic, repeat, lookahead, 0));
+					goto S75;
+				}
+
+				S67:
+
+				{
+					goto S66;
+				}
+
+				S68:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 66, p, entries.Count);
+					goto S66;
+				}
+
+				S69:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S67;
+				}
+
+				S70:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S67;
+				}
+
+				S71:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S67;
+				}
+
+				S72:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S71;
+				}
+
+				S73:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S72;
+				}
+
+				S74:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == ':' || c == '@'))) goto Fail;
+					p++;
+					goto S67;
+				}
+
+				S75:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S69;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S70;
+					if (c == '%') goto S73;
+					if (c == ':' || c == '@') goto S74;
+					goto Fail;
+				}
+
+				S76:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '/') goto Fail;
+					p += 1;
+					goto S68;
+				}
+
+				S77:
 
 				{
 					capture2 = p;
-					goto S41;
+					goto S64;
 				}
 
-				S43:
+				S78:
 
 				{
 					var capturedCall = entries.Count - 1;
@@ -530,26 +980,26 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
 					Trace("rule capture", 1, p, entries.Count);
-					goto S42;
+					goto S77;
 				}
 
-				S44:
+				S79:
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 43, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 78, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Authority", 5, p, entries.Count);
 					goto S5;
 				}
 
-				S45:
+				S80:
 
 				{
-					goto S44;
+					goto S79;
 				}
 
-				S46:
+				S81:
 
 				{
 					if (p + 3 > text.Length)
@@ -562,35 +1012,92 @@ namespace DotGram.Snapshots
 					if (text[p + 1] != '/') goto Fail;
 					if (text[p + 2] != '/') goto Fail;
 					p += 3;
-					goto S45;
+					goto S80;
 				}
 
-				S47:
+				S82:
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
 					Trace("capture", 0, p, entries.Count);
-					goto S46;
+					goto S81;
 				}
 
-				S48:
+				S83:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 47, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Scheme", 4, p, entries.Count);
-					goto S4;
+					if (p + 3 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != 'f') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 'p') goto Fail;
+					p += 3;
+					goto S82;
 				}
 
-				S49:
+				S84:
+
+				{
+					if (p + 4 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != 'h') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 't') goto Fail;
+					if (text[p + 3] != 'p') goto Fail;
+					p += 4;
+					goto S82;
+				}
+
+				S85:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 83, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 83, p, entries.Count);
+					goto S84;
+				}
+
+				S86:
+
+				{
+					if (p + 5 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != 'h') goto Fail;
+					if (text[p + 1] != 't') goto Fail;
+					if (text[p + 2] != 't') goto Fail;
+					if (text[p + 3] != 'p') goto Fail;
+					if (text[p + 4] != 's') goto Fail;
+					p += 5;
+					goto S82;
+				}
+
+				S87:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 85, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 85, p, entries.Count);
+					goto S86;
+				}
+
+				S88:
 
 				{
 					capture0 = p;
-					goto S48;
+					goto S87;
 				}
 
-				S50:
+				S89:
 
 				{
 					if (p + 3 > text.Length)
@@ -606,7 +1113,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S51:
+				S90:
 
 				{
 					if (p + 4 > text.Length)
@@ -623,15 +1130,15 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S52:
+				S91:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 50, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 50, p, entries.Count);
-					goto S51;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 89, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 89, p, entries.Count);
+					goto S90;
 				}
 
-				S53:
+				S92:
 
 				{
 					if (p + 5 > text.Length)
@@ -649,414 +1156,6 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S54:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 52, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 52, p, entries.Count);
-					goto S53;
-				}
-
-				S55:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S56:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S55;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
-					goto S66;
-				}
-
-				S57:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S56;
-				}
-
-				S58:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 56, p, entries.Count);
-					goto S56;
-				}
-
-				S59:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 57, p, entries.Count);
-					goto S57;
-				}
-
-				S60:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
-					goto S65;
-				}
-
-				S61:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S60;
-				}
-
-				S62:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 60, p, entries.Count);
-					goto S60;
-				}
-
-				S63:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 7, capture7, call, atomic, repeat, lookahead, p));
-					Trace("capture", 7, p, entries.Count);
-					goto S61;
-				}
-
-				S64:
-
-				{
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto Fail;
-					p++;
-					goto S63;
-				}
-
-				S65:
-
-				{
-					capture7 = p;
-					goto S64;
-				}
-
-				S66:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S62;
-				}
-
-				S67:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
-					Trace("capture", 6, p, entries.Count);
-					goto S58;
-				}
-
-				S68:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 67, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Host", 7, p, entries.Count);
-					goto S7;
-				}
-
-				S69:
-
-				{
-					capture6 = p;
-					goto S68;
-				}
-
-				S70:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 69, p, entries.Count);
-					goto S69;
-				}
-
-				S71:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S70;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 70, p, call, atomic, repeat, lookahead, 0));
-					goto S77;
-				}
-
-				S72:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S71;
-				}
-
-				S73:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 71, p, entries.Count);
-					goto S71;
-				}
-
-				S74:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != '@') goto Fail;
-					p += 1;
-					goto S72;
-				}
-
-				S75:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
-					Trace("capture", 5, p, entries.Count);
-					goto S74;
-				}
-
-				S76:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 75, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call UserInfo", 6, p, entries.Count);
-					goto S6;
-				}
-
-				S77:
-
-				{
-					capture5 = p;
-					goto S76;
-				}
-
-				S78:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S79:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 78, p, call, atomic, repeat, lookahead, 0));
-					goto S88;
-				}
-
-				S80:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S79;
-				}
-
-				S81:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 79, p, entries.Count);
-					goto S79;
-				}
-
-				S82:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S80;
-				}
-
-				S83:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call PctEncoded", 19, p, entries.Count);
-					goto S19;
-				}
-
-				S84:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 82, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 82, p, entries.Count);
-					goto S83;
-				}
-
-				S85:
-
-				{
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					c = text[p];
-					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
-					p++;
-					goto S80;
-				}
-
-				S86:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 84, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 84, p, entries.Count);
-					goto S85;
-				}
-
-				S87:
-
-				{
-					if (p >= text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
-					p++;
-					goto S80;
-				}
-
-				S88:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 86, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 86, p, entries.Count);
-					goto S87;
-				}
-
-				S89:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call RegName", 10, p, entries.Count);
-					goto S10;
-				}
-
-				S90:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call IPv4", 8, p, entries.Count);
-					goto S8;
-				}
-
-				S91:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 89, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 89, p, entries.Count);
-					goto S90;
-				}
-
-				S92:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call IPLiteral", 11, p, entries.Count);
-					goto S11;
-				}
-
 				S93:
 
 				{
@@ -1068,88 +1167,6 @@ namespace DotGram.Snapshots
 				S94:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Octet", 9, p, entries.Count);
-					goto S9;
-				}
-
-				S95:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != '.') goto Fail;
-					p += 1;
-					goto S94;
-				}
-
-				S96:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 95, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Octet", 9, p, entries.Count);
-					goto S9;
-				}
-
-				S97:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != '.') goto Fail;
-					p += 1;
-					goto S96;
-				}
-
-				S98:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 97, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Octet", 9, p, entries.Count);
-					goto S9;
-				}
-
-				S99:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != '.') goto Fail;
-					p += 1;
-					goto S98;
-				}
-
-				S100:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 99, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Octet", 9, p, entries.Count);
-					goto S9;
-				}
-
-				S101:
-
-				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -1161,38 +1178,89 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S102:
+				S95:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 3) goto S101;
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 101, p, call, atomic, repeat, lookahead, 0));
+					if (repeating.Value >= 1) goto S94;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 94, p, call, atomic, repeat, lookahead, 0));
 					goto S105;
 				}
 
-				S103:
+				S96:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S102;
+					goto S95;
 				}
 
-				S104:
+				S97:
 
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 102, p, entries.Count);
-					goto S102;
+					Trace("enter repeat", 95, p, entries.Count);
+					goto S95;
 				}
 
-				S105:
+				S98:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 96, p, entries.Count);
+					goto S96;
+				}
+
+				S99:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 98, p, call, atomic, repeat, lookahead, 0));
+					goto S104;
+				}
+
+				S100:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S99;
+				}
+
+				S101:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 99, p, entries.Count);
+					goto S99;
+				}
+
+				S102:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 7, capture7, call, atomic, repeat, lookahead, p));
+					Trace("capture", 7, p, entries.Count);
+					goto S100;
+				}
+
+				S103:
 
 				{
 					if (p >= text.Length)
@@ -1204,10 +1272,39 @@ namespace DotGram.Snapshots
 					c = text[p];
 					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
+					goto S102;
+				}
+
+				S104:
+
+				{
+					capture7 = p;
 					goto S103;
 				}
 
+				S105:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S101;
+				}
+
 				S106:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
+					Trace("capture", 6, p, entries.Count);
+					goto S97;
+				}
+
+				S107:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
@@ -1217,48 +1314,38 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S107:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 106, p, call, atomic, repeat, lookahead, 0));
-					goto S114;
+					Trace("leave repeat", 106, p, entries.Count);
+					goto S106;
 				}
 
 				S108:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S107;
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 107, p, call, atomic, repeat, lookahead, 0));
+					goto S116;
 				}
 
 				S109:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 107, p, entries.Count);
-					goto S107;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S108;
 				}
 
 				S110:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call PctEncoded", 19, p, entries.Count);
-					goto S19;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 108, p, entries.Count);
+					goto S108;
 				}
 
 				S111:
@@ -1271,17 +1358,24 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
 					p++;
-					goto S108;
+					goto S109;
 				}
 
 				S112:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 110, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 110, p, entries.Count);
-					goto S111;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S109;
 				}
 
 				S113:
@@ -1294,16 +1388,23 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
-					goto S108;
+					goto S109;
 				}
 
 				S114:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 112, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 112, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
 					goto S113;
 				}
 
@@ -1316,22 +1417,52 @@ namespace DotGram.Snapshots
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != ']') goto Fail;
+					if (text[p + 0] != '%') goto Fail;
 					p += 1;
-					goto Return;
+					goto S114;
 				}
 
 				S116:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 115, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call IPv6", 12, p, entries.Count);
-					goto S12;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S111;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S112;
+					if (c == '%') goto S115;
+					goto Fail;
 				}
 
 				S117:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 106, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 106, p, entries.Count);
+					goto S106;
+				}
+
+				S118:
 
 				{
 					if (p + 1 > text.Length)
@@ -1340,637 +1471,830 @@ namespace DotGram.Snapshots
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != '[') goto Fail;
+					if (text[p + 0] != '.') goto Fail;
 					p += 1;
-					goto S116;
-				}
-
-				S118:
-
-				{
-					if (p + 2 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
-					goto Return;
+					goto S117;
 				}
 
 				S119:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 118, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S118;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S118;
+					p++;
 					goto S118;
 				}
 
 				S120:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S119;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 119, p, call, atomic, repeat, lookahead, 0));
-					goto S127;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S119;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S119;
+					p++;
+					goto S119;
 				}
 
 				S121:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
 					goto S120;
 				}
 
 				S122:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 120, p, entries.Count);
-					goto S120;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S121;
 				}
 
 				S123:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 121, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S122;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S122;
+					p++;
+					goto S122;
 				}
 
 				S124:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 123, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S123;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S123;
+					p++;
 					goto S123;
 				}
 
 				S125:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 6) goto S124;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 124, p, call, atomic, repeat, lookahead, 0));
-					goto S128;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S124;
 				}
 
 				S126:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
 					goto S125;
 				}
 
 				S127:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 125, p, entries.Count);
-					goto S125;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S126;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S126;
+					p++;
+					goto S126;
 				}
 
 				S128:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 126, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S127;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S127;
+					p++;
+					goto S127;
 				}
 
 				S129:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S130:
-
-				{
-					if (p + 2 > text.Length)
+					if (p >= text.Length)
 
 					{
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S128;
+				}
+
+				S130:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 110, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 110, p, entries.Count);
 					goto S129;
 				}
 
 				S131:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 130, p, entries.Count);
-					goto S130;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ']') goto Fail;
+					p += 1;
+					goto S106;
 				}
 
 				S132:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S131;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 131, p, call, atomic, repeat, lookahead, 0));
-					goto S139;
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S131;
 				}
 
 				S133:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 132, p, entries.Count);
 					goto S132;
 				}
 
 				S134:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 132, p, entries.Count);
-					goto S132;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S133;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 133, p, call, atomic, repeat, lookahead, 0));
+					goto S141;
 				}
 
 				S135:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 133, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S134;
 				}
 
 				S136:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 135, p, entries.Count);
-					goto S135;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 134, p, entries.Count);
+					goto S134;
 				}
 
 				S137:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 5) goto S136;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 136, p, call, atomic, repeat, lookahead, 0));
-					goto S140;
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 135, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 135, p, entries.Count);
+					goto S135;
 				}
 
 				S138:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 137, p, entries.Count);
 					goto S137;
 				}
 
 				S139:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 137, p, entries.Count);
-					goto S137;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S138;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 138, p, call, atomic, repeat, lookahead, 0));
+					goto S146;
 				}
 
 				S140:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 138, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S139;
 				}
 
 				S141:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 122, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 122, p, entries.Count);
-					goto S134;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 139, p, entries.Count);
+					goto S139;
 				}
 
 				S142:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
-				}
-
-				S143:
-
-				{
-					if (p + 2 > text.Length)
+					if (p + 1 > text.Length)
 
 					{
 						failure.Starved = true;
 						goto Fail;
 					}
 					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
+					p += 1;
+					goto S140;
+				}
+
+				S143:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S142;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S142;
+					p++;
 					goto S142;
 				}
 
 				S144:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 143, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S143;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S143;
+					p++;
 					goto S143;
 				}
 
 				S145:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S144;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 144, p, call, atomic, repeat, lookahead, 0));
-					goto S152;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S144;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S144;
+					p++;
+					goto S144;
 				}
 
 				S146:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
 					goto S145;
 				}
 
 				S147:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 145, p, entries.Count);
-					goto S145;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
 				}
 
 				S148:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 146, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S147;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S147;
+					p++;
+					goto S147;
 				}
 
 				S149:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 148, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S148;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S148;
+					p++;
 					goto S148;
 				}
 
 				S150:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 4) goto S149;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 149, p, call, atomic, repeat, lookahead, 0));
-					goto S153;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S149;
 				}
 
 				S151:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
 					goto S150;
 				}
 
 				S152:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 150, p, entries.Count);
-					goto S150;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 151, p, entries.Count);
+					goto S151;
 				}
 
 				S153:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 151, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S152;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 152, p, call, atomic, repeat, lookahead, 0));
+					goto S160;
 				}
 
 				S154:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 141, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 141, p, entries.Count);
-					goto S147;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S153;
 				}
 
 				S155:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 153, p, entries.Count);
+					goto S153;
 				}
 
 				S156:
 
 				{
-					if (p + 1 > text.Length)
-
+					var runStart = p;
+					while (true)
 					{
-						failure.Starved = true;
-						goto Fail;
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
 					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S155;
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 154, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 154, p, entries.Count);
+					goto S154;
 				}
 
 				S157:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 156, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 156, p, entries.Count);
+					goto S156;
 				}
 
 				S158:
 
 				{
-					if (p + 2 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
-					goto S157;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S157;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 157, p, call, atomic, repeat, lookahead, 0));
+					goto S165;
 				}
 
 				S159:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 158, p, entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					goto S158;
 				}
 
 				S160:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S159;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 159, p, call, atomic, repeat, lookahead, 0));
-					goto S167;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 158, p, entries.Count);
+					goto S158;
 				}
 
 				S161:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S160;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S159;
 				}
 
 				S162:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 160, p, entries.Count);
-					goto S160;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S161;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S161;
+					p++;
+					goto S161;
 				}
 
 				S163:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 161, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S162;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S162;
+					p++;
+					goto S162;
 				}
 
 				S164:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 163, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S163;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S163;
+					p++;
 					goto S163;
 				}
 
 				S165:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 3) goto S164;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 164, p, call, atomic, repeat, lookahead, 0));
-					goto S168;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S164;
 				}
 
 				S166:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S165;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 136, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 136, p, entries.Count);
+					goto S155;
 				}
 
 				S167:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 165, p, entries.Count);
-					goto S165;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
 				}
 
 				S168:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 166, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S167;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S167;
+					p++;
+					goto S167;
 				}
 
 				S169:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 154, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 154, p, entries.Count);
-					goto S162;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S168;
 				}
 
 				S170:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S169;
 				}
 
 				S171:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 170, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S170;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S170;
+					p++;
 					goto S170;
 				}
 
 				S172:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 2) goto S171;
-					if (repeating.Value >= 2)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 171, p, call, atomic, repeat, lookahead, 0));
-					goto S176;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S171;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S171;
+					p++;
+					goto S171;
 				}
 
 				S173:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
 					goto S172;
 				}
 
 				S174:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 172, p, entries.Count);
-					goto S172;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S173;
 				}
 
 				S175:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S174;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S174;
+					p++;
+					goto S174;
+				}
+
+				S176:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S175;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S175;
+					p++;
+					goto S175;
+				}
+
+				S177:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S176;
+				}
+
+				S178:
 
 				{
 					if (p + 1 > text.Length)
@@ -1979,249 +2303,216 @@ namespace DotGram.Snapshots
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 0] != '.') goto Fail;
 					p += 1;
-					goto S173;
-				}
-
-				S176:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 175, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S177:
-
-				{
-					if (p + 2 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
-					goto S174;
-				}
-
-				S178:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 177, p, entries.Count);
 					goto S177;
 				}
 
 				S179:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S178;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 178, p, call, atomic, repeat, lookahead, 0));
-					goto S186;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S178;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S178;
+					p++;
+					goto S178;
 				}
 
 				S180:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S179;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S179;
+					p++;
 					goto S179;
 				}
 
 				S181:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 179, p, entries.Count);
-					goto S179;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S180;
 				}
 
 				S182:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 180, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
 				}
 
 				S183:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 182, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S182;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S182;
+					p++;
 					goto S182;
 				}
 
 				S184:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 2) goto S183;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 183, p, call, atomic, repeat, lookahead, 0));
-					goto S187;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S183;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S183;
+					p++;
+					goto S183;
 				}
 
 				S185:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
 					goto S184;
 				}
 
 				S186:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 184, p, entries.Count);
-					goto S184;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S185;
 				}
 
 				S187:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 185, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S186;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S186;
+					p++;
+					goto S186;
 				}
 
 				S188:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 169, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 169, p, entries.Count);
-					goto S181;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S187;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S187;
+					p++;
+					goto S187;
 				}
 
 				S189:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S188;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S188;
+					p++;
+					goto S188;
 				}
 
 				S190:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 189, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
 					goto S189;
 				}
 
 				S191:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 3) goto S190;
-					if (repeating.Value >= 3)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 190, p, call, atomic, repeat, lookahead, 0));
-					goto S195;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 181, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 181, p, entries.Count);
+					goto S190;
 				}
 
 				S192:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
 					goto S191;
 				}
 
 				S193:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 191, p, entries.Count);
-					goto S191;
-				}
-
-				S194:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S192;
-				}
-
-				S195:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 194, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S196:
-
-				{
-					if (p + 2 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
-					goto S193;
-				}
-
-				S197:
-
-				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -2229,168 +2520,109 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 196, p, entries.Count);
-					goto S196;
+					Trace("leave repeat", 192, p, entries.Count);
+					goto S192;
+				}
+
+				S194:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S193;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 193, p, call, atomic, repeat, lookahead, 0));
+					goto S201;
+				}
+
+				S195:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S194;
+				}
+
+				S196:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 194, p, entries.Count);
+					goto S194;
+				}
+
+				S197:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 195, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 195, p, entries.Count);
+					goto S195;
 				}
 
 				S198:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S197;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 197, p, call, atomic, repeat, lookahead, 0));
-					goto S205;
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 197, p, entries.Count);
+					goto S197;
 				}
 
 				S199:
 
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S198;
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S198;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 198, p, call, atomic, repeat, lookahead, 0));
+					goto S206;
 				}
 
 				S200:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 198, p, entries.Count);
-					goto S198;
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S199;
 				}
 
 				S201:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 199, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 199, p, entries.Count);
+					goto S199;
 				}
 
 				S202:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 201, p, entries.Count);
-					goto S201;
-				}
-
-				S203:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S202;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 202, p, call, atomic, repeat, lookahead, 0));
-					goto S206;
-				}
-
-				S204:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S203;
-				}
-
-				S205:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 203, p, entries.Count);
-					goto S203;
-				}
-
-				S206:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 204, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Group", 13, p, entries.Count);
-					goto S13;
-				}
-
-				S207:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 188, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 188, p, entries.Count);
-					goto S200;
-				}
-
-				S208:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
-				}
-
-				S209:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 208, p, entries.Count);
-					goto S208;
-				}
-
-				S210:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 4) goto S209;
-					if (repeating.Value >= 4)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 209, p, call, atomic, repeat, lookahead, 0));
-					goto S214;
-				}
-
-				S211:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S210;
-				}
-
-				S212:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 210, p, entries.Count);
-					goto S210;
-				}
-
-				S213:
 
 				{
 					if (p + 1 > text.Length)
@@ -2401,149 +2633,357 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
-					goto S211;
+					goto S200;
 				}
 
-				S214:
+				S203:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 213, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S202;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S202;
+					p++;
+					goto S202;
 				}
 
-				S215:
+				S204:
 
 				{
-					if (p + 2 > text.Length)
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S203;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S203;
+					p++;
+					goto S203;
+				}
+
+				S205:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S204;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S204;
+					p++;
+					goto S204;
+				}
+
+				S206:
+
+				{
+					if (p >= text.Length)
 
 					{
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S205;
+				}
+
+				S207:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 166, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 166, p, entries.Count);
+					goto S196;
+				}
+
+				S208:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S209:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S208;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S208;
+					p++;
+					goto S208;
+				}
+
+				S210:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S209;
+				}
+
+				S211:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S210;
+				}
+
+				S212:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S211;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S211;
+					p++;
+					goto S211;
+				}
+
+				S213:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S212;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S212;
+					p++;
 					goto S212;
+				}
+
+				S214:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S213;
+				}
+
+				S215:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S214;
 				}
 
 				S216:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 215, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S215;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S215;
+					p++;
 					goto S215;
 				}
 
 				S217:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S216;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 216, p, call, atomic, repeat, lookahead, 0));
-					goto S220;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S216;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S216;
+					p++;
+					goto S216;
 				}
 
 				S218:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
 					goto S217;
 				}
 
 				S219:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 217, p, entries.Count);
-					goto S217;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S218;
 				}
 
 				S220:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 218, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S219;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S219;
+					p++;
+					goto S219;
 				}
 
 				S221:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 207, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 207, p, entries.Count);
-					goto S219;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S220;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S220;
+					p++;
+					goto S220;
 				}
 
 				S222:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S221;
 				}
 
 				S223:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 222, p, entries.Count);
-					goto S222;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
 				}
 
 				S224:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 5) goto S223;
-					if (repeating.Value >= 5)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 223, p, call, atomic, repeat, lookahead, 0));
-					goto S228;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S223;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S223;
+					p++;
+					goto S223;
 				}
 
 				S225:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S224;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S224;
+					p++;
 					goto S224;
 				}
 
 				S226:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 224, p, entries.Count);
-					goto S224;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S225;
 				}
 
 				S227:
@@ -2557,251 +2997,55 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != ':') goto Fail;
 					p += 1;
-					goto S225;
+					goto S226;
 				}
 
 				S228:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 227, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S227;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S227;
+					p++;
+					goto S227;
 				}
 
 				S229:
 
 				{
-					if (p + 2 > text.Length)
+					if (p >= text.Length)
 
 					{
 						failure.Starved = true;
-						goto Fail;
+						goto S228;
 					}
-					if (text[p + 0] != ':') goto Fail;
-					if (text[p + 1] != ':') goto Fail;
-					p += 2;
-					goto S226;
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S228;
+					p++;
+					goto S228;
 				}
 
 				S230:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 221, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 221, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S229;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S229;
+					p++;
 					goto S229;
 				}
 
 				S231:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call LS32", 14, p, entries.Count);
-					goto S14;
-				}
-
-				S232:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 231, p, entries.Count);
-					goto S231;
-				}
-
-				S233:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 6) goto S232;
-					if (repeating.Value >= 6)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 232, p, call, atomic, repeat, lookahead, 0));
-					goto S237;
-				}
-
-				S234:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S233;
-				}
-
-				S235:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 233, p, entries.Count);
-					goto S233;
-				}
-
-				S236:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S234;
-				}
-
-				S237:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 236, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S238:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 230, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 230, p, entries.Count);
-					goto S235;
-				}
-
-				S239:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto Return;
-				}
-
-				S240:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 239, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S241:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call IPv4", 8, p, entries.Count);
-					goto S8;
-				}
-
-				S242:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S243:
-
-				{
-					if (p + 1 > text.Length)
-
-					{
-						failure.Starved = true;
-						goto Fail;
-					}
-					if (text[p + 0] != ':') goto Fail;
-					p += 1;
-					goto S242;
-				}
-
-				S244:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 243, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call H16", 15, p, entries.Count);
-					goto S15;
-				}
-
-				S245:
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 241, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 241, p, entries.Count);
-					goto S244;
-				}
-
-				S246:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S247:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 4) goto S246;
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 246, p, call, atomic, repeat, lookahead, 0));
-					goto S250;
-				}
-
-				S248:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S247;
-				}
-
-				S249:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 247, p, entries.Count);
-					goto S247;
-				}
-
-				S250:
 
 				{
 					if (p >= text.Length)
@@ -2813,63 +3057,18 @@ namespace DotGram.Snapshots
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
-					goto S248;
+					goto S230;
 				}
 
-				S251:
+				S232:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 222, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 222, p, entries.Count);
+					goto S231;
 				}
 
-				S252:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					entries.Add(new ParserEntry(ParserEntry.Choice, 251, p, call, atomic, repeat, lookahead, 0));
-					goto S256;
-				}
-
-				S253:
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S252;
-				}
-
-				S254:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 252, p, entries.Count);
-					goto S252;
-				}
-
-				S255:
-
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 253, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Segment", 17, p, entries.Count);
-					goto S17;
-				}
-
-				S256:
+				S233:
 
 				{
 					if (p + 1 > text.Length)
@@ -2878,55 +3077,57 @@ namespace DotGram.Snapshots
 						failure.Starved = true;
 						goto Fail;
 					}
-					if (text[p + 0] != '/') goto Fail;
+					if (text[p + 0] != ':') goto Fail;
 					p += 1;
-					goto S255;
+					goto S232;
 				}
 
-				S257:
+				S234:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S233;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S233;
+					p++;
+					goto S233;
 				}
 
-				S258:
+				S235:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					entries.Add(new ParserEntry(ParserEntry.Choice, 257, p, call, atomic, repeat, lookahead, 0));
-					goto S267;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S234;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S234;
+					p++;
+					goto S234;
 				}
 
-				S259:
+				S236:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S258;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S235;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S235;
+					p++;
+					goto S235;
 				}
 
-				S260:
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 258, p, entries.Count);
-					goto S258;
-				}
-
-				S261:
+				S237:
 
 				{
 					if (p >= text.Length)
@@ -2936,26 +3137,365 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!((c == ':' || c == '@'))) goto Fail;
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S236;
+				}
+
+				S238:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S237;
+				}
+
+				S239:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 238, p, entries.Count);
+					goto S238;
+				}
+
+				S240:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S239;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
+					goto S247;
+				}
+
+				S241:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S240;
+				}
+
+				S242:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 240, p, entries.Count);
+					goto S240;
+				}
+
+				S243:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 241, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 241, p, entries.Count);
+					goto S241;
+				}
+
+				S244:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 243, p, entries.Count);
+					goto S243;
+				}
+
+				S245:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S244;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 244, p, call, atomic, repeat, lookahead, 0));
+					goto S252;
+				}
+
+				S246:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S245;
+				}
+
+				S247:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 245, p, entries.Count);
+					goto S245;
+				}
+
+				S248:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S246;
+				}
+
+				S249:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S248;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S248;
+					p++;
+					goto S248;
+				}
+
+				S250:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S249;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S249;
+					p++;
+					goto S249;
+				}
+
+				S251:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S250;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S250;
+					p++;
+					goto S250;
+				}
+
+				S252:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S251;
+				}
+
+				S253:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 207, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 207, p, entries.Count);
+					goto S242;
+				}
+
+				S254:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S255:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S254;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S254;
+					p++;
+					goto S254;
+				}
+
+				S256:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S255;
+				}
+
+				S257:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S256;
+				}
+
+				S258:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S257;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S257;
+					p++;
+					goto S257;
+				}
+
+				S259:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S258;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S258;
+					p++;
+					goto S258;
+				}
+
+				S260:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
 					goto S259;
+				}
+
+				S261:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S260;
 				}
 
 				S262:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call PctEncoded", 19, p, entries.Count);
-					goto S19;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S261;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S261;
+					p++;
+					goto S261;
 				}
 
 				S263:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 261, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 261, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S262;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S262;
+					p++;
 					goto S262;
 				}
 
@@ -2969,16 +3509,22 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
 					p++;
-					goto S259;
+					goto S263;
 				}
 
 				S265:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 263, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 263, p, entries.Count);
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
 					goto S264;
 				}
 
@@ -2989,63 +3535,87 @@ namespace DotGram.Snapshots
 
 					{
 						failure.Starved = true;
-						goto Fail;
+						goto S265;
 					}
 					c = text[p];
-					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					if (!(((c >= '0' && c <= '9')))) goto S265;
 					p++;
-					goto S259;
+					goto S265;
 				}
 
 				S267:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 265, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 265, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S266;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S266;
+					p++;
 					goto S266;
 				}
 
 				S268:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 0, p, entries.Count);
-					goto Return;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S267;
 				}
 
 				S269:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					entries.Add(new ParserEntry(ParserEntry.Choice, 268, p, call, atomic, repeat, lookahead, 0));
-					goto S278;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
 				}
 
 				S270:
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S269;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S269;
+					p++;
 					goto S269;
 				}
 
 				S271:
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 269, p, entries.Count);
-					goto S269;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S270;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S270;
+					p++;
+					goto S270;
 				}
 
 				S272:
@@ -3058,26 +3628,37 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
-					goto S270;
+					goto S271;
 				}
 
 				S273:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call PctEncoded", 19, p, entries.Count);
-					goto S19;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S272;
 				}
 
 				S274:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 272, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 272, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S273;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S273;
+					p++;
 					goto S273;
 				}
 
@@ -3088,19 +3669,26 @@ namespace DotGram.Snapshots
 
 					{
 						failure.Starved = true;
-						goto Fail;
+						goto S274;
 					}
 					c = text[p];
-					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S274;
 					p++;
-					goto S270;
+					goto S274;
 				}
 
 				S276:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 274, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 274, p, entries.Count);
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S275;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S275;
+					p++;
 					goto S275;
 				}
 
@@ -3114,20 +3702,18162 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
-					goto S270;
+					goto S276;
 				}
 
 				S278:
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 276, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 276, p, entries.Count);
+					entries.Add(new ParserEntry(ParserEntry.Choice, 268, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 268, p, entries.Count);
 					goto S277;
 				}
 
 				S279:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 278, p, entries.Count);
+					goto S278;
+				}
+
+				S280:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S279;
+					if (repeating.Value >= 2)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 279, p, call, atomic, repeat, lookahead, 0));
+					goto S287;
+				}
+
+				S281:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S280;
+				}
+
+				S282:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 280, p, entries.Count);
+					goto S280;
+				}
+
+				S283:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S281;
+				}
+
+				S284:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S283;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S283;
+					p++;
+					goto S283;
+				}
+
+				S285:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S284;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S284;
+					p++;
+					goto S284;
+				}
+
+				S286:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S285;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S285;
+					p++;
+					goto S285;
+				}
+
+				S287:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S286;
+				}
+
+				S288:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S282;
+				}
+
+				S289:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 288, p, entries.Count);
+					goto S288;
+				}
+
+				S290:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S289;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 289, p, call, atomic, repeat, lookahead, 0));
+					goto S297;
+				}
+
+				S291:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S290;
+				}
+
+				S292:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 290, p, entries.Count);
+					goto S290;
+				}
+
+				S293:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 291, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 291, p, entries.Count);
+					goto S291;
+				}
+
+				S294:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 293, p, entries.Count);
+					goto S293;
+				}
+
+				S295:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S294;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 294, p, call, atomic, repeat, lookahead, 0));
+					goto S302;
+				}
+
+				S296:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S295;
+				}
+
+				S297:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 295, p, entries.Count);
+					goto S295;
+				}
+
+				S298:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S296;
+				}
+
+				S299:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S298;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S298;
+					p++;
+					goto S298;
+				}
+
+				S300:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S299;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S299;
+					p++;
+					goto S299;
+				}
+
+				S301:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S300;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S300;
+					p++;
+					goto S300;
+				}
+
+				S302:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S301;
+				}
+
+				S303:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 253, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 253, p, entries.Count);
+					goto S292;
+				}
+
+				S304:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S305:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S304;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S304;
+					p++;
+					goto S304;
+				}
+
+				S306:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S305;
+				}
+
+				S307:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S306;
+				}
+
+				S308:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S307;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S307;
+					p++;
+					goto S307;
+				}
+
+				S309:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S308;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S308;
+					p++;
+					goto S308;
+				}
+
+				S310:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S309;
+				}
+
+				S311:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S310;
+				}
+
+				S312:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S311;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S311;
+					p++;
+					goto S311;
+				}
+
+				S313:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S312;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S312;
+					p++;
+					goto S312;
+				}
+
+				S314:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S313;
+				}
+
+				S315:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S314;
+				}
+
+				S316:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S315;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S315;
+					p++;
+					goto S315;
+				}
+
+				S317:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S316;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S316;
+					p++;
+					goto S316;
+				}
+
+				S318:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S317;
+				}
+
+				S319:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S320:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S319;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S319;
+					p++;
+					goto S319;
+				}
+
+				S321:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S320;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S320;
+					p++;
+					goto S320;
+				}
+
+				S322:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S321;
+				}
+
+				S323:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S322;
+				}
+
+				S324:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S323;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S323;
+					p++;
+					goto S323;
+				}
+
+				S325:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S324;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S324;
+					p++;
+					goto S324;
+				}
+
+				S326:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S325;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S325;
+					p++;
+					goto S325;
+				}
+
+				S327:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S326;
+				}
+
+				S328:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 318, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 318, p, entries.Count);
+					goto S327;
+				}
+
+				S329:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 328, p, entries.Count);
+					goto S328;
+				}
+
+				S330:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S329;
+					if (repeating.Value >= 3)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 329, p, call, atomic, repeat, lookahead, 0));
+					goto S337;
+				}
+
+				S331:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S330;
+				}
+
+				S332:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 330, p, entries.Count);
+					goto S330;
+				}
+
+				S333:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S331;
+				}
+
+				S334:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S333;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S333;
+					p++;
+					goto S333;
+				}
+
+				S335:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S334;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S334;
+					p++;
+					goto S334;
+				}
+
+				S336:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S335;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S335;
+					p++;
+					goto S335;
+				}
+
+				S337:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S336;
+				}
+
+				S338:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S332;
+				}
+
+				S339:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 338, p, entries.Count);
+					goto S338;
+				}
+
+				S340:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S339;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 339, p, call, atomic, repeat, lookahead, 0));
+					goto S347;
+				}
+
+				S341:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S340;
+				}
+
+				S342:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 340, p, entries.Count);
+					goto S340;
+				}
+
+				S343:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 341, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 341, p, entries.Count);
+					goto S341;
+				}
+
+				S344:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 343, p, entries.Count);
+					goto S343;
+				}
+
+				S345:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S344;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 344, p, call, atomic, repeat, lookahead, 0));
+					goto S352;
+				}
+
+				S346:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S345;
+				}
+
+				S347:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 345, p, entries.Count);
+					goto S345;
+				}
+
+				S348:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S346;
+				}
+
+				S349:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S348;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S348;
+					p++;
+					goto S348;
+				}
+
+				S350:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S349;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S349;
+					p++;
+					goto S349;
+				}
+
+				S351:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S350;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S350;
+					p++;
+					goto S350;
+				}
+
+				S352:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S351;
+				}
+
+				S353:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 303, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 303, p, entries.Count);
+					goto S342;
+				}
+
+				S354:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S355:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S354;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S354;
+					p++;
+					goto S354;
+				}
+
+				S356:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S355;
+				}
+
+				S357:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S356;
+				}
+
+				S358:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S357;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S357;
+					p++;
+					goto S357;
+				}
+
+				S359:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S358;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S358;
+					p++;
+					goto S358;
+				}
+
+				S360:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S359;
+				}
+
+				S361:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S360;
+				}
+
+				S362:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S361;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S361;
+					p++;
+					goto S361;
+				}
+
+				S363:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S362;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S362;
+					p++;
+					goto S362;
+				}
+
+				S364:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S363;
+				}
+
+				S365:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S364;
+				}
+
+				S366:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S365;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S365;
+					p++;
+					goto S365;
+				}
+
+				S367:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S366;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S366;
+					p++;
+					goto S366;
+				}
+
+				S368:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S367;
+				}
+
+				S369:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S370:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S369;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S369;
+					p++;
+					goto S369;
+				}
+
+				S371:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S370;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S370;
+					p++;
+					goto S370;
+				}
+
+				S372:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S371;
+				}
+
+				S373:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S372;
+				}
+
+				S374:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S373;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S373;
+					p++;
+					goto S373;
+				}
+
+				S375:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S374;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S374;
+					p++;
+					goto S374;
+				}
+
+				S376:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S375;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S375;
+					p++;
+					goto S375;
+				}
+
+				S377:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S376;
+				}
+
+				S378:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 368, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 368, p, entries.Count);
+					goto S377;
+				}
+
+				S379:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 378, p, entries.Count);
+					goto S378;
+				}
+
+				S380:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S379;
+					if (repeating.Value >= 4)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 379, p, call, atomic, repeat, lookahead, 0));
+					goto S387;
+				}
+
+				S381:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S380;
+				}
+
+				S382:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 380, p, entries.Count);
+					goto S380;
+				}
+
+				S383:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S381;
+				}
+
+				S384:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S383;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S383;
+					p++;
+					goto S383;
+				}
+
+				S385:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S384;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S384;
+					p++;
+					goto S384;
+				}
+
+				S386:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S385;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S385;
+					p++;
+					goto S385;
+				}
+
+				S387:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S386;
+				}
+
+				S388:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S382;
+				}
+
+				S389:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 388, p, entries.Count);
+					goto S388;
+				}
+
+				S390:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S389;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 389, p, call, atomic, repeat, lookahead, 0));
+					goto S393;
+				}
+
+				S391:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S390;
+				}
+
+				S392:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 390, p, entries.Count);
+					goto S390;
+				}
+
+				S393:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 391, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 391, p, entries.Count);
+					goto S391;
+				}
+
+				S394:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 353, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 353, p, entries.Count);
+					goto S392;
+				}
+
+				S395:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S396:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S395;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S395;
+					p++;
+					goto S395;
+				}
+
+				S397:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S396;
+				}
+
+				S398:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S397;
+				}
+
+				S399:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S398;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S398;
+					p++;
+					goto S398;
+				}
+
+				S400:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S399;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S399;
+					p++;
+					goto S399;
+				}
+
+				S401:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S400;
+				}
+
+				S402:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S401;
+				}
+
+				S403:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S402;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S402;
+					p++;
+					goto S402;
+				}
+
+				S404:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S403;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S403;
+					p++;
+					goto S403;
+				}
+
+				S405:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S404;
+				}
+
+				S406:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S405;
+				}
+
+				S407:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S406;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S406;
+					p++;
+					goto S406;
+				}
+
+				S408:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S407;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S407;
+					p++;
+					goto S407;
+				}
+
+				S409:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S408;
+				}
+
+				S410:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S411:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S410;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S410;
+					p++;
+					goto S410;
+				}
+
+				S412:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S411;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S411;
+					p++;
+					goto S411;
+				}
+
+				S413:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S412;
+				}
+
+				S414:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S413;
+				}
+
+				S415:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S414;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S414;
+					p++;
+					goto S414;
+				}
+
+				S416:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S415;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S415;
+					p++;
+					goto S415;
+				}
+
+				S417:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S416;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S416;
+					p++;
+					goto S416;
+				}
+
+				S418:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S417;
+				}
+
+				S419:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 409, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 409, p, entries.Count);
+					goto S418;
+				}
+
+				S420:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 419, p, entries.Count);
+					goto S419;
+				}
+
+				S421:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S420;
+					if (repeating.Value >= 5)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 420, p, call, atomic, repeat, lookahead, 0));
+					goto S428;
+				}
+
+				S422:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S421;
+				}
+
+				S423:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 421, p, entries.Count);
+					goto S421;
+				}
+
+				S424:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S422;
+				}
+
+				S425:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S424;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S424;
+					p++;
+					goto S424;
+				}
+
+				S426:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S425;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S425;
+					p++;
+					goto S425;
+				}
+
+				S427:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S426;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S426;
+					p++;
+					goto S426;
+				}
+
+				S428:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S427;
+				}
+
+				S429:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S423;
+				}
+
+				S430:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 394, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 394, p, entries.Count);
+					goto S429;
+				}
+
+				S431:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S432:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S431;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S431;
+					p++;
+					goto S431;
+				}
+
+				S433:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S432;
+				}
+
+				S434:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S433;
+				}
+
+				S435:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S434;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S434;
+					p++;
+					goto S434;
+				}
+
+				S436:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S435;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S435;
+					p++;
+					goto S435;
+				}
+
+				S437:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S436;
+				}
+
+				S438:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S437;
+				}
+
+				S439:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S438;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S438;
+					p++;
+					goto S438;
+				}
+
+				S440:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S439;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S439;
+					p++;
+					goto S439;
+				}
+
+				S441:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S440;
+				}
+
+				S442:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S441;
+				}
+
+				S443:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S442;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S442;
+					p++;
+					goto S442;
+				}
+
+				S444:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S443;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S443;
+					p++;
+					goto S443;
+				}
+
+				S445:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S444;
+				}
+
+				S446:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S131;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S131;
+					p++;
+					goto S131;
+				}
+
+				S447:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S446;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S446;
+					p++;
+					goto S446;
+				}
+
+				S448:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S447;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S447;
+					p++;
+					goto S447;
+				}
+
+				S449:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S448;
+				}
+
+				S450:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S449;
+				}
+
+				S451:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S450;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S450;
+					p++;
+					goto S450;
+				}
+
+				S452:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S451;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S451;
+					p++;
+					goto S451;
+				}
+
+				S453:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S452;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S452;
+					p++;
+					goto S452;
+				}
+
+				S454:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S453;
+				}
+
+				S455:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 445, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 445, p, entries.Count);
+					goto S454;
+				}
+
+				S456:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 455, p, entries.Count);
+					goto S455;
+				}
+
+				S457:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S456;
+					if (repeating.Value >= 6)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 456, p, call, atomic, repeat, lookahead, 0));
+					goto S464;
+				}
+
+				S458:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S457;
+				}
+
+				S459:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 457, p, entries.Count);
+					goto S457;
+				}
+
+				S460:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S458;
+				}
+
+				S461:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S460;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S460;
+					p++;
+					goto S460;
+				}
+
+				S462:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S461;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S461;
+					p++;
+					goto S461;
+				}
+
+				S463:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S462;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S462;
+					p++;
+					goto S462;
+				}
+
+				S464:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S463;
+				}
+
+				S465:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 430, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 430, p, entries.Count);
+					goto S459;
+				}
+
+				S466:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '[') goto Fail;
+					p += 1;
+					goto S465;
+				}
+
+				S467:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 130, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 130, p, entries.Count);
+					goto S466;
+				}
+
+				S468:
+
+				{
+					capture6 = p;
+					goto S467;
+				}
+
+				S469:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 468, p, entries.Count);
+					goto S468;
+				}
+
+				S470:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S469;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 469, p, call, atomic, repeat, lookahead, 0));
+					goto S486;
+				}
+
+				S471:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S470;
+				}
+
+				S472:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 470, p, entries.Count);
+					goto S470;
+				}
+
+				S473:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '@') goto Fail;
+					p += 1;
+					goto S471;
+				}
+
+				S474:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
+					Trace("capture", 5, p, entries.Count);
+					goto S473;
+				}
+
+				S475:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 474, p, entries.Count);
+					goto S474;
+				}
+
+				S476:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 475, p, call, atomic, repeat, lookahead, 0));
+					goto S485;
+				}
+
+				S477:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S476;
+				}
+
+				S478:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 476, p, entries.Count);
+					goto S476;
+				}
+
+				S479:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S477;
+				}
+
+				S480:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S477;
+				}
+
+				S481:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S477;
+				}
+
+				S482:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S481;
+				}
+
+				S483:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S482;
+				}
+
+				S484:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S477;
+				}
+
+				S485:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S479;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S480;
+					if (c == '%') goto S483;
+					if (c == ':') goto S484;
+					goto Fail;
+				}
+
+				S486:
+
+				{
+					capture5 = p;
+					goto S478;
+				}
+
+				S487:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S488:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 487, p, call, atomic, repeat, lookahead, 0));
+					goto S497;
+				}
+
+				S489:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S488;
+				}
+
+				S490:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 488, p, entries.Count);
+					goto S488;
+				}
+
+				S491:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S489;
+				}
+
+				S492:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S489;
+				}
+
+				S493:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S489;
+				}
+
+				S494:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S493;
+				}
+
+				S495:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S494;
+				}
+
+				S496:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S489;
+				}
+
+				S497:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S491;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S492;
+					if (c == '%') goto S495;
+					if (c == ':') goto S496;
+					goto Fail;
+				}
+
+				S498:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S499:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 498, p, call, atomic, repeat, lookahead, 0));
+					goto S507;
+				}
+
+				S500:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S499;
+				}
+
+				S501:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 499, p, entries.Count);
+					goto S499;
+				}
+
+				S502:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S500;
+				}
+
+				S503:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S500;
+				}
+
+				S504:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S500;
+				}
+
+				S505:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S504;
+				}
+
+				S506:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S505;
+				}
+
+				S507:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S502;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S503;
+					if (c == '%') goto S506;
+					goto Fail;
+				}
+
+				S508:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S509:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S508;
+				}
+
+				S510:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S509;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S509;
+					p++;
+					goto S509;
+				}
+
+				S511:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S510;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S510;
+					p++;
+					goto S510;
+				}
+
+				S512:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S511;
+				}
+
+				S513:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S512;
+				}
+
+				S514:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S513;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S513;
+					p++;
+					goto S513;
+				}
+
+				S515:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S514;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S514;
+					p++;
+					goto S514;
+				}
+
+				S516:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S515;
+				}
+
+				S517:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S516;
+				}
+
+				S518:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S517;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S517;
+					p++;
+					goto S517;
+				}
+
+				S519:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S518;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S518;
+					p++;
+					goto S518;
+				}
+
+				S520:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S519;
+				}
+
+				S521:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 501, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 501, p, entries.Count);
+					goto S520;
+				}
+
+				S522:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ']') goto Fail;
+					p += 1;
+					goto Return;
+				}
+
+				S523:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S522;
+				}
+
+				S524:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 523, p, entries.Count);
+					goto S523;
+				}
+
+				S525:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S524;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 524, p, call, atomic, repeat, lookahead, 0));
+					goto S532;
+				}
+
+				S526:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S525;
+				}
+
+				S527:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 525, p, entries.Count);
+					goto S525;
+				}
+
+				S528:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 526, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 526, p, entries.Count);
+					goto S526;
+				}
+
+				S529:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 528, p, entries.Count);
+					goto S528;
+				}
+
+				S530:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S529;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 529, p, call, atomic, repeat, lookahead, 0));
+					goto S537;
+				}
+
+				S531:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S530;
+				}
+
+				S532:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 530, p, entries.Count);
+					goto S530;
+				}
+
+				S533:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S531;
+				}
+
+				S534:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S533;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S533;
+					p++;
+					goto S533;
+				}
+
+				S535:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S534;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S534;
+					p++;
+					goto S534;
+				}
+
+				S536:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S535;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S535;
+					p++;
+					goto S535;
+				}
+
+				S537:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S536;
+				}
+
+				S538:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S539:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S538;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S538;
+					p++;
+					goto S538;
+				}
+
+				S540:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S539;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S539;
+					p++;
+					goto S539;
+				}
+
+				S541:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S540;
+				}
+
+				S542:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S541;
+				}
+
+				S543:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 542, p, entries.Count);
+					goto S542;
+				}
+
+				S544:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S543;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 543, p, call, atomic, repeat, lookahead, 0));
+					goto S551;
+				}
+
+				S545:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S544;
+				}
+
+				S546:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 544, p, entries.Count);
+					goto S544;
+				}
+
+				S547:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 545, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 545, p, entries.Count);
+					goto S545;
+				}
+
+				S548:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 547, p, entries.Count);
+					goto S547;
+				}
+
+				S549:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S548;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 548, p, call, atomic, repeat, lookahead, 0));
+					goto S556;
+				}
+
+				S550:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S549;
+				}
+
+				S551:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 549, p, entries.Count);
+					goto S549;
+				}
+
+				S552:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S550;
+				}
+
+				S553:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S552;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S552;
+					p++;
+					goto S552;
+				}
+
+				S554:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S553;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S553;
+					p++;
+					goto S553;
+				}
+
+				S555:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S554;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S554;
+					p++;
+					goto S554;
+				}
+
+				S556:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S555;
+				}
+
+				S557:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 527, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 527, p, entries.Count);
+					goto S546;
+				}
+
+				S558:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S559:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S558;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S558;
+					p++;
+					goto S558;
+				}
+
+				S560:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S559;
+				}
+
+				S561:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S560;
+				}
+
+				S562:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S561;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S561;
+					p++;
+					goto S561;
+				}
+
+				S563:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S562;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S562;
+					p++;
+					goto S562;
+				}
+
+				S564:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S563;
+				}
+
+				S565:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S564;
+				}
+
+				S566:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S565;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S565;
+					p++;
+					goto S565;
+				}
+
+				S567:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S566;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S566;
+					p++;
+					goto S566;
+				}
+
+				S568:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S567;
+				}
+
+				S569:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S568;
+				}
+
+				S570:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S569;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S569;
+					p++;
+					goto S569;
+				}
+
+				S571:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S570;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S570;
+					p++;
+					goto S570;
+				}
+
+				S572:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S571;
+				}
+
+				S573:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S574:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S573;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S573;
+					p++;
+					goto S573;
+				}
+
+				S575:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S574;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S574;
+					p++;
+					goto S574;
+				}
+
+				S576:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S575;
+				}
+
+				S577:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S576;
+				}
+
+				S578:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S577;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S577;
+					p++;
+					goto S577;
+				}
+
+				S579:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S578;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S578;
+					p++;
+					goto S578;
+				}
+
+				S580:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S579;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S579;
+					p++;
+					goto S579;
+				}
+
+				S581:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S580;
+				}
+
+				S582:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 572, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 572, p, entries.Count);
+					goto S581;
+				}
+
+				S583:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S582;
+				}
+
+				S584:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 583, p, entries.Count);
+					goto S583;
+				}
+
+				S585:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S584;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 584, p, call, atomic, repeat, lookahead, 0));
+					goto S592;
+				}
+
+				S586:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S585;
+				}
+
+				S587:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 585, p, entries.Count);
+					goto S585;
+				}
+
+				S588:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 586, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 586, p, entries.Count);
+					goto S586;
+				}
+
+				S589:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 588, p, entries.Count);
+					goto S588;
+				}
+
+				S590:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S589;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 589, p, call, atomic, repeat, lookahead, 0));
+					goto S597;
+				}
+
+				S591:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S590;
+				}
+
+				S592:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 590, p, entries.Count);
+					goto S590;
+				}
+
+				S593:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S591;
+				}
+
+				S594:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S593;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S593;
+					p++;
+					goto S593;
+				}
+
+				S595:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S594;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S594;
+					p++;
+					goto S594;
+				}
+
+				S596:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S595;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S595;
+					p++;
+					goto S595;
+				}
+
+				S597:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S596;
+				}
+
+				S598:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 557, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 557, p, entries.Count);
+					goto S587;
+				}
+
+				S599:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S600:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S599;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S599;
+					p++;
+					goto S599;
+				}
+
+				S601:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S600;
+				}
+
+				S602:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S601;
+				}
+
+				S603:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S602;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S602;
+					p++;
+					goto S602;
+				}
+
+				S604:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S603;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S603;
+					p++;
+					goto S603;
+				}
+
+				S605:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S604;
+				}
+
+				S606:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S605;
+				}
+
+				S607:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S606;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S606;
+					p++;
+					goto S606;
+				}
+
+				S608:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S607;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S607;
+					p++;
+					goto S607;
+				}
+
+				S609:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S608;
+				}
+
+				S610:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S609;
+				}
+
+				S611:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S610;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S610;
+					p++;
+					goto S610;
+				}
+
+				S612:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S611;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S611;
+					p++;
+					goto S611;
+				}
+
+				S613:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S612;
+				}
+
+				S614:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S615:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S614;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S614;
+					p++;
+					goto S614;
+				}
+
+				S616:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S615;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S615;
+					p++;
+					goto S615;
+				}
+
+				S617:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S616;
+				}
+
+				S618:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S617;
+				}
+
+				S619:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S618;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S618;
+					p++;
+					goto S618;
+				}
+
+				S620:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S619;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S619;
+					p++;
+					goto S619;
+				}
+
+				S621:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S620;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S620;
+					p++;
+					goto S620;
+				}
+
+				S622:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S621;
+				}
+
+				S623:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 613, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 613, p, entries.Count);
+					goto S622;
+				}
+
+				S624:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S623;
+				}
+
+				S625:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S624;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S624;
+					p++;
+					goto S624;
+				}
+
+				S626:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S625;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S625;
+					p++;
+					goto S625;
+				}
+
+				S627:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S626;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S626;
+					p++;
+					goto S626;
+				}
+
+				S628:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S627;
+				}
+
+				S629:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S628;
+				}
+
+				S630:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 629, p, entries.Count);
+					goto S629;
+				}
+
+				S631:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S630;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 630, p, call, atomic, repeat, lookahead, 0));
+					goto S638;
+				}
+
+				S632:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S631;
+				}
+
+				S633:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 631, p, entries.Count);
+					goto S631;
+				}
+
+				S634:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 632, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 632, p, entries.Count);
+					goto S632;
+				}
+
+				S635:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 634, p, entries.Count);
+					goto S634;
+				}
+
+				S636:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S635;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 635, p, call, atomic, repeat, lookahead, 0));
+					goto S643;
+				}
+
+				S637:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S636;
+				}
+
+				S638:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 636, p, entries.Count);
+					goto S636;
+				}
+
+				S639:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S637;
+				}
+
+				S640:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S639;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S639;
+					p++;
+					goto S639;
+				}
+
+				S641:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S640;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S640;
+					p++;
+					goto S640;
+				}
+
+				S642:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S641;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S641;
+					p++;
+					goto S641;
+				}
+
+				S643:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S642;
+				}
+
+				S644:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 598, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 598, p, entries.Count);
+					goto S633;
+				}
+
+				S645:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S646:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S645;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S645;
+					p++;
+					goto S645;
+				}
+
+				S647:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S646;
+				}
+
+				S648:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S647;
+				}
+
+				S649:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S648;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S648;
+					p++;
+					goto S648;
+				}
+
+				S650:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S649;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S649;
+					p++;
+					goto S649;
+				}
+
+				S651:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S650;
+				}
+
+				S652:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S651;
+				}
+
+				S653:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S652;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S652;
+					p++;
+					goto S652;
+				}
+
+				S654:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S653;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S653;
+					p++;
+					goto S653;
+				}
+
+				S655:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S654;
+				}
+
+				S656:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S655;
+				}
+
+				S657:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S656;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S656;
+					p++;
+					goto S656;
+				}
+
+				S658:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S657;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S657;
+					p++;
+					goto S657;
+				}
+
+				S659:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S658;
+				}
+
+				S660:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S661:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S660;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S660;
+					p++;
+					goto S660;
+				}
+
+				S662:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S661;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S661;
+					p++;
+					goto S661;
+				}
+
+				S663:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S662;
+				}
+
+				S664:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S663;
+				}
+
+				S665:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S664;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S664;
+					p++;
+					goto S664;
+				}
+
+				S666:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S665;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S665;
+					p++;
+					goto S665;
+				}
+
+				S667:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S666;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S666;
+					p++;
+					goto S666;
+				}
+
+				S668:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S667;
+				}
+
+				S669:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 659, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 659, p, entries.Count);
+					goto S668;
+				}
+
+				S670:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 669, p, entries.Count);
+					goto S669;
+				}
+
+				S671:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S670;
+					if (repeating.Value >= 2)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 670, p, call, atomic, repeat, lookahead, 0));
+					goto S678;
+				}
+
+				S672:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S671;
+				}
+
+				S673:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 671, p, entries.Count);
+					goto S671;
+				}
+
+				S674:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S672;
+				}
+
+				S675:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S674;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S674;
+					p++;
+					goto S674;
+				}
+
+				S676:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S675;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S675;
+					p++;
+					goto S675;
+				}
+
+				S677:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S676;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S676;
+					p++;
+					goto S676;
+				}
+
+				S678:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S677;
+				}
+
+				S679:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S673;
+				}
+
+				S680:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 679, p, entries.Count);
+					goto S679;
+				}
+
+				S681:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S680;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 680, p, call, atomic, repeat, lookahead, 0));
+					goto S688;
+				}
+
+				S682:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S681;
+				}
+
+				S683:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 681, p, entries.Count);
+					goto S681;
+				}
+
+				S684:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 682, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 682, p, entries.Count);
+					goto S682;
+				}
+
+				S685:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 684, p, entries.Count);
+					goto S684;
+				}
+
+				S686:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S685;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 685, p, call, atomic, repeat, lookahead, 0));
+					goto S693;
+				}
+
+				S687:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S686;
+				}
+
+				S688:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 686, p, entries.Count);
+					goto S686;
+				}
+
+				S689:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S687;
+				}
+
+				S690:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S689;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S689;
+					p++;
+					goto S689;
+				}
+
+				S691:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S690;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S690;
+					p++;
+					goto S690;
+				}
+
+				S692:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S691;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S691;
+					p++;
+					goto S691;
+				}
+
+				S693:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S692;
+				}
+
+				S694:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 644, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 644, p, entries.Count);
+					goto S683;
+				}
+
+				S695:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S696:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S695;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S695;
+					p++;
+					goto S695;
+				}
+
+				S697:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S696;
+				}
+
+				S698:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S697;
+				}
+
+				S699:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S698;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S698;
+					p++;
+					goto S698;
+				}
+
+				S700:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S699;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S699;
+					p++;
+					goto S699;
+				}
+
+				S701:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S700;
+				}
+
+				S702:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S701;
+				}
+
+				S703:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S702;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S702;
+					p++;
+					goto S702;
+				}
+
+				S704:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S703;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S703;
+					p++;
+					goto S703;
+				}
+
+				S705:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S704;
+				}
+
+				S706:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S705;
+				}
+
+				S707:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S706;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S706;
+					p++;
+					goto S706;
+				}
+
+				S708:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S707;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S707;
+					p++;
+					goto S707;
+				}
+
+				S709:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S708;
+				}
+
+				S710:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S711:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S710;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S710;
+					p++;
+					goto S710;
+				}
+
+				S712:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S711;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S711;
+					p++;
+					goto S711;
+				}
+
+				S713:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S712;
+				}
+
+				S714:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S713;
+				}
+
+				S715:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S714;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S714;
+					p++;
+					goto S714;
+				}
+
+				S716:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S715;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S715;
+					p++;
+					goto S715;
+				}
+
+				S717:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S716;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S716;
+					p++;
+					goto S716;
+				}
+
+				S718:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S717;
+				}
+
+				S719:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 709, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 709, p, entries.Count);
+					goto S718;
+				}
+
+				S720:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 719, p, entries.Count);
+					goto S719;
+				}
+
+				S721:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S720;
+					if (repeating.Value >= 3)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 720, p, call, atomic, repeat, lookahead, 0));
+					goto S728;
+				}
+
+				S722:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S721;
+				}
+
+				S723:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 721, p, entries.Count);
+					goto S721;
+				}
+
+				S724:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S722;
+				}
+
+				S725:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S724;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S724;
+					p++;
+					goto S724;
+				}
+
+				S726:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S725;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S725;
+					p++;
+					goto S725;
+				}
+
+				S727:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S726;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S726;
+					p++;
+					goto S726;
+				}
+
+				S728:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S727;
+				}
+
+				S729:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S723;
+				}
+
+				S730:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 729, p, entries.Count);
+					goto S729;
+				}
+
+				S731:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S730;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 730, p, call, atomic, repeat, lookahead, 0));
+					goto S738;
+				}
+
+				S732:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S731;
+				}
+
+				S733:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 731, p, entries.Count);
+					goto S731;
+				}
+
+				S734:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 732, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 732, p, entries.Count);
+					goto S732;
+				}
+
+				S735:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 734, p, entries.Count);
+					goto S734;
+				}
+
+				S736:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S735;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 735, p, call, atomic, repeat, lookahead, 0));
+					goto S743;
+				}
+
+				S737:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S736;
+				}
+
+				S738:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 736, p, entries.Count);
+					goto S736;
+				}
+
+				S739:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S737;
+				}
+
+				S740:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S739;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S739;
+					p++;
+					goto S739;
+				}
+
+				S741:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S740;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S740;
+					p++;
+					goto S740;
+				}
+
+				S742:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S741;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S741;
+					p++;
+					goto S741;
+				}
+
+				S743:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S742;
+				}
+
+				S744:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 694, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 694, p, entries.Count);
+					goto S733;
+				}
+
+				S745:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S746:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S745;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S745;
+					p++;
+					goto S745;
+				}
+
+				S747:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S746;
+				}
+
+				S748:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S747;
+				}
+
+				S749:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S748;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S748;
+					p++;
+					goto S748;
+				}
+
+				S750:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S749;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S749;
+					p++;
+					goto S749;
+				}
+
+				S751:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S750;
+				}
+
+				S752:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S751;
+				}
+
+				S753:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S752;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S752;
+					p++;
+					goto S752;
+				}
+
+				S754:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S753;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S753;
+					p++;
+					goto S753;
+				}
+
+				S755:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S754;
+				}
+
+				S756:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S755;
+				}
+
+				S757:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S756;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S756;
+					p++;
+					goto S756;
+				}
+
+				S758:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S757;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S757;
+					p++;
+					goto S757;
+				}
+
+				S759:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S758;
+				}
+
+				S760:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S761:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S760;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S760;
+					p++;
+					goto S760;
+				}
+
+				S762:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S761;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S761;
+					p++;
+					goto S761;
+				}
+
+				S763:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S762;
+				}
+
+				S764:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S763;
+				}
+
+				S765:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S764;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S764;
+					p++;
+					goto S764;
+				}
+
+				S766:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S765;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S765;
+					p++;
+					goto S765;
+				}
+
+				S767:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S766;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S766;
+					p++;
+					goto S766;
+				}
+
+				S768:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S767;
+				}
+
+				S769:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 759, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 759, p, entries.Count);
+					goto S768;
+				}
+
+				S770:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 769, p, entries.Count);
+					goto S769;
+				}
+
+				S771:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S770;
+					if (repeating.Value >= 4)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 770, p, call, atomic, repeat, lookahead, 0));
+					goto S778;
+				}
+
+				S772:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S771;
+				}
+
+				S773:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 771, p, entries.Count);
+					goto S771;
+				}
+
+				S774:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S772;
+				}
+
+				S775:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S774;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S774;
+					p++;
+					goto S774;
+				}
+
+				S776:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S775;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S775;
+					p++;
+					goto S775;
+				}
+
+				S777:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S776;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S776;
+					p++;
+					goto S776;
+				}
+
+				S778:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S777;
+				}
+
+				S779:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S773;
+				}
+
+				S780:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 779, p, entries.Count);
+					goto S779;
+				}
+
+				S781:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S780;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 780, p, call, atomic, repeat, lookahead, 0));
+					goto S784;
+				}
+
+				S782:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S781;
+				}
+
+				S783:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 781, p, entries.Count);
+					goto S781;
+				}
+
+				S784:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 782, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 782, p, entries.Count);
+					goto S782;
+				}
+
+				S785:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 744, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 744, p, entries.Count);
+					goto S783;
+				}
+
+				S786:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S787:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S786;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S786;
+					p++;
+					goto S786;
+				}
+
+				S788:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S787;
+				}
+
+				S789:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S788;
+				}
+
+				S790:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S789;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S789;
+					p++;
+					goto S789;
+				}
+
+				S791:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S790;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S790;
+					p++;
+					goto S790;
+				}
+
+				S792:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S791;
+				}
+
+				S793:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S792;
+				}
+
+				S794:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S793;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S793;
+					p++;
+					goto S793;
+				}
+
+				S795:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S794;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S794;
+					p++;
+					goto S794;
+				}
+
+				S796:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S795;
+				}
+
+				S797:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S796;
+				}
+
+				S798:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S797;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S797;
+					p++;
+					goto S797;
+				}
+
+				S799:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S798;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S798;
+					p++;
+					goto S798;
+				}
+
+				S800:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S799;
+				}
+
+				S801:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S802:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S801;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S801;
+					p++;
+					goto S801;
+				}
+
+				S803:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S802;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S802;
+					p++;
+					goto S802;
+				}
+
+				S804:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S803;
+				}
+
+				S805:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S804;
+				}
+
+				S806:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S805;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S805;
+					p++;
+					goto S805;
+				}
+
+				S807:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S806;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S806;
+					p++;
+					goto S806;
+				}
+
+				S808:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S807;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S807;
+					p++;
+					goto S807;
+				}
+
+				S809:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S808;
+				}
+
+				S810:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 800, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 800, p, entries.Count);
+					goto S809;
+				}
+
+				S811:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 810, p, entries.Count);
+					goto S810;
+				}
+
+				S812:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S811;
+					if (repeating.Value >= 5)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 811, p, call, atomic, repeat, lookahead, 0));
+					goto S819;
+				}
+
+				S813:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S812;
+				}
+
+				S814:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 812, p, entries.Count);
+					goto S812;
+				}
+
+				S815:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S813;
+				}
+
+				S816:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S815;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S815;
+					p++;
+					goto S815;
+				}
+
+				S817:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S816;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S816;
+					p++;
+					goto S816;
+				}
+
+				S818:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S817;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S817;
+					p++;
+					goto S817;
+				}
+
+				S819:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S818;
+				}
+
+				S820:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S814;
+				}
+
+				S821:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 785, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 785, p, entries.Count);
+					goto S820;
+				}
+
+				S822:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S823:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S822;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S822;
+					p++;
+					goto S822;
+				}
+
+				S824:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S823;
+				}
+
+				S825:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S824;
+				}
+
+				S826:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S825;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S825;
+					p++;
+					goto S825;
+				}
+
+				S827:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S826;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S826;
+					p++;
+					goto S826;
+				}
+
+				S828:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S827;
+				}
+
+				S829:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S828;
+				}
+
+				S830:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S829;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S829;
+					p++;
+					goto S829;
+				}
+
+				S831:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S830;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S830;
+					p++;
+					goto S830;
+				}
+
+				S832:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S831;
+				}
+
+				S833:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S832;
+				}
+
+				S834:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S833;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S833;
+					p++;
+					goto S833;
+				}
+
+				S835:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S834;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S834;
+					p++;
+					goto S834;
+				}
+
+				S836:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S835;
+				}
+
+				S837:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S522;
+					p++;
+					goto S522;
+				}
+
+				S838:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S837;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S837;
+					p++;
+					goto S837;
+				}
+
+				S839:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S838;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S838;
+					p++;
+					goto S838;
+				}
+
+				S840:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S839;
+				}
+
+				S841:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S840;
+				}
+
+				S842:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S841;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S841;
+					p++;
+					goto S841;
+				}
+
+				S843:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S842;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S842;
+					p++;
+					goto S842;
+				}
+
+				S844:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S843;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S843;
+					p++;
+					goto S843;
+				}
+
+				S845:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S844;
+				}
+
+				S846:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 836, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 836, p, entries.Count);
+					goto S845;
+				}
+
+				S847:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 846, p, entries.Count);
+					goto S846;
+				}
+
+				S848:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S847;
+					if (repeating.Value >= 6)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 847, p, call, atomic, repeat, lookahead, 0));
+					goto S855;
+				}
+
+				S849:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S848;
+				}
+
+				S850:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 848, p, entries.Count);
+					goto S848;
+				}
+
+				S851:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S849;
+				}
+
+				S852:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S851;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S851;
+					p++;
+					goto S851;
+				}
+
+				S853:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S852;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S852;
+					p++;
+					goto S852;
+				}
+
+				S854:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S853;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S853;
+					p++;
+					goto S853;
+				}
+
+				S855:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S854;
+				}
+
+				S856:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 821, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 821, p, entries.Count);
+					goto S850;
+				}
+
+				S857:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '[') goto Fail;
+					p += 1;
+					goto S856;
+				}
+
+				S858:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 521, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 521, p, entries.Count);
+					goto S857;
+				}
+
+				S859:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S860:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S859;
+				}
+
+				S861:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S860;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S860;
+					p++;
+					goto S860;
+				}
+
+				S862:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S861;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S861;
+					p++;
+					goto S861;
+				}
+
+				S863:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S862;
+				}
+
+				S864:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S863;
+				}
+
+				S865:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S864;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S864;
+					p++;
+					goto S864;
+				}
+
+				S866:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S865;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S865;
+					p++;
+					goto S865;
+				}
+
+				S867:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S866;
+				}
+
+				S868:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S867;
+				}
+
+				S869:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S868;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S868;
+					p++;
+					goto S868;
+				}
+
+				S870:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S869;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S869;
+					p++;
+					goto S869;
+				}
+
+				S871:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S870;
+				}
+
+				S872:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S873:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S874:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 873, p, call, atomic, repeat, lookahead, 0));
+					goto S882;
+				}
+
+				S875:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S874;
+				}
+
+				S876:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 874, p, entries.Count);
+					goto S874;
+				}
+
+				S877:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S875;
+				}
+
+				S878:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S875;
+				}
+
+				S879:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S875;
+				}
+
+				S880:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S879;
+				}
+
+				S881:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S880;
+				}
+
+				S882:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S877;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S878;
+					if (c == '%') goto S881;
+					goto Fail;
+				}
+
+				S883:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ']') goto Fail;
+					p += 1;
+					goto Return;
+				}
+
+				S884:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S883;
+				}
+
+				S885:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 884, p, entries.Count);
+					goto S884;
+				}
+
+				S886:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S885;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 885, p, call, atomic, repeat, lookahead, 0));
+					goto S893;
+				}
+
+				S887:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S886;
+				}
+
+				S888:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 886, p, entries.Count);
+					goto S886;
+				}
+
+				S889:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 887, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 887, p, entries.Count);
+					goto S887;
+				}
+
+				S890:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 889, p, entries.Count);
+					goto S889;
+				}
+
+				S891:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S890;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 890, p, call, atomic, repeat, lookahead, 0));
+					goto S898;
+				}
+
+				S892:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S891;
+				}
+
+				S893:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 891, p, entries.Count);
+					goto S891;
+				}
+
+				S894:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S892;
+				}
+
+				S895:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S894;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S894;
+					p++;
+					goto S894;
+				}
+
+				S896:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S895;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S895;
+					p++;
+					goto S895;
+				}
+
+				S897:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S896;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S896;
+					p++;
+					goto S896;
+				}
+
+				S898:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S897;
+				}
+
+				S899:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S900:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S899;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S899;
+					p++;
+					goto S899;
+				}
+
+				S901:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S900;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S900;
+					p++;
+					goto S900;
+				}
+
+				S902:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S901;
+				}
+
+				S903:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S902;
+				}
+
+				S904:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 903, p, entries.Count);
+					goto S903;
+				}
+
+				S905:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S904;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 904, p, call, atomic, repeat, lookahead, 0));
+					goto S912;
+				}
+
+				S906:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S905;
+				}
+
+				S907:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 905, p, entries.Count);
+					goto S905;
+				}
+
+				S908:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 906, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 906, p, entries.Count);
+					goto S906;
+				}
+
+				S909:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 908, p, entries.Count);
+					goto S908;
+				}
+
+				S910:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S909;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 909, p, call, atomic, repeat, lookahead, 0));
+					goto S917;
+				}
+
+				S911:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S910;
+				}
+
+				S912:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 910, p, entries.Count);
+					goto S910;
+				}
+
+				S913:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S911;
+				}
+
+				S914:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S913;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S913;
+					p++;
+					goto S913;
+				}
+
+				S915:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S914;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S914;
+					p++;
+					goto S914;
+				}
+
+				S916:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S915;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S915;
+					p++;
+					goto S915;
+				}
+
+				S917:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S916;
+				}
+
+				S918:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 888, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 888, p, entries.Count);
+					goto S907;
+				}
+
+				S919:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S920:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S919;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S919;
+					p++;
+					goto S919;
+				}
+
+				S921:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S920;
+				}
+
+				S922:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S921;
+				}
+
+				S923:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S922;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S922;
+					p++;
+					goto S922;
+				}
+
+				S924:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S923;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S923;
+					p++;
+					goto S923;
+				}
+
+				S925:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S924;
+				}
+
+				S926:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S925;
+				}
+
+				S927:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S926;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S926;
+					p++;
+					goto S926;
+				}
+
+				S928:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S927;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S927;
+					p++;
+					goto S927;
+				}
+
+				S929:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S928;
+				}
+
+				S930:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S929;
+				}
+
+				S931:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S930;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S930;
+					p++;
+					goto S930;
+				}
+
+				S932:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S931;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S931;
+					p++;
+					goto S931;
+				}
+
+				S933:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S932;
+				}
+
+				S934:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S935:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S934;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S934;
+					p++;
+					goto S934;
+				}
+
+				S936:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S935;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S935;
+					p++;
+					goto S935;
+				}
+
+				S937:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S936;
+				}
+
+				S938:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S937;
+				}
+
+				S939:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S938;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S938;
+					p++;
+					goto S938;
+				}
+
+				S940:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S939;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S939;
+					p++;
+					goto S939;
+				}
+
+				S941:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S940;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S940;
+					p++;
+					goto S940;
+				}
+
+				S942:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S941;
+				}
+
+				S943:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 933, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 933, p, entries.Count);
+					goto S942;
+				}
+
+				S944:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S943;
+				}
+
+				S945:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 944, p, entries.Count);
+					goto S944;
+				}
+
+				S946:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S945;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 945, p, call, atomic, repeat, lookahead, 0));
+					goto S953;
+				}
+
+				S947:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S946;
+				}
+
+				S948:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 946, p, entries.Count);
+					goto S946;
+				}
+
+				S949:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 947, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 947, p, entries.Count);
+					goto S947;
+				}
+
+				S950:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 949, p, entries.Count);
+					goto S949;
+				}
+
+				S951:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S950;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 950, p, call, atomic, repeat, lookahead, 0));
+					goto S958;
+				}
+
+				S952:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S951;
+				}
+
+				S953:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 951, p, entries.Count);
+					goto S951;
+				}
+
+				S954:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S952;
+				}
+
+				S955:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S954;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S954;
+					p++;
+					goto S954;
+				}
+
+				S956:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S955;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S955;
+					p++;
+					goto S955;
+				}
+
+				S957:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S956;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S956;
+					p++;
+					goto S956;
+				}
+
+				S958:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S957;
+				}
+
+				S959:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 918, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 918, p, entries.Count);
+					goto S948;
+				}
+
+				S960:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S961:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S960;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S960;
+					p++;
+					goto S960;
+				}
+
+				S962:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S961;
+				}
+
+				S963:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S962;
+				}
+
+				S964:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S963;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S963;
+					p++;
+					goto S963;
+				}
+
+				S965:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S964;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S964;
+					p++;
+					goto S964;
+				}
+
+				S966:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S965;
+				}
+
+				S967:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S966;
+				}
+
+				S968:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S967;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S967;
+					p++;
+					goto S967;
+				}
+
+				S969:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S968;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S968;
+					p++;
+					goto S968;
+				}
+
+				S970:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S969;
+				}
+
+				S971:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S970;
+				}
+
+				S972:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S971;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S971;
+					p++;
+					goto S971;
+				}
+
+				S973:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S972;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S972;
+					p++;
+					goto S972;
+				}
+
+				S974:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S973;
+				}
+
+				S975:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S976:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S975;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S975;
+					p++;
+					goto S975;
+				}
+
+				S977:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S976;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S976;
+					p++;
+					goto S976;
+				}
+
+				S978:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S977;
+				}
+
+				S979:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S978;
+				}
+
+				S980:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S979;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S979;
+					p++;
+					goto S979;
+				}
+
+				S981:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S980;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S980;
+					p++;
+					goto S980;
+				}
+
+				S982:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S981;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S981;
+					p++;
+					goto S981;
+				}
+
+				S983:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S982;
+				}
+
+				S984:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 974, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 974, p, entries.Count);
+					goto S983;
+				}
+
+				S985:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S984;
+				}
+
+				S986:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S985;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S985;
+					p++;
+					goto S985;
+				}
+
+				S987:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S986;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S986;
+					p++;
+					goto S986;
+				}
+
+				S988:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S987;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S987;
+					p++;
+					goto S987;
+				}
+
+				S989:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S988;
+				}
+
+				S990:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S989;
+				}
+
+				S991:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 990, p, entries.Count);
+					goto S990;
+				}
+
+				S992:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S991;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 991, p, call, atomic, repeat, lookahead, 0));
+					goto S999;
+				}
+
+				S993:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S992;
+				}
+
+				S994:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 992, p, entries.Count);
+					goto S992;
+				}
+
+				S995:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 993, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 993, p, entries.Count);
+					goto S993;
+				}
+
+				S996:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 995, p, entries.Count);
+					goto S995;
+				}
+
+				S997:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S996;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 996, p, call, atomic, repeat, lookahead, 0));
+					goto S1004;
+				}
+
+				S998:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S997;
+				}
+
+				S999:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 997, p, entries.Count);
+					goto S997;
+				}
+
+				S1000:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S998;
+				}
+
+				S1001:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1000;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1000;
+					p++;
+					goto S1000;
+				}
+
+				S1002:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1001;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1001;
+					p++;
+					goto S1001;
+				}
+
+				S1003:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1002;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1002;
+					p++;
+					goto S1002;
+				}
+
+				S1004:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1003;
+				}
+
+				S1005:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 959, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 959, p, entries.Count);
+					goto S994;
+				}
+
+				S1006:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1007:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1006;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1006;
+					p++;
+					goto S1006;
+				}
+
+				S1008:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1007;
+				}
+
+				S1009:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1008;
+				}
+
+				S1010:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1009;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1009;
+					p++;
+					goto S1009;
+				}
+
+				S1011:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1010;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1010;
+					p++;
+					goto S1010;
+				}
+
+				S1012:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1011;
+				}
+
+				S1013:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1012;
+				}
+
+				S1014:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1013;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1013;
+					p++;
+					goto S1013;
+				}
+
+				S1015:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1014;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1014;
+					p++;
+					goto S1014;
+				}
+
+				S1016:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1015;
+				}
+
+				S1017:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1016;
+				}
+
+				S1018:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1017;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1017;
+					p++;
+					goto S1017;
+				}
+
+				S1019:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1018;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1018;
+					p++;
+					goto S1018;
+				}
+
+				S1020:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1019;
+				}
+
+				S1021:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1022:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1021;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1021;
+					p++;
+					goto S1021;
+				}
+
+				S1023:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1022;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1022;
+					p++;
+					goto S1022;
+				}
+
+				S1024:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1023;
+				}
+
+				S1025:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1024;
+				}
+
+				S1026:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1025;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1025;
+					p++;
+					goto S1025;
+				}
+
+				S1027:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1026;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1026;
+					p++;
+					goto S1026;
+				}
+
+				S1028:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1027;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1027;
+					p++;
+					goto S1027;
+				}
+
+				S1029:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1028;
+				}
+
+				S1030:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1020, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1020, p, entries.Count);
+					goto S1029;
+				}
+
+				S1031:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1030, p, entries.Count);
+					goto S1030;
+				}
+
+				S1032:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S1031;
+					if (repeating.Value >= 2)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1031, p, call, atomic, repeat, lookahead, 0));
+					goto S1039;
+				}
+
+				S1033:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1032;
+				}
+
+				S1034:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1032, p, entries.Count);
+					goto S1032;
+				}
+
+				S1035:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1033;
+				}
+
+				S1036:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1035;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1035;
+					p++;
+					goto S1035;
+				}
+
+				S1037:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1036;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1036;
+					p++;
+					goto S1036;
+				}
+
+				S1038:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1037;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1037;
+					p++;
+					goto S1037;
+				}
+
+				S1039:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1038;
+				}
+
+				S1040:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1034;
+				}
+
+				S1041:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1040, p, entries.Count);
+					goto S1040;
+				}
+
+				S1042:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1041;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1041, p, call, atomic, repeat, lookahead, 0));
+					goto S1049;
+				}
+
+				S1043:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1042;
+				}
+
+				S1044:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1042, p, entries.Count);
+					goto S1042;
+				}
+
+				S1045:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1043, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1043, p, entries.Count);
+					goto S1043;
+				}
+
+				S1046:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1045, p, entries.Count);
+					goto S1045;
+				}
+
+				S1047:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S1046;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1046, p, call, atomic, repeat, lookahead, 0));
+					goto S1054;
+				}
+
+				S1048:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1047;
+				}
+
+				S1049:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1047, p, entries.Count);
+					goto S1047;
+				}
+
+				S1050:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1048;
+				}
+
+				S1051:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1050;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1050;
+					p++;
+					goto S1050;
+				}
+
+				S1052:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1051;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1051;
+					p++;
+					goto S1051;
+				}
+
+				S1053:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1052;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1052;
+					p++;
+					goto S1052;
+				}
+
+				S1054:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1053;
+				}
+
+				S1055:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1005, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1005, p, entries.Count);
+					goto S1044;
+				}
+
+				S1056:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1057:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1056;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1056;
+					p++;
+					goto S1056;
+				}
+
+				S1058:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1057;
+				}
+
+				S1059:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1058;
+				}
+
+				S1060:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1059;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1059;
+					p++;
+					goto S1059;
+				}
+
+				S1061:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1060;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1060;
+					p++;
+					goto S1060;
+				}
+
+				S1062:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1061;
+				}
+
+				S1063:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1062;
+				}
+
+				S1064:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1063;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1063;
+					p++;
+					goto S1063;
+				}
+
+				S1065:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1064;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1064;
+					p++;
+					goto S1064;
+				}
+
+				S1066:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1065;
+				}
+
+				S1067:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1066;
+				}
+
+				S1068:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1067;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1067;
+					p++;
+					goto S1067;
+				}
+
+				S1069:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1068;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1068;
+					p++;
+					goto S1068;
+				}
+
+				S1070:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1069;
+				}
+
+				S1071:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1072:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1071;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1071;
+					p++;
+					goto S1071;
+				}
+
+				S1073:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1072;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1072;
+					p++;
+					goto S1072;
+				}
+
+				S1074:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1073;
+				}
+
+				S1075:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1074;
+				}
+
+				S1076:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1075;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1075;
+					p++;
+					goto S1075;
+				}
+
+				S1077:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1076;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1076;
+					p++;
+					goto S1076;
+				}
+
+				S1078:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1077;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1077;
+					p++;
+					goto S1077;
+				}
+
+				S1079:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1078;
+				}
+
+				S1080:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1070, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1070, p, entries.Count);
+					goto S1079;
+				}
+
+				S1081:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1080, p, entries.Count);
+					goto S1080;
+				}
+
+				S1082:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S1081;
+					if (repeating.Value >= 3)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1081, p, call, atomic, repeat, lookahead, 0));
+					goto S1089;
+				}
+
+				S1083:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1082;
+				}
+
+				S1084:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1082, p, entries.Count);
+					goto S1082;
+				}
+
+				S1085:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1083;
+				}
+
+				S1086:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1085;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1085;
+					p++;
+					goto S1085;
+				}
+
+				S1087:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1086;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1086;
+					p++;
+					goto S1086;
+				}
+
+				S1088:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1087;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1087;
+					p++;
+					goto S1087;
+				}
+
+				S1089:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1088;
+				}
+
+				S1090:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1084;
+				}
+
+				S1091:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1090, p, entries.Count);
+					goto S1090;
+				}
+
+				S1092:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1091;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1091, p, call, atomic, repeat, lookahead, 0));
+					goto S1099;
+				}
+
+				S1093:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1092;
+				}
+
+				S1094:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1092, p, entries.Count);
+					goto S1092;
+				}
+
+				S1095:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1093, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1093, p, entries.Count);
+					goto S1093;
+				}
+
+				S1096:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1095, p, entries.Count);
+					goto S1095;
+				}
+
+				S1097:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1096;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1096, p, call, atomic, repeat, lookahead, 0));
+					goto S1104;
+				}
+
+				S1098:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1097;
+				}
+
+				S1099:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1097, p, entries.Count);
+					goto S1097;
+				}
+
+				S1100:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1098;
+				}
+
+				S1101:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1100;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1100;
+					p++;
+					goto S1100;
+				}
+
+				S1102:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1101;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1101;
+					p++;
+					goto S1101;
+				}
+
+				S1103:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1102;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1102;
+					p++;
+					goto S1102;
+				}
+
+				S1104:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1103;
+				}
+
+				S1105:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1055, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1055, p, entries.Count);
+					goto S1094;
+				}
+
+				S1106:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1107:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1106;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1106;
+					p++;
+					goto S1106;
+				}
+
+				S1108:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1107;
+				}
+
+				S1109:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1108;
+				}
+
+				S1110:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1109;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1109;
+					p++;
+					goto S1109;
+				}
+
+				S1111:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1110;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1110;
+					p++;
+					goto S1110;
+				}
+
+				S1112:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1111;
+				}
+
+				S1113:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1112;
+				}
+
+				S1114:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1113;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1113;
+					p++;
+					goto S1113;
+				}
+
+				S1115:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1114;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1114;
+					p++;
+					goto S1114;
+				}
+
+				S1116:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1115;
+				}
+
+				S1117:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1116;
+				}
+
+				S1118:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1117;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1117;
+					p++;
+					goto S1117;
+				}
+
+				S1119:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1118;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1118;
+					p++;
+					goto S1118;
+				}
+
+				S1120:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1119;
+				}
+
+				S1121:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1122:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1121;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1121;
+					p++;
+					goto S1121;
+				}
+
+				S1123:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1122;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1122;
+					p++;
+					goto S1122;
+				}
+
+				S1124:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1123;
+				}
+
+				S1125:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1124;
+				}
+
+				S1126:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1125;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1125;
+					p++;
+					goto S1125;
+				}
+
+				S1127:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1126;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1126;
+					p++;
+					goto S1126;
+				}
+
+				S1128:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1127;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1127;
+					p++;
+					goto S1127;
+				}
+
+				S1129:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1128;
+				}
+
+				S1130:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1120, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1120, p, entries.Count);
+					goto S1129;
+				}
+
+				S1131:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1130, p, entries.Count);
+					goto S1130;
+				}
+
+				S1132:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S1131;
+					if (repeating.Value >= 4)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1131, p, call, atomic, repeat, lookahead, 0));
+					goto S1139;
+				}
+
+				S1133:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1132;
+				}
+
+				S1134:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1132, p, entries.Count);
+					goto S1132;
+				}
+
+				S1135:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1133;
+				}
+
+				S1136:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1135;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1135;
+					p++;
+					goto S1135;
+				}
+
+				S1137:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1136;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1136;
+					p++;
+					goto S1136;
+				}
+
+				S1138:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1137;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1137;
+					p++;
+					goto S1137;
+				}
+
+				S1139:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1138;
+				}
+
+				S1140:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1134;
+				}
+
+				S1141:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1140, p, entries.Count);
+					goto S1140;
+				}
+
+				S1142:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1141;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1141, p, call, atomic, repeat, lookahead, 0));
+					goto S1145;
+				}
+
+				S1143:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1142;
+				}
+
+				S1144:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1142, p, entries.Count);
+					goto S1142;
+				}
+
+				S1145:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1143, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1143, p, entries.Count);
+					goto S1143;
+				}
+
+				S1146:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1105, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1105, p, entries.Count);
+					goto S1144;
+				}
+
+				S1147:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1148:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1147;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1147;
+					p++;
+					goto S1147;
+				}
+
+				S1149:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1148;
+				}
+
+				S1150:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1149;
+				}
+
+				S1151:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1150;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1150;
+					p++;
+					goto S1150;
+				}
+
+				S1152:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1151;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1151;
+					p++;
+					goto S1151;
+				}
+
+				S1153:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1152;
+				}
+
+				S1154:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1153;
+				}
+
+				S1155:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1154;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1154;
+					p++;
+					goto S1154;
+				}
+
+				S1156:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1155;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1155;
+					p++;
+					goto S1155;
+				}
+
+				S1157:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1156;
+				}
+
+				S1158:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1157;
+				}
+
+				S1159:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1158;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1158;
+					p++;
+					goto S1158;
+				}
+
+				S1160:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1159;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1159;
+					p++;
+					goto S1159;
+				}
+
+				S1161:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1160;
+				}
+
+				S1162:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1163:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1162;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1162;
+					p++;
+					goto S1162;
+				}
+
+				S1164:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1163;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1163;
+					p++;
+					goto S1163;
+				}
+
+				S1165:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1164;
+				}
+
+				S1166:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1165;
+				}
+
+				S1167:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1166;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1166;
+					p++;
+					goto S1166;
+				}
+
+				S1168:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1167;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1167;
+					p++;
+					goto S1167;
+				}
+
+				S1169:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1168;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1168;
+					p++;
+					goto S1168;
+				}
+
+				S1170:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1169;
+				}
+
+				S1171:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1161, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1161, p, entries.Count);
+					goto S1170;
+				}
+
+				S1172:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1171, p, entries.Count);
+					goto S1171;
+				}
+
+				S1173:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S1172;
+					if (repeating.Value >= 5)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1172, p, call, atomic, repeat, lookahead, 0));
+					goto S1180;
+				}
+
+				S1174:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1173;
+				}
+
+				S1175:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1173, p, entries.Count);
+					goto S1173;
+				}
+
+				S1176:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1174;
+				}
+
+				S1177:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1176;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1176;
+					p++;
+					goto S1176;
+				}
+
+				S1178:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1177;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1177;
+					p++;
+					goto S1177;
+				}
+
+				S1179:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1178;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1178;
+					p++;
+					goto S1178;
+				}
+
+				S1180:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1179;
+				}
+
+				S1181:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1175;
+				}
+
+				S1182:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1146, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1146, p, entries.Count);
+					goto S1181;
+				}
+
+				S1183:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1184:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1183;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1183;
+					p++;
+					goto S1183;
+				}
+
+				S1185:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1184;
+				}
+
+				S1186:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1185;
+				}
+
+				S1187:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1186;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1186;
+					p++;
+					goto S1186;
+				}
+
+				S1188:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1187;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1187;
+					p++;
+					goto S1187;
+				}
+
+				S1189:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1188;
+				}
+
+				S1190:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1189;
+				}
+
+				S1191:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1190;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1190;
+					p++;
+					goto S1190;
+				}
+
+				S1192:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1191;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1191;
+					p++;
+					goto S1191;
+				}
+
+				S1193:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1192;
+				}
+
+				S1194:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1193;
+				}
+
+				S1195:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1194;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1194;
+					p++;
+					goto S1194;
+				}
+
+				S1196:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1195;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1195;
+					p++;
+					goto S1195;
+				}
+
+				S1197:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1196;
+				}
+
+				S1198:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S883;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S883;
+					p++;
+					goto S883;
+				}
+
+				S1199:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1198;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1198;
+					p++;
+					goto S1198;
+				}
+
+				S1200:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1199;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1199;
+					p++;
+					goto S1199;
+				}
+
+				S1201:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1200;
+				}
+
+				S1202:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1201;
+				}
+
+				S1203:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1202;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1202;
+					p++;
+					goto S1202;
+				}
+
+				S1204:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1203;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1203;
+					p++;
+					goto S1203;
+				}
+
+				S1205:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1204;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1204;
+					p++;
+					goto S1204;
+				}
+
+				S1206:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1205;
+				}
+
+				S1207:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1197, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1197, p, entries.Count);
+					goto S1206;
+				}
+
+				S1208:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1207, p, entries.Count);
+					goto S1207;
+				}
+
+				S1209:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S1208;
+					if (repeating.Value >= 6)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1208, p, call, atomic, repeat, lookahead, 0));
+					goto S1216;
+				}
+
+				S1210:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1209;
+				}
+
+				S1211:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1209, p, entries.Count);
+					goto S1209;
+				}
+
+				S1212:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1210;
+				}
+
+				S1213:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1212;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1212;
+					p++;
+					goto S1212;
+				}
+
+				S1214:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1213;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1213;
+					p++;
+					goto S1213;
+				}
+
+				S1215:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1214;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1214;
+					p++;
+					goto S1214;
+				}
+
+				S1216:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1215;
+				}
+
+				S1217:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1182, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1182, p, entries.Count);
+					goto S1211;
+				}
+
+				S1218:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '[') goto Fail;
+					p += 1;
+					goto S1217;
+				}
+
+				S1219:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto Return;
+				}
+
+				S1220:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1219, p, entries.Count);
+					goto S1219;
+				}
+
+				S1221:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1220;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1220, p, call, atomic, repeat, lookahead, 0));
+					goto S1228;
+				}
+
+				S1222:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1221;
+				}
+
+				S1223:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1221, p, entries.Count);
+					goto S1221;
+				}
+
+				S1224:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1222, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1222, p, entries.Count);
+					goto S1222;
+				}
+
+				S1225:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1224, p, entries.Count);
+					goto S1224;
+				}
+
+				S1226:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S1225;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1225, p, call, atomic, repeat, lookahead, 0));
+					goto S1233;
+				}
+
+				S1227:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1226;
+				}
+
+				S1228:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1226, p, entries.Count);
+					goto S1226;
+				}
+
+				S1229:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1227;
+				}
+
+				S1230:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1229;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1229;
+					p++;
+					goto S1229;
+				}
+
+				S1231:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1230;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1230;
+					p++;
+					goto S1230;
+				}
+
+				S1232:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1231;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1231;
+					p++;
+					goto S1231;
+				}
+
+				S1233:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1232;
+				}
+
+				S1234:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1235:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1234;
+				}
+
+				S1236:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1235, p, entries.Count);
+					goto S1235;
+				}
+
+				S1237:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1236;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1236, p, call, atomic, repeat, lookahead, 0));
+					goto S1244;
+				}
+
+				S1238:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1237;
+				}
+
+				S1239:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1237, p, entries.Count);
+					goto S1237;
+				}
+
+				S1240:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1238, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1238, p, entries.Count);
+					goto S1238;
+				}
+
+				S1241:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1240, p, entries.Count);
+					goto S1240;
+				}
+
+				S1242:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S1241;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1241, p, call, atomic, repeat, lookahead, 0));
+					goto S1249;
+				}
+
+				S1243:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1242;
+				}
+
+				S1244:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1242, p, entries.Count);
+					goto S1242;
+				}
+
+				S1245:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1243;
+				}
+
+				S1246:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1245;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1245;
+					p++;
+					goto S1245;
+				}
+
+				S1247:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1246;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1246;
+					p++;
+					goto S1246;
+				}
+
+				S1248:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1247;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1247;
+					p++;
+					goto S1247;
+				}
+
+				S1249:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1248;
+				}
+
+				S1250:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1223, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1223, p, entries.Count);
+					goto S1239;
+				}
+
+				S1251:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1252:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1251;
+				}
+
+				S1253:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1252;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1252;
+					p++;
+					goto S1252;
+				}
+
+				S1254:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1253;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1253;
+					p++;
+					goto S1253;
+				}
+
+				S1255:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1254;
+				}
+
+				S1256:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1255;
+				}
+
+				S1257:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1256;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1256;
+					p++;
+					goto S1256;
+				}
+
+				S1258:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1257;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1257;
+					p++;
+					goto S1257;
+				}
+
+				S1259:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1258;
+				}
+
+				S1260:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1259;
+				}
+
+				S1261:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1260;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1260;
+					p++;
+					goto S1260;
+				}
+
+				S1262:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1261;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1261;
+					p++;
+					goto S1261;
+				}
+
+				S1263:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1262;
+				}
+
+				S1264:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1265:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1264;
+				}
+
+				S1266:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1265;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1265;
+					p++;
+					goto S1265;
+				}
+
+				S1267:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1266;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1266;
+					p++;
+					goto S1266;
+				}
+
+				S1268:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1267;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1267;
+					p++;
+					goto S1267;
+				}
+
+				S1269:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1268;
+				}
+
+				S1270:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1263, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1263, p, entries.Count);
+					goto S1269;
+				}
+
+				S1271:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1270;
+				}
+
+				S1272:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1271, p, entries.Count);
+					goto S1271;
+				}
+
+				S1273:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1272;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1272, p, call, atomic, repeat, lookahead, 0));
+					goto S1280;
+				}
+
+				S1274:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1273;
+				}
+
+				S1275:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1273, p, entries.Count);
+					goto S1273;
+				}
+
+				S1276:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1274, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1274, p, entries.Count);
+					goto S1274;
+				}
+
+				S1277:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1276, p, entries.Count);
+					goto S1276;
+				}
+
+				S1278:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S1277;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1277, p, call, atomic, repeat, lookahead, 0));
+					goto S1285;
+				}
+
+				S1279:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1278;
+				}
+
+				S1280:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1278, p, entries.Count);
+					goto S1278;
+				}
+
+				S1281:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1279;
+				}
+
+				S1282:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1281;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1281;
+					p++;
+					goto S1281;
+				}
+
+				S1283:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1282;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1282;
+					p++;
+					goto S1282;
+				}
+
+				S1284:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1283;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1283;
+					p++;
+					goto S1283;
+				}
+
+				S1285:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1284;
+				}
+
+				S1286:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1250, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1250, p, entries.Count);
+					goto S1275;
+				}
+
+				S1287:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1288:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1287;
+				}
+
+				S1289:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1288;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1288;
+					p++;
+					goto S1288;
+				}
+
+				S1290:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1289;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1289;
+					p++;
+					goto S1289;
+				}
+
+				S1291:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1290;
+				}
+
+				S1292:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1291;
+				}
+
+				S1293:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1292;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1292;
+					p++;
+					goto S1292;
+				}
+
+				S1294:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1293;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1293;
+					p++;
+					goto S1293;
+				}
+
+				S1295:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1294;
+				}
+
+				S1296:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1295;
+				}
+
+				S1297:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1296;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1296;
+					p++;
+					goto S1296;
+				}
+
+				S1298:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1297;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1297;
+					p++;
+					goto S1297;
+				}
+
+				S1299:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1298;
+				}
+
+				S1300:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1301:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1300;
+				}
+
+				S1302:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1301;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1301;
+					p++;
+					goto S1301;
+				}
+
+				S1303:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1302;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1302;
+					p++;
+					goto S1302;
+				}
+
+				S1304:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1303;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1303;
+					p++;
+					goto S1303;
+				}
+
+				S1305:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1304;
+				}
+
+				S1306:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1299, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1299, p, entries.Count);
+					goto S1305;
+				}
+
+				S1307:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1306;
+				}
+
+				S1308:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1307;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1307;
+					p++;
+					goto S1307;
+				}
+
+				S1309:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1308;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1308;
+					p++;
+					goto S1308;
+				}
+
+				S1310:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1309;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1309;
+					p++;
+					goto S1309;
+				}
+
+				S1311:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1310;
+				}
+
+				S1312:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1311;
+				}
+
+				S1313:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1312, p, entries.Count);
+					goto S1312;
+				}
+
+				S1314:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1313;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1313, p, call, atomic, repeat, lookahead, 0));
+					goto S1321;
+				}
+
+				S1315:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1314;
+				}
+
+				S1316:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1314, p, entries.Count);
+					goto S1314;
+				}
+
+				S1317:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1315, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1315, p, entries.Count);
+					goto S1315;
+				}
+
+				S1318:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1317, p, entries.Count);
+					goto S1317;
+				}
+
+				S1319:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S1318;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1318, p, call, atomic, repeat, lookahead, 0));
+					goto S1326;
+				}
+
+				S1320:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1319;
+				}
+
+				S1321:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1319, p, entries.Count);
+					goto S1319;
+				}
+
+				S1322:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1320;
+				}
+
+				S1323:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1322;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1322;
+					p++;
+					goto S1322;
+				}
+
+				S1324:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1323;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1323;
+					p++;
+					goto S1323;
+				}
+
+				S1325:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1324;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1324;
+					p++;
+					goto S1324;
+				}
+
+				S1326:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1325;
+				}
+
+				S1327:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1286, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1286, p, entries.Count);
+					goto S1316;
+				}
+
+				S1328:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1329:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1328;
+				}
+
+				S1330:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1329;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1329;
+					p++;
+					goto S1329;
+				}
+
+				S1331:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1330;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1330;
+					p++;
+					goto S1330;
+				}
+
+				S1332:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1331;
+				}
+
+				S1333:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1332;
+				}
+
+				S1334:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1333;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1333;
+					p++;
+					goto S1333;
+				}
+
+				S1335:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1334;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1334;
+					p++;
+					goto S1334;
+				}
+
+				S1336:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1335;
+				}
+
+				S1337:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1336;
+				}
+
+				S1338:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1337;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1337;
+					p++;
+					goto S1337;
+				}
+
+				S1339:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1338;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1338;
+					p++;
+					goto S1338;
+				}
+
+				S1340:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1339;
+				}
+
+				S1341:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1342:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1341;
+				}
+
+				S1343:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1342;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1342;
+					p++;
+					goto S1342;
+				}
+
+				S1344:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1343;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1343;
+					p++;
+					goto S1343;
+				}
+
+				S1345:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1344;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1344;
+					p++;
+					goto S1344;
+				}
+
+				S1346:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1345;
+				}
+
+				S1347:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1340, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1340, p, entries.Count);
+					goto S1346;
+				}
+
+				S1348:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1347, p, entries.Count);
+					goto S1347;
+				}
+
+				S1349:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S1348;
+					if (repeating.Value >= 2)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1348, p, call, atomic, repeat, lookahead, 0));
+					goto S1356;
+				}
+
+				S1350:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1349;
+				}
+
+				S1351:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1349, p, entries.Count);
+					goto S1349;
+				}
+
+				S1352:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1350;
+				}
+
+				S1353:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1352;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1352;
+					p++;
+					goto S1352;
+				}
+
+				S1354:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1353;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1353;
+					p++;
+					goto S1353;
+				}
+
+				S1355:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1354;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1354;
+					p++;
+					goto S1354;
+				}
+
+				S1356:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1355;
+				}
+
+				S1357:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1351;
+				}
+
+				S1358:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1357, p, entries.Count);
+					goto S1357;
+				}
+
+				S1359:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1358;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1358, p, call, atomic, repeat, lookahead, 0));
+					goto S1366;
+				}
+
+				S1360:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1359;
+				}
+
+				S1361:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1359, p, entries.Count);
+					goto S1359;
+				}
+
+				S1362:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1360, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1360, p, entries.Count);
+					goto S1360;
+				}
+
+				S1363:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1362, p, entries.Count);
+					goto S1362;
+				}
+
+				S1364:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S1363;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1363, p, call, atomic, repeat, lookahead, 0));
+					goto S1371;
+				}
+
+				S1365:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1364;
+				}
+
+				S1366:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1364, p, entries.Count);
+					goto S1364;
+				}
+
+				S1367:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1365;
+				}
+
+				S1368:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1367;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1367;
+					p++;
+					goto S1367;
+				}
+
+				S1369:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1368;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1368;
+					p++;
+					goto S1368;
+				}
+
+				S1370:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1369;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1369;
+					p++;
+					goto S1369;
+				}
+
+				S1371:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1370;
+				}
+
+				S1372:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1327, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1327, p, entries.Count);
+					goto S1361;
+				}
+
+				S1373:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1374:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1373;
+				}
+
+				S1375:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1374;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1374;
+					p++;
+					goto S1374;
+				}
+
+				S1376:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1375;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1375;
+					p++;
+					goto S1375;
+				}
+
+				S1377:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1376;
+				}
+
+				S1378:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1377;
+				}
+
+				S1379:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1378;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1378;
+					p++;
+					goto S1378;
+				}
+
+				S1380:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1379;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1379;
+					p++;
+					goto S1379;
+				}
+
+				S1381:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1380;
+				}
+
+				S1382:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1381;
+				}
+
+				S1383:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1382;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1382;
+					p++;
+					goto S1382;
+				}
+
+				S1384:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1383;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1383;
+					p++;
+					goto S1383;
+				}
+
+				S1385:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1384;
+				}
+
+				S1386:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1387:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1386;
+				}
+
+				S1388:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1387;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1387;
+					p++;
+					goto S1387;
+				}
+
+				S1389:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1388;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1388;
+					p++;
+					goto S1388;
+				}
+
+				S1390:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1389;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1389;
+					p++;
+					goto S1389;
+				}
+
+				S1391:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1390;
+				}
+
+				S1392:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1385, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1385, p, entries.Count);
+					goto S1391;
+				}
+
+				S1393:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1392, p, entries.Count);
+					goto S1392;
+				}
+
+				S1394:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 3) goto S1393;
+					if (repeating.Value >= 3)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1393, p, call, atomic, repeat, lookahead, 0));
+					goto S1401;
+				}
+
+				S1395:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1394;
+				}
+
+				S1396:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1394, p, entries.Count);
+					goto S1394;
+				}
+
+				S1397:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1395;
+				}
+
+				S1398:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1397;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1397;
+					p++;
+					goto S1397;
+				}
+
+				S1399:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1398;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1398;
+					p++;
+					goto S1398;
+				}
+
+				S1400:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1399;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1399;
+					p++;
+					goto S1399;
+				}
+
+				S1401:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1400;
+				}
+
+				S1402:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1396;
+				}
+
+				S1403:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1402, p, entries.Count);
+					goto S1402;
+				}
+
+				S1404:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1403;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1403, p, call, atomic, repeat, lookahead, 0));
+					goto S1411;
+				}
+
+				S1405:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1404;
+				}
+
+				S1406:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1404, p, entries.Count);
+					goto S1404;
+				}
+
+				S1407:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1405, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1405, p, entries.Count);
+					goto S1405;
+				}
+
+				S1408:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1407, p, entries.Count);
+					goto S1407;
+				}
+
+				S1409:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1408;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1408, p, call, atomic, repeat, lookahead, 0));
+					goto S1416;
+				}
+
+				S1410:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1409;
+				}
+
+				S1411:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1409, p, entries.Count);
+					goto S1409;
+				}
+
+				S1412:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1410;
+				}
+
+				S1413:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1412;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1412;
+					p++;
+					goto S1412;
+				}
+
+				S1414:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1413;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1413;
+					p++;
+					goto S1413;
+				}
+
+				S1415:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1414;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1414;
+					p++;
+					goto S1414;
+				}
+
+				S1416:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1415;
+				}
+
+				S1417:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1372, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1372, p, entries.Count);
+					goto S1406;
+				}
+
+				S1418:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1419:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1418;
+				}
+
+				S1420:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1419;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1419;
+					p++;
+					goto S1419;
+				}
+
+				S1421:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1420;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1420;
+					p++;
+					goto S1420;
+				}
+
+				S1422:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1421;
+				}
+
+				S1423:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1422;
+				}
+
+				S1424:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1423;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1423;
+					p++;
+					goto S1423;
+				}
+
+				S1425:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1424;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1424;
+					p++;
+					goto S1424;
+				}
+
+				S1426:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1425;
+				}
+
+				S1427:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1426;
+				}
+
+				S1428:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1427;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1427;
+					p++;
+					goto S1427;
+				}
+
+				S1429:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1428;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1428;
+					p++;
+					goto S1428;
+				}
+
+				S1430:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1429;
+				}
+
+				S1431:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1432:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1431;
+				}
+
+				S1433:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1432;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1432;
+					p++;
+					goto S1432;
+				}
+
+				S1434:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1433;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1433;
+					p++;
+					goto S1433;
+				}
+
+				S1435:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1434;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1434;
+					p++;
+					goto S1434;
+				}
+
+				S1436:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1435;
+				}
+
+				S1437:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1430, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1430, p, entries.Count);
+					goto S1436;
+				}
+
+				S1438:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1437, p, entries.Count);
+					goto S1437;
+				}
+
+				S1439:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S1438;
+					if (repeating.Value >= 4)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1438, p, call, atomic, repeat, lookahead, 0));
+					goto S1446;
+				}
+
+				S1440:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1439;
+				}
+
+				S1441:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1439, p, entries.Count);
+					goto S1439;
+				}
+
+				S1442:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1440;
+				}
+
+				S1443:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1442;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1442;
+					p++;
+					goto S1442;
+				}
+
+				S1444:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1443;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1443;
+					p++;
+					goto S1443;
+				}
+
+				S1445:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1444;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1444;
+					p++;
+					goto S1444;
+				}
+
+				S1446:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1445;
+				}
+
+				S1447:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1441;
+				}
+
+				S1448:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1447, p, entries.Count);
+					goto S1447;
+				}
+
+				S1449:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S1448;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1448, p, call, atomic, repeat, lookahead, 0));
+					goto S1452;
+				}
+
+				S1450:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1449;
+				}
+
+				S1451:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1449, p, entries.Count);
+					goto S1449;
+				}
+
+				S1452:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 1450, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 1450, p, entries.Count);
+					goto S1450;
+				}
+
+				S1453:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1417, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1417, p, entries.Count);
+					goto S1451;
+				}
+
+				S1454:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1455:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1454;
+				}
+
+				S1456:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1455;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1455;
+					p++;
+					goto S1455;
+				}
+
+				S1457:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1456;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1456;
+					p++;
+					goto S1456;
+				}
+
+				S1458:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1457;
+				}
+
+				S1459:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1458;
+				}
+
+				S1460:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1459;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1459;
+					p++;
+					goto S1459;
+				}
+
+				S1461:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1460;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1460;
+					p++;
+					goto S1460;
+				}
+
+				S1462:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1461;
+				}
+
+				S1463:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1462;
+				}
+
+				S1464:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1463;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1463;
+					p++;
+					goto S1463;
+				}
+
+				S1465:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1464;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1464;
+					p++;
+					goto S1464;
+				}
+
+				S1466:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1465;
+				}
+
+				S1467:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1468:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1467;
+				}
+
+				S1469:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1468;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1468;
+					p++;
+					goto S1468;
+				}
+
+				S1470:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1469;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1469;
+					p++;
+					goto S1469;
+				}
+
+				S1471:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1470;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1470;
+					p++;
+					goto S1470;
+				}
+
+				S1472:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1471;
+				}
+
+				S1473:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1466, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1466, p, entries.Count);
+					goto S1472;
+				}
+
+				S1474:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1473, p, entries.Count);
+					goto S1473;
+				}
+
+				S1475:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 5) goto S1474;
+					if (repeating.Value >= 5)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1474, p, call, atomic, repeat, lookahead, 0));
+					goto S1482;
+				}
+
+				S1476:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1475;
+				}
+
+				S1477:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1475, p, entries.Count);
+					goto S1475;
+				}
+
+				S1478:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1476;
+				}
+
+				S1479:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1478;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1478;
+					p++;
+					goto S1478;
+				}
+
+				S1480:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1479;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1479;
+					p++;
+					goto S1479;
+				}
+
+				S1481:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1480;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1480;
+					p++;
+					goto S1480;
+				}
+
+				S1482:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1481;
+				}
+
+				S1483:
+
+				{
+					if (p + 2 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					if (text[p + 1] != ':') goto Fail;
+					p += 2;
+					goto S1477;
+				}
+
+				S1484:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1453, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1453, p, entries.Count);
+					goto S1483;
+				}
+
+				S1485:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1486:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1485;
+				}
+
+				S1487:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1486;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1486;
+					p++;
+					goto S1486;
+				}
+
+				S1488:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1487;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1487;
+					p++;
+					goto S1487;
+				}
+
+				S1489:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1488;
+				}
+
+				S1490:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1489;
+				}
+
+				S1491:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1490;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1490;
+					p++;
+					goto S1490;
+				}
+
+				S1492:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1491;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1491;
+					p++;
+					goto S1491;
+				}
+
+				S1493:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1492;
+				}
+
+				S1494:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1493;
+				}
+
+				S1495:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1494;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1494;
+					p++;
+					goto S1494;
+				}
+
+				S1496:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1495;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1495;
+					p++;
+					goto S1495;
+				}
+
+				S1497:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1496;
+				}
+
+				S1498:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1499:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1498;
+				}
+
+				S1500:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1499;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1499;
+					p++;
+					goto S1499;
+				}
+
+				S1501:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1500;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1500;
+					p++;
+					goto S1500;
+				}
+
+				S1502:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1501;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1501;
+					p++;
+					goto S1501;
+				}
+
+				S1503:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1502;
+				}
+
+				S1504:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1497, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1497, p, entries.Count);
+					goto S1503;
+				}
+
+				S1505:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1504, p, entries.Count);
+					goto S1504;
+				}
+
+				S1506:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S1505;
+					if (repeating.Value >= 6)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 1505, p, call, atomic, repeat, lookahead, 0));
+					goto S1513;
+				}
+
+				S1507:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S1506;
+				}
+
+				S1508:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1506, p, entries.Count);
+					goto S1506;
+				}
+
+				S1509:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1507;
+				}
+
+				S1510:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1509;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1509;
+					p++;
+					goto S1509;
+				}
+
+				S1511:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1510;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1510;
+					p++;
+					goto S1510;
+				}
+
+				S1512:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1511;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1511;
+					p++;
+					goto S1511;
+				}
+
+				S1513:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1512;
+				}
+
+				S1514:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1484, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1484, p, entries.Count);
+					goto S1508;
+				}
+
+				S1515:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto Return;
+				}
+
+				S1516:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1515;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1515;
+					p++;
+					goto S1515;
+				}
+
+				S1517:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1516;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1516;
+					p++;
+					goto S1516;
+				}
+
+				S1518:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1517;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1517;
+					p++;
+					goto S1517;
+				}
+
+				S1519:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1518;
+				}
+
+				S1520:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 3) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1521:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1520;
+				}
+
+				S1522:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1521;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1521;
+					p++;
+					goto S1521;
+				}
+
+				S1523:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1522;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1522;
+					p++;
+					goto S1522;
+				}
+
+				S1524:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1523;
+				}
+
+				S1525:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1524;
+				}
+
+				S1526:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1525;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1525;
+					p++;
+					goto S1525;
+				}
+
+				S1527:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1526;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1526;
+					p++;
+					goto S1526;
+				}
+
+				S1528:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1527;
+				}
+
+				S1529:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '.') goto Fail;
+					p += 1;
+					goto S1528;
+				}
+
+				S1530:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1529;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1529;
+					p++;
+					goto S1529;
+				}
+
+				S1531:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1530;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto S1530;
+					p++;
+					goto S1530;
+				}
+
+				S1532:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S1531;
+				}
+
+				S1533:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1534:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != ':') goto Fail;
+					p += 1;
+					goto S1533;
+				}
+
+				S1535:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1534;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1534;
+					p++;
+					goto S1534;
+				}
+
+				S1536:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1535;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1535;
+					p++;
+					goto S1535;
+				}
+
+				S1537:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto S1536;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto S1536;
+					p++;
+					goto S1536;
+				}
+
+				S1538:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1537;
+				}
+
+				S1539:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1532, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 1532, p, entries.Count);
+					goto S1538;
+				}
+
+				S1540:
+
+				{
+					var runStart = p;
+					while (true)
+					{
+						if (p - runStart >= 4) break;
+						if (p >= text.Length)
+
+						{
+							failure.Starved = true;
+							break;
+						}
+						c = text[p];
+						if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) break;
+						p++;
+					}
+					if (p < runStart + 1) goto Fail;
+					if (p > runStart + 1)
+						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1541:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1542:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1541, p, call, atomic, repeat, lookahead, 0));
+					goto S1556;
+				}
+
+				S1543:
+
+				{
+					goto S1542;
+				}
+
+				S1544:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1542, p, entries.Count);
+					goto S1542;
+				}
+
+				S1545:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 1543, p, entries.Count);
+					goto S1543;
+				}
+
+				S1546:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1545, p, call, atomic, repeat, lookahead, 0));
+					goto S1555;
+				}
+
+				S1547:
+
+				{
+					goto S1546;
+				}
+
+				S1548:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1546, p, entries.Count);
+					goto S1546;
+				}
+
+				S1549:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S1547;
+				}
+
+				S1550:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S1547;
+				}
+
+				S1551:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1547;
+				}
+
+				S1552:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1551;
+				}
+
+				S1553:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S1552;
+				}
+
+				S1554:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == ':' || c == '@'))) goto Fail;
+					p++;
+					goto S1547;
+				}
+
+				S1555:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S1549;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S1550;
+					if (c == '%') goto S1553;
+					if (c == ':' || c == '@') goto S1554;
+					goto Fail;
+				}
+
+				S1556:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '/') goto Fail;
+					p += 1;
+					goto S1548;
+				}
+
+				S1557:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1558:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1557, p, call, atomic, repeat, lookahead, 0));
+					goto S1567;
+				}
+
+				S1559:
+
+				{
+					goto S1558;
+				}
+
+				S1560:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1558, p, entries.Count);
+					goto S1558;
+				}
+
+				S1561:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S1559;
+				}
+
+				S1562:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S1559;
+				}
+
+				S1563:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1559;
+				}
+
+				S1564:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1563;
+				}
+
+				S1565:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S1564;
+				}
+
+				S1566:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == ':' || c == '@'))) goto Fail;
+					p++;
+					goto S1559;
+				}
+
+				S1567:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S1561;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S1562;
+					if (c == '%') goto S1565;
+					if (c == ':' || c == '@') goto S1566;
+					goto Fail;
+				}
+
+				S1568:
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S1569:
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 1568, p, call, atomic, repeat, lookahead, 0));
+					goto S1578;
+				}
+
+				S1570:
+
+				{
+					goto S1569;
+				}
+
+				S1571:
+
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 1569, p, entries.Count);
+					goto S1569;
+				}
+
+				S1572:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S1570;
+				}
+
+				S1573:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S1570;
+				}
+
+				S1574:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1570;
+				}
+
+				S1575:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S1574;
+				}
+
+				S1576:
+
+				{
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '%') goto Fail;
+					p += 1;
+					goto S1575;
+				}
+
+				S1577:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '/' || c == ':' || (c >= '?' && c <= '@')))) goto Fail;
+					p++;
+					goto S1570;
+				}
+
+				S1578:
+
+				{
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S1572;
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') goto S1573;
+					if (c == '%') goto S1576;
+					if (c == '/' || c == ':' || (c >= '?' && c <= '@')) goto S1577;
+					goto Fail;
+				}
+
+				S1579:
 
 				{
 					if (p >= text.Length)
@@ -3142,7 +21872,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S280:
+				S1580:
 
 				{
 					if (p >= text.Length)
@@ -3154,10 +21884,10 @@ namespace DotGram.Snapshots
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
 					p++;
-					goto S279;
+					goto S1579;
 				}
 
-				S281:
+				S1581:
 
 				{
 					if (p + 1 > text.Length)
@@ -3168,10 +21898,10 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 0] != '%') goto Fail;
 					p += 1;
-					goto S280;
+					goto S1580;
 				}
 
-				S282:
+				S1582:
 
 				{
 					if (p >= text.Length)
@@ -3186,7 +21916,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S283:
+				S1583:
 
 				{
 					if (p >= text.Length)
@@ -3201,7 +21931,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S284:
+				S1584:
 
 				{
 					if (p >= text.Length)
@@ -3216,7 +21946,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S285:
+				S1585:
 
 				{
 					if (p >= text.Length)
@@ -3446,6 +22176,21 @@ namespace DotGram.Snapshots
 						Trace("resume", state, p, entries.Count);
 						goto Dispatch;
 					}
+					if (entry.Kind == ParserEntry.Run)
+					{
+						if (entry.Value <= entry.Position) continue;
+
+						state  = entry.State;
+						p      = entry.Value - 1;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
+						Trace("shorten run", state, p, entries.Count);
+						goto Dispatch;
+					}
+
 					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
 						continue;
 
@@ -3787,6 +22532,1306 @@ namespace DotGram.Snapshots
 					case 283: goto S283;
 					case 284: goto S284;
 					case 285: goto S285;
+					case 286: goto S286;
+					case 287: goto S287;
+					case 288: goto S288;
+					case 289: goto S289;
+					case 290: goto S290;
+					case 291: goto S291;
+					case 292: goto S292;
+					case 293: goto S293;
+					case 294: goto S294;
+					case 295: goto S295;
+					case 296: goto S296;
+					case 297: goto S297;
+					case 298: goto S298;
+					case 299: goto S299;
+					case 300: goto S300;
+					case 301: goto S301;
+					case 302: goto S302;
+					case 303: goto S303;
+					case 304: goto S304;
+					case 305: goto S305;
+					case 306: goto S306;
+					case 307: goto S307;
+					case 308: goto S308;
+					case 309: goto S309;
+					case 310: goto S310;
+					case 311: goto S311;
+					case 312: goto S312;
+					case 313: goto S313;
+					case 314: goto S314;
+					case 315: goto S315;
+					case 316: goto S316;
+					case 317: goto S317;
+					case 318: goto S318;
+					case 319: goto S319;
+					case 320: goto S320;
+					case 321: goto S321;
+					case 322: goto S322;
+					case 323: goto S323;
+					case 324: goto S324;
+					case 325: goto S325;
+					case 326: goto S326;
+					case 327: goto S327;
+					case 328: goto S328;
+					case 329: goto S329;
+					case 330: goto S330;
+					case 331: goto S331;
+					case 332: goto S332;
+					case 333: goto S333;
+					case 334: goto S334;
+					case 335: goto S335;
+					case 336: goto S336;
+					case 337: goto S337;
+					case 338: goto S338;
+					case 339: goto S339;
+					case 340: goto S340;
+					case 341: goto S341;
+					case 342: goto S342;
+					case 343: goto S343;
+					case 344: goto S344;
+					case 345: goto S345;
+					case 346: goto S346;
+					case 347: goto S347;
+					case 348: goto S348;
+					case 349: goto S349;
+					case 350: goto S350;
+					case 351: goto S351;
+					case 352: goto S352;
+					case 353: goto S353;
+					case 354: goto S354;
+					case 355: goto S355;
+					case 356: goto S356;
+					case 357: goto S357;
+					case 358: goto S358;
+					case 359: goto S359;
+					case 360: goto S360;
+					case 361: goto S361;
+					case 362: goto S362;
+					case 363: goto S363;
+					case 364: goto S364;
+					case 365: goto S365;
+					case 366: goto S366;
+					case 367: goto S367;
+					case 368: goto S368;
+					case 369: goto S369;
+					case 370: goto S370;
+					case 371: goto S371;
+					case 372: goto S372;
+					case 373: goto S373;
+					case 374: goto S374;
+					case 375: goto S375;
+					case 376: goto S376;
+					case 377: goto S377;
+					case 378: goto S378;
+					case 379: goto S379;
+					case 380: goto S380;
+					case 381: goto S381;
+					case 382: goto S382;
+					case 383: goto S383;
+					case 384: goto S384;
+					case 385: goto S385;
+					case 386: goto S386;
+					case 387: goto S387;
+					case 388: goto S388;
+					case 389: goto S389;
+					case 390: goto S390;
+					case 391: goto S391;
+					case 392: goto S392;
+					case 393: goto S393;
+					case 394: goto S394;
+					case 395: goto S395;
+					case 396: goto S396;
+					case 397: goto S397;
+					case 398: goto S398;
+					case 399: goto S399;
+					case 400: goto S400;
+					case 401: goto S401;
+					case 402: goto S402;
+					case 403: goto S403;
+					case 404: goto S404;
+					case 405: goto S405;
+					case 406: goto S406;
+					case 407: goto S407;
+					case 408: goto S408;
+					case 409: goto S409;
+					case 410: goto S410;
+					case 411: goto S411;
+					case 412: goto S412;
+					case 413: goto S413;
+					case 414: goto S414;
+					case 415: goto S415;
+					case 416: goto S416;
+					case 417: goto S417;
+					case 418: goto S418;
+					case 419: goto S419;
+					case 420: goto S420;
+					case 421: goto S421;
+					case 422: goto S422;
+					case 423: goto S423;
+					case 424: goto S424;
+					case 425: goto S425;
+					case 426: goto S426;
+					case 427: goto S427;
+					case 428: goto S428;
+					case 429: goto S429;
+					case 430: goto S430;
+					case 431: goto S431;
+					case 432: goto S432;
+					case 433: goto S433;
+					case 434: goto S434;
+					case 435: goto S435;
+					case 436: goto S436;
+					case 437: goto S437;
+					case 438: goto S438;
+					case 439: goto S439;
+					case 440: goto S440;
+					case 441: goto S441;
+					case 442: goto S442;
+					case 443: goto S443;
+					case 444: goto S444;
+					case 445: goto S445;
+					case 446: goto S446;
+					case 447: goto S447;
+					case 448: goto S448;
+					case 449: goto S449;
+					case 450: goto S450;
+					case 451: goto S451;
+					case 452: goto S452;
+					case 453: goto S453;
+					case 454: goto S454;
+					case 455: goto S455;
+					case 456: goto S456;
+					case 457: goto S457;
+					case 458: goto S458;
+					case 459: goto S459;
+					case 460: goto S460;
+					case 461: goto S461;
+					case 462: goto S462;
+					case 463: goto S463;
+					case 464: goto S464;
+					case 465: goto S465;
+					case 466: goto S466;
+					case 467: goto S467;
+					case 468: goto S468;
+					case 469: goto S469;
+					case 470: goto S470;
+					case 471: goto S471;
+					case 472: goto S472;
+					case 473: goto S473;
+					case 474: goto S474;
+					case 475: goto S475;
+					case 476: goto S476;
+					case 477: goto S477;
+					case 478: goto S478;
+					case 479: goto S479;
+					case 480: goto S480;
+					case 481: goto S481;
+					case 482: goto S482;
+					case 483: goto S483;
+					case 484: goto S484;
+					case 485: goto S485;
+					case 486: goto S486;
+					case 487: goto S487;
+					case 488: goto S488;
+					case 489: goto S489;
+					case 490: goto S490;
+					case 491: goto S491;
+					case 492: goto S492;
+					case 493: goto S493;
+					case 494: goto S494;
+					case 495: goto S495;
+					case 496: goto S496;
+					case 497: goto S497;
+					case 498: goto S498;
+					case 499: goto S499;
+					case 500: goto S500;
+					case 501: goto S501;
+					case 502: goto S502;
+					case 503: goto S503;
+					case 504: goto S504;
+					case 505: goto S505;
+					case 506: goto S506;
+					case 507: goto S507;
+					case 508: goto S508;
+					case 509: goto S509;
+					case 510: goto S510;
+					case 511: goto S511;
+					case 512: goto S512;
+					case 513: goto S513;
+					case 514: goto S514;
+					case 515: goto S515;
+					case 516: goto S516;
+					case 517: goto S517;
+					case 518: goto S518;
+					case 519: goto S519;
+					case 520: goto S520;
+					case 521: goto S521;
+					case 522: goto S522;
+					case 523: goto S523;
+					case 524: goto S524;
+					case 525: goto S525;
+					case 526: goto S526;
+					case 527: goto S527;
+					case 528: goto S528;
+					case 529: goto S529;
+					case 530: goto S530;
+					case 531: goto S531;
+					case 532: goto S532;
+					case 533: goto S533;
+					case 534: goto S534;
+					case 535: goto S535;
+					case 536: goto S536;
+					case 537: goto S537;
+					case 538: goto S538;
+					case 539: goto S539;
+					case 540: goto S540;
+					case 541: goto S541;
+					case 542: goto S542;
+					case 543: goto S543;
+					case 544: goto S544;
+					case 545: goto S545;
+					case 546: goto S546;
+					case 547: goto S547;
+					case 548: goto S548;
+					case 549: goto S549;
+					case 550: goto S550;
+					case 551: goto S551;
+					case 552: goto S552;
+					case 553: goto S553;
+					case 554: goto S554;
+					case 555: goto S555;
+					case 556: goto S556;
+					case 557: goto S557;
+					case 558: goto S558;
+					case 559: goto S559;
+					case 560: goto S560;
+					case 561: goto S561;
+					case 562: goto S562;
+					case 563: goto S563;
+					case 564: goto S564;
+					case 565: goto S565;
+					case 566: goto S566;
+					case 567: goto S567;
+					case 568: goto S568;
+					case 569: goto S569;
+					case 570: goto S570;
+					case 571: goto S571;
+					case 572: goto S572;
+					case 573: goto S573;
+					case 574: goto S574;
+					case 575: goto S575;
+					case 576: goto S576;
+					case 577: goto S577;
+					case 578: goto S578;
+					case 579: goto S579;
+					case 580: goto S580;
+					case 581: goto S581;
+					case 582: goto S582;
+					case 583: goto S583;
+					case 584: goto S584;
+					case 585: goto S585;
+					case 586: goto S586;
+					case 587: goto S587;
+					case 588: goto S588;
+					case 589: goto S589;
+					case 590: goto S590;
+					case 591: goto S591;
+					case 592: goto S592;
+					case 593: goto S593;
+					case 594: goto S594;
+					case 595: goto S595;
+					case 596: goto S596;
+					case 597: goto S597;
+					case 598: goto S598;
+					case 599: goto S599;
+					case 600: goto S600;
+					case 601: goto S601;
+					case 602: goto S602;
+					case 603: goto S603;
+					case 604: goto S604;
+					case 605: goto S605;
+					case 606: goto S606;
+					case 607: goto S607;
+					case 608: goto S608;
+					case 609: goto S609;
+					case 610: goto S610;
+					case 611: goto S611;
+					case 612: goto S612;
+					case 613: goto S613;
+					case 614: goto S614;
+					case 615: goto S615;
+					case 616: goto S616;
+					case 617: goto S617;
+					case 618: goto S618;
+					case 619: goto S619;
+					case 620: goto S620;
+					case 621: goto S621;
+					case 622: goto S622;
+					case 623: goto S623;
+					case 624: goto S624;
+					case 625: goto S625;
+					case 626: goto S626;
+					case 627: goto S627;
+					case 628: goto S628;
+					case 629: goto S629;
+					case 630: goto S630;
+					case 631: goto S631;
+					case 632: goto S632;
+					case 633: goto S633;
+					case 634: goto S634;
+					case 635: goto S635;
+					case 636: goto S636;
+					case 637: goto S637;
+					case 638: goto S638;
+					case 639: goto S639;
+					case 640: goto S640;
+					case 641: goto S641;
+					case 642: goto S642;
+					case 643: goto S643;
+					case 644: goto S644;
+					case 645: goto S645;
+					case 646: goto S646;
+					case 647: goto S647;
+					case 648: goto S648;
+					case 649: goto S649;
+					case 650: goto S650;
+					case 651: goto S651;
+					case 652: goto S652;
+					case 653: goto S653;
+					case 654: goto S654;
+					case 655: goto S655;
+					case 656: goto S656;
+					case 657: goto S657;
+					case 658: goto S658;
+					case 659: goto S659;
+					case 660: goto S660;
+					case 661: goto S661;
+					case 662: goto S662;
+					case 663: goto S663;
+					case 664: goto S664;
+					case 665: goto S665;
+					case 666: goto S666;
+					case 667: goto S667;
+					case 668: goto S668;
+					case 669: goto S669;
+					case 670: goto S670;
+					case 671: goto S671;
+					case 672: goto S672;
+					case 673: goto S673;
+					case 674: goto S674;
+					case 675: goto S675;
+					case 676: goto S676;
+					case 677: goto S677;
+					case 678: goto S678;
+					case 679: goto S679;
+					case 680: goto S680;
+					case 681: goto S681;
+					case 682: goto S682;
+					case 683: goto S683;
+					case 684: goto S684;
+					case 685: goto S685;
+					case 686: goto S686;
+					case 687: goto S687;
+					case 688: goto S688;
+					case 689: goto S689;
+					case 690: goto S690;
+					case 691: goto S691;
+					case 692: goto S692;
+					case 693: goto S693;
+					case 694: goto S694;
+					case 695: goto S695;
+					case 696: goto S696;
+					case 697: goto S697;
+					case 698: goto S698;
+					case 699: goto S699;
+					case 700: goto S700;
+					case 701: goto S701;
+					case 702: goto S702;
+					case 703: goto S703;
+					case 704: goto S704;
+					case 705: goto S705;
+					case 706: goto S706;
+					case 707: goto S707;
+					case 708: goto S708;
+					case 709: goto S709;
+					case 710: goto S710;
+					case 711: goto S711;
+					case 712: goto S712;
+					case 713: goto S713;
+					case 714: goto S714;
+					case 715: goto S715;
+					case 716: goto S716;
+					case 717: goto S717;
+					case 718: goto S718;
+					case 719: goto S719;
+					case 720: goto S720;
+					case 721: goto S721;
+					case 722: goto S722;
+					case 723: goto S723;
+					case 724: goto S724;
+					case 725: goto S725;
+					case 726: goto S726;
+					case 727: goto S727;
+					case 728: goto S728;
+					case 729: goto S729;
+					case 730: goto S730;
+					case 731: goto S731;
+					case 732: goto S732;
+					case 733: goto S733;
+					case 734: goto S734;
+					case 735: goto S735;
+					case 736: goto S736;
+					case 737: goto S737;
+					case 738: goto S738;
+					case 739: goto S739;
+					case 740: goto S740;
+					case 741: goto S741;
+					case 742: goto S742;
+					case 743: goto S743;
+					case 744: goto S744;
+					case 745: goto S745;
+					case 746: goto S746;
+					case 747: goto S747;
+					case 748: goto S748;
+					case 749: goto S749;
+					case 750: goto S750;
+					case 751: goto S751;
+					case 752: goto S752;
+					case 753: goto S753;
+					case 754: goto S754;
+					case 755: goto S755;
+					case 756: goto S756;
+					case 757: goto S757;
+					case 758: goto S758;
+					case 759: goto S759;
+					case 760: goto S760;
+					case 761: goto S761;
+					case 762: goto S762;
+					case 763: goto S763;
+					case 764: goto S764;
+					case 765: goto S765;
+					case 766: goto S766;
+					case 767: goto S767;
+					case 768: goto S768;
+					case 769: goto S769;
+					case 770: goto S770;
+					case 771: goto S771;
+					case 772: goto S772;
+					case 773: goto S773;
+					case 774: goto S774;
+					case 775: goto S775;
+					case 776: goto S776;
+					case 777: goto S777;
+					case 778: goto S778;
+					case 779: goto S779;
+					case 780: goto S780;
+					case 781: goto S781;
+					case 782: goto S782;
+					case 783: goto S783;
+					case 784: goto S784;
+					case 785: goto S785;
+					case 786: goto S786;
+					case 787: goto S787;
+					case 788: goto S788;
+					case 789: goto S789;
+					case 790: goto S790;
+					case 791: goto S791;
+					case 792: goto S792;
+					case 793: goto S793;
+					case 794: goto S794;
+					case 795: goto S795;
+					case 796: goto S796;
+					case 797: goto S797;
+					case 798: goto S798;
+					case 799: goto S799;
+					case 800: goto S800;
+					case 801: goto S801;
+					case 802: goto S802;
+					case 803: goto S803;
+					case 804: goto S804;
+					case 805: goto S805;
+					case 806: goto S806;
+					case 807: goto S807;
+					case 808: goto S808;
+					case 809: goto S809;
+					case 810: goto S810;
+					case 811: goto S811;
+					case 812: goto S812;
+					case 813: goto S813;
+					case 814: goto S814;
+					case 815: goto S815;
+					case 816: goto S816;
+					case 817: goto S817;
+					case 818: goto S818;
+					case 819: goto S819;
+					case 820: goto S820;
+					case 821: goto S821;
+					case 822: goto S822;
+					case 823: goto S823;
+					case 824: goto S824;
+					case 825: goto S825;
+					case 826: goto S826;
+					case 827: goto S827;
+					case 828: goto S828;
+					case 829: goto S829;
+					case 830: goto S830;
+					case 831: goto S831;
+					case 832: goto S832;
+					case 833: goto S833;
+					case 834: goto S834;
+					case 835: goto S835;
+					case 836: goto S836;
+					case 837: goto S837;
+					case 838: goto S838;
+					case 839: goto S839;
+					case 840: goto S840;
+					case 841: goto S841;
+					case 842: goto S842;
+					case 843: goto S843;
+					case 844: goto S844;
+					case 845: goto S845;
+					case 846: goto S846;
+					case 847: goto S847;
+					case 848: goto S848;
+					case 849: goto S849;
+					case 850: goto S850;
+					case 851: goto S851;
+					case 852: goto S852;
+					case 853: goto S853;
+					case 854: goto S854;
+					case 855: goto S855;
+					case 856: goto S856;
+					case 857: goto S857;
+					case 858: goto S858;
+					case 859: goto S859;
+					case 860: goto S860;
+					case 861: goto S861;
+					case 862: goto S862;
+					case 863: goto S863;
+					case 864: goto S864;
+					case 865: goto S865;
+					case 866: goto S866;
+					case 867: goto S867;
+					case 868: goto S868;
+					case 869: goto S869;
+					case 870: goto S870;
+					case 871: goto S871;
+					case 872: goto S872;
+					case 873: goto S873;
+					case 874: goto S874;
+					case 875: goto S875;
+					case 876: goto S876;
+					case 877: goto S877;
+					case 878: goto S878;
+					case 879: goto S879;
+					case 880: goto S880;
+					case 881: goto S881;
+					case 882: goto S882;
+					case 883: goto S883;
+					case 884: goto S884;
+					case 885: goto S885;
+					case 886: goto S886;
+					case 887: goto S887;
+					case 888: goto S888;
+					case 889: goto S889;
+					case 890: goto S890;
+					case 891: goto S891;
+					case 892: goto S892;
+					case 893: goto S893;
+					case 894: goto S894;
+					case 895: goto S895;
+					case 896: goto S896;
+					case 897: goto S897;
+					case 898: goto S898;
+					case 899: goto S899;
+					case 900: goto S900;
+					case 901: goto S901;
+					case 902: goto S902;
+					case 903: goto S903;
+					case 904: goto S904;
+					case 905: goto S905;
+					case 906: goto S906;
+					case 907: goto S907;
+					case 908: goto S908;
+					case 909: goto S909;
+					case 910: goto S910;
+					case 911: goto S911;
+					case 912: goto S912;
+					case 913: goto S913;
+					case 914: goto S914;
+					case 915: goto S915;
+					case 916: goto S916;
+					case 917: goto S917;
+					case 918: goto S918;
+					case 919: goto S919;
+					case 920: goto S920;
+					case 921: goto S921;
+					case 922: goto S922;
+					case 923: goto S923;
+					case 924: goto S924;
+					case 925: goto S925;
+					case 926: goto S926;
+					case 927: goto S927;
+					case 928: goto S928;
+					case 929: goto S929;
+					case 930: goto S930;
+					case 931: goto S931;
+					case 932: goto S932;
+					case 933: goto S933;
+					case 934: goto S934;
+					case 935: goto S935;
+					case 936: goto S936;
+					case 937: goto S937;
+					case 938: goto S938;
+					case 939: goto S939;
+					case 940: goto S940;
+					case 941: goto S941;
+					case 942: goto S942;
+					case 943: goto S943;
+					case 944: goto S944;
+					case 945: goto S945;
+					case 946: goto S946;
+					case 947: goto S947;
+					case 948: goto S948;
+					case 949: goto S949;
+					case 950: goto S950;
+					case 951: goto S951;
+					case 952: goto S952;
+					case 953: goto S953;
+					case 954: goto S954;
+					case 955: goto S955;
+					case 956: goto S956;
+					case 957: goto S957;
+					case 958: goto S958;
+					case 959: goto S959;
+					case 960: goto S960;
+					case 961: goto S961;
+					case 962: goto S962;
+					case 963: goto S963;
+					case 964: goto S964;
+					case 965: goto S965;
+					case 966: goto S966;
+					case 967: goto S967;
+					case 968: goto S968;
+					case 969: goto S969;
+					case 970: goto S970;
+					case 971: goto S971;
+					case 972: goto S972;
+					case 973: goto S973;
+					case 974: goto S974;
+					case 975: goto S975;
+					case 976: goto S976;
+					case 977: goto S977;
+					case 978: goto S978;
+					case 979: goto S979;
+					case 980: goto S980;
+					case 981: goto S981;
+					case 982: goto S982;
+					case 983: goto S983;
+					case 984: goto S984;
+					case 985: goto S985;
+					case 986: goto S986;
+					case 987: goto S987;
+					case 988: goto S988;
+					case 989: goto S989;
+					case 990: goto S990;
+					case 991: goto S991;
+					case 992: goto S992;
+					case 993: goto S993;
+					case 994: goto S994;
+					case 995: goto S995;
+					case 996: goto S996;
+					case 997: goto S997;
+					case 998: goto S998;
+					case 999: goto S999;
+					case 1000: goto S1000;
+					case 1001: goto S1001;
+					case 1002: goto S1002;
+					case 1003: goto S1003;
+					case 1004: goto S1004;
+					case 1005: goto S1005;
+					case 1006: goto S1006;
+					case 1007: goto S1007;
+					case 1008: goto S1008;
+					case 1009: goto S1009;
+					case 1010: goto S1010;
+					case 1011: goto S1011;
+					case 1012: goto S1012;
+					case 1013: goto S1013;
+					case 1014: goto S1014;
+					case 1015: goto S1015;
+					case 1016: goto S1016;
+					case 1017: goto S1017;
+					case 1018: goto S1018;
+					case 1019: goto S1019;
+					case 1020: goto S1020;
+					case 1021: goto S1021;
+					case 1022: goto S1022;
+					case 1023: goto S1023;
+					case 1024: goto S1024;
+					case 1025: goto S1025;
+					case 1026: goto S1026;
+					case 1027: goto S1027;
+					case 1028: goto S1028;
+					case 1029: goto S1029;
+					case 1030: goto S1030;
+					case 1031: goto S1031;
+					case 1032: goto S1032;
+					case 1033: goto S1033;
+					case 1034: goto S1034;
+					case 1035: goto S1035;
+					case 1036: goto S1036;
+					case 1037: goto S1037;
+					case 1038: goto S1038;
+					case 1039: goto S1039;
+					case 1040: goto S1040;
+					case 1041: goto S1041;
+					case 1042: goto S1042;
+					case 1043: goto S1043;
+					case 1044: goto S1044;
+					case 1045: goto S1045;
+					case 1046: goto S1046;
+					case 1047: goto S1047;
+					case 1048: goto S1048;
+					case 1049: goto S1049;
+					case 1050: goto S1050;
+					case 1051: goto S1051;
+					case 1052: goto S1052;
+					case 1053: goto S1053;
+					case 1054: goto S1054;
+					case 1055: goto S1055;
+					case 1056: goto S1056;
+					case 1057: goto S1057;
+					case 1058: goto S1058;
+					case 1059: goto S1059;
+					case 1060: goto S1060;
+					case 1061: goto S1061;
+					case 1062: goto S1062;
+					case 1063: goto S1063;
+					case 1064: goto S1064;
+					case 1065: goto S1065;
+					case 1066: goto S1066;
+					case 1067: goto S1067;
+					case 1068: goto S1068;
+					case 1069: goto S1069;
+					case 1070: goto S1070;
+					case 1071: goto S1071;
+					case 1072: goto S1072;
+					case 1073: goto S1073;
+					case 1074: goto S1074;
+					case 1075: goto S1075;
+					case 1076: goto S1076;
+					case 1077: goto S1077;
+					case 1078: goto S1078;
+					case 1079: goto S1079;
+					case 1080: goto S1080;
+					case 1081: goto S1081;
+					case 1082: goto S1082;
+					case 1083: goto S1083;
+					case 1084: goto S1084;
+					case 1085: goto S1085;
+					case 1086: goto S1086;
+					case 1087: goto S1087;
+					case 1088: goto S1088;
+					case 1089: goto S1089;
+					case 1090: goto S1090;
+					case 1091: goto S1091;
+					case 1092: goto S1092;
+					case 1093: goto S1093;
+					case 1094: goto S1094;
+					case 1095: goto S1095;
+					case 1096: goto S1096;
+					case 1097: goto S1097;
+					case 1098: goto S1098;
+					case 1099: goto S1099;
+					case 1100: goto S1100;
+					case 1101: goto S1101;
+					case 1102: goto S1102;
+					case 1103: goto S1103;
+					case 1104: goto S1104;
+					case 1105: goto S1105;
+					case 1106: goto S1106;
+					case 1107: goto S1107;
+					case 1108: goto S1108;
+					case 1109: goto S1109;
+					case 1110: goto S1110;
+					case 1111: goto S1111;
+					case 1112: goto S1112;
+					case 1113: goto S1113;
+					case 1114: goto S1114;
+					case 1115: goto S1115;
+					case 1116: goto S1116;
+					case 1117: goto S1117;
+					case 1118: goto S1118;
+					case 1119: goto S1119;
+					case 1120: goto S1120;
+					case 1121: goto S1121;
+					case 1122: goto S1122;
+					case 1123: goto S1123;
+					case 1124: goto S1124;
+					case 1125: goto S1125;
+					case 1126: goto S1126;
+					case 1127: goto S1127;
+					case 1128: goto S1128;
+					case 1129: goto S1129;
+					case 1130: goto S1130;
+					case 1131: goto S1131;
+					case 1132: goto S1132;
+					case 1133: goto S1133;
+					case 1134: goto S1134;
+					case 1135: goto S1135;
+					case 1136: goto S1136;
+					case 1137: goto S1137;
+					case 1138: goto S1138;
+					case 1139: goto S1139;
+					case 1140: goto S1140;
+					case 1141: goto S1141;
+					case 1142: goto S1142;
+					case 1143: goto S1143;
+					case 1144: goto S1144;
+					case 1145: goto S1145;
+					case 1146: goto S1146;
+					case 1147: goto S1147;
+					case 1148: goto S1148;
+					case 1149: goto S1149;
+					case 1150: goto S1150;
+					case 1151: goto S1151;
+					case 1152: goto S1152;
+					case 1153: goto S1153;
+					case 1154: goto S1154;
+					case 1155: goto S1155;
+					case 1156: goto S1156;
+					case 1157: goto S1157;
+					case 1158: goto S1158;
+					case 1159: goto S1159;
+					case 1160: goto S1160;
+					case 1161: goto S1161;
+					case 1162: goto S1162;
+					case 1163: goto S1163;
+					case 1164: goto S1164;
+					case 1165: goto S1165;
+					case 1166: goto S1166;
+					case 1167: goto S1167;
+					case 1168: goto S1168;
+					case 1169: goto S1169;
+					case 1170: goto S1170;
+					case 1171: goto S1171;
+					case 1172: goto S1172;
+					case 1173: goto S1173;
+					case 1174: goto S1174;
+					case 1175: goto S1175;
+					case 1176: goto S1176;
+					case 1177: goto S1177;
+					case 1178: goto S1178;
+					case 1179: goto S1179;
+					case 1180: goto S1180;
+					case 1181: goto S1181;
+					case 1182: goto S1182;
+					case 1183: goto S1183;
+					case 1184: goto S1184;
+					case 1185: goto S1185;
+					case 1186: goto S1186;
+					case 1187: goto S1187;
+					case 1188: goto S1188;
+					case 1189: goto S1189;
+					case 1190: goto S1190;
+					case 1191: goto S1191;
+					case 1192: goto S1192;
+					case 1193: goto S1193;
+					case 1194: goto S1194;
+					case 1195: goto S1195;
+					case 1196: goto S1196;
+					case 1197: goto S1197;
+					case 1198: goto S1198;
+					case 1199: goto S1199;
+					case 1200: goto S1200;
+					case 1201: goto S1201;
+					case 1202: goto S1202;
+					case 1203: goto S1203;
+					case 1204: goto S1204;
+					case 1205: goto S1205;
+					case 1206: goto S1206;
+					case 1207: goto S1207;
+					case 1208: goto S1208;
+					case 1209: goto S1209;
+					case 1210: goto S1210;
+					case 1211: goto S1211;
+					case 1212: goto S1212;
+					case 1213: goto S1213;
+					case 1214: goto S1214;
+					case 1215: goto S1215;
+					case 1216: goto S1216;
+					case 1217: goto S1217;
+					case 1218: goto S1218;
+					case 1219: goto S1219;
+					case 1220: goto S1220;
+					case 1221: goto S1221;
+					case 1222: goto S1222;
+					case 1223: goto S1223;
+					case 1224: goto S1224;
+					case 1225: goto S1225;
+					case 1226: goto S1226;
+					case 1227: goto S1227;
+					case 1228: goto S1228;
+					case 1229: goto S1229;
+					case 1230: goto S1230;
+					case 1231: goto S1231;
+					case 1232: goto S1232;
+					case 1233: goto S1233;
+					case 1234: goto S1234;
+					case 1235: goto S1235;
+					case 1236: goto S1236;
+					case 1237: goto S1237;
+					case 1238: goto S1238;
+					case 1239: goto S1239;
+					case 1240: goto S1240;
+					case 1241: goto S1241;
+					case 1242: goto S1242;
+					case 1243: goto S1243;
+					case 1244: goto S1244;
+					case 1245: goto S1245;
+					case 1246: goto S1246;
+					case 1247: goto S1247;
+					case 1248: goto S1248;
+					case 1249: goto S1249;
+					case 1250: goto S1250;
+					case 1251: goto S1251;
+					case 1252: goto S1252;
+					case 1253: goto S1253;
+					case 1254: goto S1254;
+					case 1255: goto S1255;
+					case 1256: goto S1256;
+					case 1257: goto S1257;
+					case 1258: goto S1258;
+					case 1259: goto S1259;
+					case 1260: goto S1260;
+					case 1261: goto S1261;
+					case 1262: goto S1262;
+					case 1263: goto S1263;
+					case 1264: goto S1264;
+					case 1265: goto S1265;
+					case 1266: goto S1266;
+					case 1267: goto S1267;
+					case 1268: goto S1268;
+					case 1269: goto S1269;
+					case 1270: goto S1270;
+					case 1271: goto S1271;
+					case 1272: goto S1272;
+					case 1273: goto S1273;
+					case 1274: goto S1274;
+					case 1275: goto S1275;
+					case 1276: goto S1276;
+					case 1277: goto S1277;
+					case 1278: goto S1278;
+					case 1279: goto S1279;
+					case 1280: goto S1280;
+					case 1281: goto S1281;
+					case 1282: goto S1282;
+					case 1283: goto S1283;
+					case 1284: goto S1284;
+					case 1285: goto S1285;
+					case 1286: goto S1286;
+					case 1287: goto S1287;
+					case 1288: goto S1288;
+					case 1289: goto S1289;
+					case 1290: goto S1290;
+					case 1291: goto S1291;
+					case 1292: goto S1292;
+					case 1293: goto S1293;
+					case 1294: goto S1294;
+					case 1295: goto S1295;
+					case 1296: goto S1296;
+					case 1297: goto S1297;
+					case 1298: goto S1298;
+					case 1299: goto S1299;
+					case 1300: goto S1300;
+					case 1301: goto S1301;
+					case 1302: goto S1302;
+					case 1303: goto S1303;
+					case 1304: goto S1304;
+					case 1305: goto S1305;
+					case 1306: goto S1306;
+					case 1307: goto S1307;
+					case 1308: goto S1308;
+					case 1309: goto S1309;
+					case 1310: goto S1310;
+					case 1311: goto S1311;
+					case 1312: goto S1312;
+					case 1313: goto S1313;
+					case 1314: goto S1314;
+					case 1315: goto S1315;
+					case 1316: goto S1316;
+					case 1317: goto S1317;
+					case 1318: goto S1318;
+					case 1319: goto S1319;
+					case 1320: goto S1320;
+					case 1321: goto S1321;
+					case 1322: goto S1322;
+					case 1323: goto S1323;
+					case 1324: goto S1324;
+					case 1325: goto S1325;
+					case 1326: goto S1326;
+					case 1327: goto S1327;
+					case 1328: goto S1328;
+					case 1329: goto S1329;
+					case 1330: goto S1330;
+					case 1331: goto S1331;
+					case 1332: goto S1332;
+					case 1333: goto S1333;
+					case 1334: goto S1334;
+					case 1335: goto S1335;
+					case 1336: goto S1336;
+					case 1337: goto S1337;
+					case 1338: goto S1338;
+					case 1339: goto S1339;
+					case 1340: goto S1340;
+					case 1341: goto S1341;
+					case 1342: goto S1342;
+					case 1343: goto S1343;
+					case 1344: goto S1344;
+					case 1345: goto S1345;
+					case 1346: goto S1346;
+					case 1347: goto S1347;
+					case 1348: goto S1348;
+					case 1349: goto S1349;
+					case 1350: goto S1350;
+					case 1351: goto S1351;
+					case 1352: goto S1352;
+					case 1353: goto S1353;
+					case 1354: goto S1354;
+					case 1355: goto S1355;
+					case 1356: goto S1356;
+					case 1357: goto S1357;
+					case 1358: goto S1358;
+					case 1359: goto S1359;
+					case 1360: goto S1360;
+					case 1361: goto S1361;
+					case 1362: goto S1362;
+					case 1363: goto S1363;
+					case 1364: goto S1364;
+					case 1365: goto S1365;
+					case 1366: goto S1366;
+					case 1367: goto S1367;
+					case 1368: goto S1368;
+					case 1369: goto S1369;
+					case 1370: goto S1370;
+					case 1371: goto S1371;
+					case 1372: goto S1372;
+					case 1373: goto S1373;
+					case 1374: goto S1374;
+					case 1375: goto S1375;
+					case 1376: goto S1376;
+					case 1377: goto S1377;
+					case 1378: goto S1378;
+					case 1379: goto S1379;
+					case 1380: goto S1380;
+					case 1381: goto S1381;
+					case 1382: goto S1382;
+					case 1383: goto S1383;
+					case 1384: goto S1384;
+					case 1385: goto S1385;
+					case 1386: goto S1386;
+					case 1387: goto S1387;
+					case 1388: goto S1388;
+					case 1389: goto S1389;
+					case 1390: goto S1390;
+					case 1391: goto S1391;
+					case 1392: goto S1392;
+					case 1393: goto S1393;
+					case 1394: goto S1394;
+					case 1395: goto S1395;
+					case 1396: goto S1396;
+					case 1397: goto S1397;
+					case 1398: goto S1398;
+					case 1399: goto S1399;
+					case 1400: goto S1400;
+					case 1401: goto S1401;
+					case 1402: goto S1402;
+					case 1403: goto S1403;
+					case 1404: goto S1404;
+					case 1405: goto S1405;
+					case 1406: goto S1406;
+					case 1407: goto S1407;
+					case 1408: goto S1408;
+					case 1409: goto S1409;
+					case 1410: goto S1410;
+					case 1411: goto S1411;
+					case 1412: goto S1412;
+					case 1413: goto S1413;
+					case 1414: goto S1414;
+					case 1415: goto S1415;
+					case 1416: goto S1416;
+					case 1417: goto S1417;
+					case 1418: goto S1418;
+					case 1419: goto S1419;
+					case 1420: goto S1420;
+					case 1421: goto S1421;
+					case 1422: goto S1422;
+					case 1423: goto S1423;
+					case 1424: goto S1424;
+					case 1425: goto S1425;
+					case 1426: goto S1426;
+					case 1427: goto S1427;
+					case 1428: goto S1428;
+					case 1429: goto S1429;
+					case 1430: goto S1430;
+					case 1431: goto S1431;
+					case 1432: goto S1432;
+					case 1433: goto S1433;
+					case 1434: goto S1434;
+					case 1435: goto S1435;
+					case 1436: goto S1436;
+					case 1437: goto S1437;
+					case 1438: goto S1438;
+					case 1439: goto S1439;
+					case 1440: goto S1440;
+					case 1441: goto S1441;
+					case 1442: goto S1442;
+					case 1443: goto S1443;
+					case 1444: goto S1444;
+					case 1445: goto S1445;
+					case 1446: goto S1446;
+					case 1447: goto S1447;
+					case 1448: goto S1448;
+					case 1449: goto S1449;
+					case 1450: goto S1450;
+					case 1451: goto S1451;
+					case 1452: goto S1452;
+					case 1453: goto S1453;
+					case 1454: goto S1454;
+					case 1455: goto S1455;
+					case 1456: goto S1456;
+					case 1457: goto S1457;
+					case 1458: goto S1458;
+					case 1459: goto S1459;
+					case 1460: goto S1460;
+					case 1461: goto S1461;
+					case 1462: goto S1462;
+					case 1463: goto S1463;
+					case 1464: goto S1464;
+					case 1465: goto S1465;
+					case 1466: goto S1466;
+					case 1467: goto S1467;
+					case 1468: goto S1468;
+					case 1469: goto S1469;
+					case 1470: goto S1470;
+					case 1471: goto S1471;
+					case 1472: goto S1472;
+					case 1473: goto S1473;
+					case 1474: goto S1474;
+					case 1475: goto S1475;
+					case 1476: goto S1476;
+					case 1477: goto S1477;
+					case 1478: goto S1478;
+					case 1479: goto S1479;
+					case 1480: goto S1480;
+					case 1481: goto S1481;
+					case 1482: goto S1482;
+					case 1483: goto S1483;
+					case 1484: goto S1484;
+					case 1485: goto S1485;
+					case 1486: goto S1486;
+					case 1487: goto S1487;
+					case 1488: goto S1488;
+					case 1489: goto S1489;
+					case 1490: goto S1490;
+					case 1491: goto S1491;
+					case 1492: goto S1492;
+					case 1493: goto S1493;
+					case 1494: goto S1494;
+					case 1495: goto S1495;
+					case 1496: goto S1496;
+					case 1497: goto S1497;
+					case 1498: goto S1498;
+					case 1499: goto S1499;
+					case 1500: goto S1500;
+					case 1501: goto S1501;
+					case 1502: goto S1502;
+					case 1503: goto S1503;
+					case 1504: goto S1504;
+					case 1505: goto S1505;
+					case 1506: goto S1506;
+					case 1507: goto S1507;
+					case 1508: goto S1508;
+					case 1509: goto S1509;
+					case 1510: goto S1510;
+					case 1511: goto S1511;
+					case 1512: goto S1512;
+					case 1513: goto S1513;
+					case 1514: goto S1514;
+					case 1515: goto S1515;
+					case 1516: goto S1516;
+					case 1517: goto S1517;
+					case 1518: goto S1518;
+					case 1519: goto S1519;
+					case 1520: goto S1520;
+					case 1521: goto S1521;
+					case 1522: goto S1522;
+					case 1523: goto S1523;
+					case 1524: goto S1524;
+					case 1525: goto S1525;
+					case 1526: goto S1526;
+					case 1527: goto S1527;
+					case 1528: goto S1528;
+					case 1529: goto S1529;
+					case 1530: goto S1530;
+					case 1531: goto S1531;
+					case 1532: goto S1532;
+					case 1533: goto S1533;
+					case 1534: goto S1534;
+					case 1535: goto S1535;
+					case 1536: goto S1536;
+					case 1537: goto S1537;
+					case 1538: goto S1538;
+					case 1539: goto S1539;
+					case 1540: goto S1540;
+					case 1541: goto S1541;
+					case 1542: goto S1542;
+					case 1543: goto S1543;
+					case 1544: goto S1544;
+					case 1545: goto S1545;
+					case 1546: goto S1546;
+					case 1547: goto S1547;
+					case 1548: goto S1548;
+					case 1549: goto S1549;
+					case 1550: goto S1550;
+					case 1551: goto S1551;
+					case 1552: goto S1552;
+					case 1553: goto S1553;
+					case 1554: goto S1554;
+					case 1555: goto S1555;
+					case 1556: goto S1556;
+					case 1557: goto S1557;
+					case 1558: goto S1558;
+					case 1559: goto S1559;
+					case 1560: goto S1560;
+					case 1561: goto S1561;
+					case 1562: goto S1562;
+					case 1563: goto S1563;
+					case 1564: goto S1564;
+					case 1565: goto S1565;
+					case 1566: goto S1566;
+					case 1567: goto S1567;
+					case 1568: goto S1568;
+					case 1569: goto S1569;
+					case 1570: goto S1570;
+					case 1571: goto S1571;
+					case 1572: goto S1572;
+					case 1573: goto S1573;
+					case 1574: goto S1574;
+					case 1575: goto S1575;
+					case 1576: goto S1576;
+					case 1577: goto S1577;
+					case 1578: goto S1578;
+					case 1579: goto S1579;
+					case 1580: goto S1580;
+					case 1581: goto S1581;
+					case 1582: goto S1582;
+					case 1583: goto S1583;
+					case 1584: goto S1584;
+					case 1585: goto S1585;
 					default: goto Fail;
 				}
 			}
@@ -4185,6 +24230,7 @@ namespace DotGram.Snapshots
 			internal const int Dead = 10;
 			internal const int Recovery = 11;
 			internal const int PendingRecovery = 12;
+			internal const int Run = 13;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

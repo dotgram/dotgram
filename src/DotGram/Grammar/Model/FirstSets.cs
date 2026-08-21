@@ -49,6 +49,26 @@ public static class FirstSets
 		public static readonly First All  = new(true,  false, []);
 		public static readonly First None = new(false, true,  []);
 
+		/// <summary>Both, for a place either could begin.</summary>
+		public First Or(First other)
+		{
+			if (Anything || other.Anything)
+				return All;
+
+			if (Nothing)
+				return other;
+
+			if (other.Nothing)
+				return this;
+
+			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
+
+			ranges.AddRange(Ranges);
+			ranges.AddRange(other.Ranges);
+
+			return new First(false, false, ranges);
+		}
+
 		public bool Overlaps(First other)
 		{
 			if (Nothing || other.Nothing)
@@ -149,7 +169,7 @@ public static class FirstSets
 	}
 
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
-	static First Following(IReadOnlyList<Node> parts, int from, RecognitionGraph graph)
+	public static First Following(IReadOnlyList<Node> parts, int from, RecognitionGraph graph)
 	{
 		var ranges  = new List<CharRange>();
 		var nothing = true;
@@ -241,7 +261,7 @@ public static class FirstSets
 	}
 
 	/// <summary>Whether a node can match without consuming anything.</summary>
-	static bool Nullable(Node node, RecognitionGraph graph) => node switch
+	public static bool Nullable(Node node, RecognitionGraph graph) => node switch
 	{
 		Node.Empty or Node.Guard or Node.Lookahead => true,
 		Node.Literal(var text)                     => text.Length == 0,
