@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -171,15 +173,31 @@ sealed class Machine
 
 	public void Register(RuleSymbol root, bool whole)
 	{
+		// Named from outside the table, so the state it names is a place the parse can begin
+		// however little of the grammar reaches it.
+		_roots.Add(_entries[root]);
+
 		if (!whole || _wholeEntries.ContainsKey(root))
 			return;
 
 		_wholeEntries[root] = _graph.Trivia.TryGetValue(root, out var trivia)
 			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return, FirstSets.First.All)
 			: _entries[root];
+
+		_roots.Add(_wholeEntries[root]);
 	}
 
-	public int Register(Node node) => Compile(node, Return, FirstSets.First.All);
+	public int Register(Node node)
+	{
+		var state = Compile(node, Return, FirstSets.First.All);
+
+		_roots.Add(state);
+
+		return state;
+	}
+
+	/// <summary>The states something outside the table jumps to.</summary>
+	readonly HashSet<int> _roots = [];
 
 	public static string RenderProbe(string name, string engine, int entry, bool powers)
 	{
@@ -301,13 +319,27 @@ sealed class Machine
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
 
-				for (var i = 0; i < _states.Count; i++)
+				PlanLayout();
+
+				for (var written = 0; written < _order.Count; written++)
 				{
+					var i    = _order[written];
+					var body = _bodies[i];
+
+					// Chained: what this state ends by jumping to is the state written next,
+					// so the jump is the line after it either way.
+					if (written + 1 < _order.Count &&
+						Tail(body) is { } onward &&
+						onward == _order[written + 1] + First)
+					{
+						body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
+					}
+
 					file.Line();
 					file.Line($"S{i + First}:");
 
 					using (file.Block(""))
-						file.AppendIndented(_states[i], 0);
+						file.Write(body);
 				}
 
 				file.Line();
@@ -534,8 +566,12 @@ sealed class Machine
 					file.Line($"case {Accept}: goto Accept;");
 					file.Line($"case {Fail}:   goto Fail;");
 
+					// Only where the label is one that was written. A state nothing reaches
+					// cannot be resumed at either, so the case for it would name a label that
+					// is not there.
 					for (var i = 0; i < _states.Count; i++)
-						file.Line($"case {i + First}: goto S{i + First};");
+						if (Written(Resolved(i + First)))
+							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
 
 					file.Line("default: goto Fail;");
 				}
@@ -1002,8 +1038,7 @@ sealed class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if (repeat.Min <= Unrollable &&
-					(repeat.Max is null || repeat.Max - repeat.Min <= Unrollable) &&
+				if ((repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
 					Possessive(repeat.Body, following) &&
 					Silent(repeat.Body))
 				{
@@ -1187,6 +1222,21 @@ sealed class Machine
 			first;
 	}
 
+	int WeightOfAll(IReadOnlyList<Node> nodes, int budget)
+	{
+		var total = 0;
+
+		foreach (var node in nodes)
+		{
+			total += Weight(node, budget - total);
+
+			if (total > budget)
+				break;
+		}
+
+		return total;
+	}
+
 	/// <summary>
 	/// Whether a node writes nothing into the arena, so that its failure is nobody's business
 	/// but its own.
@@ -1222,16 +1272,72 @@ sealed class Machine
 	}
 
 	/// <summary>
-	/// How many turns of a repetition may be written out one after another rather than
-	/// looped.
+	/// How much a repetition may be written out one after another rather than looped, counted
+	/// in the states the turns would come to.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// Unrolling is what removes the count, and with it the last thing the arena was holding
 	/// for a repetition that needs it for nothing else. Generated size is not a cost this
-	/// project minimizes, but it is not unbounded either: <c>X{1,1000}</c> is a thousand
-	/// copies, and past a handful the loop is the better shape.
+	/// project minimizes, but it is not unbounded either, and it does not add — it multiplies.
+	/// <c>(H16 &amp; ':'){6}</c> is six copies of <c>H16</c>, each of which is
+	/// <c>Hex{1,4}</c>, and the rule that holds it has nine alternatives; counting turns
+	/// alone would call each of those small and arrive at hundreds of copies of one character
+	/// test.
+	/// </para>
+	/// <para>
+	/// So the budget is turns times what a turn weighs, and a turn weighs what it will
+	/// actually be written as — through the calls that are compiled in place, and through the
+	/// repetitions inside it, which multiply in their turn.
+	/// </para>
 	/// </remarks>
-	const int Unrollable = 8;
+	const int Unrollable = 24;
+
+	/// <summary>
+	/// About how many states a node will come to, stopping once that is more than is being
+	/// asked about.
+	/// </summary>
+	int Weight(Node node, int budget)
+	{
+		if (budget <= 0)
+			return 1;
+
+		switch (node)
+		{
+			case Node.Empty:
+				return 0;
+
+			case Node.Sequence(var parts):
+				return WeightOfAll(parts, budget);
+
+			case Node.Choice(var alternatives):
+				return WeightOfAll(alternatives, budget);
+
+			case Node.Capture(_, var captured):
+				return 1 + Weight(captured, budget - 1);
+
+			case Node.Construct(var built, _):
+				return 1 + Weight(built, budget - 1);
+
+			case Node.Atomic(var kept):
+				return 1 + Weight(kept, budget - 1);
+
+			case Node.Lookahead(_, var seen):
+				return 1 + Weight(seen, budget - 1);
+
+			// An unbounded one is written once and gone round, so what it weighs is a turn
+			// and the going round; a bounded one is written out as many times as it is
+			// allowed to happen.
+			case Node.Repeat(var body, _, var max):
+				return (max ?? 2) * Weight(body, budget);
+
+			case Node.Call(var rule, _) when CanInline(rule) && _graph.Bodies.TryGetValue(rule, out var called):
+				return Weight(called, budget);
+
+			default:
+				return 1;
+		}
+	}
 
 	/// <summary>
 	/// Whether a repetition can be run to its end and never asked to give any of it back.
@@ -1802,6 +1908,221 @@ sealed class Machine
 
 		return _states.Count - 1 + First;
 	}
+
+	// ── Layout (§the state table, as it is finally written) ─────────────────────────
+
+	/// <summary>Each state's text, once every jump in it has been followed to its end.</summary>
+	string[] _bodies = [];
+
+	/// <summary>Where a state really goes, for a state that does nothing but go somewhere.</summary>
+	int[] _resolved = [];
+
+	/// <summary>The order the states are written in, and which of them are written at all.</summary>
+	List<int> _order = [];
+
+	/// <summary>
+	/// Decides what the state table looks like once it is written out, which is not the
+	/// order it was built in.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Compilation reserves a state whenever it needs somewhere to come back to, and numbers
+	/// them as it goes. That leaves two kinds of waste in the text. A state whose whole body
+	/// is <c>goto</c> somewhere else is a signpost standing where the road could have gone
+	/// directly: it costs a slot in the dispatch table, a label, and a branch. And a state
+	/// that ends by jumping to another is written nowhere near it, so the jump is a jump
+	/// rather than the next line.
+	/// </para>
+	/// <para>
+	/// Both are decided here, before a character is written. Signposts are followed to
+	/// wherever they end and then not written at all, and everything that pointed at one —
+	/// a <c>goto</c>, a resume point recorded in the arena, a case of the dispatch — is made
+	/// to point where it was really going. What is left is laid out in chains, each state
+	/// followed by the one it jumps to where that one is still unplaced, and the jump at the
+	/// end of a chained state is dropped: the next line is already where it was going.
+	/// </para>
+	/// <para>
+	/// A jitted method has budgets — for how much it will look at, and how hard — and this
+	/// is a generator that inlines freely. Text that says nothing is worth removing before
+	/// those budgets are spent on reading it.
+	/// </para>
+	/// </remarks>
+	void PlanLayout()
+	{
+		var signposts = new int?[_states.Count];
+
+		_bodies = new string[_states.Count];
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			_bodies[i]   = _states[i].ToString();
+			signposts[i] = JumpOnly(_bodies[i]);
+		}
+
+		// Follow each chain of signposts to its end. The guard is against a grammar whose
+		// states point round in a circle, which nothing should produce and which would
+		// otherwise not terminate.
+		_resolved = new int[_states.Count];
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			var at    = i + First;
+			var steps = 0;
+
+			while (at - First is var index and >= 0 &&
+				index < signposts.Length &&
+				signposts[index] is { } onward &&
+				steps++ <= signposts.Length)
+			{
+				at = onward;
+			}
+
+			_resolved[i] = at;
+		}
+
+		for (var i = 0; i < _bodies.Length; i++)
+			_bodies[i] = Redirect(_bodies[i]);
+
+		// What is left is what can still be got to. A rule compiled into every one of its
+		// callers is called from nowhere, and its own copy — entry, body and all — is text
+		// nothing will ever reach. So is a signpost, now that everything which pointed at one
+		// points past it.
+		var reachable = new bool[_states.Count];
+		var pending   = new Stack<int>();
+
+		foreach (var root in _roots)
+			pending.Push(Resolved(root));
+
+		// Nothing said where the parse begins: keep everything rather than guess.
+		if (_roots.Count == 0)
+			for (var i = 0; i < _states.Count; i++)
+				pending.Push(i + First);
+
+		while (pending.Count > 0)
+		{
+			var index = pending.Pop() - First;
+
+			// A signpost is never written: everything that pointed at one now points past it,
+			// so its block would be text nothing can reach — which the C# compiler says out
+			// loud, and rightly.
+			if (index < 0 || index >= reachable.Length || reachable[index] || signposts[index] is not null)
+				continue;
+
+			reachable[index] = true;
+
+			foreach (Match match in Gotos.Matches(_bodies[index]))
+				pending.Push(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+
+			foreach (Match match in Resumes.Matches(_bodies[index]))
+				pending.Push(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture));
+		}
+
+		_order = new List<int>(_states.Count);
+
+		for (var i = 0; i < _states.Count; i++)
+			if (reachable[i])
+				_order.Add(i);
+
+		_written = reachable;
+	}
+
+	/// <summary>Which states are written at all.</summary>
+	bool[] _written = [];
+
+	/// <summary>Whether a state has a label in the output — the three fixed ones always do.</summary>
+	bool Written(int state) =>
+		state - First is var index && (index < 0 || _written.Length == 0 || (index < _written.Length && _written[index]));
+
+	/// <summary>The state a body is, where the body is one unconditional jump and nothing else.</summary>
+	static int? JumpOnly(string body)
+	{
+		int? only = null;
+
+		foreach (var line in body.Split('\n'))
+		{
+			var written   = line.TrimEnd();
+			var statement = written.TrimStart();
+
+			if (statement.Length == 0)
+				continue;
+
+			if (only is not null || written.Length != statement.Length || Jump(statement) is not { } target)
+				return null;
+
+			only = target;
+		}
+
+		return only;
+	}
+
+	/// <summary>The state a body ends by jumping to, where its last statement is that jump.</summary>
+	static int? Tail(string body)
+	{
+		var lines = body.Split('\n');
+
+		for (var i = lines.Length - 1; i >= 0; i--)
+		{
+			var written   = lines[i].TrimEnd();
+			var statement = written.TrimStart();
+
+			if (statement.Length == 0)
+				continue;
+
+			// Indented means it is inside something — a branch taken only sometimes, which
+			// the line after it is not.
+			return written.Length == statement.Length ? Jump(statement) : null;
+		}
+
+		return null;
+	}
+
+	/// <summary>The state a single <c>goto</c> statement names, by label or by number.</summary>
+	static int? Jump(string statement)
+	{
+		if (!statement.StartsWith("goto ", StringComparison.Ordinal) ||
+			!statement.EndsWith(";", StringComparison.Ordinal))
+		{
+			return null;
+		}
+
+		var label = statement.Substring("goto ".Length, statement.Length - "goto ".Length - 1);
+
+		return label switch
+		{
+			"Return" => Return,
+			"Accept" => Accept,
+			"Fail"   => Fail,
+			"S"      => null,
+			_        => label.StartsWith("S", StringComparison.Ordinal) &&
+						int.TryParse(label.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out var state)
+							? state
+							: null,
+		};
+	}
+
+	/// <summary>
+	/// The same text with every state it names replaced by the state that one really is.
+	/// </summary>
+	/// <remarks>
+	/// Two places name a state: a <c>goto</c>, and the second argument of a
+	/// <c>ParserEntry</c>, which is where the parse resumes. The second matters as much as
+	/// the first — a resume point pointing at a signpost pays the dispatch twice.
+	/// </remarks>
+	string Redirect(string body)
+	{
+		body = Gotos.Replace(body, match =>
+			$"goto {Label(Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)))};");
+
+		return Resumes.Replace(body, match =>
+			$"new ParserEntry(ParserEntry.{match.Groups[1].Value}, " +
+			Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)) + ",");
+	}
+
+	int Resolved(int state) =>
+		state - First is var index && index >= 0 && index < _resolved.Length ? _resolved[index] : state;
+
+	static readonly Regex Gotos   = new(@"goto S(\d+);", RegexOptions.Compiled);
+	static readonly Regex Resumes = new(@"new ParserEntry\(ParserEntry\.(\w+), (\d+),", RegexOptions.Compiled);
 
 	void EnsureMaterializer()
 	{

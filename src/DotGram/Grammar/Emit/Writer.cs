@@ -39,7 +39,12 @@ sealed class Writer(int depth)
 
 	public IDisposable Block(string header)
 	{
-		Line(header);
+		// A block with no header is one that opens under the line before it — the body of
+		// an `if`, a state under its label. Writing the empty header would put a blank line
+		// between the two, which is exactly where the brace should not be.
+		if (header.Length > 0)
+			Line(header);
+
 		Line("{");
 		_depth++;
 

@@ -125,8 +125,30 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void A_frequently_called_rule_has_one_shared_block()
+	public void A_rule_whose_value_is_kept_has_one_shared_block()
 	{
+		// Three calls, one block. The value is what needs the block: it is materialized at
+		// the rule's own boundary, so the boundary has to be there to materialize it at.
+		var source = Emit(
+			"""
+			Start : @string = a: Name & ':' & b: Name & ':' & c: Name => @(a + b + c)
+			Name  : @string = t: ('a' | 'b') => @(t)
+			parse Start
+			""");
+
+		Assert.Equal(1, source.Split(["enter Name"], StringSplitOptions.None).Length - 1);
+		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
+		Assert.Contains("Debug.Assert", source);
+	}
+
+	[Fact]
+	public void A_rule_that_keeps_nothing_is_compiled_where_it_is_called()
+	{
+		// And one that needs no boundary gets none: it is its caller's control flow, three
+		// times over, and the block it would have been is never written. What that costs is
+		// text, which this project spends; what it buys is the call, the frame and the jump
+		// back — and the sight of the body in place, where the analyses that decide how to
+		// compile a repetition can see it.
 		var source = Emit(
 			"""
 			Start = Name & ':' & Name & ':' & Name
@@ -134,9 +156,8 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.Equal(1, source.Split(["enter Name"], StringSplitOptions.None).Length - 1);
-		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
-		Assert.Contains("Debug.Assert", source);
+		Assert.DoesNotContain("enter Name", source);
+		Assert.DoesNotContain("call Name", source);
 	}
 
 	[Fact]

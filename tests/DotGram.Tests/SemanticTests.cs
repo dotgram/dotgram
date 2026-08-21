@@ -241,8 +241,18 @@ public sealed class SemanticTests
 	{
 		// Keyed by what the arguments lower to, so a grammar naming the same specialization
 		// in two places gets one recognizer rather than two identical ones.
+		//
+		// Asked of a specialization that keeps its value, because that is what makes it a
+		// block in the emitted text at all — one that keeps nothing is compiled into each
+		// of its callers, and then there is no block to count.
 		var source = Compile(
-			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Comma)\nparse Start")
+			"""
+			List(item, sep) : item[] = item & (sep & item)*
+			Word : @string = t: ['a'..'z']+ => @(t)
+			Comma = ','
+			Start = List(Word, Comma) & ' ' & List(Word, Comma)
+			parse Start
+			""")
 			.Sources[0].Text;
 
 		Assert.Equal(1, source.Split(["enter List_Word_Comma"], StringSplitOptions.None).Length - 1);
