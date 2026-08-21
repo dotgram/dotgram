@@ -149,13 +149,19 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void But_it_cannot_be_what_a_published_method_hands_back() =>
-		// §6.1: everything emitted into the consumer's namespace is internal, so it cannot
-		// appear in a public signature. Said here rather than left to arrive as CS0050
-		// about a generated file nobody wrote.
-		Refused(
-			GrammarNormalizer.UnbuiltConstruction,
-			"Start : @DotGram.SourceSpan = ['a'..'z']+\nparse Start");
+	public void And_it_may_be_what_a_published_method_hands_back()
+	{
+		// It could not, once: everything emitted into a namespace has to be internal so that
+		// two assemblies do not collide over it, and internal is what a public method may not
+		// return. `SourceSpan` is emitted into the host class instead, where its name is the
+		// host's — so it still cannot collide, and it can be handed over.
+		var span = Published(
+			"Start : @DotGram.SourceSpan = ' '* & ['a'..'z']+\nparse Start", "ParseStart", "  ab")!;
+
+		Assert.Equal("SourceSpan", span.GetType().Name);
+		Assert.Equal(0, span.GetType().GetProperty("Start")!.GetValue(span));
+		Assert.Equal(4, span.GetType().GetProperty("Length")!.GetValue(span));
+	}
 
 	// ── Publication (§6) ─────────────────────────────────────────────────────────
 

@@ -286,6 +286,12 @@ public static partial class CSharpEmitter
 				file.Write(extra);
 				file.Line();
 			}
+		if (UsesSourceSpan(graph))
+		{
+			file.Write(SourceSpanStruct);
+			file.Line();
+		}
+
 		if (graph.Publications.Count > 0)
 		{
 			file.Write(MatchStruct);
@@ -619,7 +625,7 @@ public static partial class CSharpEmitter
 			parameters.Add("string parserText");
 
 		if (Asks(factory, "parserSpan"))
-			parameters.Add("global::DotGram.SourceSpan parserSpan");
+			parameters.Add("SourceSpan parserSpan");
 
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
@@ -794,6 +800,33 @@ public static partial class CSharpEmitter
 		return false;
 	}
 
+	/// <summary>
+	/// Whether a grammar names the one type §4.1 case 4 offers besides <c>string</c>.
+	/// </summary>
+	/// <remarks>
+	/// Three ways to name it: a rule declaring it, a construction asking for the supplied
+	/// <c>parserSpan</c>, and a <c>recover</c> factory, whose C# is written by the consumer
+	/// and not read here. The last is taken on trust, which emits an unused type into a
+	/// grammar that recovers and never asks — the direction that compiles.
+	/// </remarks>
+	static bool UsesSourceSpan(RecognitionGraph graph)
+	{
+		foreach (var type in graph.Types.Values)
+			if (type == "SourceSpan")
+				return true;
+
+		foreach (var rule in graph.Rules)
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Construct { How: Construction.Expression { Text: var text } } &&
+						text.Contains("parserSpan"))
+					{
+						return true;
+					}
+
+		return graph.Recoveries.Count > 0;
+	}
+
 	internal static bool Asks(Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		text.Contains(name);
@@ -906,7 +939,7 @@ public static partial class CSharpEmitter
 	static string TypeOfSupplied(string name) => name switch
 	{
 		"parserText" or "parserMessage" => "string",
-		"parserSpan"                    => "global::DotGram.SourceSpan",
+		"parserSpan"                    => "SourceSpan",
 		"parserPosition"                => "long",
 		_                               => "int",
 	};

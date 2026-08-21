@@ -333,6 +333,62 @@ public static partial class CSharpEmitter
 	/// file.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Emitted into a host whose grammar names it — a rule of that type, or a construction
+	/// asking for <c>parserSpan</c>.
+	/// </summary>
+	internal const string SourceSpanStruct = """
+		/// <summary>
+		/// Half-open range of the input: [Start, End).
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// What a capture of type <c>SourceSpan</c> comes back as, and what a
+		/// <c>recover</c> factory asking for <c>parserSpan</c> is handed (docs/syntax.md
+		/// §8.2). Two integers rather than the text between them: the text is already in the
+		/// caller's hands, and cutting a string out of it is the one allocation a parse
+		/// cannot avoid on the caller's behalf.
+		/// </para>
+		/// <para>
+		/// Ours rather than <c>System.Range</c>, because a consumer building for an older
+		/// framework very likely polyfills that one and two definitions of it in a
+		/// compilation is an error. Nested in the host class rather than put in a namespace,
+		/// because a type in a namespace has to be internal for two assemblies not to
+		/// collide over it — and internal is what a public method may not return. Here the
+		/// name belongs to the host, so neither is a problem.
+		/// </para>
+		/// <para>
+		/// It says where, not when. A span outlives nothing: read it against the same text
+		/// that was parsed, and against nothing else.
+		/// </para>
+		/// </remarks>
+		public readonly struct SourceSpan
+		{
+			public SourceSpan(int start, int length)
+			{
+				Start  = start;
+				Length = length;
+			}
+
+			/// <summary>Where it begins.</summary>
+			public int Start { get; }
+
+			/// <summary>How much of the input it covers.</summary>
+			public int Length { get; }
+
+			/// <summary>One past the last item, so an empty span has End equal to Start.</summary>
+			public int End { get { return Start + Length; } }
+
+			/// <summary>The text it covers, taken from the text it was measured against.</summary>
+			public global::System.ReadOnlySpan<char> On(global::System.ReadOnlySpan<char> text)
+			{
+				return text.Slice(Start, Length);
+			}
+
+			public override string ToString() { return "[" + Start + ".." + End + ")"; }
+		}
+		""";
+
 	internal const string MatchStruct = """
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

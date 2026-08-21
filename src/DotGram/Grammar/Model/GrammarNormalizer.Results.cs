@@ -199,6 +199,10 @@ public sealed partial class GrammarNormalizer
 			if (!_types.TryGetValue(rule, out var type) || !IsSourceSpan(type))
 				continue;
 
+			// However the grammar wrote it, the type the emitter names is the one nested in
+			// the host class — there is no `DotGram.SourceSpan` to refer to any more.
+			_types[rule] = "SourceSpan";
+
 			var body = _bodies[rule];
 
 			// A rule that captures or builds is making something of its parts; this is for

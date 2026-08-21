@@ -3,16 +3,22 @@
 namespace DotGram.Grammar.Emit;
 
 /// <summary>
-/// Everything the generator emits before it has looked at anything: the attribute a
-/// grammar is attached with, and the one type a generated parser needs that is worth
-/// having once per assembly rather than once per host class.
+/// Everything the generator emits before it has looked at anything, which is now only the
+/// attribute a grammar is attached with.
 /// </summary>
 /// <remarks>
 /// <para>
-/// All of it <c>internal</c>, which is the whole of why .Gram needs no runtime assembly
-/// and no way of finding one. An internal type is invisible across an assembly boundary,
-/// so two assemblies each emitting <c>DotGram.SourceSpan</c> do not collide, do not have
-/// to agree, and have nothing to version.
+/// It is <c>internal</c>, which is the whole of why .Gram needs no runtime assembly and no
+/// way of finding one. An internal type is invisible across an assembly boundary, so two
+/// assemblies each emitting <c>DotGram.GramAttribute</c> do not collide, do not have to
+/// agree, and have nothing to version.
+/// </para>
+/// <para>
+/// <c>SourceSpan</c> used to be here beside it, and for the same reason — but internal is
+/// exactly what stopped a parser from handing one back, since an internal type cannot be
+/// what a public method returns. It is now emitted into each host class instead, where it
+/// is <c>public</c> and its name is the host's, so two of them still cannot collide and a
+/// caller can be given one. That is the same trade the generated value types already make.
 /// </para>
 /// <para>
 /// It was not always so. There used to be four support types here, emitted <c>public</c>
@@ -55,35 +61,6 @@ public static class SupportEmitter
 				public string? Source { get; }
 			}
 
-			/// <summary>
-			/// Half-open range of the input: [Start, End).
-			/// </summary>
-			/// <remarks>
-			/// What a <c>recover</c> factory asking for <c>span</c> is handed (docs/syntax.md
-			/// §8.2). Ours rather than <c>System.Range</c> because a consumer building for an
-			/// older framework very likely polyfills that one, and two definitions of it in a
-			/// compilation is an error.
-			/// </remarks>
-			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-			internal readonly struct SourceSpan
-			{
-				public SourceSpan(int start, int length)
-				{
-					Start  = start;
-					Length = length;
-				}
-
-				/// <summary>Where it begins.</summary>
-				public int Start { get; }
-
-				/// <summary>How much of the input it covers.</summary>
-				public int Length { get; }
-
-				/// <summary>One past the last item, so an empty span has End equal to Start.</summary>
-				public int End => Start + Length;
-
-				public override string ToString() => "[" + Start + ".." + End + ")";
-			}
 		}
 		""";
 }

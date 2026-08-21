@@ -233,6 +233,10 @@ public sealed class GrammarBinder
 			Captures(child);
 	}
 
+	/// <summary>However §4.1 case 4's own type is written.</summary>
+	static bool IsSourceSpan(string name) =>
+		name is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+
 	/// <summary>
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
 	/// works in place of type parameters (§4.2).
@@ -241,6 +245,13 @@ public sealed class GrammarBinder
 	{
 		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
 		{
+			// The one type the notation names itself (§4.1 case 4). It is not in the
+			// consumer's compilation to be found, because it is emitted into the host class
+			// this grammar is about to become — looking for it would be looking for the
+			// answer inside the question.
+			if (IsSourceSpan(type.Name))
+				return;
+
 			if (!TypeInView(type.Name, scope))
 				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
 

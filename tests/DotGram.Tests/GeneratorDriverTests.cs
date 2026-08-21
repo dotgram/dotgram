@@ -22,21 +22,26 @@ namespace DotGram.Tests;
 public sealed class GeneratorDriverTests
 {
 	[Fact]
-	public void Emits_the_attribute_and_the_one_support_type_into_every_compilation()
+	public void Emits_the_attribute_into_every_compilation_and_nothing_else()
 	{
+		// One type, and it is the one a grammar is attached with. `SourceSpan` used to be
+		// here beside it and is now emitted into each host class, because a parser has to be
+		// able to hand one back and a namespace type cannot be both internal and returned.
 		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Attributes.g.cs");
 
-		Assert.Contains("internal sealed class GramAttribute",   source, StringComparison.Ordinal);
-		Assert.Contains("internal readonly struct SourceSpan",   source, StringComparison.Ordinal);
+		Assert.Contains("internal sealed class GramAttribute", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("struct SourceSpan",             source, StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void And_nothing_public_that_two_assemblies_would_have_to_agree_about()
 	{
 		// Internal is what makes .Gram need no runtime assembly and no way of finding one:
-		// two assemblies each emitting `DotGram.SourceSpan` cannot see each other's, so
+		// two assemblies each emitting `DotGram.GramAttribute` cannot see each other's, so
 		// there is nothing to collide, discover or version. There used to be a public mode
-		// for this, and it brought the version skew back with it.
+		// for this, and it brought the version skew back with it. What a caller does have to
+		// see is nested in their own host class, where the name is the host's and the same
+		// argument holds without the type being hidden.
 		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Attributes.g.cs");
 
 		Assert.DoesNotContain("public sealed class",   source, StringComparison.Ordinal);

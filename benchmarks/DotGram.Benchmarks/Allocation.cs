@@ -1,6 +1,12 @@
 ﻿using System;
 
+using DotGram;
+
 namespace DotGram.Benchmarks;
+
+/// <summary>The same forty letters, kept as where they were rather than as what they are.</summary>
+[Gram("Letters : @SourceSpan = ['a'..'z']+\nparse Letters")]
+public static partial class Extents;
 
 /// <summary>
 /// What one parse allocates, in bytes, said exactly rather than averaged.
@@ -48,6 +54,14 @@ static class Allocation
 		// two lengths, says whether what comes back is the one string it looks like or two.
 		Measure("a hundred letters, one string", new string('x', 100),
 			text => CallCost.Called.ParseStart(text) is not null);
+
+		// The same run kept as two integers. Whether that is nothing at all depends on
+		// whether the value can reach the caller without being boxed on the way.
+		Measure("forty letters, kept as a span", new string('x', 40),
+			text => Extents.ParseLetters(text).Length == 40);
+
+		Measure("a hundred letters, kept as a span", new string('x', 100),
+			text => Extents.ParseLetters(text).Length == 100);
 	}
 
 	static void Measure(string what, string text, Func<string, bool> parse)

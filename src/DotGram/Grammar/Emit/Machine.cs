@@ -2296,7 +2296,7 @@ sealed class Machine
 		"parserOrdinal"  => "recovered.RuleIndex",
 		"parserLine"     => "LineAt(text, recovered.Position)",
 		"parserColumn"   => "ColumnAt(text, recovered.Position)",
-		"parserSpan"     => "new global::DotGram.SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
+		"parserSpan"     => "new SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		_                => "default",
@@ -2491,7 +2491,7 @@ sealed class Machine
 
 					if (CSharpEmitter.Asks(factory, "parserSpan"))
 						arguments.Add(
-							"new global::DotGram.SourceSpan(" +
+							"new SourceSpan(" +
 							"completed.Position, completed.Value - completed.Position)");
 
 					foreach (var member in factory.Members)
@@ -2560,7 +2560,7 @@ sealed class Machine
 
 						if (CSharpEmitter.Asks(factory, "parserSpan"))
 							arguments.Add(
-								"new global::DotGram.SourceSpan(" +
+								"new SourceSpan(" +
 								"completed.Position, completed.Value - completed.Position)");
 
 						if (factory.Accumulator is not null)

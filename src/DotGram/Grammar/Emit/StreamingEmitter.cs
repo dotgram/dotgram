@@ -401,7 +401,7 @@ public static partial class CSharpEmitter
 			"parserOrdinal"  => $"ordinal{stage}",
 			"parserLine"     => "window.LineAt(from)",
 			"parserColumn"   => "window.ColumnAt(from)",
-			"parserSpan"     => "new global::DotGram.SourceSpan((int)(window.Offset + from), to - from)",
+			"parserSpan"     => "new SourceSpan((int)(window.Offset + from), to - from)",
 			"parserMessage"  => $"\"Input does not match '{element}' at \" + " +
 				$"(window.Offset + failure{stage}.Reach).ToString(" +
 				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
