@@ -146,6 +146,7 @@ alternation, which means something else.
 a & b                   sequence
 a | b                   ordered choice
 ( a & b )               grouping
+{ a & b }               atomic group (commit when the group succeeds)
 ```
 
 A connector between operands is always required. `.Gram` has no juxtaposition: two
@@ -166,9 +167,9 @@ X{2,4}                  two to four
 X{2,}                   two or more
 ```
 
-Every quantifier is postfix, and together they form one consistent family. This is
-the only place braces appear in an expression, and there they mean a count and
-nothing else.
+Every quantifier is postfix, and together they form one consistent family. Braces
+immediately following an operand with a numeric or parameterized body are a count;
+braces in primary position are an atomic group.
 
 The body of `X*`, `X+` or `X{n,m}` must consume at least one input item per
 iteration — a build-time check, not runtime behaviour. `(A?)*` and `(?!A)*` are
@@ -357,27 +358,25 @@ Date : @DateOnly = y: Digit{4} & '-' & m: Digit{2} & '-' & d: Digit{2}
 expression position `[` opens an element set; the positions do not overlap, just as
 an array type and an indexer do not overlap in C#.
 
-**A rule is a boundary that backtracking does not cross.** A call answers once, with the
-first match it finds at that position, and cannot be asked for another. Ordered choice
-*inside* a rule backtracks fully (§11); across a call it does not backtrack at all.
+**A rule call is transparent to backtracking.** If a later expression fails, the parser
+may resume a choice or repetition inside a called rule just as it may resume one written
+inline.
 
 ```dotgram
 Start = Name & 'y'
 Name  = "xy" | "x"
 ```
 
-does not match `xy`: `Name` answers `"xy"`, `'y'` finds nothing left, and `Name` cannot
-be sent back for its second alternative. The same expressions in one rule do match it,
-because there the choice is ordinary ordered choice:
+matches `xy`: after `Name` first answers `"xy"` and `'y'` finds nothing left, the parser
+retries `Name` as `"x"`. The same expressions written inline have the same meaning:
 
 ```dotgram
 Start = ("xy" | "x") & 'y'
 ```
 
-Which way round the alternatives are written decides whether it shows at all. With
-`Name = "x" | "xy"` the shorter one wins, `'y'` takes the `y`, and the boundary is
-invisible. That is the awkward part: the same two rules match or fail depending on an
-ordering that looks like a matter of taste.
+Use `{ ... }` where success must commit. For example, `{ "xy" | "x" } & 'y'` fails on
+`xy`: once the atomic group succeeds as `"xy"`, later failure cannot reopen choices made
+inside that group. Rule extraction by itself never introduces such a commit.
 
 **This is the language, not the engine.** A rule is a function from a position to a
 match, and the rest of the language rests on that. What a match records is which
@@ -866,13 +865,10 @@ offers one only where it provably works.
 **What "how far back" means is fixed by §4**, and this is the whole of the retention
 rule:
 
-- backtracking does not cross a rule boundary, so a **call reaches back not at all** —
-  it either matched, and the parse is past it, or it did not, and the parse is where it
-  was before;
-- inside a rule, backtracking may return to any position that rule has visited, so a
-  **rule reaches back exactly as far as it has consumed**;
-- therefore the input that must be retained is the extent of the outermost rule still in
-  progress.
+- a call may resume choices in its callee, so rule extraction does not reduce retention;
+- an explicit atomic group discards alternatives created inside it when it succeeds;
+- recovery and streaming continuation boundaries provide the other points after which
+  earlier input can no longer be revisited.
 
 For `parse` that is the whole input, and a grammar of one rule over a whole file streams
 no better than reading it. What bounds it is a construct that says the parse will not go
@@ -1397,7 +1393,7 @@ Recovery    = "recover" & Prefixed & ("=>" & Value)?
 Count       = Int | Identifier
 Prefixed    = ("?=" | "?!")? & Captured
 Captured    = (Identifier & ':')? & Primary
-Primary     = Char | String | ElementSet | Call | Reference | '(' & Body & ')'
+Primary     = Char | String | ElementSet | Call | Reference | '(' & Body & ')' | '{' & Body & '}'
 
 Value       = CsExpr | Call | Reference
 CsExpr      = "@(" & Balanced & ')'
@@ -1485,19 +1481,10 @@ paper. None of it requires changing the notation above.
 - **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
   rule and ordinary shadowing.
 
-- **There is no commit point in an expression.** Ordered choice backtracks fully, so
-  `Call | Index` sharing a leading `Identifier` simply works, and a rule means one thing
-  everywhere it is called. There is no cut operator, and an alternative cannot be
-  written so as to mean something different from where it sits.
-
-  What was rejected here is a commit point an author scatters through expressions,
-  whose cost is exactly that a rule stops meaning one thing. `recover` (§8.2) commits
-  too, and pays none of it: it is written on one repetition, it says that *that*
-  repetition's elements are records rather than alternatives to try, and the rules it
-  calls are unchanged everywhere including inside it. The reason it exists at all is
-  the one early commitment was originally wanted for and the recovery engine cannot
-  serve — a semantic guard failing on record 12 of a hundred million, where cheapest-edit
-  repair is neither affordable nor an answer.
+- **Atomic groups are explicit.** `{ X }` has the same matches and value as `X`, but when
+  it succeeds the parser discards alternatives created while recognizing `X`. Failure
+  before the closing brace remains an ordinary failure. Rule boundaries never imply
+  this behavior; an author chooses it only where the grammar has a real commit point.
 
 - **Keyword boundaries** — §4.6, the same mechanism again.
 

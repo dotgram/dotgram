@@ -88,86 +88,29 @@ then quietly mean nothing.
 
 ## Backtracking, and where it stops
 
-Inside a rule, backtracking is full. A rule compiles to a state machine with an
-explicit stack of the points that could have gone another way: entering an alternative
-records the next one, taking one more repetition records the option of having stopped.
-Failing anywhere resumes at the most recent of them, and nothing is given up until the
-stack is empty. So `'a'? & 'a'` matches `"a"`, and `("x" | "xy") & 'y'` matches `"xy"`.
-
-**Backtracking does not cross a rule boundary**, and that is now language rather than
-implementation — §4 of the specification says so and says why. A call answers once, with
-the first match it finds, and cannot be asked for another:
+Backtracking is full across ordinary rule calls. The generated parser is one automaton;
+calls record continuations in its arena instead of becoming C# calls. Entering an
+alternative records the next one, and taking another repetition records the option of
+having stopped. Failing anywhere resumes the most recent available path, including one
+inside a called rule. So `'a'? & 'a'` matches `"a"`, and both the inline and extracted
+forms below match `"xy"`:
 
 ```dotgram
 Start = Name & 'y'
 Name  = "xy" | "x"
 ```
 
-does not match `xy`, though `("xy" | "x") & 'y'` does.
+The inline form is `Start = ("xy" | "x") & 'y'`. Extracting the choice into `Name` does
+not change its meaning, and a whole `parse` keeps alternatives available until the
+end-of-input condition is satisfied.
 
-The example was wrong here for a long time — it had the alternatives the other way round,
-as `"x" | "xy"`, which matches perfectly well because the shorter one wins and `'y'` takes
-what is left. Two tests now pin both orderings, which is how the mistake surfaced.
+`{ ... }` is the explicit exception. After an atomic group succeeds, alternatives made
+inside it are discarded; `{ "xy" | "x" } & 'y'` therefore fails on `xy`. A rule boundary
+never commits implicitly.
 
-The same boundary shows up in publication: `parse R` asks `R` for a match and then
-checks the input ended, and cannot send `R` back for a longer one if it did not.
-
-**Nesting depth is bounded by the process stack, and the bound is about 4560 in
-Release.** The
-machine takes recursion out of a rule and not out of a grammar: `Expr = '(' & Expr & ')'`
-is an ordinary C# call, so a thousand brackets are a thousand frames. Measured on the
-default 1 MB stack, `((( … x … )))` survives 4562 levels and overflows by 4625 — bisected
-by a child process, because a `StackOverflowException` cannot be caught and takes the
-process with it (`benchmarks/ … --depth N`). The 2700 written here before was measured in
-Debug, where frames are fatter; both numbers were right about different builds, which is
-why the build is now part of the claim.
-
-The number is what it is for a reason worth knowing, because it is a cost of a decision
-made elsewhere. Each recognizer opens with
-
-```csharp
-global::System.Span<int> bt = stackalloc int[48];
-```
-
-— the backtracking stack, sized so that nothing is allocated on the heap in the common
-case and `Grow` takes over when 48 is not enough. That is 192 bytes of the C# stack per
-rule invocation, and it, not the rest of the frame, is what sets the depth. `Grow` helps
-with backtracking *inside* a rule and does nothing for nesting *between* rules.
-
-**48 was tried against 32 and 24**, since the buffer is what a frame mostly costs and a
-smaller one buys depth:
-
-| slots | depth | one URL parse | allocated |
-| --: | --: | --: | --: |
-| 48 | 4562 | 241 ns | 760 B |
-| 32 | 5625 | 296 ns | 1448 B |
-| 24 | 6421 | 274 ns | 1408 B |
-
-The trade is bad in both directions of reading it. A quarter more depth costs twice the
-garbage on every parse, because the URL grammar genuinely needs more than 32 slots and
-`Grow` starts running on ordinary matches — the allocation is not the stack buffer, it is
-the heap one replacing it. 48 is where an ordinary parse stops spilling, and buying depth
-past that means paying for it on every match rather than on the deep ones.
-
-**Spilling the buffer to the heap when the stack runs low was tried and does not work
-in the obvious form.** `RuntimeHelpers.TryEnsureSufficientExecutionStack()` asks whether a
-fixed reserve is left — on this runtime a hundred kilobytes or so — so it keeps answering
-yes until the last few hundred frames and then answers no for the rest. Measured: the
-limit did not move. The check is a guard against being about to overflow, not a way of
-deciding early that a parse is going deep.
-
-What would work is a depth counter: pass the nesting level down, and past some threshold —
-a few hundred, which no ordinary grammar reaches — take the buffer from the heap instead
-of the stack. A frame without its buffer is about 40 bytes rather than 230, so the limit
-would go from 4562 to something in the tens of thousands, and an ordinary parse would
-never test the branch more than a few times. The cost is a parameter on every recognizer
-and an increment at every call, which every snapshot would show. Not done yet, and worth
-doing before anything parses adversarial input.
-
-So input length and nesting depth are different limits, and only the first is about to
-get better: streaming makes a longer file readable and leaves the bracket count exactly
-where it is. A grammar meant for adversarial input should bound its own nesting, and a
-`StackOverflowException` cannot be caught in .NET — the process goes.
+Recursion uses the same arena frames and is not bounded by the C# call stack. Direct and
+mutual-recursion stress tests run to tens of thousands of levels; recognition and typed
+materialization are both iterative.
 
 **What `recover` recovers from is an element that started.** A run of `Row*` ends when
 `Row` does not begin, and zero further iterations is a legitimate outcome for `*` —
@@ -651,10 +594,9 @@ rather than the single question `find` asks.
 never all there at once. `Header`, then every `Row`, then `Trailer`: the envelope arrives
 in the stream with the records, on its own place, which is what §4.1 case 2 buys.
 
-The stages are run in order rather than compiled into one machine, and that is the whole
-difference from the parse over a string. A machine may backtrack anywhere inside a rule;
-a stream may not go back past what it has handed over. Each stage reads through the
-window by the same provisional rule `find` uses.
+The stages are driven in order but recognized by the same machine as a string parse. The
+machine may backtrack across ordinary rule calls; a stream may not go back past what it
+has handed over. Each stage therefore has an explicit continuation or recovery boundary.
 
 **Three conditions, and the second is the interesting one:**
 
@@ -1306,37 +1248,12 @@ records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the
 feed as one string, and ten million — 1.9 GB — in 13.6 seconds with no Gen2 collection at
 all. That is the streaming claim measured rather than argued.
 
-**Pathological backtracking**, and it is real. §11 says ordered choice backtracks fully
-inside a rule, and full backtracking over a repetition whose body can be cut several ways
-is exponential — measured here on a match that fails at the very end, so every cutting is
-tried:
-
-| grammar | 16 chars | 18 | 20 | 22 |
-| --- | --: | --: | --: | --: |
-| `(['a']+)+ & 'b'` | 3.5 ms | 14.8 | 62.4 | 258 |
-| `("a" \| "aa" \| "aaa")* & 'b'` | 1.2 ms | 4.1 | 14.9 | 57.6 |
-| `("a" \| "aa")* & 'b'` | 0.2 ms | 0.4 | 1.2 | 3.8 |
-| `Inner+ & 'b'`, `Inner = ['a']+` | 0.09 ms | 0.005 | 0.001 | 0.001 |
-
-Four times the work for two more characters in the first row, which is 2ⁿ; the second is
-the tribonacci count of the ways to cut a run, the third the Fibonacci one. Nothing here
-memoizes, so a grammar that offers a repetition several ways of consuming the same text
-pays for all of them.
-
-The last row is the same shape with a rule boundary in it, and it is the answer rather
-than a workaround. **A call answers once** (§4): `Inner` takes the whole run, is never
-asked for a shorter one, and the enclosing repetition has nothing to enumerate. So the
-engine's one deliberate limitation is also what makes the exponential case avoidable — by
-naming the inner run, which is what a reader wants the grammar to say anyway.
-
-**Generated code size**, which is large and is meant to be:
-
-| grammar | its lines | generated | of which support |
-| --- | --: | --: | --: |
-| `Csv.gram` | 4 | 558 | 19 |
-| `Feed.gram` | 13 | 1882 | 281 |
-| `Url.gram` | 32 | 3765 | 281 |
-| `JsonExample` | 30 | 2103 | 19 |
+**Pathological backtracking** remains possible: a repetition whose body can consume the
+same input in several ways may take exponential work when failure occurs at the end.
+Extracting that body into a rule no longer changes the search space. Use an explicit
+atomic group only where the language really permits commitment. The historical timings
+and generated-size table were measured for the removed per-rule generator and must be
+remeasured against the current automaton before making performance claims.
 
 A hundred lines of C# per line of grammar, and the ratio holds because the machines are
 what dominate: one state per position a rule can be in, each with its comment saying

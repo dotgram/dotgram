@@ -93,20 +93,17 @@ code, the slow one as a state machine.
 
 ## 2. The fast path: the shape of generated code
 
-One recognizer per rule, with one signature:
+Published operations use thin wrappers with one recognizer signature:
 
 ```csharp
 static int Recognize_R(ReadOnlySpan<char> text, int pos);   // new position, or -1
 ```
 
-Flat, no exceptions, no objects, no delegates — what `syntax.md` promises with the
-words "code comparable to a careful hand-written parser". That flatness is the idea
-worth taking from a generated parser; the shape that achieves it here is our own.
-
-Inside a recognizer there are no nested calls but a state machine: states are `switch`
-sections, transitions are `goto case`, and the points a match could have gone another
-way are an explicit stack of three-int frames. That is what makes backtracking full
-inside a rule, and it is the one part of the engine that is built (`status.md`).
+The wrappers select an entry in one generated automaton. Static transitions are `goto`
+blocks; dynamic returns, recursion and backtracking use integer-only entries in a nested
+parser object's reusable arena. Rule calls are shared blocks rather than C# calls, so
+backtracking is transparent across rule boundaries and recursion does not consume the
+C# stack.
 
 `-1` as the failure signal is a placeholder: the language needs an outcome that tells
 "no match" from "error" (`syntax.md` §8.1), and that is what it becomes.

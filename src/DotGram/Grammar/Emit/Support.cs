@@ -436,22 +436,7 @@ public static partial class CSharpEmitter
 			public int Reach;
 		""";
 
-	/// <summary>
-	/// Grows the backtracking stack. Emitted once per class, next to the recognizers
-	/// that share it.
-	/// </summary>
-	internal const string GrowHelper = """
-		static int[] Grow(global::System.Span<int> from)
-		{
-			var bigger = new int[from.Length * 2];
-
-			from.CopyTo(bigger);
-
-			return bigger;
-		}
-		""";
-
-	/// <summary>The reusable state owned by the unified automaton.</summary>
+	/// <summary>The reusable state owned by the automaton.</summary>
 	const string ParserRuntimeTemplate = """
 		private sealed class Parser
 		{

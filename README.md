@@ -77,9 +77,9 @@ so two assemblies that both emit one never have to agree about it.
 Working end to end — a `.gram` file becomes a parser that runs:
 
 - literals, element sets with ranges and Unicode categories, complements
-- sequence, ordered choice, quantifiers, lookahead — backtracking fully inside a rule,
-  so a greedy operand gives back what the rest of the sequence cannot use
-  ([`docs/status.md`](docs/status.md) says where that stops: at a rule boundary)
+- sequence, ordered choice, quantifiers, lookahead and explicit atomic groups —
+  backtracking crosses ordinary rule calls, so extracting an expression into a rule
+  does not change its meaning
 - rules calling rules, scopes and shadowing, the standard library
   (`any`, `none`, `eol`, `eof`, `Trivia`)
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own

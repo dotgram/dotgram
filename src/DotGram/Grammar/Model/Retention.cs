@@ -25,10 +25,9 @@ public enum LineExtent
 /// <remarks>
 /// <para>
 /// docs/syntax.md §6.3 emits the streaming overloads only where the grammar provably works
-/// with a reused buffer, and the rule it rests on is frozen in §4: backtracking does not
-/// cross a rule boundary, so a call reaches back not at all and a rule reaches back exactly
-/// as far as it has consumed. What must be held is the extent of the outermost rule still
-/// in progress.
+/// with a reused buffer. Ordinary rule calls are transparent to backtracking, so naming
+/// a subexpression does not shorten its retention. What must be held is determined by
+/// the active streamed stage and its explicit recovery/continuation boundary.
 /// </para>
 /// <para>
 /// A line-oriented reader gives that a unit, and the question becomes what a rule can take

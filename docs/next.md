@@ -80,11 +80,9 @@ is a commit-on-success atomic group. For example, an alternative inside an ordin
 may be retried after later input fails; wrapping it in `{ ... }` commits once that group
 succeeds.
 
-This is already the behavior of the unified generator, but the legacy `Machine` still
-has implicit rule boundaries. Consequently the repository temporarily has two semantic
-models. Do not update the public atomicity wording piecemeal while that split exists.
-Known stale passages are in `docs/syntax.md` and `docs/status.md` and still describe rule
-boundaries as atomic.
+This is the behavior of the generator. The former per-rule machine and its implicit rule
+boundaries have been removed; public documentation now describes only transparent calls
+and explicit atomic groups.
 
 The URL test for `https://1.2.3.4.5` now succeeds intentionally: after the IPv4 path fails
 later, `Host` can retry the `RegName` alternative.
@@ -161,14 +159,14 @@ Rule sequences do not allocate `List<T>`. Materialization counts matching rule c
 allocates an exact `T[]`, and fills it from the end because owner links are newest-first.
 Empty and rollback cases are covered.
 
-Declared `@T[]` results and `Construction.Sequence` now use the unified path for eligible
+Declared `@T[]` results and `Construction.Sequence` use the machine
 non-streaming publications. Their generated factory counts scalar, optional, and sequence
 members, allocates one exact `T[]`, and fills it in grammar order; it no longer builds a
 typed `List<T>`. Materialization first marks the completed invocations reachable from the
 accepted root, so construction code belonging only to an abandoned derivation is never
 called.
 
-Ordinary left-recursive folds now use the unified path. Recognition records each base or
+Ordinary left-recursive folds use the machine. Recognition records each base or
 step `Construct` in arena order. After acceptance, materialization builds the base once,
 then walks the step markers from left to right and applies each factory to one accumulator.
 Captures are read only from the arena segment belonging to that marker, so no per-fold
@@ -181,7 +179,7 @@ Whole unified publications also compile the root rule's external leading and tra
 `Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
 inserted between sequence operands and fixes published folds beginning with whitespace.
 
-Capture-aware `when` uses the unified path for text, typed, and sequence captures. Text is
+Capture-aware `when` works for text, typed, and sequence captures. Text is
 read directly from `Capture` extents. A typed value requested by the guard is materialized
 once, cached by its `Completed` entry, and reused after acceptance. A sequence marks all
 of its accepted and recovered elements, materializes them in one pass, and hands the guard
@@ -201,9 +199,9 @@ Generated development checks use `Debug.Assert`. Detailed tracing is emitted thr
 method marked `[Conditional("DOTGRAM_TRACE")]` and writes to `Debug.WriteLine`, so release
 calls and argument evaluation disappear when the symbol is absent.
 
-## What the unified machine supports now
+## What the machine supports now
 
-The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
+`Machine` handles every normalized node form:
 
 - empty nodes, literals, and element predicates;
 - sequences and choices;
@@ -218,17 +216,11 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - binding-power climbing with power-aware arena call frames;
 - direct and mutual recursion through explicit frames.
 
-It currently excludes unknown node forms.
-
 String and reader `find`, whole parse, and every stage of a streamed parse now call the
-same unified engine. Reader drivers own only window extension, iteration, yielding, and
+same engine. Reader drivers own only window extension, iteration, yielding, and
 recovery scanning. Recognition-only entries test the complete continuation before each
 streamed element without invoking `=>`, a recovery factory, or `OnRecovered`. Feed and
 URL no longer carry a second legacy recognizer graph merely because they publish `find`.
-
-Do not broaden `Supports` casually. Previous broad attempts admitted explicit array types
-and folds, then broke `TextReader`/chunk overloads, special sequence factories, or emitted
-fold calls without their required scalar arguments.
 
 ## Typed guard materialization
 
@@ -244,21 +236,16 @@ that computed value.
 
 ## Recommended continuation order
 
-1. Remove the legacy semantic path, update public atomicity/compatibility documentation
-   atomically, and add migration notes where observable behavior changed.
-2. Only then benchmark generated size and hot paths and decide whether additional inlining
+1. Benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map
 
-- `src/DotGram/Grammar/Emit/UnifiedMachine.cs`: unified eligibility, arena model,
+- `src/DotGram/Grammar/Emit/Machine.cs`: arena model,
   automaton emission, backtracking, and materialization.
 - `src/DotGram/Grammar/Emit/Support.cs`: generated support types including the nested
   parser infrastructure.
-- `src/DotGram/Grammar/Emit/CSharpEmitter.cs`: publication routing and coexistence with
-  legacy generation.
-- `src/DotGram/Grammar/Emit/Machine.cs`: legacy generator and old implicit rule-boundary
-  behavior.
+- `src/DotGram/Grammar/Emit/CSharpEmitter.cs`: publication, staging and streaming routing.
 - `src/DotGram/Grammar/Model/CaptureLayout.cs`: capture layout; recovery/fold structures remain
   here for historical reasons.
 - `src/DotGram/Grammar/Model/RecognitionGraph.cs` and
@@ -294,8 +281,7 @@ Earlier recursion groundwork is in `9f95cfa`, `6076080`, `61ff9c8`, `a4deb7b`, a
 
 ## Completion criterion
 
-The restructuring is complete when every publication kind uses the same transparent-rule
-semantics and explicit atomic groups, all user construction runs only for the accepted
-derivation, recursive parsing/materialization remains iterative, legacy generated methods
-are removable, public documentation describes one implementation rather than a semantic
-split, and the full suite remains comfortably below the 30-second ceiling.
+The semantic restructuring is complete: every publication kind uses transparent-rule
+semantics and explicit atomic groups, recursive parsing/materialization is iterative,
+and one generator implements the language. The next work is measurement-driven code-size
+and hot-path optimization while the full suite remains below the 30-second ceiling.
