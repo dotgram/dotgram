@@ -236,8 +236,25 @@ that computed value.
 
 ## Recommended continuation order
 
-1. Benchmark generated size and hot paths and decide whether additional inlining
-   or block-sharing heuristics are justified.
+1. Profile arena traffic and materialization on representative large grammars before
+   changing storage layout.
+2. Keep inlining bounded to recognition-only single-literal/single-element rules unless
+   a new benchmark demonstrates a broader profitable class.
+
+## First single-machine performance pass
+
+The URL benchmark initially exposed parser-storage allocation rather than automaton
+throughput: without a consumer cache it allocated 2.3--21.6 KB per parse. Its existing
+`RentParser`/`ReturnParser` hooks now back a one-item thread-local cache in the benchmark;
+accepted outputs still allocate normally, while a rejected URL allocates nothing.
+
+The first and only inlining rule is structural: an untyped, capture-free rule whose
+entire normalized body is one literal or element set is compiled directly at its call
+sites. It cannot contain resumable choices or recursion, and every larger rule remains a
+shared block. On the short run this reduced the 84-character URL from 3.27 us to 1.86 us
+and the full 47-character URL from 1.51 us to 1.17 us. Generated source also shrank from
+56,749 to 56,325 bytes for URL and from 127,292 to 124,288 bytes for Settlements. Results
+on the shortest cases were mixed, so broader inlining is not currently warranted.
 
 ## Implementation map
 

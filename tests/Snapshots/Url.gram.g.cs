@@ -756,11 +756,16 @@ namespace DotGram.Snapshots
 				S64:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 63, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 20, p, entries.Count);
-					goto S20;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S63;
 				}
 
 				S65:
@@ -971,11 +976,16 @@ namespace DotGram.Snapshots
 				S85:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call SubDelim", 23, p, entries.Count);
-					goto S23;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S80;
 				}
 
 				S86:
@@ -989,11 +999,16 @@ namespace DotGram.Snapshots
 				S87:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 80, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Unreserved", 22, p, entries.Count);
-					goto S22;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S80;
 				}
 
 				S88:
@@ -1180,11 +1195,16 @@ namespace DotGram.Snapshots
 				S105:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 103, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 20, p, entries.Count);
-					goto S20;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S103;
 				}
 
 				S106:
@@ -1244,11 +1264,16 @@ namespace DotGram.Snapshots
 				S111:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call SubDelim", 23, p, entries.Count);
-					goto S23;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S108;
 				}
 
 				S112:
@@ -1262,11 +1287,16 @@ namespace DotGram.Snapshots
 				S113:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 108, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Unreserved", 22, p, entries.Count);
-					goto S22;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S108;
 				}
 
 				S114:
@@ -2774,11 +2804,16 @@ namespace DotGram.Snapshots
 				S250:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 248, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Hex", 21, p, entries.Count);
-					goto S21;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S248;
 				}
 
 				S251:
@@ -2927,11 +2962,16 @@ namespace DotGram.Snapshots
 				S264:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call SubDelim", 23, p, entries.Count);
-					goto S23;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S259;
 				}
 
 				S265:
@@ -2945,11 +2985,16 @@ namespace DotGram.Snapshots
 				S266:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 259, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Unreserved", 22, p, entries.Count);
-					goto S22;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S259;
 				}
 
 				S267:
@@ -3039,11 +3084,16 @@ namespace DotGram.Snapshots
 				S275:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call SubDelim", 23, p, entries.Count);
-					goto S23;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!((c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '='))) goto Fail;
+					p++;
+					goto S270;
 				}
 
 				S276:
@@ -3057,11 +3107,16 @@ namespace DotGram.Snapshots
 				S277:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 270, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Unreserved", 22, p, entries.Count);
-					goto S22;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~'))) goto Fail;
+					p++;
+					goto S270;
 				}
 
 				S278:
@@ -3075,21 +3130,31 @@ namespace DotGram.Snapshots
 				S279:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Hex", 21, p, entries.Count);
-					goto S21;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto Return;
 				}
 
 				S280:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 279, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Hex", 21, p, entries.Count);
-					goto S21;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))) goto Fail;
+					p++;
+					goto S279;
 				}
 
 				S281:

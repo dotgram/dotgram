@@ -523,11 +523,15 @@ namespace DotGram.Snapshots
 				S33:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 32, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Sep", 7, p, entries.Count);
-					goto S7;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '|') goto Fail;
+					p += 1;
+					goto S32;
 				}
 
 				S34:
@@ -582,11 +586,15 @@ namespace DotGram.Snapshots
 				S39:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 38, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Sep", 7, p, entries.Count);
-					goto S7;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '|') goto Fail;
+					p += 1;
+					goto S38;
 				}
 
 				S40:
@@ -617,11 +625,15 @@ namespace DotGram.Snapshots
 				S43:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 42, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Sep", 7, p, entries.Count);
-					goto S7;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '|') goto Fail;
+					p += 1;
+					goto S42;
 				}
 
 				S44:
@@ -676,11 +688,15 @@ namespace DotGram.Snapshots
 				S49:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 48, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Sep", 7, p, entries.Count);
-					goto S7;
+					if (p + 1 > text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					if (text[p + 0] != '|') goto Fail;
+					p += 1;
+					goto S48;
 				}
 
 				S50:
@@ -773,11 +789,16 @@ namespace DotGram.Snapshots
 				S57:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 55, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S55;
 				}
 
 				S58:
@@ -828,11 +849,16 @@ namespace DotGram.Snapshots
 				S62:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 60, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S60;
 				}
 
 				S63:
@@ -897,11 +923,16 @@ namespace DotGram.Snapshots
 				S68:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 66, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S66;
 				}
 
 				S69:
@@ -966,11 +997,16 @@ namespace DotGram.Snapshots
 				S74:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 72, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S72;
 				}
 
 				S75:
@@ -1065,11 +1101,16 @@ namespace DotGram.Snapshots
 				S83:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 81, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S81;
 				}
 
 				S84:
@@ -1133,11 +1174,16 @@ namespace DotGram.Snapshots
 				S89:
 
 				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 87, p, call, atomic, repeat, lookahead, 0, -1));
-					call = callIndex;
-					Trace("call Digit", 8, p, entries.Count);
-					goto S8;
+					if (p >= text.Length)
+
+					{
+						failure.Starved = true;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					p++;
+					goto S87;
 				}
 
 				S90:

@@ -694,6 +694,9 @@ sealed class Machine
 
 			case Node.Call(var rule, _):
 			{
+				if (CanInline(rule))
+					return Compile(_graph.Bodies[rule], next);
+
 				var state = Reserve(out var writer);
 				var calledPower = _graph.Climbing.ContainsKey(rule)
 					? (_graph.Powers.TryGetValue(node, out var requested) ? requested : 0)
@@ -983,6 +986,16 @@ sealed class Machine
 				throw new InvalidOperationException($"Unsupported unified-automaton node: {node.GetType().Name}.");
 		}
 	}
+
+	/// <summary>
+	/// Lexical atoms do not need a call frame: their body cannot contain a choice that a
+	/// later failure must resume, and they produce no independently materialized value.
+	/// Keeping the boundary for every other rule prevents unbounded tree expansion.
+	/// </summary>
+	bool CanInline(RuleSymbol rule) =>
+		!_graph.Types.ContainsKey(rule) &&
+		_graph.Results[rule].Count == 0 &&
+		_graph.Bodies[rule] is Node.Literal or Node.Element;
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{

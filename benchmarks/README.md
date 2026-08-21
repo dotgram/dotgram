@@ -16,6 +16,17 @@ than nested calls, `goto case`, no closures, no runtime parser graph, constructi
 deferred until a match is certain — and none of them were measured. A design rationale
 that cannot be checked is a design rationale that drifts.
 
+## Parser reuse
+
+The generated parser owns reusable arena storage and exposes `RentParser`/`ReturnParser`
+partial hooks. The URL benchmark implements a one-item thread-local cache through those
+hooks. This keeps the benchmark focused on recognition and accepted-value construction;
+without reuse it mostly measures allocating and growing a new arena on every call.
+
+The cache is deliberately in benchmark consumer code rather than hidden in the timing
+method. Reentrant parsing remains safe: renting clears the slot, so a nested parse creates
+another parser and only returned instances enter the cache.
+
 ## The URL benchmark
 
 `examples/UrlExample.cs`'s grammar against the same language written as a regular
@@ -39,7 +50,26 @@ One of the five inputs does not match. A parser that is quick to say yes and slo
 no is quick on the input nobody sends: refusal is where a backtracking engine does its
 worst work.
 
-### What it said
+### Current short-run result
+
+Windows, .NET 10, `--job short`, after the single-machine transition and lexical-atom
+inlining. These numbers are indicative, not stable CI thresholds:
+
+| input | .Gram | allocated |
+| --- | --: | --: |
+| `http://example.com` | 837 ns | 176 B |
+| `https://192.168.0.1/` | 878 ns | 200 B |
+| `https://exa mple.com/` — no match | 588 ns | 0 B |
+| a 47-character URL with every part | 1.17 us | 352 B |
+| an 84-character path of eight segments | 1.86 us | 328 B |
+
+Inlining only recognition-only rules whose complete body is one literal or element set
+reduced the long path from 3.27 us to 1.86 us and the full URL from 1.51 us to 1.17 us.
+It also reduced generated URL source from 56,749 to 56,325 bytes and the larger
+Settlements parser from 127,292 to 124,288 bytes. Broader inlining is not justified by
+this run.
+
+### Historical per-rule result
 
 Windows, .NET 10, `--job short`, so these are indicative rather than publishable — ratios
 against `.Gram` as the baseline:
