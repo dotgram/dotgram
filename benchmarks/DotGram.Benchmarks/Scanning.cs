@@ -37,8 +37,17 @@ namespace DotGram.Benchmarks;
 /// </para>
 /// <para>
 /// Which makes the useful question not "chain or window" but where in the chain the likely
-/// character sits — and that is something the emitter chooses, since it writes the ranges in
-/// whatever order the grammar happened to name them.
+/// character sits. The same six terms in three orders over the same input: caught first,
+/// 12.4; caught second, which is what is generated today, 16.4; caught last, 37.0. Three
+/// times, for writing the same set in a different order — more than any of the forms tried
+/// here are worth against each other, and the window's flat 18.8 sits between the second
+/// term and the third.
+/// </para>
+/// <para>
+/// So the length of a chain is not what costs; the position of the answer in it is, at four
+/// or five nanoseconds a term skipped. A chain of any length whose first term answers stays
+/// where it started. Ranges are written in order of character code today, which puts
+/// <c>Unreserved</c>'s letters fifth of six — near the wrong end of that range.
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
@@ -67,6 +76,59 @@ public class Scanning
 
 			if (!(c == '!' || (c >= '$' && c <= '&') || (c >= '(' && c <= '+') ||
 				  c == ',' || c == ';' || c == '='))
+			{
+				break;
+			}
+
+			p++;
+		}
+
+		return p;
+	}
+
+	// The same six terms in three orders, over the same input. Nothing about the set changes
+	// — only where the range that answers is written.
+
+	[Benchmark]
+	public int Ranges_hit_first()
+	{
+		var text = Text.AsSpan();
+		var p    = 0;
+
+		while (true)
+		{
+			if (p >= text.Length)
+				break;
+
+			var c = text[p];
+
+			if (!((c >= '$' && c <= '&') || c == '!' || (c >= '(' && c <= '+') ||
+				  c == ',' || c == ';' || c == '='))
+			{
+				break;
+			}
+
+			p++;
+		}
+
+		return p;
+	}
+
+	[Benchmark]
+	public int Ranges_hit_last()
+	{
+		var text = Text.AsSpan();
+		var p    = 0;
+
+		while (true)
+		{
+			if (p >= text.Length)
+				break;
+
+			var c = text[p];
+
+			if (!(c == '!' || (c >= '(' && c <= '+') || c == ',' || c == ';' || c == '=' ||
+				  (c >= '$' && c <= '&')))
 			{
 				break;
 			}
