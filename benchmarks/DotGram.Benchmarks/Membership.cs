@@ -16,6 +16,17 @@ namespace DotGram.Benchmarks;
 /// whole set as bits in a window, again after shifting down.
 /// </para>
 /// <para>
+/// <b>And the numbers below do not carry into a parser.</b> Generating the window above the
+/// threshold they suggest was tried and measured in place: the URL grammar went from 605 ns
+/// to 692 on its path-heavy input, 14% the wrong way, and was reverted. The reason is the
+/// input here. A mixture with separators and outsiders in it makes the chain's branches
+/// unpredictable, which is what the window is good against — but a parser scanning a path
+/// reads a long run of members, and then the chain settles on its first comparison every
+/// time while the window does all of its work unconditionally. What is measured below is a
+/// character set asked about out of context; a parser asks about one in the middle of a run
+/// of its own kind.
+/// </para>
+/// <para>
 /// Measured before anything is generated differently, because the chain may already be
 /// free: <c>c >= 'a' &amp;&amp; c &lt;= 'z'</c> is a pattern RyuJIT recognizes and folds
 /// into the same single unsigned comparison the second form writes by hand. If it does,
