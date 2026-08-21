@@ -1201,12 +1201,8 @@ sealed class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if ((repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
-					Possessive(repeat.Body, following) &&
-					Silent(repeat.Body))
-				{
+				if (SilentRepeat(repeat, following))
 					return CompileSilentRepeat(repeat, next, following);
-				}
 
 				return RunTest(repeat.Body) is { } runTest
 					? CompileRun(repeat, runTest, next, following)
@@ -1411,25 +1407,60 @@ sealed class Machine
 	/// tells apart, rules small enough to be compiled in place — has nothing to take back,
 	/// and its failure can go straight wherever the caller wants it.
 	/// </remarks>
-	bool Silent(Node node) =>
+	bool Silent(Node node, FirstSets.First following) =>
 		(_graph.Climbing.Count == 0 || !_owners.ContainsKey(node)) &&
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element => true,
-			Node.Sequence(var parts)                   => AllSilent(parts),
+			Node.Sequence(var parts)                   => AllSilent(parts, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllSilent(alternatives),
+			                                              AllSilent(alternatives, following, sequence: false),
 			Node.Call(var rule, _)                     => CanInline(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
-			                                              Silent(called),
+			                                              Silent(called, following),
+
+			// A repetition inside another is silent exactly when it is itself the loop and
+			// nothing else — which is the same question, asked of it. `Path = ('/' & Segment)*`
+			// with `Segment` a repetition of its own is the shape this was refusing, and it is
+			// the shape most path-like grammars are written in.
+			Node.Repeat repeat                         => SilentRepeat(repeat, following),
+
 			_                                          => false,
 		};
 
-	bool AllSilent(IReadOnlyList<Node> nodes)
+	/// <summary>
+	/// Whether a repetition is a loop and nothing else — no entry, no count, no way back.
+	/// </summary>
+	/// <remarks>
+	/// Asked in two places and it has to answer the same in both: here, to know whether the
+	/// thing around it writes nothing, and at the point of compiling it, to decide what to
+	/// write. Different answers would mean jumping past entries that were made after all.
+	/// </remarks>
+	bool SilentRepeat(Node.Repeat repeat, FirstSets.First following) =>
+		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
+		Possessive(repeat.Body, following) &&
+		Silent(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
+
+	/// <summary>
+	/// Every one of them, each followed by what follows it.
+	/// </summary>
+	/// <remarks>
+	/// Threaded the way compilation threads it, because it is the same question about the
+	/// same nodes: a part of a sequence is followed by the rest of the sequence, and an
+	/// alternative of a choice is followed by whatever the choice is.
+	/// </remarks>
+	bool AllSilent(IReadOnlyList<Node> nodes, FirstSets.First following, bool sequence = true)
 	{
-		foreach (var node in nodes)
-			if (!Silent(node))
+		var after = following;
+
+		for (var i = nodes.Count - 1; i >= 0; i--)
+		{
+			if (!Silent(nodes[i], after))
 				return false;
+
+			if (sequence)
+				after = Precedes(nodes[i], after);
+		}
 
 		return true;
 	}
@@ -1526,44 +1557,63 @@ sealed class Machine
 	/// and the general machinery stays.
 	/// </para>
 	/// </remarks>
-	bool Possessive(Node body, FirstSets.First following) =>
+	bool Possessive(Node body, FirstSets.First following, HashSet<RuleSymbol>? seen = null) =>
 		!following.Anything &&
 		!following.Nothing &&
 		!FirstSets.Nullable(body, _graph) &&
 		!FirstSets.Of(body, _graph).Overlaps(following) &&
-		Deterministic(body, []);
+		Deterministic(body, seen ?? [], FirstSets.Of(body, _graph).Or(following));
 
 	/// <summary>
 	/// Whether a node has at most one match at any position — one length, not a choice of
 	/// them.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// Alternatives settle it when one character tells them apart, which is what
-	/// <see cref="Predictive"/> already decides. A repetition never settles it: where it
-	/// stops is itself the choice this is asking about.
+	/// <see cref="Predictive"/> already decides.
+	/// </para>
+	/// <para>
+	/// A repetition settles it exactly when it is possessive. Where a repetition stops is
+	/// otherwise a choice — the very choice this is asking about — but a possessive one
+	/// cannot stop anywhere but where the input stopped it, so it has the one length. That
+	/// is why this needs to know what follows: possessiveness is a fact about a repetition
+	/// in a place, not about a repetition.
+	/// </para>
 	/// </remarks>
-	bool Deterministic(Node node, HashSet<RuleSymbol> seen) =>
+	bool Deterministic(Node node, HashSet<RuleSymbol> seen, FirstSets.First following) =>
 		node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead => true,
 			Node.Literal or Node.Element               => true,
-			Node.Capture(_, var body)                  => Deterministic(body, seen),
-			Node.Construct(var body, _)                => Deterministic(body, seen),
-			Node.Atomic(var body)                      => Deterministic(body, seen),
-			Node.Sequence(var parts)                   => AllDeterministic(parts, seen),
+			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
+			Node.Construct(var body, _)                => Deterministic(body, seen, following),
+			Node.Atomic(var body)                      => Deterministic(body, seen, following),
+			Node.Sequence(var parts)                   => AllDeterministic(parts, seen, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllDeterministic(alternatives, seen),
+			                                              AllDeterministic(
+			                                                  alternatives, seen, following, sequence: false),
+			Node.Repeat(var body, _, _)                => Possessive(body, following, seen),
 			Node.Call(var rule, _)                     => seen.Add(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
-			                                              Deterministic(called, seen),
+			                                              Deterministic(called, seen, following),
 			_                                          => false,
 		};
 
-	bool AllDeterministic(IReadOnlyList<Node> nodes, HashSet<RuleSymbol> seen)
+	bool AllDeterministic(
+		IReadOnlyList<Node> nodes, HashSet<RuleSymbol> seen, FirstSets.First following,
+		bool sequence = true)
 	{
-		foreach (var node in nodes)
-			if (!Deterministic(node, seen))
+		var after = following;
+
+		for (var i = nodes.Count - 1; i >= 0; i--)
+		{
+			if (!Deterministic(nodes[i], seen, after))
 				return false;
+
+			if (sequence)
+				after = Precedes(nodes[i], after);
+		}
 
 		return true;
 	}
