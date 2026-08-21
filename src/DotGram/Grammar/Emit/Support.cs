@@ -597,7 +597,7 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "CACHE_RESIZE",
 			"if (_built.Length < count)\n\tglobal::System.Array.Resize(ref _built, count);", caches);
 		runtime = CacheRuntime(runtime, "CACHE_ACCESS",
-			"internal bool[] Materialized(int count)\n{\n\tMaterialization(count);\n\n\treturn _built;\n}\n", caches);
+			"internal bool[] Materialized() => _built;\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_TRUNCATE",
 			"internal void Truncate(int count)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\t\t_valuesUsed = count;\n\t}\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",

@@ -268,6 +268,8 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("Materialize_DotGram(text, parser, entries);", source);
 		Assert.Contains("bool[] _built", source);
+		Assert.Contains("parser.Materialized();", source);
+		Assert.DoesNotContain("parser.Materialized(entries.Count);", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", "2").IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", "4").IsSuccess);

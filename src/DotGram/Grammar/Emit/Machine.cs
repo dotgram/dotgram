@@ -352,7 +352,7 @@ sealed class Machine
 								if (_guardValues)
 								{
 									file.Line("var values = parser.Materialization(entries.Count);");
-									file.Line("var built  = parser.Materialized(entries.Count);");
+									file.Line("var built  = parser.Materialized();");
 									file.Line("if (!built[0]) values[0] = parser;");
 									file.Line("Materialize_DotGram(text, parser, entries);");
 									file.Line("recognized = values[0];");
@@ -785,7 +785,7 @@ sealed class Machine
 				if (hasTyped)
 				{
 					writer.Line("var guardValues = parser.Materialization(entries.Count);");
-					writer.Line("var guardBuilt  = parser.Materialized(entries.Count);");
+					writer.Line("var guardBuilt  = parser.Materialized();");
 					writer.Line("var guardNeedsMaterialization = false;");
 				}
 
@@ -1308,7 +1308,7 @@ sealed class Machine
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
 		if (cached)
-			file.Line("var built  = parser.Materialized(entries.Count);");
+			file.Line("var built  = parser.Materialized();");
 		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
 		file.Line();
 
