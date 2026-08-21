@@ -169,14 +169,18 @@ public static class FirstSets
 	}
 
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
-	public static First Following(IReadOnlyList<Node> parts, int from, RecognitionGraph graph)
+	public static First Following(IReadOnlyList<Node> parts, int from, RecognitionGraph graph) =>
+		Following(parts, from, graph, []);
+
+	static First Following(
+		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
 		var ranges  = new List<CharRange>();
 		var nothing = true;
 
 		for (var i = from; i < parts.Count; i++)
 		{
-			var first = Of(parts[i], graph);
+			var first = Of(parts[i], graph, seen);
 
 			if (first.Anything)
 				return First.All;
@@ -225,10 +229,23 @@ public static class FirstSets
 			case Node.Atomic(var body):           return Of(body,     graph, seen);
 			case Node.Repeat(var body, _, _):    return Of(body,     graph, seen);
 
+			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
+			// down — not one met and left somewhere else. Kept as the path rather than as
+			// everything visited, so that two alternatives calling the same rule do not make
+			// the second one unknowable: it was the first that used the name up.
 			case Node.Call(var called, _):
-				return !seen.Add(called) || !graph.Bodies.TryGetValue(called, out var body2)
-					? First.All
-					: Of(body2, graph, seen);
+			{
+				if (!seen.Add(called))
+					return First.All;
+
+				var first = graph.Bodies.TryGetValue(called, out var body2)
+					? Of(body2, graph, seen)
+					: First.All;
+
+				seen.Remove(called);
+
+				return first;
+			}
 
 			case Node.Choice(var alternatives):
 			{
@@ -253,7 +270,7 @@ public static class FirstSets
 			}
 
 			case Node.Sequence(var parts):
-				return Following(parts, 0, graph);
+				return Following(parts, 0, graph, seen);
 
 			default:
 				return First.All;
