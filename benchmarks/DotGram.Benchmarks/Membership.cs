@@ -16,15 +16,23 @@ namespace DotGram.Benchmarks;
 /// whole set as bits in a window, again after shifting down.
 /// </para>
 /// <para>
-/// <b>And the numbers below do not carry into a parser.</b> Generating the window above the
-/// threshold they suggest was tried and measured in place: the URL grammar went from 605 ns
-/// to 692 on its path-heavy input, 14% the wrong way, and was reverted. The reason is the
-/// input here. A mixture with separators and outsiders in it makes the chain's branches
-/// unpredictable, which is what the window is good against — but a parser scanning a path
-/// reads a long run of members, and then the chain settles on its first comparison every
-/// time while the window does all of its work unconditionally. What is measured below is a
-/// character set asked about out of context; a parser asks about one in the middle of a run
-/// of its own kind.
+/// <b>The numbers below do not carry into a parser, and it is not known why.</b> Generating
+/// the window above the threshold they suggest was tried and measured in place: the URL
+/// grammar went from 605 ns to 692 on its path-heavy input, 14% the wrong way, and was
+/// reverted.
+/// </para>
+/// <para>
+/// Two explanations were offered and both are measured wrong, below, under
+/// <c>Run_</c>. That a parser reads a run of members and the chain settles on its first
+/// comparison every time: it does, and the window still beats it, 19.7 against 24.6. That
+/// the window as generated subtracted the low character three times: it did, and doing it
+/// once instead changes nothing, 20.0 against 19.7 — the compiler had already noticed.
+/// </para>
+/// <para>
+/// So the cost is somewhere the shape of the test does not reach: the emitted method is one
+/// of several thousand states, and sixty-four-bit constants have to be materialized into
+/// registers in a method that is already short of them. That is a guess and has not been
+/// measured, which is exactly what the last two guesses were.
 /// </para>
 /// <para>
 /// Measured before anything is generated differently, because the chain may already be
@@ -252,6 +260,63 @@ public class Membership
 
 		foreach (var c in Input)
 			if (Narrow_by_bits(c))
+				found++;
+
+		return found;
+	}
+
+	// ── The two readings of why it lost in a parser ─────────────────────────────
+	//
+	// Over a run of members, which is what a parser reads: a path segment is letters one
+	// after another, so the chain settles on its first comparison every time. Against that,
+	// the window as it was actually generated — subtracting the low character three times,
+	// once for the bound, once to pick the word and once to shift — and the window as it
+	// should have been, subtracting once into a local. Whichever of those two is the cost,
+	// this says so.
+
+	static readonly string Members = new('x', 51);
+
+	static bool Masked_thrice(char c) =>
+		(uint)(c - Low) < Span && ((c - Low < 64 ? Word0 : Word1) >> (c - Low) & 1UL) != 0;
+
+	static bool Masked_once(char c)
+	{
+		var n = (uint)(c - Low);
+
+		return n < Span && ((n < 64 ? Word0 : Word1) >> (int)n & 1UL) != 0;
+	}
+
+	[Benchmark]
+	public int Run_chained()
+	{
+		var found = 0;
+
+		foreach (var c in Members)
+			if (Chained(c))
+				found++;
+
+		return found;
+	}
+
+	[Benchmark]
+	public int Run_masked_subtracting_thrice()
+	{
+		var found = 0;
+
+		foreach (var c in Members)
+			if (Masked_thrice(c))
+				found++;
+
+		return found;
+	}
+
+	[Benchmark]
+	public int Run_masked_subtracting_once()
+	{
+		var found = 0;
+
+		foreach (var c in Members)
+			if (Masked_once(c))
 				found++;
 
 		return found;
