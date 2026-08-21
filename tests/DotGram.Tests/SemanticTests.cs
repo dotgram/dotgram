@@ -388,19 +388,17 @@ public sealed class SemanticTests
 	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────
 
 	/// <summary>
-	/// A capture written inside `{ … }` is lost, and a typed one takes the parser down.
+	/// What a group recognised comes out of it; what could take the parse back into it does
+	/// not.
 	/// </summary>
 	/// <remarks>
-	/// Commit discards every arena entry recorded inside the group, and the arena holds two
-	/// different things: the ways back into the group, which commit is meant to drop, and
-	/// what was recognised — captures, completed calls, constructions — which the value is
-	/// built from afterwards and must survive. Skipped rather than left failing, because the
-	/// repair is a change to what the arena is: today it is a stack the failure path unwinds
-	/// by removing from the end, so entries cannot simply be marked and left in place
-	/// (tried: it keeps the captures and loses atomicity, since a committed choice is still
-	/// on the stack for the unwinder to find).
+	/// The arena holds two unlike things, and commit is about one of them. It used to take
+	/// the length off the end, which took both — so a capture written inside <c>{ … }</c>
+	/// was thrown out with the choice beside it. The ways back are put out in place instead,
+	/// because an entry's index is its name and closing the gaps would rename the records
+	/// either side.
 	/// </remarks>
-	[Fact(Skip = "Atomic commit discards the derivation with the resume points; see docs/next.md")]
+	[Fact]
 	public void An_atomic_group_carries_its_captures_out()
 	{
 		Assert.Equal("a",  Parsed("Start : @string = { x: \"a\" } => @(x)", "a").Value);
@@ -410,6 +408,31 @@ public sealed class SemanticTests
 				"Start : @string = { x: Child } => @(x)\n"
 				+ "Child : @string = t: ['a'..'z']+ => @(t)",
 				"ab").Value);
+	}
+
+	[Fact]
+	public void And_out_of_every_turn_of_a_repetition()
+	{
+		// Committed once a turn, and each turn puts out its own ways back and leaves its own
+		// records. What the turns before recorded is still there to be read at the end.
+		Assert.Equal(
+			"a|bb|ccc",
+			Parsed(
+				"@using System.Linq;\n" +
+				"Start : @string = (xs: Word & ','?)+ => @(string.Join(\"|\", xs))\n" +
+				"Word  : @string = { t: ['a'..'z']+ } => @(t)",
+				"a,bb,ccc").Value);
+	}
+
+	[Fact]
+	public void And_a_group_that_recognised_nothing_to_keep_leaves_nothing_behind()
+	{
+		// Nothing above the boundary is named by anything below it, so the length comes off
+		// the arena as it always did. Under a repetition that is the difference between an
+		// arena the grammar bounds and one the input does.
+		Assert.True(Matches(
+			"Start = ({ 'a'+ } & ','?)+",
+			string.Join(",", Enumerable.Repeat("aaa", 20_000))));
 	}
 
 	// ── Keyword boundaries (§4.6) ────────────────────────────────────────────────

@@ -199,39 +199,36 @@ Generated development checks use `Debug.Assert`. Detailed tracing is emitted thr
 method marked `[Conditional("DOTGRAM_TRACE")]` and writes to `Debug.WriteLine`, so release
 calls and argument evaluation disappear when the symbol is absent.
 
-## Known defect: an atomic group loses what was recognised inside it
+## Fixed: an atomic group kept the ways back and dropped the derivation
 
-P0, confirmed by measurement and pinned as a skipped test
-(`SemanticTests.An_atomic_group_carries_its_captures_out`).
-
-```dotgram
-Start : @string = { x: "a" } => @(x)          // succeeds, x is empty
-Start : @string = { x: Child } => @(x)        // IndexOutOfRangeException
-```
-
-A text capture vanishes silently; a typed one throws, and so do a nested `{ { … } }` and a
-`when` written inside the group. One line does it:
+It used to lose what it recognised. A text capture written inside `{ … }` vanished
+silently, and a typed one threw, because commit was one line:
 
 ```csharp
 entries.RemoveRange(atomic, entries.Count - atomic);
 ```
 
-The arena holds two kinds of entry. The ways back into the group — `Choice`, `Call`,
-`Repeat`, `Lookahead` — are what commit exists to drop. The derivation — `Capture`,
-`RuleCapture`, `Construct`, `Completed` — is what the value is built from after
-acceptance. Commit removes both.
+The arena holds two unlike things. The ways back into the group — `Choice`, `Run`,
+`Lookahead` — are what commit exists to close. The derivation — `Capture`, `RuleCapture`,
+`Construct`, `Completed` — is what the value is built from after acceptance. Taking the
+length off the end took both.
 
-**Marking the resume points `Dead` and leaving the rest in place does not work.** Tried,
-measured, reverted: all five capture cases come back correct and all three atomicity tests
-break, because the failure path unwinds the arena by removing entries from the end — so
-anything left in place is still there for the unwinder to find. The repair has to change
-what the arena is, not what commit deletes:
+The ways back are now put out where they lie, as `Dead`, which the failure path passes
+over. In place rather than removed, because an entry's index is its name: a capture of a
+rule's value names the entry its call completed into, and closing the gaps would rename
+every record either side.
 
-- compact the derivation entries down to the boundary and truncate above them, keeping the
-  arena a stack — but indexes into it are links between entries, so every reference into
-  the moved range has to be rewritten;
-- or keep resume points and derivation in two arenas, so commit truncates one and leaves
-  the other. Larger, and it makes the invariant obvious instead of delicate.
+An earlier attempt at the same thing failed and is worth knowing about: it marked the
+resume points and left them, but `Dead` was only passed over by grammars that also used
+`recover`, so everywhere else the unwinder fell through to the branch below and treated
+them as something else. The mark has to be understood by every parser that can make one.
+
+Where the group recognised nothing worth keeping — no capture, no construction, no call
+to a rule with a value — the length still comes off the end, because nothing above the
+boundary is named from below it. `Machine.KeepsRecords` decides which of the two is
+written, and it matters under a repetition: otherwise a group inside one would leave its
+entries behind on every turn, and an arena the grammar bounds would become one the input
+does.
 
 ## What the machine supports now
 

@@ -40,6 +40,7 @@ sealed class Machine
 	bool _usesChar;
 	bool _usesRuns;
 	bool _usesCompleted;
+	bool _usesDead;
 
 	/// <summary>
 	/// Where a failure goes from here — <see cref="Fail"/>, the arena's dispatcher, unless
@@ -548,15 +549,21 @@ sealed class Machine
 						file.Line();
 					}
 
-					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0)
+					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead)
 					{
 						var ignored =
 							"entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || " +
 							"entry.Kind == ParserEntry.RuleCapture";
 
 						if (_recoveries.Count > 0)
-							ignored += " || entry.Kind == ParserEntry.Recovery || entry.Kind == ParserEntry.Dead || " +
+							ignored += " || entry.Kind == ParserEntry.Recovery || " +
 								"entry.Kind == ParserEntry.PendingRecovery";
+
+						// Passed over rather than acted on: it was a way back until something
+						// committed past it, and what it is now is a hole in the stack that
+						// keeps the indexes either side of it meaning what they meant.
+						if (_recoveries.Count > 0 || _usesDead)
+							ignored += " || entry.Kind == ParserEntry.Dead";
 
 						file.Line($"if ({ignored})");
 						file.Then("continue;");
@@ -1106,9 +1113,42 @@ sealed class Machine
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
 				if (_recoveries.Count > 0)
 					atCommit.Line("owned = true;");
-				if (_guardValues)
-					atCommit.Line("parser.Truncate(atomic);");
-				atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
+
+				// The arena holds two unlike things — where the parse could return to, and
+				// what it recognised on the way — and committing is about the first only.
+				// Taking the length off the end took both, which is why a capture written
+				// inside `{ … }` did not come out of it.
+				//
+				// Where the group recognised nothing worth keeping, the length still comes
+				// off: nothing above the boundary is named by anything below it, and a group
+				// under a repetition would otherwise leave its entries behind on every turn.
+				// Where it did, the ways back are put out and everything stays where it is,
+				// because an entry's index is its name — a capture of a rule's value names
+				// the entry the call completed into — and closing the gaps would rename them.
+				if (KeepsRecords(body))
+				{
+					_usesDead = true;
+
+					using (atCommit.Block("for (var back = entries.Count - 1; back > atomic; back--)"))
+					{
+						atCommit.Line("var inside = entries[back];");
+						atCommit.Line(
+							"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
+							"inside.Kind != ParserEntry.Lookahead) continue;");
+						atCommit.Line(
+							"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
+							"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
+							"inside.Value);");
+					}
+				}
+				else
+				{
+					if (_guardValues)
+						atCommit.Line("parser.Truncate(atomic);");
+
+					atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
+				}
+
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
@@ -2380,6 +2420,32 @@ sealed class Machine
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		_                => "default",
 	};
+
+	/// <summary>
+	/// Whether anything a group recognised outlives the group.
+	/// </summary>
+	/// <remarks>
+	/// A capture records where it began and ended, a construction records what to build, and
+	/// a call to a rule with a value records where it completed — all as entries, and all
+	/// read after the parse has finished. A group whose body has none of them recognised
+	/// nothing that anything later will ask about, and what it leaves in the arena is only
+	/// the ways back that committing is there to close.
+	/// </remarks>
+	bool KeepsRecords(Node body)
+	{
+		foreach (var node in NodeWalk.Descendants(body))
+			switch (node)
+			{
+				case Node.Capture:
+				case Node.Construct:
+					return true;
+
+				case Node.Call(var rule, _) when ValueRule(rule) >= 0:
+					return true;
+			}
+
+		return false;
+	}
 
 	/// <summary>Whether a rule's value is where it matched rather than something built.</summary>
 	bool IsExtent(RuleSymbol rule) =>
