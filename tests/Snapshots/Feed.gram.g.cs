@@ -269,6 +269,84 @@ namespace DotGram.Snapshots
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
 				goto Dispatch;
+				Dispatch:
+				switch (state)
+				{
+					case 0: goto Return;
+					case 1: goto Accept;
+					case 2:   goto Fail;
+					case 3: goto S3;
+					case 4: goto S4;
+					case 5: goto S5;
+					case 6: goto S6;
+					case 12: goto S12;
+					case 15: goto S15;
+					case 16: goto S16;
+					case 17: goto S17;
+					case 18: goto S18;
+					case 19: goto S19;
+					case 20: goto S19;
+					case 21: goto S21;
+					case 22: goto S22;
+					case 23: goto S22;
+					case 24: goto S24;
+					case 25: goto S25;
+					case 26: goto S26;
+					case 27: goto S26;
+					case 28: goto S28;
+					case 29: goto S29;
+					case 30: goto S29;
+					case 31: goto S31;
+					case 32: goto S32;
+					case 33: goto S33;
+					case 34: goto S34;
+					case 35: goto S35;
+					case 36: goto S36;
+					case 37: goto S37;
+					case 38: goto S38;
+					case 39: goto S39;
+					case 40: goto S40;
+					case 41: goto S41;
+					case 42: goto S42;
+					case 43: goto S43;
+					case 44: goto S44;
+					case 45: goto S45;
+					case 46: goto S46;
+					case 47: goto S47;
+					case 48: goto S48;
+					case 49: goto S49;
+					case 50: goto S50;
+					case 51: goto S51;
+					case 52: goto S52;
+					case 53: goto S53;
+					case 54: goto S54;
+					case 55: goto S55;
+					case 56: goto S56;
+					case 57: goto S57;
+					case 58: goto S58;
+					case 59: goto S59;
+					case 60: goto S60;
+					case 61: goto S61;
+					case 62: goto S62;
+					case 63: goto S63;
+					case 64: goto S64;
+					case 65: goto S65;
+					case 66: goto S66;
+					case 67: goto S67;
+					case 68: goto S68;
+					case 69: goto S69;
+					case 70: goto S70;
+					case 71: goto S71;
+					case 72: goto S72;
+					case 73: goto S73;
+					case 74: goto S74;
+					case 75: goto S75;
+					case 76: goto S76;
+					case 77: goto S77;
+					case 78: goto S78;
+					case 107: goto S107;
+					default: goto Fail;
+				}
 
 				S3:
 				{
@@ -1255,85 +1333,6 @@ namespace DotGram.Snapshots
 				}
 
 				return -1;
-
-				Dispatch:
-				switch (state)
-				{
-					case 0: goto Return;
-					case 1: goto Accept;
-					case 2:   goto Fail;
-					case 3: goto S3;
-					case 4: goto S4;
-					case 5: goto S5;
-					case 6: goto S6;
-					case 12: goto S12;
-					case 15: goto S15;
-					case 16: goto S16;
-					case 17: goto S17;
-					case 18: goto S18;
-					case 19: goto S19;
-					case 20: goto S19;
-					case 21: goto S21;
-					case 22: goto S22;
-					case 23: goto S22;
-					case 24: goto S24;
-					case 25: goto S25;
-					case 26: goto S26;
-					case 27: goto S26;
-					case 28: goto S28;
-					case 29: goto S29;
-					case 30: goto S29;
-					case 31: goto S31;
-					case 32: goto S32;
-					case 33: goto S33;
-					case 34: goto S34;
-					case 35: goto S35;
-					case 36: goto S36;
-					case 37: goto S37;
-					case 38: goto S38;
-					case 39: goto S39;
-					case 40: goto S40;
-					case 41: goto S41;
-					case 42: goto S42;
-					case 43: goto S43;
-					case 44: goto S44;
-					case 45: goto S45;
-					case 46: goto S46;
-					case 47: goto S47;
-					case 48: goto S48;
-					case 49: goto S49;
-					case 50: goto S50;
-					case 51: goto S51;
-					case 52: goto S52;
-					case 53: goto S53;
-					case 54: goto S54;
-					case 55: goto S55;
-					case 56: goto S56;
-					case 57: goto S57;
-					case 58: goto S58;
-					case 59: goto S59;
-					case 60: goto S60;
-					case 61: goto S61;
-					case 62: goto S62;
-					case 63: goto S63;
-					case 64: goto S64;
-					case 65: goto S65;
-					case 66: goto S66;
-					case 67: goto S67;
-					case 68: goto S68;
-					case 69: goto S69;
-					case 70: goto S70;
-					case 71: goto S71;
-					case 72: goto S72;
-					case 73: goto S73;
-					case 74: goto S74;
-					case 75: goto S75;
-					case 76: goto S76;
-					case 77: goto S77;
-					case 78: goto S78;
-					case 107: goto S107;
-					default: goto Fail;
-				}
 			}
 			finally
 			{

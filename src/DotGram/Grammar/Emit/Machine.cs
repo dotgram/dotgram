@@ -414,6 +414,28 @@ sealed class Machine
 				file.Line("call = 0;");
 				file.Line("goto Dispatch;");
 
+				// The hottest block there is: every return from a rule and every resumption
+				// after a failure comes through it. Written here, before the states, rather
+				// than after all of them — a jump to the far end of a method this size is a
+				// jump out of whatever the processor had ready.
+				file.Line("Dispatch:");
+
+				using (file.Block("switch (state)"))
+				{
+					file.Line($"case {Return}: goto Return;");
+					file.Line($"case {Accept}: goto Accept;");
+					file.Line($"case {Fail}:   goto Fail;");
+
+					// Only where the label is one that was written. A state nothing reaches
+					// cannot be resumed at either, so the case for it would name a label that
+					// is not there.
+					for (var i = 0; i < _states.Count; i++)
+						if (Written(Resolved(i + First)))
+							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
+
+					file.Line("default: goto Fail;");
+				}
+
 				for (var written = 0; written < _order.Count; written++)
 				{
 					var i    = _order[written];
@@ -659,24 +681,6 @@ sealed class Machine
 				file.Line();
 				file.Line("return -1;");
 
-				file.Line();
-				file.Line("Dispatch:");
-
-				using (file.Block("switch (state)"))
-				{
-					file.Line($"case {Return}: goto Return;");
-					file.Line($"case {Accept}: goto Accept;");
-					file.Line($"case {Fail}:   goto Fail;");
-
-					// Only where the label is one that was written. A state nothing reaches
-					// cannot be resumed at either, so the case for it would name a label that
-					// is not there.
-					for (var i = 0; i < _states.Count; i++)
-						if (Written(Resolved(i + First)))
-							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
-
-					file.Line("default: goto Fail;");
-				}
 			}
 
 			file.Line("finally");
