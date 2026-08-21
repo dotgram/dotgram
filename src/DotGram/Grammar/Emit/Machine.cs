@@ -778,16 +778,54 @@ sealed class Machine
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
 				var target = Compile(alternatives[alternatives.Count - 1], next, following);
+				var rest   = Decidable(alternatives[alternatives.Count - 1]);
 
 				for (var i = alternatives.Count - 2; i >= 0; i--)
 				{
 					var first = Compile(alternatives[i], next, following);
+					var mine  = Decidable(alternatives[i]);
 					var state = Reserve(out var writer);
 
-					writer.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, repeat, lookahead, 0));");
+
+					// One character can say two things here, and each saves something
+					// different. That this alternative cannot begin here saves going into it;
+					// that none of the ones after it can saves the entry that would have let
+					// the parse come back for them.
+					//
+					// Both are kept because both were measured. Keeping only the second — on
+					// the reasoning that the first merely repeats the test the alternative
+					// makes anyway — came out level with doing neither: what going in costs
+					// is not the character test but everything around it, the frame and the
+					// setup of a rule that was never going to match.
+					//
+					// Neither is `Predictive`, which needs every alternative told apart from
+					// every other. This asks about one at a time and takes what it is given.
+					// And only at a character there is: at the end of the input nothing is
+					// asked and the entry is written, which is what always happened.
+					if (mine is not null || rest is not null)
+					{
+						_usesChar = true;
+
+						using (writer.Block("if (p < text.Length)"))
+						{
+							writer.Line("c = text[p];");
+
+							if (mine is { } begins)
+								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(target)};");
+
+							if (rest is { } after)
+								writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+						}
+					}
+
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, " +
+						"repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
 					writer.Line($"goto {Label(first)};");
+
 					target = state;
+					rest   = mine is null || rest is null ? null : mine.Or(rest);
 				}
 
 				return target;
@@ -1584,6 +1622,24 @@ sealed class Machine
 			tests[i] = RangesTest(firsts[i].Ranges);
 
 		return tests;
+	}
+
+	/// <summary>
+	/// What an alternative must begin with, where that is known well enough to turn one
+	/// away by.
+	/// </summary>
+	/// <remarks>
+	/// Three things make it unusable, and all three are the approximation admitting it does
+	/// not know: a first set of "anything" excludes no character, one of "nothing" describes
+	/// something that consumes none, and an alternative that can match empty matches
+	/// everywhere whatever its first set says. Any of them and the alternative is tried as it
+	/// always was.
+	/// </remarks>
+	FirstSets.First? Decidable(Node alternative)
+	{
+		var first = FirstSets.Of(alternative, _graph);
+
+		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph) ? null : first;
 	}
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>

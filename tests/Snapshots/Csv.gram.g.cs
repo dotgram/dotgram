@@ -213,6 +213,12 @@ namespace DotGram.Snapshots
 
 				S24:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\n')) goto S22;
+						if (!(c == '\r')) goto S23;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 22, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 22, p, entries.Count);
 					goto S23;
@@ -229,6 +235,12 @@ namespace DotGram.Snapshots
 
 				S26:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\r')) goto S24;
+						if (!(c == '\n' || c == '\r')) goto S25;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 24, p, entries.Count);
 					goto S25;
@@ -486,6 +498,12 @@ namespace DotGram.Snapshots
 
 				S59:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\n')) goto S57;
+						if (!(c == '\r')) goto S58;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 57, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 57, p, entries.Count);
 					goto S58;
@@ -502,6 +520,12 @@ namespace DotGram.Snapshots
 
 				S61:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\r')) goto S59;
+						if (!(c == '\n' || c == '\r')) goto S60;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 59, p, entries.Count);
 					goto S60;

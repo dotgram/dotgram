@@ -445,6 +445,12 @@ namespace DotGram.Snapshots
 
 				S33:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\n')) goto S31;
+						if (!(c == '\r')) goto S32;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 31, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 31, p, entries.Count);
 					goto S32;
@@ -465,6 +471,12 @@ namespace DotGram.Snapshots
 
 				S35:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\r')) goto S33;
+						if (!(c == '\n' || c == '\r')) goto S34;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 33, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 33, p, entries.Count);
 					goto S34;
@@ -661,6 +673,12 @@ namespace DotGram.Snapshots
 
 				S52:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\n')) goto S50;
+						if (!(c == '\r')) goto S51;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 50, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 50, p, entries.Count);
 					goto S51;
@@ -681,6 +699,12 @@ namespace DotGram.Snapshots
 
 				S54:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\r')) goto S52;
+						if (!(c == '\n' || c == '\r')) goto S53;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 52, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 52, p, entries.Count);
 					goto S53;
@@ -911,6 +935,12 @@ namespace DotGram.Snapshots
 
 				S76:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\n')) goto S74;
+						if (!(c == '\r')) goto S75;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 74, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 74, p, entries.Count);
 					goto S75;
@@ -931,6 +961,12 @@ namespace DotGram.Snapshots
 
 				S78:
 				{
+					if (p < text.Length)
+					{
+						c = text[p];
+						if (!(c == '\r')) goto S76;
+						if (!(c == '\n' || c == '\r')) goto S77;
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 76, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 76, p, entries.Count);
 					goto S77;
