@@ -41,7 +41,8 @@ sealed class Machine
 	bool _usesRuns;
 	bool _usesCompleted;
 	bool _usesDead;
-	readonly List<int> _turns = [];
+	readonly List<(int Depth, int State)> _turns = [];
+	int _depth;
 
 	/// <summary>
 	/// Where a failure goes from here — <see cref="Fail"/>, the arena's dispatcher, unless
@@ -390,8 +391,14 @@ sealed class Machine
 				// One per repetition written as a loop, and only where the way out that reads
 				// it was kept: a turn that cannot fail after consuming has no way back to
 				// write, and its state is dropped as unreachable.
-				for (var i = 0; i < _turns.Count; i++)
-					if (Written(_turns[i]))
+				var depths = new HashSet<int>();
+
+				foreach (var turn in _turns)
+					if (Written(turn.State))
+						depths.Add(turn.Depth);
+
+				for (var i = 0; i <= _depth + _turns.Count; i++)
+					if (depths.Contains(i))
 						file.Line($"var turn{i} = 0;");
 				if (_usesCompleted)
 					file.Line("var completedCall = -1;");
@@ -2081,16 +2088,16 @@ sealed class Machine
 	/// began is kept in a local of its own and the way out reads it. The repetition ends
 	/// where its last whole turn ended, not where a broken one stopped.
 	/// </remarks>
-	int GiveBack(int next, out string start)
+	int GiveBack(int next, int depth, out string start)
 	{
-		start = "turn" + _turns.Count;
+		start = "turn" + depth;
 
 		var state = Reserve(out var writer);
 
 		writer.Line($"p = {start};");
 		writer.Line($"goto {Label(next)};");
 
-		_turns.Add(state);
+		_turns.Add((depth, state));
 
 		return state;
 	}
@@ -2101,13 +2108,21 @@ sealed class Machine
 		var inside = FirstSets.Of(body, _graph).Or(following);
 		var target = next;
 
+		// One local per depth rather than per repetition. Two of them are live at once only
+		// where one of these is written inside another, and that nests two or three deep in
+		// the grammars there are — where the count of them was sixteen, all live at once in a
+		// method that already keeps the position, the frame, the arena indexes and the
+		// character in locals. Registers run out long before sixteen, and what pays for that
+		// is every line of the method, not the loops.
+		var mine = _depth++;
+
 		if (max is null)
 		{
 			var loop  = Reserve(out var atLoop);
 			var saved = _fail;
 
 			// Round again, or out — and out is through the door that puts the position back.
-			_fail = GiveBack(next, out var start);
+			_fail = GiveBack(next, mine, out var start);
 
 			var inner = Compile(body, loop, inside);
 
@@ -2124,7 +2139,7 @@ sealed class Machine
 				var saved = _fail;
 				var after = target;
 
-				_fail  = GiveBack(after, out var start);
+				_fail  = GiveBack(after, mine, out var start);
 				target = Compile(body, after, inside);
 				_fail  = saved;
 
@@ -2138,6 +2153,8 @@ sealed class Machine
 
 		for (var turn = 0; turn < min; turn++)
 			target = Compile(body, target, inside);
+
+		_depth = mine;
 
 		return target;
 	}

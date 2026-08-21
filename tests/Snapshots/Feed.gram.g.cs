@@ -260,9 +260,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var c       = '\0';
 				var turn0 = 0;
-				var turn1 = 0;
-				var turn2 = 0;
-				var turn3 = 0;
 				var completedCall = -1;
 				var capture3 = 0;
 				var capture4 = 0;
@@ -701,13 +698,13 @@ namespace DotGram.Snapshots
 
 				S55:
 				{
-					turn1 = p;
+					turn0 = p;
 					goto S57;
 				}
 
 				S56:
 				{
-					p = turn1;
+					p = turn0;
 					goto S54;
 				}
 
@@ -739,7 +736,7 @@ namespace DotGram.Snapshots
 
 				S59:
 				{
-					p = turn2;
+					p = turn0;
 					goto S58;
 				}
 
@@ -757,7 +754,7 @@ namespace DotGram.Snapshots
 
 				S61:
 				{
-					turn2 = p;
+					turn0 = p;
 					goto S60;
 				}
 
@@ -873,13 +870,13 @@ namespace DotGram.Snapshots
 
 				S72:
 				{
-					turn3 = p;
+					turn0 = p;
 					goto S74;
 				}
 
 				S73:
 				{
-					p = turn3;
+					p = turn0;
 					goto S71;
 				}
 
