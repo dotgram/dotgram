@@ -29,13 +29,16 @@ namespace DotGram.Benchmarks;
 /// once instead changes nothing, 20.0 against 19.7.
 /// </para>
 /// <para>
-/// That last one is worth being careful about. Equal time does not say the subtractions were
-/// removed; it says they cost nothing, and two more of an operation that issues four to the
-/// cycle cost nothing in a loop already doing a load, a shift and a branch whether or not
-/// anything removed them. Telling those apart wants the disassembly —
-/// <c>[DisassemblyDiagnoser]</c> writes it out beside the results — and nothing here has
-/// looked at it. The same reading would settle what a parser does with the sixty-four-bit
-/// constants, which is the open question above.
+That last one was first read off equal time, which does not say it: two more of an
+/// operation that issues four to the cycle cost nothing in a loop already doing a load, a
+/// shift and a branch, removed or not. <c>[DisassemblyDiagnoser]</c> settles it — both come
+/// to eighty-four bytes of machine code, the same number, which two different sources reach
+/// only by being compiled to the same thing. The chain is a hundred and five.
+/// </para>
+/// <para>
+/// A thirty-two bit window was tried against a sixty-four bit one over a set that fits
+/// either, in case a wide constant were what a method short of registers cannot afford.
+/// Sixty-six bytes both, and level in time. It is not the width.
 /// </para>
 /// <para>
 /// So the cost is somewhere the shape of the test does not reach: the emitted method is one
@@ -51,6 +54,7 @@ namespace DotGram.Benchmarks;
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
+[DisassemblyDiagnoser(maxDepth: 2, printSource: false)]
 public class Membership
 {
 	// The set spans '-' (45) to '~' (126): eighty-two places, so two words of bits, and the
@@ -326,6 +330,57 @@ public class Membership
 
 		foreach (var c in Members)
 			if (Masked_once(c))
+				found++;
+
+		return found;
+	}
+
+	// ── Sixty-four bits against thirty-two ──────────────────────────────────────
+	//
+	// SubDelim from the URL grammar: eleven marks between '!' and '=', twenty-nine places,
+	// which is a window that fits either width. If a `ulong` constant is what a method short
+	// of registers cannot afford, a `uint` one over the same set will say so.
+
+	const int SubLow = '!', SubSpan = '=' - '!' + 1;
+
+	const ulong Wide   = 0x14000FE9UL;
+	const uint  Narrow32 = 0x14000FE9u;
+
+	static readonly string SubMembers = new('&', 51);
+
+	static bool Sub_in_64(char c)
+	{
+		var n = (uint)(c - SubLow);
+
+		return n < SubSpan && (Wide >> (int)n & 1UL) != 0;
+	}
+
+	static bool Sub_in_32(char c)
+	{
+		var n = (uint)(c - SubLow);
+
+		return n < SubSpan && (Narrow32 >> (int)n & 1u) != 0;
+	}
+
+	[Benchmark]
+	public int Window_of_64_bits()
+	{
+		var found = 0;
+
+		foreach (var c in SubMembers)
+			if (Sub_in_64(c))
+				found++;
+
+		return found;
+	}
+
+	[Benchmark]
+	public int Window_of_32_bits()
+	{
+		var found = 0;
+
+		foreach (var c in SubMembers)
+			if (Sub_in_32(c))
 				found++;
 
 		return found;
