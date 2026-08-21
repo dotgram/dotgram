@@ -173,6 +173,7 @@ namespace DotGram.Snapshots
 				var repeat  = -1;
 				var lookahead = -1;
 				var c       = '\0';
+				var completedCall = -1;
 				var capture0 = 0;
 				var capture2 = 0;
 				var capture3 = 0;
@@ -760,9 +761,9 @@ namespace DotGram.Snapshots
 
 				S78:
 				{
-					var capturedCall = entries.Count - 1;
-					while (capturedCall >= 0 && !(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p)) capturedCall--;
+					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
 					Trace("rule capture", 1, p, entries.Count);
 					goto S77;
@@ -10176,6 +10177,7 @@ namespace DotGram.Snapshots
 				global::System.Diagnostics.Debug.Assert(returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);
 				state = returned.State;
 				var previousCall = returned.CallIndex;
+				completedCall = call;
 				repeat = returned.RepeatIndex;
 				lookahead = returned.LookaheadIndex;
 

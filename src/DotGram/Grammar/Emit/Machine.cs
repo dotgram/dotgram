@@ -39,6 +39,7 @@ sealed class Machine
 	readonly bool _starves;
 	bool _usesChar;
 	bool _usesRuns;
+	bool _usesCompleted;
 
 	/// <summary>
 	/// Where a failure goes from here — <see cref="Fail"/>, the arena's dispatcher, unless
@@ -368,6 +369,8 @@ sealed class Machine
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
+				if (_usesCompleted)
+					file.Line("var completedCall = -1;");
 
 				for (var i = 0; i < _captures; i++)
 					if (_textCaptures.Contains(i))
@@ -414,6 +417,8 @@ sealed class Machine
 				if (_graph.Climbing.Count > 0)
 					file.Line("power = returned.Power;");
 				file.Line("var previousCall = returned.CallIndex;");
+				if (_usesCompleted)
+					file.Line("completedCall = call;");
 				file.Line("repeat = returned.RepeatIndex;");
 				file.Line("lookahead = returned.LookaheadIndex;");
 				file.Line();
@@ -796,13 +801,22 @@ sealed class Machine
 
 				if (body is Node.Call(var capturedRule, _) && ValueRule(capturedRule) >= 0)
 				{
+					_usesCompleted = true;
+
 					writer.Line($"goto {Label(inner)};");
-					atClose.Line("var capturedCall = entries.Count - 1;");
-					atClose.Line(
-						$"while (capturedCall >= 0 && !(entries[capturedCall].Kind == ParserEntry.Completed && " +
-						$"entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == " +
-						$"{_ruleIds[capturedRule]} && entries[capturedCall].Value == p)) capturedCall--;");
+
+					// The entry to record is the one the call just turned into, and `Return`
+					// has its index in hand at the moment it turns it. Searching back for it
+					// read the arena until something matched on four fields — a scan for every
+					// capture, over everything the parse had built so far.
+					atClose.Line("var capturedCall = completedCall;");
 					atClose.Line("global::System.Diagnostics.Debug.Assert(capturedCall >= 0);");
+					atClose.Line(
+						"global::System.Diagnostics.Debug.Assert(" +
+						"entries[capturedCall].Kind == ParserEntry.Completed && " +
+						"entries[capturedCall].CallIndex == call && " +
+						$"entries[capturedCall].RuleIndex == {_ruleIds[capturedRule]} && " +
+						"entries[capturedCall].Value == p);");
 					atClose.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
