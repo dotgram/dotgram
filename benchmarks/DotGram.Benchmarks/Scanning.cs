@@ -44,6 +44,21 @@ namespace DotGram.Benchmarks;
 /// term and the third.
 /// </para>
 /// <para>
+/// <b>And none of it shows in a parser.</b> Ordering was tried on the emitter twice — by
+/// width, then by width with lower case preferred on a tie, applied to both chains the
+/// generator writes — and both came out level on the URL grammar, within the same few
+/// nanoseconds either way. So did the window before it, which measured faster here and cost
+/// seven per cent there.
+/// </para>
+/// <para>
+/// Which is the finding this file is really for. A change to the method the parser is
+/// compiled into moves the time by several per cent whether or not the changed code runs;
+/// everything measured below moves it by less. In that method these differences are under
+/// the noise, and the noise is not the machine — it is register allocation and block layout
+/// over several thousand states. Nothing about the shape of a character test will be
+/// measurable until that is dealt with.
+/// </para>
+/// <para>
 /// Ordering by width was tried on the emitter and came out level — 357/294/272/618/511
 /// against 361/294/274/598/525 on the URL grammar. It cannot tell two ranges of the same
 /// width apart, and <c>Unreserved</c> has two of twenty-six: the letters, in both cases.
