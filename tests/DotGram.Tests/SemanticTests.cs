@@ -353,6 +353,33 @@ public sealed class SemanticTests
 		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
 
+	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────
+
+	/// <summary>
+	/// A capture written inside `{ … }` is lost, and a typed one takes the parser down.
+	/// </summary>
+	/// <remarks>
+	/// Commit discards every arena entry recorded inside the group, and the arena holds two
+	/// different things: the ways back into the group, which commit is meant to drop, and
+	/// what was recognised — captures, completed calls, constructions — which the value is
+	/// built from afterwards and must survive. Skipped rather than left failing, because the
+	/// repair is a change to what the arena is: today it is a stack the failure path unwinds
+	/// by removing from the end, so entries cannot simply be marked and left in place
+	/// (tried: it keeps the captures and loses atomicity, since a committed choice is still
+	/// on the stack for the unwinder to find).
+	/// </remarks>
+	[Fact(Skip = "Atomic commit discards the derivation with the resume points; see docs/next.md")]
+	public void An_atomic_group_carries_its_captures_out()
+	{
+		Assert.Equal("a",  Parsed("Start : @string = { x: \"a\" } => @(x)", "a").Value);
+		Assert.Equal(
+			"ab",
+			Parsed(
+				"Start : @string = { x: Child } => @(x)\n"
+				+ "Child : @string = t: ['a'..'z']+ => @(t)",
+				"ab").Value);
+	}
+
 	// ── Keyword boundaries (§4.6) ────────────────────────────────────────────────
 
 	[Fact]
