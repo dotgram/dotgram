@@ -37,7 +37,7 @@ is `fb0fbea` (`Run binding powers in the unified parser`).
   inspect generated snapshot changes rather than accepting them mechanically.
 
 Current baseline: the build succeeds with no warnings or errors. The runner discovers
-822 tests and all 822 pass. The stray-character recovery regression is fixed: a broken
+828 tests and all 828 pass. The stray-character recovery regression is fixed: a broken
 expression now produces the lexer error and one parser synchronization diagnostic, while
 rules following the broken declaration are still bound and checked.
 
@@ -181,12 +181,13 @@ Whole unified publications also compile the root rule's external leading and tra
 `Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
 inserted between sequence operands and fixes published folds beginning with whitespace.
 
-Capture-aware `when` uses the unified path when every value visible at the guard is a
-scalar text capture. The guard scans only `Capture` entries owned by the current rule
-invocation, passes nullable text where only some earlier alternatives wrote the name, and
-fails through the ordinary backtracking dispatcher. Typed and sequence captures still
-keep the graph on the legacy path; admitting them would require the semantic decision
-below and must not cause early `=>` execution.
+Capture-aware `when` uses the unified path for text, typed, and sequence captures. Text is
+read directly from `Capture` extents. A typed value requested by the guard is materialized
+once, cached by its `Completed` entry, and reused after acceptance. A sequence marks all
+of its accepted and recovered elements, materializes them in one pass, and hands the guard
+one exact array in grammar order. Truncating the arena clears the parallel cache, so an
+index reused after backtracking cannot observe a value from the abandoned derivation.
+Grammars without typed guards emit neither this cache nor its invalidation operations.
 
 Positive lookahead records the furthest seen position before restoring the input cursor.
 Negative lookahead stores its capture slot in the frame and creates an empty successful
@@ -209,7 +210,7 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - transparent rule calls and explicit atomic groups;
 - repetitions and lookahead;
 - external recognizers;
-- capture-free guards;
+- capture-free and capture-aware guards;
 - text/rule captures and supported construction;
 - recovery, including continuation-first boundaries, synchronization, deferred recovery
   factories, the optional reporting hook, and recognition-only continuation probes for
@@ -217,10 +218,7 @@ The eligibility logic is in `UnifiedMachine.Supports`. The unified path handles:
 - binding-power climbing with power-aware arena call frames;
 - direct and mutual recursion through explicit frames.
 
-It currently excludes:
-
-- guards whose visible captures include typed values or sequences;
-- unknown node forms.
+It currently excludes unknown node forms.
 
 String and reader `find`, whole parse, and every stage of a streamed parse now call the
 same unified engine. Reader drivers own only window extension, iteration, yielding, and
@@ -232,27 +230,23 @@ Do not broaden `Supports` casually. Previous broad attempts admitted explicit ar
 and folds, then broke `TextReader`/chunk overloads, special sequence factories, or emitted
 fold calls without their required scalar arguments.
 
-## Typed guard work deliberately left on the legacy path
+## Typed guard materialization
 
-Text captures are available as extents during recognition. A typed captured rule result
-does not exist until its deferred `=>` has run, so supporting one in `when` requires
-materializing that value when the guard asks for it.
-
-The decision is: if the author uses a computed value in `when`, compute it there, cache it
-with the candidate derivation, and reuse exactly that value after acceptance. Never invoke
-the same user construction twice. Work and side effects on a path later rejected by the
-guard follow from the author's choice to inspect that value. This is deliberately not in
-the unified machine yet because the extra arena state is not justified until a real use
-case needs it; the legacy path remains the compatibility implementation.
+Text captures remain allocation-free extents until handed to C#. A typed captured rule
+result normally does not exist until deferred materialization, but a `when` that names it
+sets that completed invocation as a materialization root. All roots needed by one guard
+are materialized together. A `bool[]` parallel to the existing object cache distinguishes
+an unbuilt value from a factory that legitimately returned null. Both arrays are cleared
+when backtracking truncates the arena. Final materialization skips cached entries, so user
+construction is invoked once for a surviving derivation. Work on a derivation later
+rejected by the guard or suffix is the consequence of the author's decision to inspect
+that computed value.
 
 ## Recommended continuation order
 
-1. Keep typed/sequence capture-aware `when` on the legacy path for now; scalar text guards
-   are already unified. If it moves later, cache the value obtained for the guard rather
-   than invoking user C# twice.
-2. Remove the legacy semantic path, update public atomicity/compatibility documentation
+1. Remove the legacy semantic path, update public atomicity/compatibility documentation
    atomically, and add migration notes where observable behavior changed.
-3. Only then benchmark generated size and hot paths and decide whether additional inlining
+2. Only then benchmark generated size and hot paths and decide whether additional inlining
    or block-sharing heuristics are justified.
 
 ## Implementation map

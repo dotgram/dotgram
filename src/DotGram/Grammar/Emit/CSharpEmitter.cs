@@ -405,7 +405,7 @@ public static partial class CSharpEmitter
 			if (needsStack)
 				file.Line();
 
-			file.Write(ParserRuntime(graph.Climbing.Count > 0));
+			file.Write(ParserRuntime(graph.Climbing.Count > 0, unified.CachesGuardValues));
 		}
 
 		while (scope.Count > 0)

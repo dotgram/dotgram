@@ -468,6 +468,54 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("2", type.GetField("Calls")!.GetValue(null));
 	}
 
+	[Fact]
+	public void A_value_materialized_for_when_is_not_constructed_again_after_acceptance()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			public partial class GuardedValue
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("GuardedValue")!;
+
+		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
+		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void A_cached_guard_value_is_discarded_with_its_derivation()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			public partial class BacktrackedGuardValue
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("BacktrackedGuardValue")!;
+
+		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
+		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void A_null_value_requested_by_when_is_still_known_to_be_materialized()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Value & when @(value is null) => @(1)\nValue : @string = 'x' => @Built()\nparse Start")]
+			public partial class NullGuardValue
+			{
+				public static int Calls;
+				static string Built() { Calls++; return null!; }
+			}
+			""").GetType("NullGuardValue")!;
+
+		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
+	}
+
 	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
 
 	/// <summary>

@@ -507,6 +507,14 @@ name that is not there. A name captured in more than one alternative is passed a
 nullable at the guard, because only the slots behind the guard can have been written
 and the generator does not try to prove which.
 
+A typed capture is different from text: its `=>` normally runs only after recognition,
+but a guard that names the value needs it now. That construction runs once at the guard
+and is cached on the current derivation. Acceptance reuses it rather than calling the
+factory again; backtracking discards it with the arena suffix. Sequence captures are
+materialized together into one array in grammar order, including recovered elements.
+The cache and its invalidation are emitted only for grammars that actually use a typed
+value in `when`.
+
 ## Every alternative may build its own way
 
 Which `=>` fired is remembered while matching and undone with everything else an

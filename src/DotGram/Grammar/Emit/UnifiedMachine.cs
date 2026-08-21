@@ -35,6 +35,8 @@ sealed class UnifiedMachine
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
+	bool _materializer;
+	bool _guardValues;
 	int _guards;
 	int _captures;
 
@@ -44,6 +46,7 @@ sealed class UnifiedMachine
 		_results = results;
 		_lines = lines;
 		_starves = starves;
+		_guardValues = HasTypedGuards(graph);
 
 		foreach (var rule in graph.Rules)
 		{
@@ -106,7 +109,7 @@ sealed class UnifiedMachine
 		}
 	}
 
-	public static bool Supports(RecognitionGraph graph)
+	static bool HasTypedGuards(RecognitionGraph graph)
 	{
 		foreach (var rule in graph.Rules)
 		{
@@ -115,10 +118,31 @@ sealed class UnifiedMachine
 				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+			{
+				if (node is not Node.Guard)
+					continue;
+
+				var before = layout.Before(node);
+
+				foreach (var member in graph.Results[rule])
+					if (member.Rule is not null)
+						foreach (var slot in member.Slots)
+							if (slot < before)
+								return true;
+			}
+		}
+
+		return false;
+	}
+
+	public static bool Supports(RecognitionGraph graph)
+	{
+		foreach (var rule in graph.Rules)
+		{
+			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 				if (node is not (Node.Empty or Node.Literal or Node.Element or Node.Sequence or
 					Node.Choice or Node.Repeat or Node.Lookahead or Node.Guard or Node.Call or
-					Node.External or Node.Atomic or Node.Capture or Node.Construct) ||
-					node is Node.Guard && !SupportsGuard(graph, rule, layout, node))
+					Node.External or Node.Atomic or Node.Capture or Node.Construct))
 					return false;
 		}
 
@@ -127,19 +151,6 @@ sealed class UnifiedMachine
 
 	sealed record RecoveryPlan(
 		RuleSymbol Rule, Recovery Recovery, int Slot, int Id, string Method, RuleSymbol? Element);
-
-	static bool SupportsGuard(
-		RecognitionGraph graph, RuleSymbol rule, CaptureLayout layout, Node guard)
-	{
-		var before = layout.Before(guard);
-
-		foreach (var member in graph.Results[rule])
-			foreach (var slot in member.Slots)
-				if (slot < before && (member.Rule is not null || member.IsSequence))
-					return false;
-
-		return true;
-	}
 
 	static int IndexOf(IReadOnlyList<Machine.Factory> factories, Node construct)
 	{
@@ -151,6 +162,7 @@ sealed class UnifiedMachine
 	}
 
 	public IReadOnlyList<string> Extra => _extra;
+	public bool CachesGuardValues => _guardValues;
 
 	public void Register(RuleSymbol root, bool whole)
 	{
@@ -232,6 +244,13 @@ sealed class UnifiedMachine
 	{
 		var file = new Writer(0);
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
+		var hasValues = false;
+
+		foreach (var rule in _graph.Rules)
+			hasValues |= ValueRule(rule) >= 0;
+
+		if (hasValues && _guardValues)
+			EnsureMaterializer();
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
@@ -308,8 +327,19 @@ sealed class UnifiedMachine
 						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex" +
 						(_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
 				}
-				file.Line("else if (entries.Count == call + 1)");
-				file.Then("entries.RemoveAt(call);");
+				if (_guardValues)
+				{
+					using (file.Block("else if (entries.Count == call + 1)"))
+					{
+						file.Line("parser.Truncate(call);");
+						file.Line("entries.RemoveAt(call);");
+					}
+				}
+				else
+				{
+					file.Line("else if (entries.Count == call + 1)");
+					file.Then("entries.RemoveAt(call);");
+				}
 				file.Line();
 				file.Line("call = previousCall;");
 				file.Line("Trace(\"return\", state, p, entries.Count);");
@@ -319,11 +349,6 @@ sealed class UnifiedMachine
 				file.Line("Accept:");
 				file.Line("if (whole && p != text.Length) goto Fail;");
 
-				var hasValues = false;
-
-				foreach (var rule in _graph.Rules)
-					hasValues |= ValueRule(rule) >= 0;
-
 				if (hasValues || _recoveryPlans.Count > 0)
 				{
 					using (file.Block("if (materialize)"))
@@ -332,8 +357,20 @@ sealed class UnifiedMachine
 						{
 							using (file.Block("if (rootRule >= 0)"))
 							{
-								file.Line();
-								Materialize(file);
+								if (_guardValues)
+								{
+									file.Line("var values = parser.Materialization(entries.Count);");
+									file.Line("var built  = parser.Materialized(entries.Count);");
+									file.Line("if (!built[0]) values[0] = parser;");
+									file.Line("Materialize_DotGram(text, parser, entries);");
+									file.Line("recognized = values[0];");
+								}
+								else
+								{
+									file.Line();
+									Materialize(file, cached: false);
+									file.Line("recognized = values[0];");
+								}
 							}
 						}
 						if (_recoveryPlans.Count > 0)
@@ -367,6 +404,8 @@ sealed class UnifiedMachine
 				{
 					file.Line("var last = entries.Count - 1;");
 					file.Line("var entry = entries[last];");
+					if (_guardValues)
+						file.Line("parser.Truncate(last);");
 					file.Line("entries.RemoveAt(last);");
 					file.Line();
 
@@ -722,7 +761,13 @@ sealed class UnifiedMachine
 
 					var optional = member.IsOptional || slots.Count != member.Slots.Count;
 
-					parameters.Add($"string{(optional ? "?" : "")} {ResultTypes.ParameterOf(member)}");
+					var parameterType = member.Rule is null
+						? "string"
+						: _results.ValueOf(member.Rule) + (member.IsSequence ? "[]" : "");
+
+					parameters.Add(
+						$"{parameterType}{(optional && !member.IsSequence ? "?" : "")} " +
+						ResultTypes.ParameterOf(member));
 					arguments.Add($"guardCaptured{visible.Count}");
 					visible.Add((member with { IsOptional = optional }, slots));
 				}
@@ -737,6 +782,18 @@ sealed class UnifiedMachine
 				writer.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
 				writer.Line("var ruleStart = entries[call].Position;");
 
+				var hasTyped = false;
+
+				foreach (var item in visible)
+					hasTyped |= item.Member.Rule is not null;
+
+				if (hasTyped)
+				{
+					writer.Line("var guardValues = parser.Materialization(entries.Count);");
+					writer.Line("var guardBuilt  = parser.Materialized(entries.Count);");
+					writer.Line("var guardNeedsMaterialization = false;");
+				}
+
 				for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 				{
 					var (member, slots) = visible[memberIndex];
@@ -745,6 +802,28 @@ sealed class UnifiedMachine
 					foreach (var slot in slots)
 						tests.Add($"candidate.State == {_captureOffsets[rule] + slot}");
 
+					if (member.Rule is not null && member.IsSequence)
+					{
+						var collected = GuardSequenceTest(rule, slots);
+
+						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						{
+							writer.Line("var candidate = entries[candidateAt];");
+
+							using (writer.Block($"if ({collected})"))
+							{
+								writer.Line("var guardValueAt = candidate.Kind == ParserEntry.Recovery ? candidateAt : candidate.Position;");
+								using (writer.Block("if (!guardBuilt[guardValueAt])"))
+								{
+									writer.Line("guardValues[guardValueAt] = parser;");
+									writer.Line("guardNeedsMaterialization = true;");
+								}
+							}
+						}
+
+						continue;
+					}
+
 					writer.Line($"var guardCaptured{memberIndex}At = -1;");
 
 					using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
@@ -752,20 +831,89 @@ sealed class UnifiedMachine
 						writer.Line("var candidate = entries[candidateAt];");
 
 						using (writer.Block(
-							"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
+							$"if (candidate.Kind == {(member.Rule is null ? "ParserEntry.Capture" : "ParserEntry.RuleCapture")} && " +
+							"candidate.CallIndex == call && " +
 							$"({string.Join(" || ", tests)}))"))
 						{
-							writer.Line($"guardCaptured{memberIndex}At = candidateAt;");
+							writer.Line($"guardCaptured{memberIndex}At = " +
+								(member.Rule is null ? "candidateAt;" : "candidate.Position;"));
 							writer.Line("break;");
 						}
 					}
 
-					writer.Line(
-						$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
-						(member.IsOptional ? "null" : "string.Empty") + " : " +
-						$"text.Slice(entries[guardCaptured{memberIndex}At].Position, " +
-						$"entries[guardCaptured{memberIndex}At].Value - " +
-						$"entries[guardCaptured{memberIndex}At].Position).ToString();");
+					if (member.Rule is null)
+						writer.Line(
+							$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
+							(member.IsOptional ? "null" : "string.Empty") + " : " +
+							$"text.Slice(entries[guardCaptured{memberIndex}At].Position, " +
+							$"entries[guardCaptured{memberIndex}At].Value - " +
+							$"entries[guardCaptured{memberIndex}At].Position).ToString();");
+					else
+						using (writer.Block(
+							$"if (guardCaptured{memberIndex}At >= 0 && !guardBuilt[guardCaptured{memberIndex}At])"))
+						{
+							writer.Line($"guardValues[guardCaptured{memberIndex}At] = parser;");
+							writer.Line("guardNeedsMaterialization = true;");
+						}
+				}
+
+				if (hasTyped)
+				{
+					writer.Line("if (guardNeedsMaterialization) Materialize_DotGram(text, parser, entries);");
+
+					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
+					{
+						var (member, slots) = visible[memberIndex];
+
+						if (member.Rule is null)
+							continue;
+
+						var type = _results.ValueOf(member.Rule);
+
+						if (!member.IsSequence)
+						{
+							if (!member.IsOptional)
+								writer.Line($"global::System.Diagnostics.Debug.Assert(guardCaptured{memberIndex}At >= 0);");
+
+							writer.Line(member.IsOptional
+								? $"{type}? guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
+									$"default({type}?) : ({type})guardValues[guardCaptured{memberIndex}At]!;"
+								: $"var guardCaptured{memberIndex} = ({type})guardValues[guardCaptured{memberIndex}At]!;");
+
+							continue;
+						}
+
+						var tests = new List<string>(slots.Count);
+
+						foreach (var slot in slots)
+							tests.Add($"candidate.State == {_captureOffsets[rule] + slot}");
+
+						var collected = GuardSequenceTest(rule, slots);
+
+						writer.Line($"var guardCaptured{memberIndex}Count = 0;");
+
+						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						{
+							writer.Line("var candidate = entries[candidateAt];");
+							writer.Line($"if ({collected}) guardCaptured{memberIndex}Count++;");
+						}
+
+						writer.Line($"var guardCaptured{memberIndex} = new {type}[guardCaptured{memberIndex}Count];");
+						writer.Line($"var guardCaptured{memberIndex}Item = 0;");
+
+						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						{
+							writer.Line("var candidate = entries[candidateAt];");
+
+							using (writer.Block($"if ({collected})"))
+							{
+								writer.Line("var guardValueAt = candidate.Kind == ParserEntry.Recovery ? candidateAt : candidate.Position;");
+								writer.Line(
+									$"guardCaptured{memberIndex}[guardCaptured{memberIndex}Item++] = " +
+									$"({type})guardValues[guardValueAt]!;");
+							}
+						}
+					}
 				}
 
 				writer.Line($"if (!{method}({string.Join(", ", arguments)})) goto Fail;");
@@ -791,6 +939,8 @@ sealed class UnifiedMachine
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
 				if (_recoveries.Count > 0)
 					atCommit.Line("owned = true;");
+				if (_guardValues)
+					atCommit.Line("parser.Truncate(atomic);");
 				atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
@@ -823,6 +973,8 @@ sealed class UnifiedMachine
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 				atSuccess.Line("var looked = entries[lookahead];");
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+				if (_guardValues)
+					atSuccess.Line("parser.Truncate(lookahead);");
 				atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 				atSuccess.Line("p         = looked.Position;");
 				atSuccess.Line("call      = looked.CallIndex;");
@@ -858,6 +1010,8 @@ sealed class UnifiedMachine
 		atSuccess.Line("var seenTo = p;");
 		atSuccess.Line("var looked = entries[lookahead];");
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+		if (_guardValues)
+			atSuccess.Line("parser.Truncate(lookahead);");
 		atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atSuccess.Line("p         = looked.Position;");
 		atSuccess.Line("call      = looked.CallIndex;");
@@ -871,6 +1025,31 @@ sealed class UnifiedMachine
 		atSuccess.Line($"goto {Label(next)};");
 
 		return state;
+	}
+
+	string GuardSequenceTest(RuleSymbol rule, IReadOnlyList<int> slots)
+	{
+		var states = new List<string>(slots.Count);
+
+		foreach (var slot in slots)
+			states.Add($"candidate.State == {_captureOffsets[rule] + slot}");
+
+		var accepted =
+			"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == call && " +
+			$"({string.Join(" || ", states)})";
+		var recovered = new List<string>();
+
+		foreach (var plan in _recoveryPlans)
+			if (plan.Rule == rule && plan.Recovery.Factory is not null)
+				foreach (var slot in slots)
+					if (plan.Slot == _captureOffsets[rule] + slot)
+						recovered.Add(
+							$"candidate.Kind == ParserEntry.Recovery && candidate.CallIndex == call && " +
+							$"candidate.State == {plan.Id}");
+
+		return recovered.Count == 0
+			? accepted
+			: $"({accepted}) || ({string.Join(" || ", recovered)})";
 	}
 
 	int CompileNegativeLookaheadCapture(int slot, Node rejected, int next)
@@ -890,6 +1069,8 @@ sealed class UnifiedMachine
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atMatched.Line("var looked = entries[lookahead];");
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+		if (_guardValues)
+			atMatched.Line("parser.Truncate(lookahead);");
 		atMatched.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atMatched.Line("p         = looked.Position;");
 		atMatched.Line("call      = looked.CallIndex;");
@@ -1068,13 +1249,22 @@ sealed class UnifiedMachine
 		}
 	}
 
-	static void LeaveRepeat(Writer writer, int next)
+	void LeaveRepeat(Writer writer, int next)
 	{
 		writer.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		writer.Line("var finished = entries[repeat];");
 		writer.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
 		writer.Line("var previousRepeat = finished.RepeatIndex;");
-		writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
+		if (_guardValues)
+		{
+			using (writer.Block("if (entries.Count == repeat + 1)"))
+			{
+				writer.Line("parser.Truncate(repeat);");
+				writer.Line("entries.RemoveAt(repeat);");
+			}
+		}
+		else
+			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
 		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
@@ -1092,9 +1282,28 @@ sealed class UnifiedMachine
 		return _states.Count - 1 + First;
 	}
 
-	void Materialize(Writer file)
+	void EnsureMaterializer()
+	{
+		if (_materializer)
+			return;
+
+		_materializer = true;
+
+		var helper = new Writer(0);
+
+		using (helper.Block(
+			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			"global::System.Collections.Generic.List<ParserEntry> entries)"))
+			Materialize(helper, cached: true);
+
+		_extra.Add(helper.ToString());
+	}
+
+	void Materialize(Writer file, bool cached)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
+		if (cached)
+			file.Line("var built  = parser.Materialized(entries.Count);");
 		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
 		file.Line();
 
@@ -1122,8 +1331,8 @@ sealed class UnifiedMachine
 		// construction code. Call entries precede their children, so one forward pass marks
 		// the complete accepted value tree without recursion or another typed collection.
 		file.Line();
-		file.Line("values[0] = parser;");
-
+		if (!cached)
+			file.Line("values[0] = parser;");
 		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
 		{
 			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
@@ -1133,7 +1342,8 @@ sealed class UnifiedMachine
 				"capturedAt = links[entries.Count + capturedAt])"))
 			{
 				file.Line("var candidate = entries[capturedAt];");
-				file.Line("if (candidate.Kind == ParserEntry.RuleCapture)");
+				file.Line("if (candidate.Kind == ParserEntry.RuleCapture" +
+					(cached ? " && !built[candidate.Position]" : "") + ")");
 				file.Then("values[candidate.Position] = parser;");
 			}
 		}
@@ -1147,11 +1357,16 @@ sealed class UnifiedMachine
 				file.Line("var recovered = entries[recoveryAt];");
 				file.Line(
 					"if (recovered.Kind != ParserEntry.Recovery || recovered.CallIndex < 0 || " +
+					(cached ? "built[recoveryAt] || " : "") +
+					"!global::System.Object.ReferenceEquals(values[recoveryAt], parser) && " +
 					"!global::System.Object.ReferenceEquals(values[recovered.CallIndex], parser)) continue;");
 
 				using (file.Block("switch (recovered.State)"))
 					foreach (var recovery in _recoveryPlans)
 						MaterializeRecovery(file, recovery);
+
+				if (cached)
+					file.Line("built[recoveryAt] = true;");
 			}
 		}
 
@@ -1161,15 +1376,17 @@ sealed class UnifiedMachine
 			file.Line("var completed = entries[completedAt];");
 			file.Line(
 				"if (completed.Kind != ParserEntry.Completed || " +
+				(cached ? "built[completedAt] || " : "") +
 				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
 				foreach (var rule in _graph.Rules)
 					if (ValueRule(rule) >= 0)
 						MaterializeRule(file, rule);
-		}
 
-		file.Line("recognized = values[0];");
+			if (cached)
+				file.Line("built[completedAt] = true;");
+		}
 	}
 
 	void ReportRecoveries(Writer file)

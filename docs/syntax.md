@@ -236,6 +236,14 @@ condition. Here it says the same thing about the current recognition path. The g
 evaluated while that path is being tried, so it may run more than once and on a path
 later abandoned by backtracking.
 
+If the guard names a capture whose value is built by `=>`, that value has to exist before
+the guard can be called. The parser builds it at that point and caches it on the current
+derivation. Acceptance reuses exactly the same value; the construction is not called a
+second time. If backtracking abandons the derivation, its cached value is abandoned with
+it. Thus choosing to inspect a computed value also chooses to run that computation during
+recognition, with the same speculative-effect requirements as the guard itself. A captured
+sequence is handled as one array in grammar order, including values supplied by `recover`.
+
 **The guard's position is the author's choice and carries meaning.** A guard has no
 outcome of its own — it is an ordinary operand, and its failure means whatever the
 failure of any operand in that place means:
@@ -270,8 +278,10 @@ and still decides how much work is thrown away and where the message points.
 ```
 
 Construction gives the alternative its value. It never touches the input and is deferred
-until recognition has selected the accepted derivation. An alternative later abandoned
-by backtracking does not invoke its construction.
+until recognition has selected the accepted derivation, unless a later `when` on that
+same path explicitly asks for the computed value. In that case the construction runs for
+the guard and its result is cached. An alternative later abandoned by backtracking does
+not invoke an unrequested construction.
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
@@ -969,9 +979,11 @@ ordinary C# rules.
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects
   that require rollback.
-- A `=>` construction is deferred until the accepted derivation is known. Captures record
-  what matched; the chosen factory then builds the result from that accepted path. A
-  factory belonging to an abandoned alternative is not invoked.
+- A `=>` construction is deferred until the accepted derivation is known unless a `when`
+  guard explicitly inspects its value. Captures normally record what matched and the
+  chosen factory builds only the accepted path. A value requested by a guard is built
+  during recognition, cached, and reused after acceptance; it may therefore have been
+  built on a path the guard or later input abandons.
 
 ### 7.3 Captures and building the result
 

@@ -248,8 +248,55 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("Recognize_DotGram_Guard0(string parserText, string? value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
+		Assert.DoesNotContain("bool[] _built", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 		Assert.True(match.IsSuccess);
+	}
+
+	[Fact]
+	public void A_typed_capture_guard_materializes_and_reuses_the_captured_value()
+	{
+		const string grammar =
+			"Start : @int = value: Number & when @(value < 3) => @(value)\n" +
+			"Number : @int = digit: ['0'..'9'] => @int.Parse(digit)\n" +
+			"parse Start";
+		var source = Emit(grammar);
+		var parser = EmittedCode.Compile(source);
+
+		Assert.Contains("Materialize_DotGram(text, parser, entries);", source);
+		Assert.Contains("bool[] _built", source);
+		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", "2").IsSuccess);
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", "4").IsSuccess);
+	}
+
+	[Fact]
+	public void A_typed_sequence_guard_receives_every_value_in_grammar_order()
+	{
+		const string grammar =
+			"Start : @int = values: Number+ & when @(values.Length == 2) => @(values[0] * 10 + values[1])\n" +
+			"Number : @int = digit: ['0'..'9'] => @int.Parse(digit)\n" +
+			"parse Start";
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var accepted = EmittedCode.Match(parser, "Grammar", "TryParseStart", "12");
+
+		Assert.True(accepted.IsSuccess);
+		Assert.Equal(12, accepted.Value);
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", "1").IsSuccess);
+	}
+
+	[Fact]
+	public void A_typed_sequence_guard_includes_recovered_values()
+	{
+		const string grammar =
+			"Start : @int = rows: Row* recover eol => @(0) & when @(rows.Length == 3) & eof => @(rows.Length)\n" +
+			"Row : @int = digit: ['0'..'9'] & eol => @int.Parse(digit)\n" +
+			"parse Start";
+		var parser = EmittedCode.Compile(Emit(grammar));
+		var accepted = EmittedCode.Match(parser, "Grammar", "TryParseStart", "1\n3x\n2\n");
+
+		Assert.True(accepted.IsSuccess);
+		Assert.Equal(3, accepted.Value);
 	}
 
 	[Fact]

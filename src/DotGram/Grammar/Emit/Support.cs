@@ -458,6 +458,7 @@ public static partial class CSharpEmitter
 			internal readonly global::System.Collections.Generic.List<ParserEntry> Entries =
 				new global::System.Collections.Generic.List<ParserEntry>();
 			object?[] _values = global::System.Array.Empty<object?>();
+			/*CACHE_FIELD*/
 			int[] _links = global::System.Array.Empty<int>();
 			int _valuesUsed;
 
@@ -465,12 +466,14 @@ public static partial class CSharpEmitter
 			{
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, count);
+				/*CACHE_RESIZE*/
 
 				_valuesUsed = count;
 
 				return _values;
 			}
 
+			/*CACHE_ACCESS*/
 			internal int[] MaterializationLinks(int count)
 			{
 				if (_links.Length < count * 2)
@@ -482,10 +485,12 @@ public static partial class CSharpEmitter
 				return _links;
 			}
 
+			/*CACHE_TRUNCATE*/
 			internal void Reset()
 			{
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
+				/*CACHE_RESET*/
 				_valuesUsed = 0;
 			}
 		}
@@ -545,12 +550,55 @@ public static partial class CSharpEmitter
 		}
 		""";
 
-	internal static string ParserRuntime(bool powers) => ParserRuntimeTemplate
-		.Replace("/*POWER_PARAMETER*/", powers ? ", int power = 0" : "")
-		.Replace("\t\t/*POWER_ASSIGNMENT*/\r\n", powers ? "\t\tPower       = power;\r\n" : "")
-		.Replace("\t\t/*POWER_ASSIGNMENT*/\n", powers ? "\t\tPower       = power;\n" : "")
-		.Replace("\t/*POWER_PROPERTY*/\r\n", powers ? "\tinternal int Power       { get; }\r\n" : "")
-		.Replace("\t/*POWER_PROPERTY*/\n", powers ? "\tinternal int Power       { get; }\n" : "");
+	internal static string ParserRuntime(bool powers, bool caches)
+	{
+		var runtime = ParserRuntimeTemplate
+			.Replace("/*POWER_PARAMETER*/", powers ? ", int power = 0" : "")
+			.Replace("\t\t/*POWER_ASSIGNMENT*/\r\n", powers ? "\t\tPower       = power;\r\n" : "")
+			.Replace("\t\t/*POWER_ASSIGNMENT*/\n", powers ? "\t\tPower       = power;\n" : "")
+			.Replace("\t/*POWER_PROPERTY*/\r\n", powers ? "\tinternal int Power       { get; }\r\n" : "")
+			.Replace("\t/*POWER_PROPERTY*/\n", powers ? "\tinternal int Power       { get; }\n" : "");
+
+		runtime = CacheRuntime(runtime, "CACHE_FIELD",
+			"bool[] _built = global::System.Array.Empty<bool>();", caches);
+		runtime = CacheRuntime(runtime, "CACHE_RESIZE",
+			"if (_built.Length < count)\n\tglobal::System.Array.Resize(ref _built, count);", caches);
+		runtime = CacheRuntime(runtime, "CACHE_ACCESS",
+			"internal bool[] Materialized(int count)\n{\n\tMaterialization(count);\n\n\treturn _built;\n}\n", caches);
+		runtime = CacheRuntime(runtime, "CACHE_TRUNCATE",
+			"internal void Truncate(int count)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\t\t_valuesUsed = count;\n\t}\n}\n", caches);
+		runtime = CacheRuntime(runtime, "CACHE_RESET",
+			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
+
+		return runtime;
+	}
+
+	static string CacheRuntime(string runtime, string marker, string replacement, bool caches)
+	{
+		foreach (var ending in new[] { "\r\n", "\n" })
+		{
+			var token = "/*" + marker + "*/";
+			var at = runtime.IndexOf(token, StringComparison.Ordinal);
+
+			if (at < 0)
+				continue;
+
+			var line = runtime.LastIndexOf('\n', at);
+			var indent = runtime.Substring(line + 1, at - line - 1);
+			var whole = indent + token + ending;
+
+			if (runtime.IndexOf(whole, StringComparison.Ordinal) < 0)
+				continue;
+
+			var written = caches
+				? indent + replacement.Replace("\n", ending + indent) + ending
+				: "";
+
+			return runtime.Replace(whole, written);
+		}
+
+		return runtime;
+	}
 
 	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
 	internal const string RecoveredMethod = "OnRecovered";
