@@ -44,6 +44,15 @@ namespace DotGram.Benchmarks;
 /// term and the third.
 /// </para>
 /// <para>
+/// Ordering by width was tried on the emitter and came out level — 357/294/272/618/511
+/// against 361/294/274/598/525 on the URL grammar. It cannot tell two ranges of the same
+/// width apart, and <c>Unreserved</c> has two of twenty-six: the letters, in both cases.
+/// Which of them goes first is the whole question for a lowercase URL, and width does not
+/// answer it. Nor does the order the author wrote them in, because the ranges reach the
+/// emitter already sorted by character code — that ordering is decided in the normalizer,
+/// and it is decided before anyone knows it matters.
+/// </para>
+/// <para>
 /// So the length of a chain is not what costs; the position of the answer in it is, at four
 /// or five nanoseconds a term skipped. A chain of any length whose first term answers stays
 /// where it started. Ranges are written in order of character code today, which puts
