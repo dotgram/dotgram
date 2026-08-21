@@ -5,8 +5,8 @@ A typed grammar notation for .NET, compiled to C# by a source generator.
 > **Early work.** The pipeline runs end to end, the parsers it produces are real and
 > typed, a grammar can compute, a marked repetition survives a bad element, and a feed
 > streams — ten million records of fifty fields read through a 4 KB window. What is
-> missing is a good deal of §7.1's seam with C#, keyword boundaries, and incremental
-> parsing. Nothing here is ready to depend on.
+> missing is a good deal of §7.1's seam with C#, richer streamed-result surfaces, and
+> incremental parsing. Nothing here is ready to depend on.
 >
 > The specification describes the target language. Not every specified feature is
 > implemented — [`docs/status.md`](docs/status.md) says which are, feature by pipeline
@@ -263,9 +263,9 @@ then quietly means nothing is the failure this project is most careful about:
 - a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
   refused rather than quietly taken as a recognizer
 - a second `recover` in one rule, and indirect left recursion
-- keyword boundaries (§4.6), which nothing parses yet
 - diagnostics beyond a position: the set of what was expected there is next
-- the §8.3 surfaces over a streamed parse
+- the allocation-free `Read()`/`Current` and generated-outcome surfaces from §8.3;
+  typed streamed results and the `OnRecovered` sink already work
 - incremental parsing
 
 ## Examples

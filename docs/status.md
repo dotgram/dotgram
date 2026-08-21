@@ -580,12 +580,10 @@ there is nothing to fix. Without it the author meets a call that does not bind a
 message about converting `TextReader` to `string`, which names neither the rule
 responsible nor anything they could do about it.
 
-Only where the grammar is the reason. A `parse` gets no reader overload because the
-windowed driver for it is not built, which is a fact about this compiler rather than
-about the grammar in front of it — saying that on every build of every grammar would be
-noise, and this file is where it belongs. What would let a `parse` window move is a
-committed repetition inside it, which means the decomposition `Retention.PlanFor` does
-rather than the single question `find` asks.
+Only where the grammar is the reason. A `parse` now gets a reader overload when its
+staged repetitions provide safe continuation or recovery boundaries, as described
+below. `GRAM5001` is reserved for a grammar whose retention prevents that overload; a
+missing compiler driver is no longer reported as if the grammar caused it.
 
 ## `parse` reads from a reader
 
@@ -670,9 +668,12 @@ as no declared type at all: a declared one is what tells the emitter to expect a
 machine never builds, which is how this first showed up as generated code that would not
 compile.
 
-`: @SourceSpan` is the other half and is still not built — the value would have to be made
-where the match accepts, from positions no factory is handed. The message says that now
-instead of talking about constructors.
+`: @SourceSpan` is the other half and now builds those bounds through the same
+`parserSpan` supplied value used by explicit factories. It may be captured inside
+another rule. It cannot itself be the value of a publication because the generated
+`SourceSpan` is internal and therefore cannot appear in a public method signature
+(§6.1); that case is refused with `GRAM4008` rather than left to a C# accessibility
+error in generated code.
 
 ## A lookahead produces what it saw
 
@@ -1036,10 +1037,10 @@ It reintroduced exactly the skew that emitting into the consumer exists to preve
 assembly built by one version of the generator would bind to types emitted by another,
 with no package, version or metadata anywhere to say so. And it was protecting nothing —
 of the four types, `Outcome`, `Diagnostic` and `RecognitionResult<T>` were referenced by
-no generated code at all, and `SourceSpan` appears only in the private signature of a
-recovery factory, which never crosses a boundary. Three types were deleted; §7.5 still
-specifies them and the table above says they are not built, which is this project's
-ordinary way of holding a plan.
+no generated code at all. `SourceSpan` remains for private generated signatures and
+internal grammar values, but is never exposed through a public publication. Three types
+were deleted; §7.5 still specifies them and the table above says they are not built,
+which is this project's ordinary way of holding a plan.
 
 `GRAM0001` went with it — it reported two assemblies both publishing — so diagnostic
 numbering starts at `GRAM0002`. A retired number is not reused: a suppression written

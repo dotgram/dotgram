@@ -234,12 +234,13 @@ construction is invoked once for a surviving derivation. Work on a derivation la
 rejected by the guard or suffix is the consequence of the author's decision to inspect
 that computed value.
 
-## Recommended continuation order
+## Future optimization gate
 
-1. Profile arena traffic and materialization on representative large grammars before
-   changing storage layout.
-2. Keep inlining bounded to recognition-only single-literal/single-element rules unless
-   a new benchmark demonstrates a broader profitable class.
+The first storage and materialization profile is complete. Do not change the arena or
+owner-link layout again without a representative large-grammar benchmark showing that
+the remaining cost matters. Keep inlining bounded to recognition-only
+single-literal/single-element rules unless another benchmark demonstrates a broader
+profitable class.
 
 ## First single-machine performance pass
 
@@ -263,6 +264,20 @@ parser reuse, this reduced the short URL from 837 ns to 774 ns and the full URL 
 1.17 us to 1.05 us. It adds about 1 KB of support source per generated class. Combined
 with atom inlining, URL is 57,370 bytes versus the pre-optimization 56,749, while the
 larger Settlements parser remains smaller at 125,333 versus 127,292 bytes.
+
+Recognition-only measurements put successful URL materialization at roughly 110--470 ns
+and all 176--352 bytes allocated by those successful parses. The allocations are the
+accepted strings, exact capture arrays and result objects; a rejected URL still allocates
+nothing. `Materialized()` no longer repeats the array preparation already performed by
+`Materialization(count)`.
+
+An experiment that initialized only apparent owner heads instead of resetting the full
+first half of the reusable links array was reverted. Materialization may run from a
+typed `when` while recognition still has incomplete calls, so the owner graph has more
+live intermediate states than final-result materialization alone exposes. Removing that
+linear reset safely would require maintaining rollback-aware links as arena entries are
+added and truncated. That is an architectural change, not a local hot-path cleanup, and
+the measured remaining cost does not justify it now.
 
 ## Implementation map
 
@@ -306,7 +321,8 @@ Earlier recursion groundwork is in `9f95cfa`, `6076080`, `61ff9c8`, `a4deb7b`, a
 
 ## Completion criterion
 
-The semantic restructuring is complete: every publication kind uses transparent-rule
-semantics and explicit atomic groups, recursive parsing/materialization is iterative,
-and one generator implements the language. The next work is measurement-driven code-size
-and hot-path optimization while the full suite remains below the 30-second ceiling.
+The semantic restructuring and first performance pass are complete: every publication
+kind uses transparent-rule semantics and explicit atomic groups, recursive
+parsing/materialization is iterative, and one generator implements the language.
+Further performance work is optional and must be justified by a new workload; the
+current stopping point keeps the full suite below the 30-second ceiling.
