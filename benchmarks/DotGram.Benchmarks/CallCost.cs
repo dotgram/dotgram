@@ -64,15 +64,33 @@ public partial class CallCost
 	public sealed partial class Pooled
 	{
 		[ThreadStatic]
-		static Parser? _spare;
+		static Parser? _mine;
 
 		static partial void RentParser(ref Parser parser)
 		{
-			parser = _spare!;
-			_spare = null;
+			parser = _mine!;
+			_mine = null;
 		}
 
-		static partial void ReturnParser(Parser parser) => _spare = parser;
+		static partial void ReturnParser(Parser parser) => _mine = parser;
+	}
+
+	/// <summary>
+	/// And again with the hooks answering that the caller supplies its own — which is a fresh
+	/// one every time, so this is the machinery built from nothing, as the default used to be.
+	/// </summary>
+	[Gram("""
+		Start  : @string = t: Letter{40} => @(t)
+		Letter = ['a'..'z'] | ('!' & Letter)
+		parse Start
+		""")]
+	public sealed partial class Unpooled
+	{
+		static partial void RentParser(ref Parser parser) => parser = new Parser();
+
+		static partial void ReturnParser(Parser parser)
+		{
+		}
 	}
 
 	static readonly string Input = new('x', Letters);
@@ -85,4 +103,7 @@ public partial class CallCost
 
 	[Benchmark]
 	public string? Called_with_pooling() => Pooled.ParseStart(Input);
+
+	[Benchmark]
+	public string? Called_without_pooling() => Unpooled.ParseStart(Input);
 }

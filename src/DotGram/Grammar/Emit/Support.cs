@@ -485,6 +485,8 @@ public static partial class CSharpEmitter
 
 			internal int Count { get; private set; }
 
+			internal int Capacity { get { return _items.Length; } }
+
 			internal ParserEntry this[int index]
 			{
 				get => _items[index];
@@ -574,6 +576,43 @@ public static partial class CSharpEmitter
 
 		static partial void RentParser(ref Parser parser);
 		static partial void ReturnParser(Parser parser);
+
+		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
+		/// <remarks>
+		/// A parse allocates nothing it can help — the arena, the value table and the links
+		/// are all grown once and reused — but that is only true of a parser that outlives
+		/// the parse. Without this, every call built the whole machinery from nothing and
+		/// grew the arena from empty by doubling, which for a parse of any size costs more
+		/// than the parse.
+		/// <para>
+		/// One slot, taken out of the field while it is in use, so a parse reached from
+		/// inside another — a guard that parses, a value that does — gets its own rather
+		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
+		/// so one outsized input does not leave every thread holding its arena for ever.
+		/// </para>
+		/// </remarks>
+		[global::System.ThreadStatic]
+		static Parser? _spareParser;
+
+		const int KeptEntries = 4096;
+
+		static Parser Recycled()
+		{
+			var spare = _spareParser;
+
+			if (spare == null)
+				return new Parser();
+
+			_spareParser = null;
+
+			return spare;
+		}
+
+		static void Recycle(Parser parser)
+		{
+			if (parser.Entries.Capacity <= KeptEntries)
+				_spareParser = parser;
+		}
 
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
 		static void Trace(string action, int state, int position, int arena)

@@ -285,7 +285,10 @@ sealed class Machine
 
 			file.Line("Parser parser = null!;");
 			file.Line("RentParser(ref parser);");
-			file.Line("parser ??= new Parser();");
+			// Whoever handed it over takes it back: a caller that pools its own gets it
+			// returned through the hook, and one that said nothing gets the default pool.
+			file.Line("var lent = parser != null;");
+			file.Line("parser ??= Recycled();");
 			file.Line();
 
 			using (file.Block("try"))
@@ -582,7 +585,7 @@ sealed class Machine
 			using (file.Block(""))
 			{
 				file.Line("parser.Reset();");
-				file.Line("ReturnParser(parser);");
+				file.Line("if (lent) ReturnParser(parser); else Recycle(parser);");
 			}
 		}
 
