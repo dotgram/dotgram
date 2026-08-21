@@ -29,7 +29,7 @@ namespace DotGram.Benchmarks;
 /// once instead changes nothing, 20.0 against 19.7.
 /// </para>
 /// <para>
-That last one was first read off equal time, which does not say it: two more of an
+/// That last one was first read off equal time, which does not say it: two more of an
 /// operation that issues four to the cycle cost nothing in a loop already doing a load, a
 /// shift and a branch, removed or not. <c>[DisassemblyDiagnoser]</c> settles it — both come
 /// to eighty-four bytes of machine code, the same number, which two different sources reach
