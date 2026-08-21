@@ -149,6 +149,22 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void And_a_sequence_of_them_is_read_the_same_way()
+	{
+		// Extents are read out of the entries the rules left rather than out of the value
+		// table, and a collected sequence is the path where that is least like the others:
+		// the elements are walked in the arena and each one taken from its own entry.
+		Assert.Equal(
+			"0:2,3:1,5:3",
+			Parsed(
+				"@using System.Linq;\n" +
+				"Start : @string = (words: Word & ' '?)+ " +
+				"=> @(string.Join(\",\", words.Select(w => w.Start + \":\" + w.Length)))" + "\n" +
+				"Word : @SourceSpan = ['a'..'z']+",
+				"ab c def").Value);
+	}
+
+	[Fact]
 	public void And_it_may_be_what_a_published_method_hands_back()
 	{
 		// It could not, once: everything emitted into a namespace has to be internal so that

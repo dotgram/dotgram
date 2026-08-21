@@ -254,7 +254,11 @@ sealed class Machine
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
 				$"{(whole ? "true" : "false")}, true, ref failure, out recognized);");
 
-			if (type is not null)
+			// An extent root needs nothing that came back: the wrapper handed the position in
+			// and was told the position reached, which is the whole of the answer.
+			if (IsExtent(root))
+				file.Line("value = end < 0 ? default : new SourceSpan(pos, end - pos);");
+			else if (type is not null)
 				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
 
 			file.Line("return end;");
@@ -968,8 +972,10 @@ sealed class Machine
 
 							writer.Line(member.IsOptional
 								? $"{type}? guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
-									$"default({type}?) : ({type})guardValues[guardCaptured{memberIndex}At]!;"
-								: $"var guardCaptured{memberIndex} = ({type})guardValues[guardCaptured{memberIndex}At]!;");
+									$"default({type}?) : " +
+									ValueFrom(type, $"guardCaptured{memberIndex}At", "guardValues") + ";"
+								: $"var guardCaptured{memberIndex} = " +
+									ValueFrom(type, $"guardCaptured{memberIndex}At", "guardValues") + ";");
 
 							continue;
 						}
@@ -1001,7 +1007,7 @@ sealed class Machine
 								writer.Line("var guardValueAt = candidate.Kind == ParserEntry.Recovery ? candidateAt : candidate.Position;");
 								writer.Line(
 									$"guardCaptured{memberIndex}[guardCaptured{memberIndex}Item++] = " +
-									$"({type})guardValues[guardValueAt]!;");
+									ValueFrom(type, "guardValueAt", "guardValues") + ";");
 							}
 						}
 					}
@@ -2302,12 +2308,47 @@ sealed class Machine
 		_                => "default",
 	};
 
+	/// <summary>Whether a rule's value is where it matched rather than something built.</summary>
+	bool IsExtent(RuleSymbol rule) =>
+		_graph.Types.TryGetValue(rule, out var type) && type == "SourceSpan";
+
+	/// <summary>
+	/// Reading a rule's value out of the parse — which for an extent means not reading it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The value table is <c>object?</c> because one automaton serves every rule: what
+	/// completed at a position could be any of their types, and the same slot doubles as the
+	/// mark saying a value is reachable and unbuilt. That is what puts a struct in a box.
+	/// </para>
+	/// <para>
+	/// An extent needs no slot at all. The entry left where the rule completed already holds
+	/// the position it began at and the position it reached — the span is those two numbers,
+	/// one array along, and copying them into the table would box them to say what is already
+	/// said.
+	/// </para>
+	/// </remarks>
+	string ValueFrom(string type, string index, string table = "values") =>
+		type == "SourceSpan"
+			? $"new SourceSpan(entries[{index}].Position, entries[{index}].Value - entries[{index}].Position)"
+			: $"({type}){table}[{index}]!";
+
 	void MaterializeRule(Writer file, RuleSymbol rule)
 	{
 		var offset    = _captureOffsets[rule];
 		var members   = _graph.Results[rule];
 		var type      = _results.QualifiedOf(rule)!;
 		var factories = _factories[rule];
+
+		// Its value is the entry it left, so the walk has nothing to run here. The case is
+		// still written: the switch is over every rule that has a value, and this one has.
+		if (IsExtent(rule))
+		{
+			using (file.Block($"case {_ruleIds[rule]}:"))
+				file.Line("break;");
+
+			return;
+		}
 
 		using (file.Block($"case {_ruleIds[rule]}:"))
 		{
@@ -2373,12 +2414,12 @@ sealed class Machine
 									file.Line($"var capturedValueAt = candidate.Kind == ParserEntry.Recovery ? capturedAt{memberIndex} : candidate.Position;");
 									file.Line(
 										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
-										$"({element})values[capturedValueAt]!;");
+										ValueFrom(element, "capturedValueAt") + ";");
 								}
 								else
 									file.Line(
 										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
-										$"({element})values[candidate.Position]!;");
+										ValueFrom(element, "candidate.Position") + ";");
 							}
 						}
 
@@ -2411,8 +2452,10 @@ sealed class Machine
 
 					file.Line(member.IsOptional
 						? $"{capturedType}? captured{memberIndex} = captured{memberIndex}At < 0 ? " +
-							$"default({capturedType}?) : ({capturedType})values[captured{memberIndex}At]!;"
-						: $"var captured{memberIndex} = ({capturedType})values[captured{memberIndex}At]!;");
+							$"default({capturedType}?) : " +
+							ValueFrom(capturedType, $"captured{memberIndex}At") + ";"
+						: $"var captured{memberIndex} = " +
+							ValueFrom(capturedType, $"captured{memberIndex}At") + ";");
 					file.Line();
 
 					continue;
@@ -2636,7 +2679,7 @@ sealed class Machine
 						? $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
 							"text.Slice(candidate.Position, candidate.Value - candidate.Position).ToString();"
 						: $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
-							$"({element})values[candidate.Position]!;");
+							ValueFrom(element, "candidate.Position") + ";");
 			}
 
 			return $"foldCaptured{memberIndex}";
@@ -2666,9 +2709,10 @@ sealed class Machine
 				$"entries[foldCaptured{memberIndex}At].Position).ToString();"
 			: member.IsOptional
 				? $"{type}? foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
-					$"default({type}?) : ({type})values[entries[foldCaptured{memberIndex}At].Position]!;"
+					$"default({type}?) : " +
+					ValueFrom(type, $"entries[foldCaptured{memberIndex}At].Position") + ";"
 				: $"var foldCaptured{memberIndex} = " +
-					$"({type})values[entries[foldCaptured{memberIndex}At].Position]!;");
+					ValueFrom(type, $"entries[foldCaptured{memberIndex}At].Position") + ";");
 
 		return $"foldCaptured{memberIndex}{(member.IsOptional ? "" : "!")}";
 	}
