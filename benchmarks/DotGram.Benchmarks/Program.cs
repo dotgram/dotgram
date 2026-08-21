@@ -26,6 +26,15 @@ static class Program
 			return;
 		}
 
+		// `--alloc` is not a benchmark either: it asks the runtime what a parse allocates
+		// and prints the answer. See Allocation.cs.
+		if (args.Length == 1 && args[0] == "--alloc")
+		{
+			Allocation.Report();
+
+			return;
+		}
+
 		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 	}
 }

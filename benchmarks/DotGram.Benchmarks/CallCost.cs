@@ -31,7 +31,7 @@ public partial class CallCost
 	const int Letters = 40;
 
 	[Gram("""
-		Start  : @string = t: Letter{40} => @(t)
+		Start  : @string = t: Letter+ => @(t)
 		Letter = ['a'..'z']
 		parse Start
 		""")]
@@ -40,7 +40,7 @@ public partial class CallCost
 	}
 
 	[Gram("""
-		Start  : @string = t: Letter{40} => @(t)
+		Start  : @string = t: Letter+ => @(t)
 		Letter = ['a'..'z'] | ('!' & Letter)
 		parse Start
 		""")]
@@ -57,7 +57,7 @@ public partial class CallCost
 	/// not rebuilt from nothing on every call.
 	/// </remarks>
 	[Gram("""
-		Start  : @string = t: Letter{40} => @(t)
+		Start  : @string = t: Letter+ => @(t)
 		Letter = ['a'..'z'] | ('!' & Letter)
 		parse Start
 		""")]
@@ -80,7 +80,7 @@ public partial class CallCost
 	/// one every time, so this is the machinery built from nothing, as the default used to be.
 	/// </summary>
 	[Gram("""
-		Start  : @string = t: Letter{40} => @(t)
+		Start  : @string = t: Letter+ => @(t)
 		Letter = ['a'..'z'] | ('!' & Letter)
 		parse Start
 		""")]

@@ -607,13 +607,17 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
 		ResultTypes results, ILineMap? lines)
 	{
-		var parameters = new List<string> { "string parserText" };
+		var parameters = new List<string>();
 
-		// The other name §8.2 supplies that a construction can want: where the rule
-		// matched, rather than what it matched. Passed when the expression says it, which
-		// is the rule a recovery factory has always been written by — a name found inside
-		// a string literal costs an unused parameter, and reading it exactly would mean
-		// lexing C# on this side.
+		// What §8.2 supplies that a construction can want: what the rule matched, and where
+		// it matched. Both are passed when the expression says so — a name found inside a
+		// string literal costs an unused parameter, and reading it exactly would mean lexing
+		// C# on this side. What it saves is not a parameter: the text is the whole of what
+		// the rule matched, built as a string on every construction, and most expressions
+		// want the captures inside rather than the run around them.
+		if (WantsText(factory))
+			parameters.Add("string parserText");
+
 		if (Asks(factory, "parserSpan"))
 			parameters.Add("global::DotGram.SourceSpan parserSpan");
 
@@ -767,6 +771,29 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>Whether a construction names one of the parameters §8.2 supplies.</summary>
+	/// <summary>
+	/// Whether a construction wants the text the rule matched — which it can say in two
+	/// ways.
+	/// </summary>
+	/// <remarks>
+	/// An expression says it by naming it, and that is the way there is a test for. The
+	/// other, kept because <see cref="EmitFactory"/> has always left room for it, is a
+	/// member of that name — how the forms of §7.3 that are not expressions would ask, if
+	/// §7.3 matched a constructor against the supplied names as well as the captures. It
+	/// does not today, so this arm is insurance rather than a feature.
+	/// </remarks>
+	internal static bool WantsText(Machine.Factory factory)
+	{
+		if (Asks(factory, "parserText"))
+			return true;
+
+		foreach (var member in factory.Members)
+			if (member.Name == "parserText")
+				return true;
+
+		return false;
+	}
+
 	internal static bool Asks(Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		text.Contains(name);

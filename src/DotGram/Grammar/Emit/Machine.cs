@@ -826,11 +826,17 @@ sealed class Machine
 				var before = layout.Before(node);
 				var method = "Recognize_DotGram_Guard" + _guards++;
 				var helper = new Writer(0);
-				var parameters = new List<string> { "string parserText" };
-				var arguments = new List<string>
+				var parameters = new List<string>();
+				var arguments  = new List<string>();
+
+				// A guard runs at every position the rule reaches it, and what the rule has
+				// matched so far is a string built to run it. Built only where the condition
+				// names it — most conditions ask about the captures, not about the run.
+				if (node is Node.Guard { Text: var guardText } && guardText.Contains("parserText"))
 				{
-					"text.Slice(ruleStart, p - ruleStart).ToString()",
-				};
+					parameters.Add("string parserText");
+					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
+				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
 				foreach (var member in _graph.Results[rule])
@@ -2473,10 +2479,15 @@ sealed class Machine
 				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
 				{
 					var factory = factories[factoryIndex];
-					var arguments = new List<string>
-					{
-						"text.Slice(completed.Position, completed.Value - completed.Position).ToString()",
-					};
+					var arguments = new List<string>();
+
+					// Materialized only where the expression names it. It is the whole of
+					// what the rule matched, so building it for an expression that never
+					// looks at it doubles what a parse allocates — twice the string, for a
+					// rule whose value is the capture inside it.
+					if (CSharpEmitter.WantsText(factory))
+						arguments.Add(
+							"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
 
 					if (CSharpEmitter.Asks(factory, "parserSpan"))
 						arguments.Add(
@@ -2541,10 +2552,11 @@ sealed class Machine
 					using (file.Indent())
 					using (file.Block(""))
 					{
-						var arguments = new List<string>
-						{
-							"text.Slice(completed.Position, completed.Value - completed.Position).ToString()",
-						};
+						var arguments = new List<string>();
+
+						if (CSharpEmitter.WantsText(factory))
+							arguments.Add(
+								"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
 
 						if (CSharpEmitter.Asks(factory, "parserSpan"))
 							arguments.Add(

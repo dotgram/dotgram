@@ -6,7 +6,7 @@ namespace DotGram.Snapshots
 	partial class Csv
 	{
 		/// <summary>Everything <c>Csv</c> is made of, in order (§4.1 case 2).</summary>
-		static string[] Construct_Csv(string parserText, string[] item0)
+		static string[] Construct_Csv(string[] item0)
 		{
 			var count = 0;
 			if (item0 != null) count += item0.Length;
@@ -24,19 +24,19 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>What <c>Row</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static string Construct_Row(string parserText, string name, int amount) =>
+		static string Construct_Row(string name, int amount) =>
 #line 23 "Csv.gram"
                                                             (name + "=" + amount);
 #line default
 
 		/// <summary>What <c>Name</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static string Construct_Name(string parserText, string text) =>
+		static string Construct_Name(string text) =>
 #line 25 "Csv.gram"
                                                                               (text);
 #line default
 
 		/// <summary>What <c>Amount</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static int Construct_Amount(string parserText, string digits) =>
+		static int Construct_Amount(string digits) =>
 #line 27 "Csv.gram"
                                         int.Parse(digits);
 #line default
@@ -301,7 +301,7 @@ namespace DotGram.Snapshots
 						}
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
-					if (!Recognize_DotGram_Guard0(text.Slice(ruleStart, p - ruleStart).ToString(), guardCaptured0)) goto Fail;
+					if (!Recognize_DotGram_Guard0(guardCaptured0)) goto Fail;
 					goto S35;
 				}
 
@@ -596,7 +596,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Csv(text.Slice(completed.Position, completed.Value - completed.Position).ToString(), captured0!);
+											values[completedAt] = Construct_Csv(captured0!);
 											break;
 									}
 									break;
@@ -643,7 +643,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Row(text.Slice(completed.Position, completed.Value - completed.Position).ToString(), captured0!, captured1!);
+											values[completedAt] = Construct_Row(captured0!, captured1!);
 											break;
 									}
 									break;
@@ -678,7 +678,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Name(text.Slice(completed.Position, completed.Value - completed.Position).ToString(), captured0!);
+											values[completedAt] = Construct_Name(captured0!);
 											break;
 									}
 									break;
@@ -713,7 +713,7 @@ namespace DotGram.Snapshots
 									switch (chosen)
 									{
 										case 0:
-											values[completedAt] = Construct_Amount(text.Slice(completed.Position, completed.Value - completed.Position).ToString(), captured0!);
+											values[completedAt] = Construct_Amount(captured0!);
 											break;
 									}
 									break;
@@ -918,7 +918,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static bool Recognize_DotGram_Guard0(string parserText, string text) =>
+		static bool Recognize_DotGram_Guard0(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default

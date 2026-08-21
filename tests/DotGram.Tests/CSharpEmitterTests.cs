@@ -161,6 +161,21 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void What_the_rule_matched_is_built_only_where_it_is_asked_for()
+	{
+		// It is the whole run the rule covered, made into a string on every construction, so
+		// a rule that never looks at it would allocate its own text beside the captures it
+		// actually keeps — twice the string, for a value that is one of them.
+		Assert.DoesNotContain(
+			"parserText",
+			Emit("Start : @string = t: ['a'..'z']+ => @(t)\nparse Start"));
+
+		Assert.Contains(
+			"Construct_Start(string parserText",
+			Emit("Start : @string = ['a'..'z']+ => @(parserText)\nparse Start"));
+	}
+
+	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
 	{
 		var source = Emit("Start = digits: ['0'..'9']+\nparse Start");
@@ -270,7 +285,9 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var match = EmittedCode.Match(parser, "Grammar", "TryParseStart", "abc");
 
-		Assert.Contains("Recognize_DotGram_Guard0(string parserText, string? value)", source);
+		// No `parserText`: the condition asks about the capture, so the run around it is
+		// never built. What the guard reads out of the arena is the capture and nothing else.
+		Assert.Contains("Recognize_DotGram_Guard0(string? value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
 		Assert.DoesNotContain("bool[] _built", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
@@ -600,7 +617,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("using System.Globalization;", source);
 		Assert.Contains(
-			"static int Construct_Start(string parserText, string digits) =>",
+			"static int Construct_Start(string digits) =>",
 			source);
 		Assert.Contains("int.Parse(digits, CultureInfo.InvariantCulture);", source);
 
