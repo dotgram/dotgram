@@ -264,8 +264,9 @@ Row = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol) & ...
 a diagnostic about the unsupported symbol rather than a silent fall-through to
 another alternative.
 
-The first reading is what the language does: ordered choice backtracks fully and there
-is no commit point (§11), so a failing guard is a non-match and a sibling is tried.
+The first reading is what the language does: ordered choice backtracks fully, and the
+only thing that commits is an atomic group (§3.2), which this guard is not inside — so a
+failing guard is a non-match and a sibling is tried.
 
 The second is what one would want in the `Row` case, and saying so is the one thing
 still missing — see §11. Note that it is a question about diagnostics, not about
@@ -386,9 +387,15 @@ happen after recognition rather than during it (§7.3), what lets a fold collect
 more than once would be a function from a position to a *sequence* of matches, and every
 one of those would have to be built again around it.
 
-The cost is real and worth stating plainly: a grammar cannot be refactored freely.
-Lifting part of an expression into a rule of its own can change what it matches. Where
-that bites, inline it.
+None of which costs the freedom to refactor. Lifting part of an expression into a rule
+of its own does not change what it matches, and inlining a rule back does not either:
+that is what a transparent call means, and it is the property the whole of this section
+is about. A rule earns its own commit only by being written inside `{ }`.
+
+There was a time when this was not so — an engine in which a rule boundary committed by
+itself, so that extraction changed recognition and the manual said as much. It is worth
+knowing because it explains why the language says "transparent" so insistently: the
+guarantee was bought, not free.
 
 ### 4.1 A rule's result
 
