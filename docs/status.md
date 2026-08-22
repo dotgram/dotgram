@@ -267,7 +267,7 @@ is a constant at the call site, `n + 1` for `<<` and `n` for `>>`. That differen
 is the whole of left against right.
 
 Only a rule that says `<<` or `>>` takes the parameter. A grammar that never reaches for
-them is generated as though they did not exist.
+them is generated exactly as it was before they existed, which is why no snapshot moved.
 
 **An alternative recursive on both sides is the ordinary case here**, and refused under
 levels. The refusal is not about the shape — it is that ordered choice has nothing to
