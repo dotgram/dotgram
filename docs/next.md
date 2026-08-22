@@ -294,9 +294,16 @@ such problem; cloning nodes per context reintroduces all of it.
 
 ### Order
 
-1. The region type and the walk from publications, with one decision class — output
-   byte-for-byte unchanged, which is what makes this step safe to take blind.
-2. Real decision classes. The snapshots then show exactly where context opened something.
+1. ~~The region type and the walk from publications, with one decision class — output
+   byte-for-byte unchanged, which is what makes this step safe to take blind.~~ Done:
+   `Region`/`DecisionClass` and the walk are `Grammar/Model/Region.cs`.
+2. ~~Real decision classes. The snapshots then show exactly where context opened
+   something.~~ Done: the walk takes a `classify` function now instead of a fixed answer,
+   so it stayed in Model while `Machine.Regions.cs` supplies the real one — `Silent` and
+   `Possessive`, called directly rather than duplicated. What that found, checked by hand
+   against every snapshot, example and benchmark grammar: nothing loops, and several split
+   a rule into more than one class where today's engine could not tell — Url 16 ways,
+   Json 2, Xml 3, Sql 1. Not read by `Compile` yet, so nothing generated changed.
 3. The fourth need, and eager construction where it is proved.
 4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
    the automaton across methods falls out of that rather than being done for its own sake.
