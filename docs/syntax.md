@@ -392,11 +392,6 @@ of its own does not change what it matches, and inlining a rule back does not ei
 that is what a transparent call means, and it is the property the whole of this section
 is about. A rule earns its own commit only by being written inside `{ }`.
 
-There was a time when this was not so — an engine in which a rule boundary committed by
-itself, so that extraction changed recognition and the manual said as much. It is worth
-knowing because it explains why the language says "transparent" so insistently: the
-guarantee was bought, not free.
-
 ### 4.1 A rule's result
 
 1. There is `=> expr` — the expression gives the result.
