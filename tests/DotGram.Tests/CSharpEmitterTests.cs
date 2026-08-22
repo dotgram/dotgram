@@ -125,6 +125,27 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_cycle_of_three_rules_is_a_cycle()
+	{
+		// Recursion is reachability from a rule to itself, which is not the same as a rule
+		// naming itself or two rules naming each other. If a cycle of three were missed, each
+		// of them would be compiled into the next — none keeps a value, so nothing else stops
+		// it — and the expansion would not terminate.
+		const int depth = 20_000;
+		const string grammar =
+			"A = 'a' & B\n" +
+			"B = 'b' & C\n" +
+			"C = 'c' & A | 'x'\n" +
+			"parse A";
+
+		var source = Emit(grammar);
+		var input  = string.Concat(Enumerable.Repeat("abc", depth)) + "abx";
+
+		Assert.Contains("enter B", source);
+		Assert.True(EmittedCode.Match(EmittedCode.Compile(source), "Grammar", "TryParseA", input).IsSuccess);
+	}
+
+	[Fact]
 	public void A_rule_whose_value_is_kept_has_one_shared_block()
 	{
 		// Three calls, one block. The value is what needs the block: it is materialized at
