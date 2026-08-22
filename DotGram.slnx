@@ -29,5 +29,6 @@
 	</Folder>
 	<Folder Name="/tests/">
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj" />
+		<Project Path="tests/Snapshots/Snapshots.csproj" />
 	</Folder>
 </Solution>
