@@ -78,6 +78,12 @@ reading once before the first change and not again.
   about — and a row of `status.md` reading *refused* is that same claim, made in prose.
   `SemanticTests.Still_refused` holds those rows to it, so a feature built and never
   marked is caught by the suite rather than by somebody trusting the table.
+- A refusal that is **lifted** owes the removal of its row, and nothing catches that one.
+  `Still_refused` guards the table from one side only: it fails when a row says *refused*
+  and the construct works. When a refusal stops existing, the test that asserted it is
+  replaced by a test asserting the opposite — that is the natural way to make the change —
+  and the row is left an orphan with nothing looking at it. It happened to the row for
+  publishing a `SourceSpan`, which went on saying refused for as long as anybody read it.
 - A rewrite that builds new nodes owes a thought about what was recorded against the old
   ones. `RecognitionGraph.Orphans()` answers that question and `GraphIntegrityTests` asks
   it of every grammar in the repository.
