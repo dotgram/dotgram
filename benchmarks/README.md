@@ -50,26 +50,28 @@ One of the five inputs does not match. A parser that is quick to say yes and slo
 no is quick on the input nobody sends: refusal is where a backtracking engine does its
 worst work.
 
-### Current short-run result
+### Current result
 
-Windows, .NET 10, `--job short`, after the single-machine transition and lexical-atom
-inlining. These numbers are indicative, not stable CI thresholds:
+Windows, .NET 10, `--job medium`. Indicative, not stable CI thresholds:
 
 | input | .Gram | allocated |
 | --- | --: | --: |
-| `http://example.com` | 774 ns | 176 B |
-| `https://192.168.0.1/` | 847 ns | 200 B |
-| `https://exa mple.com/` — no match | 630 ns | 0 B |
-| a 47-character URL with every part | 1.05 us | 352 B |
-| an 84-character path of eight segments | 1.84 us | 328 B |
+| `http://example.com` | 362 ns | 176 B |
+| `https://192.168.0.1/` | 294 ns | 200 B |
+| `https://exa mple.com/` — no match | 274 ns | 0 B |
+| a 47-character URL with every part | 525 ns | 352 B |
+| an 84-character path of eight segments | 599 ns | 328 B |
 
-Inlining only recognition-only rules whose complete body is one literal or element set
-reduced the long path from 3.27 us to 1.86 us and the full URL from 1.51 us to 1.17 us.
-Replacing `List<ParserEntry>` with the parser's small array-backed `ParserArena` then
-reduced the full URL to 1.05 us and the short URL from 837 ns to 774 ns. The custom arena
-adds about 1 KB of shared support source per generated class; after both changes URL is
-57,370 bytes against the original 56,749, while the larger Settlements parser is 125,333
-bytes against 127,292. Broader inlining is not justified by this run.
+Against `RegexOptions.Compiled` on the same inputs that is between 1.2 and 2.6 times
+slower, and against the interpreted pattern between 1.1 and 1.9 times faster. What is not
+close is the allocation: the pattern takes about 1032 bytes for the short URL against
+176, and what `.Gram` takes is the result and nothing else.
+
+The earlier numbers this table used to carry — 774 ns for the short URL, 1.84 us for the
+long path — were measured before possessive repetitions, predictive choices, the parser
+being kept between parses and the value tables. `docs/next.md` keeps what each of those
+was worth, and `Membership.cs` and `Scanning.cs` beside this file keep the experiments
+that were measured and rejected.
 
 ### Historical per-rule result
 
