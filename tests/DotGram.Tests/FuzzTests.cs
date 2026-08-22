@@ -40,6 +40,15 @@ public sealed class FuzzTests
 	[InlineData(1)]
 	[InlineData(2)]
 	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	[InlineData(8)]
+	[InlineData(9)]
+	[InlineData(10)]
+	[InlineData(11)]
+	[InlineData(12)]
 	public void A_mutated_grammar_is_answered_rather_than_survived(int seed)
 	{
 		var random = new Random(seed);
