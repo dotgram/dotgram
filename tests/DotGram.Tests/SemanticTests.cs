@@ -180,6 +180,23 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void And_only_where_the_publication_can_reach_it()
+	{
+		// What stops a stream is what the stream would run into. A grammar may hold a rule
+		// that hands back a span and publish something that never calls it, and asking about
+		// every rule in the file refused such a grammar for something it does not do.
+		const string streamed =
+			"Line : @string = w: Word & eol => @(w)\n" +
+			"Word : @string = ['a'..'z']+\n" +
+			"Start : @string[] = Line*\n" +
+			"parse Start\n";
+
+		Assert.Contains(
+			"TextReader",
+			Compile(streamed + "Elsewhere : @DotGram.SourceSpan = ['0'..'9']+").Sources[0].Text);
+	}
+
+	[Fact]
 	public void A_span_cannot_be_handed_out_of_a_window_that_moves()
 	{
 		// It says where in the input it matched, and a streamed parse holds a window that

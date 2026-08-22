@@ -178,23 +178,26 @@ public static class Retention
 	/// reachable from anything published.
 	/// </para>
 	/// </remarks>
-	public static string? Reads(RecognitionGraph graph)
+	public static string? Reads(RecognitionGraph graph, RuleSymbol root)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
+
+		if (root is null)
+			throw new ArgumentNullException(nameof(root));
 
 		// A span says where, and where is into the text it was measured against. A streamed
 		// parse holds a window that moves, so an offset handed out of one is a reference to
 		// something that will not be there — and it would look like an offset either way,
 		// which is the failure this refuses rather than risks.
-		foreach (var owner in graph.Rules)
+		foreach (var owner in Reachable(graph, root))
 			if (graph.Types.TryGetValue(owner, out var type) && type == "SourceSpan")
 				return $"'{owner.Name}' has a 'SourceSpan' for its value (docs/syntax.md §4.1), " +
 					"which says where in the input it matched. A streamed parse reads through a " +
 					"window that moves on, so the place a span points at is gone by the time " +
 					"anyone could look at it.";
 
-		foreach (var owner in graph.Rules)
+		foreach (var owner in Reachable(graph, root))
 			foreach (var node in Everything(graph.Bodies[owner]))
 				if (node is Node.External(var method))
 					return $"'{owner.Name}' reads through '@{method}', a C# recognizer over a span " +
@@ -203,6 +206,37 @@ public static class Retention
 						"input.";
 
 		return null;
+	}
+
+	/// <summary>
+	/// The rules a publication can reach, and only those.
+	/// </summary>
+	/// <remarks>
+	/// What stops a stream is what the stream would run into. A grammar may hold a rule that
+	/// reads through C# or hands back a span and never publish it anywhere a window is used —
+	/// and asking about every rule in the file refused such a grammar for something it does
+	/// not do.
+	/// </remarks>
+	static IEnumerable<RuleSymbol> Reachable(RecognitionGraph graph, RuleSymbol root)
+	{
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		pending.Push(root);
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!seen.Add(rule) || !graph.Bodies.TryGetValue(rule, out var body))
+				continue;
+
+			yield return rule;
+
+			foreach (var node in Everything(body))
+				if (node is Node.Call(var called, _))
+					pending.Push(called);
+		}
 	}
 
 	static IEnumerable<Node> Everything(Node node)
@@ -280,7 +314,7 @@ public static class Retention
 			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
 				"not settled until it has been. A streamed parse reads its parts in order.";
 
-		if (Reads(graph) is { } reader)
+		if (Reads(graph, rule) is { } reader)
 			return reader;
 
 		var parts = graph.PartsOf(rule);
