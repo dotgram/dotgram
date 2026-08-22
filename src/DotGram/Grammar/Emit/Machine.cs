@@ -118,7 +118,8 @@ sealed partial class Machine
 			_entries[rule] = Reserve(out _);
 		}
 
-		_plan = ExecutionPlan.Of(graph);
+		_plan    = ExecutionPlan.Of(graph);
+		_regions = ComputeRegions();
 
 		CollectValueTypes();
 
@@ -1330,7 +1331,8 @@ sealed partial class Machine
 	/// </remarks>
 	bool CanInline(RuleSymbol rule) => _plan.CompiledInPlace.Contains(rule);
 
-	readonly ExecutionPlan _plan;
+	readonly ExecutionPlan               _plan;
+	readonly IReadOnlyCollection<Region> _regions;
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
