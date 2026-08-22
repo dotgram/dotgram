@@ -178,8 +178,10 @@ public static class GramCompiler
 	}
 
 	/// <summary>
-	/// Emits <c>[Gram]</c> and the one support type. Always internal, always present, one
-	/// copy per compilation and independent of any grammar in it.
+	/// Emits <c>[Gram]</c>, which is the whole of what a compilation gets before any grammar
+	/// in it has been looked at. Always internal, always present, one copy per compilation.
+	/// <c>SourceSpan</c> used to be here beside it and is emitted into each host class
+	/// instead, where it can be public without two assemblies colliding over it.
 	/// </summary>
 	public static GeneratedSource EmitMarkerAttributes() =>
 		new("DotGram.Attributes.g.cs", SupportEmitter.Attributes);

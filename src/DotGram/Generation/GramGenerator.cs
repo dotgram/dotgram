@@ -39,8 +39,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
-		// `[Gram]` and the one support type: always internal, always present, so that the
-		// attribute can be written in source at all and nothing has to be found anywhere.
+		// `[Gram]` itself: always internal, always present, so that the attribute can be
+		// written in source at all and nothing has to be found anywhere.
 		context.RegisterPostInitializationOutput(static postInit =>
 		{
 			var source = GramCompiler.EmitMarkerAttributes();

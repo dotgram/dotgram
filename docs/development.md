@@ -46,16 +46,15 @@ dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*UrlB
 `--job short` is enough to see a regression; the error bars are wide, so read the order
 of magnitude rather than the second digit.
 
-Nesting depth is measured by a child process, because a `StackOverflowException` cannot
-be caught and takes the process with it:
+Nesting depth is bounded by the arena rather than by the machine's stack, so there is no
+limit to walk up to: `CSharpEmitterTests` nests a rule inside itself a hundred thousand
+times and the suite is where that claim lives. The `--depth` mode of the benchmarks runs
+one parse in a child process and is what to reach for if a change is ever suspected of
+putting grammar recursion back on the C# stack — a `StackOverflowException` cannot be
+caught and takes the process with it, which is why it is a child.
 
-```
-benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.exe --depth 4562
-```
-
-Walk the number up until a run exits non-zero; the last depth that printed `ok` is the
-answer. What has already been measured, and what came of it, is in
-[`status.md`](status.md) under *What has been measured*.
+What has already been measured, and what came of it, is in [`status.md`](status.md) under
+*What has been measured*.
 
 ## Where a change goes
 
