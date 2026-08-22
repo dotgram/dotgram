@@ -285,6 +285,12 @@ may still fail — so building at the end of `A` would run construction for a de
 did not survive, which §3 exists to prevent. Design it with the regions or it will not fit
 afterwards.
 
+Computed now, as `DecisionClass.Committed` — `Grammar/Model/Region.cs`'s remarks on
+`Regions.Of` say how it threads: forward rather than backward, reset to `true` only past an
+atomic group's close, and everywhere else what came in narrowed by whether the node just
+passed had one way to go. Not wired into `Compile`; eager construction itself is still
+future work, waiting on where regions land in codegen.
+
 ### What must not happen
 
 Regions must **reference** nodes, not clone them. `_captureSlots`, `_owners` and
@@ -304,7 +310,11 @@ such problem; cloning nodes per context reintroduces all of it.
    against every snapshot, example and benchmark grammar: nothing loops, and several split
    a rule into more than one class where today's engine could not tell — Url 16 ways,
    Json 2, Xml 3, Sql 1. Not read by `Compile` yet, so nothing generated changed.
-3. The fourth need, and eager construction where it is proved.
+3. ~~The fourth need~~, and eager construction where it is proved. `Committed` is done —
+   see "The fourth need" above for how it threads. Checked by hand the same way: nothing
+   loops, and which construct-node regions come out committed is never all-or-nothing
+   (Json 9 of 19, Filter 1 of 19). Eager construction itself — actually running `=>` early
+   where this says it is safe — is not built.
 4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
    the automaton across methods falls out of that rather than being done for its own sake.
 
