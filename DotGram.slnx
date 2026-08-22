@@ -1,7 +1,9 @@
 <Solution>
 	<Folder Name="/.agents/">
 		<File Path="CLAUDE.md" />
-		<Project Path=".claude/.claude.csproj" />
+		<Project Path=".claude/.claude.csproj">
+			<Build Project="false" />
+		</Project>
 	</Folder>
 	<Folder Name="/.root/">
 		<File Path=".editorconfig" />
@@ -30,6 +32,8 @@
 	<Folder Name="/tests/">
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj" />
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj" />
-		<Project Path="tests/Snapshots/Snapshots.csproj" />
+		<Project Path="tests/Snapshots/Snapshots.csproj">
+			<Build Project="false" />
+		</Project>
 	</Folder>
 </Solution>
