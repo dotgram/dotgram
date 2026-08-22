@@ -12,8 +12,9 @@ shared generated automaton. Recognition records an all-integer derivation arena;
 user-visible values and `=>` calls are materialized only after the parse has been
 accepted. Recursive rules use explicit frames rather than the C# call stack.
 
-The checkout was clean before this handoff was written. The latest unified-parser commit
-is `fb0fbea` (`Run binding powers in the unified parser`).
+The checkout was clean before this handoff was written. Which commit that was is not
+recorded here: it went stale within the day and said nothing `git log` does not say
+better.
 
 ## Repository conventions and verification
 
@@ -107,8 +108,12 @@ static partial void RentParser(ref Parser parser);
 static partial void ReturnParser(Parser parser);
 ```
 
-The default path creates a parser normally. A user may implement the hooks with a cache
-or pool. The internal storage is not parameterized by grammar value types.
+The default path no longer creates a parser each time: it keeps the last one this thread
+used, in a single slot taken out of the field while it is in use, and lets go of a parser
+whose arena has grown past what is worth holding. A caller implementing the hooks gets its
+own parser back through them and never meets that slot. Internal storage now is
+parameterized by grammar value types — one table for each type a rule can produce, so that
+a struct value is not boxed on its way into it.
 
 ### One shared recognition arena
 
@@ -292,10 +297,11 @@ throughput: without a consumer cache it allocated 2.3--21.6 KB per parse. Its ex
 `RentParser`/`ReturnParser` hooks now back a one-item thread-local cache in the benchmark;
 accepted outputs still allocate normally, while a rejected URL allocates nothing.
 
-The first and only inlining rule is structural: an untyped, capture-free rule whose
-entire normalized body is one literal or element set is compiled directly at its call
-sites. It cannot contain resumable choices or recursion, and every larger rule remains a
-shared block. On the short run this reduced the 84-character URL from 3.27 us to 1.86 us
+The inlining rule at the time was structural and narrow: an untyped, capture-free rule
+whose entire normalized body was one literal or element set was compiled directly at its
+call sites, and every larger rule remained a shared block. It has since been widened to
+any rule outside every call cycle that produces no value — see the gate above, and the
+reason, which was not the call it saves. On the short run this reduced the 84-character URL from 3.27 us to 1.86 us
 and the full 47-character URL from 1.51 us to 1.17 us. Generated source also shrank from
 56,749 to 56,325 bytes for URL and from 127,292 to 124,288 bytes for Settlements. Results
 on the shortest cases were mixed, so broader inlining is not currently warranted.
