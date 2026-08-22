@@ -33,7 +33,8 @@ then quietly mean nothing.
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| publishing a rule whose value is one of ours, refused §6.1 | — | — | ✓ | — | — |
+| publishing a rule whose value is a `SourceSpan` §6.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a span reaching a streamed publication, refused §8.2 | — | — | ✓ | — | — |
 | rule types naming another rule §4.1 case 3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
