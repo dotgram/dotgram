@@ -401,7 +401,12 @@ public static partial class CSharpEmitter
 			"parserOrdinal"  => $"ordinal{stage}",
 			"parserLine"     => "window.LineAt(from)",
 			"parserColumn"   => "window.ColumnAt(from)",
-			"parserSpan"     => "new SourceSpan((int)(window.Offset + from), to - from)",
+			// Where in what was read, on the same terms as everywhere else — an extent, not
+			// an absolute offset, which is what `parserPosition` beside it is for. It used to
+			// add the window's offset and narrow the sum to an `int`, which meant one name
+			// with two meanings and, past two gigabytes, a silently wrong one. Nothing
+			// reaches this now: a grammar that asks for a span is refused a stream.
+			"parserSpan"     => "new SourceSpan(from, to - from)",
 			"parserMessage"  => $"\"Input does not match '{element}' at \" + " +
 				$"(window.Offset + failure{stage}.Reach).ToString(" +
 				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",

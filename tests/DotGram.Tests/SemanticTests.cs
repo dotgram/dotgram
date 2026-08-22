@@ -180,6 +180,26 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void And_not_by_asking_for_one_inside_something_else()
+	{
+		// A rule need not have a span for its value to hand one out: a construction can ask
+		// for it and put it inside a type of its own, and what comes out is still an offset
+		// into a window that will have moved.
+		const string lines =
+			"Word : @string = ['a'..'z']+\n" +
+			"Start : @string[] = Line*\n" +
+			"parse Start\n";
+
+		Assert.Contains(
+			"TextReader",
+			Compile("Line : @string = w: Word & eol => @(w)\n" + lines).Sources[0].Text);
+		Assert.DoesNotContain(
+			"TextReader",
+			Compile("Line : @string = w: Word & eol => @(parserSpan.Length.ToString())\n" + lines)
+				.Sources[0].Text);
+	}
+
+	[Fact]
 	public void And_only_where_the_publication_can_reach_it()
 	{
 		// What stops a stream is what the stream would run into. A grammar may hold a rule

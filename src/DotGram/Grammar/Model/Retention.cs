@@ -197,6 +197,20 @@ public static class Retention
 					"window that moves on, so the place a span points at is gone by the time " +
 					"anyone could look at it.";
 
+		// The same fact reached by another road. A rule need not have a span for its value to
+		// hand one out: a construction can ask for `parserSpan` and put it inside a type of
+		// its own, and what comes out is still an offset into a window that will have moved.
+		foreach (var owner in Reachable(graph, root))
+			foreach (var node in Everything(graph.Bodies[owner]))
+				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
+					built.Contains("parserSpan"))
+				{
+					return $"'{owner.Name}' builds its value with 'parserSpan' (docs/syntax.md §8.2), " +
+						"which says where in the input it matched. A streamed parse reads through a " +
+						"window that moves on, so the place a span points at is gone by the time " +
+						"anyone could look at it.";
+				}
+
 		foreach (var owner in Reachable(graph, root))
 			foreach (var node in Everything(graph.Bodies[owner]))
 				if (node is Node.External(var method))
