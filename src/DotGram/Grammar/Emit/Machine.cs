@@ -1655,11 +1655,32 @@ sealed class Machine
 			                                              AllDeterministic(
 			                                                  alternatives, seen, following, sequence: false),
 			Node.Repeat(var body, _, _)                => Possessive(body, following, seen),
-			Node.Call(var rule, _)                     => seen.Add(rule) &&
-			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
-			                                              Deterministic(called, seen, following),
+			Node.Call(var rule, _)                     => Deterministic(rule, seen, following),
 			_                                          => false,
 		};
+
+	/// <summary>
+	/// Whether a call is to something determinate, guarded against calling round in a ring.
+	/// </summary>
+	/// <remarks>
+	/// The guard is the path down, not everything met on the way: a rule taken off again on
+	/// the way out, so that meeting it twice in two places is not mistaken for recursion.
+	/// <c>Pair = Atom &amp; Atom</c> is determinate and was being called anything but, which
+	/// cost the repetitions around it their proof. The same mistake was made and corrected in
+	/// <see cref="FirstSets"/>, and it was not corrected here.
+	/// </remarks>
+	bool Deterministic(RuleSymbol rule, HashSet<RuleSymbol> seen, FirstSets.First following)
+	{
+		if (!seen.Add(rule))
+			return false;
+
+		var settled = _graph.Bodies.TryGetValue(rule, out var called) &&
+			Deterministic(called, seen, following);
+
+		seen.Remove(rule);
+
+		return settled;
+	}
 
 	bool AllDeterministic(
 		IReadOnlyList<Node> nodes, HashSet<RuleSymbol> seen, FirstSets.First following,
