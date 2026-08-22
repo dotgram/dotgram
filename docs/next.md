@@ -267,11 +267,23 @@ that computed value.
 
 ## Future optimization gate
 
-The first storage and materialization profile is complete. Do not change the arena or
-owner-link layout again without a representative large-grammar benchmark showing that
-the remaining cost matters. Keep inlining bounded to recognition-only
-single-literal/single-element rules unless another benchmark demonstrates a broader
-profitable class.
+Inlining is no longer bounded to single-literal rules: it takes any rule outside every
+call cycle that produces no value, because such a rule's call buys nothing and its
+expansion terminates. That was measured, and what it bought was not the call — it was
+letting the analyses see the body in place, where a repetition can be shown possessive
+and a choice decidable.
+
+What replaced this gate is a harder one. A change to the method the automaton is compiled
+into moves the time by several per cent **whether or not the changed code runs**: a
+character-class window that was never reached on the input measured cost the URL grammar
+7%. Everything below that is unmeasurable there — the window is 1.6× faster in isolation,
+and reordering a chain of ranges is worth 3×, and neither shows in a parser.
+
+So: do not tune the shape of anything the emitter writes without measuring it **in a
+parser**, and expect the answer to be noise. The lever that is left is the size of the
+method, and splitting the automaton across methods is the change that would move it.
+`benchmarks/Scanning.cs` and `benchmarks/Membership.cs` hold the numbers and the reasoning
+behind that conclusion, including the explanations that were tried and measured wrong.
 
 ## First single-machine performance pass
 
@@ -355,5 +367,21 @@ Earlier recursion groundwork is in `9f95cfa`, `6076080`, `61ff9c8`, `a4deb7b`, a
 The semantic restructuring and first performance pass are complete: every publication
 kind uses transparent-rule semantics and explicit atomic groups, recursive
 parsing/materialization is iterative, and one generator implements the language.
-Further performance work is optional and must be justified by a new workload; the
-current stopping point keeps the full suite below the 30-second ceiling.
+
+Since then a second pass has been made and is also complete. A rule outside every call
+cycle is compiled into its callers; a choice its first character decides writes no resume
+point, and one whose later alternatives that character rules out writes none either; a
+repetition whose body matches one way and is followed by something it cannot begin with is
+run to its end and never asked to give any of it back, and where its body writes nothing to
+the arena it is a plain loop; text alternatives none of which begins another are decided
+where they differ. The parser is kept between parses, values are held in a table for each
+type rather than one of `object?`, and an extent is read from the entry the rule left
+rather than stored. What a parse allocates is the result and nothing else.
+
+Two defects were closed on the way, both of them the same mistake in three places: an
+entry's index is its name, so what commits or unwinds cannot renumber the entries around
+it. An atomic group discarded the derivation with the resume points; a repetition written
+as a loop kept the position of a turn that broke halfway.
+
+Further performance work is optional and now has a stated obstacle rather than a target —
+see the gate above. The full suite remains below the 30-second ceiling.

@@ -1239,10 +1239,18 @@ Six of the architecture's claims now have numbers rather than reasoning behind t
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Generated parsing comes out 2.3–6.3× faster than interpreted `Regex` and
-between 1.1× and 1.9× faster than `RegexOptions.Compiled` — the same order as the best the
-BCL does, not a different class. Allocation is at parity, because both materialize the
-parts as strings. `benchmarks/README.md` has the table and what not to read into it.
+every input. Generated parsing comes out between 1.1× and 1.9× faster than
+interpreted `Regex`, and between 1.2× and 2.6× **slower** than
+`RegexOptions.Compiled` — the same order as the best the BCL does, and on the wrong side of
+it. Allocation is not at parity and has not been since the parser began to be kept between
+parses: a URL costs 176 bytes against the pattern's 1032, and what is left is the result
+and nothing else — the value, the value nested in it, and one string for each part kept.
+
+An earlier version of this paragraph claimed the compiled pattern was beaten. It was, by
+the generator that compiled each rule to its own method, and that generator was removed:
+one automaton is what made backtracking across a rule boundary possible, and it costs
+what a method call did not. Between 630 ns and 362 the gap has been closed by more than
+half; it is not closed. `benchmarks/README.md` has the table and what not to read into it.
 
 **Throughput on a large feed**, under *What the window costs* above: a million wide
 records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the same
@@ -1268,7 +1276,11 @@ and every line of it exists so that no allocation, no virtual call and no closur
 at run time. What the number is worth knowing for is compile time in a project with many
 grammars — which is measured above, at 1.5 ms each.
 
-**Nesting depth**, above: about 2700 levels, and why.
+**Nesting depth**: bounded by the arena rather than by the machine's stack, which is what
+compiling every rule into one automaton bought. `CSharpEmitterTests` nests a rule inside
+itself a hundred thousand times and parses it. The figure this line used to carry — about
+2700 levels — was the process stack under the generator that gave each rule a method, and
+has not applied since that generator was removed.
 
 **One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
