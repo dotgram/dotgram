@@ -7,12 +7,11 @@ something below turns out to be inconvenient, this is what changes, not the nota
 [`status.md`](status.md) says which parts are real and which are still plans; what is
 marked a plan here is marked as one.
 
-Four sections have been removed rather than corrected, because what they described was
-never built and the engine that exists does the same work differently: a fast recursive
-parser beside a second one, the shape of the code that fast path would generate,
-memoization by input position, and recovery as a search for the cheapest edit. What
-replaced all four is one automaton over the whole grammar, whose description belongs here
-and is not yet written.
+Four sections were removed rather than corrected, because what they described was never
+built and the engine that exists does the same work differently: a fast recursive parser
+beside a second one, the shape of the code that fast path would generate, memoization by
+input position, and recovery as a search for the cheapest edit. What replaced all four is
+§1.
 
 References to **Roc** are to an earlier unpublished project of my own, a BNF macro for
 Nemerle. Most of what is in the code today came from there — normalization done before
@@ -69,6 +68,91 @@ Obligations on the implementation that follow:
   referred to, suppressed and tested;
 - **a message names what was expected**, not only what was found — "expected `)`" is
   worth more than "unexpected token".
+
+## 1. One automaton over the whole grammar
+
+Every rule of a grammar is compiled into one C# method. A rule is not a method and a call
+is not a call: each place a rule can be in becomes a labelled state, and moving between
+them is `goto`. What a rule call leaves behind is an entry in an array — the arena — saying
+where to carry on when the called rule is done.
+
+The reason is §11's promise that a rule call is transparent to backtracking. A C# method
+cannot be suspended and resumed, and resuming is exactly what it means to come back into a
+rule and take a different alternative. Once the continuation lives in an array rather than
+on the machine's stack, that is possible — and so is recursion deeper than the stack
+would allow, which is the same fact seen from the other side.
+
+### What the arena holds
+
+Three unlike things, and telling them apart is most of what the engine's correctness rests
+on:
+
+```text
+frames          Call, Completed        where a rule was called from
+ways back       Choice, Repeat, Run    where the parse could return to
+                Lookahead, Atomic
+derivation      Capture, RuleCapture   what was recognized, for building values with
+                Construct
+```
+
+A failure unwinds by taking entries off the end until it finds a way back. A commit — what
+`{ }` does — puts out the ways back inside it and leaves everything else. Materialization
+walks what is left and runs the constructions.
+
+**An entry's index is its name.** A capture of a rule's value holds the index of the entry
+its call completed into; one materialized value names the next. So nothing may renumber the
+entries around it: a commit puts a way back out where it lies rather than removing it, and
+a repetition compiled without entries keeps its position in a local instead. Two defects
+have come from breaking this rule and both looked like something else at first.
+
+### The arena is a mechanism, not a tax
+
+Everything above describes what is needed when a parse can be resumed. Most of a grammar
+cannot be, and the compiler is expected to prove it and write something cheaper. What it
+proves today:
+
+- **A rule outside every call cycle that produces no value** is compiled into its callers.
+  Its expansion terminates because the call graph beneath it is a DAG, and what the
+  duplication costs is text.
+- **A choice whose alternatives cannot begin with the same character** needs no entry: one
+  character decides which it is, and having decided there is no second reading. Where only
+  some alternatives are ruled out, the entry is written only if one of the rest could still
+  match.
+- **A repetition whose body matches one way only, and which is followed by something the
+  body cannot begin with**, is run to its end and never asked to give any of it back. Every
+  place it could stop short is a place a turn began, so the character there is one the body
+  starts with, and the continuation cannot start with it.
+- **Where such a body also writes nothing to the arena**, the whole construct is a loop:
+  no entry, no count, no way back, and its required turns written out rather than counted.
+- **Text alternatives none of which begins another** are decided where they differ, reading
+  what they share once and moving the position only when one has matched whole.
+
+The first sets these rest on are approximate in the direction that says "anything" when
+unsure, so a proof that cannot be made is not made and the general machinery stays. What
+follows a rule is the union over its call sites, computed as a fixed point over the call
+graph; a `parse` publication contributes the end of the input, which is a fact and not a
+silence.
+
+The direction this points in is worth stating: the arena should be what a grammar gets when
+resumability is required, not what every grammar pays for the language having it. The
+analyses above remove entries one at a time; the next step is to remove arena-backed
+execution from whole regions, and after that from whole parsers.
+
+### Values are built afterwards
+
+Recognition records; construction runs on what was accepted (§3). Values live in a table
+for each type the grammar can produce rather than one table of `object?`, so nothing is
+boxed on the way in or cast on the way out. An extent — `: @SourceSpan` — is not stored at
+all: the entry the rule completed into already holds where it began and where it reached.
+
+### What is written out
+
+The state table is planned before a character of it is emitted. A state whose whole body is
+a jump is followed to wherever it ends and not written; everything that pointed at one is
+made to point past it. What cannot be reached from a publication is not written either — a
+rule compiled into all of its callers is called from nowhere, and its own copy is text
+nothing will arrive at. The dispatcher goes before the states rather than after them,
+being the block every return and every resumption comes through.
 
 ## 3. Nothing is built while matching
 
