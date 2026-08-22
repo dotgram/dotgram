@@ -179,6 +179,24 @@ public sealed class SemanticTests
 		Assert.Equal(4, span.GetType().GetProperty("Length")!.GetValue(span));
 	}
 
+	[Fact]
+	public void A_span_cannot_be_handed_out_of_a_window_that_moves()
+	{
+		// It says where in the input it matched, and a streamed parse holds a window that
+		// moves on — so the place it points at is gone before anyone could look. Refused
+		// rather than materialized at the edge of the window: that would work and would stop
+		// working silently, which is the failure this project is most careful about.
+		const string lines =
+			"Line : @string = w: Word & eol => @(w.Length.ToString())\n" +
+			"Start : @string[] = Line*\n" +
+			"parse Start\n";
+
+		Assert.Contains("TextReader", Compile("Word : @string = ['a'..'z']+\n" + lines).Sources[0].Text);
+		Assert.DoesNotContain(
+			"TextReader",
+			Compile("Word : @DotGram.SourceSpan = ['a'..'z']+\n" + lines).Sources[0].Text);
+	}
+
 	// ── Publication (§6) ─────────────────────────────────────────────────────────
 
 	/// <summary>Compiles a grammar and calls one of its published methods.</summary>

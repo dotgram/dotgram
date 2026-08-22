@@ -183,6 +183,17 @@ public static class Retention
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
+		// A span says where, and where is into the text it was measured against. A streamed
+		// parse holds a window that moves, so an offset handed out of one is a reference to
+		// something that will not be there — and it would look like an offset either way,
+		// which is the failure this refuses rather than risks.
+		foreach (var owner in graph.Rules)
+			if (graph.Types.TryGetValue(owner, out var type) && type == "SourceSpan")
+				return $"'{owner.Name}' has a 'SourceSpan' for its value (docs/syntax.md §4.1), " +
+					"which says where in the input it matched. A streamed parse reads through a " +
+					"window that moves on, so the place a span points at is gone by the time " +
+					"anyone could look at it.";
+
 		foreach (var owner in graph.Rules)
 			foreach (var node in Everything(graph.Bodies[owner]))
 				if (node is Node.External(var method))
