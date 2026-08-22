@@ -591,7 +591,12 @@ public sealed partial class GrammarNormalizer
 		{
 			switch (item)
 			{
-				case Elem.Chars(var from, var to) when from.Length > 0:
+				// Both ends, not just the first. An empty upper bound reaches here from a
+				// malformed range the parser has already reported — `['a'..'']` — and the
+				// guard let it through to be indexed, which is a generator crash rather than
+				// a grammar error. What it lowers to is nothing: the set goes on without it,
+				// and the diagnostic that is already there is what the author reads.
+				case Elem.Chars(var from, var to) when from.Length > 0 && (to is null || to.Length > 0):
 					ranges.Add(new CharRange(from[0], (to ?? from)[0]));
 					break;
 

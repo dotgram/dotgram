@@ -36,17 +36,10 @@ public sealed class FuzzTests
 	/// <summary>Characters a grammar is made of, for insertions to reach for.</summary>
 	const string Alphabet = "abz09 \t\r\n:=|&()[]{}*+?!<>'\"@.,;-_\\/^#$~";
 
-	// Seed 3 is left out and is not a seed that behaves differently: it found a defect on
-	// the first run of this file, and the defect is open. `{.4}` where a repetition wants a
-	// count — one character of the URL grammar changed — takes the generator down with an
-	// `IndexOutOfRangeException`. `ParseCount` reports it properly and hands back neither a
-	// number nor a name; something downstream then indexes with what it was given. Two
-	// guesses at where were both wrong, so it is written down rather than patched at.
-	//
-	// Put the seed back with the fix. That is the only thing that shows it is a fix.
 	[Theory]
 	[InlineData(1)]
 	[InlineData(2)]
+	[InlineData(3)]
 	public void A_mutated_grammar_is_answered_rather_than_survived(int seed)
 	{
 		var random = new Random(seed);
@@ -65,9 +58,11 @@ public sealed class FuzzTests
 			}
 			catch (Exception failure)
 			{
+				// The whole exception, stack and all. A failure here says a place in the compiler
+				// indexed something it should have checked, and the place is the only part of that
+				// worth having.
 				Assert.Fail(
-					$"seed {seed}, round {round}: {failure.GetType().Name}: {failure.Message}\n\n" +
-					"--- grammar ---\n" + mutated);
+					$"seed {seed}, round {round}\n\n{failure}\n\n--- grammar ---\n" + mutated);
 			}
 		}
 	}

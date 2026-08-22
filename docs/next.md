@@ -235,21 +235,6 @@ written, and it matters under a repetition: otherwise a group inside one would l
 entries behind on every turn, and an arena the grammar bounds would become one the input
 does.
 
-## Open: a malformed repetition count takes the generator down
-
-`{.4}` where a repetition wants a count — one character of the URL grammar changed — ends
-in an `IndexOutOfRangeException` out of the compiler. In a consumer's build that is
-`GRAM0001` and nothing they can act on.
-
-`GramParser.ParseCount` handles it properly as far as it goes: `.` is neither an integer
-nor a parameter name, it reports `InvalidCount`, and it returns neither a number nor a
-name. Something downstream then indexes with what it was handed. Two guesses at where were
-both wrong — refusing to build the quantifier at all, before and then after the closing
-brace is consumed — so the place is still unknown and the guesses are not in the tree.
-
-Found by `FuzzTests` on its first run, from seed 3 at round 83. That seed is commented out
-of the theory with this written beside it; putting it back is what shows the fix is one.
-
 ## What the machine supports now
 
 `Machine` handles every normalized node form:
