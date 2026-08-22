@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+	  Two compatibility surfaces exist and only one of them is the analyzer's own target
+	  framework. That one is settled: the generator is netstandard2.0 so that every compiler
+	  host can load it. This project is about the other — that what the generator writes
+	  compiles in a consumer that is not the newest thing available.
+
+	  It runs no tests and asserts nothing. Building it is the assertion: a grammar goes in,
+	  a parser comes out, and the C# compiler of an older target framework accepts it. A
+	  member the generator stopped emitting, or a language feature it started emitting,
+	  fails this build rather than somebody else's.
+	-->
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0</TargetFrameworks>
+		<RootNamespace>DotGram.Compatibility</RootNamespace>
+		<IsPackable>false</IsPackable>
+
+		<!-- The language version a consumer on this framework gets by default, rather than
+		     whatever the newest SDK would give. Emitted code may assume nothing newer. -->
+		<LangVersion>12</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The analyzer only. A consumer never references the generator assembly: `[Gram]`
+		     is emitted into their compilation, which is the whole of why no runtime ships. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>
