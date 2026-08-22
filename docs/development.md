@@ -67,6 +67,12 @@ reading once before the first change and not again.
 
 - A grammar-level feature owes a row in the [`status.md`](status.md) table, in the column
   it actually reaches — parsed, bound, normalized, emitted, run.
+- A change to what the emitter writes owes a build of `tests/DotGram.Compatibility`. It
+  runs no tests and asserts nothing; building it is the assertion, on the frameworks a
+  consumer might be on rather than the one the generator is developed on. A member that
+  stopped being emitted, or a language feature that started being, fails there rather than
+  in somebody else's project. What each framework needs is written at the top of its
+  project file — today, `System.Memory` on netstandard2.0 and nothing anywhere else.
 - A refused construct owes a test that it is refused, and by which diagnostic. A construct
   that parses and then quietly means nothing is the failure this project is most careful
   about — and a row of `status.md` reading *refused* is that same claim, made in prose.
