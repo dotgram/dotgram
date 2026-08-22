@@ -1,11 +1,18 @@
-# .Gram — the engine plan
+# .Gram — the engine
 
 Companion to [`syntax.md`](syntax.md). That document describes the language, this one
 how to execute it. Nothing decided here is a decision about the language: if
 something below turns out to be inconvenient, this is what changes, not the notation.
 
-Most of it is a plan rather than a report. [`status.md`](status.md) says which parts
-are real; of the engines described below, today, none.
+[`status.md`](status.md) says which parts are real and which are still plans; what is
+marked a plan here is marked as one.
+
+Four sections have been removed rather than corrected, because what they described was
+never built and the engine that exists does the same work differently: a fast recursive
+parser beside a second one, the shape of the code that fast path would generate,
+memoization by input position, and recovery as a search for the cheapest edit. What
+replaced all four is one automaton over the whole grammar, whose description belongs here
+and is not yet written.
 
 References to **Roc** are to an earlier unpublished project of my own, a BNF macro for
 Nemerle. Most of what is in the code today came from there — normalization done before
@@ -56,66 +63,12 @@ Obligations on the implementation that follow:
   `Location` for the IDE;
 - **one error, one message**: a stage must recover and continue, or the first typo
   hides the whole file. The hand-written parser recovers to a declaration boundary;
-  the generated one by the cheapest edit of the input (§6);
+  the generated one steps over an element that began and then failed, to the next place
+  the grammar says a new one can start (`syntax.md` §8.2);
 - **every message has an identifier** (`GRAM1001`, `GRAM2001`, …) so it can be
   referred to, suppressed and tested;
 - **a message names what was expected**, not only what was found — "expected `)`" is
   worth more than "unexpected token".
-
-## 1. Two parsers over one grammar
-
-The main architectural decision, worth taking whole.
-
-```text
-fast path      generated recursive descent, no recovery
-               success → done
-               failure, or not parsed to the end
-                   ↓
-error path     a separate engine over a state machine built from the same
-               grammar, looking for the cheapest edit of the input
-```
-
-The second engine starts only if the first returned a negative result or stopped short.
-On correct input recovery costs nothing.
-
-The consequence for the language: **repairing a document needs no notation**. The
-author writes neither policies nor synchronization points, and the second engine is
-reached only when the first has already failed over the whole input.
-
-That covers a source file and not a feed. A hundred million records cannot be held
-while the cheapest edit is searched for, and "what did the author most likely mean" is
-not the answer wanted for record twelve of them — "it is bad, here is why, carry on"
-is. That case is `recover` (`syntax.md` §8.2): it runs inside a **successful** parse,
-per element, and never reaches this engine. The two share the word and nothing else.
-
-Both engines are built from one description of the grammar: the fast one as generated
-code, the slow one as a state machine.
-
-## 2. The fast path: the shape of generated code
-
-Published operations use thin wrappers with one recognizer signature:
-
-```csharp
-static int Recognize_R(ReadOnlySpan<char> text, int pos);   // new position, or -1
-```
-
-The wrappers select an entry in one generated automaton. Static transitions are `goto`
-blocks; dynamic returns, recursion and backtracking use integer-only entries in a nested
-parser object's reusable arena. Rule calls are shared blocks rather than C# calls, so
-backtracking is transparent across rule boundaries and recursion does not consume the
-C# stack.
-
-`-1` as the failure signal is a placeholder: the language needs an outcome that tells
-"no match" from "error" (`syntax.md` §8.1), and that is what it becomes.
-
-**There is no runtime assembly.** Everything a generated parser needs is emitted into
-the same assembly, `internal` (`syntax.md` §6.1). A consumer takes one analyzer
-package. It follows that nothing which must be shared between assemblies can appear
-here — and if something one day must be, it arrives with a versioned contract rather
-than by being made `public` and found by name.
-
-Parameterized rules are specialized per call site (`syntax.md` §4.2), so a recognizer
-parameter disappears during generation and becomes a direct call.
 
 ## 3. Nothing is built while matching
 
@@ -137,16 +90,6 @@ line-oriented streaming cannot afford (§7). Not taken.
 The recovery engine is the one piece that is both grammar-independent and large enough
 for duplicating it into every assembly to be noticeable. It is also the only candidate
 for someday justifying the shared mode of §6.1 by volume of code rather than by types.
-
-## 4. Memoization
-
-The table is indexed by **position in the input**; each position holds a linked list of
-results for different rules, the head in the table and a `Next` field for the
-successor.
-
-This stays an execution strategy rather than a guarantee of the language. `syntax.md`
-§7.2 requires recognition-time external code and `when` guards to tolerate speculative
-invocation; deferred `=>` construction runs only for the accepted derivation.
 
 ## 5. Filtering alternatives by their first element
 
@@ -175,21 +118,6 @@ tests compile to `c == 'a' || …`, where order cannot matter — the multi-char
 was never executed. Merging is safe exactly where the match length is fixed at one
 item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §11).
 
-## 6. Recovery as the cheapest edit
-
-The slow engine enumerates edits of the input — insert what was expected, delete what
-was not — and picks the solution of least total cost. Minimum-distance error correction
-is old (Aho and Peterson, 1972); what has to be got right is the bookkeeping.
-
-- the cost is a pair, inserted and deleted;
-- a priority queue on cost, then on position;
-- the loop: parse to the point of failure → try insertions → try deletions → repeat
-  until a solution is found;
-- a timeout with graceful degradation: if it does not finish in time, delete the rest
-  and stop.
-
-To be judged on a grammar the size of C#, not on the corpus of §11.
-
 ## 7. Execution modes, and what bounds retention
 
 Which mode a parse runs in is decided by the type of the input, at the call site
@@ -197,7 +125,7 @@ Which mode a parse runs in is decided by the type of the input, at the call site
 
 ```text
 in memory      string / ReadOnlySpan<char>
-               full backtracking, memoization over the whole input
+               full backtracking, the whole input addressable throughout
 
 line by line   TextReader / IEnumerable<string>
                retention is one line: read it into a reused buffer, hand the parser
@@ -248,10 +176,9 @@ Positions follow from the mode: inside a line an ordinary `int` has room to spar
 while what crosses the publication boundary for a streamed parse is a `long`, since a
 feed of tens of gigabytes has offsets that do not fit in one.
 
-Note that §4 assumes memory-sized input: a memo table indexed by absolute position
-costs tens of gigabytes on a ten-gigabyte feed. In line-oriented mode
-both are per-line and are reused, which is what makes that mode cheap rather than
-merely possible.
+Anything indexed by absolute position assumes memory-sized input: such a table costs tens
+of gigabytes on a ten-gigabyte feed. In line-oriented mode what the parser keeps is
+per-line and reused, which is what makes that mode cheap rather than merely possible.
 
 ## 8. Incremental parsing
 
