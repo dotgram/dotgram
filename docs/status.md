@@ -180,7 +180,7 @@ generated class declares the channel and the consumer may implement it:
 
 ```csharp
 static partial void OnRecovered(
-    string rule, string text, int position, int line, int column, int ordinal, string message);
+    string rule, string text, long position, int line, int column, int ordinal, string message);
 ```
 
 The classic C# 3 form, not the C# 9 one: an implementation is optional, and where there
@@ -670,10 +670,11 @@ compile.
 
 `: @SourceSpan` is the other half and now builds those bounds through the same
 `parserSpan` supplied value used by explicit factories. It may be captured inside
-another rule. It cannot itself be the value of a publication because the generated
-`SourceSpan` is internal and therefore cannot appear in a public method signature
-(§6.1); that case is refused with `GRAM4008` rather than left to a C# accessibility
-error in generated code.
+another rule. It can also be the value of a publication. It could not while the generated
+`SourceSpan` lived in a namespace, where it had to be internal so that two assemblies
+emitting it would not collide — and internal is what a public method may not return (§6.1).
+It is emitted into the host class now, where its name is the host's, so it can be both
+public and safe from collision.
 
 ## A lookahead produces what it saw
 
@@ -1037,8 +1038,9 @@ It reintroduced exactly the skew that emitting into the consumer exists to preve
 assembly built by one version of the generator would bind to types emitted by another,
 with no package, version or metadata anywhere to say so. And it was protecting nothing —
 of the four types, `Outcome`, `Diagnostic` and `RecognitionResult<T>` were referenced by
-no generated code at all. `SourceSpan` remains for private generated signatures and
-internal grammar values, but is never exposed through a public publication. Three types
+no generated code at all. `SourceSpan` remains, and has since moved out of the
+namespace into each host class, where being public collides with nothing because the name
+is the host's — so a publication can hand one back after all. Three types
 were deleted; §7.5 still specifies them and the table above says they are not built,
 which is this project's ordinary way of holding a plan.
 
@@ -1049,7 +1051,12 @@ against the old meaning would silently acquire a new one.
 Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn shell,
 `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx` the binder, `GRAM4xxx` the
 normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
-it is one. `GRAM0001` and `GRAM4004` are retired.
+it is one. `GRAM4004` is retired. `GRAM0001` was retired with the publisher check and has
+since been taken up again, by the Roslyn shell, for the one thing outside those ranges: the
+generator itself failing. That is a reuse, and the rule against reusing a retired number
+stands — it was broken deliberately, because a number nobody had ever seen in the wild was
+worth less than `GRAM0001` reading as "something went wrong before the grammar was
+reached".
 
 ### How a message arrives, rather than what it says
 
