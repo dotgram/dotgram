@@ -203,6 +203,22 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_guard_is_handed_what_it_names_and_not_what_it_could_have()
+	{
+		// Every value a guard is given is built to give it — a run cut into a string, a rule's
+		// value materialized — and it runs at every position the rule reaches it. A condition
+		// asking about one capture used to be handed all of them.
+		var source = Emit(
+			"""
+			Start = a: "xy" & b: "z" & when @(b == "z")
+			parse Start
+			""");
+
+		Assert.Contains("Recognize_DotGram_Guard0(string b)", source);
+		Assert.DoesNotContain("string? a", source);
+	}
+
+	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
 	{
 		var source = Emit("Start = digits: ['0'..'9']+\nparse Start");

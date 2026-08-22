@@ -1019,6 +1019,17 @@ sealed class Machine
 					if (slots.Count == 0)
 						continue;
 
+					// Only what the condition names. Every one of these is materialized to run
+					// it — a rule's value built, a run cut into a string — and a condition
+					// asking about one capture was handed all of them. Read as text, like the
+					// supplied names above: a name inside a string literal costs one value
+					// built for nothing, and reading it exactly would mean lexing C# here.
+					if (node is Node.Guard { Text: var asked } &&
+						!asked.Contains(ResultTypes.ParameterOf(member)))
+					{
+						continue;
+					}
+
 					var optional = member.IsOptional || slots.Count != member.Slots.Count;
 
 					var parameterType = member.Rule is null
