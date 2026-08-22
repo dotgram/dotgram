@@ -118,6 +118,7 @@ sealed class Machine
 			_entries[rule] = Reserve(out _);
 		}
 
+		PlanInlining();
 		CollectValueTypes();
 
 		// What follows each rule, before any of them is compiled. A body is compiled once and
@@ -1326,13 +1327,41 @@ sealed class Machine
 	/// a rule only in the source text.
 	/// </para>
 	/// </remarks>
-	bool CanInline(RuleSymbol rule) =>
-		!_graph.Types.ContainsKey(rule)                &&
-		_graph.Results[rule].Count == 0                &&
-		!_graph.Recursive.Contains(rule)               &&
-		!_graph.Climbing.ContainsKey(rule)             &&
-		_graph.Bodies.TryGetValue(rule, out var body)  &&
-		!NodeWalk.Descendants(body).Any(n => n is Node.Capture or Node.Construct);
+	bool CanInline(RuleSymbol rule) => _inlined.Contains(rule);
+
+	/// <summary>The rules compiled where they are called rather than into a block.</summary>
+	readonly HashSet<RuleSymbol> _inlined = [];
+
+	/// <summary>
+	/// Settles which rules are compiled in place, once, before anything is compiled.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first piece of the execution plan to be written down rather than worked out again
+	/// at each place that wants it. It belongs here because it is a decision about a rule and
+	/// about nothing else: what a rule keeps, whether it can reach itself, whether it carries
+	/// a strength. Nothing about where it is called from changes the answer — which is what
+	/// makes it the part of the plan that can be settled without a context to settle it in.
+	/// </para>
+	/// <para>
+	/// It was asked five times over and walked the rule's whole body on each of them. That
+	/// is the other reason to write it down: an answer that cannot change is an answer to be
+	/// looked up.
+	/// </para>
+	/// </remarks>
+	void PlanInlining()
+	{
+		foreach (var rule in _graph.Rules)
+			if (!_graph.Types.ContainsKey(rule) &&
+				_graph.Results[rule].Count == 0 &&
+				!_graph.Recursive.Contains(rule) &&
+				!_graph.Climbing.ContainsKey(rule) &&
+				_graph.Bodies.TryGetValue(rule, out var body) &&
+				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct))
+			{
+				_inlined.Add(rule);
+			}
+	}
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
