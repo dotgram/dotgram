@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<!--
+	  What a consumer needs, framework by framework:
+
+	      net8.0            nothing
+	      netstandard2.0    System.Memory, for `ReadOnlySpan<char>`
+
 	  Two compatibility surfaces exist and only one of them is the analyzer's own target
 	  framework. That one is settled: the generator is netstandard2.0 so that every compiler
 	  host can load it. This project is about the other — that what the generator writes
@@ -13,7 +18,7 @@
 	-->
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
 		<RootNamespace>DotGram.Compatibility</RootNamespace>
 		<IsPackable>false</IsPackable>
 
@@ -21,6 +26,14 @@
 		     whatever the newest SDK would give. Emitted code may assume nothing newer. -->
 		<LangVersion>12</LangVersion>
 	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<!-- What a consumer on this framework has to add, and the reason this project
+		     exists: the generated parser's own methods take `ReadOnlySpan<char>`, which is
+		     not in the framework here. This is the whole of the addition — no other package
+		     and no polyfill of ours. -->
+		<PackageReference Include="System.Memory" Version="4.6.3" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<!-- The analyzer only. A consumer never references the generator assembly: `[Gram]`
