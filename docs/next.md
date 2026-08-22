@@ -235,6 +235,72 @@ written, and it matters under a repetition: otherwise a group inside one would l
 entries behind on every turn, and an arena the grammar bounds would become one the input
 does.
 
+## Next: regions, and what each one needs
+
+`ExecutionPlan` holds the decisions that are about a rule and nothing else. The rest depend
+on what follows, and what follows depends on the caller — so they are asked during
+compilation, from a context threaded down the tree by hand. A region is what carries that
+context so they can be asked once and answered in one place.
+
+### What the arena is standing in for
+
+It holds three unlike things at once, and a grammar rarely needs all three:
+
+```text
+frames          recursion
+ways back       resumability
+derivation      construction deferred until the parse is accepted
+```
+
+A repetition of characters needs none of them. A rule that calls itself needs the first and
+not the second. `X = "ab" | "a"` in `X & 'b'` needs the second and not the first. The
+present engine gives every grammar all three because one machine is easier to be right
+about than three, and being right came first.
+
+**The arena should be what a grammar gets where resumability is required, not what every
+grammar pays for the language having it.**
+
+### What identifies a region
+
+Three answers, and the third is the one to build:
+
+```text
+(node, following)        as many regions as there are distinct first sets
+(node, call site)        exact, and multiplies along every path
+(node, decision class)   regions merge when the context does not change the answer
+```
+
+The third makes today's engine the degenerate case — one class per node — so the size grows
+only where it buys something. `Weight` is already the budget for saying how far that may go.
+
+### The fourth need
+
+Three needs are about storage. The fourth is about time, and nothing computes it today:
+
+> is this region inside a continuation that has already been committed?
+
+Without it, proving the arena unnecessary does not permit running `=>` immediately.
+`A = X => @Build(...)` in `Start = A & "suffix"` is deterministic throughout, and `suffix`
+may still fail — so building at the end of `A` would run construction for a derivation that
+did not survive, which §3 exists to prevent. Design it with the regions or it will not fit
+afterwards.
+
+### What must not happen
+
+Regions must **reference** nodes, not clone them. `_captureSlots`, `_owners` and
+`_constructs` are keyed by node identity, and `Orphans()` and `GraphIntegrityTests` exist
+because that has bitten before. A plan keyed by region and pointing at shared nodes has no
+such problem; cloning nodes per context reintroduces all of it.
+
+### Order
+
+1. The region type and the walk from publications, with one decision class — output
+   byte-for-byte unchanged, which is what makes this step safe to take blind.
+2. Real decision classes. The snapshots then show exactly where context opened something.
+3. The fourth need, and eager construction where it is proved.
+4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
+   the automaton across methods falls out of that rather than being done for its own sake.
+
 ## What the machine supports now
 
 `Machine` handles every normalized node form:
