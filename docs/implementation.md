@@ -186,8 +186,9 @@ Thirty lines over the memo table of §4:
 
 1. compare old and new text from the start — the length of the common prefix;
 2. compare from the end — the length of the common suffix;
-3. copy the tail of the memoization table, shifted by the difference in lengths;
-4. parse again, landing in ready entries past the edit.
+3. carry over whatever was already established past the edit, shifted by the difference
+   in lengths;
+4. parse again, landing in what was carried over.
 
 Only the **tail** is worth reusing; the head is recomputed. For an editor that is
 enough — an edit is usually in the middle, and the tail is the longer part.
@@ -239,15 +240,16 @@ An engine prototype has to confirm execution rather than notation, hence:
 2. **First-tier diagnostics together with the fast path, not after it.** See below:
    without them there is nothing to show even on a prototype, and by §0 they are a
    requirement of the product.
-3. The flat representation and memoization — immediately, because they determine the
-   shape of the generated code rather than optimize it afterwards.
+3. The flat representation — immediately, because it determines the shape of the
+   generated code rather than optimizes it afterwards.
 4. Filtering by first element — right after, since full backtracking makes it the main
    thing keeping ordered choice cheap (§5).
-5. Second-tier diagnostics — the recovery engine (§6), once the fast path works.
+5. Second-tier diagnostics — recovery that carries on past a bad element, once
+   recognition works.
 6. The line-oriented mode (§7) — retention analysis, then the reused buffer. Feeds do
    not work without it, and it is far simpler than the windowed mode it replaces.
-7. Incremental parsing last; it attaches to a finished memoization table and changes
-   nothing in it.
+7. Incremental parsing last; whatever it reuses between runs, it changes nothing about
+   how a single run recognizes.
 
 Check against the three scenarios with the widest coverage: a calculator (recursion
 and levels), a feed (sequence results and recovery), a URL (shared literal prefixes).
@@ -267,7 +269,7 @@ It costs almost nothing: the position is tracked anyway, and the expected set is
 from the grammar at build time. But it yields **one** message per run — parsing was
 abandoned at the first failure, so there is no tree.
 
-**The second is the recovery engine (§6).** It gives what the first cannot:
+**The second is recovery.** It gives what the first cannot:
 
 ```text
 first tier      one error, parsing abandoned, no tree — so no highlighting,
