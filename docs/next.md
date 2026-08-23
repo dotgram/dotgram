@@ -291,6 +291,39 @@ atomic group's close, and everywhere else what came in narrowed by whether the n
 passed had one way to go. Not wired into `Compile`; eager construction itself is still
 future work, waiting on where regions land in codegen.
 
+### Eager construction: where it would hook in, and why it does not yet
+
+Not at `Node.Construct`'s own `atClose` — at that point `entries[call]` is still `Kind ==
+Call`; it only becomes `Completed` later, at the one shared `Return:` label every rule
+returns through. Eager materialization has to happen after that rewrite, keyed on
+`returned.RuleIndex`.
+
+Eligibility needs no new field: a rule `R` is safe to materialize the moment it returns
+exactly when every region on `graph.Bodies[R]` has both `Committed` and `Deterministic` —
+`Deterministic` because a rule that can still be retried with a different alternative is not
+safe to have materialized once and forgotten, `Committed` because nothing upstream may still
+discard this call for a sibling one. Both are already there to read.
+
+A mid-recognition materializer already exists: typed `when` guards mark `guardValues[at] =
+parser` for whatever they need and call the generated `Materialize_DotGram(text, parser,
+entries)`, the same routine `Accept:` uses, guarded by a parallel `built[]` array so a value
+is never built twice. Eager construction at `Return:` would look like nothing more than `if
+(!built[call]) values[call] = parser;` followed by the same call.
+
+That reuse is the wrong move as it stands. `Materialize_DotGram` walks the *entire* arena —
+three passes over `entries.Count` — every time it runs. Once per accepted parse, or a few
+times for a handful of textual guards, is cheap. At *every* return of an eager-eligible rule
+it is not: a repeated-record grammar (`FeedExample`, `LoggingFeedExample`,
+`WideFeedBenchmarks`, the CSV-shaped examples generally — most of what this engine's own
+examples are) would re-scan a growing arena on every record, turning an O(n) parse into
+O(n²). That is exactly the cost the rest of the regions work exists to avoid, so shipping it
+this way would be a regression wearing a feature's name.
+
+What it actually needs is a materializer that walks only what changed since it last ran,
+bounded by work done since the last eager trigger rather than by total arena size —
+something closer to incremental arena bookkeeping than to `Materialize_DotGram`'s sweep. That
+is a separate, sizeable design and does not belong to this pass.
+
 ### What must not happen
 
 Regions must **reference** nodes, not clone them. `_captureSlots`, `_owners` and
@@ -314,7 +347,8 @@ such problem; cloning nodes per context reintroduces all of it.
    see "The fourth need" above for how it threads. Checked by hand the same way: nothing
    loops, and which construct-node regions come out committed is never all-or-nothing
    (Json 9 of 19, Filter 1 of 19). Eager construction itself — actually running `=>` early
-   where this says it is safe — is not built.
+   where this says it is safe — is not built: see "Eager construction" above for where it
+   would hook in and the O(n²) it would cost by reusing `Materialize_DotGram` as it stands.
 4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
    the automaton across methods falls out of that rather than being done for its own sake.
 
