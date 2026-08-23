@@ -257,12 +257,12 @@ public sealed class SemanticTests
 				"Word = ['a'..'z']+\nfind Word as AllWords", "AllWords", "ab")!);
 
 	[Fact]
-	public void A_rule_in_a_scope_can_be_published() =>
-		// §5 and §6 together: the directive reaches into a scope by the qualified name,
+	public void A_rule_in_a_context_can_be_published() =>
+		// §5 and §6 together: the directive reaches into a context by the qualified name,
 		// and the method is named after the rule rather than after the path to it.
 		Assert.Equal(
 			"ab",
-			Published("scope Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
+			Published("context Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
 
 	[Fact]
 	public void A_find_of_a_rule_that_matches_nothing_ends()
@@ -1617,18 +1617,18 @@ public sealed class SemanticTests
 			Number : @int = digits: ['0'..'9']+ => @int.Parse(digits)
 			""");
 
-	// ── Scopes (§5) ─────────────────────────────────────────────────────────────
+	// ── Contexts (§5) ────────────────────────────────────────────────────────────
 
 	[Fact]
-	public void Two_scopes_may_each_have_a_rule_of_the_same_name() =>
-		// Which is the whole point of a scope, and which used to emit two C# methods of
-		// the same name into the consumer's build. The scopes a rule is declared in are
-		// prefixed to the identifier it becomes.
+	public void Two_contexts_may_each_have_a_rule_of_the_same_name() =>
+		// Which is the whole point of a context, and which used to emit two C# methods
+		// of the same name into the consumer's build. The contexts a rule is declared in
+		// are prefixed to the identifier it becomes.
 		Assert.True(Matches(
 			"""
 			using Inner;
 
-			scope Inner
+			context Inner
 			{
 				Digit = ['0'..'9']
 				Pair  = Digit & Digit
@@ -1642,16 +1642,17 @@ public sealed class SemanticTests
 	[Theory]
 	[InlineData("1.5",   true)]
 	[InlineData("1 . 5", false)]
-	public void A_scope_shadows_Trivia_the_other_way_round(string input, bool expected) =>
-		// Trivia goes between the operands of every sequence, `Number`'s included. A scope
-		// that shadows it with `none` is how a rule says a space means something here.
+	public void A_context_shadows_Trivia_the_other_way_round(string input, bool expected) =>
+		// Trivia goes between the operands of every sequence, `Number`'s included. A
+		// context that shadows it with `none` is how a rule says a space means something
+		// here.
 		Assert.Equal(
 			expected,
 			Matches(
 				"""
 				using Lexical;
 
-				scope Lexical
+				context Lexical
 				{
 					Trivia = none
 

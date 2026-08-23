@@ -7,7 +7,7 @@ namespace DotGram.Grammar.Binding;
 
 /// <summary>
 /// Resolves names: which rule, parameter or C# symbol every reference means, and
-/// which `Trivia` each scope sees.
+/// which `Trivia` each context sees.
 /// </summary>
 /// <remarks>
 /// This is where §5 and §4.5 stop being prose. Scoping is lexical throughout: a rule
@@ -18,14 +18,14 @@ public sealed class GrammarBinder
 {
 	public const string DuplicateRule  = "GRAM3001";
 	public const string UndefinedName  = "GRAM3002";
-	public const string UnknownScope   = "GRAM3003";
+	public const string UnknownContext = "GRAM3003";
 	public const string UnknownCSharp  = "GRAM3004";
 	public const string DuplicatePublication = "GRAM3005";
 
 	/// <summary>
-	/// Rules every grammar has without declaring them. They live in a scope outside the
-	/// global one, so a grammar can shadow any of them by declaring its own — which is
-	/// exactly how whitespace handling works (§4.5).
+	/// Rules every grammar has without declaring them. They live in a context outside
+	/// the global one, so a grammar can shadow any of them by declaring its own — which
+	/// is exactly how whitespace handling works (§4.5).
 	/// </summary>
 	public static readonly string[] StandardLibrary =
 
@@ -33,11 +33,11 @@ public sealed class GrammarBinder
 
 	const string TriviaRule = "Trivia";
 
-	readonly ISymbolResolver                      _symbols;
-	readonly Dictionary<Expr, Symbol>           _bindings = new(NodeIdentityComparer.Instance);
-	readonly Dictionary<GrammarScope, RuleSymbol> _trivia   = [];
-	readonly List<Publication>                    _publications = [];
-	readonly List<GramDiagnostic>                 _diagnostics  = [];
+	readonly ISymbolResolver                        _symbols;
+	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<GrammarContext, RuleSymbol> _trivia   = [];
+	readonly List<Publication>                      _publications = [];
+	readonly List<GramDiagnostic>                   _diagnostics  = [];
 
 	GrammarBinder(ISymbolResolver symbols) => _symbols = symbols;
 
@@ -48,7 +48,7 @@ public sealed class GrammarBinder
 
 		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance);
 		var standard = binder.CreateStandardLibrary();
-		var global   = new GrammarScope("", standard);
+		var global   = new GrammarContext("", standard);
 
 		standard.Add(global);
 
@@ -63,14 +63,14 @@ public sealed class GrammarBinder
 			global, binder._bindings, binder._trivia, binder._publications, binder._diagnostics);
 	}
 
-	GrammarScope CreateStandardLibrary()
+	GrammarContext CreateStandardLibrary()
 	{
-		var scope = new GrammarScope("<standard>", parent: null);
+		var context = new GrammarContext("<standard>", parent: null);
 
 		foreach (var name in StandardLibrary)
-			scope.TryDeclare(new RuleSymbol(name, scope, Declaration: null));
+			context.TryDeclare(new RuleSymbol(name, context, Declaration: null));
 
-		return scope;
+		return context;
 	}
 
 	void Report(string id, string message, Location at) =>
@@ -78,7 +78,7 @@ public sealed class GrammarBinder
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
-	void Declare(IReadOnlyList<Decl> declarations, GrammarScope scope)
+	void Declare(IReadOnlyList<Decl> declarations, GrammarContext context)
 	{
 		foreach (var node in declarations)
 		{
@@ -86,19 +86,19 @@ public sealed class GrammarBinder
 			{
 				case Decl.Rule rule:
 
-					if (!scope.TryDeclare(new RuleSymbol(rule.Name, scope, rule)))
+					if (!context.TryDeclare(new RuleSymbol(rule.Name, context, rule)))
 						Report(
 							DuplicateRule,
-							$"'{rule.Name}' is already defined in this scope; put one of them in a nested scope to shadow the other.",
+							$"'{rule.Name}' is already defined in this context; put one of them in a nested context to shadow the other.",
 							node.At);
 
 					break;
 
-				case Decl.Scope nested:
+				case Decl.Context nested:
 
-					var child = new GrammarScope(nested.Name, scope);
+					var child = new GrammarContext(nested.Name, context);
 
-					scope.Add(child);
+					context.Add(child);
 					Declare(nested.Decls, child);
 					break;
 			}
@@ -107,29 +107,29 @@ public sealed class GrammarBinder
 
 	// ── Pass two: imports, trivia, references ────────────────────────────────────
 
-	void ResolveImports(IReadOnlyList<Using> usings, GrammarScope scope)
+	void ResolveImports(IReadOnlyList<Using> usings, GrammarContext context)
 	{
 		foreach (var import in usings)
 		{
 			if (import.IsCSharp)
 			{
-				scope.ImportCSharp(import.Name);
+				context.ImportCSharp(import.Name);
 				continue;
 			}
 
-			var target = FindScope(scope, import.Name);
+			var target = FindContext(context, import.Name);
 
 			if (target is null)
-				Report(UnknownScope, $"No scope named '{import.Name}' is in view here.", import.At);
+				Report(UnknownContext, $"No context named '{import.Name}' is in view here.", import.At);
 			else
-				scope.Import(target);
+				context.Import(target);
 		}
 	}
 
-	static GrammarScope? FindScope(GrammarScope from, string name)
+	static GrammarContext? FindContext(GrammarContext from, string name)
 	{
-		for (var scope = from; scope is not null; scope = scope.Parent)
-			foreach (var nested in scope.Nested)
+		for (var context = from; context is not null; context = context.Parent)
+			foreach (var nested in context.Nested)
 				if (nested.Name == name)
 					return nested;
 
@@ -137,19 +137,19 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>
-	/// Which `Trivia` a scope sees. Ordinary lookup — the mechanism is shadowing and
+	/// Which `Trivia` a context sees. Ordinary lookup — the mechanism is shadowing and
 	/// nothing else (§4.5).
 	/// </summary>
-	void ResolveTrivia(GrammarScope scope)
+	void ResolveTrivia(GrammarContext context)
 	{
-		if (scope.Lookup(TriviaRule) is { } trivia)
-			_trivia[scope] = trivia;
+		if (context.Lookup(TriviaRule) is { } trivia)
+			_trivia[context] = trivia;
 
-		foreach (var nested in scope.Nested)
+		foreach (var nested in context.Nested)
 			ResolveTrivia(nested);
 	}
 
-	void Resolve(IReadOnlyList<Decl> declarations, GrammarScope scope)
+	void Resolve(IReadOnlyList<Decl> declarations, GrammarContext context)
 	{
 		var nestedIndex = 0;
 
@@ -158,12 +158,12 @@ public sealed class GrammarBinder
 			switch (node)
 			{
 				case Decl.Rule rule:
-					ResolveRule(rule, scope);
+					ResolveRule(rule, context);
 					break;
 
-				case Decl.Scope nested:
+				case Decl.Context nested:
 
-					var child = scope.Nested[nestedIndex++];
+					var child = context.Nested[nestedIndex++];
 
 					ResolveImports(nested.Usings, child);
 					Resolve(nested.Decls, child);
@@ -171,7 +171,7 @@ public sealed class GrammarBinder
 
 				case Decl.Publish publish:
 
-					if (scope.LookupQualified(publish.RuleName) is not { } published)
+					if (context.LookupQualified(publish.RuleName) is not { } published)
 					{
 						Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
 						break;
@@ -195,9 +195,9 @@ public sealed class GrammarBinder
 		}
 	}
 
-	void ResolveRule(Decl.Rule rule, GrammarScope scope)
+	void ResolveRule(Decl.Rule rule, GrammarContext context)
 	{
-		var owner      = scope.Rules[rule.Name];
+		var owner      = context.Rules[rule.Name];
 		var parameters = new Dictionary<string, ParameterSymbol>();
 
 		foreach (var parameter in rule.Params)
@@ -205,11 +205,11 @@ public sealed class GrammarBinder
 			parameters[parameter.Name] = new ParameterSymbol(parameter.Name, owner);
 
 			if (parameter.Type is not null)
-				ResolveType(parameter.Type, scope, parameters);
+				ResolveType(parameter.Type, context, parameters);
 		}
 
 		if (rule.Type is not null)
-			ResolveType(rule.Type, scope, parameters);
+			ResolveType(rule.Type, context, parameters);
 
 		// `when` and `=>` see the rule's captures as values, so they have to be in view
 		// before its body is resolved — and the whole body's, since a `=>` at the end
@@ -219,7 +219,7 @@ public sealed class GrammarBinder
 
 		Captures(rule.Body);
 
-		ResolveExpression(rule.Body, scope, parameters);
+		ResolveExpression(rule.Body, context, parameters);
 	}
 
 	readonly HashSet<string> _captures = new(StringComparer.Ordinal);
@@ -241,7 +241,7 @@ public sealed class GrammarBinder
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
 	/// works in place of type parameters (§4.2).
 	/// </summary>
-	void ResolveType(TypeRef type, GrammarScope scope, Dictionary<string, ParameterSymbol> parameters)
+	void ResolveType(TypeRef type, GrammarContext context, Dictionary<string, ParameterSymbol> parameters)
 	{
 		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
 		{
@@ -252,13 +252,13 @@ public sealed class GrammarBinder
 			if (IsSourceSpan(type.Name))
 				return;
 
-			if (!TypeInView(type.Name, scope))
+			if (!TypeInView(type.Name, context))
 				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
 
 			return;
 		}
 
-		if (parameters.ContainsKey(type.Name) || scope.LookupQualified(type.Name) is not null)
+		if (parameters.ContainsKey(type.Name) || context.LookupQualified(type.Name) is not null)
 			return;
 
 		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
@@ -275,12 +275,12 @@ public sealed class GrammarBinder
 	/// through an import is emitted as it was written, and the generated file carries the
 	/// same <c>using</c> directives, so it stands there too.
 	/// </remarks>
-	bool TypeInView(string name, GrammarScope scope)
+	bool TypeInView(string name, GrammarContext context)
 	{
 		if (_symbols.TypeExists(name))
 			return true;
 
-		for (var at = scope; at is not null; at = at.Parent)
+		for (var at = context; at is not null; at = at.Parent)
 			foreach (var import in at.CSharpImports)
 				if (_symbols.TypeExists(import + "." + name))
 					return true;
@@ -295,30 +295,30 @@ public sealed class GrammarBinder
 
 	void ResolveExpression(
 		Expr expression,
-		GrammarScope scope,
+		GrammarContext context,
 		Dictionary<string, ParameterSymbol> parameters,
 		bool csharpValue = false)
 	{
 		switch (expression)
 		{
 			case Expr.Reference reference:
-				ResolveReference(reference, reference, scope, parameters, csharpValue);
+				ResolveReference(reference, reference, context, parameters, csharpValue);
 				return;
 
 			case Expr.Construct(var pattern, var value):
-				ResolveExpression(pattern, scope, parameters);
-				ResolveExpression(value, scope, parameters, csharpValue: true);
+				ResolveExpression(pattern, context, parameters);
+				ResolveExpression(value, context, parameters, csharpValue: true);
 				return;
 
 			case Expr.Guard(var guarded):
-				ResolveExpression(guarded, scope, parameters, csharpValue: true);
+				ResolveExpression(guarded, context, parameters, csharpValue: true);
 				return;
 
 			case Expr.Call(var target, var arguments):
-				ResolveReference(target, expression, scope, parameters, csharpValue);
+				ResolveReference(target, expression, context, parameters, csharpValue);
 
 				foreach (var argument in arguments)
-					ResolveExpression(argument, scope, parameters, csharpValue);
+					ResolveExpression(argument, context, parameters, csharpValue);
 
 				return;
 
@@ -328,7 +328,7 @@ public sealed class GrammarBinder
 				// what it names into the set, and for that it needs to know what it is.
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, bind: reference, scope, parameters);
+						ResolveReference(reference, bind: reference, context, parameters);
 
 				return;
 
@@ -339,13 +339,13 @@ public sealed class GrammarBinder
 		}
 
 		foreach (var child in Dump.Children(expression))
-			ResolveExpression(child, scope, parameters, csharpValue);
+			ResolveExpression(child, context, parameters, csharpValue);
 	}
 
 	void ResolveReference(
 		Expr.Reference                      reference,
 		Expr?                               bind,
-		GrammarScope                        scope,
+		GrammarContext                      context,
 		Dictionary<string, ParameterSymbol> parameters,
 		bool                                csharpValue = false)
 	{
@@ -353,7 +353,7 @@ public sealed class GrammarBinder
 
 		if (!csharpValue || !reference.IsCSharp)
 			foreach (var typeArgument in reference.TypeArguments)
-				ResolveType(typeArgument, scope, parameters);
+				ResolveType(typeArgument, context, parameters);
 
 		void Bind(Symbol symbol)
 		{
@@ -385,7 +385,7 @@ public sealed class GrammarBinder
 		if (_captures.Contains(reference.Name))
 			return;
 
-		if (scope.LookupQualified(reference.Name) is { } rule)
+		if (context.LookupQualified(reference.Name) is { } rule)
 		{
 			Bind(rule);
 		}

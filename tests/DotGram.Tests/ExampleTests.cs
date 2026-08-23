@@ -143,7 +143,7 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_number_is_where_a_space_still_means_something()
 	{
-		// `Number` is declared in a scope that shadows Trivia with `none`, so the spaces
+		// `Number` is declared in a context that shadows Trivia with `none`, so the spaces
 		// this grammar ignores everywhere else are not ignored between digits.
 		Assert.Equal("1.5", Decimal(" 1.5 "));
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));

@@ -11,7 +11,7 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Name binding compared against its own dump: the scope tree, what each scope
+/// Name binding compared against its own dump: the context tree, what each context
 /// imports, and the `Trivia` it sees.
 /// </summary>
 public sealed class GrammarBinderTests
@@ -23,18 +23,18 @@ public sealed class GrammarBinderTests
 		[.. Bind(source).Diagnostics.Select(d => d.Id)];
 
 	[Fact]
-	public void Builds_the_scope_tree()
+	public void Builds_the_context_tree()
 	{
 		Assert.Equal(
 			"""
-			scope <global>
+			context <global>
 				using @System.Text
 				trivia = Trivia
 				rule Common
-				scope Lexical
+				context Lexical
 					trivia = Trivia
 					rule Identifier
-				scope Syntax
+				context Syntax
 					using Lexical
 					trivia = Trivia
 					rule Unit
@@ -44,12 +44,12 @@ public sealed class GrammarBinderTests
 
 				Common = 'a'
 
-				scope Lexical
+				context Lexical
 				{
 					Identifier = 'b'
 				}
 
-				scope Syntax
+				context Syntax
 				{
 					using Lexical;
 
@@ -68,7 +68,7 @@ public sealed class GrammarBinderTests
 			Whitespace = ' '
 			Outer      = 'a'
 
-			scope Lexical
+			context Lexical
 			{
 				Trivia = none
 
@@ -109,19 +109,19 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void An_inner_scope_sees_outward_but_not_inward()
+	public void An_inner_context_sees_outward_but_not_inward()
 	{
 		Assert.Empty(Diagnostics("""
 			Outer = 'a'
 
-			scope Inner
+			context Inner
 			{
 				Uses = Outer
 			}
 			"""));
 
 		Assert.Contains(GrammarBinder.UndefinedName, Diagnostics("""
-			scope Inner
+			context Inner
 			{
 				Hidden = 'a'
 			}
@@ -131,10 +131,10 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void A_qualified_name_reaches_into_a_scope()
+	public void A_qualified_name_reaches_into_a_context()
 	{
 		Assert.Empty(Diagnostics("""
-			scope Lexical
+			context Lexical
 			{
 				Token = 'a'
 			}
@@ -157,8 +157,8 @@ public sealed class GrammarBinderTests
 	[Theory]
 	[InlineData("A = 'a'\nA = 'b'",             GrammarBinder.DuplicateRule)]
 	[InlineData("A = Missing",                  GrammarBinder.UndefinedName)]
-	[InlineData("scope S { }\nA = Other.X",     GrammarBinder.UndefinedName)]
-	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownScope)]
+	[InlineData("context S { }\nA = Other.X",   GrammarBinder.UndefinedName)]
+	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownContext)]
 	[InlineData("parse Absent\nA = 'a'",        GrammarBinder.UndefinedName)]
 	public void Reports(string source, string expectedId)
 	{
@@ -166,12 +166,12 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void A_duplicate_in_a_nested_scope_is_shadowing_not_an_error()
+	public void A_duplicate_in_a_nested_context_is_shadowing_not_an_error()
 	{
 		Assert.Empty(Diagnostics("""
 			A = 'a'
 
-			scope Inner
+			context Inner
 			{
 				A = 'b'
 			}

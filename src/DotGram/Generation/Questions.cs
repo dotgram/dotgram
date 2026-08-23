@@ -150,7 +150,7 @@ static class Questions
 						Walk(body);
 						break;
 
-					case Decl.Scope(_, var nested, var inner):
+					case Decl.Context(_, var nested, var inner):
 						Collect(nested, inner);
 						break;
 				}

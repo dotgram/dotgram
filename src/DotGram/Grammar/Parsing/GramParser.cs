@@ -175,8 +175,8 @@ public sealed class GramParser
 
 	Decl? ParseDeclaration()
 	{
-		if (AtKeyword("scope") && Next.Kind == TokenKind.Identifier && !StartsRule())
-			return ParseScope();
+		if (AtKeyword("context") && Next.Kind == TokenKind.Identifier && !StartsRule())
+			return ParseContext();
 
 		if (AtPublication())
 			return ParsePublication();
@@ -184,14 +184,14 @@ public sealed class GramParser
 		if (At(TokenKind.Identifier))
 			return ParseRule();
 
-		Report(ExpectedDeclaration, "Expected a rule, a scope or a publication directive.");
+		Report(ExpectedDeclaration, "Expected a rule, a context or a publication directive.");
 
 		return null;
 	}
 
 	/// <summary>
 	/// Whether the current identifier starts a rule rather than being a contextual
-	/// keyword — the check that lets `scope`, `parse` and the rest stay ordinary names.
+	/// keyword — the check that lets `context`, `parse` and the rest stay ordinary names.
 	/// </summary>
 	bool StartsRule() =>
 		At(TokenKind.Identifier) &&
@@ -232,11 +232,11 @@ public sealed class GramParser
 		(AtKeyword("parse") || AtKeyword("find")) &&
 		Next.Kind == TokenKind.Identifier;
 
-	Decl ParseScope()
+	Decl ParseContext()
 	{
 		var start = Current.Position;
 
-		Take();                                     // `scope`
+		Take();                                     // `context`
 
 		var name         = ExpectName();
 		var usings       = new List<Using>();
@@ -261,7 +261,7 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseBrace);
 
-		return new Decl.Scope(name, usings, declarations) { At = From(start) };
+		return new Decl.Context(name, usings, declarations) { At = From(start) };
 	}
 
 	Decl ParsePublication()
@@ -717,7 +717,7 @@ public sealed class GramParser
 
 		while (!AtEnd && !At(TokenKind.CloseBrace))
 		{
-			if (StartsRule() || AtUsing() || AtKeyword("scope") || AtPublication())
+			if (StartsRule() || AtUsing() || AtKeyword("context") || AtPublication())
 				return;
 
 			Take();

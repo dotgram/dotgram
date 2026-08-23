@@ -149,9 +149,9 @@ public sealed partial class GrammarNormalizer
 	/// Built-in rules have no body to compute from, so their nullability is stated:
 	/// `none`, `eof` and the default `Trivia` consume nothing, `any` and `eol` consume.
 	/// </summary>
-	void SeedBuiltIns(GrammarScope scope)
+	void SeedBuiltIns(GrammarContext context)
 	{
-		for (var outer = scope; outer is not null; outer = outer.Parent)
+		for (var outer = context; outer is not null; outer = outer.Parent)
 			foreach (var rule in outer.Rules.Values)
 				if (rule.IsBuiltIn)
 					_nullable[rule] = rule.Name is "none" or "eof" or "Trivia" or "KeywordBoundary";
@@ -473,12 +473,12 @@ public sealed partial class GrammarNormalizer
 			}
 	}
 
-	/// <summary>Every <c>@using</c> in the grammar, outermost scope first.</summary>
-	static IReadOnlyList<string> Imports(GrammarScope scope)
+	/// <summary>Every <c>@using</c> in the grammar, outermost context first.</summary>
+	static IReadOnlyList<string> Imports(GrammarContext context)
 	{
-		var imports = new List<string>(scope.CSharpImports);
+		var imports = new List<string>(context.CSharpImports);
 
-		foreach (var nested in scope.Nested)
+		foreach (var nested in context.Nested)
 			foreach (var import in Imports(nested))
 				if (!imports.Contains(import))
 					imports.Add(import);

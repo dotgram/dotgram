@@ -44,7 +44,7 @@ using Lexical;
 Header = "H" & '|' & date: Date & '|' & source: Text & eol
 ```
 
-`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar scope (§2). The syntax
+`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar context (§2). The syntax
 is C#'s own directive, semicolon and all; there is no module system of our own for
 C# — project references already are one.
 
@@ -75,17 +75,17 @@ directive as well as a name:
 
 ```dotgram
 @using System.Text;      // import a C# namespace
-using Lexical.Numbers;   // import a grammar scope
+using Lexical.Numbers;   // import a grammar context
 
 @Encoding.UTF8           // a static C# property
-Lexical.Token            // a rule from a grammar scope
+Lexical.Token            // a rule from a grammar context
 ```
 
 Otherwise `using System;` and `using Lexical;` would look identical while resolving
 in different namespaces — exactly the implicit context dependency `@` exists to
 remove.
 
-Of all keywords `@` applies only to `using`, and that is not an exception: `scope`,
+Of all keywords `@` applies only to `using`, and that is not an exception: `context`,
 `parse`, `when` and the rest are constructs of `.Gram` with no C# counterpart, so
 there is nothing to transition into. `using` is the one directive that exists in both
 languages. The model is Razor's, where `@using`, `@model` and `@inherits` mean
@@ -649,7 +649,7 @@ List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — Trivia is i
 ```dotgram
 Trivia = WhitespaceAndComments
 
-scope Lexical
+context Lexical
 {
     Trivia = none                              // whitespace is significant here
 
@@ -657,7 +657,7 @@ scope Lexical
     Number     = ['0'..'9']+
 }
 
-scope Syntax
+context Syntax
 {
     using Lexical;
 
@@ -678,9 +678,9 @@ When `Trivia` is empty the insertions are dropped entirely during normalization:
 nothing of them survives to run time.
 
 A silent failure is possible here — a lexical rule that ended up by oversight in a
-scope with non-empty `Trivia` will quietly accept `i f` as `if`. No mechanism catches
+context with non-empty `Trivia` will quietly accept `i f` as `if`. No mechanism catches
 that, but a warning does: a rule whose operands all test a single input item is
-almost certainly a mistake in such a scope.
+almost certainly a mistake in such a context.
 
 ### 4.6 Keyword boundaries
 
@@ -705,38 +705,39 @@ whether a letter follows the whitespace rather than whether it follows the keywo
 
 ---
 
-## 5. Scopes
+## 5. Contexts
 
 ```dotgram
 @using System;
 
 Common = ...
 
-scope Lexical
+context Lexical
 {
     Token = ...
 }
 
-scope Syntax
+context Syntax
 {
-    using Lexical;              // import a grammar scope
+    using Lexical;              // import a grammar context
 
     Unit = Token*               // instead of Lexical.Token
 }
 ```
 
-The top of a file is an implicit global scope. The `{ }` after `scope Name` is a block
-of declarations, not an expression; in expression position braces mean a repetition
-count and nothing else (§3.3). An inner scope sees the outer one; a rule of the same
-name shadows the outer one; the qualified name `Scope.Rule` is available from outside.
+The top of a file is an implicit global context. The `{ }` after `context Name` is a
+block of declarations, not an expression; in expression position braces mean a
+repetition count and nothing else (§3.3). An inner context sees the outer one; a rule
+of the same name shadows the outer one; the qualified name `Context.Rule` is available
+from outside.
 
-`using X;` without `@` brings the names of scope `X` into the current scope
-unqualified. Import directives stand at the top of the file or at the top of a `scope`
-block — where C# expects them. If two imports supply the same name, the error is
-raised at the use site rather than at the import, and is settled by qualification, as
-in C#.
+`using X;` without `@` brings the names of context `X` into the current context
+unqualified. Import directives stand at the top of the file or at the top of a
+`context` block — where C# expects them. If two imports supply the same name, the
+error is raised at the use site rather than at the import, and is settled by
+qualification, as in C#.
 
-Every scope becomes a nested static class in the generated code.
+Every context becomes a nested static class in the generated code.
 
 ---
 
@@ -1373,8 +1374,8 @@ than two tokens of lookahead.
 File        = Using* & Declaration*
 Using       = ("@using" | "using") & QualifiedName & ';'
 
-Declaration = Scope | Publication | Rule
-Scope       = "scope" & Identifier & '{' & Using* & Declaration* & '}'
+Declaration = Context | Publication | Rule
+Context     = "context" & Identifier & '{' & Using* & Declaration* & '}'
 Publication = ("parse" | "find") & QualifiedName & ("as" & Identifier)?
 
 Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body

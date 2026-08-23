@@ -32,7 +32,7 @@ namespace DotGram.Examples;
 
 	using Lexical;
 
-	scope Lexical
+	context Lexical
 	{
 		// Between digits a space is not nothing. See DecimalCalculatorExample.
 		Trivia = none

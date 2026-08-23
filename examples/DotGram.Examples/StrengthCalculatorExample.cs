@@ -49,7 +49,7 @@ namespace DotGram.Examples;
 
 	using Lexical;
 
-	scope Lexical
+	context Lexical
 	{
 		Trivia = none
 

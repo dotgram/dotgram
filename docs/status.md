@@ -20,8 +20,8 @@ then quietly mean nothing.
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a capture of what a lookahead saw §3.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
-| scopes, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same rule name in two scopes | ✓ | ✓ | ✓ | ✓ | ✓ |
+| contexts, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same rule name in two contexts | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -105,7 +105,7 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void Trivia_switches_per_scope_by_shadowing()
+	public void Trivia_switches_per_context_by_shadowing()
 	{
 		Assert.Equal(
 			"""
@@ -119,7 +119,7 @@ public sealed class GrammarNormalizerTests
 				Trivia = ' '*
 				Loose  = 'a' & 'b'
 
-				scope Lexical
+				context Lexical
 				{
 					Trivia = none
 					Tight  = 'a' & 'b'

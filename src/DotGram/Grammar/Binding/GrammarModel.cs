@@ -14,7 +14,7 @@ public abstract record Symbol(string Name);
 /// source.
 /// </summary>
 public sealed record RuleSymbol(
-	string Name, GrammarScope Scope, Decl.Rule? Declaration) : Symbol(Name)
+	string Name, GrammarContext Context, Decl.Rule? Declaration) : Symbol(Name)
 {
 	public bool IsBuiltIn => Declaration is null;
 
@@ -28,22 +28,22 @@ public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Nam
 public sealed record CSharpSymbol(string Name) : Symbol(Name);
 
 /// <summary>
-/// One lexical scope: the global one at the top of a file, or a `scope` block.
+/// One lexical context: the global one at the top of a file, or a `context` block.
 /// </summary>
-public sealed class GrammarScope(string name, GrammarScope? parent)
+public sealed class GrammarContext(string name, GrammarContext? parent)
 {
 	readonly Dictionary<string, RuleSymbol> _rules   = [];
-	readonly List<GrammarScope>             _nested  = [];
-	readonly List<GrammarScope>             _imports = [];
+	readonly List<GrammarContext>           _nested  = [];
+	readonly List<GrammarContext>           _imports = [];
 	readonly List<string>                   _csharpImports = [];
 
-	/// <summary>Empty for the global scope.</summary>
-	public string        Name   { get; } = name;
-	public GrammarScope? Parent { get; } = parent;
+	/// <summary>Empty for the global context.</summary>
+	public string          Name   { get; } = name;
+	public GrammarContext? Parent { get; } = parent;
 
 	public IReadOnlyDictionary<string, RuleSymbol> Rules         => _rules;
-	public IReadOnlyList<GrammarScope>             Nested        => _nested;
-	public IReadOnlyList<GrammarScope>             Imports       => _imports;
+	public IReadOnlyList<GrammarContext>           Nested        => _nested;
+	public IReadOnlyList<GrammarContext>           Imports       => _imports;
 	public IReadOnlyList<string>                   CSharpImports => _csharpImports;
 
 	internal bool TryDeclare(RuleSymbol rule)
@@ -56,23 +56,23 @@ public sealed class GrammarScope(string name, GrammarScope? parent)
 		return true;
 	}
 
-	internal void Add(GrammarScope nested)  => _nested.Add(nested);
-	internal void Import(GrammarScope other) => _imports.Add(other);
-	internal void ImportCSharp(string name)  => _csharpImports.Add(name);
+	internal void Add(GrammarContext nested)  => _nested.Add(nested);
+	internal void Import(GrammarContext other) => _imports.Add(other);
+	internal void ImportCSharp(string name)   => _csharpImports.Add(name);
 
 	/// <summary>
-	/// Looks a name up the way §5 says: this scope, then what it imports, then
+	/// Looks a name up the way §5 says: this context, then what it imports, then
 	/// outwards. The first hit wins, which is what makes an inner declaration shadow
 	/// an outer one.
 	/// </summary>
 	public RuleSymbol? Lookup(string name)
 	{
-		for (var scope = this; scope is not null; scope = scope.Parent)
+		for (var context = this; context is not null; context = context.Parent)
 		{
-			if (scope._rules.TryGetValue(name, out var rule))
+			if (context._rules.TryGetValue(name, out var rule))
 				return rule;
 
-			foreach (var imported in scope._imports)
+			foreach (var imported in context._imports)
 				if (imported._rules.TryGetValue(name, out var fromImport))
 					return fromImport;
 		}
@@ -80,7 +80,7 @@ public sealed class GrammarScope(string name, GrammarScope? parent)
 		return null;
 	}
 
-	/// <summary>A qualified name, `Scope.Rule`, resolved from here.</summary>
+	/// <summary>A qualified name, `Context.Rule`, resolved from here.</summary>
 	public RuleSymbol? LookupQualified(string qualifiedName)
 	{
 		var separator = qualifiedName.LastIndexOf('.');
@@ -88,14 +88,14 @@ public sealed class GrammarScope(string name, GrammarScope? parent)
 		if (separator < 0)
 			return Lookup(qualifiedName);
 
-		var scope = FindScope(qualifiedName.Substring(0, separator));
+		var context = FindContext(qualifiedName.Substring(0, separator));
 
-		return scope?._rules.TryGetValue(qualifiedName.Substring(separator + 1), out var rule) == true
+		return context?._rules.TryGetValue(qualifiedName.Substring(separator + 1), out var rule) == true
 			? rule
 			: null;
 	}
 
-	GrammarScope? FindScope(string path)
+	GrammarContext? FindContext(string path)
 	{
 		var head = path;
 		var tail = "";
@@ -107,10 +107,10 @@ public sealed class GrammarScope(string name, GrammarScope? parent)
 			tail = path.Substring(dot + 1);
 		}
 
-		for (var scope = this; scope is not null; scope = scope.Parent)
-			foreach (var nested in scope._nested)
+		for (var context = this; context is not null; context = context.Parent)
+			foreach (var nested in context._nested)
 				if (nested.Name == head)
-					return tail.Length == 0 ? nested : nested.FindScope(tail);
+					return tail.Length == 0 ? nested : nested.FindContext(tail);
 
 		return null;
 	}
@@ -150,27 +150,27 @@ public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string Metho
 	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
 }
 
-/// <summary>What binding produced: a scope tree, resolved references, diagnostics.</summary>
+/// <summary>What binding produced: a context tree, resolved references, diagnostics.</summary>
 public sealed class GrammarModel(
-	GrammarScope                              root,
-	IReadOnlyDictionary<Expr, Symbol>   bindings,
-	IReadOnlyDictionary<GrammarScope, RuleSymbol> trivia,
-	IReadOnlyList<Publication>                publications,
-	IReadOnlyList<GramDiagnostic>             diagnostics)
+	GrammarContext                                  root,
+	IReadOnlyDictionary<Expr, Symbol>         bindings,
+	IReadOnlyDictionary<GrammarContext, RuleSymbol> trivia,
+	IReadOnlyList<Publication>                      publications,
+	IReadOnlyList<GramDiagnostic>                   diagnostics)
 {
-	public GrammarScope                            Root        { get; } = root;
+	public GrammarContext                          Root        { get; } = root;
 	public IReadOnlyDictionary<Expr, Symbol> Bindings    { get; } = bindings;
 	public IReadOnlyList<GramDiagnostic>           Diagnostics { get; } = diagnostics;
 
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
-	/// <summary>The `Trivia` each scope sees — §4.5, resolved once per scope.</summary>
-	public IReadOnlyDictionary<GrammarScope, RuleSymbol> Trivia { get; } = trivia;
+	/// <summary>The `Trivia` each context sees — §4.5, resolved once per context.</summary>
+	public IReadOnlyDictionary<GrammarContext, RuleSymbol> Trivia { get; } = trivia;
 
 	public bool HasErrors => Diagnostics.Count > 0;
 
-	/// <summary>The scope tree, then the diagnostics, in one comparable dump.</summary>
+	/// <summary>The context tree, then the diagnostics, in one comparable dump.</summary>
 	public override string ToString()
 	{
 		var text = new StringBuilder();
@@ -185,23 +185,23 @@ public sealed class GrammarModel(
 
 		return text.ToString().TrimEnd();
 
-		void Write(GrammarScope scope, int depth)
+		void Write(GrammarContext context, int depth)
 		{
-			text.Append('\t', depth).Append("scope ").AppendEndingWith(scope.ToString());
+			text.Append('\t', depth).Append("context ").AppendEndingWith(context.ToString());
 
-			foreach (var import in scope.CSharpImports)
+			foreach (var import in context.CSharpImports)
 				text.Append('\t', depth + 1).Append("using @").AppendEndingWith(import);
 
-			foreach (var import in scope.Imports)
+			foreach (var import in context.Imports)
 				text.Append('\t', depth + 1).Append("using ").AppendEndingWith(import.Name);
 
-			if (Trivia.TryGetValue(scope, out var trivia))
+			if (Trivia.TryGetValue(context, out var trivia))
 				text.Append('\t', depth + 1).Append("trivia = ").AppendEndingWith(trivia.Name);
 
-			foreach (var rule in scope.Rules.Values)
+			foreach (var rule in context.Rules.Values)
 				text.Append('\t', depth + 1).Append("rule ").AppendEndingWith(rule.Name);
 
-			foreach (var nested in scope.Nested)
+			foreach (var nested in context.Nested)
 				Write(nested, depth + 1);
 		}
 	}

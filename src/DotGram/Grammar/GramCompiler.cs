@@ -92,8 +92,8 @@ public static class GramCompiler
 	/// </summary>
 	/// <remarks>
 	/// The second thing said about a place is the first stage's failure told again by the
-	/// next one — <c>Unexpected character '~'</c> and then <c>Expected a rule, a scope or
-	/// a publication directive</c>, both pointing at the same character. The earlier one
+	/// next one — <c>Unexpected character '~'</c> and then <c>Expected a rule, a context
+	/// or a publication directive</c>, both pointing at the same character. The earlier one
 	/// is the one that says what actually happened; the later one describes the wreckage.
 	/// Warnings and information are left alone: they are about the grammar rather than
 	/// about what went wrong reading it, and two of them in one place can both be true.

@@ -124,13 +124,13 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
-	public void Parses_usings_scopes_and_publications()
+	public void Parses_usings_contexts_and_publications()
 	{
 		Assert.Equal(
 			"""
 			File
 				Using (C#) "System.Text"
-				Scope "Lexical"
+				Context "Lexical"
 					Using "Common"
 					Rule "Token"
 						Reference "A"
@@ -139,7 +139,7 @@ public sealed class GramParserTests
 			Parse("""
 				@using System.Text;
 
-				scope Lexical
+				context Lexical
 				{
 					using Common;
 
@@ -153,21 +153,21 @@ public sealed class GramParserTests
 	[Fact]
 	public void Contextual_keywords_are_still_ordinary_names()
 	{
-		// `parse`, `scope` and `find` only mean something where a declaration can start
+		// `parse`, `context` and `find` only mean something where a declaration can start
 		// and no `=`, `:` or `(` follows.
 		Assert.Equal(
 			"""
 			File
 				Rule "parse"
 					Reference "A"
-				Rule "scope"
+				Rule "context"
 					Reference "B"
 				Rule "find"
 					Reference "parse"
 			""",
 			Parse("""
 				parse = A
-				scope = B
+				context = B
 				find  = parse
 				"""));
 	}

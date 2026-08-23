@@ -41,19 +41,20 @@ namespace DotGram.Examples;
 // Shadowing `Trivia` has one consequence worth knowing rather than discovering: it goes
 // between the operands of every sequence, and `['0'..'9']+ & '.' & ['0'..'9']+` is a
 // sequence like any other. Left alone, `1 . 5` would match and `digits` would capture
-// the spaces with it. So `Number` lives in a scope that shadows `Trivia` with `none` —
-// the same §5 shadowing, used the other way round, and the reason the grammar has a
-// `scope` in it at all.
+// the spaces with it. So `Number` lives in a context that shadows `Trivia` with `none`
+// — the same §5 shadowing, used the other way round, and the reason the grammar has a
+// `context` in it at all.
 
 [Gram("""
 	@using System.Globalization;
 	using Lexical;
 
-	scope Lexical
+	context Lexical
 	{
-		// Between digits a space is not nothing, so this scope shadows Trivia with the
-		// rule that matches nothing at all. Scoping is lexical: `Number` is declared
-		// here, so this is the Trivia it is built with, wherever it is called from.
+		// Between digits a space is not nothing, so this context shadows Trivia with
+		// the rule that matches nothing at all. Scoping is lexical: `Number` is
+		// declared here, so this is the Trivia it is built with, wherever it is
+		// called from.
 		Trivia = none
 
 		Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?

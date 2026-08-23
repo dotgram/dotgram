@@ -57,7 +57,7 @@ public abstract record Decl : ILocated
 	public sealed record Rule(
 		string Name, IReadOnlyList<Param> Params, TypeRef? Type, Expr Body) : Decl;
 
-	public sealed record Scope(
+	public sealed record Context(
 		string Name, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
 
 	public sealed record Publish(PublishKind Kind, string RuleName, string? Alias) : Decl;
@@ -175,9 +175,9 @@ static class Dump
 				Write(text, depth + 1, body);
 				break;
 
-			case Decl.Scope(var name, var usings, var declarations):
+			case Decl.Context(var name, var usings, var declarations):
 
-				Write(text, depth, $"Scope {Quote(name)}");
+				Write(text, depth, $"Context {Quote(name)}");
 
 				foreach (var import in usings)
 					Write(text, depth + 1, Label(import));

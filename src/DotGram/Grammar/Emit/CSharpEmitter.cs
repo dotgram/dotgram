@@ -983,21 +983,21 @@ public static partial class CSharpEmitter
 	/// A rule's name as one C# identifier, unique across the grammar.
 	/// </summary>
 	/// <remarks>
-	/// The short name is not unique and is not meant to be — shadowing is what a scope is
-	/// for, so a grammar with a <c>Trivia</c> per scope is the ordinary case rather than a
-	/// clash. The scopes a rule is declared in are prefixed to tell them apart, named
-	/// rather than numbered so that a reader of the generated code can still see which
-	/// rule a method came from. The standard library's scope is not an identifier and is
-	/// left off: its names are fixed, and a grammar that shadows one of them takes the
-	/// name with it.
+	/// The short name is not unique and is not meant to be — shadowing is what a context
+	/// is for, so a grammar with a <c>Trivia</c> per context is the ordinary case rather
+	/// than a clash. The contexts a rule is declared in are prefixed to tell them apart,
+	/// named rather than numbered so that a reader of the generated code can still see
+	/// which rule a method came from. The standard library's context is not an identifier
+	/// and is left off: its names are fixed, and a grammar that shadows one of them takes
+	/// the name with it.
 	/// </remarks>
 	internal static string IdentifierOf(RuleSymbol rule)
 	{
 		var name = rule.Name;
 
-		for (var scope = rule.Scope; scope is { Name.Length: > 0 }; scope = scope.Parent)
-			if (IsIdentifier(scope.Name))
-				name = scope.Name + "_" + name;
+		for (var context = rule.Context; context is { Name.Length: > 0 }; context = context.Parent)
+			if (IsIdentifier(context.Name))
+				name = context.Name + "_" + name;
 
 		return name;
 	}
