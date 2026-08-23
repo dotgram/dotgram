@@ -105,6 +105,12 @@ The inline form is `Start = ("xy" | "x") & 'y'`. Extracting the choice into `Nam
 not change its meaning, and a whole `parse` keeps alternatives available until the
 end-of-input condition is satisfied.
 
+**A grammar needing none of this compiles without the automaton at all.** No recursion, no
+backtracking anywhere, no construction deferred past a match — a rule proven to need none
+of the three compiles to a plain method, and where every publication qualifies, neither the
+arena nor the pooled parser is emitted. What follows in this section is about the grammars
+that do need it.
+
 `{ ... }` is the explicit exception. After an atomic group succeeds, alternatives made
 inside it are discarded; `{ "xy" | "x" } & 'y'` therefore fails on `xy`. A rule boundary
 never commits implicitly.
@@ -1243,7 +1249,7 @@ can tell is wrong.
 
 ## What has been measured
 
-Six of the architecture's claims now have numbers rather than reasoning behind them.
+Seven of the architecture's claims now have numbers rather than reasoning behind them.
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
@@ -1293,6 +1299,14 @@ has not applied since that generator was removed.
 **One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
+
+**Whole-grammar lowering**: a grammar every publication of which needs none of the arena's
+three uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
+*Backtracking, and where it stops* above. Measured on a grammar structurally identical to a
+repeated-record feed (`benchmarks/Flat.cs`, one added capture the only difference from the
+lowered version): 119 ns and zero allocation against 691 ns and 952 B through the shared
+engine. A grammar with even one rule that still needs the arena pays the whole cost for
+every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
 
 Everything the architecture claims now has a number behind it.
 
