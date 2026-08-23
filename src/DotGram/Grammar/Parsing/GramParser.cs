@@ -239,6 +239,7 @@ public sealed class GramParser
 		Take();                                     // `context`
 
 		var name         = ExpectName();
+		var rebindings   = At(TokenKind.OpenParen) ? ParseRebindings() : [];
 		var usings       = new List<Using>();
 		var declarations = new List<Decl>();
 
@@ -261,7 +262,33 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseBrace);
 
-		return new Decl.Context(name, usings, declarations) { At = From(start) };
+		return new Decl.Context(name, rebindings, usings, declarations) { At = From(start) };
+	}
+
+	List<Rebinding> ParseRebindings()
+	{
+		var rebindings = new List<Rebinding>();
+
+		Expect(TokenKind.OpenParen);
+
+		while (!AtEnd && !At(TokenKind.CloseParen))
+		{
+			var start = Current.Position;
+			var left  = ExpectName();
+
+			Expect(TokenKind.Equals);
+
+			var right = ExpectName();
+
+			rebindings.Add(new Rebinding(left, right, From(start)));
+
+			if (!TakeIf(TokenKind.Comma))
+				break;
+		}
+
+		Expect(TokenKind.CloseParen);
+
+		return rebindings;
 	}
 
 	Decl ParsePublication()

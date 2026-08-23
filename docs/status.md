@@ -22,6 +22,7 @@ then quietly mean nothing.
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
 | contexts, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same rule name in two contexts | ✓ | ✓ | ✓ | ✓ | ✓ |
+| contextual rebinding `context (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |

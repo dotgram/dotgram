@@ -73,6 +73,12 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
+
+		// Before RewriteLeftRecursion(): a cloned recursive rule's self-call must already
+		// point at the clone itself, and specialization is what makes that call resolve
+		// there in the first place.
+		normalizer.SpecializeContexts();
+
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 		normalizer.ComputeTypes();
@@ -88,6 +94,10 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.ComputeResults();
 
+		// After the results: what a contextual replacement must be compatible with is the
+		// result each rule was just worked out to have.
+		normalizer.CheckContextReplacements();
+
 		// After the results, because what a constructor is matched against is the members
 		// they worked out (§7.3).
 		normalizer.BuildByConstructor();
@@ -101,7 +111,7 @@ public sealed partial class GrammarNormalizer
 			normalizer._results,
 			normalizer._types,
 			Imports(model.Root),
-			model.Publications,
+			normalizer._publications,
 			normalizer._diagnostics)
 		{
 			Folds      = normalizer._folds,

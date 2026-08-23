@@ -24,6 +24,9 @@ public sealed record RuleSymbol(
 /// <summary>A rule's parameter, in scope only inside that rule's body.</summary>
 public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
 
+/// <summary>One `A = B` entry in a `context (...)` header, resolved to symbols (§5, §7).</summary>
+public sealed record ContextRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
+
 /// <summary>A name that lives on the C# side.</summary>
 public sealed record CSharpSymbol(string Name) : Symbol(Name);
 
@@ -36,6 +39,7 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 	readonly List<GrammarContext>           _nested  = [];
 	readonly List<GrammarContext>           _imports = [];
 	readonly List<string>                   _csharpImports = [];
+	readonly List<ContextRebinding>         _ownBindings   = [];
 
 	/// <summary>Empty for the global context.</summary>
 	public string          Name   { get; } = name;
@@ -46,12 +50,36 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 	public IReadOnlyList<GrammarContext>           Imports       => _imports;
 	public IReadOnlyList<string>                   CSharpImports => _csharpImports;
 
+	/// <summary>This context's own `context (...)` header, resolved, in source order (§5, §7).</summary>
+	public IReadOnlyList<ContextRebinding> OwnBindings => _ownBindings;
+
+	/// <summary>
+	/// The layered environment this context and everything lexically inside it sees: the
+	/// parent's <see cref="ContextBindings"/>, overridden key-by-key by
+	/// <see cref="OwnBindings"/> (§11).
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> ContextBindings { get; internal set; } =
+		EmptyBindings;
+
+	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> EmptyBindings =
+		new Dictionary<RuleSymbol, RuleSymbol>();
+
 	internal bool TryDeclare(RuleSymbol rule)
 	{
 		if (_rules.ContainsKey(rule.Name))
 			return false;
 
 		_rules.Add(rule.Name, rule);
+
+		return true;
+	}
+
+	internal bool TryBind(ContextRebinding binding)
+	{
+		if (_ownBindings.Exists(existing => existing.Left == binding.Left))
+			return false;
+
+		_ownBindings.Add(binding);
 
 		return true;
 	}
@@ -141,7 +169,13 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// Where the directive is written, which is where anything said about what it did or did
 /// not produce belongs — the rule is fine, the directive is what asked for the method.
 /// </param>
-public sealed record Publication(PublishKind Kind, RuleSymbol Rule, string MethodName, Location At)
+/// <param name="DeclaredIn">
+/// The context the directive itself sits in — not <paramref name="Rule"/>'s own context —
+/// which is what lets a `parse`/`find` declared inside a bound `context (...)` be remapped
+/// to the specialized clone it meant (§18) once one exists.
+/// </param>
+public sealed record Publication(
+	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarContext DeclaredIn)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>

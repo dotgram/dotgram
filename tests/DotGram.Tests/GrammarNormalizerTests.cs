@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Generation;
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
@@ -242,5 +244,218 @@ public sealed class GrammarNormalizerTests
 
 		Assert.Empty(graph.Diagnostics);
 		Assert.False(graph.Nullable[graph.Rules.Single(r => r.Name == "Number")]);
+	}
+
+	// ── Contextual bindings — §22, §25 ────────────────────────────────────────────
+
+	static RecognitionGraph Normalize(string source, ISymbolResolver resolver) =>
+		GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(
+				GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File, resolver),
+			resolver);
+
+	[Fact]
+	public void An_ordinary_context_body_declaration_stays_lexical_and_clones_nothing()
+	{
+		// §3, §22 test 1: `B = D` inside a header-less `context` is ordinary shadowing.
+		// `F` still resolves through the outer `A` to the outer `B`, and nothing is
+		// cloned — proof that a plain `context { ... }` is exactly as before this
+		// feature.
+		Assert.Equal(
+			"""
+			B = 'c'
+			A = B
+			B = 'd'
+			E = A
+			F = B
+			""",
+			Normalize("""
+				B = 'c'
+				A = B
+
+				context Ctx
+				{
+					B = 'd'
+					E = A
+					F = B
+				}
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_contextual_binding_propagates_through_the_call_graph_and_leaves_the_outside_alone()
+	{
+		// §4, §22 tests 2 and 4, §25 — the primary example: `F`, outside the context,
+		// still resolves `A` to the ordinary `B`; `E`, inside, resolves the same `A`
+		// through the rebound `B`.
+		Assert.Equal(
+			"""
+			C = 'c'
+			B = C
+			A = B
+			F = A
+			D = 'd'
+			E = A
+			A_Ctx = D
+			E_Ctx = A_Ctx
+			""",
+			Normalize("""
+				C = 'c'
+				B = C
+				A = B
+				F = A
+
+				context Ctx (B = D)
+				{
+					E = A
+				}
+
+				D = 'd'
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_binding_propagates_transitively_with_no_rule_forwarding_anything()
+	{
+		// §9, §22 test 3: `E` reaches `Y` through `A` and `B`, neither of which mentions
+		// `C` or `Y` — the ambient dependency §9 contrasts with threading a parameter
+		// through every intermediate rule.
+		Assert.Equal(
+			"""
+			X = 'x'
+			C = X
+			B = C
+			A = B
+			Y = 'y'
+			E = A
+			B_Ctx = Y
+			A_Ctx = B_Ctx
+			E_Ctx = A_Ctx
+			""",
+			Normalize("""
+				X = 'x'
+				C = X
+				B = C
+				A = B
+
+				context Ctx (C = Y)
+				{
+					E = A
+				}
+
+				Y = 'y'
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_nested_context_may_override_an_inherited_binding()
+	{
+		// §11, §22 test 6: the inner context's own `B = E` replaces the outer `B = D`
+		// for everything declared inside it — `F`'s clone resolves through `E`, not `D`.
+		Assert.Equal(
+			"""
+			B = 'b'
+			D = 'd'
+			E = 'e'
+			A = B
+			F = A
+			A_Inner = E
+			F_Inner = A_Inner
+			""",
+			Normalize("""
+				B = 'b'
+				D = 'd'
+				E = 'e'
+				A = B
+
+				context Outer (B = D)
+				{
+					context Inner (B = E)
+					{
+						F = A
+					}
+				}
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_context_binding_survives_recursion()
+	{
+		// §10, §22 test 7: the clone's own recursive call closes onto itself, not onto
+		// the unbound original — otherwise a nested "(((b)))" would fall back to 'a'
+		// past the first level.
+		Assert.Equal(
+			"""
+			Atom = 'a'
+			Tree = (Atom | '(' & Tree & ')')
+			BAtom = 'b'
+			Tree_Ctx = (BAtom | '(' & Tree_Ctx & ')')
+			publish Parse Tree_Ctx -> BTree
+			""",
+			Normalize("""
+				Atom = 'a'
+				Tree = Atom | '(' & Tree & ')'
+
+				context Ctx (Atom = BAtom)
+				{
+					parse Tree as BTree
+				}
+
+				BAtom = 'b'
+				""").ToString());
+	}
+
+	[Fact]
+	public void An_incompatible_contextual_replacement_is_reported_at_the_binding()
+	{
+		// §14, §22 test 11: the diagnostic belongs at the binding itself, not at some
+		// transitive call site.
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleContextReplacement,
+			Normalize("""
+				Value   : @Expr   = 'v'
+				RawText : @string = 'r'
+
+				context Ctx (Value = RawText)
+				{
+				}
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void A_compatible_contextual_replacement_is_not_reported()
+	{
+		Assert.DoesNotContain(
+			GrammarNormalizer.IncompatibleContextReplacement,
+			Normalize("""
+				Value   : @string = 'v'
+				RawText : @string = 'r'
+
+				context Ctx (Value = RawText)
+				{
+				}
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	sealed class StrictAssignabilityResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) => from == to;
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
 	}
 }

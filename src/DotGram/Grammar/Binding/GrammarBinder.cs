@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Parsing;
 
@@ -21,6 +22,12 @@ public sealed class GrammarBinder
 	public const string UnknownContext = "GRAM3003";
 	public const string UnknownCSharp  = "GRAM3004";
 	public const string DuplicatePublication = "GRAM3005";
+	public const string UnknownContextTarget      = "GRAM3006";
+	public const string UnknownContextReplacement = "GRAM3007";
+	public const string DuplicateContextBinding   = "GRAM3008";
+	public const string ParameterizedContextBinding = "GRAM3009";
+	public const string ContextBoundNameRedeclared = "GRAM3010";
+	public const string CircularContextBinding    = "GRAM3011";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a context outside
@@ -165,6 +172,7 @@ public sealed class GrammarBinder
 
 					var child = context.Nested[nestedIndex++];
 
+					ResolveContextBindings(nested, child, context);
 					ResolveImports(nested.Usings, child);
 					Resolve(nested.Decls, child);
 					break;
@@ -188,11 +196,141 @@ public sealed class GrammarBinder
 							$"'{method}' is already published by '{clash.Kind} {clash.Rule.Name}'; use 'as' to give one of them another name.",
 							publish.At);
 					else
-						_publications.Add(new Publication(publish.Kind, published, method, publish.At));
+						_publications.Add(new Publication(publish.Kind, published, method, publish.At, context));
 
 					break;
 			}
 		}
+	}
+
+	// ── Contextual bindings — §5, §7, §12 ───────────────────────────────────────
+
+	/// <summary>
+	/// Resolves a `context (...)` header's rebindings against <paramref name="context"/>,
+	/// the enclosing lexical environment — never against <paramref name="child"/> itself,
+	/// which is what keeps a header from naming something declared in the very body it
+	/// introduces. Runs for every nested context, header or not, since the §12
+	/// redeclaration check has to see every level's layered environment regardless of
+	/// whether this level added a binding of its own.
+	/// </summary>
+	void ResolveContextBindings(Decl.Context nested, GrammarContext child, GrammarContext context)
+	{
+		foreach (var rebinding in nested.Rebindings)
+		{
+			var left = context.LookupQualified(rebinding.Left);
+
+			if (left is null)
+			{
+				Report(
+					UnknownContextTarget,
+					$"'{rebinding.Left}' cannot be contextually bound because no visible rule with that name exists.",
+					rebinding.At);
+
+				continue;
+			}
+
+			var right = context.LookupQualified(rebinding.Right);
+
+			if (right is null)
+			{
+				Report(
+					UnknownContextReplacement,
+					$"'{rebinding.Right}' cannot replace '{rebinding.Left}' because no visible rule with that name exists.",
+					rebinding.At);
+
+				continue;
+			}
+
+			if (left.Declaration is { Params.Count: > 0 })
+			{
+				Report(
+					ParameterizedContextBinding,
+					$"'{rebinding.Left}' cannot be contextually bound: parameterized rules are not supported in a context header yet.",
+					rebinding.At);
+
+				continue;
+			}
+
+			if (right.Declaration is { Params.Count: > 0 })
+			{
+				Report(
+					ParameterizedContextBinding,
+					$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a context header yet.",
+					rebinding.At);
+
+				continue;
+			}
+
+			if (!child.TryBind(new ContextRebinding(left, right, rebinding.At)))
+				Report(
+					DuplicateContextBinding,
+					$"'{rebinding.Left}' is bound more than once in this context.",
+					rebinding.At);
+		}
+
+		child.ContextBindings = ChainResolve(context.ContextBindings, child.OwnBindings);
+
+		foreach (var rule in child.Rules.Values)
+			if (child.ContextBindings.Keys.Any(bound => bound.Name == rule.Name))
+				Report(
+					ContextBoundNameRedeclared,
+					$"Rule '{rule.Name}' is contextually bound in the active context and cannot be redeclared. Use a nested context binding to replace it.",
+					rule.Declaration!.At);
+	}
+
+	/// <summary>
+	/// Layers <paramref name="ownBindings"/> over <paramref name="inherited"/>, chain-
+	/// following each of this level's own bindings so that a header like
+	/// <c>context (A = B, B = D)</c> resolves <c>A</c> straight to <c>D</c> — §8's "a
+	/// chain of rebindings composes" done once here, rather than by repeated lookup
+	/// wherever a binding is used. An inherited entry is already fully resolved by the
+	/// level that produced it, so it needs no re-following of its own.
+	/// </summary>
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> ChainResolve(
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> inherited, IReadOnlyList<ContextRebinding> ownBindings)
+	{
+		if (ownBindings.Count == 0)
+			return inherited;
+
+		var raw      = new Dictionary<RuleSymbol, RuleSymbol>();
+		var resolved = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in inherited)
+		{
+			raw[pair.Key]      = pair.Value;
+			resolved[pair.Key] = pair.Value;
+		}
+
+		foreach (var binding in ownBindings)
+			raw[binding.Left] = binding.Right;
+
+		foreach (var binding in ownBindings)
+			resolved[binding.Left] = Follow(binding, raw);
+
+		return resolved;
+	}
+
+	RuleSymbol Follow(ContextRebinding binding, Dictionary<RuleSymbol, RuleSymbol> raw)
+	{
+		var visited = new HashSet<RuleSymbol> { binding.Left };
+		var current = binding.Right;
+
+		while (raw.TryGetValue(current, out var next))
+		{
+			if (!visited.Add(current))
+			{
+				Report(
+					CircularContextBinding,
+					$"'{binding.Left}' is contextually bound in a cycle through '{current}'.",
+					binding.At);
+
+				return current;
+			}
+
+			current = next;
+		}
+
+		return current;
 	}
 
 	void ResolveRule(Decl.Rule rule, GrammarContext context)

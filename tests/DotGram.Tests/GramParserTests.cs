@@ -151,6 +151,55 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void Parses_a_context_header()
+	{
+		Assert.Equal(
+			"""
+			File
+				Context "Ctx"
+					Rebinding "B" = "D"
+					Rebinding "Identifier" = "SqlIdentifier"
+					Rule "E"
+						Reference "A"
+			""",
+			Parse("""
+				context Ctx (B = D, Identifier = SqlIdentifier)
+				{
+					E = A
+				}
+				"""));
+	}
+
+	[Fact]
+	public void A_context_with_no_header_still_parses()
+	{
+		Assert.Equal(
+			"""
+			File
+				Context "Ctx"
+					Rule "E"
+						Reference "A"
+			""",
+			Parse("""
+				context Ctx
+				{
+					E = A
+				}
+				"""));
+	}
+
+	[Fact]
+	public void A_malformed_context_header_recovers()
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize(
+			"context Ctx (B) { E = A }\nGood = 'a'",
+			RoslynCSharpScanner.Instance));
+
+		Assert.NotEmpty(result.Diagnostics);
+		Assert.Contains("Good", result.File.ToString(), StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void Contextual_keywords_are_still_ordinary_names()
 	{
 		// `parse`, `context` and `find` only mean something where a declaration can start

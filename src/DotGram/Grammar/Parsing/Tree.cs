@@ -32,9 +32,10 @@ public sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl
 	public override string ToString() => Dump.Of(this);
 }
 
-public sealed record Using  (bool IsCSharp, string Name, Location At)                     : ILocated;
-public sealed record Param  (string Name, TypeRef? Type, Location At)                     : ILocated;
-public sealed record TypeRef(bool IsCSharp, string Name, bool IsSequence, Location At)    : ILocated;
+public sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
+public sealed record Param     (string Name, TypeRef? Type, Location At)                  : ILocated;
+public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated;
+public sealed record Rebinding (string Left, string Right, Location At)                   : ILocated;
 
 // ── Sums: flat, one level of alternatives each ───────────────────────────────────
 
@@ -58,7 +59,7 @@ public abstract record Decl : ILocated
 		string Name, IReadOnlyList<Param> Params, TypeRef? Type, Expr Body) : Decl;
 
 	public sealed record Context(
-		string Name, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
+		string Name, IReadOnlyList<Rebinding> Rebindings, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
 
 	public sealed record Publish(PublishKind Kind, string RuleName, string? Alias) : Decl;
 
@@ -175,9 +176,12 @@ static class Dump
 				Write(text, depth + 1, body);
 				break;
 
-			case Decl.Context(var name, var usings, var declarations):
+			case Decl.Context(var name, var rebindings, var usings, var declarations):
 
 				Write(text, depth, $"Context {Quote(name)}");
+
+				foreach (var rebinding in rebindings)
+					Write(text, depth + 1, Label(rebinding));
 
 				foreach (var import in usings)
 					Write(text, depth + 1, Label(import));
@@ -236,6 +240,9 @@ static class Dump
 		$"Using{(import.IsCSharp ? " (C#)" : "")} {Quote(import.Name)}";
 
 	public static string Label(Param parameter) => $"Parameter {Quote(parameter.Name)}";
+
+	public static string Label(Rebinding rebinding) =>
+		$"Rebinding {Quote(rebinding.Left)} = {Quote(rebinding.Right)}";
 
 	public static string Label(TypeRef type) =>
 		$"Type{(type.IsCSharp ? " (C#)" : "")} {Quote(type.Name)}{(type.IsSequence ? "[]" : "")}";

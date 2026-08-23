@@ -1681,4 +1681,77 @@ public sealed class SemanticTests
 	[InlineData("aaaa", false)]
 	public void Bounded_repetition(string input, bool expected) =>
 		Assert.Equal(expected, Matches("Start = 'a'{2,3}", input));
+
+	// ── Contextual bindings — §23 ────────────────────────────────────────────────
+
+	[Fact]
+	public void A_context_bound_publication_coexists_with_the_unbound_one()
+	{
+		// §23: the context specializes a use of `A`; it does not mutate `A` globally —
+		// both publications have to exist side by side in the one generated parser.
+		var result = Compile("""
+			B = 'b'
+			A = B
+
+			parse A as DefaultA
+
+			D = 'd'
+
+			context Ctx (B = D)
+			{
+				parse A as ContextA
+			}
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultA", "b").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryDefaultA", "d").IsSuccess);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryContextA", "d").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryContextA", "b").IsSuccess);
+	}
+
+	[Fact]
+	public void Lexical_Trivia_shadowing_does_not_reach_a_reused_outer_rule_but_a_contextual_binding_does()
+	{
+		// §22 test 12: `context { Trivia = none }` is lexical and has no effect on `Pair`,
+		// declared outside it and merely published from inside — `LexicalPair` behaves
+		// exactly like `DefaultPair`. `context (Trivia = none) { ... }` is contextual and
+		// does reach `Pair` — `ContextPair` rejects the space `DefaultPair` accepts.
+		var result = Compile("""
+			Trivia = ' '*
+			Pair   = A & B
+			A      = 'a'
+			B      = 'b'
+
+			parse Pair as DefaultPair
+
+			context Lex
+			{
+				Trivia = none
+
+				parse Pair as LexicalPair
+			}
+
+			context Ctx (Trivia = none)
+			{
+				parse Pair as ContextPair
+			}
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "ab").IsSuccess);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLexicalPair", "a b").IsSuccess);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "ab").IsSuccess);
+	}
 }

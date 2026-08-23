@@ -739,6 +739,68 @@ qualification, as in C#.
 
 Every context becomes a nested static class in the generated code.
 
+### 5.1 Contextual rebinding
+
+A `context` may carry a header, `context Name (A = B, ...) { ... }`. This does
+something different from an ordinary declaration in the block: it rebinds `A` to `B`
+for the *whole call graph reached from what the context declares* — not only for
+calls written lexically inside it.
+
+```dotgram
+B = 'c'
+A = B
+F = A
+
+context Ctx (B = D)
+{
+    E = A
+}
+
+D = 'd'
+```
+
+`F`, outside the context, still resolves `A` to the ordinary `B`. `E`, inside,
+resolves the same `A` through `D` — even though `A` is declared outside the context
+and never mentions `D`. `A` itself is untouched: nothing about `F`'s behavior depends
+on the context existing.
+
+The contrast with an ordinary declaration of the same name is the whole of what this
+section adds:
+
+```dotgram
+B = 'c'
+A = B
+
+context Ctx
+{
+    B = 'd'                 // shadowing: a new, unrelated rule named B
+    E = A                   // E -> outer A -> outer B -> 'c'
+}
+
+context Ctx2 (B = D)
+{
+    E = A                   // E -> A, with B substituted -> D
+}
+
+D = 'd'
+```
+
+A binding is not a declaration — it does not introduce a rule named `B` — so it does
+not shadow anything and nothing inside the same context, at any nesting depth, may
+also *declare* a rule under a name that is actively bound; write a nested
+`context (B = ...)` instead of redeclaring `B`. Both sides must already resolve to a
+visible, parameterless rule.
+
+Bindings in one header resolve simultaneously, against the context the header itself
+is written in: `context (A = B, B = C)` sends a call to `A` all the way to `C`
+regardless of which entry is written first. A nested context inherits its enclosing
+one's bindings and may replace any of them with its own.
+
+`Trivia` is an ordinary rule, so it is an ordinary rebinding target:
+`context (Trivia = none)` reuses an already-written rule under different whitespace
+handling — the same substitution as any other binding, and a different mechanism from
+shadowing `Trivia` locally (§4.5), which affects only what the block itself declares.
+
 ---
 
 ## 6. Publication
@@ -1375,7 +1437,9 @@ File        = Using* & Declaration*
 Using       = ("@using" | "using") & QualifiedName & ';'
 
 Declaration = Context | Publication | Rule
-Context     = "context" & Identifier & '{' & Using* & Declaration* & '}'
+Context     = "context" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
+Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
+Rebinding   = Identifier & '=' & Identifier
 Publication = ("parse" | "find") & QualifiedName & ("as" & Identifier)?
 
 Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body

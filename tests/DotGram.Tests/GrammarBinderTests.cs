@@ -160,9 +160,89 @@ public sealed class GrammarBinderTests
 	[InlineData("context S { }\nA = Other.X",   GrammarBinder.UndefinedName)]
 	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownContext)]
 	[InlineData("parse Absent\nA = 'a'",        GrammarBinder.UndefinedName)]
+	[InlineData("context S (Typo = D) { }\nD = 'd'",
+		GrammarBinder.UnknownContextTarget)]
+	[InlineData("context S (B = Typo) { }\nB = 'b'",
+		GrammarBinder.UnknownContextReplacement)]
+	[InlineData("context S (B = C, B = D) { }\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateContextBinding)]
+	[InlineData("B(item) = item\nD = 'd'\ncontext S (B = D) { }",
+		GrammarBinder.ParameterizedContextBinding)]
+	[InlineData("B = 'b'\nD = 'd'\ncontext S (B = D) { B = 'e' }",
+		GrammarBinder.ContextBoundNameRedeclared)]
+	[InlineData("B = 'b'\nD = 'd'\ncontext S (B = D) { context T { B = 'e' } }",
+		GrammarBinder.ContextBoundNameRedeclared)]
+	[InlineData("A = 'a'\nB = 'b'\ncontext S (A = B, B = A) { }",
+		GrammarBinder.CircularContextBinding)]
 	public void Reports(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void Declaring_an_unrelated_name_inside_a_bound_context_is_still_legal()
+	{
+		// §12's restriction is only for a name with an active *contextual* binding —
+		// declaring anything else inside a bound context is ordinary, legal declaration.
+		Assert.Empty(Diagnostics("""
+			B = 'b'
+			D = 'd'
+
+			context S (B = D)
+			{
+				E = 'e'
+			}
+			"""));
+	}
+
+	[Fact]
+	public void Bindings_in_one_header_chain_regardless_of_written_order()
+	{
+		// §7/§8: `(A = B, B = C)` resolves `A` straight through to `C` — one hop, not a
+		// repeated lookup wherever the binding is used.
+		var model = Bind("""
+			A = 'a'
+			B = 'b'
+			C = 'c'
+
+			context S (A = B, B = C)
+			{
+			}
+			""");
+
+		var site = model.Root.Nested.Single();
+		var a    = model.Root.Rules["A"];
+		var c    = model.Root.Rules["C"];
+
+		Assert.Empty(model.Diagnostics);
+		Assert.Equal(c, site.ContextBindings[a]);
+	}
+
+	[Fact]
+	public void A_nested_context_inherits_and_may_override_a_binding()
+	{
+		var model = Bind("""
+			B = 'b'
+			D = 'd'
+			E = 'e'
+
+			context Outer (B = D)
+			{
+				context Inner (B = E)
+				{
+				}
+			}
+			""");
+
+		var outer = model.Root.Nested.Single();
+		var inner = outer.Nested.Single();
+		var b     = model.Root.Rules["B"];
+		var d     = model.Root.Rules["D"];
+		var e     = model.Root.Rules["E"];
+
+		Assert.Empty(model.Diagnostics);
+		Assert.Equal(d, outer.ContextBindings[b]);
+		Assert.Equal(e, inner.ContextBindings[b]);
 	}
 
 	[Fact]
