@@ -498,7 +498,7 @@ sealed partial class Machine
 				{
 					using (file.Block("else if (entries.Count == call + 1)"))
 					{
-						file.Line("parser.Truncate(call);");
+						file.Line("parser.Truncate(call, entries);");
 						file.Line("entries.RemoveAt(call);");
 					}
 				}
@@ -573,7 +573,7 @@ sealed partial class Machine
 					file.Line("var last = entries.Count - 1;");
 					file.Line("var entry = entries[last];");
 					if (_guardValues)
-						file.Line("parser.Truncate(last);");
+						file.Line("parser.Truncate(last, entries);");
 					file.Line("entries.RemoveAt(last);");
 					file.Line();
 
@@ -1290,7 +1290,7 @@ sealed partial class Machine
 				else
 				{
 					if (_guardValues)
-						atCommit.Line("parser.Truncate(atomic);");
+						atCommit.Line("parser.Truncate(atomic, entries);");
 
 					atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
 				}
@@ -1335,7 +1335,7 @@ sealed partial class Machine
 				atSuccess.Line("var looked = entries[lookahead];");
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
 				if (_guardValues)
-					atSuccess.Line("parser.Truncate(lookahead);");
+					atSuccess.Line("parser.Truncate(lookahead, entries);");
 				atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 				atSuccess.Line("p         = looked.Position;");
 				atSuccess.Line("call      = looked.CallIndex;");
@@ -1396,7 +1396,7 @@ sealed partial class Machine
 		atSuccess.Line("var looked = entries[lookahead];");
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
 		if (_guardValues)
-			atSuccess.Line("parser.Truncate(lookahead);");
+			atSuccess.Line("parser.Truncate(lookahead, entries);");
 		atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atSuccess.Line("p         = looked.Position;");
 		atSuccess.Line("call      = looked.CallIndex;");
@@ -1455,7 +1455,7 @@ sealed partial class Machine
 		atMatched.Line("var looked = entries[lookahead];");
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
 		if (_guardValues)
-			atMatched.Line("parser.Truncate(lookahead);");
+			atMatched.Line("parser.Truncate(lookahead, entries);");
 		atMatched.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atMatched.Line("p         = looked.Position;");
 		atMatched.Line("call      = looked.CallIndex;");
@@ -1837,7 +1837,7 @@ sealed partial class Machine
 		{
 			using (writer.Block("if (entries.Count == repeat + 1)"))
 			{
-				writer.Line("parser.Truncate(repeat);");
+				writer.Line("parser.Truncate(repeat, entries);");
 				writer.Line("entries.RemoveAt(repeat);");
 			}
 		}

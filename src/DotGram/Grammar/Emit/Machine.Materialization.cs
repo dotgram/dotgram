@@ -35,16 +35,35 @@ sealed partial class Machine
 		_extra.Add(helper.ToString());
 	}
 
-	void Materialize(Writer file, bool cached)
+	void Materialize(Writer file, bool cached) =>
+		MaterializeRange(file, "0", cached);
+
+	/// <summary>
+	/// Turns an accepted derivation into values, bounded to what changed since the last call.
+	/// </summary>
+	/// <remarks>
+	/// <paramref name="fromExpr"/> is <c>"0"</c> for a fresh parse's one full sweep — the
+	/// whole arena is what changed, because nothing before it was ever materialized. An eager
+	/// materializer passes a rule's own call index instead, and gets the same walk narrowed to
+	/// one subtree: <see cref="MaterializeRule"/> already reads a rule's captures purely
+	/// through <c>linkHeads</c>/<c>linkNexts</c> starting from its own <c>completedAt</c>, so
+	/// bounding where the owner-marking and build sweeps start is the whole of what a caller
+	/// has to say to ask for less than everything.
+	/// </remarks>
+	void MaterializeRange(Writer file, string fromExpr, bool cached)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
 		DeclareTables(file);
 		if (cached)
 			file.Line("var built  = parser.Materialized();");
-		file.Line("var links  = parser.MaterializationLinks(entries.Count);");
+		file.Line("var linkHeads = parser.MaterializationHeads();");
+		file.Line("var linkNexts = parser.MaterializationNexts();");
 		file.Line();
 
-		using (file.Block("for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)"))
+		// Grown, not rebuilt from zero: a link written on an earlier, smaller call is still
+		// the answer for that index, so only what has not been linked yet needs the walk.
+		using (file.Block(
+			"for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)"))
 		{
 			file.Line("var derivation = entries[derivationAt];");
 
@@ -57,10 +76,11 @@ sealed partial class Machine
 
 			using (file.Block($"if (derivation.CallIndex >= 0 && ({linked}))"))
 			{
-				file.Line("links[entries.Count + derivationAt] = links[derivation.CallIndex];");
-				file.Line("links[derivation.CallIndex] = derivationAt;");
+				file.Line("linkNexts[derivationAt] = linkHeads[derivation.CallIndex];");
+				file.Line("linkHeads[derivation.CallIndex] = derivationAt;");
 			}
 		}
+		file.Line("parser.LinkedUpTo = entries.Count;");
 
 		// A transparent rule may have completed before a surrounding path backtracked and
 		// selected another derivation. Such completed entries can remain useful as history,
@@ -69,14 +89,14 @@ sealed partial class Machine
 		// the complete accepted value tree without recursion or another typed collection.
 		file.Line();
 		if (!cached)
-			file.Line("values[0] = parser;");
-		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
+			file.Line($"values[{fromExpr}] = parser;");
+		using (file.Block($"for (var ownerAt = {fromExpr}; ownerAt < entries.Count; ownerAt++)"))
 		{
 			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
 
 			using (file.Block(
-				"for (var capturedAt = links[ownerAt]; capturedAt >= 0; " +
-				"capturedAt = links[entries.Count + capturedAt])"))
+				"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
+				"capturedAt = linkNexts[capturedAt])"))
 			{
 				file.Line("var candidate = entries[capturedAt];");
 				file.Line("if (candidate.Kind == ParserEntry.RuleCapture" +
@@ -89,7 +109,7 @@ sealed partial class Machine
 		{
 			file.Line();
 
-			using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
+			using (file.Block($"for (var recoveryAt = {fromExpr}; recoveryAt < entries.Count; recoveryAt++)"))
 			{
 				file.Line("var recovered = entries[recoveryAt];");
 				file.Line(
@@ -108,7 +128,7 @@ sealed partial class Machine
 		}
 
 		using (file.Block(
-			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
+			$"for (var completedAt = entries.Count - 1; completedAt >= {fromExpr}; completedAt--)"))
 		{
 			file.Line("var completed = entries[completedAt];");
 			file.Line(
@@ -274,8 +294,8 @@ sealed partial class Machine
 						file.Line($"var captured{memberIndex}Count = 0;");
 
 						using (file.Block(
-							$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
-							$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
+							$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+							$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 							file.Line($"if ({collected}) captured{memberIndex}Count++;");
@@ -285,8 +305,8 @@ sealed partial class Machine
 						file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
 
 						using (file.Block(
-							$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
-							$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
+							$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+							$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
 						{
 							file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -314,8 +334,8 @@ sealed partial class Machine
 					file.Line($"var captured{memberIndex}At = -1;");
 
 					using (file.Block(
-						$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
-						$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
+						$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+						$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
 					{
 						file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -348,8 +368,8 @@ sealed partial class Machine
 				file.Line($"var captured{memberIndex}To   = -1;");
 
 				using (file.Block(
-					$"for (var capturedAt{memberIndex} = links[completedAt]; capturedAt{memberIndex} >= 0; " +
-					$"capturedAt{memberIndex} = links[entries.Count + capturedAt{memberIndex}])"))
+					$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+					$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
 				{
 					file.Line($"var candidate = entries[capturedAt{memberIndex}];");
 
@@ -386,8 +406,8 @@ sealed partial class Machine
 			file.Line("var chosen = -1;");
 
 			using (file.Block(
-				"for (var chosenAt = links[completedAt]; chosenAt >= 0; " +
-				"chosenAt = links[entries.Count + chosenAt])"))
+				"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
+				"chosenAt = linkNexts[chosenAt])"))
 			{
 				file.Line("var candidate = entries[chosenAt];");
 

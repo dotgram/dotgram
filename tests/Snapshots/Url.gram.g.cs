@@ -15419,23 +15419,25 @@ namespace DotGram.Snapshots
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
 						var values1 = parser.Materialization1();
-						var links  = parser.MaterializationLinks(entries.Count);
+						var linkHeads = parser.MaterializationHeads();
+						var linkNexts = parser.MaterializationNexts();
 
-						for (var derivationAt = 0; derivationAt < entries.Count; derivationAt++)
+						for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
 						{
 							var derivation = entries[derivationAt];
 							if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
 							{
-								links[entries.Count + derivationAt] = links[derivation.CallIndex];
-								links[derivation.CallIndex] = derivationAt;
+								linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
+								linkHeads[derivation.CallIndex] = derivationAt;
 							}
 						}
+						parser.LinkedUpTo = entries.Count;
 
 						values[0] = parser;
 						for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
 						{
 							if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
-							for (var capturedAt = links[ownerAt]; capturedAt >= 0; capturedAt = links[entries.Count + capturedAt])
+							for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 							{
 								var candidate = entries[capturedAt];
 								if (candidate.Kind == ParserEntry.RuleCapture)
@@ -15452,7 +15454,7 @@ namespace DotGram.Snapshots
 								{
 									var captured0From = -1;
 									var captured0To   = -1;
-									for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
+									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
 									{
 										var candidate = entries[capturedAt0];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 0))
@@ -15465,7 +15467,7 @@ namespace DotGram.Snapshots
 									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 									var captured1At = -1;
-									for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
+									for (var capturedAt1 = linkHeads[completedAt]; capturedAt1 >= 0; capturedAt1 = linkNexts[capturedAt1])
 									{
 										var candidate = entries[capturedAt1];
 										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
@@ -15479,7 +15481,7 @@ namespace DotGram.Snapshots
 
 									var captured2From = -1;
 									var captured2To   = -1;
-									for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
+									for (var capturedAt2 = linkHeads[completedAt]; capturedAt2 >= 0; capturedAt2 = linkNexts[capturedAt2])
 									{
 										var candidate = entries[capturedAt2];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 2))
@@ -15493,7 +15495,7 @@ namespace DotGram.Snapshots
 
 									var captured3From = -1;
 									var captured3To   = -1;
-									for (var capturedAt3 = links[completedAt]; capturedAt3 >= 0; capturedAt3 = links[entries.Count + capturedAt3])
+									for (var capturedAt3 = linkHeads[completedAt]; capturedAt3 >= 0; capturedAt3 = linkNexts[capturedAt3])
 									{
 										var candidate = entries[capturedAt3];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
@@ -15507,7 +15509,7 @@ namespace DotGram.Snapshots
 
 									var captured4From = -1;
 									var captured4To   = -1;
-									for (var capturedAt4 = links[completedAt]; capturedAt4 >= 0; capturedAt4 = links[entries.Count + capturedAt4])
+									for (var capturedAt4 = linkHeads[completedAt]; capturedAt4 >= 0; capturedAt4 = linkNexts[capturedAt4])
 									{
 										var candidate = entries[capturedAt4];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
@@ -15531,7 +15533,7 @@ namespace DotGram.Snapshots
 								{
 									var captured0From = -1;
 									var captured0To   = -1;
-									for (var capturedAt0 = links[completedAt]; capturedAt0 >= 0; capturedAt0 = links[entries.Count + capturedAt0])
+									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
 									{
 										var candidate = entries[capturedAt0];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 5))
@@ -15545,7 +15547,7 @@ namespace DotGram.Snapshots
 
 									var captured1From = -1;
 									var captured1To   = -1;
-									for (var capturedAt1 = links[completedAt]; capturedAt1 >= 0; capturedAt1 = links[entries.Count + capturedAt1])
+									for (var capturedAt1 = linkHeads[completedAt]; capturedAt1 >= 0; capturedAt1 = linkNexts[capturedAt1])
 									{
 										var candidate = entries[capturedAt1];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 6))
@@ -15559,7 +15561,7 @@ namespace DotGram.Snapshots
 
 									var captured2From = -1;
 									var captured2To   = -1;
-									for (var capturedAt2 = links[completedAt]; capturedAt2 >= 0; capturedAt2 = links[entries.Count + capturedAt2])
+									for (var capturedAt2 = linkHeads[completedAt]; capturedAt2 >= 0; capturedAt2 = linkNexts[capturedAt2])
 									{
 										var candidate = entries[capturedAt2];
 										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 7))
@@ -15983,7 +15985,9 @@ namespace DotGram.Snapshots
 			object?[] _values = global::System.Array.Empty<object?>();
 			global::DotGram.Snapshots.Url.UrlValue[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.UrlValue>();
 			global::DotGram.Snapshots.Url.Authority[] _values1 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Authority>();
-			int[] _links = global::System.Array.Empty<int>();
+			int[] _linkHeads = global::System.Array.Empty<int>();
+			int[] _linkNexts = global::System.Array.Empty<int>();
+			internal int LinkedUpTo;
 			int _valuesUsed;
 
 			internal object?[] Materialization(int count)
@@ -15995,6 +15999,14 @@ namespace DotGram.Snapshots
 				if (_values1.Length < count)
 					global::System.Array.Resize(ref _values1, count);
 
+				// Grown here, alongside the value table, rather than where the links are
+				// read — a guard that finds everything it needs already built calls this
+				// and nothing else, and a link table sized only where it is read would fall
+				// out of step with `_valuesUsed`, which is exactly what Reset and Truncate
+				// walk off the end of.
+				Grow(ref _linkHeads, count);
+				Grow(ref _linkNexts, count);
+
 				_valuesUsed = count;
 
 				return _values;
@@ -16003,22 +16015,42 @@ namespace DotGram.Snapshots
 			internal global::DotGram.Snapshots.Url.UrlValue[] Materialization0() { return _values0; }
 			internal global::DotGram.Snapshots.Url.Authority[] Materialization1() { return _values1; }
 			
-			internal int[] MaterializationLinks(int count)
+			internal int[] MaterializationHeads() => _linkHeads;
+			internal int[] MaterializationNexts() => _linkNexts;
+
+			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
+			// smaller call is still the answer for that index, and re-zeroing it would erase
+			// it. Only the newly reachable slots need a fresh -1.
+			static void Grow(ref int[] links, int count)
 			{
-				if (_links.Length < count * 2)
-					global::System.Array.Resize(ref _links, count * 2);
+				if (links.Length < count)
+				{
+					var from = links.Length;
+					global::System.Array.Resize(ref links, count);
 
-				for (var i = 0; i < count; i++)
-					_links[i] = -1;
-
-				return _links;
+					for (var i = from; i < count; i++)
+						links[i] = -1;
+				}
 			}
 
 			internal void Reset()
 			{
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
+
+				// A rule call that captures nothing this parse never writes its own head, so
+				// whatever a previous parse through the same pooled slot left there has to be
+				// cleared here instead — otherwise a lookup falls through to a stale chain from
+				// an earlier parse, one that can splice into a cycle once enough reuse has
+				// pointed two heads at each other.
+				for (var i = 0; i < _valuesUsed; i++)
+				{
+					_linkHeads[i] = -1;
+					_linkNexts[i] = -1;
+				}
+
 				_valuesUsed = 0;
+				LinkedUpTo = 0;
 			}
 		}
 

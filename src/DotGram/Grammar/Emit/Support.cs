@@ -502,7 +502,9 @@ public static partial class CSharpEmitter
 			object?[] _values = global::System.Array.Empty<object?>();
 			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
-			int[] _links = global::System.Array.Empty<int>();
+			int[] _linkHeads = global::System.Array.Empty<int>();
+			int[] _linkNexts = global::System.Array.Empty<int>();
+			internal int LinkedUpTo;
 			int _valuesUsed;
 
 			internal object?[] Materialization(int count)
@@ -512,6 +514,14 @@ public static partial class CSharpEmitter
 				/*TYPED_RESIZE*/
 				/*CACHE_RESIZE*/
 
+				// Grown here, alongside the value table, rather than where the links are
+				// read — a guard that finds everything it needs already built calls this
+				// and nothing else, and a link table sized only where it is read would fall
+				// out of step with `_valuesUsed`, which is exactly what Reset and Truncate
+				// walk off the end of.
+				Grow(ref _linkHeads, count);
+				Grow(ref _linkNexts, count);
+
 				_valuesUsed = count;
 
 				return _values;
@@ -519,15 +529,22 @@ public static partial class CSharpEmitter
 
 			/*TYPED_ACCESS*/
 			/*CACHE_ACCESS*/
-			internal int[] MaterializationLinks(int count)
+			internal int[] MaterializationHeads() => _linkHeads;
+			internal int[] MaterializationNexts() => _linkNexts;
+
+			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
+			// smaller call is still the answer for that index, and re-zeroing it would erase
+			// it. Only the newly reachable slots need a fresh -1.
+			static void Grow(ref int[] links, int count)
 			{
-				if (_links.Length < count * 2)
-					global::System.Array.Resize(ref _links, count * 2);
+				if (links.Length < count)
+				{
+					var from = links.Length;
+					global::System.Array.Resize(ref links, count);
 
-				for (var i = 0; i < count; i++)
-					_links[i] = -1;
-
-				return _links;
+					for (var i = from; i < count; i++)
+						links[i] = -1;
+				}
 			}
 
 			/*CACHE_TRUNCATE*/
@@ -536,7 +553,20 @@ public static partial class CSharpEmitter
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
 				/*CACHE_RESET*/
+
+				// A rule call that captures nothing this parse never writes its own head, so
+				// whatever a previous parse through the same pooled slot left there has to be
+				// cleared here instead — otherwise a lookup falls through to a stale chain from
+				// an earlier parse, one that can splice into a cycle once enough reuse has
+				// pointed two heads at each other.
+				for (var i = 0; i < _valuesUsed; i++)
+				{
+					_linkHeads[i] = -1;
+					_linkNexts[i] = -1;
+				}
+
 				_valuesUsed = 0;
+				LinkedUpTo = 0;
 			}
 		}
 
@@ -742,7 +772,7 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "CACHE_ACCESS",
 			"internal bool[] Materialized() => _built;\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_TRUNCATE",
-			"internal void Truncate(int count)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\t\t_valuesUsed = count;\n\t}\n}\n", caches);
+			"internal void Truncate(int count, ParserArena entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",
 			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
 

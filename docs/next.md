@@ -324,6 +324,72 @@ bounded by work done since the last eager trigger rather than by total arena siz
 something closer to incremental arena bookkeeping than to `Materialize_DotGram`'s sweep. That
 is a separate, sizeable design and does not belong to this pass.
 
+### Incremental materializer: the supporting mechanism, built
+
+The piece the previous section said was missing — a materializer bounded by what changed
+rather than by arena size — is now in `Parser` and `Machine.Materialization.cs`. Not eager
+construction itself yet; the shared infrastructure any eager trigger and every existing
+caller (`Accept:`'s one-shot sweep, a guard's speculative one) now run through alike.
+
+The linking pass (`Machine.Materialization.cs`'s `MaterializeRange`, formerly `Materialize`)
+used to rebuild the whole `links[]` array from index `0` on every call — the actual O(n²)
+source, since a full relink on every eager trigger would have defeated the point as surely as
+`Materialize_DotGram`'s full walk did. It is incremental now: `Parser.LinkedUpTo` remembers
+how far the linking loop has already gone, and the loop starts there instead of at `0`. The
+owner-marking and build sweeps take a `fromExpr` bound the same way — `"0"` for every caller
+today, a rule's own call index for the eager trigger once one exists.
+
+Three bugs came out of building this, each found by a full test-suite hang rather than by
+reasoning about the design beforehand — the kind of thing "checked by hand against every
+snapshot" (see step 2 above) does not catch, because none of them change what a single parse
+computes:
+
+- **The link table is per-node, not per-parse.** `Parser` is pooled (`Recycled`/`Recycle`,
+  keyed off `[ThreadStatic]`), so the same arrays outlive many parses. The original code's
+  full re-zero on every call hid this; growing-not-rebuilding does not. `Reset()` now clears
+  `_linkHeads`/`_linkNexts` back to `-1` over `[0, _valuesUsed)` — the same range `_values`
+  and `_built` were already cleared over — so a rule call that captures nothing this parse
+  does not fall through to a stale chain a previous parse left in the same pooled slot.
+- **Growing the value table and growing the link tables are one operation, not two.** A typed
+  `when` guard calls `parser.Materialization(entries.Count)` directly to size the value table
+  before deciding whether it needs `Materialize_DotGram` at all — and skips the call entirely
+  when everything it needs is already `built[]`. That left `_valuesUsed` ahead of
+  `_linkHeads.Length`/`_linkNexts.Length` whenever a second guard in the same parse found the
+  first guard's values already there, and `Reset()` read `_valuesUsed` off the end of the
+  shorter arrays. Fixed by moving the link tables' growth into `Materialization(count)`
+  itself — `MaterializationHeads`/`MaterializationNexts` are now plain accessors, sized
+  wherever the value table is, so the two cannot fall out of step by construction.
+- **A discarded derivation's own slots being cleared is not enough — the parent's head
+  pointer into them has to be too.** `Truncate` already clears `_values`/`_built` over the
+  range being discarded; extending that to `_linkHeads`/`_linkNexts` over the same range
+  fixed the previous bug but not this one. The list a call's captures thread through is
+  built by prepending — `linkNexts[new] = linkHeads[call]; linkHeads[call] = new` — and
+  discarding the *most recently* prepended entry leaves `linkHeads[call]` still pointing at
+  it unless something undoes that prepend. The surviving call is not itself in the truncated
+  range, so nothing in it was going to be cleared. `Truncate` now takes `entries` and walks
+  the discarded range descending, popping each index off the head of its own call's list —
+  `entries[i].CallIndex`, checked, reverted, then cleared — the same order those entries were
+  pushed in, undone. Missing this produced a *reachable* answer, not a crash: a stale head
+  splices one call's list onto a slot a later, unrelated derivation has since reused, and
+  `GeneratorDriverTests.A_cached_guard_value_is_discarded_with_its_derivation` — written for
+  exactly this shape, a guard whose first alternative's cached value must not survive into
+  the second — hung rather than failed once it existed to find it.
+
+`Parser.Truncate` gained a second parameter (`ParserArena entries`) for the third fix; every
+call site in `Machine.cs` was updated alongside it. `MaterializationHeads`/`Nexts` dropped
+their `count` parameter for the second fix. Both are internal-only signature changes with no
+effect on a generated parser's public surface.
+
+Verification for this step was the existing suite, not new tests written for it — `ExampleTests`
+(pooled reuse across ~90 parses per run) and `GeneratorDriverTests`'
+`A_cached_guard_value_is_discarded_with_its_derivation` (guard-cache-discard-on-backtrack,
+almost exactly the third bug's shape) already covered the shapes that broke, once they were
+run for long enough and without something else masking the hang.
+
+Eager construction's own wiring — the `Return:`-label call, the eligibility set built from
+`Committed && Deterministic`, `EnsureEagerMaterializer` — is still not built. This section is
+the foundation it needs, not the feature itself.
+
 ### What must not happen
 
 Regions must **reference** nodes, not clone them. `_captureSlots`, `_owners` and
