@@ -565,6 +565,96 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
+	// ── Eager construction ───────────────────────────────────────────────────────
+
+	[Fact]
+	public void An_eager_eligible_rule_is_constructed_even_when_the_parse_later_fails()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Inner & 'x' => @(value)\nInner : @int = '1' => @Built()\nparse Start")]
+			public partial class EagerBeforeFailure
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("EagerBeforeFailure")!;
+
+		// No trailing 'x', so the whole parse fails and Accept: — the only other place a
+		// value is ever constructed — is never reached. Inner is Committed && Deterministic
+		// the moment it returns, so the only way Built() can have run at all is the eager
+		// trigger at Inner's own Return:.
+		Assert.Throws<TargetInvocationException>(
+			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
+		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void Eager_construction_survives_a_repetition_giving_back_its_last_turn()
+	{
+		// Nothing follows Item* inside Start's own body — a repeat followed by anything
+		// else in the same sequence is enough on its own to disqualify the rule (confirmed
+		// against the shape the recovery test below uses, which has an eof after Item* and
+		// does not qualify). Checked here rather than assumed, since a comment claiming
+		// eager fired is worth exactly as much as the sub-string search that confirms it.
+		Assert.Contains(
+			"Materialize_DotGram_Eager",
+			GetGeneratedSource(
+				RunGenerator("""
+					[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
+					public partial class EagerRepeatProbe { static int Built() => 1; }
+					"""),
+				"EagerRepeatProbe.g.cs"),
+			StringComparison.Ordinal);
+
+		var type = Build("""
+			[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
+			public partial class EagerOverGivenBackTurn
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("EagerOverGivenBackTurn")!;
+
+		// The third turn has no digit left to try — Item* gives it back with nothing
+		// consumed, and the repeat exits cleanly with the two that already matched. Start
+		// is Committed && Deterministic the moment it returns (it is the one publication,
+		// with nothing above it left to retry), so its own eager trigger walks a subtree
+		// whose last repetition was truncated out from under it — exactly what
+		// Parser.Truncate's head reversion exists for.
+		var items = (int[])type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1,1,"])!;
+
+		Assert.Equal([1, 1], items);
+		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void Recovery_anywhere_turns_eager_construction_off_for_the_whole_grammar()
+	{
+		var plain = GetGeneratedSource(
+			RunGenerator("""
+				[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
+				public partial class EagerNoRecovery { static int Built() => 1; }
+				"""),
+			"EagerNoRecovery.g.cs");
+
+		var recovering = GetGeneratedSource(
+			RunGenerator("""
+				[DotGram.Gram("Start : @int = value: Inner & Trailer => @(value)\nInner : @int = '1' => @Built()\nTrailer = Row* recover eol\nRow : @string = text: ['a'..'z']+ & eol => @(text)\nparse Start")]
+				public partial class EagerWithRecovery { static int Built() => 1; }
+				"""),
+			"EagerWithRecovery.g.cs");
+
+		// Two different grammars, not a minimal pair over one — but both have a rule that
+		// is Committed && Deterministic the moment it returns (Start itself in the first,
+		// Inner in the second), so both would use the eager path if anything in the
+		// grammar allowed it. Recovery is what tells them apart: the conservative,
+		// whole-grammar guard (docs/next.md, "Incremental materializer") is the same one
+		// CanLower already uses for the same reason — the recovery pass has not been
+		// checked against a bounded range.
+		Assert.Contains("Materialize_DotGram_Eager", plain, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram_Eager", recovering, StringComparison.Ordinal);
+	}
+
 	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
 
 	/// <summary>

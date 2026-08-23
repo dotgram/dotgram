@@ -1249,7 +1249,7 @@ can tell is wrong.
 
 ## What has been measured
 
-Seven of the architecture's claims now have numbers rather than reasoning behind them.
+Eight of the architecture's claims now have numbers rather than reasoning behind them.
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
@@ -1307,6 +1307,17 @@ repeated-record feed (`benchmarks/Flat.cs`, one added capture the only differenc
 lowered version): 119 ns and zero allocation against 691 ns and 952 B through the shared
 engine. A grammar with even one rule that still needs the arena pays the whole cost for
 every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
+
+**Eager construction**: a rule proved `Committed && Deterministic` at every call site runs
+its `=>` the moment it returns rather than waiting for the parse to be accepted, and the
+materializer behind it is bounded by what changed since the last trigger rather than by
+arena size — `docs/next.md`, "Incremental materializer" and "Eager construction: built,
+wired in, and caught its own bug" have the mechanism. Measured on
+`benchmarks/DotGram.Benchmarks/EagerConstruction.cs` — a repeated record, nothing following
+the repeat so the outer rule qualifies — a tenfold increase in records, 10,000 to 100,000,
+costs eightfold to elevenfold in time and allocation rather than the roughly hundredfold
+either an O(n²) materializer or an exactly-sized array table (both tried, both measured,
+neither shipped) would have paid: 2.6 ms and 11 MB against 22 ms and 125 MB.
 
 Everything the architecture claims now has a number behind it.
 

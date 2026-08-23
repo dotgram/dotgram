@@ -360,7 +360,7 @@ public static partial class CSharpEmitter
 		}
 
 		if (machine is not null && !flat)
-			file.Write(ParserRuntime(graph.Climbing.Count > 0, machine.CachesGuardValues, machine.ValueTypes));
+			file.Write(ParserRuntime(graph.Climbing.Count > 0, machine.Caches, machine.ValueTypes));
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();

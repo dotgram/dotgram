@@ -1653,16 +1653,21 @@ namespace DotGram.Snapshots
 
 			internal object?[] Materialization(int count)
 			{
+				// Doubled, not sized to fit exactly: eager construction calls this once per
+				// return of an eager rule, and a grammar with many of those in one parse — a
+				// repeated record, one eager value each — would otherwise pay for a fresh
+				// copy of the whole table on every one of them, turning an O(n) parse back
+				// into the O(n^2) the incremental materializer exists to avoid.
 				if (_values.Length < count)
-					global::System.Array.Resize(ref _values, count);
+					global::System.Array.Resize(ref _values, global::System.Math.Max(count, _values.Length * 2));
 				if (_values0.Length < count)
-					global::System.Array.Resize(ref _values0, count);
+					global::System.Array.Resize(ref _values0, global::System.Math.Max(count, _values0.Length * 2));
 				if (_values1.Length < count)
-					global::System.Array.Resize(ref _values1, count);
+					global::System.Array.Resize(ref _values1, global::System.Math.Max(count, _values1.Length * 2));
 				if (_values2.Length < count)
-					global::System.Array.Resize(ref _values2, count);
+					global::System.Array.Resize(ref _values2, global::System.Math.Max(count, _values2.Length * 2));
 				if (_values3.Length < count)
-					global::System.Array.Resize(ref _values3, count);
+					global::System.Array.Resize(ref _values3, global::System.Math.Max(count, _values3.Length * 2));
 
 				// Grown here, alongside the value table, rather than where the links are
 				// read — a guard that finds everything it needs already built calls this
@@ -1693,9 +1698,10 @@ namespace DotGram.Snapshots
 				if (links.Length < count)
 				{
 					var from = links.Length;
-					global::System.Array.Resize(ref links, count);
 
-					for (var i = from; i < count; i++)
+					global::System.Array.Resize(ref links, global::System.Math.Max(count, from * 2));
+
+					for (var i = from; i < links.Length; i++)
 						links[i] = -1;
 				}
 			}

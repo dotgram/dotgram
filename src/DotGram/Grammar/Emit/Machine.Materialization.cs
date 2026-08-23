@@ -35,6 +35,33 @@ sealed partial class Machine
 		_extra.Add(helper.ToString());
 	}
 
+	/// <summary>
+	/// The materializer an eager-eligible rule calls from its own <c>Return:</c>, bounded to
+	/// its own subtree instead of the whole arena.
+	/// </summary>
+	/// <remarks>
+	/// Cached, the same as the guard materializer <see cref="EnsureMaterializer"/> builds:
+	/// this rule's own values may already be asked for again by an outer materialization once
+	/// the parse is accepted, or by an eager rule that turns out to sit inside another one —
+	/// <c>built[]</c> is what stops that from constructing twice.
+	/// </remarks>
+	void EnsureEagerMaterializer()
+	{
+		if (_eagerMaterializer)
+			return;
+
+		_eagerMaterializer = true;
+
+		var helper = new Writer(0);
+
+		using (helper.Block(
+			"static void Materialize_DotGram_Eager(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			"ParserArena entries, int from)"))
+			MaterializeRange(helper, "from", cached: true);
+
+		_extra.Add(helper.ToString());
+	}
+
 	void Materialize(Writer file, bool cached) =>
 		MaterializeRange(file, "0", cached);
 

@@ -386,9 +386,62 @@ Verification for this step was the existing suite, not new tests written for it 
 almost exactly the third bug's shape) already covered the shapes that broke, once they were
 run for long enough and without something else masking the hang.
 
-Eager construction's own wiring — the `Return:`-label call, the eligibility set built from
-`Committed && Deterministic`, `EnsureEagerMaterializer` — is still not built. This section is
-the foundation it needs, not the feature itself.
+### Eager construction: built, wired in, and caught its own bug
+
+The wiring the previous section left open is in now. `Machine.Regions.cs`'s
+`ComputeEagerRules` walks `_regions` once and keeps a rule when *every* region on its own
+body — every call site, since one compiled body serves all of them — is both `Committed`
+and `Deterministic`; one region reached either false disqualifies the rule everywhere,
+because the automaton cannot tell at `Return:` which call site a given return came from.
+A rule with nothing declared to build (`ValueRule(rule) < 0`) is filtered out too — nothing
+for an eager trigger to do early. The whole set is empty whenever `graph.Recoveries.Count >
+0`, the same conservative, grammar-wide guard `CanLower` already uses, because the recovery
+pass inside materialization has not been checked against a bounded range.
+
+`EnsureEagerMaterializer` builds `Materialize_DotGram_Eager(text, parser, entries, int
+from)` — `MaterializeRange` bounded from `from` instead of `"0"`, cached the same way the
+guard materializer is. The shared `Return:` label calls it, switching on
+`returned.RuleIndex` over the eager set, right after the `entries[call] = Completed`
+rewrite and never before it — `MaterializeRule` reads a rule's value off its `Completed`
+entry, so materializing a moment earlier would read a call that has not become one yet.
+Every place that decided whether to emit `Truncate`, the cached `Accept:` path, or the
+value-cache fields at all on `_guardValues` alone now decides on `Caches` — `_guardValues ||
+_eagerRules.Count > 0` — since an eager rule needs exactly the same infrastructure a typed
+guard does, for the same reason: a value that might be read again before the arena forgets
+it needs `built[]` to say whether it already was.
+
+Verification followed the plan's own list. `GeneratorDriverTests` gained three tests:
+`An_eager_eligible_rule_is_constructed_even_when_the_parse_later_fails` proves eager fired
+at all — the factory runs and the parse still fails afterward with nothing else in the
+grammar that could have run it, since `Accept:` is never reached.
+`Eager_construction_survives_a_repetition_giving_back_its_last_turn` checks a repeat whose
+last turn fails and is given back, with an explicit source-text assertion confirming the
+grammar it uses actually qualifies (a comment claiming eager fired is worth exactly what the
+sub-string search behind it proves, and finding the right shape by hand — a repeat followed
+by anything else in the same sequence is enough on its own to disqualify the rule —
+took several wrong grammars before the right one, which is why the test checks rather than
+asserts by comment). `Recovery_anywhere_turns_eager_construction_off_for_the_whole_grammar`
+checks generated source for `Materialize_DotGram_Eager`'s presence and absence across a
+minimal pair.
+
+The benchmark the plan asked for (`benchmarks/DotGram.Benchmarks/EagerConstruction.cs`,
+`Feed : @int[] = items: Item* => @(items)`, nothing following the repeat so `Feed` itself
+qualifies) is what actually found a fourth bug, one the correctness tests above had no way
+to catch because it does not change what a parse computes — only how much it costs.
+`Materialization(count)`, and the same shape in `_built`'s resize, each typed value table's
+resize, and `_linkHeads`/`_linkNexts`' `Grow`, all resized to *exactly* `count` rather than
+growing with headroom. Harmless when called once or a handful of times per parse, which is
+all any caller before eager construction ever did. An eager rule inside a repeat calls it
+once per turn, and a resize to exactly `count` on every call is an O(current-size) copy —
+O(n²) over a repeated-record grammar, the identical cost class the incremental linking pass
+was built to remove, reintroduced one array over. First run, 10,000 records: 710 ms and 8.1
+GB allocated; 100,000 records: 98.3 *seconds* and 810 GB. Fixed by growing each of the four
+to `Math.Max(count, length * 2)` instead — the doubling `ParserArena.Add` already used, just
+missing from these. Same grammar afterward: 10,000 records in 2.6 ms allocating 11 MB;
+100,000 in 22 ms allocating 125 MB — an eightfold-to-elevenfold cost for a tenfold input,
+not the roughly hundredfold time and hundredfold-of-already-huge allocation the exact-sized
+version paid. `dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter
+"*EagerConstruction*" --job short` reproduces both.
 
 ### What must not happen
 
@@ -412,9 +465,11 @@ such problem; cloning nodes per context reintroduces all of it.
 3. ~~The fourth need~~, and eager construction where it is proved. `Committed` is done —
    see "The fourth need" above for how it threads. Checked by hand the same way: nothing
    loops, and which construct-node regions come out committed is never all-or-nothing
-   (Json 9 of 19, Filter 1 of 19). Eager construction itself — actually running `=>` early
-   where this says it is safe — is not built: see "Eager construction" above for where it
-   would hook in and the O(n²) it would cost by reusing `Materialize_DotGram` as it stands.
+   (Json 9 of 19, Filter 1 of 19). ~~Eager construction itself~~ — actually running `=>`
+   early where this says it is safe — is done: the incremental materializer it needed to
+   avoid `Materialize_DotGram`'s O(n²) is built, and eager construction is wired to it; see
+   "Incremental materializer: the supporting mechanism, built" and "Eager construction:
+   built, wired in, and caught its own bug" above.
 4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
    the automaton across methods falls out of that rather than being done for its own sake.
    ~~Whole-grammar case done~~: when *every* publication qualifies, the grammar compiles

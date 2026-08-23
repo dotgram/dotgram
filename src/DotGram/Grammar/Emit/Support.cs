@@ -509,8 +509,13 @@ public static partial class CSharpEmitter
 
 			internal object?[] Materialization(int count)
 			{
+				// Doubled, not sized to fit exactly: eager construction calls this once per
+				// return of an eager rule, and a grammar with many of those in one parse — a
+				// repeated record, one eager value each — would otherwise pay for a fresh
+				// copy of the whole table on every one of them, turning an O(n) parse back
+				// into the O(n^2) the incremental materializer exists to avoid.
 				if (_values.Length < count)
-					global::System.Array.Resize(ref _values, count);
+					global::System.Array.Resize(ref _values, global::System.Math.Max(count, _values.Length * 2));
 				/*TYPED_RESIZE*/
 				/*CACHE_RESIZE*/
 
@@ -540,9 +545,10 @@ public static partial class CSharpEmitter
 				if (links.Length < count)
 				{
 					var from = links.Length;
-					global::System.Array.Resize(ref links, count);
 
-					for (var i = from; i < count; i++)
+					global::System.Array.Resize(ref links, global::System.Math.Max(count, from * 2));
+
+					for (var i = from; i < links.Length; i++)
 						links[i] = -1;
 				}
 			}
@@ -743,7 +749,7 @@ public static partial class CSharpEmitter
 			fields.Append(valueTypes[i]).Append("[] _values").Append(i)
 				.Append(" = global::System.Array.Empty<").Append(valueTypes[i]).Append(">();");
 			resize.Append("if (_values").Append(i).Append(".Length < count)\n\tglobal::System.Array.Resize(ref _values")
-				.Append(i).Append(", count);");
+				.Append(i).Append(", global::System.Math.Max(count, _values").Append(i).Append(".Length * 2));");
 			access.Append("internal ").Append(valueTypes[i]).Append("[] Materialization").Append(i)
 				.Append("() { return _values").Append(i).Append("; }\n");
 
@@ -768,7 +774,7 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "CACHE_FIELD",
 			"bool[] _built = global::System.Array.Empty<bool>();", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESIZE",
-			"if (_built.Length < count)\n\tglobal::System.Array.Resize(ref _built, count);", caches);
+			"if (_built.Length < count)\n\tglobal::System.Array.Resize(ref _built, global::System.Math.Max(count, _built.Length * 2));", caches);
 		runtime = CacheRuntime(runtime, "CACHE_ACCESS",
 			"internal bool[] Materialized() => _built;\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_TRUNCATE",

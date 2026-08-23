@@ -55,6 +55,7 @@ sealed partial class Machine
 	/// </remarks>
 	int _fail = Fail;
 	bool _materializer;
+	bool _eagerMaterializer;
 	bool _guardValues;
 	int _guards;
 	int _captures;
@@ -120,6 +121,7 @@ sealed partial class Machine
 
 		_plan    = ExecutionPlan.Of(graph);
 		_regions = ComputeRegions();
+		_eagerRules = ComputeEagerRules();
 
 		CollectValueTypes();
 
@@ -183,7 +185,14 @@ sealed partial class Machine
 	}
 
 	public IReadOnlyList<string> Extra => _extra;
-	public bool CachesGuardValues => _guardValues;
+
+	/// <summary>
+	/// Whether the generated <c>Parser</c> needs the value-cache fields at all: a typed
+	/// guard reads a value before the parse is accepted, and an eager rule's value may be
+	/// asked for again by an outer materialization once the arena has moved on — both need
+	/// <c>built[]</c> to tell an already-materialized value from one still owed.
+	/// </summary>
+	public bool Caches => _guardValues || _eagerRules.Count > 0;
 
 	/// <summary>
 	/// Every type a rule's value can have, each with a table of its own to sit in.
@@ -377,8 +386,11 @@ sealed partial class Machine
 		foreach (var rule in _graph.Rules)
 			hasValues |= ValueRule(rule) >= 0;
 
-		if (hasValues && _guardValues)
+		if (hasValues && Caches)
 			EnsureMaterializer();
+
+		if (hasValues && _eagerRules.Count > 0)
+			EnsureEagerMaterializer();
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
@@ -493,8 +505,34 @@ sealed partial class Machine
 						"returned.Position, returned.CallIndex, returned.AtomicIndex, " +
 						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex" +
 						(_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
+
+					// Only the rules Committed && Deterministic proved safe — see
+					// Machine.Regions.cs's ComputeEagerRules — and only right here, after the
+					// rewrite above: before it, entries[call] is still Kind == Call, not
+					// Completed, and MaterializeRule reads a rule's value off its Completed
+					// entry.
+					if (_eagerRules.Count > 0)
+					{
+						using (file.Block("switch (returned.RuleIndex)"))
+						{
+							foreach (var rule in _eagerRules)
+								file.Line($"case {_ruleIds[rule]}:");
+
+							using (file.Indent())
+							{
+								// The generic mark, not RootValue's typed tables: nothing
+								// here reads the value back — it stays in the arena for
+								// whichever capture or the final sweep reads it later.
+								file.Line("var eagerValues = parser.Materialization(entries.Count);");
+								file.Line("var eagerBuilt  = parser.Materialized();");
+								file.Line("if (!eagerBuilt[call]) eagerValues[call] = parser;");
+								file.Line("Materialize_DotGram_Eager(text, parser, entries, call);");
+								file.Line("break;");
+							}
+						}
+					}
 				}
-				if (_guardValues)
+				if (Caches)
 				{
 					using (file.Block("else if (entries.Count == call + 1)"))
 					{
@@ -524,7 +562,7 @@ sealed partial class Machine
 						{
 							using (file.Block("if (rootRule >= 0)"))
 							{
-								if (_guardValues)
+								if (Caches)
 								{
 									file.Line("var values = parser.Materialization(entries.Count);");
 									DeclareTables(file);
@@ -572,7 +610,7 @@ sealed partial class Machine
 				{
 					file.Line("var last = entries.Count - 1;");
 					file.Line("var entry = entries[last];");
-					if (_guardValues)
+					if (Caches)
 						file.Line("parser.Truncate(last, entries);");
 					file.Line("entries.RemoveAt(last);");
 					file.Line();
@@ -1289,7 +1327,7 @@ sealed partial class Machine
 				}
 				else
 				{
-					if (_guardValues)
+					if (Caches)
 						atCommit.Line("parser.Truncate(atomic, entries);");
 
 					atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
@@ -1334,7 +1372,7 @@ sealed partial class Machine
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 				atSuccess.Line("var looked = entries[lookahead];");
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
-				if (_guardValues)
+				if (Caches)
 					atSuccess.Line("parser.Truncate(lookahead, entries);");
 				atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 				atSuccess.Line("p         = looked.Position;");
@@ -1376,6 +1414,7 @@ sealed partial class Machine
 
 	readonly ExecutionPlan               _plan;
 	readonly IReadOnlyCollection<Region> _regions;
+	readonly HashSet<RuleSymbol>         _eagerRules;
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
@@ -1395,7 +1434,7 @@ sealed partial class Machine
 		atSuccess.Line("var seenTo = p;");
 		atSuccess.Line("var looked = entries[lookahead];");
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
-		if (_guardValues)
+		if (Caches)
 			atSuccess.Line("parser.Truncate(lookahead, entries);");
 		atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atSuccess.Line("p         = looked.Position;");
@@ -1454,7 +1493,7 @@ sealed partial class Machine
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atMatched.Line("var looked = entries[lookahead];");
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
-		if (_guardValues)
+		if (Caches)
 			atMatched.Line("parser.Truncate(lookahead, entries);");
 		atMatched.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atMatched.Line("p         = looked.Position;");
@@ -1833,7 +1872,7 @@ sealed partial class Machine
 		writer.Line("var finished = entries[repeat];");
 		writer.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
 		writer.Line("var previousRepeat = finished.RepeatIndex;");
-		if (_guardValues)
+		if (Caches)
 		{
 			using (writer.Block("if (entries.Count == repeat + 1)"))
 			{
