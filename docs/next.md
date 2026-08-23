@@ -353,9 +353,10 @@ such problem; cloning nodes per context reintroduces all of it.
    the automaton across methods falls out of that rather than being done for its own sake.
    ~~Whole-grammar case done~~: when *every* publication qualifies, the grammar compiles
    without the shared engine at all — see "Whole-grammar lowering" below. Splitting a mixed
-   grammar, where one rule lowers and a sibling does not, is not built: that needs a calling
-   convention between the two worlds, which the whole-grammar case sidesteps entirely by
-   never having both at once.
+   grammar, where one rule lowers and a sibling does not, is not built, and the specific
+   shape investigated for it — a silent rule that still keeps a useful type — turned out to
+   have no target at all; see "Mixed lowering: investigated, has no target" below before
+   attempting it again.
 
 ### Whole-grammar lowering
 
@@ -401,6 +402,33 @@ just unused. Measured on a repeated-record grammar structurally identical to
 `Possession.Settled` (`benchmarks/Flat.cs`, one added capture the only difference): 119 ns
 and zero allocation lowered, against 691 ns and 952 B through the shared engine — the arena
 and dispatch overhead this section exists to name.
+
+### Mixed lowering: investigated, has no target
+
+The obvious next step — let one silent rule inside a larger, non-silent grammar compile
+flat and be called with a plain method call from the shared automaton — was designed and
+partly built (`Machine.CanLowerRule`, `Machine.CompileFlatCall`) before turning out to have
+no reachable case, and was reverted rather than left as dead code.
+
+The reasoning: a silent rule that declares no type is already inlined by
+`ExecutionPlan.CompiledInPlace`, so the only case worth a separate method is one
+`CanInline` refuses only because it declares `: @T` — and `Silent` already excludes every
+`Capture`/`Construct`, so such a rule can only be §4.1 case 4 (builds nothing, captures
+nothing). Checked against the actual normalizer (`GrammarNormalizer.Results.cs`,
+`ExtentValues`) rather than assumed: `: @string` on such a rule has its declared type
+erased during normalization — "the type is recorded as absent so the machine goes on doing
+what it did" — so it is already `CanInline`-eligible, same as writing no type at all.
+`: @SourceSpan` keeps its type, but normalization gives it a `Construct` (a factory taking
+`parserSpan`) to name the bounds explicitly — and a `Construct` anywhere is exactly what
+`Silent` excludes. Every other case (§4.1 cases 2 and 3) already requires a capture or an
+injected `Construct` to build its value. There is no grammar `: @T` and silent at once can
+describe.
+
+If this is ever revisited, it needs a different premise than "a silent rule can still be
+usefully typed" — that one is closed. `Machine.RenderFlat`/`Machine.PlanLayout` reuse and
+the `_fail` save/restore trap found along the way (a nested `Compile` call, from inside
+another `Compile` call, must not inherit a redirected `_fail`) both still apply to whatever
+premise replaces it.
 
 ## What the machine supports now
 
