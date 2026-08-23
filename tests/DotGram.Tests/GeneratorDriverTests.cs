@@ -356,6 +356,50 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
+	public void An_external_recognizer_is_silent_and_the_grammar_lowers()
+	{
+		// @Blob is trusted deterministic on the same contract Silent already trusts every
+		// other leaf for — on any outcome but success it must leave `pos` where it found it
+		// (§7.2) — so nothing about this grammar needs the arena, and it compiles without
+		// one: no ParserArena, no dispatch, no pooled Parser.
+		const string source = """
+			[DotGram.Gram("Start = 'b' & @Blob & '.'\nparse Start")]
+			public partial class Blobs
+			{
+				static bool Blob(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					var at = pos;
+
+					var size = 0;
+
+					while (at < input.Length && input[at] >= '0' && input[at] <= '9')
+						size = size * 10 + (input[at++] - '0');
+
+					if (at == pos || at + size > input.Length)
+						return false;
+
+					pos = at + size;
+
+					return true;
+				}
+			}
+			""";
+
+		var generated = RunGenerator(source).Results
+			.SelectMany(static r => r.GeneratedSources)
+			.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+			.Select(static s => s.SourceText.ToString())
+			.Single();
+
+		Assert.DoesNotContain("ParserArena", generated, StringComparison.Ordinal);
+
+		var parse = Build(source).GetType("Blobs")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("b3abc.", parse.Invoke(null, ["b3abc."]));
+		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["b3ab."]));
+	}
+
+	[Fact]
 	public void Syntactic_position_selects_between_C_sharp_overloads()
 	{
 		var parse = Build("""

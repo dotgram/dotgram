@@ -71,12 +71,20 @@ sealed partial class Machine
 	/// node that writes none — text matched against the input, alternatives one character
 	/// tells apart, rules small enough to be compiled in place — has nothing to take back,
 	/// and its failure can go straight wherever the caller wants it.
+	/// <para>
+	/// An external recognizer writes nothing either: it is compiled as one <c>if (!method(
+	/// text, ref p)) goto Fail;</c>, and docs/syntax.md §7.2 requires the method itself to
+	/// restore <c>pos</c> on any outcome but success — the same promise a literal keeps by
+	/// never moving <c>p</c> before its test fails. Nothing here can see whether the promise
+	/// was kept; that is on the C# it is trusting, same as every other guarantee §7.2 asks
+	/// for and does not check.
+	/// </para>
 	/// </remarks>
 	bool Silent(Node node, FirstSets.First following) =>
 		(_graph.Climbing.Count == 0 || !_owners.ContainsKey(node)) &&
 		node switch
 		{
-			Node.Empty or Node.Literal or Node.Element => true,
+			Node.Empty or Node.Literal or Node.Element or Node.External => true,
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllSilent(alternatives, following, sequence: false),
@@ -244,12 +252,18 @@ sealed partial class Machine
 	/// is why this needs to know what follows: possessiveness is a fact about a repetition
 	/// in a place, not about a repetition.
 	/// </para>
+	/// <para>
+	/// An external recognizer is a leaf here for the same reason it is one for
+	/// <see cref="Silent"/>: whatever it decided, it decided once. This is what lets a
+	/// repetition of one — <c>@Token*</c> — be shown possessive instead of kept as the
+	/// general machinery by default.
+	/// </para>
 	/// </remarks>
 	bool Deterministic(Node node, HashSet<RuleSymbol> seen, FirstSets.First following) =>
 		node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead => true,
-			Node.Literal or Node.Element               => true,
+			Node.Literal or Node.Element or Node.External => true,
 			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
 			Node.Construct(var body, _)                => Deterministic(body, seen, following),
 			Node.Atomic(var body)                      => Deterministic(body, seen, following),
