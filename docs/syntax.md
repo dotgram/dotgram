@@ -1436,17 +1436,13 @@ the grammar has no comparison operators.
 
 ## 11. Deliberately out of scope
 
-Below is what needs a working prototype rather than another round of argument on
-paper. None of it requires changing the notation above.
-
-**Decided: there will be no notation for it.**
+None of what follows changes the notation described above.
 
 - **Repairing a document.** When a whole input is one construct — a source file in an
   editor — recovery needs no notation: the engine runs a pass of its own, only after
   ordinary parsing failed, and looks for the cheapest edit that makes the input parse.
   The author writes nothing. Details in `implementation.md` §1 and §6.
 
-  This was once written here as covering error recovery entirely, and it does not.
   Cheapest-edit repair answers "what did the author most likely mean", which is the
   right question for one document and the wrong one for a feed of a hundred million
   records: there the answer wanted is "this record is bad, say why and go on", which is
@@ -1478,9 +1474,7 @@ paper. None of it requires changing the notation above.
   cannot matter: single-element sets, where the match is always exactly one item, so
   `'a' | 'b'` becomes `['a'..'b']`.
 
-**Decided in substance, awaiting a prototype.**
-
-- **Trivia** — the mechanism is in §4.5. It needed no notation at all: an ordinary
+- **Trivia** — the mechanism is in §4.5. It needs no notation of its own: an ordinary
   rule and ordinary shadowing.
 
 - **Atomic groups are explicit.** `{ X }` has the same matches and value as `X`, but when
@@ -1490,29 +1484,25 @@ paper. None of it requires changing the notation above.
 
 - **Keyword boundaries** — §4.6, the same mechanism again.
 
-**Deferred, with the reason.**
-
 - **`Incomplete`** does not exist. An outcome is `Success`, `NoMatch` or `Error`.
   A source that cannot block — an async socket, where control has to go back to the
   caller mid-parse — is what would need it; a file, however large, is read by a reader
   that simply fetches the next chunk. Adding it means a rule for every construct
   (repetition, both lookaheads, recovery, `find`) plus a resumption model,
   and that is a lot to carry before anything asks for it.
+
 - **A sliding window** over input that is neither memory-sized nor line-oriented.
   Source files fit in memory; feeds are line-oriented; what is left is huge binary
   input, which is out of scope. If it ever arrives, it slots in beside the two modes
   in §6.3 without disturbing them.
+
 - **A precedence table** separate from the rules, the way `yacc` declares one. What it
   would buy is in §4.3.1 instead, written on the alternatives themselves — an operator
   and its strength in one place rather than two that must be kept in step.
 
-**Answered, and where.**
-
-- **How an author says "this is an error, not a mismatch"** was open here, on the
-  observation that a failing `when @IsSupportedSymbol(symbol)` is merely a non-match
-  and "unsupported symbol XYZ" is therefore never said. It was answered by splitting
-  the question in two (§8.1). A guard is recognition and stays a non-match — that was
-  never the part that needed changing. What was missing is that most of the checks
-  people write are not recognition at all: they run on values, after the match, and
-  belong in a transformation that may fail. §7.1 gives that a signature, `recover`
-  (§8.2) gives the failure somewhere to go, and neither touches what a guard means.
+- **Telling an error from a non-match.** A guard is recognition and stays a non-match:
+  a failing `when @IsSupportedSymbol(symbol)` is an ordinary non-match, not an error
+  carrying a message like "unsupported symbol XYZ". Most of what an author wants to say
+  there is not about recognition at all — it is about a value, after a match, which is
+  what a transformation that may fail is for (§7.1), or what a repetition's `recover`
+  is for (§8.2). Neither changes what a guard means.
