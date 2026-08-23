@@ -45,6 +45,9 @@ foreach (var row in Feed.AllRows(text))     // occurrences, found as they are as
 	…
 ```
 
+Everything else — one value against a lazy sequence, throwing against asking — follows
+from that; none of it is a second decision.
+
 No `out` parameters: what a match has to say is a value, and the next thing it has to
 say is a field on it rather than another parameter on every signature.
 
