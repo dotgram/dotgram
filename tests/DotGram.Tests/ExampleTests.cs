@@ -33,6 +33,7 @@ public sealed class ExampleTests
 	[InlineData("example.com",                      false)]
 	[InlineData("gopher://example.com",             false)]
 	[InlineData("https://exa mple.com",             false)]
+	[InlineData("ht tps://example.com",             false)]
 	public void Is_url(string text, bool expected) => Assert.Equal(expected, Links.IsUrl(text));
 
 	[Theory]
