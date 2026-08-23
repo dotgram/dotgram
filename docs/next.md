@@ -351,6 +351,56 @@ such problem; cloning nodes per context reintroduces all of it.
    would hook in and the O(n²) it would cost by reusing `Materialize_DotGram` as it stands.
 4. Lowering: a region needing none of the three becomes an ordinary method, and splitting
    the automaton across methods falls out of that rather than being done for its own sake.
+   ~~Whole-grammar case done~~: when *every* publication qualifies, the grammar compiles
+   without the shared engine at all — see "Whole-grammar lowering" below. Splitting a mixed
+   grammar, where one rule lowers and a sibling does not, is not built: that needs a calling
+   convention between the two worlds, which the whole-grammar case sidesteps entirely by
+   never having both at once.
+
+### Whole-grammar lowering
+
+`Machine.Silent(node, following)` already *is* the eligibility test for lowering — its own
+recursive definition requires every reachable call to be inlinable, which already excludes a
+rule that can reach itself, and defaults every node kind it has no case for — a capture, a
+construction, a guard, an external recognizer, a lookahead, an atomic group — to not silent.
+Asking it once at a publication's root (`Machine.CanLower`) asks it of everything reachable,
+with no separate structural scan needed.
+
+Scoped to whole grammars: lowering fires only when *every* publication qualifies (also
+requiring no `recover`, no binding powers, no streaming — each drives machinery of its own).
+One disqualifying rule anywhere and the output is exactly today's, unchanged. This sidesteps
+the harder problem entirely — a lowered rule calling into, or being called from, the shared
+automaton — by ensuring the two never coexist in one file.
+
+The recognizer itself reuses `Compile` and `PlanLayout` completely unchanged: it is a
+different rendering of the same states (`Machine.RenderFlat` in `Machine.Flat.cs`), not a
+second compiler. `PlanLayout`'s reachability and signpost-collapsing already work from any
+`_roots`, by regex over already-generated text, with no idea what becomes of the states it
+orders — reusing it for a standalone entry needed no changes at all.
+
+`Start = "h"` (`parse Start`) now compiles to:
+
+```csharp
+static int Recognize_Start_Whole_Flat(ReadOnlySpan<char> text, int pos, ref Failure failure)
+{
+	var p = pos;
+	if (p + 1 > text.Length) goto Fail;
+	if (text[p + 0] != 'h') goto Fail;
+	p += 1;
+	if (p != text.Length) goto Fail;
+	return p;
+
+	Fail:
+	failure.Position = p;
+	return -1;
+}
+```
+
+No `Parser`, no `ParserArena`, no dispatch, no pooling — none of it is emitted at all, not
+just unused. Measured on a repeated-record grammar structurally identical to
+`Possession.Settled` (`benchmarks/Flat.cs`, one added capture the only difference): 119 ns
+and zero allocation lowered, against 691 ns and 952 B through the shared engine — the arena
+and dispatch overhead this section exists to name.
 
 ## What the machine supports now
 

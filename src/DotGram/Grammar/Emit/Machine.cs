@@ -246,12 +246,41 @@ sealed partial class Machine
 		if (!whole || _wholeEntries.ContainsKey(root))
 			return;
 
-		_wholeEntries[root] = _graph.Trivia.TryGetValue(root, out var trivia)
-			? Compile(new Node.Sequence([trivia, _graph.Bodies[root], trivia]), Return, FirstSets.First.All)
+		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
+			? Compile(BodyOf(root, whole: true), Return, FirstSets.First.All)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
 	}
+
+	/// <summary>
+	/// A rule's body, wrapped in its leading and trailing <see cref="RecognitionGraph.Trivia"/>
+	/// where a whole parse is asked for one and it has it.
+	/// </summary>
+	/// <remarks>
+	/// The one thing <see cref="Register"/> and <see cref="CanLower"/> must never be allowed
+	/// to disagree about: whether a rule can be lowered is a fact about the same body
+	/// <see cref="Register"/> would otherwise have compiled into the shared table.
+	/// </remarks>
+	Node BodyOf(RuleSymbol rule, bool whole) =>
+		whole && _graph.Trivia.TryGetValue(rule, out var trivia)
+			? new Node.Sequence([trivia, _graph.Bodies[rule], trivia])
+			: _graph.Bodies[rule];
+
+	/// <summary>
+	/// Whether a publication of <paramref name="rule"/> needs none of the three things the
+	/// arena is for — no recursion, no backtracking, no deferred construction — and so could
+	/// be compiled as an ordinary method instead of a state in the shared automaton.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Silent"/>'s own recursive definition already is this test: every reachable
+	/// call must be inlinable, which already excludes a rule that can reach itself, and
+	/// every node kind it has no case for — a capture, a construction, a guard, an external
+	/// recognizer, a lookahead, an atomic group — defaults to not silent. Asking it once at
+	/// the root asks it of everything reachable.
+	/// </remarks>
+	public bool CanLower(RuleSymbol rule, bool whole) =>
+		Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
 
 	public int Register(Node node)
 	{
@@ -439,26 +468,7 @@ sealed partial class Machine
 					file.Line("default: goto Fail;");
 				}
 
-				for (var written = 0; written < _order.Count; written++)
-				{
-					var i    = _order[written];
-					var body = _bodies[i];
-
-					// Chained: what this state ends by jumping to is the state written next,
-					// so the jump is the line after it either way.
-					if (written + 1 < _order.Count &&
-						Tail(body) is { } onward &&
-						onward == _order[written + 1] + First)
-					{
-						body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
-					}
-
-					file.Line();
-					file.Line($"S{i + First}:");
-
-					using (file.Block(""))
-						file.Write(body);
-				}
+				RenderStates(file);
 
 				file.Line();
 				file.Line("Return:");
@@ -696,6 +706,39 @@ sealed partial class Machine
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// Every state <see cref="PlanLayout"/> decided is written, in the order it decided,
+	/// each followed by the one it jumps to where that saves the jump.
+	/// </summary>
+	/// <remarks>
+	/// Shared between <see cref="RenderEngine"/> and <see cref="RenderFlat"/>: both write a
+	/// state table, one inside the shared automaton and one on its own, and it has to be the
+	/// same writing either way — <see cref="PlanLayout"/> already decided what belongs in it.
+	/// </remarks>
+	void RenderStates(Writer file)
+	{
+		for (var written = 0; written < _order.Count; written++)
+		{
+			var i    = _order[written];
+			var body = _bodies[i];
+
+			// Chained: what this state ends by jumping to is the state written next, so the
+			// jump is the line after it either way.
+			if (written + 1 < _order.Count &&
+				Tail(body) is { } onward &&
+				onward == _order[written + 1] + First)
+			{
+				body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
+			}
+
+			file.Line();
+			file.Line($"S{i + First}:");
+
+			using (file.Block(""))
+				file.Write(body);
+		}
 	}
 
 	/// <param name="following">
