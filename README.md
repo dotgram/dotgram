@@ -2,16 +2,6 @@
 
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
-> **Early work.** The pipeline runs end to end, the parsers it produces are real and
-> typed, a grammar can compute, a marked repetition survives a bad element, and a feed
-> streams — ten million records of fifty fields read through a 4 KB window. What is
-> missing is a good deal of §7.1's seam with C#, richer streamed-result surfaces, and
-> incremental parsing. Nothing here is ready to depend on.
->
-> The specification describes the target language. Not every specified feature is
-> implemented — [`docs/status.md`](docs/status.md) says which are, feature by pipeline
-> stage, along with what is known to be wrong.
-
 ## What it looks like
 
 A grammar lives in a `.gram` file beside a partial class:
