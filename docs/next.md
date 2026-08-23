@@ -430,6 +430,24 @@ the `_fail` save/restore trap found along the way (a nested `Compile` call, from
 another `Compile` call, must not inherit a redirected `_fail`) both still apply to whatever
 premise replaces it.
 
+### `Node.Guard` does not have the same gap `Node.External` did
+
+Checked, not assumed, after `External` widened cleanly: `Guard`'s compiled shape
+(`Machine.cs:1034-1243`) unconditionally emits `var ruleStart = entries[call].Position;`
+before it even asks whether the guard's own text names `parserText` — `entries`/`call`
+referenced regardless. `External` was safe to add because its compiled shape names neither;
+`Silent` only asks "does this write to the arena" and happened to coincide with "does this
+reference the arena at all" for `External`, not because the two questions are the same one.
+A flat method's signature carries no `entries`/`call` at all, so marking `Guard` silent
+without first making that line conditional would compile-error the moment a silent-marked
+guard landed inside `RenderFlat`.
+
+The narrow case that would open — a guard naming neither `parserText` nor any capture —
+is real but vanishingly rare (a `when` with no relation to what was matched) and would need
+that line made conditional first, for a case unlikely to occur in a written grammar. Not
+worth it on its own; if `Guard` is reconsidered, start from making `ruleStart` conditional,
+not from `Silent`'s switch.
+
 ## What the machine supports now
 
 `Machine` handles every normalized node form:
