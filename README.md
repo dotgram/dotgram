@@ -52,9 +52,11 @@ say is a field on it rather than another parameter on every signature.
 
 **Notation means what it already means.** Quantifiers are postfix and spelled as in
 regular expressions (`X?`, `X*`, `X+`, `X{4}`), lookahead is `?=` and `?!`, `|` is
-ordered choice, and `@` is the one door into C#. Every piece of syntax was chosen
-against a single test: it means exactly one thing, and that thing is what it means in
-C# or in .NET regular expressions.
+ordered choice, and `@` is the one door into C#: a predicate, a recognizer, a guard, a
+construction all cross through it, and it means the same one thing at every one of
+them — what follows is C#. Every piece of syntax was chosen against a single test: it
+means exactly one thing, and that thing is what it means in C# or in .NET regular
+expressions.
 
 **No runtime assembly ships.** Everything a generated parser needs is emitted into the
 consumer's own compilation, and all of it `internal`. You take one analyzer package,
