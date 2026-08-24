@@ -21,7 +21,11 @@ static class GramContentType
 
 	[Export]
 	[Name(Name)]
-	[BaseDefinition("code")]
+	// "code" activates Visual Studio's generic LSP data-tip provider. A standalone
+	// .gram buffer has no Roslyn/LSP document, so every hover is logged as a failed
+	// textDocument/_vs_dataTipRange request. DotGram exports its editor features
+	// explicitly and only needs the regular text editor foundation here.
+	[BaseDefinition("text")]
 	static readonly ContentTypeDefinition Definition = null!;
 
 	[Export]
