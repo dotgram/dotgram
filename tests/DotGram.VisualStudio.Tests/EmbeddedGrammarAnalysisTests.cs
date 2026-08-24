@@ -37,6 +37,14 @@ public sealed class EmbeddedGrammarAnalysisTests
 
 		Assert.Equal(2, references.Length);
 		Assert.All(references, item => Assert.Equal(references[0].Span, item.DefinitionSpan));
+
+		var symbols = analysis.Symbols;
+		Assert.Equal(2, symbols.Count);
+		Assert.Equal(new[] { "Start", "Start" }, symbols.Select(symbol => symbol.Name).ToArray());
+		Assert.Equal(symbols[0].Span, symbols[0].DefinitionSpan);
+		Assert.Equal(symbols[0].DefinitionSpan, symbols[1].DefinitionSpan);
+		Assert.True(symbols[0].IsDefinition);
+		Assert.False(symbols[1].IsDefinition);
 		Assert.Empty(analysis.Diagnostics);
 	}
 

@@ -194,6 +194,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	int                               _retryCount;
 	IReadOnlyList<HostClassification> _classifications = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
+	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
 
 	EmbeddedGrammarBufferAnalysis(
 		ITextBuffer buffer,
@@ -238,6 +239,26 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 		classifications = [];
 		diagnostics     = [];
+
+		return false;
+	}
+
+	public bool TryGetSymbols(
+		ITextSnapshot snapshot,
+		out IReadOnlyList<HostSymbolOccurrence> symbols)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				symbols = _symbols;
+
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		symbols = [];
 
 		return false;
 	}
@@ -298,6 +319,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics).ToArray();
+			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
 			var retry           = false;
 
 			lock (_gate)
@@ -310,6 +332,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_snapshot        = snapshot;
 				_classifications = classifications;
 				_diagnostics     = diagnostics;
+				_symbols         = symbols;
 
 				if (_retrySnapshot != snapshot)
 				{
