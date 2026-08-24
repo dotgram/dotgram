@@ -48,7 +48,7 @@ namespace DotGram.Examples;
 
 	// Every literal that is all word characters may not be the start of a longer word
 	// (§4.6), so `into` does not match inside `into_stock`.
-	keywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']
+	wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']
 
 	trivia = none
 
@@ -97,25 +97,25 @@ namespace DotGram.Examples;
 	S = ['s' | 'S']   T = ['t' | 'T']   U = ['u' | 'U']   V = ['v' | 'V']
 	W = ['w' | 'W']   X = ['x' | 'X']   Y = ['y' | 'Y']   Z = ['z' | 'Z']
 
-	Select   = S & E & L & E & C & T & ?!keywordBoundary
-	With     = W & I & T & H & ?!keywordBoundary
-	Insert   = I & N & S & E & R & T & ?!keywordBoundary
-	Update   = U & P & D & A & T & E & ?!keywordBoundary
-	Delete   = D & E & L & E & T & E & ?!keywordBoundary
-	Merge    = M & E & R & G & E & ?!keywordBoundary
-	Into     = I & N & T & O & ?!keywordBoundary
-	Create   = C & R & E & A & T & E & ?!keywordBoundary
-	Drop     = D & R & O & P & ?!keywordBoundary
-	Alter    = A & L & T & E & R & ?!keywordBoundary
-	Truncate = T & R & U & N & C & A & T & E & ?!keywordBoundary
-	Grant    = G & R & A & N & T & ?!keywordBoundary
-	Revoke   = R & E & V & O & K & E & ?!keywordBoundary
-	Exec     = E & X & E & C & (U & T & E)? & ?!keywordBoundary
-	Call     = C & A & L & L & ?!keywordBoundary
-	Set      = S & E & T & ?!keywordBoundary
-	Copy     = C & O & P & Y & ?!keywordBoundary
-	Vacuum   = V & A & C & U & U & M & ?!keywordBoundary
-	Analyze  = A & N & A & L & Y & (Z | S) & E & ?!keywordBoundary
+	Select   = S & E & L & E & C & T & ?!wordboundary
+	With     = W & I & T & H & ?!wordboundary
+	Insert   = I & N & S & E & R & T & ?!wordboundary
+	Update   = U & P & D & A & T & E & ?!wordboundary
+	Delete   = D & E & L & E & T & E & ?!wordboundary
+	Merge    = M & E & R & G & E & ?!wordboundary
+	Into     = I & N & T & O & ?!wordboundary
+	Create   = C & R & E & A & T & E & ?!wordboundary
+	Drop     = D & R & O & P & ?!wordboundary
+	Alter    = A & L & T & E & R & ?!wordboundary
+	Truncate = T & R & U & N & C & A & T & E & ?!wordboundary
+	Grant    = G & R & A & N & T & ?!wordboundary
+	Revoke   = R & E & V & O & K & E & ?!wordboundary
+	Exec     = E & X & E & C & (U & T & E)? & ?!wordboundary
+	Call     = C & A & L & L & ?!wordboundary
+	Set      = S & E & T & ?!wordboundary
+	Copy     = C & O & P & Y & ?!wordboundary
+	Vacuum   = V & A & C & U & U & M & ?!wordboundary
+	Analyze  = A & N & A & L & Y & (Z | S) & E & ?!wordboundary
 
 	parse Query
 	""")]

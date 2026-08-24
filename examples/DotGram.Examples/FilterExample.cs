@@ -41,7 +41,7 @@ namespace DotGram.Examples;
 
 	trivia = [' ' | '\t']*
 
-	keywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+	wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 
 	Filter : @Predicate = predicate: Expr & eof => @(predicate)
 

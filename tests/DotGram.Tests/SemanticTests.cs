@@ -497,12 +497,12 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_keyword_does_not_match_the_start_of_a_longer_word()
 	{
-		// §4.6: shadow the rule and every all-word literal picks up `& ?!keywordBoundary`.
+		// §4.6: shadow the rule and every all-word literal picks up `& ?!wordboundary`.
 		// Which literals qualify is decided when the grammar is built — `"if"` gets the
 		// check and `"("` does not, since asking whether a letter follows a bracket would
 		// refuse `(a)`.
 		const string grammar =
-			"keywordBoundary = ['a'..'z' | '0'..'9' | '_']\n"
+			"wordboundary = ['a'..'z' | '0'..'9' | '_']\n"
 			+ "Start = \"if\" & '(' & ['a'..'z']+ & ')'";
 
 		Assert.True (Matches(grammar, "if(x)"));
@@ -520,7 +520,7 @@ public sealed class SemanticTests
 		// The other order would ask whether a letter follows the whitespace rather than
 		// whether it follows the keyword, which is no question at all.
 		Assert.False(Matches(
-			"keywordBoundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
+			"wordboundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
 			"iffy then"));
 
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
