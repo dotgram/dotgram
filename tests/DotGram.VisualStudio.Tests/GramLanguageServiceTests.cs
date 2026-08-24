@@ -89,6 +89,27 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ReportsBracePairsAndMultilineFoldingRanges()
+	{
+		const string source = "/* heading\n   text */\nStart(value) = (\n  ['a'] & value\n)";
+
+		var document = GramLanguageService.Analyze(source);
+		var pairs = document.Braces
+			.Select(pair =>
+				(source.Substring(pair.OpenPosition, pair.OpenLength),
+				 source.Substring(pair.ClosePosition, pair.CloseLength)))
+			.ToArray();
+
+		Assert.Equal(3, pairs.Length);
+		Assert.Contains(("(", ")"), pairs);
+		Assert.Contains(("[", "]"), pairs);
+		Assert.Equal(3, document.FoldingRanges.Count);
+		Assert.Contains(document.FoldingRanges, range => range.CollapsedText == "/*…*/");
+		Assert.Contains(document.FoldingRanges, range => range.CollapsedText == "(…)");
+		Assert.Contains(document.FoldingRanges, range => range.CollapsedText == "Start(value) …");
+	}
+
+	[Fact]
 	public void SupportsExpressionScopedRebinding()
 	{
 		const string source =

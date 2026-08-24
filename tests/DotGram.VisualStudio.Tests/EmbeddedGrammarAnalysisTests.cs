@@ -83,6 +83,28 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.Equal(parameter.ScopeSpan, capture.ScopeSpan);
 	}
 
+	[Fact]
+	public void MapsBracePairsAndFoldingRanges()
+	{
+		var source = Host(""""
+			"""
+			Start = (
+				['a']
+			)
+			"""
+			"""");
+
+		var analysis = Assert.Single(Analyze(source));
+		Assert.Equal(2, analysis.Braces.Count);
+		Assert.All(analysis.Braces, pair =>
+		{
+			Assert.True(pair.GrammarSpan.Contains(pair.OpenSpan));
+			Assert.True(pair.GrammarSpan.Contains(pair.CloseSpan));
+		});
+		Assert.Equal(2, analysis.FoldingRanges.Count);
+		Assert.All(analysis.FoldingRanges, range => Assert.True(range.GrammarSpan.Contains(range.Span)));
+	}
+
 	static string Host(string literal) => $$"""
 		using DG = DotGram;
 

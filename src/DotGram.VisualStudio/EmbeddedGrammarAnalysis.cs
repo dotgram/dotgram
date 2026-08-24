@@ -39,6 +39,10 @@ public sealed class HostDiagnostic(GramDiagnostic diagnostic, TextSpan span, boo
 	public bool           IsExact    { get; } = isExact;
 }
 
+public readonly record struct HostBracePair(TextSpan OpenSpan, TextSpan CloseSpan, TextSpan GrammarSpan);
+
+public readonly record struct HostFoldingRange(TextSpan Span, TextSpan GrammarSpan, string CollapsedText);
+
 /// <summary>One grammar rule occurrence mapped into its containing C# document.</summary>
 public readonly struct HostSymbolOccurrence(
 	string name,
@@ -63,12 +67,16 @@ public sealed class EmbeddedGrammarAnalysis(
 	EmbeddedGrammar grammar,
 	IReadOnlyList<HostClassification> classifications,
 	IReadOnlyList<HostDiagnostic> diagnostics,
-	IReadOnlyList<HostSymbolOccurrence> symbols)
+	IReadOnlyList<HostSymbolOccurrence> symbols,
+	IReadOnlyList<HostBracePair> braces,
+	IReadOnlyList<HostFoldingRange> foldingRanges)
 {
 	public EmbeddedGrammar                   Grammar         { get; } = grammar;
 	public IReadOnlyList<HostClassification> Classifications { get; } = classifications;
 	public IReadOnlyList<HostDiagnostic>     Diagnostics     { get; } = diagnostics;
 	public IReadOnlyList<HostSymbolOccurrence> Symbols        { get; } = symbols;
+	public IReadOnlyList<HostBracePair> Braces { get; } = braces;
+	public IReadOnlyList<HostFoldingRange> FoldingRanges { get; } = foldingRanges;
 }
 
 /// <summary>Runs shared grammar intelligence and maps its answers into a C# document.</summary>
@@ -87,6 +95,8 @@ public static class EmbeddedGrammarService
 			var classifications = new List<HostClassification>(document.Classifications.Count);
 			var diagnostics     = new List<HostDiagnostic>(document.Diagnostics.Count);
 			var symbols         = new List<HostSymbolOccurrence>(document.Symbols.Count);
+			var braces          = new List<HostBracePair>(document.Braces.Count);
+			var foldingRanges   = new List<HostFoldingRange>(document.FoldingRanges.Count);
 
 			foreach (var classification in document.Classifications)
 				if (grammar.SourceMap.TryMap(
@@ -138,7 +148,22 @@ public static class EmbeddedGrammarService
 						symbol.Kind,
 						scopeSpan));
 
-			analyses.Add(new EmbeddedGrammarAnalysis(grammar, classifications, diagnostics, symbols));
+			foreach (var pair in document.Braces)
+				if (grammar.SourceMap.TryMap(pair.OpenPosition, pair.OpenLength, out var openSpan) &&
+					grammar.SourceMap.TryMap(pair.ClosePosition, pair.CloseLength, out var closeSpan))
+					braces.Add(new HostBracePair(openSpan, closeSpan, grammar.Token.Span));
+
+			foreach (var range in document.FoldingRanges)
+				if (grammar.SourceMap.TryMap(range.Position, range.Length, out var span))
+					foldingRanges.Add(new HostFoldingRange(span, grammar.Token.Span, range.CollapsedText));
+
+			analyses.Add(new EmbeddedGrammarAnalysis(
+				grammar,
+				classifications,
+				diagnostics,
+				symbols,
+				braces,
+				foldingRanges));
 		}
 
 		return analyses;

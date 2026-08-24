@@ -195,6 +195,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 	IReadOnlyList<HostClassification> _classifications = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
+	IReadOnlyList<HostBracePair>       _braces        = [];
+	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
 
 	EmbeddedGrammarBufferAnalysis(
 		ITextBuffer buffer,
@@ -263,6 +265,27 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
+	public bool TryGetStructure(
+		ITextSnapshot snapshot,
+		out IReadOnlyList<HostBracePair> braces,
+		out IReadOnlyList<HostFoldingRange> foldingRanges)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				braces = _braces;
+				foldingRanges = _foldingRanges;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		braces = [];
+		foldingRanges = [];
+		return false;
+	}
+
 	void BufferChanged(object sender, TextContentChangedEventArgs change) => Schedule(change.After);
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
@@ -320,6 +343,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics).ToArray();
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
+			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
+			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
 			var retry           = false;
 
 			lock (_gate)
@@ -333,6 +358,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_classifications = classifications;
 				_diagnostics     = diagnostics;
 				_symbols         = symbols;
+				_braces          = braces;
+				_foldingRanges   = foldingRanges;
 
 				if (_retrySnapshot != snapshot)
 				{

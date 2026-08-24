@@ -76,15 +76,23 @@ public readonly struct GramSymbolOccurrence(
 	public int ScopeEnd { get; } = scopeEnd;
 }
 
+public readonly record struct GramBracePair(int OpenPosition, int OpenLength, int ClosePosition, int CloseLength);
+
+public readonly record struct GramFoldingRange(int Position, int Length, string CollapsedText);
+
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
 public sealed class GramDocument(
 	IReadOnlyList<GramClassifiedSpan> classifications,
 	IReadOnlyList<GramDiagnostic> diagnostics,
-	IReadOnlyList<GramSymbolOccurrence> symbols)
+	IReadOnlyList<GramSymbolOccurrence> symbols,
+	IReadOnlyList<GramBracePair> braces,
+	IReadOnlyList<GramFoldingRange> foldingRanges)
 {
 	public IReadOnlyList<GramClassifiedSpan> Classifications { get; } = classifications;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
 	public IReadOnlyList<GramSymbolOccurrence> Symbols { get; } = symbols;
+	public IReadOnlyList<GramBracePair> Braces { get; } = braces;
+	public IReadOnlyList<GramFoldingRange> FoldingRanges { get; } = foldingRanges;
 }
 
 /// <summary>
@@ -159,10 +167,82 @@ public static class GramLanguageService
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
+		var (braces, foldingRanges) = Structure(text, tokens.Tokens, rules, classifications);
+
 		return new GramDocument(
 			classifications,
 			NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens),
-			symbols);
+			symbols,
+			braces,
+			foldingRanges);
+	}
+
+	static (IReadOnlyList<GramBracePair> Braces, IReadOnlyList<GramFoldingRange> FoldingRanges) Structure(
+		string text,
+		IReadOnlyList<Token> tokens,
+		IReadOnlyDictionary<string, RuleInfo> rules,
+		IReadOnlyList<GramClassifiedSpan> classifications)
+	{
+		var braces = new List<GramBracePair>();
+		var parentheses = new Stack<Token>();
+		var brackets    = new Stack<Token>();
+		var blocks      = new Stack<Token>();
+
+		foreach (var token in tokens)
+			switch (token.Kind)
+			{
+				case TokenKind.OpenParen:   parentheses.Push(token); break;
+				case TokenKind.OpenBracket: brackets.Push(token);    break;
+				case TokenKind.OpenBrace:   blocks.Push(token);       break;
+				case TokenKind.CloseParen:   Close(parentheses, token); break;
+				case TokenKind.CloseBracket: Close(brackets, token);    break;
+				case TokenKind.CloseBrace:   Close(blocks, token);       break;
+			}
+
+		braces.Sort(static (left, right) => left.OpenPosition.CompareTo(right.OpenPosition));
+
+		var folding = new List<GramFoldingRange>();
+		var starts = new HashSet<int>();
+
+		foreach (var rule in rules.Values)
+			AddFold(rule.Position, rule.Definition.Length, rule.Signature + " …");
+
+		foreach (var pair in braces)
+			AddFold(
+				pair.OpenPosition,
+				pair.ClosePosition + pair.CloseLength - pair.OpenPosition,
+				text.Substring(pair.OpenPosition, pair.OpenLength) + "…" +
+				text.Substring(pair.ClosePosition, pair.CloseLength));
+
+		foreach (var comment in classifications)
+			if (comment.Kind == GramSyntaxKind.Comment &&
+				comment.Length >= 4 &&
+				text.AsSpan(comment.Position, 2).SequenceEqual("/*".AsSpan()))
+				AddFold(comment.Position, comment.Length, "/*…*/");
+
+		folding.Sort(static (left, right) => left.Position.CompareTo(right.Position));
+		return (braces, folding);
+
+		void Close(Stack<Token> stack, Token close)
+		{
+			if (stack.Count == 0)
+				return;
+
+			var open = stack.Pop();
+			braces.Add(new GramBracePair(open.Position, open.Length, close.Position, close.Length));
+		}
+
+		void AddFold(int position, int length, string collapsedText)
+		{
+			if (length <= 0 || !starts.Add(position))
+				return;
+
+			var end = position + length;
+			if (end > text.Length || text.IndexOf('\n', position, length) < 0)
+				return;
+
+			folding.Add(new GramFoldingRange(position, length, collapsedText));
+		}
 	}
 
 	static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
