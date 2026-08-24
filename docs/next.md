@@ -21,7 +21,7 @@ better.
 - C# files are UTF-8 with BOM and CRLF.
 - Markdown files are UTF-8 without BOM and CRLF.
 - Do not let a build or test invocation run for minutes. The complete suite takes about
-  14-24 seconds on the machines used so far; stop it at 30 seconds and investigate.
+  14-26 seconds on the machines used so far; stop it at 30 seconds and investigate.
 - Build with:
 
   ```powershell
