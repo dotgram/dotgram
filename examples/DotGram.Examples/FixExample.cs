@@ -41,7 +41,7 @@ namespace DotGram.Examples;
 	@using DotGram.Examples;
 	@using System.Globalization;
 
-	Trivia = none
+	trivia = none
 
 	// The frame, and nothing about what it means.
 	Message : @FixMessage = whole: Body => @(new FixMessage(whole, parserText))

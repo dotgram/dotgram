@@ -36,7 +36,7 @@ namespace DotGram.Examples;
 
 	// Every space here is written down: a value keeps its inner spaces and loses only the
 	// ones around it, which no automatic trivia insertion would get right.
-	Trivia = none
+	trivia = none
 
 	Ini : @IniFile = global: Entries & sections: Section* & eof
 	                   => @(new IniFile(global, sections))

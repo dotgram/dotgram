@@ -39,7 +39,7 @@ namespace DotGram.Examples;
 	@using System;
 	@using System.Globalization;
 
-	Trivia = [' ' | '\t']*
+	trivia = [' ' | '\t']*
 
 	KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 

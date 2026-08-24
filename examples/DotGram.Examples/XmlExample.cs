@@ -32,9 +32,9 @@ namespace DotGram.Examples;
 
 	context Lexical
 	{
-		// No Trivia in here: a name stops at the first character that is not one of these,
+		// No trivia in here: a name stops at the first character that is not one of these,
 		// and text is whatever sits between the tags, spaces included.
-		Trivia = none
+		trivia = none
 
 		NameText = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
 		Space    = [' ' | '\t' | '\r' | '\n']*
@@ -42,11 +42,11 @@ namespace DotGram.Examples;
 		Chars    = [^ '<']+
 	}
 
-	// None, and that is the point. Trivia is inserted between the operands of a sequence
+	// None, and that is the point. trivia is inserted between the operands of a sequence
 	// (§4.5), so a grammar that ignores whitespace ignores it inside content too — and in
 	// XML the run between two tags is a text node, spaces and all. Where whitespace really
 	// is insignificant here, `Lexical.Space` says so in as many words.
-	Trivia = none
+	trivia = none
 
 	Xml : @XmlElement = element: Element & eof => @(element)
 
@@ -65,7 +65,7 @@ namespace DotGram.Examples;
 
 	Text : @XmlNode = chars: Lexical.Chars => @(new XmlText(chars))
 
-	// The leading `Space` is not decoration. §4.5 inserts Trivia between the operands of a
+	// The leading `Space` is not decoration. §4.5 inserts trivia between the operands of a
 	// sequence, and the iterations of a repetition are not that — so `Attribute*` would
 	// read one attribute and stop at the space before the next. Each iteration eats its
 	// own leading whitespace instead.

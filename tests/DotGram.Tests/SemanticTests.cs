@@ -520,7 +520,7 @@ public sealed class SemanticTests
 		// The other order would ask whether a letter follows the whitespace rather than
 		// whether it follows the keyword, which is no question at all.
 		Assert.False(Matches(
-			"KeywordBoundary = ['a'..'z']\nTrivia = ' '*\nStart = \"if\" & \"then\"",
+			"KeywordBoundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
 			"iffy then"));
 
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
@@ -532,17 +532,17 @@ public sealed class SemanticTests
 		// alike and are not, which is worth a test of its own because the difference is
 		// what keeps `['0'..'9']+` from reading "1 2" as one number in a grammar that
 		// ignores spaces.
-		Assert.True(Matches("Trivia = ' '*\nStart = Word & Word\nWord = ['a'..'z']+", "ab cd"));
-		Assert.False(Matches("Trivia = ' '*\nStart = Word*\nWord = ['a'..'z']+", "ab cd"));
+		Assert.True(Matches("trivia = ' '*\nStart = Word & Word\nWord = ['a'..'z']+", "ab cd"));
+		Assert.False(Matches("trivia = ' '*\nStart = Word*\nWord = ['a'..'z']+", "ab cd"));
 	}
 
 	[Fact]
 	public void And_a_spaced_list_says_so_with_the_rule_itself()
 	{
-		// `Trivia` is an ordinary rule (§4.5), so a repetition that wants spacing names it.
+		// `trivia` is an ordinary rule (§4.5), so a repetition that wants spacing names it.
 		// Nothing new in the language and nothing special about the name.
 		Assert.True(Matches(
-			"Trivia = ' '*\nStart = Word & (Trivia & Word)*\nWord = ['a'..'z']+",
+			"trivia = ' '*\nStart = Word & (trivia & Word)*\nWord = ['a'..'z']+",
 			"ab cd ef"));
 	}
 
@@ -1645,7 +1645,7 @@ public sealed class SemanticTests
 	[InlineData("1.5",   true)]
 	[InlineData("1 . 5", false)]
 	public void A_context_shadows_Trivia_the_other_way_round(string input, bool expected) =>
-		// Trivia goes between the operands of every sequence, `Number`'s included. A
+		// trivia goes between the operands of every sequence, `Number`'s included. A
 		// context that shadows it with `none` is how a rule says a space means something
 		// here.
 		Assert.Equal(
@@ -1656,12 +1656,12 @@ public sealed class SemanticTests
 
 				context Lexical
 				{
-					Trivia = none
+					trivia = none
 
 					Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?
 				}
 
-				Trivia = [' ']*
+				trivia = [' ']*
 				Start  = Number
 				""",
 				input));
@@ -1719,12 +1719,12 @@ public sealed class SemanticTests
 	[Fact]
 	public void Lexical_Trivia_shadowing_does_not_reach_a_reused_outer_rule_but_a_contextual_binding_does()
 	{
-		// §22 test 12: `context { Trivia = none }` is lexical and has no effect on `Pair`,
+		// §22 test 12: `context { trivia = none }` is lexical and has no effect on `Pair`,
 		// declared outside it and merely published from inside — `LexicalPair` behaves
-		// exactly like `DefaultPair`. `context (Trivia = none) { ... }` is contextual and
+		// exactly like `DefaultPair`. `context (trivia = none) { ... }` is contextual and
 		// does reach `Pair` — `ContextPair` rejects the space `DefaultPair` accepts.
 		var result = Compile("""
-			Trivia = ' '*
+			trivia = ' '*
 			Pair   = A & B
 			A      = 'a'
 			B      = 'b'
@@ -1733,12 +1733,12 @@ public sealed class SemanticTests
 
 			context Lex
 			{
-				Trivia = none
+				trivia = none
 
 				parse Pair as LexicalPair
 			}
 
-			context Ctx (Trivia = none)
+			context Ctx (trivia = none)
 			{
 				parse Pair as ContextPair
 			}

@@ -35,12 +35,12 @@ namespace DotGram.Examples;
 	context Lexical
 	{
 		// Between digits a space is not nothing. See DecimalCalculatorExample.
-		Trivia = none
+		trivia = none
 
 		Digits = ['0'..'9']+ & ('.' & ['0'..'9']+)?
 	}
 
-	Trivia  = [' ' | '\t']*
+	trivia  = [' ' | '\t']*
 
 	// Two left-recursive alternatives per level, one per operator. A rule may have as
 	// many as it likes: what a match records is which alternative it came through, so

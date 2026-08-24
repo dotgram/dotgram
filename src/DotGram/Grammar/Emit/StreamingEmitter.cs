@@ -449,7 +449,7 @@ public static partial class CSharpEmitter
 	/// Only the operands of the rule itself, and only ones that are calls: what a stage
 	/// hands over has to be a whole value of a rule, because that is the unit the parse
 	/// commits to when it yields. Anything else in the sequence — <c>eof</c>, a literal
-	/// separator, <c>Trivia</c> — is recognized and contributes nothing, which is exactly
+	/// separator, <c>trivia</c> — is recognized and contributes nothing, which is exactly
 	/// what §4.1 case 2 already says of it.
 	/// </para>
 	/// <para>

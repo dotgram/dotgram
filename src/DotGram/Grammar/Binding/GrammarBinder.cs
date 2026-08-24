@@ -8,11 +8,11 @@ namespace DotGram.Grammar.Binding;
 
 /// <summary>
 /// Resolves names: which rule, parameter or C# symbol every reference means, and
-/// which `Trivia` each context sees.
+/// which `trivia` each context sees.
 /// </summary>
 /// <remarks>
 /// This is where §5 and §4.5 stop being prose. Scoping is lexical throughout: a rule
-/// means the same thing wherever it is called, and `Trivia` is taken from where a rule
+/// means the same thing wherever it is called, and `trivia` is taken from where a rule
 /// is declared rather than from where it is used.
 /// </remarks>
 public sealed class GrammarBinder
@@ -36,9 +36,9 @@ public sealed class GrammarBinder
 	/// </summary>
 	public static readonly string[] StandardLibrary =
 
-		["any", "none", "eol", "eof", "Trivia", "KeywordBoundary"];
+		["any", "none", "eol", "eof", "trivia", "KeywordBoundary"];
 
-	const string TriviaRule = "Trivia";
+	const string TriviaRule = "trivia";
 
 	readonly ISymbolResolver                        _symbols;
 	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
@@ -144,7 +144,7 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>
-	/// Which `Trivia` a context sees. Ordinary lookup — the mechanism is shadowing and
+	/// Which `trivia` a context sees. Ordinary lookup — the mechanism is shadowing and
 	/// nothing else (§4.5).
 	/// </summary>
 	void ResolveTrivia(GrammarContext context)

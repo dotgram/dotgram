@@ -15,7 +15,7 @@ namespace DotGram.Examples;
 //
 // Three things it shows that the other examples do not:
 //
-//   * `Trivia = none` and every newline written down. A block format cannot ignore
+//   * `trivia = none` and every newline written down. A block format cannot ignore
 //     whitespace — the difference between one paragraph and two is a blank line.
 //
 //   * Ordered choice doing real work. `Block` tries a heading, then a list, then code,
@@ -28,7 +28,7 @@ namespace DotGram.Examples;
 [Gram("""
 	@using DotGram.Examples;
 
-	Trivia = none
+	trivia = none
 
 	Doc : @MarkdownBlock[] = Block* & eof
 

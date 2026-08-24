@@ -18,11 +18,11 @@ namespace DotGram.Examples;
 //   The value is the rule's own type. `: @int` names it and `=>` builds it, so a
 //   published method hands back an int.
 //
-// Spaces are insignificant because `Trivia` is an ordinary rule and this grammar
+// Spaces are insignificant because `trivia` is an ordinary rule and this grammar
 // shadows it. That is the whole of the mechanism.
 
 [Gram("""
-	Trivia  = [' ' | '\t']*
+	trivia  = [' ' | '\t']*
 
 	Sum     : @int = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
 	               | value: Product                                   => @(value)

@@ -88,7 +88,7 @@ public sealed class GrammarNormalizerTests
 	[Fact]
 	public void Inserts_trivia_only_where_it_is_not_empty()
 	{
-		// No Trivia declared: nothing is inserted at all, not inserted and skipped.
+		// No trivia declared: nothing is inserted at all, not inserted and skipped.
 		Assert.Equal(
 			"""
 			R = "ab"
@@ -97,11 +97,11 @@ public sealed class GrammarNormalizerTests
 
 		Assert.Equal(
 			"""
-			Trivia = ' '*
-			R = 'a' & Trivia & 'b'
+			trivia = ' '*
+			R = 'a' & trivia & 'b'
 			""",
 			Normalize("""
-				Trivia = ' '*
+				trivia = ' '*
 				R      = 'a' & 'b'
 				""").ToString());
 	}
@@ -111,19 +111,19 @@ public sealed class GrammarNormalizerTests
 	{
 		Assert.Equal(
 			"""
-			Trivia = ' '*
-			Loose = 'a' & Trivia & 'b'
-			Trivia = none
+			trivia = ' '*
+			Loose = 'a' & trivia & 'b'
+			trivia = none
 			Tight = "ab"
 			none = none
 			""",
 			Normalize("""
-				Trivia = ' '*
+				trivia = ' '*
 				Loose  = 'a' & 'b'
 
 				context Lexical
 				{
-					Trivia = none
+					trivia = none
 					Tight  = 'a' & 'b'
 				}
 				""").ToString());
@@ -149,7 +149,7 @@ public sealed class GrammarNormalizerTests
 	[InlineData("A = ('x'?)*",                GrammarNormalizer.NullableRepetition)]
 	[InlineData("A = A & 'x'",                GrammarNormalizer.LeftRecursion)]
 	[InlineData("A = B & 'x'\nB = A",         GrammarNormalizer.LeftRecursion)]
-	[InlineData("Trivia = ' '+\nA = 'a' & 'b'", GrammarNormalizer.TriviaNotNullable)]
+	[InlineData("trivia = ' '+\nA = 'a' & 'b'", GrammarNormalizer.TriviaNotNullable)]
 	public void Reports(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));

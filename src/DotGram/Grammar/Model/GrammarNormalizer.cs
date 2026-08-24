@@ -157,14 +157,14 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// Built-in rules have no body to compute from, so their nullability is stated:
-	/// `none`, `eof` and the default `Trivia` consume nothing, `any` and `eol` consume.
+	/// `none`, `eof` and the default `trivia` consume nothing, `any` and `eol` consume.
 	/// </summary>
 	void SeedBuiltIns(GrammarContext context)
 	{
 		for (var outer = context; outer is not null; outer = outer.Parent)
 			foreach (var rule in outer.Rules.Values)
 				if (rule.IsBuiltIn)
-					_nullable[rule] = rule.Name is "none" or "eof" or "Trivia" or "KeywordBoundary";
+					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "KeywordBoundary";
 	}
 
 	bool IsNullable(Node node) => node switch

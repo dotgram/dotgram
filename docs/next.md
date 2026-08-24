@@ -181,7 +181,7 @@ alternatives test their normalized level before recognition, and `<<`/`>>` calls
 the operand at the normalized requested power. There is still no C# recursion.
 
 Whole unified publications also compile the root rule's external leading and trailing
-`Trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
+`trivia`; EOF is still checked at `Accept`. This is distinct from the trivia already
 inserted between sequence operands and fixes published folds beginning with whitespace.
 
 Capture-aware `when` works for text, typed, and sequence captures. Text is

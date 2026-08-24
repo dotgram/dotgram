@@ -38,7 +38,7 @@ namespace DotGram.Examples;
 	@using System;
 	@using System.Globalization;
 
-	Trivia = none
+	trivia = none
 
 	Feed : @Settlement[] = Row* & eof
 

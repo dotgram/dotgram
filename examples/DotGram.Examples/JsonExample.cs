@@ -24,7 +24,7 @@ namespace DotGram.Examples;
 //     ',')` become two separate recognizers with no delegate, no interface and nothing
 //     virtual between them, which is what "specialization" buys over a generic list.
 //
-//   * `Trivia` is whitespace and is declared once, at the top, so no rule below it
+//   * `trivia` is whitespace and is declared once, at the top, so no rule below it
 //     mentions spacing at all (§4.5). The lexical context turns it off for the runs
 //     where a space would be a lie: inside a string and between the digits of a number.
 
@@ -36,9 +36,9 @@ namespace DotGram.Examples;
 
 	context Lexical
 	{
-		// No Trivia in here: "a b" is a string with a space in it, and 1 2 is two
+		// No trivia in here: "a b" is a string with a space in it, and 1 2 is two
 		// numbers rather than one.
-		Trivia = none
+		trivia = none
 
 		Digits   = ['0'..'9']+
 		Fraction = '.' & Digits
@@ -47,7 +47,7 @@ namespace DotGram.Examples;
 		Body     = (Plain | Escape)*
 	}
 
-	Trivia = [' ' | '\t' | '\r' | '\n']*
+	trivia = [' ' | '\t' | '\r' | '\n']*
 
 	// §4.2: written once, specialized per call site.
 	List(item, sep) : item[] = item & (sep & item)*

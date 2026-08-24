@@ -199,7 +199,7 @@ public sealed class GrammarModel(
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
-	/// <summary>The `Trivia` each context sees — §4.5, resolved once per context.</summary>
+	/// <summary>The `trivia` each context sees — §4.5, resolved once per context.</summary>
 	public IReadOnlyDictionary<GrammarContext, RuleSymbol> Trivia { get; } = trivia;
 
 	public bool HasErrors => Diagnostics.Count > 0;

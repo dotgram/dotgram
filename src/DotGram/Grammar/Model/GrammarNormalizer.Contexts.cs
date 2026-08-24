@@ -212,8 +212,8 @@ public sealed partial class GrammarNormalizer
 			_bodies[clone] = CloneAndRewrite(_bodies[rule], targets, cloneMap);
 			_rules.Add(clone);
 
-			// The boundary Trivia a whole parse of this rule wraps in (§4.5) — cloned and
-			// rewritten the same way as any other node, so a `context (Trivia = none)`
+			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
+			// rewritten the same way as any other node, so a `context (trivia = none)`
 			// binding reaches it exactly like any other call.
 			if (_trivia.TryGetValue(rule, out var trivia))
 				_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap);

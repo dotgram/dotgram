@@ -50,7 +50,7 @@ namespace DotGram.Examples;
 	// (§4.6), so `into` does not match inside `into_stock`.
 	KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']
 
-	Trivia = none
+	trivia = none
 
 	// A statement is read as tokens; what makes it read-only is which tokens are there.
 	Query = Space & First & Token* & Space & ';'? & Space & eof

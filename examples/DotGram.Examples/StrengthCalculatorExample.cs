@@ -51,12 +51,12 @@ namespace DotGram.Examples;
 
 	context Lexical
 	{
-		Trivia = none
+		trivia = none
 
 		Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?
 	}
 
-	Trivia = [' ' | '\t']*
+	trivia = [' ' | '\t']*
 
 	Expr : @decimal = left: Expr & '+' & right: Expr  << 1 => @(left + right)
 	                | left: Expr & '-' & right: Expr  << 1 => @(left - right)

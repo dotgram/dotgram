@@ -31,7 +31,7 @@ namespace DotGram.Examples;
 	@using System;
 	@using System.Globalization;
 
-	Trivia = none
+	trivia = none
 
 	Feed : @TradeRow[] = Trade* & eof
 

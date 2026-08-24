@@ -301,11 +301,11 @@ after itself and never before — plus rules for where to insert accordingly: af
 literal and after a lexical rule, not after a structural one, once at the start, and
 attributes to override either way.
 
-**We need none of it.** `syntax.md` §4.5 requires `Trivia` to be nullable, and from
+**We need none of it.** `syntax.md` §4.5 requires `trivia` to be nullable, and from
 that condition unconditional insertion is safe: a second application consumes nothing,
 so nothing is ever doubled. The whole rule collapses into "insert everywhere", with one
 insertion at the start of a published rule for leading whitespace, and normalization
-drops the insertions entirely when `Trivia` is empty.
+drops the insertions entirely when `trivia` is empty.
 
 Keyword boundaries want to be declarative in the same way — a class of keyword
 characters plus a separator rule, after which every string literal falling into that

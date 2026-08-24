@@ -76,8 +76,8 @@ Working end to end — a `.gram` file becomes a parser that runs:
   backtracking crosses ordinary rule calls, so extracting an expression into a rule
   does not change its meaning
 - rules calling rules, contexts and shadowing, the standard library
-  (`any`, `none`, `eol`, `eof`, `Trivia`)
-- whitespace handling by shadowing `Trivia`, which needs no notation of its own
+  (`any`, `none`, `eol`, `eof`, `trivia`)
+- whitespace handling by shadowing `trivia`, which needs no notation of its own
 - **contextual rebinding** — a `context` header substitutes a rule across everything it
   reaches, not just what is written inside the block:
 
@@ -94,7 +94,7 @@ Working end to end — a `.gram` file becomes a parser that runs:
   ```
 
   `A` itself is untouched — nothing outside the context depends on it existing. The same
-  substitution reuses an already-written rule under a different `Trivia`, without a
+  substitution reuses an already-written rule under a different `trivia`, without a
   second copy of it
 - both publication directives, and diagnostics that point into the `.gram` file — and
   a refusal names the furthest position the input could be followed to
@@ -293,8 +293,8 @@ written against it, with no test framework anywhere near them.
 | [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
 | [`LoggingFeedExample.cs`](examples/DotGram.Examples/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and the `partial void` that vanishes when nobody implements it |
 | [`StreamingFeedExample.cs`](examples/DotGram.Examples/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result that comes in parts, a window that is reused, and a trailer checked against records nobody held |
-| [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `Trivia` |
-| [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a context that shadows `Trivia` back off |
+| [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `trivia` |
+| [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a context that shadows `trivia` back off |
 | [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
 | [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `context (A = B) { ... }` reusing a rule rather than a context shadowing one locally |
 | [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |

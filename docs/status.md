@@ -25,7 +25,7 @@ then quietly mean nothing.
 | contextual rebinding `context (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -74,8 +74,8 @@ then quietly mean nothing.
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
-| leading and trailing `Trivia` §4.5 | — | — | — | ✓ | ✓ |
-| `Trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |
+| leading and trailing `trivia` §4.5 | — | — | — | ✓ | ✓ |
+| `trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |
 | a C# name as an argument of `@M(…)`, behind `@` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | retention: what a rule takes, in lines §6.3 | — | — | ✓ | — | — |
 | retention: where the window may move §6.3 | — | — | ✓ | — | — |

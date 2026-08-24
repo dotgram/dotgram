@@ -312,7 +312,7 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// `Trivia` has to accept empty input. That single condition is what lets it be
+	/// `trivia` has to accept empty input. That single condition is what lets it be
 	/// inserted everywhere without doubling (§4.5), so it is worth a message of its own.
 	/// </summary>
 	void CheckTrivia()
@@ -324,7 +324,7 @@ public sealed partial class GrammarNormalizer
 
 			Report(
 				TriviaNotNullable,
-				"'Trivia' must accept empty input: it is inserted between every pair of operands, and a required match would demand whitespace everywhere.",
+				"'trivia' must accept empty input: it is inserted between every pair of operands, and a required match would demand whitespace everywhere.",
 				trivia.Declaration.At);
 		}
 	}

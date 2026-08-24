@@ -38,10 +38,10 @@ namespace DotGram.Examples;
 // `: @decimal` is the whole of the arithmetic change: 1/8 is 0.125 here and 0 in the
 // int calculator, from the same grammar.
 //
-// Shadowing `Trivia` has one consequence worth knowing rather than discovering: it goes
+// Shadowing `trivia` has one consequence worth knowing rather than discovering: it goes
 // between the operands of every sequence, and `['0'..'9']+ & '.' & ['0'..'9']+` is a
 // sequence like any other. Left alone, `1 . 5` would match and `digits` would capture
-// the spaces with it. So `Number` lives in a context that shadows `Trivia` with `none`
+// the spaces with it. So `Number` lives in a context that shadows `trivia` with `none`
 // — the same §5 shadowing, used the other way round, and the reason the grammar has a
 // `context` in it at all.
 
@@ -51,16 +51,16 @@ namespace DotGram.Examples;
 
 	context Lexical
 	{
-		// Between digits a space is not nothing, so this context shadows Trivia with
+		// Between digits a space is not nothing, so this context shadows trivia with
 		// the rule that matches nothing at all. Scoping is lexical: `Number` is
-		// declared here, so this is the Trivia it is built with, wherever it is
+		// declared here, so this is the trivia it is built with, wherever it is
 		// called from.
-		Trivia = none
+		trivia = none
 
 		Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?
 	}
 
-	Trivia  = [' ' | '\t']*
+	trivia  = [' ' | '\t']*
 
 	Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
 	                   | value: Product                                   => @(value)

@@ -130,7 +130,7 @@ any                     any single item
 `\p{...}` is the .NET regular-expression spelling, with the same category names
 (`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
 
-`any`, `none`, `eol`, `eof` and `Trivia` are ordinary standard-library rules rather
+`any`, `none`, `eol`, `eof` and `trivia` are ordinary standard-library rules rather
 than keywords: a rule of the same name shadows them. Whitespace handling rests on
 exactly that (§4.5).
 
@@ -153,7 +153,7 @@ A connector between operands is always required. `.Gram` has no juxtaposition: t
 expressions cannot sit side by side without `&` or `|`. That is precisely why rules
 need no separator (§4.4).
 
-`Trivia` is inserted between the operands of a sequence — an empty rule by default,
+`trivia` is inserted between the operands of a sequence — an empty rule by default,
 so by default nothing is inserted (§4.5).
 
 ### 3.3 Quantifiers — postfix, as in regular expressions
@@ -440,7 +440,7 @@ A parameter is written like a capture — `name` or `name: Type` — because it 
 same thing: binds a name to something that came from outside.
 
 ```dotgram
-Lex(item)               : item   = Trivia & item
+Lex(item)               : item   = trivia & item
 List(item, sep)         : item[] = item & (sep & item)*
 Padded(item, pad: char) : item   = pad* & value: item & pad* => value
 Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
@@ -592,13 +592,13 @@ expression does not count as complete.
 
 ### 4.5 Trivia — insignificant whitespace and comments
 
-The rule `Trivia` is always inserted between the operands of a sequence. It is empty
+The rule `trivia` is always inserted between the operands of a sequence. It is empty
 by default, so by default nothing is inserted:
 
 ```dotgram
 // standard library
 none                  = any{0}                 // zero repetitions: succeeds, consumes nothing
-Trivia                = none
+trivia                = none
 Whitespace            = ([' ' | '\t'] | eol)*
 WhitespaceAndComments = (Whitespace | LineComment | BlockComment)*
 ```
@@ -606,7 +606,7 @@ WhitespaceAndComments = (Whitespace | LineComment | BlockComment)*
 A grammar to which whitespace is insignificant redefines one rule:
 
 ```dotgram
-Trivia = WhitespaceAndComments
+trivia = WhitespaceAndComments
 ```
 
 No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
@@ -616,7 +616,7 @@ itself as `any{0}` rather than by a new primitive.
 are not operands of a sequence, so nothing is inserted between them:
 
 ```dotgram
-Trivia = Whitespace
+trivia = Whitespace
 
 Pair    = Word & Word            // matches "ab cd"
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
@@ -624,15 +624,15 @@ Several = Word*                  // matches "abcd", and stops at the space in "a
 
 That is not an oversight to be worked around but the thing that makes the notation
 usable at all. A repetition is how a lexeme is written — `Digits = ['0'..'9']+`,
-`Name = Letter+` — and inserting Trivia between those iterations would make `1 2` one
+`Name = Letter+` — and inserting trivia between those iterations would make `1 2` one
 number and `a b` one name in every grammar that ignores whitespace. Nothing can tell the
 two apart automatically: `Word*` and `Digit*` have the same shape, and only the author
 knows which is a list and which is a lexeme.
 
-So the author says which. `Trivia` is an ordinary rule and may be named:
+So the author says which. `trivia` is an ordinary rule and may be named:
 
 ```dotgram
-Attributes = Attribute & (Trivia & Attribute)*     // a list, spaced
+Attributes = Attribute & (trivia & Attribute)*     // a list, spaced
 Digits     = ['0'..'9']+                           // a lexeme, not
 ```
 
@@ -640,18 +640,18 @@ The same is true of a run with a separator, where the separator is an operand an
 spacing around it comes for free:
 
 ```dotgram
-List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — Trivia is inserted
+List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — trivia is inserted
                                                    // either side of `sep`
 ```
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
 ```dotgram
-Trivia = WhitespaceAndComments
+trivia = WhitespaceAndComments
 
 context Lexical
 {
-    Trivia = none                              // whitespace is significant here
+    trivia = none                              // whitespace is significant here
 
     Identifier = ['a'..'z' | '_'] & ['a'..'z' | '0'..'9' | '_']*
     Number     = ['0'..'9']+
@@ -665,20 +665,20 @@ context Syntax
 }
 ```
 
-**Scoping is lexical:** a rule uses the `Trivia` visible where it is **declared**, not
+**Scoping is lexical:** a rule uses the `trivia` visible where it is **declared**, not
 where it is called. A rule means the same thing wherever it is used.
 
-**`Trivia` must be nullable** — it has to accept empty input, or the build fails. That
+**`trivia` must be nullable** — it has to accept empty input, or the build fails. That
 condition is what makes unconditional insertion safe: a second application consumes
 nothing, so nothing is ever doubled and no rule of the form "insert after a literal
 but not after a structural call" is needed. The single exception is one insertion at
 the start of a published rule, for leading whitespace.
 
-When `Trivia` is empty the insertions are dropped entirely during normalization:
+When `trivia` is empty the insertions are dropped entirely during normalization:
 nothing of them survives to run time.
 
 A silent failure is possible here — a lexical rule that ended up by oversight in a
-context with non-empty `Trivia` will quietly accept `i f` as `if`. No mechanism catches
+context with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism catches
 that, but a warning does: a rule whose operands all test a single input item is
 almost certainly a mistake in such a context.
 
@@ -696,7 +696,7 @@ picks up a `& ?!KeywordBoundary`, so `"if"` no longer matches the start of `iffy
 Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
 check, `"("` does not.
 
-Same shape as `Trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
+Same shape as `trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
 and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
 pays nothing; a language grammar pays one line.
 
@@ -796,10 +796,10 @@ is written in: `context (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested context inherits its enclosing
 one's bindings and may replace any of them with its own.
 
-`Trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`context (Trivia = none)` reuses an already-written rule under different whitespace
+`trivia` is an ordinary rule, so it is an ordinary rebinding target:
+`context (trivia = none)` reuses an already-written rule under different whitespace
 handling — the same substitution as any other binding, and a different mechanism from
-shadowing `Trivia` locally (§4.5), which affects only what the block itself declares.
+shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
 
 ---
 
@@ -1298,7 +1298,7 @@ rather than by a C# error in a file nobody wrote (GRAM4012).
 
 `parserOrdinal` and `parserLine` are not the same number and neither substitutes for
 the other: a header shifts the first record off line one, a record may span lines,
-`Trivia` swallows blank ones, and a recovery skips an unknown number of them. The first
+`trivia` swallows blank ones, and a recovery skips an unknown number of them. The first
 is the key a downstream system joins on, the second is what a person opens the file at.
 
 The same names may be captured on a successful element, which is what lets a record
@@ -1539,7 +1539,7 @@ None of what follows changes the notation described above.
   cannot matter: single-element sets, where the match is always exactly one item, so
   `'a' | 'b'` becomes `['a'..'b']`.
 
-- **Trivia** — the mechanism is in §4.5. It needs no notation of its own: an ordinary
+- **`trivia`** — the mechanism is in §4.5. It needs no notation of its own: an ordinary
   rule and ordinary shadowing.
 
 - **Atomic groups are explicit.** `{ X }` has the same matches and value as `X`, but when

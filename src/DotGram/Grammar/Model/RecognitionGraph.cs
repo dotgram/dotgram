@@ -230,7 +230,7 @@ public sealed class RecognitionGraph(
 	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
 
 	/// <summary>
-	/// The <c>Trivia</c> each rule sees, where it matches anything at all (§4.5).
+	/// The <c>trivia</c> each rule sees, where it matches anything at all (§4.5).
 	/// </summary>
 	/// <remarks>
 	/// Normalization inserts it between operands, which leaves the two ends of a whole

@@ -39,7 +39,7 @@ namespace DotGram.Examples;
 [Gram("""
 	@using DotGram.Examples;
 
-	Trivia = none
+	trivia = none
 
 	// §4.1 case 3: the document is what `Lines` produced.
 	Doc : Lines = Lines & eof

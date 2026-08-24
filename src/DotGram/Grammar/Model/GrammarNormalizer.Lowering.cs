@@ -230,7 +230,7 @@ public sealed partial class GrammarNormalizer
 	/// A call — and, the first time a built-in is called, the body it is a call to.
 	/// </summary>
 	/// <remarks>
-	/// §3.1 says <c>any</c>, <c>none</c>, <c>eol</c>, <c>eof</c> and <c>Trivia</c> are
+	/// §3.1 says <c>any</c>, <c>none</c>, <c>eol</c>, <c>eof</c> and <c>trivia</c> are
 	/// ordinary standard-library rules rather than keywords. This is where that stops
 	/// being a claim: they are lowered into the same nodes a grammar could have written
 	/// itself, so every stage downstream — nullability, the checks, emission — treats
@@ -520,7 +520,7 @@ public sealed partial class GrammarNormalizer
 		"eol" => new Node.Choice([new Node.Literal("\r\n"), new Node.Literal("\n"), new Node.Literal("\r")]),
 		"eof" => new Node.Lookahead(IsPositive: false, AnyItem),
 
-		// `none`, and `Trivia` until a grammar shadows it with one of its own (§4.5).
+		// `none`, and `trivia` until a grammar shadows it with one of its own (§4.5).
 		_     => Node.Empty.Instance,
 	};
 
@@ -709,7 +709,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The same shape as Trivia and for the same reason: an ordinary rule, shadowed to turn
+	/// The same shape as trivia and for the same reason: an ordinary rule, shadowed to turn
 	/// it on, and the insertion dropped entirely while it is empty — so a regex or a feed
 	/// grammar pays nothing and a language grammar pays one line.
 	/// </para>
@@ -763,7 +763,7 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// The `Trivia` this context sees, or null when it matches nothing — in which case the
+	/// The `trivia` this context sees, or null when it matches nothing — in which case the
 	/// insertions are not emitted at all rather than emitted and skipped (§4.5).
 	/// </summary>
 	Node? TriviaFor(GrammarContext context) =>
@@ -778,7 +778,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
 		rule.IsBuiltIn
-			? rule.Name is "none" or "Trivia" or "eof" or "KeywordBoundary"
+			? rule.Name is "none" or "trivia" or "eof" or "KeywordBoundary"
 			: seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && MatchesNothing(body, seen);
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch

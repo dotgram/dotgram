@@ -34,7 +34,7 @@ namespace DotGram.Examples;
 [Gram("""
 	@using DotGram.Examples;
 
-	Trivia = none
+	trivia = none
 
 	Stream : @string[] = Frame* & eof
 

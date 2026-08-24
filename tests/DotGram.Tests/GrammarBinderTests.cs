@@ -12,7 +12,7 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// Name binding compared against its own dump: the context tree, what each context
-/// imports, and the `Trivia` it sees.
+/// imports, and the `trivia` it sees.
 /// </summary>
 public sealed class GrammarBinderTests
 {
@@ -29,14 +29,14 @@ public sealed class GrammarBinderTests
 			"""
 			context <global>
 				using @System.Text
-				trivia = Trivia
+				trivia = trivia
 				rule Common
 				context Lexical
-					trivia = Trivia
+					trivia = trivia
 					rule Identifier
 				context Syntax
 					using Lexical
-					trivia = Trivia
+					trivia = trivia
 					rule Unit
 			""",
 			Bind("""
@@ -61,16 +61,16 @@ public sealed class GrammarBinderTests
 	[Fact]
 	public void Trivia_is_an_ordinary_rule_that_shadowing_switches()
 	{
-		// §4.5: no directive and no mode — the inner Trivia simply shadows the outer.
+		// §4.5: no directive and no mode — the inner trivia simply shadows the outer.
 		var model = Bind("""
-			Trivia = Whitespace
+			trivia = Whitespace
 
 			Whitespace = ' '
 			Outer      = 'a'
 
 			context Lexical
 			{
-				Trivia = none
+				trivia = none
 
 				Inner = 'b'
 			}
@@ -79,9 +79,9 @@ public sealed class GrammarBinderTests
 		var global  = model.Root;
 		var lexical = global.Nested.Single();
 
-		Assert.Equal("Trivia", model.Trivia[global].Name);
+		Assert.Equal("trivia", model.Trivia[global].Name);
 		Assert.False(model.Trivia[global].IsBuiltIn);              // the grammar's own
-		Assert.Equal("Trivia", model.Trivia[lexical].Name);
+		Assert.Equal("trivia", model.Trivia[lexical].Name);
 		Assert.NotSame(model.Trivia[global], model.Trivia[lexical]);
 		Assert.Empty(model.Diagnostics);
 	}

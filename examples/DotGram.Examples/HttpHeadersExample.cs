@@ -33,7 +33,7 @@ namespace DotGram.Examples;
 [Gram("""
 	@using DotGram.Examples;
 
-	Trivia = none
+	trivia = none
 
 	Headers : @HttpHeaders = fields: Field* & eol? & eof => @(new HttpHeaders(fields))
 

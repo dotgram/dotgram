@@ -37,12 +37,12 @@ namespace DotGram.Examples;
 
 	context Lexical
 	{
-		Trivia = none
+		trivia = none
 
 		Digits = ['0'..'9']+ & ('.' & ['0'..'9']+)?
 	}
 
-	Trivia = [' ' | '\t']*
+	trivia = [' ' | '\t']*
 
 	Expr : @Expression = left: Expr & '+' & right: Expr  << 1 => @(new Add(left, right))
 	                   | left: Expr & '-' & right: Expr  << 1 => @(new Sub(left, right))

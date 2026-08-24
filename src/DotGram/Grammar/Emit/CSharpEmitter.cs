@@ -275,7 +275,7 @@ public static partial class CSharpEmitter
 				continue;
 
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
-			// Trivia normalization inserted — have no recognizer of their own, so each gets
+			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
 			if (Streams(graph, publication) && StagesOf(graph, publication.Rule) is { } stages)
 			{
@@ -984,7 +984,7 @@ public static partial class CSharpEmitter
 	/// </summary>
 	/// <remarks>
 	/// The short name is not unique and is not meant to be — shadowing is what a context
-	/// is for, so a grammar with a <c>Trivia</c> per context is the ordinary case rather
+	/// is for, so a grammar with a <c>trivia</c> per context is the ordinary case rather
 	/// than a clash. The contexts a rule is declared in are prefixed to tell them apart,
 	/// named rather than numbered so that a reader of the generated code can still see
 	/// which rule a method came from. The standard library's context is not an identifier

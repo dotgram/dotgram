@@ -99,7 +99,7 @@ public sealed class ExampleTests
 	[InlineData("(2+3)*4",      20)]
 	[InlineData("100/5/2",      10)]
 	[InlineData("-3*-4",        12)]
-	[InlineData(" 1 + 2 * 3 ",   7)]     // Trivia is shadowed, so spaces do not matter
+	[InlineData(" 1 + 2 * 3 ",   7)]     // trivia is shadowed, so spaces do not matter
 	public void The_calculator_computes(string expression, int expected) =>
 		Assert.Equal(expected, Calculator.Evaluate(expression));
 
@@ -144,7 +144,7 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_number_is_where_a_space_still_means_something()
 	{
-		// `Number` is declared in a context that shadows Trivia with `none`, so the spaces
+		// `Number` is declared in a context that shadows trivia with `none`, so the spaces
 		// this grammar ignores everywhere else are not ignored between digits.
 		Assert.Equal("1.5", Decimal(" 1.5 "));
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
