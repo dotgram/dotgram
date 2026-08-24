@@ -405,6 +405,111 @@ public sealed class GrammarNormalizerTests
 				""").ToString());
 	}
 
+	// ── `with (...)` — an expression-scoped counterpart to `context (...)` ─────────
+
+	[Fact]
+	public void With_clones_only_what_the_binding_can_reach()
+	{
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			ParseEuropeanNumber = Number_With1
+			Number_With1 = Digit & Comma & Digit
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				Point = '.'
+				Comma = ','
+				Number = Digit & Point & Digit
+
+				ParseEuropeanNumber = Number with (Point = Comma)
+				""").ToString());
+	}
+
+	[Fact]
+	public void With_scoped_to_one_operand_in_a_sequence_leaves_the_others_alone()
+	{
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			Row = a: Number & ',' & b: Number & ',' & c: Number_With1
+			Number_With1 = Digit & Comma & Digit
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				Point = '.'
+				Comma = ','
+				Number = Digit & Point & Digit
+
+				Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_with_site_composes_with_an_enclosing_context()
+	{
+		// The context's own clone of `A` must call a clone of `Number`'s with-clone —
+		// not of the plain, unrebound `Number` — which is only possible because `with`
+		// runs before `context (...)` is specialized and leaves `A`'s own body mutated.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			OtherDigit = ['1'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			A = Number_With1
+			Number_With1 = Digit & Comma & Digit
+			Number_With1_Ctx = OtherDigit & Comma & OtherDigit
+			A_Ctx = Number_With1_Ctx
+			""",
+			Normalize("""
+				Digit      = ['0'..'9']
+				OtherDigit = ['1'..'9']
+				Point      = '.'
+				Comma      = ','
+				Number     = Digit & Point & Digit
+
+				context Ctx (Digit = OtherDigit)
+				{
+					A = Number with (Point = Comma)
+				}
+				""").ToString());
+	}
+
+	[Fact]
+	public void Directly_stacked_with_sites_compose()
+	{
+		// `Group` is transparent at lowering, so both `with`s' operand lowers to the
+		// exact same node — the one case where two sites share a root and have to be
+		// merged rather than cloned twice (§20).
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Space = ' '
+			Number = Digit & Point & Digit
+			A = Number_With2
+			Number_With2 = Space & Comma & Space
+			""",
+			Normalize("""
+				Digit  = ['0'..'9']
+				Point  = '.'
+				Comma  = ','
+				Space  = ' '
+				Number = Digit & Point & Digit
+
+				A = (Number with (Point = Comma)) with (Digit = Space)
+				""").ToString());
+	}
+
 	[Fact]
 	public void An_incompatible_contextual_replacement_is_reported_at_the_binding()
 	{
@@ -456,6 +561,128 @@ public sealed class GrammarNormalizerTests
 			properties = [];
 
 			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
+		}
+	}
+
+	// ── External recognizers with a value of their own — §7.1's third row ────────
+
+	/// <summary>
+	/// One fixed answer for `@ParseTimestamp`: it has a `(ReadOnlySpan&lt;char&gt;, ref int,
+	/// out System.DateTime)` overload, assignable only to itself. Every other name is §7.1's
+	/// second row, unchanged.
+	/// </summary>
+	sealed class TimestampResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) =>
+			string.Equals(from, to, StringComparison.Ordinal);
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			if (!string.Equals(methodName, "ParseTimestamp", StringComparison.Ordinal))
+				return ExternalValueResolution.NotFound;
+
+			if (against is not null && !string.Equals(against, "System.DateTime", StringComparison.Ordinal))
+				return ExternalValueResolution.NotFound;
+
+			valueType = "System.DateTime";
+
+			return ExternalValueResolution.Found;
+		}
+	}
+
+	[Fact]
+	public void A_whole_body_value_returning_external_recognizer_is_rewritten_as_a_pass_through()
+	{
+		var graph = Normalize(
+			"Timestamp : @System.DateTime = @ParseTimestamp", new TimestampResolver());
+
+		Assert.Empty(graph.Diagnostics);
+		Assert.Equal(
+			"""
+			Timestamp = item0: @ParseTimestamp => <operand>
+			@ParseTimestamp = @ParseTimestamp
+			""".Replace("\r\n", "\n"),
+			graph.ToString().Replace("\r\n", "\n"));
+	}
+
+	[Fact]
+	public void A_type_mismatch_falls_through_to_the_ordinary_unbuilt_construction_message()
+	{
+		// No diagnostic of ProduceFromExternals's own — a resolved T that does not fit the
+		// declared type just means the pass-through never applies, and the rule is exactly
+		// as unbuilt as any other capture-less, `=>`-less typed rule.
+		Assert.Equal(
+			[GrammarNormalizer.UnbuiltConstruction],
+			Normalize("Elsewhere : @int = @ParseTimestamp", new TimestampResolver())
+				.Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void An_ambiguous_overload_is_reported()
+	{
+		// The ambiguity falls back to §7.1's second row (LowerReference's `goto default`),
+		// so a rule declaring a type still has no way to build it — GRAM4015 names the
+		// actual cause, and the generic GRAM4008 that follows from the fallback is not a
+		// second, competing diagnostic about the same thing so much as a true statement
+		// about the consequence.
+		Assert.Contains(
+			GrammarNormalizer.AmbiguousExternal,
+			Normalize("Value : @int = @Parse", new AmbiguousResolver())
+				.Diagnostics.Select(d => d.Id));
+	}
+
+	sealed class AmbiguousResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) => string.Equals(from, to, StringComparison.Ordinal);
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.Ambiguous;
 		}
 	}
 }

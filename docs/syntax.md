@@ -365,6 +365,12 @@ Highest to lowest:
 `=>` binds to a single alternative rather than to the whole rule body, which is what
 lets each branch of a `|` construct its own result.
 
+`recover` (§8.2) and `with (...)` (§5.1) are not in the table: both are optional
+suffixes on row 1 rather than levels of their own, and `with` — when both are written
+on the same operand — always comes after `recover`, applying to everything to its
+left, quantifier included. `X* recover S with (A = B)` recovers `X*` first and rebinds
+the result of that as a whole.
+
 ---
 
 ## 4. Rules
@@ -833,6 +839,56 @@ one's bindings and may replace any of them with its own.
 handling — the same substitution as any other binding, and a different mechanism from
 shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
 
+**Which of the two to reach for is a question of what the result needs to be, not a
+style choice between them.** A binding clones the whole call graph reached from inside
+the context and rewrites every call inside those clones — so the *same* shared rule,
+called from both inside and outside the context, behaves two different ways depending
+on which call path reached it. Shadowing does not do that: it changes what a name
+means only where the replacement is lexically visible, and a rule declared outside the
+shadowing scope never sees it, context block or not. Reach for a header when the point
+is exactly that a shared rule should mean something different from inside one place
+than from everywhere else it is called — `LocaleNumberExample`'s two decimal points
+over one `Number` rule is the shape this exists for. Reach for shadowing — an ordinary
+declaration, no `context` needed at all — when a rule's meaning is simply different for
+the rest of the file or block from that point on, with nothing shared reaching back out
+to an unshadowed view of it: `trivia = none` at the top of a whole grammar is exactly
+that, and wrapping the entire file in `context (trivia = none) { ... }` for it adds a
+block with nothing on the other side of the substitution to contrast against.
+
+**The same substitution is also available on a single expression, without declaring a
+block or a name for it:** `Expression with (A = B, ...)`.
+
+```dotgram
+ParseEuropeanNumber = Number with (Point = Comma)
+```
+
+is the one-line version of wrapping `Number` in a single-purpose `context (Point =
+Comma) { ... }` just to reach the substitution once. `with` binds as tightly as a
+quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X = Y)`,
+not `Number+` of something already rebound — and reaches only the one expression it is
+written on, not the rest of the rule around it:
+
+```dotgram
+Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
+```
+
+only `c`'s use of `Number` is affected; `a` and `b` still call the ordinary one. Reach
+for `with` when the substitution belongs to one place a rule is used; reach for the
+header once more than one call needs the same rebinding, or the substitution is worth
+a name of its own.
+
+Write a rebinding in the header rather than as a same-named declaration in the body —
+`context (A = B) { ... }` is a substitution, written where a reader expects one; a
+declaration with the same name sitting in the body, with no header entry for it, is
+shadowing, and reads as one unless it is checked against the header. The two are one
+pair of parentheses apart, so a rule declared inside a nested `context { ... }` whose
+name also resolves in an enclosing *grammar* scope is reported — `GRAM3012`, `Info`, not
+a refusal, since the declaration is legal and stays exactly what it was. Scoped
+narrowly, to keep it a pointer rather than noise: shadowing the standard library
+(`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`), at any depth, is the language's
+normal, silent mechanism and is never reported; neither is shadowing at the top level of
+a file, where there is no `context (...)` header nearby to have meant instead.
+
 ---
 
 ## 6. Publication
@@ -1005,6 +1061,7 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
+| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | bare `@M` as a grammar operand |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
@@ -1025,6 +1082,15 @@ There is one rule to read this by: **syntactic position determines the call shap
 `[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#
 values. The generator never inspects a method signature to choose among those roles;
 overloads, accessibility, parameter types and result types are C#'s responsibility.
+
+One exception, narrow and specific: bare `@M` alone does not say whether `M` is the
+second row or the third, since the notation is the same either way. The host is asked
+whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload — the only place
+this generator inspects a method's signature at all, and only to settle that one
+question. Finding one hands the rule-shaped identity a value-producing call needs;
+finding none leaves bare `@M` exactly what it always was. More than one such overload
+with a different `T` is a tie, reported rather than guessed at, the same as an
+ambiguous constructor (§7.3).
 
 The same C# name may therefore implement both contracts without ambiguity:
 
@@ -1486,9 +1552,10 @@ Sequence    = Operand & ('&' & Operand)*
 Operand     = Guard | Quantified
 Guard       = "when" & Value
 
-Quantified  = Prefixed & Quantifier? & Recovery?
+Quantified  = Prefixed & Quantifier? & Recovery? & With?
 Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
 Recovery    = "recover" & Prefixed & ("=>" & Value)?
+With        = "with" & Rebindings
 Count       = Int | Identifier
 Prefixed    = ("?=" | "?!")? & Captured
 Captured    = (Identifier & ':')? & Primary

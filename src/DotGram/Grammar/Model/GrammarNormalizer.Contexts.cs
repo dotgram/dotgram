@@ -193,17 +193,25 @@ public sealed partial class GrammarNormalizer
 		var reachable = ReachableFromSeed(Seed(site), forward);
 		var affected  = AffectedSet(targets, calledBy, reachable);
 
-		if (affected.Count == 0)
-			return EmptyClones;
+		return affected.Count == 0 ? EmptyClones : CloneAffected(affected, targets, site.Name);
+	}
 
-		// Every clone's RuleSymbol is allocated before any body is cloned: a body being
-		// cloned may call a rule not yet cloned, including itself (§10) — the same
-		// two-pass shape `Machine`'s own `_entries[rule] = Reserve(out _)` uses, and for
-		// the same reason.
+	/// <summary>
+	/// Every clone's RuleSymbol is allocated before any body is cloned: a body being
+	/// cloned may call a rule not yet cloned, including itself (§10) — the same
+	/// two-pass shape `Machine`'s own `_entries[rule] = Reserve(out _)` uses, and for
+	/// the same reason. Shared by both extents §5.1 now has: a `context (...)` block's
+	/// own site, and a `with (...)` expression's (§18/§20).
+	/// </summary>
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneAffected(
+		HashSet<RuleSymbol> affected,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		string siteName)
+	{
 		var cloneMap = new Dictionary<RuleSymbol, RuleSymbol>();
 
 		foreach (var rule in affected)
-			cloneMap[rule] = new RuleSymbol(NameFor(rule, site), rule.Context, rule.Declaration);
+			cloneMap[rule] = new RuleSymbol(NameFor(rule, siteName), rule.Context, rule.Declaration);
 
 		foreach (var rule in affected)
 		{
@@ -239,13 +247,13 @@ public sealed partial class GrammarNormalizer
 	/// A specialization's name: the rule, and the site it was cloned for — collision-
 	/// avoided the same way an ordinary parameterized-rule specialization is named.
 	/// </summary>
-	string NameFor(RuleSymbol rule, GrammarContext site)
+	string NameFor(RuleSymbol rule, string siteName)
 	{
 		// Not `@`: this name is embedded verbatim into generated C# identifiers
 		// (`Recognize_<name>_Whole`), so it has to stay one itself — the same reason the
 		// parameterized-rule specialization above uses `_` and not something more visibly
 		// a separator.
-		var name  = rule.Name + "_" + site.Name;
+		var name  = rule.Name + "_" + siteName;
 		var taken = name;
 
 		for (var i = 2; Named(taken); i++)
@@ -280,7 +288,7 @@ public sealed partial class GrammarNormalizer
 				new Node.Element(negated, ranges, categories, references),
 			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
 			Node.Guard(var text, var at)             => new Node.Guard(text, at),
-			Node.External(var name)                 => new Node.External(name),
+			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
 
 			Node.Sequence(var nodes) =>
 				new Node.Sequence([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),

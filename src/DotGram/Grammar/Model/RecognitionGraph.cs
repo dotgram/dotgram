@@ -186,12 +186,19 @@ public abstract record Node
 	/// </para>
 	/// <para>
 	/// Consumes whatever it says it consumed, and its value is the text it covered — the
-	/// same as any rule that captures nothing. The form that hands back a value of its own
-	/// is a second one, and is not built.
+	/// same as any rule that captures nothing. §7.1's third row is the same call with an
+	/// extra <c>out T value</c> parameter, handing back a value of its own instead —
+	/// <see cref="HasValue"/> says which; recognition either way is identical, so the node
+	/// stays a name-only leaf and never carries <c>T</c> itself (that lives on the
+	/// synthesized <see cref="RuleSymbol"/> a value-returning reference is wrapped in
+	/// during lowering, in <see cref="RecognitionGraph.Externals"/>).
 	/// </para>
 	/// </remarks>
 	public sealed record External(string Name) : Node
 	{
+		/// <summary>Whether this is §7.1's third row rather than its second.</summary>
+		public bool HasValue { get; init; }
+
 		public override string ToString() => "@" + Name;
 	}
 
@@ -252,6 +259,21 @@ public sealed class RecognitionGraph(
 	/// <summary>The repetitions marked <c>recover</c>, by the repetition (§8.2).</summary>
 	public IReadOnlyDictionary<Node, Recovery> Recoveries { get; init; } =
 		new Dictionary<Node, Recovery>();
+
+	/// <summary>
+	/// The rule synthesized for a value-returning external recognizer (§7.1's third
+	/// row), by the C# method name it wraps.
+	/// </summary>
+	/// <remarks>
+	/// One rule per distinct method name, its body a <see cref="Node.External"/> with
+	/// <see cref="Node.External.HasValue"/> set and its declared type in <see
+	/// cref="Types"/> already — everything downstream (<c>BuildsValue</c>,
+	/// <c>ValueRule</c>, materialization) sees an ordinary typed rule and needs no case
+	/// of its own. This map is what tells the materializer to recover the value by
+	/// re-invoking the method rather than by walking a <c>Construct</c> factory.
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, string> Externals { get; init; } =
+		new Dictionary<RuleSymbol, string>();
 
 	/// <summary>
 	/// The rules written with binding powers (§4.3.1), and the strength each alternative

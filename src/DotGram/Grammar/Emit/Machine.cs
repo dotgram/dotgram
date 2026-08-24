@@ -1103,11 +1103,17 @@ sealed partial class Machine
 				return state;
 			}
 
-			case Node.External(var method):
+			case Node.External(var method) { HasValue: var hasValue }:
 			{
 				var state = Reserve(out var writer);
 
-				writer.Line($"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
+				// Recognition only ever needs the bool and the moved position — the value,
+				// where there is one, is recovered later by re-invoking the method against
+				// the recorded start position (Machine.Materialization.cs), not trusted from
+				// a call that may run on an abandoned path.
+				writer.Line(hasValue
+					? $"if (!{method}(text, ref p, out _)) {{ expected = null; goto Fail; }}"
+					: $"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
 				writer.Line($"goto {Label(next)};");
 
 				return state;

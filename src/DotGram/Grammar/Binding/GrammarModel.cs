@@ -188,12 +188,19 @@ public sealed record Publication(
 public sealed class GrammarModel(
 	GrammarContext                                  root,
 	IReadOnlyDictionary<Expr, Symbol>         bindings,
+	IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> withBindings,
 	IReadOnlyDictionary<GrammarContext, RuleSymbol> trivia,
 	IReadOnlyList<Publication>                      publications,
 	IReadOnlyList<GramDiagnostic>                   diagnostics)
 {
 	public GrammarContext                          Root        { get; } = root;
 	public IReadOnlyDictionary<Expr, Symbol> Bindings    { get; } = bindings;
+
+	/// <summary>Each `with (...)`'s own rebindings, resolved (§5.1) — keyed by the
+	/// <see cref="Expr.With"/> node itself, the same way <see cref="Bindings"/> is keyed
+	/// by node identity rather than by value.</summary>
+	public IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> WithBindings { get; } = withBindings;
+
 	public IReadOnlyList<GramDiagnostic>           Diagnostics { get; } = diagnostics;
 
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>

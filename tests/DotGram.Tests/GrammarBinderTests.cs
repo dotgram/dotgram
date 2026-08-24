@@ -248,13 +248,135 @@ public sealed class GrammarBinderTests
 	[Fact]
 	public void A_duplicate_in_a_nested_context_is_shadowing_not_an_error()
 	{
+		// Still legal — still not GrammarBinder.DuplicateRule — but worth a note now:
+		// shadowing an enclosing rule from inside a nested context is one parenthesis away
+		// from a context binding that would have meant something else (§5.1).
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+
+				context Inner
+				{
+					A = 'b'
+				}
+				"""));
+	}
+
+	[Fact]
+	public void The_warning_fires_regardless_of_whether_the_context_already_has_a_header()
+	{
+		// The risk is "was a header entry meant here", not "does this specific block
+		// already use one" — a header for an unrelated name does not change that.
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+				C = 'c'
+
+				context Inner (C = A)
+				{
+					A = 'b'
+				}
+				"""));
+	}
+
+	[Fact]
+	public void The_warning_reaches_two_levels_deep_the_same_way()
+	{
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+
+				context Outer
+				{
+					context Inner
+					{
+						A = 'b'
+					}
+				}
+				"""));
+	}
+
+	[Fact]
+	public void A_name_shadowed_only_through_an_import_is_a_known_first_cut_gap()
+	{
+		// Declare (where the check runs) is pass one; ResolveImports runs after it, so an
+		// imported name is not yet visible on Lookup's import branch at the point this asks.
+		// Reaching it would mean moving the check to pass two — accepted as under-reporting
+		// rather than done, the same shape as this project's other documented diagnostic
+		// narrowings: it never mis-attributes, it simply has less to say than the full
+		// mechanism eventually could.
 		Assert.Empty(Diagnostics("""
-			A = 'a'
+			context Lib
+			{
+				A = 'a'
+			}
 
 			context Inner
 			{
+				using Lib;
+
 				A = 'b'
 			}
+			"""));
+	}
+
+	[Fact]
+	public void Re_shadowing_the_standard_library_a_second_time_stays_silent()
+	{
+		// `trivia` was already shadowed once at the top level; shadowing it again inside a
+		// nested context is the same always-legal mechanism, not a new grammar rule.
+		Assert.Empty(Diagnostics("""
+			trivia = none
+
+			context Inner
+			{
+				trivia = [' ']
+			}
+			"""));
+	}
+
+	[Theory]
+	[InlineData("A = Number with (Typo = D)\nNumber = 'n'\nD = 'd'",
+		GrammarBinder.UnknownContextTarget)]
+	[InlineData("A = Number with (Number = Typo)\nNumber = 'n'",
+		GrammarBinder.UnknownContextReplacement)]
+	[InlineData("A = Number with (B = D)\nB(item) = item\nD = 'd'\nNumber = 'n'",
+		GrammarBinder.ParameterizedContextBinding)]
+	[InlineData("A = Number with (B = C, B = D)\nNumber = 'n'\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateContextBinding)]
+	public void With_reuses_context_s_own_rebinding_diagnostics(string source, string expectedId)
+	{
+		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void With_never_reports_a_bound_name_redeclared()
+	{
+		// `with` declares nothing of its own — `ContextBoundNameRedeclared` is a check
+		// against a context *block*'s own declarations and has nothing to port here.
+		Assert.DoesNotContain(
+			GrammarBinder.ContextBoundNameRedeclared,
+			Diagnostics("""
+				Number = 'n'
+				Point  = '.'
+				Comma  = ','
+
+				A = Number with (Point = Comma)
+				"""));
+	}
+
+	[Fact]
+	public void With_resolves_its_operand_under_the_same_context_it_sits_in()
+	{
+		Assert.Empty(Diagnostics("""
+			Number = 'n'
+			Point  = '.'
+			Comma  = ','
+
+			A = Number with (Point = Comma)
 			"""));
 	}
 
@@ -297,6 +419,13 @@ public sealed class GrammarBinderTests
 			constructors = [];
 
 			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
 		}
 	}
 }

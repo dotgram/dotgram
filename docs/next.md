@@ -725,3 +725,95 @@ as a loop kept the position of a turn that broke halfway.
 
 Further performance work is optional and now has a stated obstacle rather than a target —
 see the gate above. The full suite remains below the 30-second ceiling.
+
+## Built: a warning for accidental shadowing inside a nested context
+
+`docs/syntax.md` §5.1 names the footgun: `context (A = B) { ... }` and `context { A = B }`
+are one pair of parentheses apart and mean different things — a substitution reaching the
+whole call graph, against an ordinary declaration that shadows only what is lexically
+inside the block. A missing header entry used to compile either way with nothing to say
+so.
+
+`GrammarBinder.ShadowsEnclosingRule` (`GRAM3012`) now does, at exactly the narrow scope
+settled on after going back and forth over it:
+
+- **A rule declared inside a nested `context { ... }` block, whose name also resolves in
+  an enclosing *grammar* scope**, gets an `Info`-level diagnostic (docs/status.md's own
+  convention for "the grammar is correct and there is nothing to fix" pointers, e.g.
+  `GRAM5001`) — not a refusal. Fires in `GrammarBinder.Declare`, right after a successful
+  `TryDeclare`, by looking the name up starting from the declaring context's *parent* —
+  found and not in `StandardLibrary` means an enclosing grammar rule was shadowed. Applies
+  whether or not that context already carries a header for something else — the risk is
+  "was a header entry meant here," not "does this specific block already use one."
+- **Shadowing the standard library** (`trivia`, `wordboundary`, `any`, `none`, `eol`,
+  `eof`), at any nesting depth and any number of times over, stays completely silent —
+  excluded by name, not by whether the symbol found is literally the original built-in
+  (an already-shadowed `trivia` re-shadowed again is still `trivia`). The language's
+  normal, intentionally frictionless mechanism (§3.1.1: "no directive, no mode, nothing
+  declared specially to make it possible"), used throughout the examples, and not what
+  this warning is for.
+- **Top-level shadowing** (declaring `trivia = none` etc. at the top of a file, not inside
+  any `context {}`) stays silent too — there is no `context (...)` header syntax anywhere
+  nearby to have meant instead, so there is nothing to be ambiguous about. (Provably
+  redundant with the standard-library exclusion above, since the top level's only possible
+  parent is the standard-library context itself — kept as its own explicit condition
+  anyway, for a reader rather than for correctness.)
+
+**Known first-cut gap, accepted rather than chased**: a name shadowed only by way of an
+import (`using Lib;` bringing in a name that collides with an enclosing scope's) is not
+caught. `Declare` (pass one, where the check runs) executes before `ResolveImports`, so
+the import is not wired up yet at the point this asks — reaching it would mean moving the
+check to pass two. Under-reports; never mis-attributes.
+
+## Built: `Expression with (A = B, ...)`
+
+The idea raised alongside the warning above, now designed and shipped: an expression-
+extent counterpart to `context (A = B) { ... }` — the same substitution, applied to one
+operand instead of a whole block, so a single override does not need a block wrapped
+around it. `docs/syntax.md` §5.1 has the notation and the "which of the two to reach
+for" guidance; §3.8 and §10 have the precedence and the grammar.
+
+Postfix, and settled as such rather than reconsidered: `Number with (Point = Comma)`,
+binding at the same tightness as a quantifier or `recover` — outermost of the three,
+checked last in `GramParser.ParseQuantified` (split into `ParseQuantifiedCore` plus a
+new `ParseWith`). A capture written before the wrapped operand ends up *inside* the
+`with`, not beside it — `c: Number with (...)` parses as `(c: Number) with (...)`, since
+`with` wraps whatever `ParseQuantifiedCore` already built. That single fact is what
+shaped the implementation: an earlier sketch that lowered the operand into a synthesized
+rule (mirroring the external-recognizer-value feature's `ExternalRuleFor`) would have
+isolated that capture inside a private, unreachable rule and silently dropped it from
+the enclosing rule's own result. Caught by a Plan agent explicitly asked to verify
+rather than accept the sketch, before any of it was written.
+
+What shipped instead: the operand lowers exactly as if `with` were not there — no
+wrapper node — and the pending site is recorded by the *node identity* of its own
+lowered root (`GrammarNormalizer.Lowering.cs`'s new `LowerWith`, tracking which rule is
+currently being lowered via a new `_currentRule` field). A new pass,
+`GrammarNormalizer.With.cs`'s `SpecializeWithSites`, runs after `LowerAll()` and before
+`SpecializeContexts()` — `with` mutates a rule's body in place, and an enclosing
+`context (...)` clone of that rule has to see the mutation already applied. It computes
+each site's affected set exactly as a `context (...)` block does (`Seed` replaced by a
+new `DirectCalls`, since a `with` names what it calls directly rather than what a block
+declares; `ReachableFromSeed`/`AffectedSet`/`CloneAndRewrite` reused unmodified), then
+splices the rewritten root back into the enclosing rule's body with a new identity-keyed
+rebuild pass, `SpliceWithSites` — needed because nodes are immutable records, so
+replacing one descendant means reconstructing every ancestor up to the rule's own root.
+
+One case needed more than a straight port of the `context (...)` machinery: `Group` is
+transparent at lowering, so `(X with (A=B)) with (C=D)` has both `with`s' operand lower
+to the *exact same node*. Cloning each site independently and applying both rewrites in
+sequence does not compose — the second pass, built against the pre-splice call graph,
+cannot see inside the clone the first pass already made, since that clone is a new rule
+referenced only by symbol. Fixed by detecting the shared root and merging the two sites'
+rebindings into one combined set (later overriding earlier for the same key — the same
+child-overrides-parent layering nested `context (...)` headers already use) before
+cloning once. `SpecializeSite`'s clone-building tail was extracted into a reusable
+`CloneAffected`, and `NameFor` generalized to take a bare site name instead of a
+`GrammarContext`, so both features share the one implementation.
+
+`GrammarBinder.cs`: `ResolveContextBindings`'s per-entry validation extracted into
+`ValidateRebinding`, reusing the header form's own diagnostic IDs
+(`UnknownContextTarget`/`UnknownContextReplacement`/`ParameterizedContextBinding`/
+`DuplicateContextBinding`) rather than minting new ones — same failure, different
+syntactic position. `ContextBoundNameRedeclared` does not port: `with` declares nothing,
+so there is nothing to check a redeclaration against.

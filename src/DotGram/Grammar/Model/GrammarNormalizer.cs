@@ -43,6 +43,7 @@ public sealed partial class GrammarNormalizer
 	public const string UnbuiltRuleType     = "GRAM4011";
 	public const string ReservedCaptureName = "GRAM4012";
 	public const string UnbuiltCall         = "GRAM4013";
+	public const string AmbiguousExternal   = "GRAM4015";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -74,14 +75,21 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
-		// Before RewriteLeftRecursion(): a cloned recursive rule's self-call must already
-		// point at the clone itself, and specialization is what makes that call resolve
-		// there in the first place.
+		// Both before RewriteLeftRecursion(), for the reason already there — a clone's
+		// self-call must resolve to the clone before left-recursion rewriting runs. `with`
+		// goes first: it mutates a rule's own body in place, and an enclosing
+		// `context (...)` clone of the same rule must see that mutation already applied.
+		normalizer.SpecializeWithSites();
 		normalizer.SpecializeContexts();
 
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 		normalizer.ComputeTypes();
+
+		// After the types, for the same reason as the two passes below it feeds: a
+		// whole-body value-returning external recognizer is §4.1 case 3's pass-through
+		// applied to a producer ComputeTypes never sees (its Declaration is null).
+		normalizer.ProduceFromExternals();
 
 		// After the types and before the results: it reads what each rule's type is and
 		// writes captures the results are then computed from (§4.1 case 2).
@@ -118,7 +126,8 @@ public sealed partial class GrammarNormalizer
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
 			Climbing   = normalizer._climbing,
-			Powers       = normalizer._powers,
+			Powers     = normalizer._powers,
+			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
 		};
 	}
 

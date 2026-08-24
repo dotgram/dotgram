@@ -55,6 +55,46 @@ public interface ISymbolResolver
 	/// </remarks>
 	/// <returns><c>false</c> when the type is not in scope, or nothing about it can be set.</returns>
 	bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties);
+
+	/// <summary>
+	/// Whether an external recognizer named this hands back a value of its own — §7.1's
+	/// third row, <c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos, out T value)</c> —
+	/// and what <c>T</c> is when it does.
+	/// </summary>
+	/// <remarks>
+	/// Unlike every other member here, this is asked about a method rather than a type: the
+	/// bare <c>@Name</c> notation is unchanged and does not say which of the two shapes it
+	/// means, so the generator — not the grammar — has to look. More than one such overload
+	/// with a different <c>T</c> is left a tie rather than guessed at, the same as §7.3's
+	/// constructors: a wrong <c>T</c> silently chosen is the failure worth avoiding, not a
+	/// slower one.
+	/// </remarks>
+	/// <param name="against">
+	/// The type <c>T</c> would have to fit for a whole rule's body to be exactly this call
+	/// (§4.1 case 3 applied to one), or null where nothing needs to fit — a captured or
+	/// otherwise nested use, which asks only what <c>T</c> is. Folded into this one question
+	/// rather than asked separately, because <c>T</c> is discovered here and not knowable
+	/// from grammar syntax alone — nothing upstream could have asked "is T assignable to
+	/// this" as an ordinary <see cref="IsAssignable"/> question when T is what this call
+	/// exists to find out.
+	/// </param>
+	ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType);
+}
+
+/// <summary>What asking about an external recognizer's value overload found.</summary>
+public enum ExternalValueResolution
+{
+	/// <summary>
+	/// No <c>(ReadOnlySpan&lt;char&gt;, ref int, out T)</c> overload of this name is in
+	/// scope. Bare <c>@Name</c> is §7.1's second row, unchanged.
+	/// </summary>
+	NotFound,
+
+	/// <summary>Exactly one such overload. The out parameter it names is <c>T</c>.</summary>
+	Found,
+
+	/// <summary>More than one, with different <c>T</c>. Left as a tie.</summary>
+	Ambiguous,
 }
 
 /// <summary>A property an object initializer may write.</summary>
@@ -101,5 +141,14 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		properties = [];
 
 		return false;
+	}
+
+	/// <remarks>The same reasoning again: a grammar tested without a host sees only §7.1's
+	/// plain, text-covering form.</remarks>
+	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+	{
+		valueType = null;
+
+		return ExternalValueResolution.NotFound;
 	}
 }

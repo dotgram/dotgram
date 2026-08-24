@@ -283,8 +283,6 @@ Not built yet:
 Each of these is refused with the reason where it can be — a construct that parses and
 then quietly means nothing is the failure this project is most careful about:
 
-- an external recognizer that hands back a value of its own — the form that reads the
-  input and moves the position works, the one with `out T value` does not
 - a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
   refused rather than quietly taken as a recognizer
 - a second `recover` in one rule, and indirect left recursion

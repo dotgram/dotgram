@@ -280,6 +280,26 @@ sealed partial class Machine
 			return;
 		}
 
+		// A value-returning external recognizer (§7.1's third row) has no captures to walk
+		// and no factory to call — recognition already ran the method once, speculatively,
+		// keeping only the bool and the position it moved (Machine.cs's Node.External
+		// case). Its value is recovered the same way any other typed value is here: on
+		// demand, from what the arena recorded — completed.Position is where the call
+		// began (Machine.cs's Return: label), which is all the method needs to be asked
+		// again.
+		if (_graph.Externals.TryGetValue(rule, out var method))
+		{
+			using (file.Block($"case {_ruleIds[rule]}:"))
+			{
+				file.Line("var externalPos = completed.Position;");
+				file.Line($"{method}(text, ref externalPos, out var externalValue);");
+				file.Line($"{ValueInto(type, "completedAt")} = externalValue;");
+				file.Line("break;");
+			}
+
+			return;
+		}
+
 		using (file.Block($"case {_ruleIds[rule]}:"))
 		{
 			if (_graph.Folds.ContainsKey(rule))

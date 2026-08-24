@@ -1843,4 +1843,32 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "a b").IsSuccess);
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "ab").IsSuccess);
 	}
+
+	// ── `Expression with (A = B, ...)` — §5.1's substitution, expression-scoped ────
+
+	const string RowGrammar =
+		"Digit  = ['0'..'9']\n" +
+		"Point  = '.'\n" +
+		"Comma  = ','\n" +
+		"Number = Digit+ & Point & Digit+\n" +
+		"Start  = a: Number & ';' & b: Number & ';' & c: Number with (Point = Comma)";
+
+	[Fact]
+	public void With_rebinds_only_the_one_field_it_wraps() =>
+		// A comma is accepted where the third field's decimal point goes — the first two
+		// fields still take an ordinary '.' — because `with` scopes the rebinding to `c`
+		// alone, not to `Number` everywhere it is called.
+		Assert.True(Matches(RowGrammar, "1.2;3.4;5,6"));
+
+	[Fact]
+	public void And_the_first_two_fields_are_untouched_by_it() =>
+		// The third field still requires a comma — a '.' there is refused, because it is
+		// `c`'s own clone that was rebound, and the clone requires `Comma`.
+		Assert.False(Matches(RowGrammar, "1.2;3.4;5.6"));
+
+	[Fact]
+	public void And_the_rebinding_does_not_leak_backward_into_the_earlier_fields() =>
+		// The first field is still the plain, unrebound `Number` — a comma there is
+		// refused exactly as it would be with no `with` in the grammar at all.
+		Assert.False(Matches(RowGrammar, "1,2;3.4;5,6"));
 }

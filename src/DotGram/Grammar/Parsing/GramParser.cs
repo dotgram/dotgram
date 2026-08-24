@@ -444,7 +444,13 @@ public sealed class GramParser
 
 	Expr ParseQuantified()
 	{
-		var start   = Current.Position;
+		var start = Current.Position;
+
+		return ParseWith(ParseQuantifiedCore(start), start);
+	}
+
+	Expr ParseQuantifiedCore(int start)
+	{
 		var operand = ParsePrefixed();
 
 		Expr Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null) =>
@@ -480,6 +486,20 @@ public sealed class GramParser
 				new Location(start, closeAt + 1 - start));
 
 		return Quantify(QuantifierKind.Count, min, minName, max, maxName);
+	}
+
+	/// <summary>
+	/// <c>Number with (Point = Comma)</c> — §5.1's substitution, applied to one
+	/// expression instead of a whole <c>context</c> block. Checked last, outermost of
+	/// quantifier/<c>recover</c>/<c>with</c> at this one precedence level: <c>Number+
+	/// with (X=Y)</c> is <c>(Number+) with (X=Y)</c>, and the reverse needs parens.
+	/// </summary>
+	Expr ParseWith(Expr operand, int start)
+	{
+		if (!TakeIfKeyword("with"))
+			return operand;
+
+		return new Expr.With(operand, ParseRebindings()) { At = From(start) };
 	}
 
 	/// <summary>

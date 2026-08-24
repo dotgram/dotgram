@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 
 using DotGram.Grammar;
+using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
 
 namespace DotGram.Generation;
@@ -31,11 +32,20 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// <summary>And what can be set on it once it is (§7.3's second way).</summary>
 	public const int Properties = -4;
 
+	/// <summary>And whether a bare `@Name` recognizer hands back a value of its own (§7.1).</summary>
+	public const int ExternalValue = -5;
+
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
 
 	public static Question Builds(string type) => new(type, Constructors);
 
 	public static Question Sets(string type) => new(type, Properties);
+
+	/// <param name="against">
+	/// The type <c>T</c> would have to fit for a whole rule's body to be exactly this call,
+	/// or null for a captured or otherwise nested use, which only asks what <c>T</c> is.
+	/// </param>
+	public static Question ValueOf(string method, string? against = null) => new(method, ExternalValue, against);
 }
 
 /// <param name="Yes">Whether the host has it.</param>
@@ -51,7 +61,9 @@ readonly record struct Answer(
 	Question Asked,
 	bool Yes,
 	EquatableArray<EquatableArray<MethodParameter>> Constructors = default,
-	EquatableArray<ObjectMember> Properties = default);
+	EquatableArray<ObjectMember> Properties = default,
+	string? ExternalType = null,
+	bool ExternalAmbiguous = false);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -63,8 +75,10 @@ readonly record struct Answer(
 /// and a <c>Compilation</c> is a new object after every keystroke, so anything downstream
 /// of it is recomputed for every character typed. Asking those questions first turns
 /// that dependency into a small list of answers, which compares by value and hardly ever
-/// changes. C# methods raise no question here: their contract follows from syntactic
-/// position, and the generated C# compiler binds the emitted call.
+/// changes. A C# method's role still follows from syntactic position, and the generated
+/// C# compiler binds the emitted call — the one exception is a bare `@Name` operand,
+/// which asks whether the host also has a value-returning overload (§7.1's third row),
+/// since notation alone cannot say which of the two the author meant.
 /// </para>
 /// <para>
 /// <b>A superset, deliberately.</b> The set is built from the grammar's syntax rather
@@ -84,6 +98,8 @@ static class Questions
 		var names     = new List<Question>();
 		var declared  = new List<string>();
 		var sequences = new List<string>();
+		var externals = new List<string>();
+		var producers = new List<(string Method, string Against)>();
 
 		Collect(file.Usings, file.Decls);
 
@@ -123,6 +139,15 @@ static class Questions
 				questions.Add(name with { Name = import + "." + name.Name });
 		}
 
+		// Not qualified under each import the way a type name is: a method is found by
+		// Roslyn searching the compilation for its simple name (RoslynSymbolResolver.
+		// TryResolveExternalValue), not by trying it beside each `using` in turn.
+		foreach (var method in externals)
+			questions.Add(Question.ValueOf(method));
+
+		foreach (var (method, against) in producers)
+			questions.Add(Question.ValueOf(method, against));
+
 		// Sorted, because what this is conceptually is a set and what it travels as is an
 		// array compared element by element. Two runs that asked the same questions must
 		// produce the same array or the incremental stage rebuilds for nothing, and the
@@ -148,6 +173,13 @@ static class Questions
 					case Decl.Rule(_, _, var type, var body):
 						Type(type);
 						Walk(body);
+
+						// A rule's whole body being one bare @Name is §4.1 case 3 applied to a
+						// value-returning external recognizer rather than to another rule — known
+						// from syntax alone, both halves of it, unlike T itself.
+						if (type is not null && body is Expr.Reference(true, var method, _))
+							producers.Add((method, GrammarNormalizer.TypeName(type)));
+
 						break;
 
 					case Decl.Context(_, _, var nested, var inner):
@@ -199,6 +231,15 @@ static class Questions
 						Type(argument);
 
 					break;
+
+				// A bare @Name in operand position may be §7.1's third row — a value
+				// overload — rather than its second, and only the host can tell. Never
+				// reached for [@Name] (ElementSet has no children) or for a when/=> value
+				// (Guard/Construct already returned above), so this is exactly the
+				// external-recognizer-as-operand shape.
+				case Expr.Reference(true, var method, _):
+					externals.Add(method);
+					break;
 			}
 
 			foreach (var child in Dump.Children(expression))
@@ -229,6 +270,14 @@ static class Questions
 					new EquatableArray<ObjectMember>([.. properties])),
 
 				Question.Exists => new Answer(question, resolver.TypeExists(question.Name)),
+
+				Question.ExternalValue =>
+					resolver.TryResolveExternalValue(question.Name, question.Against, out var valueType) switch
+					{
+						ExternalValueResolution.Found     => new Answer(question, true, ExternalType: valueType),
+						ExternalValueResolution.Ambiguous => new Answer(question, false, ExternalAmbiguous: true),
+						_                                 => new Answer(question, false),
+					},
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
@@ -298,6 +347,17 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		constructors = found;
 
 		return answer.Yes;
+	}
+
+	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+	{
+		var answer = Look(Question.ValueOf(methodName, against));
+
+		valueType = answer.ExternalType;
+
+		return answer.Yes ? ExternalValueResolution.Found
+			: answer.ExternalAmbiguous ? ExternalValueResolution.Ambiguous
+			: ExternalValueResolution.NotFound;
 	}
 
 	/// <summary>
