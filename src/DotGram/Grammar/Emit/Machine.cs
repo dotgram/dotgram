@@ -1656,20 +1656,27 @@ sealed partial class Machine
 
 		_usesChar = true;
 
+		// Predicted by disjoint first sets (Predictive), which already proved every
+		// alternative's first set is known and finite — none is Anything, Nothing or
+		// nullable, or Predictive would have refused to predict at all — so the union of
+		// their ranges is exactly what this position accepts, on either failure path
+		// below.
+		var arrayName = DeclareExpected([PredictedDisplay(alternatives)]);
+
 		if (_starves)
 		{
 			writer.Line("if (p >= text.Length)");
 			using (writer.Block(""))
 			{
 				writer.Line("failure.Starved = true;");
-				EmitFailure(writer, _fail);
+				EmitTerminalFailure(writer, _fail, arrayName);
 			}
 		}
 		else
 		{
 			writer.Line("if (p >= text.Length)");
 			using (writer.Block(""))
-				EmitFailure(writer, _fail);
+				EmitTerminalFailure(writer, _fail, arrayName);
 		}
 
 		writer.Line("c = text[p];");
@@ -1677,15 +1684,20 @@ sealed partial class Machine
 		for (var i = 0; i < targets.Length; i++)
 			writer.Line($"if ({tests[i]}) goto {Label(targets[i])};");
 
-		// Predicted by disjoint first sets (Predictive), which is a genuine "this input
-		// character cannot begin any alternative" failure — the closest thing this site
-		// has to a terminal mismatch. Left as a clear (not a terminal) failure for this
-		// first cut: synthesizing a display from the union of every alternative's
-		// first-set ranges is straightforward but not required for a first, reviewable
-		// change.
-		EmitFailure(writer, _fail);
+		EmitTerminalFailure(writer, _fail, arrayName);
 
 		return state;
+	}
+
+	/// <summary>What a predicted choice's disjoint first sets accept, rendered as one element set.</summary>
+	string PredictedDisplay(IReadOnlyList<Node> alternatives)
+	{
+		var ranges = new List<CharRange>();
+
+		foreach (var alternative in alternatives)
+			ranges.AddRange(FirstSets.Of(alternative, _graph).Ranges);
+
+		return new Node.Element(false, ranges, [], []).ToString();
 	}
 
 	/// <summary>

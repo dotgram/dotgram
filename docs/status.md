@@ -332,13 +332,17 @@ lookahead that matched, and the rest of what is not a literal-or-element test cl
 rather than leave a stale value behind, the same care `lookahead < 0` already takes for
 `Position`.
 
-Deliberately narrower than it could be for a first cut, both documented at the sites
-that make the choice: `CompilePredictedChoice` (a choice one character decides) does
-not yet contribute a display; a prefix-conflicted run of literals — `"p" | "q" | "pr"` —
-can under-report what it covers, since two entry-less runs chained by `fail` overwrite
-rather than merge when both fail at the one position neither could move past. Neither
-mis-attributes or moves the position; both simply have less to say than the full
-mechanism eventually could.
+`CompilePredictedChoice` — a choice one character decides — contributes a display too:
+the union of every alternative's first-set ranges, rendered as one element set, since
+`Predictive` already proved each of those first sets known and finite before it agreed
+to predict at all. `Calculator.Explain("2*")` names `"Expected ['-' | '(' | '0'..'9']."`
+rather than falling back to "Expected more input."
+
+One narrowing remains, documented at its own site: a prefix-conflicted run of
+literals — `"p" | "q" | "pr"` — can under-report what it covers, since two entry-less
+runs chained by `fail` overwrite rather than merge when both fail at the one position
+neither could move past. It never mis-attributes or moves the position; it simply has
+less to say than the full mechanism eventually could.
 
 One thing it does not do yet:
 
