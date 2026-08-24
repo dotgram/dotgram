@@ -23,7 +23,11 @@ sealed class GramFindReferencesTarget(string name, int definitionPosition, int[]
 			: new GramFindReferencesTarget(
 				current.Name,
 				current.DefinitionPosition,
-				symbols.Where(symbol => symbol.Name == current.Name).Select(symbol => symbol.Position).ToArray());
+				symbols
+					.Where(symbol => symbol.Name == current.Name &&
+						symbol.DefinitionPosition == current.DefinitionPosition)
+					.Select(symbol => symbol.Position)
+					.ToArray());
 	}
 
 	public static GramFindReferencesTarget? Embedded(

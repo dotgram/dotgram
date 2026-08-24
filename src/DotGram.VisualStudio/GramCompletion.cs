@@ -128,6 +128,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		public int ParameterCount { get; } = parameterCount;
 	}
 
+	protected static RuleCompletion LocalCompletion(string name, GramSymbolKind kind) =>
+		new(
+			kind == GramSymbolKind.Parameter
+				? $"{name}: DotGram rule parameter"
+				: $"{name}: DotGram capture",
+			name,
+			0);
+
 	static SnapshotSpan WordSpan(SnapshotPoint point)
 	{
 		var snapshot = point.Snapshot;
@@ -159,9 +167,12 @@ sealed class GramCompletionSource(ITextBuffer buffer, GramBufferAnalysis analysi
 {
 	protected override bool IsApplicable(SnapshotPoint point) => point.Snapshot.TextBuffer == buffer;
 
-	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point) =>
-		analysis.Document(point.Snapshot).Classifications
-			.Where(static item => item.DefinitionPosition == item.Position && item.QuickInfo is not null)
+	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
+	{
+		var document = analysis.Document(point.Snapshot);
+		var definitions = document.Classifications
+			.Where(static item => item.SymbolKind == GramSymbolKind.Rule &&
+				item.DefinitionPosition == item.Position && item.QuickInfo is not null)
 			.GroupBy(item => point.Snapshot.GetText(item.Position, item.Length), StringComparer.Ordinal)
 			.ToDictionary(
 				group => group.Key,
@@ -170,6 +181,20 @@ sealed class GramCompletionSource(ITextBuffer buffer, GramBufferAnalysis analysi
 					group.First().RuleSignature!,
 					group.First().RuleParameterCount),
 				StringComparer.Ordinal);
+
+		foreach (var symbol in document.Symbols
+			.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
+				symbol.IsDefinition &&
+				symbol.ScopeStart <= point.Position && point.Position < symbol.ScopeEnd)
+			.GroupBy(symbol => symbol.Name, StringComparer.Ordinal))
+		{
+			var local = symbol.OrderBy(static item => item.Kind).First();
+			definitions[local.Name] = LocalCompletion(local.Name, local.Kind);
+		}
+
+		return definitions;
+	}
+
 }
 
 sealed class EmbeddedGramCompletionSource(
@@ -190,9 +215,10 @@ sealed class EmbeddedGramCompletionSource(
 		if (!analysis.TryGet(point.Snapshot, out var classifications, out _))
 			return new Dictionary<string, RuleCompletion>();
 
-		return classifications
+		var definitions = classifications
 			.Where(item =>
 				item.GrammarSpan.Contains(point.Position) &&
+				item.SymbolKind == GramSymbolKind.Rule &&
 				item.DefinitionSpan == item.Span &&
 				item.QuickInfo is not null)
 			.GroupBy(item => point.Snapshot.GetText(item.Span.Start, item.Span.Length), StringComparer.Ordinal)
@@ -203,5 +229,19 @@ sealed class EmbeddedGramCompletionSource(
 					group.First().RuleSignature!,
 					group.First().RuleParameterCount),
 				StringComparer.Ordinal);
+
+		if (analysis.TryGetSymbols(point.Snapshot, out var symbols))
+			foreach (var symbol in symbols
+				.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
+					symbol.IsDefinition &&
+					symbol.GrammarSpan.Contains(point.Position) &&
+					symbol.ScopeSpan.Contains(point.Position))
+				.GroupBy(symbol => symbol.Name, StringComparer.Ordinal))
+			{
+				var local = symbol.OrderBy(static item => item.Kind).First();
+				definitions[local.Name] = LocalCompletion(local.Name, local.Kind);
+			}
+
+		return definitions;
 	}
 }

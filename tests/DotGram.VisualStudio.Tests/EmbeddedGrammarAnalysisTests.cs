@@ -60,6 +60,29 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.Equal("\\u007e", source.Substring(told.Span.Start, told.Span.Length));
 	}
 
+	[Fact]
+	public void MapsLocalSymbolsAndTheirRuleScope()
+	{
+		var source = Host(""""
+			"""
+			Item = 'a'
+			Start(value) = item: value => @Make(item)
+			"""
+			"""");
+
+		var analysis = Assert.Single(Analyze(source));
+		var parameter = analysis.Symbols.First(symbol =>
+			symbol.Name == "value" && symbol.IsDefinition);
+		var capture = analysis.Symbols.First(symbol =>
+			symbol.Name == "item" && symbol.IsDefinition);
+
+		Assert.Equal(GramSymbolKind.Parameter, parameter.Kind);
+		Assert.Equal(GramSymbolKind.Capture, capture.Kind);
+		Assert.True(parameter.ScopeSpan.Contains(parameter.Span));
+		Assert.True(capture.ScopeSpan.Contains(capture.Span));
+		Assert.Equal(parameter.ScopeSpan, capture.ScopeSpan);
+	}
+
 	static string Host(string literal) => $$"""
 		using DG = DotGram;
 

@@ -35,7 +35,8 @@ public readonly struct GramClassifiedSpan(
 	string? quickInfo = null,
 	int? definitionPosition = null,
 	string? ruleSignature = null,
-	int ruleParameterCount = 0)
+	int ruleParameterCount = 0,
+	GramSymbolKind? symbolKind = null)
 {
 	public int Position { get; } = position;
 	public int Length { get; } = length;
@@ -44,6 +45,14 @@ public readonly struct GramClassifiedSpan(
 	public int? DefinitionPosition { get; } = definitionPosition;
 	public string? RuleSignature { get; } = ruleSignature;
 	public int RuleParameterCount { get; } = ruleParameterCount;
+	public GramSymbolKind? SymbolKind { get; } = symbolKind;
+}
+
+public enum GramSymbolKind
+{
+	Rule,
+	Parameter,
+	Capture,
 }
 
 /// <summary>One declaration or reference to a grammar rule.</summary>
@@ -52,13 +61,19 @@ public readonly struct GramSymbolOccurrence(
 	int position,
 	int length,
 	int definitionPosition,
-	bool isDefinition)
+	bool isDefinition,
+	GramSymbolKind kind = GramSymbolKind.Rule,
+	int scopeStart = 0,
+	int scopeEnd = int.MaxValue)
 {
 	public string Name { get; } = name;
 	public int Position { get; } = position;
 	public int Length { get; } = length;
 	public int DefinitionPosition { get; } = definitionPosition;
 	public bool IsDefinition { get; } = isDefinition;
+	public GramSymbolKind Kind { get; } = kind;
+	public int ScopeStart { get; } = scopeStart;
+	public int ScopeEnd { get; } = scopeEnd;
 }
 
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
@@ -94,11 +109,25 @@ public static class GramLanguageService
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
 		var rules = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
+		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules);
+		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
 
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, out var kind))
 			{
-				if (token.Value is not null && rules.TryGetValue(token.Value, out var rule))
+				if (symbolsByPosition.TryGetValue(token.Position, out var symbol) &&
+					symbol.Kind != GramSymbolKind.Rule)
+					classifications.Add(new GramClassifiedSpan(
+						token.Position,
+						token.Length,
+						kind,
+						symbol.Kind == GramSymbolKind.Parameter
+							? $"{symbol.Name}: DotGram rule parameter"
+							: $"{symbol.Name}: DotGram capture",
+						symbol.DefinitionPosition,
+						symbol.Name,
+						symbolKind: symbol.Kind));
+				else if (token.Value is not null && rules.TryGetValue(token.Value, out var rule))
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
 						token.Length,
@@ -106,7 +135,8 @@ public static class GramLanguageService
 						rule.ExpandedDefinition,
 						rule.Position,
 						rule.Signature,
-						rule.ParameterCount));
+						rule.ParameterCount,
+						GramSymbolKind.Rule));
 				else
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
@@ -132,7 +162,7 @@ public static class GramLanguageService
 		return new GramDocument(
 			classifications,
 			NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens),
-			SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules));
+			symbols);
 	}
 
 	static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
@@ -157,23 +187,43 @@ public static class GramLanguageService
 		IReadOnlyDictionary<string, RuleInfo> rules)
 	{
 		var result = new List<GramSymbolOccurrence>();
+		var positions = new HashSet<int>();
+		Dictionary<string, int>? parameters = null;
+		Dictionary<string, int>? captures   = null;
+		Location? localScope = null;
 
 		VisitDeclarations(declarations);
 		result.Sort(static (left, right) => left.Position.CompareTo(right.Position));
 
 		return result;
 
-		void Add(string name, Location at, bool isDefinition)
+		void AddOccurrence(
+			string name,
+			Location at,
+			int definitionPosition,
+			bool isDefinition,
+			GramSymbolKind kind)
 		{
-			if (!rules.TryGetValue(name, out var rule))
+			if (!positions.Add(at.Position))
 				return;
 
 			result.Add(new GramSymbolOccurrence(
 				name,
 				at.Position,
 				name.Length,
-				rule.Position,
-				isDefinition));
+				definitionPosition,
+				isDefinition,
+				kind,
+				kind == GramSymbolKind.Rule ? 0 : localScope!.Value.Position,
+				kind == GramSymbolKind.Rule ? int.MaxValue : localScope!.Value.End));
+		}
+
+		void AddRule(string name, Location at, bool isDefinition)
+		{
+			if (!rules.TryGetValue(name, out var rule))
+				return;
+
+			AddOccurrence(name, at, rule.Position, isDefinition, GramSymbolKind.Rule);
 		}
 
 		void VisitDeclarations(IReadOnlyList<Decl> items)
@@ -182,8 +232,8 @@ public static class GramLanguageService
 				switch (declaration)
 				{
 					case Decl.Rule rule:
-						Add(rule.Name, rule.At, true);
-						Visit(rule.Body);
+						AddRule(rule.Name, rule.At, true);
+						VisitRule(rule);
 						break;
 					case Decl.Context context:
 						VisitDeclarations(context.Decls);
@@ -194,15 +244,77 @@ public static class GramLanguageService
 							candidate.Position < publish.At.End &&
 							candidate.Value == publish.RuleName);
 						if (token.Length > 0)
-							Add(publish.RuleName, new Location(token.Position, token.Length), false);
+							AddRule(publish.RuleName, new Location(token.Position, token.Length), false);
 						break;
 				}
 		}
 
-		void AddReference(Expr.Reference reference)
+		void VisitRule(Decl.Rule rule)
+		{
+			parameters = new Dictionary<string, int>(StringComparer.Ordinal);
+			captures   = new Dictionary<string, int>(StringComparer.Ordinal);
+			localScope = rule.At;
+
+			foreach (var parameter in rule.Params)
+			{
+				if (!parameters.TryGetValue(parameter.Name, out var definition))
+					parameters.Add(parameter.Name, definition = parameter.At.Position);
+				AddOccurrence(
+					parameter.Name,
+					new Location(parameter.At.Position, parameter.Name.Length),
+					definition,
+					true,
+					GramSymbolKind.Parameter);
+				if (parameter.Type is not null) VisitType(parameter.Type);
+			}
+
+			if (rule.Type is not null) VisitType(rule.Type);
+			CollectCaptures(rule.Body);
+			Visit(rule.Body);
+
+			parameters = null;
+			captures   = null;
+			localScope = null;
+		}
+
+		void CollectCaptures(Expr expression)
+		{
+			if (expression is Expr.Capture capture)
+			{
+				if (!captures!.TryGetValue(capture.Name, out var definition))
+					captures.Add(capture.Name, definition = capture.At.Position);
+				AddOccurrence(
+					capture.Name,
+					new Location(capture.At.Position, capture.Name.Length),
+					definition,
+					true,
+					GramSymbolKind.Capture);
+			}
+
+			foreach (var child in Dump.Children(expression))
+				CollectCaptures(child);
+		}
+
+		void VisitType(TypeRef type)
+		{
+			if (!type.IsCSharp)
+				AddReference(type.Name, new Location(type.At.Position, type.Name.Length));
+		}
+
+		void AddReference(string name, Location at)
+		{
+			if (parameters is not null && parameters.TryGetValue(name, out var parameter))
+				AddOccurrence(name, at, parameter, false, GramSymbolKind.Parameter);
+			else if (captures is not null && captures.TryGetValue(name, out var capture))
+				AddOccurrence(name, at, capture, false, GramSymbolKind.Capture);
+			else
+				AddRule(name, at, false);
+		}
+
+		void AddExpressionReference(Expr.Reference reference)
 		{
 			if (!reference.IsCSharp)
-				Add(reference.Name, reference.At, false);
+				AddReference(reference.Name, reference.At);
 		}
 
 		void AddRebinding(Rebinding rebinding)
@@ -214,7 +326,7 @@ public static class GramLanguageService
 
 			foreach (var token in names)
 				if (token.Value == rebinding.Left || token.Value == rebinding.Right)
-					Add(token.Value, new Location(token.Position, token.Length), false);
+					AddRule(token.Value, new Location(token.Position, token.Length), false);
 		}
 
 		void Visit(Expr item)
@@ -256,23 +368,41 @@ public static class GramLanguageService
 					break;
 				case Expr.ElementSet set:
 					foreach (var element in set.Items)
-						if (element is Elem.Ref reference) AddReference(reference.Reference);
+						if (element is Elem.Ref reference) AddExpressionReference(reference.Reference);
 					break;
 				case Expr.Reference reference:
-					AddReference(reference);
+					AddExpressionReference(reference);
 					break;
 				case Expr.Call call:
-					AddReference(call.Target);
+					AddExpressionReference(call.Target);
 					foreach (var argument in call.Arguments) Visit(argument);
 					break;
 				case Expr.Quantified quantified:
 					Visit(quantified.Operand);
+					AddCount(quantified.MinName, quantified.At);
+					AddCount(quantified.MaxName, quantified.At);
 					break;
 				case Expr.With with:
 					Visit(with.Operand);
 					foreach (var rebinding in with.Rebindings) AddRebinding(rebinding);
 					break;
 			}
+		}
+
+		void AddCount(string? name, Location within)
+		{
+			if (name is null)
+				return;
+
+			var token = tokens.FirstOrDefault(candidate =>
+				candidate.Kind == TokenKind.Identifier &&
+				candidate.Value == name &&
+				candidate.Position >= within.Position &&
+				candidate.Position < within.End &&
+				!positions.Contains(candidate.Position));
+
+			if (token.Length > 0)
+				AddReference(name, new Location(token.Position, token.Length));
 		}
 	}
 

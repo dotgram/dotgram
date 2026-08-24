@@ -178,7 +178,9 @@ public sealed class GramLanguageServiceTests
 			"Start = Item & List(Item) & [Item]\n" +
 			"parse Start";
 
-		var symbols = GramLanguageService.Analyze(source).Symbols;
+		var symbols = GramLanguageService.Analyze(source).Symbols
+			.Where(symbol => symbol.Kind == GramSymbolKind.Rule)
+			.ToArray();
 
 		Assert.Equal(
 			new[] { "Item", "List", "Start", "Item", "List", "Item", "Item", "Start" },
@@ -192,6 +194,36 @@ public sealed class GramLanguageServiceTests
 			var definition = Assert.Single(group, symbol => symbol.IsDefinition);
 			Assert.All(group, symbol => Assert.Equal(definition.Position, symbol.DefinitionPosition));
 		}
+	}
+
+	[Fact]
+	public void IndexesParametersAndCapturesWithinTheirDeclaringRule()
+	{
+		const string source =
+			"Item = 'a'\n" +
+			"Repeat(count: @int, value: Item) : value[] = item: value & item & any{count} => @Make(item, count)\n" +
+			"Other(count) = any{count}";
+
+		var symbols = GramLanguageService.Analyze(source).Symbols;
+		var repeatCount = symbols.Where(symbol =>
+			symbol.Name == "count" && symbol.DefinitionPosition == source.IndexOf("count", StringComparison.Ordinal)).ToArray();
+		var otherCountPosition = source.IndexOf("count", source.IndexOf("Other", StringComparison.Ordinal), StringComparison.Ordinal);
+		var otherCount = symbols.Where(symbol =>
+			symbol.Name == "count" && symbol.DefinitionPosition == otherCountPosition).ToArray();
+
+		Assert.Equal(3, repeatCount.Length);
+		Assert.All(repeatCount, symbol => Assert.Equal(GramSymbolKind.Parameter, symbol.Kind));
+		Assert.Equal(2, otherCount.Length);
+		Assert.All(otherCount, symbol => Assert.Equal(GramSymbolKind.Parameter, symbol.Kind));
+		Assert.Equal(3, symbols.Count(symbol => symbol.Name == "value" && symbol.Kind == GramSymbolKind.Parameter));
+		Assert.Equal(3, symbols.Count(symbol => symbol.Name == "item" && symbol.Kind == GramSymbolKind.Capture));
+
+		var localQuickInfo = GramLanguageService.Analyze(source).Classifications
+			.Where(span => span.SymbolKind is GramSymbolKind.Parameter or GramSymbolKind.Capture)
+			.Select(span => span.QuickInfo)
+			.ToArray();
+		Assert.Contains("count: DotGram rule parameter", localQuickInfo);
+		Assert.Contains("item: DotGram capture", localQuickInfo);
 	}
 
 	[Fact]

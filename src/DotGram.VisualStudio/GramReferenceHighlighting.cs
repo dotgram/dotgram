@@ -76,7 +76,8 @@ sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 			yield break;
 
 		foreach (var symbol in document.Symbols)
-			if (symbol.Name == current.Name)
+			if (symbol.Name == current.Name &&
+				symbol.DefinitionPosition == current.DefinitionPosition)
 			{
 				var span = new SnapshotSpan(snapshot, symbol.Position, symbol.Length);
 

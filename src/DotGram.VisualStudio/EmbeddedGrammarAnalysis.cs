@@ -18,7 +18,8 @@ public readonly struct HostClassification(
 	TextSpan? definitionSpan,
 	TextSpan grammarSpan,
 	string? ruleSignature,
-	int ruleParameterCount)
+	int ruleParameterCount,
+	GramSymbolKind? symbolKind)
 {
 	public TextSpan      Span { get; } = span;
 	public GramSyntaxKind Kind { get; } = kind;
@@ -27,6 +28,7 @@ public readonly struct HostClassification(
 	public TextSpan      GrammarSpan { get; } = grammarSpan;
 	public string?       RuleSignature { get; } = ruleSignature;
 	public int           RuleParameterCount { get; } = ruleParameterCount;
+	public GramSymbolKind? SymbolKind { get; } = symbolKind;
 }
 
 /// <summary>One grammar diagnostic mapped into its containing C# document.</summary>
@@ -43,13 +45,17 @@ public readonly struct HostSymbolOccurrence(
 	TextSpan span,
 	TextSpan definitionSpan,
 	TextSpan grammarSpan,
-	bool isDefinition)
+	bool isDefinition,
+	GramSymbolKind kind,
+	TextSpan scopeSpan)
 {
 	public string   Name { get; } = name;
 	public TextSpan Span { get; } = span;
 	public TextSpan DefinitionSpan { get; } = definitionSpan;
 	public TextSpan GrammarSpan { get; } = grammarSpan;
 	public bool IsDefinition { get; } = isDefinition;
+	public GramSymbolKind Kind { get; } = kind;
+	public TextSpan ScopeSpan { get; } = scopeSpan;
 }
 
 /// <summary>The editor-facing analysis of one grammar embedded in a C# document.</summary>
@@ -102,7 +108,8 @@ public static class EmbeddedGrammarService
 						definitionSpan,
 						grammar.Token.Span,
 						classification.RuleSignature,
-						classification.RuleParameterCount));
+						classification.RuleParameterCount,
+						classification.SymbolKind));
 				}
 
 			foreach (var diagnostic in document.Diagnostics)
@@ -117,13 +124,19 @@ public static class EmbeddedGrammarService
 
 			foreach (var symbol in document.Symbols)
 				if (grammar.SourceMap.TryMap(symbol.Position, symbol.Length, out var span) &&
-					grammar.SourceMap.TryMap(symbol.DefinitionPosition, symbol.Name.Length, out var definitionSpan))
+					grammar.SourceMap.TryMap(symbol.DefinitionPosition, symbol.Name.Length, out var definitionSpan) &&
+					grammar.SourceMap.TryMap(
+						symbol.ScopeStart,
+						symbol.ScopeEnd == int.MaxValue ? grammar.Text.Length : symbol.ScopeEnd - symbol.ScopeStart,
+						out var scopeSpan))
 					symbols.Add(new HostSymbolOccurrence(
 						symbol.Name,
 						span,
 						definitionSpan,
 						grammar.Token.Span,
-						symbol.IsDefinition));
+						symbol.IsDefinition,
+						symbol.Kind,
+						scopeSpan));
 
 			analyses.Add(new EmbeddedGrammarAnalysis(grammar, classifications, diagnostics, symbols));
 		}
