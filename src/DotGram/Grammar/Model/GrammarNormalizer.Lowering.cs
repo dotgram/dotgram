@@ -149,14 +149,106 @@ public sealed partial class GrammarNormalizer
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule, []);
 
-		// §7.1's second row: the method reads the input itself. Nothing is checked about
-		// what it does with the position it is handed — the `ref` is it saying that it
-		// moves one, and a grammar that reaches into the parse takes the parse's
-		// invariants on.
+		// §7.1: the method reads the input itself. Nothing is checked about what it does
+		// with the position it is handed — the `ref` is it saying that it moves one, and
+		// a grammar that reaches into the parse takes the parse's invariants on. Which of
+		// the second row (text) or the third (a value of its own) is asked of the host,
+		// since bare `@Name` does not say — the two are told apart only by which overload
+		// the method has.
 		if (symbol is CSharpSymbol reader)
-			return new Node.External(reader.Name);
+			switch (_resolver.TryResolveExternalValue(reader.Name, against: null, out var valueType))
+			{
+				case ExternalValueResolution.Found:
+					return CallTo(ExternalRuleFor(reader.Name, valueType!), []);
+
+				case ExternalValueResolution.Ambiguous:
+					Report(
+						AmbiguousExternal,
+						$"'{reader.Name}' has more than one '(System.ReadOnlySpan<char>, ref int, out T)' " +
+						$"overload, with different T. Bare '@{reader.Name}' cannot say which is meant " +
+						"(docs/syntax.md §7.1); give it one such overload, or none.",
+						expression.At);
+
+					goto default;
+
+				default:
+					return new Node.External(reader.Name);
+			}
 
 		return new Node.Element(false, [], [], [symbol]);
+	}
+
+	/// <summary>Every value-returning external recognizer synthesized so far, by method name.</summary>
+	readonly Dictionary<string, RuleSymbol> _externals = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// The one rule standing for a value-returning external recognizer named this — §7.1's
+	/// third row, given a rule-shaped identity so everything downstream (<c>BuildsValue</c>,
+	/// <c>ValueRule</c>, materialization) treats it as an ordinary typed rule and needs no
+	/// case of its own.
+	/// </summary>
+	/// <remarks>
+	/// Never looked up by name — nothing in a grammar can write this rule's name — so its
+	/// context is a placeholder rather than one that matters: nothing downstream reads
+	/// <see cref="RuleSymbol.Context"/> for a rule whose <see cref="RuleSymbol.Declaration"/>
+	/// is null (confirmed at <c>ComputeTypes</c>'s first line, the same guarantee every
+	/// built-in already relies on).
+	/// </remarks>
+	RuleSymbol ExternalRuleFor(string method, string valueType)
+	{
+		if (_externals.TryGetValue(method, out var existing))
+			return existing;
+
+		var rule = new RuleSymbol("@" + method, new GrammarContext("<external>", null), Declaration: null);
+
+		_externals[method] = rule;
+		_rules.Add(rule);
+		_bodies[rule] = new Node.External(method) { HasValue = true };
+		_types[rule]  = valueType;
+
+		return rule;
+	}
+
+	/// <summary>
+	/// A rule whose whole body is a call to a value-returning external recognizer takes
+	/// that value — the same shape as §4.1 case 3's pass-through, applied to a producer
+	/// that is not a rule the grammar wrote.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Rewritten directly rather than through <c>_produces</c>/<c>PassThrough</c>'s own
+	/// generic machinery, and for a specific reason: that machinery settles whether an
+	/// operand's value fits the declared type by asking <see cref="ISymbolResolver.
+	/// IsAssignable"/> as an ordinary, separately cached question — which needs both types
+	/// known from grammar syntax alone, ahead of asking. The type on this side of the
+	/// question is discovered by <em>this same call</em> (<see cref="ISymbolResolver.
+	/// TryResolveExternalValue"/>'s <c>against</c> parameter already verified it), so
+	/// nothing upstream could have pre-asked an ordinary <c>Fits</c> question about it —
+	/// asking one here would be the exact "question the collector did not foresee" defect
+	/// <see cref="AnsweredSymbolResolver"/> exists to catch. Fitness is settled once, by the
+	/// one call already made for this exact (method, declared type) pair; what remains is
+	/// mechanical — wrap the call in the same implicit capture <c>Collected</c> would have
+	/// produced and give it the same <see cref="Construction.Operand"/> marker
+	/// <c>PassThrough</c> would have.
+	/// </para>
+	/// <para>
+	/// Deliberately narrow: only a rule with no capture of its own and a body that is
+	/// exactly one call to a synthesized external rule. A captured use is already handled,
+	/// for free, by <see cref="CaptureLayout"/> once <see cref="ExternalRuleFor"/> gives
+	/// the callee a type — and is left alone here.
+	/// </para>
+	/// </remarks>
+	void ProduceFromExternals()
+	{
+		foreach (var rule in _rules)
+			if (rule.Declaration?.Type is { } type &&
+				_bodies[rule] is Node.Call(var called, _) &&
+				_bodies[called] is Node.External(var method) { HasValue: true } &&
+				_resolver.TryResolveExternalValue(method, TypeName(type), out _) == ExternalValueResolution.Found)
+			{
+				_bodies[rule] = new Node.Construct(
+					new Node.Capture("item0", _bodies[rule]), Construction.Operand.Instance);
+			}
 	}
 
 	/// <summary>What <c>&lt;&lt; n</c> or <c>&gt;&gt; n</c> said, by the alternative it was said on.</summary>

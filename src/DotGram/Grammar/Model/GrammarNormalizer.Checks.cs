@@ -59,6 +59,15 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	void CheckConstruction(RuleSymbol rule)
 	{
+		// Every built-in and every synthesized rule (a value-returning external
+		// recognizer's own, §7.1) has no declaration to report against. A built-in is
+		// never `declared` (never in `_types`), so it never reached a reporting branch
+		// below anyway; a synthesized external rule *is* declared — its type is set
+		// directly rather than through a `: @T` this rule reads — so without this guard
+		// it would reach one and dereference a null `Declaration`.
+		if (rule.Declaration is null)
+			return;
+
 		var body     = _bodies[rule];
 		var declared = _types.ContainsKey(rule);
 		var offered  = Fold.Of(body, _folds.TryGetValue(rule, out var fold) ? fold : null);

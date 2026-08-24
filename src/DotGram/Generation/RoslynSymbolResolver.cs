@@ -42,12 +42,7 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 		if (string.Equals(from, to, StringComparison.Ordinal))
 			return true;
 
-		if (TypeNamed(from) is not { } source || TypeNamed(to) is not { } target)
-			return false;
-
-		var conversion = _compilation.ClassifyCommonConversion(source, target);
-
-		return conversion.IsImplicit && !conversion.IsNumeric && !conversion.IsUserDefined;
+		return TypeNamed(from) is { } source && TypeNamed(to) is { } target && IsAssignableSymbol(source, target);
 	}
 
 	/// <summary>
@@ -138,6 +133,94 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 
 		return found.Count > 0;
 	}
+
+	/// <summary>
+	/// What an external recognizer named this hands back, when it hands back anything of
+	/// its own — §7.1's third row.
+	/// </summary>
+	/// <remarks>
+	/// The one place this resolver inspects a method's signature rather than a type's shape.
+	/// Bare <c>@Name</c> notation does not say which of §7.1's second and third rows is
+	/// meant, so something has to look — an overload matching
+	/// <c>bool M(ReadOnlySpan&lt;char&gt;, ref int, out T)</c> means the third; its absence
+	/// means the second, unchanged. Accessible from the host specifically, not merely the
+	/// assembly: every recognizer in every example is declared beside the grammar, and the
+	/// generated call sits inside that class, so an otherwise-private one is exactly as
+	/// callable as a public one — the same reasoning <see cref="TypeNamed"/> already gives
+	/// a nested result type.
+	/// </remarks>
+	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+	{
+		valueType = null;
+
+		var types = new List<ITypeSymbol>();
+		var host  = (ISymbol?)(_host is not null ? _compilation.GetTypeByMetadataName(_host) : null) ??
+			_compilation.Assembly;
+
+		foreach (var symbol in _compilation.GetSymbolsWithName(
+			name => string.Equals(name, methodName, StringComparison.Ordinal), SymbolFilter.Member))
+		{
+			if (symbol is not IMethodSymbol
+				{
+					IsStatic: true,
+					ReturnType.SpecialType: SpecialType.System_Boolean,
+					Parameters: [var input, { RefKind: RefKind.Ref } position, { RefKind: RefKind.Out } value],
+				} method ||
+				!IsReadOnlySpanOfChar(input.Type) ||
+				position.Type.SpecialType != SpecialType.System_Int32 ||
+				!_compilation.IsSymbolAccessibleWithin(method, host))
+			{
+				continue;
+			}
+
+			if (!types.Contains(value.Type, SymbolEqualityComparer.Default))
+				types.Add(value.Type);
+		}
+
+		if (types.Count == 0)
+			return ExternalValueResolution.NotFound;
+
+		if (types.Count > 1)
+			return ExternalValueResolution.Ambiguous;
+
+		// A whole rule's body being exactly this call (§4.1 case 3 applied to one) needs T
+		// to fit the rule's own declared type — checked here, live, because T was just
+		// discovered and nothing upstream could have asked IsAssignable about it in advance.
+		// Against the symbol directly, not its FullyQualifiedFormat string round-tripped
+		// through TypeNamed: that format's leading "global::" is source syntax, and
+		// GetTypeByMetadataName does not parse it back out.
+		if (against is not null &&
+			(TypeNamed(against) is not { } target ||
+				!IsAssignableSymbol(types[0], target)))
+		{
+			return ExternalValueResolution.NotFound;
+		}
+
+		valueType = types[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+		return ExternalValueResolution.Found;
+	}
+
+	/// <summary>The symbol-typed core of <see cref="IsAssignable"/>, shared rather than
+	/// re-derived by round-tripping a symbol through a display string and back.</summary>
+	bool IsAssignableSymbol(ITypeSymbol source, ITypeSymbol target)
+	{
+		if (SymbolEqualityComparer.Default.Equals(source, target))
+			return true;
+
+		var conversion = _compilation.ClassifyCommonConversion(source, target);
+
+		return conversion.IsImplicit && !conversion.IsNumeric && !conversion.IsUserDefined;
+	}
+
+	/// <summary>Whether this is <c>System.ReadOnlySpan&lt;char&gt;</c>, exactly.</summary>
+	static bool IsReadOnlySpanOfChar(ITypeSymbol type) =>
+		type is INamedTypeSymbol
+		{
+			Name: "ReadOnlySpan",
+			ContainingNamespace.Name: "System",
+			TypeArguments: [{ SpecialType: SpecialType.System_Char }],
+		};
 
 	/// <summary>
 	/// A type by the name a grammar writes, keyword or otherwise.

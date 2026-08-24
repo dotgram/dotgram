@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 
 using DotGram.Generation;
+using DotGram.Grammar.Model;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -423,6 +424,166 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
 		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["abb"]));
+	}
+
+	[Fact]
+	public void An_external_recognizer_may_hand_back_a_value_of_its_own()
+	{
+		// §7.1's third row: the same bare @Name, but the real method's third parameter is
+		// `out T` rather than nothing. Nothing in the grammar says so — the host is asked.
+		var parse = Build("""
+			[DotGram.Gram("Timestamp : @System.DateTime = @ParseTimestamp\nparse Timestamp")]
+			public partial class Timestamps
+			{
+				static bool ParseTimestamp(
+					System.ReadOnlySpan<char> input, ref int pos, out System.DateTime value)
+				{
+					if (!System.DateTime.TryParse(
+						input.Slice(pos), System.Globalization.CultureInfo.InvariantCulture,
+						System.Globalization.DateTimeStyles.None, out value))
+					{
+						return false;
+					}
+
+					pos = input.Length;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("Timestamps")!
+			.GetMethod("ParseTimestamp", [typeof(string)])!;
+
+		Assert.Equal(
+			new DateTime(2024, 3, 1, 12, 0, 0),
+			parse.Invoke(null, ["2024-03-01T12:00:00"]));
+
+		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["not a date"]));
+	}
+
+	[Fact]
+	public void A_captured_value_returning_recognizer_needs_no_extra_wiring()
+	{
+		// The captured form is free: CaptureLayout already treats a capture of a rule that
+		// builds a value as a value slot, and the synthesized rule builds one the moment
+		// ExternalRuleFor gives it a type — nothing in this path was written for this
+		// feature specifically.
+		var parse = Build("""
+			[DotGram.Gram("Entry : @Entry = at: @ParseTimestamp & ' ' & body: (any)* & eof\nparse Entry")]
+			public partial class Entries
+			{
+				public sealed record Entry(System.DateTime At, string Body);
+
+				static bool ParseTimestamp(
+					System.ReadOnlySpan<char> input, ref int pos, out System.DateTime value)
+				{
+					value = default;
+
+					var at = pos;
+
+					while (at < input.Length && input[at] != ' ')
+						at++;
+
+					if (at == pos ||
+						!System.DateTime.TryParse(
+							input.Slice(pos, at - pos), System.Globalization.CultureInfo.InvariantCulture,
+							System.Globalization.DateTimeStyles.None, out value))
+					{
+						return false;
+					}
+
+					pos = at;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("Entries")!
+			.GetMethod("ParseEntry", [typeof(string)])!;
+
+		var entry = parse.Invoke(null, ["2024-03-01T12:00:00 hello"]);
+		var type  = entry!.GetType();
+
+		Assert.Equal(new DateTime(2024, 3, 1, 12, 0, 0), type.GetProperty("At")!.GetValue(entry));
+		Assert.Equal("hello", type.GetProperty("Body")!.GetValue(entry));
+	}
+
+	[Fact]
+	public void Two_overloads_with_different_out_types_are_ambiguous()
+	{
+		var diagnostics = RunGenerator("""
+			[DotGram.Gram("Start : @int = @Parse\nparse Start")]
+			public partial class AmbiguousExternal
+			{
+				static bool Parse(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+					return false;
+				}
+
+				static bool Parse(System.ReadOnlySpan<char> input, ref int pos, out string value)
+				{
+					value = "";
+					return false;
+				}
+			}
+			""").Diagnostics;
+
+		Assert.Contains(GrammarNormalizer.AmbiguousExternal, diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void A_value_returning_and_a_classic_external_recognizer_coexist()
+	{
+		// The value form of @ParseTimestamp does not disturb @Blob's classic, text-covering
+		// form beside it in the same grammar. An explicit capture and `=>` name which value
+		// the rule builds — ProduceFromExternals's automatic pass-through is deliberately
+		// narrower than this, scoped to a whole body that is nothing but one bare @Name.
+		var parse = Build("""
+			[DotGram.Gram(
+				"Start : @System.DateTime = at: @ParseTimestamp & ' ' & @Blob => @(at)\nparse Start")]
+			public partial class Mixed
+			{
+				static bool ParseTimestamp(
+					System.ReadOnlySpan<char> input, ref int pos, out System.DateTime value)
+				{
+					value = default;
+
+					var at = pos;
+
+					while (at < input.Length && input[at] != ' ')
+						at++;
+
+					if (at == pos ||
+						!System.DateTime.TryParse(
+							input.Slice(pos, at - pos), System.Globalization.CultureInfo.InvariantCulture,
+							System.Globalization.DateTimeStyles.None, out value))
+					{
+						return false;
+					}
+
+					pos = at;
+
+					return true;
+				}
+
+				static bool Blob(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					if (pos >= input.Length)
+						return false;
+
+					pos = input.Length;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("Mixed")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(
+			new DateTime(2024, 3, 1, 12, 0, 0),
+			parse.Invoke(null, ["2024-03-01T12:00:00 rest"]));
 	}
 
 	[Fact]

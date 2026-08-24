@@ -298,5 +298,12 @@ public sealed class GrammarBinderTests
 
 			return false;
 		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
+		}
 	}
 }

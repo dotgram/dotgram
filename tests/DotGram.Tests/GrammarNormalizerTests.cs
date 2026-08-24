@@ -457,5 +457,127 @@ public sealed class GrammarNormalizerTests
 
 			return false;
 		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
+		}
+	}
+
+	// ── External recognizers with a value of their own — §7.1's third row ────────
+
+	/// <summary>
+	/// One fixed answer for `@ParseTimestamp`: it has a `(ReadOnlySpan&lt;char&gt;, ref int,
+	/// out System.DateTime)` overload, assignable only to itself. Every other name is §7.1's
+	/// second row, unchanged.
+	/// </summary>
+	sealed class TimestampResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) =>
+			string.Equals(from, to, StringComparison.Ordinal);
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			if (!string.Equals(methodName, "ParseTimestamp", StringComparison.Ordinal))
+				return ExternalValueResolution.NotFound;
+
+			if (against is not null && !string.Equals(against, "System.DateTime", StringComparison.Ordinal))
+				return ExternalValueResolution.NotFound;
+
+			valueType = "System.DateTime";
+
+			return ExternalValueResolution.Found;
+		}
+	}
+
+	[Fact]
+	public void A_whole_body_value_returning_external_recognizer_is_rewritten_as_a_pass_through()
+	{
+		var graph = Normalize(
+			"Timestamp : @System.DateTime = @ParseTimestamp", new TimestampResolver());
+
+		Assert.Empty(graph.Diagnostics);
+		Assert.Equal(
+			"""
+			Timestamp = item0: @ParseTimestamp => <operand>
+			@ParseTimestamp = @ParseTimestamp
+			""".Replace("\r\n", "\n"),
+			graph.ToString().Replace("\r\n", "\n"));
+	}
+
+	[Fact]
+	public void A_type_mismatch_falls_through_to_the_ordinary_unbuilt_construction_message()
+	{
+		// No diagnostic of ProduceFromExternals's own — a resolved T that does not fit the
+		// declared type just means the pass-through never applies, and the rule is exactly
+		// as unbuilt as any other capture-less, `=>`-less typed rule.
+		Assert.Equal(
+			[GrammarNormalizer.UnbuiltConstruction],
+			Normalize("Elsewhere : @int = @ParseTimestamp", new TimestampResolver())
+				.Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void An_ambiguous_overload_is_reported()
+	{
+		// The ambiguity falls back to §7.1's second row (LowerReference's `goto default`),
+		// so a rule declaring a type still has no way to build it — GRAM4015 names the
+		// actual cause, and the generic GRAM4008 that follows from the fallback is not a
+		// second, competing diagnostic about the same thing so much as a true statement
+		// about the consequence.
+		Assert.Contains(
+			GrammarNormalizer.AmbiguousExternal,
+			Normalize("Value : @int = @Parse", new AmbiguousResolver())
+				.Diagnostics.Select(d => d.Id));
+	}
+
+	sealed class AmbiguousResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) => string.Equals(from, to, StringComparison.Ordinal);
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.Ambiguous;
+		}
 	}
 }

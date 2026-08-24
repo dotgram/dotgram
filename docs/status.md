@@ -48,7 +48,7 @@ then quietly mean nothing.
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `[@Name]` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | bare `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same handing back a value of its own §7.1 | ✓ | ✓ | refused | ✗ | ✗ |
+| the same handing back a value of its own §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
@@ -837,7 +837,7 @@ compiling and matching something else.
 
 ## A C# method may read the input itself
 
-§7.1's second row works, in the form without a value:
+§7.1's second row works:
 
 ```csharp
 static bool Blob(ReadOnlySpan<char> input, ref int pos)
@@ -847,8 +847,40 @@ Bare `@Blob` stands where an operand goes, reads whatever it likes, and moves th
 position to say how much it took. Saying no is an ordinary non-match: the stack has
 somewhere to resume and the grammar carries on. Its value is the text it covered, the same
 as any rule that captures nothing — which is why this form needs nothing new from the
-host, and why it came first. The form with `out T value` needs the host asked what `T` is,
-and is not built.
+host, and why it came first.
+
+**The third row now works too** — the same call, with an `out T value` parameter added:
+
+```csharp
+static bool ParseTimestamp(ReadOnlySpan<char> input, ref int pos, out DateTime value)
+```
+
+Notation does not change; `@ParseTimestamp` is still bare. The host is asked whether the
+name also has this shape — `RoslynSymbolResolver.TryResolveExternalValue`, the one place
+this generator inspects a method's signature at all — and finding one gives the call a
+rule-shaped identity: a `RuleSymbol` synthesized with no declaration, its body the same
+`Node.External` marked to say it has a value, its type in the ordinary `Types` map right
+alongside every rule that wrote `: @T` itself. Everything downstream — `BuildsValue`,
+capture layout, materialization — sees an ordinary typed rule and needed no case of its
+own; the only place that did is materialization itself, which recovers the value not by
+trusting the call recognition already made (that one runs speculatively, same as always,
+and only for the bool and the position) but by **re-invoking the method** against the
+position the arena recorded, once a derivation is known to be accepted. That is sound on
+exactly the contract §7.1 already asks of a recognizer — safe for repeated, speculative
+invocation — applied once more, later, rather than a new obligation.
+
+A rule whose whole body is one bare value-returning call takes that value directly
+(`Timestamp : @DateTime = @ParseTimestamp`) — §4.1 case 3's pass-through, reached by a
+narrow rule of its own rather than the general mechanism, because the general one settles
+fit by asking the host an ordinary, separately-cached `IsAssignable` question, and the
+type on this side of that question is discovered by the very call being asked about — not
+knowable from grammar syntax the way every other assignability question's two types are.
+Asked and settled in the one call that discovers `T`, using the live symbol rather than a
+round-tripped display string; a mismatch is not a diagnostic of its own; it simply means
+the pass-through does not apply, and the rule is exactly as unbuilt as any other
+capture-less, `=>`-less typed rule (`GRAM4008`). Two such overloads with different `T` is
+`GRAM4015`, the one genuinely new diagnostic — there is no existing case of "which of two
+contradictory shapes did the author mean" to fall back on.
 
 **It is trusted absolutely.** The `ref` is the method saying it moves a position; it is
 handed the parser's own, and nothing copies it away, checks it afterwards, or reasons

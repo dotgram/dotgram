@@ -1005,6 +1005,7 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
+| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | bare `@M` as a grammar operand |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
@@ -1025,6 +1026,15 @@ There is one rule to read this by: **syntactic position determines the call shap
 `[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#
 values. The generator never inspects a method signature to choose among those roles;
 overloads, accessibility, parameter types and result types are C#'s responsibility.
+
+One exception, narrow and specific: bare `@M` alone does not say whether `M` is the
+second row or the third, since the notation is the same either way. The host is asked
+whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload — the only place
+this generator inspects a method's signature at all, and only to settle that one
+question. Finding one hands the rule-shaped identity a value-producing call needs;
+finding none leaves bare `@M` exactly what it always was. More than one such overload
+with a different `T` is a tie, reported rather than guessed at, the same as an
+ambiguous constructor (§7.3).
 
 The same C# name may therefore implement both contracts without ambiguity:
 
