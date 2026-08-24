@@ -246,11 +246,12 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void A_duplicate_in_a_nested_namespace_is_shadowing_not_an_error()
+	public void A_duplicate_in_a_nested_namespace_is_shadowing_not_a_duplicate_rule()
 	{
-		// Still legal — still not GrammarBinder.DuplicateRule — but worth a note now:
-		// shadowing an enclosing rule from inside a nested namespace is one parenthesis away
-		// from a namespace binding that would have meant something else (§5.1).
+		// Not GrammarBinder.DuplicateRule — a different diagnostic, for a different
+		// mistake: shadowing an enclosing rule from inside a nested namespace is one
+		// parenthesis away from a namespace binding that would have meant something else
+		// (§5.1), and saying so is what ShadowsEnclosingRule is for.
 		Assert.Equal(
 			[GrammarBinder.ShadowsEnclosingRule],
 			Diagnostics("""
@@ -264,7 +265,7 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void The_warning_fires_regardless_of_whether_the_namespace_already_has_a_header()
+	public void The_check_fires_regardless_of_whether_the_namespace_already_has_a_header()
 	{
 		// The risk is "was a header entry meant here", not "does this specific block
 		// already use one" — a header for an unrelated name does not change that.
@@ -282,7 +283,7 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void The_warning_reaches_two_levels_deep_the_same_way()
+	public void The_check_reaches_two_levels_deep_the_same_way()
 	{
 		Assert.Equal(
 			[GrammarBinder.ShadowsEnclosingRule],
@@ -300,27 +301,27 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void A_name_shadowed_only_through_an_import_is_a_known_first_cut_gap()
+	public void A_name_shadowed_only_through_an_import_is_caught_too()
 	{
-		// Declare (where the check runs) is pass one; ResolveImports runs after it, so an
-		// imported name is not yet visible on Lookup's import branch at the point this asks.
-		// Reaching it would mean moving the check to pass two — accepted as under-reporting
-		// rather than done, the same shape as this project's other documented diagnostic
-		// narrowings: it never mis-attributes, it simply has less to say than the full
-		// mechanism eventually could.
-		Assert.Empty(Diagnostics("""
-			namespace Lib
-			{
-				A = 'a'
-			}
+		// Declare (where the enclosing-namespace half of this check runs) is pass one;
+		// ResolveImports runs after it, so an imported name is not yet visible on Lookup's
+		// import branch at the point Declare asks. This half runs separately, in Resolve,
+		// once each namespace's own imports are actually in view.
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				namespace Lib
+				{
+					A = 'a'
+				}
 
-			namespace Inner
-			{
-				using Lib;
+				namespace Inner
+				{
+					using Lib;
 
-				A = 'b'
-			}
-			"""));
+					A = 'b'
+				}
+				"""));
 	}
 
 	[Fact]

@@ -936,3 +936,48 @@ one's bug.
 construction was the only caller of with anything other than `"0"` — went with it too,
 collapsed back into a plain `Materialize(file, cached)` that always walks from the start
 of what changed since the last call.
+
+## Fixed: `with` sites in different rules could not see each other's own splice
+
+`SpecializeWithSites` built the call graph once, before iterating its rule-groups, and
+walked the groups in whatever order `_pendingWith` happened to hold them — encounter
+order, not dependency order. `R2 = R1 with (C = D)`, where `R1` is itself `R1 = A with
+(B = C)`, needs `R2`'s own affected-set computation to see the call `R1`'s own splice
+introduced (from `R1` into `A`'s with-clone); the graph built before either site ran
+never had that call in it, so `R2`'s rebinding silently became a no-op wherever it only
+reached its target through a call the earlier splice itself introduced. Fixed by
+ordering rule-groups so a rule runs only after every other with-bearing rule its own
+sites can reach, and rebuilding the call graph fresh before each group.
+
+## Fixed: a `with` extent's own type-compatibility went unchecked
+
+GRAM4014 (a rebinding's replacement must be assignable to what it replaces, §14) was
+checked only against `GrammarNamespace.OwnRebindings` — a namespace header. An
+expression `with (A = B)` or a publication's own `with (A = B)` could rebind onto an
+incompatible type with nothing to say so, because `Publication.Rebindings` and
+`GrammarModel.WithBindings` were already flattened to a chain-resolved `RuleSymbol ->
+RuleSymbol` dict in the binder, and each pair's own position went with the flattening.
+Fixed by giving both the same `OwnRebindings`/`Rebindings` split `GrammarNamespace`
+already has: an entry-by-entry, positioned list for the check, the chain-resolved dict
+still for specialization. `CheckNamespaceReplacements` is now
+`CheckRebindingReplacements`, run over all three extents through one shared
+`CheckReplacement`.
+
+## Fixed: `GRAM3012` promoted to `Error`, and its own known gap closed
+
+"Built: a warning for accidental shadowing inside a nested namespace" above shipped
+`ShadowsEnclosingRule` at `Info` — a pointer, not a refusal, while the `with`/`namespace`
+rebinding model was still settling. It has settled: a declaration always means a new
+rule, and a rebinding is the only way to replace one, so silently landing a declaration
+on a name that already resolves to something else is now `Error`, not a pointer.
+
+The entry above also named its own known first-cut gap: a name shadowed only by way of
+an import (`using Lib;` bringing in a name a namespace then redeclares itself) went
+uncaught, because `Declare` — pass one, where the enclosing-namespace half of this check
+runs — executes before `ResolveImports`, so the import is not wired up yet at the point
+`Declare` asks. Closed by checking the import half separately: `CheckImportShadowing`
+runs in `Resolve` (pass two), right after each namespace's own imports are resolved, so
+it asks the same question — does a name this namespace just declared already resolve to
+something else? — once there is something to find. Never runs for the global namespace,
+which has no header syntax to suggest instead, the same exclusion the enclosing-
+namespace check already made.

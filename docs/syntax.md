@@ -892,15 +892,15 @@ enclosing `namespace (...)`'s own rebinding of the same rule rather than instead
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
 `namespace (A = B) { ... }` is a substitution, written where a reader expects one; a
-declaration with the same name sitting in the body, with no header entry for it, is
-shadowing, and reads as one unless it is checked against the header. The two are one
-pair of parentheses apart, so a rule declared inside a nested `namespace { ... }` whose
-name also resolves in an enclosing *grammar* scope is reported — `GRAM3012`, `Info`, not
-a refusal, since the declaration is legal and stays exactly what it was. Scoped
-narrowly, to keep it a pointer rather than noise: shadowing the standard library
-(`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`), at any depth, is the language's
-normal, silent mechanism and is never reported; neither is shadowing at the top level of
-a file, where there is no `namespace (...)` header nearby to have meant instead.
+declaration with the same name sitting in the body, with no header entry for it, is an
+error. A declaration always means a new rule; a rebinding is the only way to replace
+one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
+an enclosing *grammar* scope, or through that namespace's own `using` import, is
+refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
+shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
+at any depth, is the language's normal, silent mechanism and is never reported; neither
+is shadowing at the top level of a file, where there is no `namespace (...)` header
+nearby to have meant instead.
 
 ---
 
