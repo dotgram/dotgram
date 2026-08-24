@@ -32,13 +32,17 @@ public readonly struct GramClassifiedSpan(
 	int length,
 	GramSyntaxKind kind,
 	string? quickInfo = null,
-	int? definitionPosition = null)
+	int? definitionPosition = null,
+	string? ruleSignature = null,
+	int ruleParameterCount = 0)
 {
 	public int Position { get; } = position;
 	public int Length { get; } = length;
 	public GramSyntaxKind Kind { get; } = kind;
 	public string? QuickInfo { get; } = quickInfo;
 	public int? DefinitionPosition { get; } = definitionPosition;
+	public string? RuleSignature { get; } = ruleSignature;
+	public int RuleParameterCount { get; } = ruleParameterCount;
 }
 
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
@@ -82,7 +86,9 @@ public static class GramLanguageService
 						token.Length,
 						kind,
 						rule.ExpandedDefinition,
-						rule.Position));
+						rule.Position,
+						rule.Signature,
+						rule.ParameterCount));
 				else
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
@@ -131,7 +137,8 @@ public static class GramLanguageService
 							result.Add(rule.Name, new RuleInfo(
 								text.Substring(rule.At.Position, length).TrimEnd(),
 								rule.At.Position,
-								References(rule.Body)));
+								References(rule.Body),
+								rule.Params.Count));
 
 						break;
 					case Decl.Context context:
@@ -244,12 +251,25 @@ public static class GramLanguageService
 		}
 	}
 
-	sealed class RuleInfo(string definition, int position, IReadOnlyList<string> references)
+	sealed class RuleInfo(
+		string definition,
+		int position,
+		IReadOnlyList<string> references,
+		int parameterCount)
 	{
 		public string Definition { get; } = definition;
 		public int Position { get; } = position;
 		public IReadOnlyList<string> References { get; } = references;
 		public string ExpandedDefinition { get; set; } = definition;
+		public string Signature { get; } = SignatureOf(definition);
+		public int ParameterCount { get; } = parameterCount;
+
+		static string SignatureOf(string text)
+		{
+			var equals = text.IndexOf('=');
+
+			return equals < 0 ? text : text.Substring(0, equals).TrimEnd();
+		}
 	}
 
 	static bool Intersects(GramClassifiedSpan left, GramClassifiedSpan right) =>

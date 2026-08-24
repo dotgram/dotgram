@@ -16,13 +16,17 @@ public readonly struct HostClassification(
 	GramSyntaxKind kind,
 	string? quickInfo,
 	TextSpan? definitionSpan,
-	TextSpan grammarSpan)
+	TextSpan grammarSpan,
+	string? ruleSignature,
+	int ruleParameterCount)
 {
 	public TextSpan      Span { get; } = span;
 	public GramSyntaxKind Kind { get; } = kind;
 	public string?       QuickInfo { get; } = quickInfo;
 	public TextSpan?     DefinitionSpan { get; } = definitionSpan;
 	public TextSpan      GrammarSpan { get; } = grammarSpan;
+	public string?       RuleSignature { get; } = ruleSignature;
+	public int           RuleParameterCount { get; } = ruleParameterCount;
 }
 
 /// <summary>One grammar diagnostic mapped into its containing C# document.</summary>
@@ -78,7 +82,9 @@ public static class EmbeddedGrammarService
 						classification.Kind,
 						classification.QuickInfo,
 						definitionSpan,
-						grammar.Token.Span));
+						grammar.Token.Span,
+						classification.RuleSignature,
+						classification.RuleParameterCount));
 				}
 
 			foreach (var diagnostic in document.Diagnostics)

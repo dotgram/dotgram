@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
@@ -85,11 +86,23 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 
 		foreach (var name in names)
 		{
-			var item = new CompletionItem(name, this);
+			var definition = definitions.TryGetValue(name, out var found) ? found : default;
+			var item = definition.Signature is null
+				? new CompletionItem(name, this)
+				: new CompletionItem(
+					name,
+					this,
+					ImageElement.Empty,
+					ImmutableArray<CompletionFilter>.Empty,
+					definition.Signature.Substring(name.Length),
+					definition.ParameterCount > 0 ? name + "(" : name,
+					name,
+					name,
+					ImmutableArray<ImageElement>.Empty);
 
 			items.Add(item);
-			_descriptions[name] = definitions.TryGetValue(name, out var definition)
-				? definition
+			_descriptions[name] = definition.Description is not null
+				? definition.Description
 				: BuiltInDescription(name);
 		}
 
@@ -106,7 +119,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 				: "DotGram syntax");
 
 	protected abstract bool IsApplicable(SnapshotPoint point);
-	protected abstract IReadOnlyDictionary<string, string> Definitions(SnapshotPoint point);
+	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
+
+	protected readonly struct RuleCompletion(string description, string signature, int parameterCount)
+	{
+		public string Description { get; } = description;
+		public string Signature { get; } = signature;
+		public int ParameterCount { get; } = parameterCount;
+	}
 
 	static SnapshotSpan WordSpan(SnapshotPoint point)
 	{
@@ -139,13 +159,16 @@ sealed class GramCompletionSource(ITextBuffer buffer, GramBufferAnalysis analysi
 {
 	protected override bool IsApplicable(SnapshotPoint point) => point.Snapshot.TextBuffer == buffer;
 
-	protected override IReadOnlyDictionary<string, string> Definitions(SnapshotPoint point) =>
+	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point) =>
 		analysis.Document(point.Snapshot).Classifications
 			.Where(static item => item.DefinitionPosition == item.Position && item.QuickInfo is not null)
 			.GroupBy(item => point.Snapshot.GetText(item.Position, item.Length), StringComparer.Ordinal)
 			.ToDictionary(
 				group => group.Key,
-				group => group.First().QuickInfo!,
+				group => new RuleCompletion(
+					group.First().QuickInfo!,
+					group.First().RuleSignature!,
+					group.First().RuleParameterCount),
 				StringComparer.Ordinal);
 }
 
@@ -162,10 +185,10 @@ sealed class EmbeddedGramCompletionSource(
 		return classifications.Any(item => item.GrammarSpan.Contains(point.Position));
 	}
 
-	protected override IReadOnlyDictionary<string, string> Definitions(SnapshotPoint point)
+	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
 	{
 		if (!analysis.TryGet(point.Snapshot, out var classifications, out _))
-			return new Dictionary<string, string>();
+			return new Dictionary<string, RuleCompletion>();
 
 		return classifications
 			.Where(item =>
@@ -175,7 +198,10 @@ sealed class EmbeddedGramCompletionSource(
 			.GroupBy(item => point.Snapshot.GetText(item.Span.Start, item.Span.Length), StringComparer.Ordinal)
 			.ToDictionary(
 				group => group.Key,
-				group => group.First().QuickInfo!,
+				group => new RuleCompletion(
+					group.First().QuickInfo!,
+					group.First().RuleSignature!,
+					group.First().RuleParameterCount),
 				StringComparer.Ordinal);
 	}
 }

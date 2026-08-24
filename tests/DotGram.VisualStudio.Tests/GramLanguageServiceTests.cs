@@ -119,6 +119,20 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void AttachesParameterizedRuleSignatureToReferences()
+	{
+		const string source = "Repeat(count: @int, value: @char) = any\nStart = Repeat(2, 'a')";
+
+		var references = GramLanguageService.Analyze(source).Classifications
+			.Where(span => source.Substring(span.Position, span.Length) == "Repeat")
+			.ToArray();
+
+		Assert.Equal(2, references.Length);
+		Assert.All(references, span => Assert.Equal("Repeat(count: @int, value: @char)", span.RuleSignature));
+		Assert.All(references, span => Assert.Equal(2, span.RuleParameterCount));
+	}
+
+	[Fact]
 	public void ReturnsCompilerDiagnosticsWithoutEditorSpecificTypes()
 	{
 		const string source = "Start = Missing\nparse Start";
