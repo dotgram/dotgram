@@ -144,6 +144,41 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void IndexesRuleDeclarationsAndReferencesAtTheirOriginalSpans()
+	{
+		const string source = "Item = 'a'\n" +
+			"List(value) = value+\n" +
+			"Start = Item & List(Item) & [Item]\n" +
+			"parse Start";
+
+		var symbols = GramLanguageService.Analyze(source).Symbols;
+
+		Assert.Equal(
+			new[] { "Item", "List", "Start", "Item", "List", "Item", "Item", "Start" },
+			symbols.Select(symbol => source.Substring(symbol.Position, symbol.Length)).ToArray());
+		Assert.Equal(4, symbols.Count(symbol => symbol.Name == "Item"));
+		Assert.Equal(2, symbols.Count(symbol => symbol.Name == "List"));
+		Assert.Equal(2, symbols.Count(symbol => symbol.Name == "Start"));
+
+		foreach (var group in symbols.GroupBy(symbol => symbol.Name))
+		{
+			var definition = Assert.Single(group, symbol => symbol.IsDefinition);
+			Assert.All(group, symbol => Assert.Equal(definition.Position, symbol.DefinitionPosition));
+		}
+	}
+
+	[Fact]
+	public void DoesNotIndexCSharpReferencesAsGrammarRules()
+	{
+		const string source = "Value = 'a' => @Value";
+
+		var value = Assert.Single(GramLanguageService.Analyze(source).Symbols);
+
+		Assert.True(value.IsDefinition);
+		Assert.Equal(0, value.Position);
+	}
+
+	[Fact]
 	public void ReturnsCompilerDiagnosticsWithoutEditorSpecificTypes()
 	{
 		const string source = "Start = Missing\nparse Start";

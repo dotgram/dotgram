@@ -46,13 +46,30 @@ public readonly struct GramClassifiedSpan(
 	public int RuleParameterCount { get; } = ruleParameterCount;
 }
 
+/// <summary>One declaration or reference to a grammar rule.</summary>
+public readonly struct GramSymbolOccurrence(
+	string name,
+	int position,
+	int length,
+	int definitionPosition,
+	bool isDefinition)
+{
+	public string Name { get; } = name;
+	public int Position { get; } = position;
+	public int Length { get; } = length;
+	public int DefinitionPosition { get; } = definitionPosition;
+	public bool IsDefinition { get; } = isDefinition;
+}
+
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
 public sealed class GramDocument(
 	IReadOnlyList<GramClassifiedSpan> classifications,
-	IReadOnlyList<GramDiagnostic> diagnostics)
+	IReadOnlyList<GramDiagnostic> diagnostics,
+	IReadOnlyList<GramSymbolOccurrence> symbols)
 {
 	public IReadOnlyList<GramClassifiedSpan> Classifications { get; } = classifications;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
+	public IReadOnlyList<GramSymbolOccurrence> Symbols { get; } = symbols;
 }
 
 /// <summary>
@@ -112,7 +129,119 @@ public static class GramLanguageService
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
-		return new GramDocument(classifications, compilation.Diagnostics);
+		return new GramDocument(
+			classifications,
+			compilation.Diagnostics,
+			SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules));
+	}
+
+	static IReadOnlyList<GramSymbolOccurrence> SymbolOccurrences(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens,
+		IReadOnlyDictionary<string, RuleInfo> rules)
+	{
+		var result = new List<GramSymbolOccurrence>();
+
+		VisitDeclarations(declarations);
+		result.Sort(static (left, right) => left.Position.CompareTo(right.Position));
+
+		return result;
+
+		void Add(string name, Location at, bool isDefinition)
+		{
+			if (!rules.TryGetValue(name, out var rule))
+				return;
+
+			result.Add(new GramSymbolOccurrence(
+				name,
+				at.Position,
+				name.Length,
+				rule.Position,
+				isDefinition));
+		}
+
+		void VisitDeclarations(IReadOnlyList<Decl> items)
+		{
+			foreach (var declaration in items)
+				switch (declaration)
+				{
+					case Decl.Rule rule:
+						Add(rule.Name, rule.At, true);
+						Visit(rule.Body);
+						break;
+					case Decl.Context context:
+						VisitDeclarations(context.Decls);
+						break;
+					case Decl.Publish publish:
+						var token = tokens.FirstOrDefault(candidate =>
+							candidate.Position >= publish.At.Position &&
+							candidate.Position < publish.At.End &&
+							candidate.Value == publish.RuleName);
+						if (token.Length > 0)
+							Add(publish.RuleName, new Location(token.Position, token.Length), false);
+						break;
+				}
+		}
+
+		void AddReference(Expr.Reference reference)
+		{
+			if (!reference.IsCSharp)
+				Add(reference.Name, reference.At, false);
+		}
+
+		void Visit(Expr item)
+		{
+			switch (item)
+			{
+				case Expr.Choice choice:
+					foreach (var alternative in choice.Alternatives) Visit(alternative);
+					break;
+				case Expr.Sequence sequence:
+					foreach (var operand in sequence.Operands) Visit(operand);
+					break;
+				case Expr.Construct construct:
+					Visit(construct.Pattern);
+					Visit(construct.Value);
+					break;
+				case Expr.Bound bound:
+					Visit(bound.Body);
+					break;
+				case Expr.Recovering recovering:
+					Visit(recovering.Body);
+					Visit(recovering.Sync);
+					if (recovering.Factory is not null) Visit(recovering.Factory);
+					break;
+				case Expr.Guard guard:
+					Visit(guard.Value);
+					break;
+				case Expr.Capture capture:
+					Visit(capture.Operand);
+					break;
+				case Expr.Group group:
+					Visit(group.Body);
+					break;
+				case Expr.Atomic atomic:
+					Visit(atomic.Body);
+					break;
+				case Expr.Lookahead lookahead:
+					Visit(lookahead.Operand);
+					break;
+				case Expr.ElementSet set:
+					foreach (var element in set.Items)
+						if (element is Elem.Ref reference) AddReference(reference.Reference);
+					break;
+				case Expr.Reference reference:
+					AddReference(reference);
+					break;
+				case Expr.Call call:
+					AddReference(call.Target);
+					foreach (var argument in call.Arguments) Visit(argument);
+					break;
+				case Expr.Quantified quantified:
+					Visit(quantified.Operand);
+					break;
+			}
+		}
 	}
 
 	static Dictionary<string, RuleInfo> RuleDefinitions(
