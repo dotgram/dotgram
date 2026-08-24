@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -17,11 +14,11 @@ public sealed partial class GrammarNormalizer
 	{
 		foreach (var rule in _rules)
 		{
-			CheckRepetitions(_bodies[rule], rule);
-			CheckCaptures(_bodies[rule], rule, repeated: null);
-			CheckConstruction(rule);
+			CheckRepetitions  (_bodies[rule], rule);
+			CheckCaptures     (_bodies[rule], rule, repeated: null);
+			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
-			CheckRecovery(rule);
+			CheckRecovery     (rule);
 		}
 
 		CheckTrivia();
@@ -48,11 +45,6 @@ public sealed partial class GrammarNormalizer
 	/// and hands nothing back.
 	/// </para>
 	/// </remarks>
-	/// <param name="repeated">
-	/// What the innermost enclosing repetition repeats, or null when there is none. A
-	/// repetition bounded at one iteration does not count: what is under it is written at
-	/// most once, which is an option rather than a run.
-	/// </param>
 	/// <summary>
 	/// A <c>=&gt;</c> builds the rule's value, so it has to be somewhere that is the
 	/// rule's value and there has to be a type for it to build.
@@ -309,12 +301,12 @@ public sealed partial class GrammarNormalizer
 
 				return false;
 
-			case Node.Choice(var nodes):        return nodes.Any(child => Reaches(child, target, seen));
-			case Node.Capture(_, var captured): return Reaches(captured, target, seen);
-			case Node.Construct(var built, _):  return Reaches(built, target, seen);
-			case Node.Atomic(var atomic):        return Reaches(atomic, target, seen);
-			case Node.Repeat(var repeated, _, _): return Reaches(repeated, target, seen);
-			case Node.Lookahead(_, var ahead):  return Reaches(ahead, target, seen);
+			case Node.Choice   (var nodes):          return nodes.Any(child => Reaches(child, target, seen));
+			case Node.Capture  (_, var captured):    return Reaches(captured, target, seen);
+			case Node.Construct(var built, _):       return Reaches(built, target, seen);
+			case Node.Atomic   (var atomic):         return Reaches(atomic, target, seen);
+			case Node.Repeat   (var repeated, _, _): return Reaches(repeated, target, seen);
+			case Node.Lookahead(_, var ahead):       return Reaches(ahead, target, seen);
 
 			default: return false;
 		}

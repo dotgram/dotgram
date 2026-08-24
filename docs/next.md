@@ -726,24 +726,25 @@ as a loop kept the position of a turn that broke halfway.
 Further performance work is optional and now has a stated obstacle rather than a target —
 see the gate above. The full suite remains below the 30-second ceiling.
 
-## Built: a warning for accidental shadowing inside a nested context
+## Built: a warning for accidental shadowing inside a nested namespace
 
-`docs/syntax.md` §5.1 names the footgun: `context (A = B) { ... }` and `context { A = B }`
-are one pair of parentheses apart and mean different things — a substitution reaching the
-whole call graph, against an ordinary declaration that shadows only what is lexically
-inside the block. A missing header entry used to compile either way with nothing to say
-so.
+`docs/syntax.md` §5.1 names the footgun: `namespace (A = B) { ... }` and
+`namespace { A = B }` are one pair of parentheses apart and mean different things — a
+substitution reaching the whole call graph, against an ordinary declaration that
+shadows only what is lexically inside the block. (Named `context` at the time this
+shipped; renamed to `namespace` afterward — see the entry below.) A missing header
+entry used to compile either way with nothing to say so.
 
 `GrammarBinder.ShadowsEnclosingRule` (`GRAM3012`) now does, at exactly the narrow scope
 settled on after going back and forth over it:
 
-- **A rule declared inside a nested `context { ... }` block, whose name also resolves in
-  an enclosing *grammar* scope**, gets an `Info`-level diagnostic (docs/status.md's own
-  convention for "the grammar is correct and there is nothing to fix" pointers, e.g.
+- **A rule declared inside a nested `namespace { ... }` block, whose name also resolves
+  in an enclosing *grammar* scope**, gets an `Info`-level diagnostic (docs/status.md's
+  own convention for "the grammar is correct and there is nothing to fix" pointers, e.g.
   `GRAM5001`) — not a refusal. Fires in `GrammarBinder.Declare`, right after a successful
-  `TryDeclare`, by looking the name up starting from the declaring context's *parent* —
+  `TryDeclare`, by looking the name up starting from the declaring namespace's *parent* —
   found and not in `StandardLibrary` means an enclosing grammar rule was shadowed. Applies
-  whether or not that context already carries a header for something else — the risk is
+  whether or not that namespace already carries a header for something else — the risk is
   "was a header entry meant here," not "does this specific block already use one."
 - **Shadowing the standard library** (`trivia`, `wordboundary`, `any`, `none`, `eol`,
   `eof`), at any nesting depth and any number of times over, stays completely silent —
@@ -753,11 +754,11 @@ settled on after going back and forth over it:
   declared specially to make it possible"), used throughout the examples, and not what
   this warning is for.
 - **Top-level shadowing** (declaring `trivia = none` etc. at the top of a file, not inside
-  any `context {}`) stays silent too — there is no `context (...)` header syntax anywhere
-  nearby to have meant instead, so there is nothing to be ambiguous about. (Provably
-  redundant with the standard-library exclusion above, since the top level's only possible
-  parent is the standard-library context itself — kept as its own explicit condition
-  anyway, for a reader rather than for correctness.)
+  any `namespace {}`) stays silent too — there is no `namespace (...)` header syntax
+  anywhere nearby to have meant instead, so there is nothing to be ambiguous about.
+  (Provably redundant with the standard-library exclusion above, since the top level's
+  only possible parent is the standard-library namespace itself — kept as its own
+  explicit condition anyway, for a reader rather than for correctness.)
 
 **Known first-cut gap, accepted rather than chased**: a name shadowed only by way of an
 import (`using Lib;` bringing in a name that collides with an enclosing scope's) is not
@@ -768,10 +769,10 @@ check to pass two. Under-reports; never mis-attributes.
 ## Built: `Expression with (A = B, ...)`
 
 The idea raised alongside the warning above, now designed and shipped: an expression-
-extent counterpart to `context (A = B) { ... }` — the same substitution, applied to one
-operand instead of a whole block, so a single override does not need a block wrapped
-around it. `docs/syntax.md` §5.1 has the notation and the "which of the two to reach
-for" guidance; §3.8 and §10 have the precedence and the grammar.
+extent counterpart to `namespace (A = B) { ... }` — the same substitution, applied to
+one operand instead of a whole block, so a single override does not need a block
+wrapped around it. `docs/syntax.md` §5.1 has the notation and the "which of the two to
+reach for" guidance; §3.8 and §10 have the precedence and the grammar.
 
 Postfix, and settled as such rather than reconsidered: `Number with (Point = Comma)`,
 binding at the same tightness as a quantifier or `recover` — outermost of the three,
@@ -790,30 +791,102 @@ wrapper node — and the pending site is recorded by the *node identity* of its 
 lowered root (`GrammarNormalizer.Lowering.cs`'s new `LowerWith`, tracking which rule is
 currently being lowered via a new `_currentRule` field). A new pass,
 `GrammarNormalizer.With.cs`'s `SpecializeWithSites`, runs after `LowerAll()` and before
-`SpecializeContexts()` — `with` mutates a rule's body in place, and an enclosing
-`context (...)` clone of that rule has to see the mutation already applied. It computes
-each site's affected set exactly as a `context (...)` block does (`Seed` replaced by a
-new `DirectCalls`, since a `with` names what it calls directly rather than what a block
-declares; `ReachableFromSeed`/`AffectedSet`/`CloneAndRewrite` reused unmodified), then
-splices the rewritten root back into the enclosing rule's body with a new identity-keyed
-rebuild pass, `SpliceWithSites` — needed because nodes are immutable records, so
-replacing one descendant means reconstructing every ancestor up to the rule's own root.
+`SpecializeNamespaces()` — `with` mutates a rule's body in place, and an enclosing
+`namespace (...)` clone of that rule has to see the mutation already applied. It
+computes each site's affected set exactly as a `namespace (...)` block does (`Seed`
+replaced by a new `DirectCalls`, since a `with` names what it calls directly rather
+than what a block declares; `ReachableFromSeed`/`AffectedSet`/`CloneAndRewrite` reused
+unmodified), then splices the rewritten root back into the enclosing rule's body with a
+new identity-keyed rebuild pass, `SpliceWithSites` — needed because nodes are immutable
+records, so replacing one descendant means reconstructing every ancestor up to the
+rule's own root.
 
-One case needed more than a straight port of the `context (...)` machinery: `Group` is
-transparent at lowering, so `(X with (A=B)) with (C=D)` has both `with`s' operand lower
-to the *exact same node*. Cloning each site independently and applying both rewrites in
-sequence does not compose — the second pass, built against the pre-splice call graph,
-cannot see inside the clone the first pass already made, since that clone is a new rule
-referenced only by symbol. Fixed by detecting the shared root and merging the two sites'
-rebindings into one combined set (later overriding earlier for the same key — the same
-child-overrides-parent layering nested `context (...)` headers already use) before
-cloning once. `SpecializeSite`'s clone-building tail was extracted into a reusable
-`CloneAffected`, and `NameFor` generalized to take a bare site name instead of a
-`GrammarContext`, so both features share the one implementation.
+One case needed more than a straight port of the `namespace (...)` machinery: `Group`
+is transparent at lowering, so `(X with (A=B)) with (C=D)` has both `with`s' operand
+lower to the *exact same node*. Cloning each site independently and applying both
+rewrites in sequence does not compose — the second pass, built against the pre-splice
+call graph, cannot see inside the clone the first pass already made, since that clone
+is a new rule referenced only by symbol. Fixed by detecting the shared root and merging
+the two sites' rebindings into one combined set (later overriding earlier for the same
+key — the same child-overrides-parent layering nested `namespace (...)` headers already
+use) before cloning once. `SpecializeSite`'s clone-building tail was extracted into a
+reusable `CloneAffected`, and `NameFor` generalized to take a bare site name instead of
+a `GrammarNamespace`, so both features share the one implementation.
 
-`GrammarBinder.cs`: `ResolveContextBindings`'s per-entry validation extracted into
+`GrammarBinder.cs`: `ResolveNamespaceRebindings`'s per-entry validation extracted into
 `ValidateRebinding`, reusing the header form's own diagnostic IDs
-(`UnknownContextTarget`/`UnknownContextReplacement`/`ParameterizedContextBinding`/
-`DuplicateContextBinding`) rather than minting new ones — same failure, different
-syntactic position. `ContextBoundNameRedeclared` does not port: `with` declares nothing,
-so there is nothing to check a redeclaration against.
+(`UnknownRebindingTarget`/`UnknownRebindingReplacement`/`ParameterizedRebinding`/
+`DuplicateRebinding`) rather than minting new ones — same failure, different syntactic
+position. `NamespaceBoundNameRedeclared` does not port: `with` declares nothing, so
+there is nothing to check a redeclaration against.
+
+## Built: `with (...)` on a publication directly
+
+Asked in conversation: why can't `parse Sum with (trivia = none) as Evaluate` be
+written directly, instead of wrapping the directive in a single-purpose
+`namespace (trivia = none) { parse Sum as Evaluate }`? Answered and shipped —
+`Publication` gained `Rebindings` (`GrammarModel.cs`), `Decl.Publish` gained the same
+(`Tree.cs`), and `GramParser.ParsePublication` parses an optional `with (...)` between
+the rule name and `as`, reusing `ParseRebindings()` verbatim.
+
+Simpler than either other extent: a publication has no node tree to splice into and no
+block to specialize — it names one rule directly. `GrammarNormalizer.With.cs`'s new
+`SpecializePublicationWith` seeds straight from `Publication.Rule` (no `DirectCalls`
+needed, since there is no operand to walk), computes the affected set exactly like the
+other two, and either remaps `Publication.Rule` to the clone or leaves the publication
+untouched — no splice, no rewrite pass of its own. Runs *after* `SpecializeNamespaces`,
+not before like `SpecializeWithSites` does: a publication's own `with` is the more
+locally written of the two extents, so it composes on top of whatever an enclosing
+`namespace (...)` already did to the rule it publishes, rather than the reverse.
+
+Caught along the way, not by reasoning but by a crash on the very first grammar that
+exercised it: `CloneAndRewrite`'s `Node.Call` case rewrote a call's target via
+`RewriteTarget` and built the new node directly (`new Node.Call(...)`), bypassing
+`CallTo`'s on-demand built-in registration (§3.1 — "a grammar that never says `eol`
+carries no `eol`"). A rebinding's replacement can easily be a built-in nothing else in
+the grammar calls yet (`with (trivia = none)` when `none` is otherwise unused) — the
+rewritten call reached `none` correctly, but nothing had ever registered it into
+`_rules`/`_bodies`, and `Machine.ValueRule` threw `KeyNotFoundException` reading its
+results at emission. **Latent in `namespace (...)` too** — the existing test that
+exercises `namespace (trivia = none)` happened to also declare `trivia = none` as an
+ordinary shadowing rule elsewhere in the same grammar, which registered `none` as a
+side effect and masked the gap. Fixed at the one shared spot, `CloneAndRewrite` calling
+`CallTo(RewriteTarget(...), ...)` instead of constructing the node directly — every
+caller (namespace blocks, expression `with`, publication `with`) gets the fix for free.
+
+## Built: renamed `context` to `namespace`, everywhere
+
+`context Name { ... }` grouped and hid rules, imported via `using Name;`, and compiled
+to a nested `static class` — a namespace in everything but name, and the word had
+already been retired from the *rebinding* mechanism (now `with`, at all three extents)
+earlier this session. Raised in conversation, including a real collision found and
+resolved before it was approved to proceed: `docs/syntax.md` §2, then titled *"Two
+namespaces: `@` and its absence"*, already used "namespace" for the distinction between
+grammar-rule names and C# names — a third sense of the same word right where a reader
+first meets the term. Resolved by retitling §2 to *"Two vocabularies: `@` and its
+absence"* and rewording its own internal uses, freeing the word for the renamed
+construct. (`@using System.Text; // import a C# namespace` was untouched — that one
+already named a real C# namespace, and `GramCompilerOptions.Namespace` /
+`CSharpEmitter.Emit`'s `@namespace` parameter — the generated code's own target C#
+namespace — stayed distinguishable by the existing `Grammar`-prefixed convention:
+`GrammarNamespace`, never bare `Namespace`.)
+
+Full scope, not just the keyword: `Decl.Context` → `Decl.Namespace`, the `GrammarContext`
+class → `GrammarNamespace`, `RuleSymbol.Context` → `RuleSymbol.Namespace`,
+`SpecializeContexts` → `SpecializeNamespaces`, diagnostic constant names and message
+text, every test, every example, every doc mention. A second, separate rename went the
+other way: `ContextRebinding`/`OwnBindings`/`ContextBindings` and five of the `GRAM30xx`
+diagnostics (`UnknownContextTarget`, `UnknownContextReplacement`,
+`DuplicateContextBinding`, `ParameterizedContextBinding`, `CircularContextBinding`) had
+never been about the namespace construct at all — they are the rebinding mechanism's
+own validation, firing identically for a namespace header, an expression `with`, or a
+publication `with`, so they moved to `Rebinding` vocabulary
+(`ResolvedRebinding`/`OwnRebindings`/`Rebindings`, `UnknownRebindingTarget`,
+`UnknownRebindingReplacement`, `DuplicateRebinding`, `ParameterizedRebinding`,
+`CircularRebinding`) instead of the namespace's. `ContextRebinding` could not become
+bare `Rebinding`: `GrammarBinder.cs` already has a *different*, syntax-level `Rebinding`
+in scope via `using DotGram.Grammar.Parsing;`, so the resolved form became
+`ResolvedRebinding` — the same syntax-vs-bound naming split this codebase already uses
+for `Decl.Rule` vs. `RuleSymbol`. `GRAM####` values did not change, only the C# constant
+names and message text. `GrammarNormalizer.Contexts.cs` was renamed to
+`GrammarNormalizer.Namespaces.cs` to match.

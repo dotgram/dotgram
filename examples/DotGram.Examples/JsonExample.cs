@@ -25,7 +25,7 @@ namespace DotGram.Examples;
 //     virtual between them, which is what "specialization" buys over a generic list.
 //
 //   * `trivia` is whitespace and is declared once, at the top, so no rule below it
-//     mentions spacing at all (§4.5). The lexical context turns it off for the runs
+//     mentions spacing at all (§4.5). The lexical namespace turns it off for the runs
 //     where a space would be a lie: inside a string and between the digits of a number.
 
 [Gram("""
@@ -34,7 +34,7 @@ namespace DotGram.Examples;
 
 	using Lexical;
 
-	context Lexical
+	namespace Lexical
 	{
 		// No trivia in here: "a b" is a string with a space in it, and 1 2 is two
 		// numbers rather than one.

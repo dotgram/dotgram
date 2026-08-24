@@ -11,7 +11,7 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Name binding compared against its own dump: the context tree, what each context
+/// Name binding compared against its own dump: the namespace tree, what each namespace
 /// imports, and the `trivia` it sees.
 /// </summary>
 public sealed class GrammarBinderTests
@@ -23,18 +23,18 @@ public sealed class GrammarBinderTests
 		[.. Bind(source).Diagnostics.Select(d => d.Id)];
 
 	[Fact]
-	public void Builds_the_context_tree()
+	public void Builds_the_namespace_tree()
 	{
 		Assert.Equal(
 			"""
-			context <global>
+			namespace <global>
 				using @System.Text
 				trivia = trivia
 				rule Common
-				context Lexical
+				namespace Lexical
 					trivia = trivia
 					rule Identifier
-				context Syntax
+				namespace Syntax
 					using Lexical
 					trivia = trivia
 					rule Unit
@@ -44,12 +44,12 @@ public sealed class GrammarBinderTests
 
 				Common = 'a'
 
-				context Lexical
+				namespace Lexical
 				{
 					Identifier = 'b'
 				}
 
-				context Syntax
+				namespace Syntax
 				{
 					using Lexical;
 
@@ -68,7 +68,7 @@ public sealed class GrammarBinderTests
 			Whitespace = ' '
 			Outer      = 'a'
 
-			context Lexical
+			namespace Lexical
 			{
 				trivia = none
 
@@ -109,19 +109,19 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void An_inner_context_sees_outward_but_not_inward()
+	public void An_inner_namespace_sees_outward_but_not_inward()
 	{
 		Assert.Empty(Diagnostics("""
 			Outer = 'a'
 
-			context Inner
+			namespace Inner
 			{
 				Uses = Outer
 			}
 			"""));
 
 		Assert.Contains(GrammarBinder.UndefinedName, Diagnostics("""
-			context Inner
+			namespace Inner
 			{
 				Hidden = 'a'
 			}
@@ -131,10 +131,10 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void A_qualified_name_reaches_into_a_context()
+	public void A_qualified_name_reaches_into_a_namespace()
 	{
 		Assert.Empty(Diagnostics("""
-			context Lexical
+			namespace Lexical
 			{
 				Token = 'a'
 			}
@@ -157,38 +157,38 @@ public sealed class GrammarBinderTests
 	[Theory]
 	[InlineData("A = 'a'\nA = 'b'",             GrammarBinder.DuplicateRule)]
 	[InlineData("A = Missing",                  GrammarBinder.UndefinedName)]
-	[InlineData("context S { }\nA = Other.X",   GrammarBinder.UndefinedName)]
-	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownContext)]
+	[InlineData("namespace S { }\nA = Other.X",   GrammarBinder.UndefinedName)]
+	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownNamespace)]
 	[InlineData("parse Absent\nA = 'a'",        GrammarBinder.UndefinedName)]
-	[InlineData("context S (Typo = D) { }\nD = 'd'",
-		GrammarBinder.UnknownContextTarget)]
-	[InlineData("context S (B = Typo) { }\nB = 'b'",
-		GrammarBinder.UnknownContextReplacement)]
-	[InlineData("context S (B = C, B = D) { }\nB = 'b'\nC = 'c'\nD = 'd'",
-		GrammarBinder.DuplicateContextBinding)]
-	[InlineData("B(item) = item\nD = 'd'\ncontext S (B = D) { }",
-		GrammarBinder.ParameterizedContextBinding)]
-	[InlineData("B = 'b'\nD = 'd'\ncontext S (B = D) { B = 'e' }",
-		GrammarBinder.ContextBoundNameRedeclared)]
-	[InlineData("B = 'b'\nD = 'd'\ncontext S (B = D) { context T { B = 'e' } }",
-		GrammarBinder.ContextBoundNameRedeclared)]
-	[InlineData("A = 'a'\nB = 'b'\ncontext S (A = B, B = A) { }",
-		GrammarBinder.CircularContextBinding)]
+	[InlineData("namespace S (Typo = D) { }\nD = 'd'",
+		GrammarBinder.UnknownRebindingTarget)]
+	[InlineData("namespace S (B = Typo) { }\nB = 'b'",
+		GrammarBinder.UnknownRebindingReplacement)]
+	[InlineData("namespace S (B = C, B = D) { }\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateRebinding)]
+	[InlineData("B(item) = item\nD = 'd'\nnamespace S (B = D) { }",
+		GrammarBinder.ParameterizedRebinding)]
+	[InlineData("B = 'b'\nD = 'd'\nnamespace S (B = D) { B = 'e' }",
+		GrammarBinder.NamespaceBoundNameRedeclared)]
+	[InlineData("B = 'b'\nD = 'd'\nnamespace S (B = D) { namespace T { B = 'e' } }",
+		GrammarBinder.NamespaceBoundNameRedeclared)]
+	[InlineData("A = 'a'\nB = 'b'\nnamespace S (A = B, B = A) { }",
+		GrammarBinder.CircularRebinding)]
 	public void Reports(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));
 	}
 
 	[Fact]
-	public void Declaring_an_unrelated_name_inside_a_bound_context_is_still_legal()
+	public void Declaring_an_unrelated_name_inside_a_bound_namespace_is_still_legal()
 	{
-		// §12's restriction is only for a name with an active *contextual* binding —
-		// declaring anything else inside a bound context is ordinary, legal declaration.
+		// §12's restriction is only for a name with an active binding —
+		// declaring anything else inside a bound namespace is ordinary, legal declaration.
 		Assert.Empty(Diagnostics("""
 			B = 'b'
 			D = 'd'
 
-			context S (B = D)
+			namespace S (B = D)
 			{
 				E = 'e'
 			}
@@ -205,7 +205,7 @@ public sealed class GrammarBinderTests
 			B = 'b'
 			C = 'c'
 
-			context S (A = B, B = C)
+			namespace S (A = B, B = C)
 			{
 			}
 			""");
@@ -215,20 +215,20 @@ public sealed class GrammarBinderTests
 		var c    = model.Root.Rules["C"];
 
 		Assert.Empty(model.Diagnostics);
-		Assert.Equal(c, site.ContextBindings[a]);
+		Assert.Equal(c, site.Rebindings[a]);
 	}
 
 	[Fact]
-	public void A_nested_context_inherits_and_may_override_a_binding()
+	public void A_nested_namespace_inherits_and_may_override_a_binding()
 	{
 		var model = Bind("""
 			B = 'b'
 			D = 'd'
 			E = 'e'
 
-			context Outer (B = D)
+			namespace Outer (B = D)
 			{
-				context Inner (B = E)
+				namespace Inner (B = E)
 				{
 				}
 			}
@@ -241,22 +241,22 @@ public sealed class GrammarBinderTests
 		var e     = model.Root.Rules["E"];
 
 		Assert.Empty(model.Diagnostics);
-		Assert.Equal(d, outer.ContextBindings[b]);
-		Assert.Equal(e, inner.ContextBindings[b]);
+		Assert.Equal(d, outer.Rebindings[b]);
+		Assert.Equal(e, inner.Rebindings[b]);
 	}
 
 	[Fact]
-	public void A_duplicate_in_a_nested_context_is_shadowing_not_an_error()
+	public void A_duplicate_in_a_nested_namespace_is_shadowing_not_an_error()
 	{
 		// Still legal — still not GrammarBinder.DuplicateRule — but worth a note now:
-		// shadowing an enclosing rule from inside a nested context is one parenthesis away
-		// from a context binding that would have meant something else (§5.1).
+		// shadowing an enclosing rule from inside a nested namespace is one parenthesis away
+		// from a namespace binding that would have meant something else (§5.1).
 		Assert.Equal(
 			[GrammarBinder.ShadowsEnclosingRule],
 			Diagnostics("""
 				A = 'a'
 
-				context Inner
+				namespace Inner
 				{
 					A = 'b'
 				}
@@ -264,7 +264,7 @@ public sealed class GrammarBinderTests
 	}
 
 	[Fact]
-	public void The_warning_fires_regardless_of_whether_the_context_already_has_a_header()
+	public void The_warning_fires_regardless_of_whether_the_namespace_already_has_a_header()
 	{
 		// The risk is "was a header entry meant here", not "does this specific block
 		// already use one" — a header for an unrelated name does not change that.
@@ -274,7 +274,7 @@ public sealed class GrammarBinderTests
 				A = 'a'
 				C = 'c'
 
-				context Inner (C = A)
+				namespace Inner (C = A)
 				{
 					A = 'b'
 				}
@@ -289,9 +289,9 @@ public sealed class GrammarBinderTests
 			Diagnostics("""
 				A = 'a'
 
-				context Outer
+				namespace Outer
 				{
-					context Inner
+					namespace Inner
 					{
 						A = 'b'
 					}
@@ -309,12 +309,12 @@ public sealed class GrammarBinderTests
 		// narrowings: it never mis-attributes, it simply has less to say than the full
 		// mechanism eventually could.
 		Assert.Empty(Diagnostics("""
-			context Lib
+			namespace Lib
 			{
 				A = 'a'
 			}
 
-			context Inner
+			namespace Inner
 			{
 				using Lib;
 
@@ -327,11 +327,11 @@ public sealed class GrammarBinderTests
 	public void Re_shadowing_the_standard_library_a_second_time_stays_silent()
 	{
 		// `trivia` was already shadowed once at the top level; shadowing it again inside a
-		// nested context is the same always-legal mechanism, not a new grammar rule.
+		// nested namespace is the same always-legal mechanism, not a new grammar rule.
 		Assert.Empty(Diagnostics("""
 			trivia = none
 
-			context Inner
+			namespace Inner
 			{
 				trivia = [' ']
 			}
@@ -340,14 +340,14 @@ public sealed class GrammarBinderTests
 
 	[Theory]
 	[InlineData("A = Number with (Typo = D)\nNumber = 'n'\nD = 'd'",
-		GrammarBinder.UnknownContextTarget)]
+		GrammarBinder.UnknownRebindingTarget)]
 	[InlineData("A = Number with (Number = Typo)\nNumber = 'n'",
-		GrammarBinder.UnknownContextReplacement)]
+		GrammarBinder.UnknownRebindingReplacement)]
 	[InlineData("A = Number with (B = D)\nB(item) = item\nD = 'd'\nNumber = 'n'",
-		GrammarBinder.ParameterizedContextBinding)]
+		GrammarBinder.ParameterizedRebinding)]
 	[InlineData("A = Number with (B = C, B = D)\nNumber = 'n'\nB = 'b'\nC = 'c'\nD = 'd'",
-		GrammarBinder.DuplicateContextBinding)]
-	public void With_reuses_context_s_own_rebinding_diagnostics(string source, string expectedId)
+		GrammarBinder.DuplicateRebinding)]
+	public void With_reuses_the_namespace_header_s_own_rebinding_diagnostics(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));
 	}
@@ -355,10 +355,10 @@ public sealed class GrammarBinderTests
 	[Fact]
 	public void With_never_reports_a_bound_name_redeclared()
 	{
-		// `with` declares nothing of its own — `ContextBoundNameRedeclared` is a check
-		// against a context *block*'s own declarations and has nothing to port here.
+		// `with` declares nothing of its own — `NamespaceBoundNameRedeclared` is a check
+		// against a namespace *block*'s own declarations and has nothing to port here.
 		Assert.DoesNotContain(
-			GrammarBinder.ContextBoundNameRedeclared,
+			GrammarBinder.NamespaceBoundNameRedeclared,
 			Diagnostics("""
 				Number = 'n'
 				Point  = '.'
@@ -368,8 +368,28 @@ public sealed class GrammarBinderTests
 				"""));
 	}
 
+	[Theory]
+	[InlineData("parse Number with (Typo = D) as X\nNumber = 'n'\nD = 'd'",
+		GrammarBinder.UnknownRebindingTarget)]
+	[InlineData("parse Number with (Number = Typo) as X\nNumber = 'n'",
+		GrammarBinder.UnknownRebindingReplacement)]
+	[InlineData("parse Number with (B = C, B = D) as X\nNumber = 'n'\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateRebinding)]
+	public void A_publication_s_own_with_reuses_the_same_rebinding_diagnostics(string source, string expectedId)
+	{
+		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
 	[Fact]
-	public void With_resolves_its_operand_under_the_same_context_it_sits_in()
+	public void A_publication_s_with_does_not_stop_it_being_reported_as_undefined()
+	{
+		Assert.Contains(
+			GrammarBinder.UndefinedName,
+			Diagnostics("parse Missing with (A = B) as X\nA = 'a'\nB = 'b'"));
+	}
+
+	[Fact]
+	public void With_resolves_its_operand_under_the_same_namespace_it_sits_in()
 	{
 		Assert.Empty(Diagnostics("""
 			Number = 'n'

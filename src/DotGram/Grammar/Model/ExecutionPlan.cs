@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -61,11 +59,11 @@ public sealed class ExecutionPlan
 		var inPlace = new HashSet<RuleSymbol>();
 
 		foreach (var rule in graph.Rules)
-			if (!graph.Types.ContainsKey(rule) &&
-				graph.Results[rule].Count == 0 &&
-				!graph.Recursive.Contains(rule) &&
-				!graph.Climbing.ContainsKey(rule) &&
-				graph.Bodies.TryGetValue(rule, out var body) &&
+			if (!graph.Types.ContainsKey(rule)                &&
+				 graph.Results[rule].Count == 0               &&
+				!graph.Recursive.Contains(rule)               &&
+				!graph.Climbing.ContainsKey(rule)             &&
+				 graph.Bodies.TryGetValue(rule, out var body) &&
 				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct))
 			{
 				inPlace.Add(rule);

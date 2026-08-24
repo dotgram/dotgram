@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 
 namespace DotGram.Grammar.Model;
 
 /// <summary>
-/// Realizes every `with (...)` site (§5.1, §18/§20 of the contextual-bindings spec) —
-/// <c>context (...)</c>'s substitution, applied to one expression instead of a whole
-/// block. Reuses <see cref="GrammarNormalizer"/>'s context machinery almost entirely:
+/// Realizes every `with (...)` site (§5.1, §18/§20 of the rebinding spec) —
+/// <c>namespace (...)</c>'s substitution, applied to one expression instead of a whole
+/// block. Reuses <see cref="GrammarNormalizer"/>'s namespace machinery almost entirely:
 /// the only genuinely new step is splicing a rewritten subtree back into the rule that
 /// contains it, since a `with` declares no block of its own to specialize.
 /// </summary>
@@ -28,14 +26,14 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// One pass per rule that contains at least one `with`, computing each site's own
-	/// affected set (§18 step 1) exactly as a `context (...)` block does, then splicing
+	/// affected set (§18 step 1) exactly as a `namespace (...)` block does, then splicing
 	/// the rewritten result back into that rule's own body — which is the one thing a
-	/// `with` site needs that a context site does not, since it declares no block of its
+	/// `with` site needs that a namespace site does not, since it declares no block of its
 	/// own to specialize.
 	/// </summary>
 	/// <remarks>
-	/// Runs before <see cref="SpecializeContexts"/> (§5.1): a `with` mutates a rule's
-	/// body in place, and an enclosing `context (...)` clone of that same rule must see
+	/// Runs before <see cref="SpecializeNamespaces"/> (§5.1): a `with` mutates a rule's
+	/// body in place, and an enclosing `namespace (...)` clone of that same rule must see
 	/// the mutation already applied. Each pass computes its own fresh call-graph
 	/// snapshot rather than sharing one — <see cref="SpecializeWithSites"/> is the one
 	/// that leaves the graph stale for whoever runs after it.
@@ -58,7 +56,7 @@ public sealed partial class GrammarNormalizer
 			// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
 			// both `with`s' operand lowers to the exact same node. Merged into one
 			// combined rebinding set, later overriding earlier for a shared key — the
-			// same child-overrides-parent layering `context (...)` nesting already uses
+			// same child-overrides-parent layering `namespace (...)` nesting already uses
 			// (`ChainResolve`) — rather than cloned in two separate passes: a second pass
 			// computed against the pre-splice graph could not reach inside the clone the
 			// first pass already made, since that clone is a new rule referenced only by
@@ -90,7 +88,7 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// Every rule this node calls, at any depth — a with-site's own Seed (§18 step 1):
-	/// what a `context` block names by declaring rules in its span, a `with` expression
+	/// what a `namespace` block names by declaring rules in its span, a `with` expression
 	/// names by calling them directly in the one expression it wraps.
 	/// </summary>
 	static HashSet<RuleSymbol> DirectCalls(Node root)
@@ -119,40 +117,22 @@ public sealed partial class GrammarNormalizer
 	{
 		Node rebuilt = node switch
 		{
-			Node.Empty                              => new Node.Empty(),
-			Node.Element(var negated, var ranges, var categories, var references) =>
-				new Node.Element(negated, ranges, categories, references),
-			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
-			Node.Guard(var text, var at)             => new Node.Guard(text, at),
-			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
-
-			Node.Sequence(var nodes) =>
-				new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-
-			Node.Choice(var nodes) =>
-				new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-
-			Node.Atomic(var body) =>
-				new Node.Atomic(SpliceWithSites(body, rewrites)),
-
-			Node.Repeat(var body, var min, var max) =>
-				new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
-
-			Node.Lookahead(var positive, var body) =>
-				new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
-
-			Node.Capture(var name, var body) =>
-				new Node.Capture(name, SpliceWithSites(body, rewrites)),
-
-			Node.Construct(var body, var how) =>
-				new Node.Construct(SpliceWithSites(body, rewrites), how),
-
+			Node.Empty                                                              => new Node.Empty(),
+			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element(negated, ranges, categories, references),
+			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal(text) { IgnoreCase = ignoreCase },
+			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
+			Node.External (var name) { HasValue: var hasValue }                     => new Node.External(name) { HasValue = hasValue },
+			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Choice   (var nodes)                                               => new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Atomic   (var body)                                                => new Node.Atomic(SpliceWithSites(body, rewrites)),
+			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
+			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
+			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
+			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
 			// Left unrewritten here — no targets/cloneMap apply at this level. A call that
 			// needs rewriting is inside some registered root's own subtree, and that is
 			// what CloneAndRewrite below is for.
-			Node.Call(var called, var arguments) =>
-				new Node.Call(called, [.. arguments.Select(child => SpliceWithSites(child, rewrites))]),
-
+			Node.Call(var called, var arguments)                                    => new Node.Call(called, [.. arguments.Select(child => SpliceWithSites(child, rewrites))]),
 			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
 		};
 
@@ -166,5 +146,54 @@ public sealed partial class GrammarNormalizer
 			rebuilt = CloneAndRewrite(rebuilt, site.Targets, site.CloneMap);
 
 		return rebuilt;
+	}
+
+	/// <summary>
+	/// `parse Rule with (A = B) as Alias` — the same substitution, written directly on a
+	/// publication instead of on the rule body it targets. Unlike either other extent,
+	/// there is no node to splice into: the site's own seed is just the published rule
+	/// itself, and specializing it either produces a clone to publish instead, or —
+	/// when the rebinding cannot reach anything from there — leaves the publication
+	/// exactly as it was, the same "no-op when nothing is affected" shape
+	/// <see cref="SpecializeWithSites"/> and <see cref="SpecializeNamespaces"/> both have.
+	/// </summary>
+	/// <remarks>
+	/// Runs after <see cref="SpecializeNamespaces"/>, deliberately: a publication's own
+	/// `with` is the more locally written of the two, and composes on top of whatever an
+	/// enclosing `namespace (...)` already did to it — the child-overrides-parent ordering
+	/// nested namespace headers already use for a shared key, applied here between a block
+	/// and the one directive inside it that names its own rebinding.
+	/// </remarks>
+	void SpecializePublicationWith()
+	{
+		if (_publications.All(publication => publication.Rebindings.Count == 0))
+			return;
+
+		var forward  = BuildCallGraph();
+		var calledBy = Reverse(forward);
+		var remapped = new List<Publication>(_publications.Count);
+
+		foreach (var publication in _publications)
+		{
+			if (publication.Rebindings.Count == 0)
+			{
+				remapped.Add(publication);
+				continue;
+			}
+
+			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward);
+			var affected  = AffectedSet(publication.Rebindings, calledBy, reachable);
+
+			var cloneMap = affected.Count == 0
+				? EmptyClones
+				: CloneAffected(affected, publication.Rebindings, "With" + (++_withCounter));
+
+			remapped.Add(
+				cloneMap.TryGetValue(publication.Rule, out var clone)
+					? publication with { Rule = clone }
+					: publication);
+		}
+
+		_publications = remapped;
 	}
 }

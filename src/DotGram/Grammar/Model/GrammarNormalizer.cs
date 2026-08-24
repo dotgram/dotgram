@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -75,12 +73,16 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
-		// Both before RewriteLeftRecursion(), for the reason already there — a clone's
-		// self-call must resolve to the clone before left-recursion rewriting runs. `with`
-		// goes first: it mutates a rule's own body in place, and an enclosing
-		// `context (...)` clone of the same rule must see that mutation already applied.
+		// All three before RewriteLeftRecursion(), for the reason already there — a
+		// clone's self-call must resolve to the clone before left-recursion rewriting
+		// runs. Expression-scoped `with` goes first: it mutates a rule's own body in
+		// place, and an enclosing `namespace (...)` clone of the same rule must see that
+		// mutation already applied. A publication's own `with` goes last, after
+		// `namespace (...)`, since it is the more locally written of the two and composes
+		// on top of whatever the namespace already did to the rule it publishes.
 		normalizer.SpecializeWithSites();
-		normalizer.SpecializeContexts();
+		normalizer.SpecializeNamespaces();
+		normalizer.SpecializePublicationWith();
 
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
@@ -102,9 +104,9 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.ComputeResults();
 
-		// After the results: what a contextual replacement must be compatible with is the
+		// After the results: what a rebinding's replacement must be compatible with is the
 		// result each rule was just worked out to have.
-		normalizer.CheckContextReplacements();
+		normalizer.CheckNamespaceReplacements();
 
 		// After the results, because what a constructor is matched against is the members
 		// they worked out (§7.3).
@@ -168,9 +170,9 @@ public sealed partial class GrammarNormalizer
 	/// Built-in rules have no body to compute from, so their nullability is stated:
 	/// `none`, `eof` and the default `trivia` consume nothing, `any` and `eol` consume.
 	/// </summary>
-	void SeedBuiltIns(GrammarContext context)
+	void SeedBuiltIns(GrammarNamespace ns)
 	{
-		for (var outer = context; outer is not null; outer = outer.Parent)
+		for (var outer = ns; outer is not null; outer = outer.Parent)
 			foreach (var rule in outer.Rules.Values)
 				if (rule.IsBuiltIn)
 					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "wordboundary";
@@ -178,19 +180,19 @@ public sealed partial class GrammarNormalizer
 
 	bool IsNullable(Node node) => node switch
 	{
-		Node.Empty                     => true,
-		Node.Literal(var text)         => text.Length == 0,
-		Node.Element                   => false,
-		Node.Guard                     => true,
-		Node.Lookahead                 => true,
-		Node.Atomic(var body)          => IsNullable(body),
-		Node.Capture(_, var body)      => IsNullable(body),
-		Node.Construct(var body, _)    => IsNullable(body),
-		Node.Repeat(var body, var min, _) => min == 0 || IsNullable(body),
-		Node.Sequence(var nodes)       => nodes.All(IsNullable),
-		Node.Choice(var nodes)         => nodes.Any(IsNullable),
-		Node.Call(var rule, _)         => _nullable.TryGetValue(rule, out var nullable) && nullable,
-		_                              => false,
+		Node.Empty                           => true,
+		Node.Literal  (var text)             => text.Length == 0,
+		Node.Element                         => false,
+		Node.Guard                           => true,
+		Node.Lookahead                       => true,
+		Node.Atomic   (var body)             => IsNullable(body),
+		Node.Capture  (_, var body)          => IsNullable(body),
+		Node.Construct(var body, _)          => IsNullable(body),
+		Node.Repeat   (var body, var min, _) => min == 0 || IsNullable(body),
+		Node.Sequence (var nodes)            => nodes.All(IsNullable),
+		Node.Choice   (var nodes)            => nodes.Any(IsNullable),
+		Node.Call     (var rule, _)          => _nullable.TryGetValue(rule, out var nullable) && nullable,
+		_                                    => false,
 	};
 
 	// ── Results ──────────────────────────────────────────────────────────────────
@@ -441,11 +443,11 @@ public sealed partial class GrammarNormalizer
 		while (true)
 			switch (node)
 			{
-				case Node.Construct(var built, _):    node = built; break;
-				case Node.Capture(_, var captured):   node = captured; break;
-				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
-				case Node.Call(var called, _):        return ReferenceEquals(called, rule) ? (Node.Call)node : null;
-				default:                              return null;
+				case Node.Construct(var built,  _)           : node = built; break;
+				case Node.Capture  (_,          var captured): node = captured; break;
+				case Node.Sequence (var operands)            : node = operands[^1]; break;
+				case Node.Call     (var called, _) call      : return ReferenceEquals(called, rule) ? call : null;
+				default                                      : return null;
 			}
 	}
 
@@ -473,7 +475,7 @@ public sealed partial class GrammarNormalizer
 		for (var i = 1; i < operands.Count; i++)
 			rest.Add(operands[i]);
 
-		Node tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
+		var tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
 
 		return (built is null ? tail : built with { Body = tail }, name ?? "");
 	}
@@ -484,20 +486,20 @@ public sealed partial class GrammarNormalizer
 		while (true)
 			switch (node)
 			{
-				case Node.Construct(var built, _):    node = built; break;
-				case Node.Capture(_, var captured):   node = captured; break;
-				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
-				case Node.Call(var called, _):        return ReferenceEquals(called, rule);
+				case Node.Construct(var built, _)   : node = built; break;
+				case Node.Capture  (_, var captured): node = captured; break;
+				case Node.Sequence (var operands)   : node = operands[^1]; break;
+				case Node.Call     (var called, _)  : return ReferenceEquals(called, rule);
 				default:                              return false;
 			}
 	}
 
-	/// <summary>Every <c>@using</c> in the grammar, outermost context first.</summary>
-	static IReadOnlyList<string> Imports(GrammarContext context)
+	/// <summary>Every <c>@using</c> in the grammar, outermost namespace first.</summary>
+	static IReadOnlyList<string> Imports(GrammarNamespace ns)
 	{
-		var imports = new List<string>(context.CSharpImports);
+		var imports = new List<string>(ns.CSharpImports);
 
-		foreach (var nested in context.Nested)
+		foreach (var nested in ns.Nested)
 			foreach (var import in Imports(nested))
 				if (!imports.Contains(import))
 					imports.Add(import);
@@ -507,16 +509,16 @@ public sealed partial class GrammarNormalizer
 
 	internal static bool Writes(Node node, string name) => node switch
 	{
-		Node.Capture(var captured, var body) => captured == name || Writes(body, name),
-		Node.Atomic(var body)                  => Writes(body, name),
-		Node.Sequence(var nodes)             => nodes.Any(child => Writes(child, name)),
-		Node.Choice(var nodes)               => nodes.All(child => Writes(child, name)),
-		Node.Construct(var built, _)         => Writes(built, name),
+		Node.Capture  (var captured, var body)  => captured == name || Writes(body, name),
+		Node.Atomic   (var body)                => Writes(body, name),
+		Node.Sequence (var nodes)               => nodes.Any(child => Writes(child, name)),
+		Node.Choice   (var nodes)               => nodes.All(child => Writes(child, name)),
+		Node.Construct(var built, _)            => Writes(built, name),
 
 		// A run that may be empty still writes: the text of no iterations is "". Only a
 		// genuine option — `X?`, which either happened or did not — leaves it unwritten.
 		Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
 
-		_                                    => false,
+		_                                       => false,
 	};
 }

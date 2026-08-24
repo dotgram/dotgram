@@ -1,36 +1,33 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
 /// <summary>
-/// Realizes every `context (...)` header (§18, §19 of the contextual-bindings spec) by
-/// cloning the rules that can observe it into ordinary new <see cref="RuleSymbol"/>s.
+/// Realizes every `namespace (...)` header (§18, §19 of the rebinding spec)
+/// by cloning the rules that can observe it into ordinary new <see cref="RuleSymbol"/>s.
 /// This is the whole of the feature — everything downstream (regions, `ExecutionPlan`,
 /// capture layout, materialization, emission) sees only a larger, ordinary
-/// <c>graph.Rules</c> and needs no idea a context was ever there.
+/// <c>graph.Rules</c> and needs no idea a namespace was ever there.
 /// </summary>
 public sealed partial class GrammarNormalizer
 {
-	public const string IncompatibleContextReplacement = "GRAM4014";
+	public const string IncompatibleRebinding = "GRAM4014";
 
 	IReadOnlyList<Publication> _publications = [];
 
 	/// <summary>
-	/// One pass per `context (...)` header, each computing its own affected set (§18
-	/// step 1) against its own fully-layered <see cref="GrammarContext.ContextBindings"/>
+	/// One pass per `namespace (...)` header, each computing its own affected set (§18
+	/// step 1) against its own fully-layered <see cref="GrammarNamespace.Rebindings"/>
 	/// and cloning independently — an inner header is never built on top of an outer
 	/// one's clones (§11).
 	/// </summary>
-	void SpecializeContexts()
+	void SpecializeNamespaces()
 	{
 		_publications = _model.Publications;
 
-		var sites = new List<GrammarContext>();
+		var sites = new List<GrammarNamespace>();
 
 		CollectSites(_model.Root, sites);
 
@@ -39,7 +36,7 @@ public sealed partial class GrammarNormalizer
 
 		var forward  = BuildCallGraph();
 		var calledBy = Reverse(forward);
-		var remap    = new Dictionary<GrammarContext, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
+		var remap    = new Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
 
 		foreach (var site in sites)
 			remap[site] = SpecializeSite(site, forward, calledBy);
@@ -47,12 +44,12 @@ public sealed partial class GrammarNormalizer
 		RemapPublications(remap);
 	}
 
-	static void CollectSites(GrammarContext context, List<GrammarContext> sites)
+	static void CollectSites(GrammarNamespace ns, List<GrammarNamespace> sites)
 	{
-		if (context.OwnBindings.Count > 0)
-			sites.Add(context);
+		if (ns.OwnRebindings.Count > 0)
+			sites.Add(ns);
 
-		foreach (var nested in context.Nested)
+		foreach (var nested in ns.Nested)
 			CollectSites(nested, sites);
 	}
 
@@ -97,16 +94,16 @@ public sealed partial class GrammarNormalizer
 	/// that same span (needed when the body declares no rule of its own at all — §10's
 	/// <c>parse Tree as BTree</c>).
 	/// </summary>
-	HashSet<RuleSymbol> Seed(GrammarContext site)
+	HashSet<RuleSymbol> Seed(GrammarNamespace site)
 	{
-		var span = new HashSet<GrammarContext>();
+		var span = new HashSet<GrammarNamespace>();
 
 		CollectSpan(site, span);
 
 		var seed = new HashSet<RuleSymbol>();
 
-		foreach (var context in span)
-			foreach (var rule in context.Rules.Values)
+		foreach (var ns in span)
+			foreach (var rule in ns.Rules.Values)
 				seed.Add(rule);
 
 		foreach (var publication in _model.Publications)
@@ -116,12 +113,12 @@ public sealed partial class GrammarNormalizer
 		return seed;
 	}
 
-	static void CollectSpan(GrammarContext context, HashSet<GrammarContext> span)
+	static void CollectSpan(GrammarNamespace ns, HashSet<GrammarNamespace> span)
 	{
-		span.Add(context);
+		span.Add(ns);
 
-		foreach (var nested in context.Nested)
-			if (nested.OwnBindings.Count == 0)
+		foreach (var nested in ns.Nested)
+			if (nested.OwnRebindings.Count == 0)
 				CollectSpan(nested, span);
 	}
 
@@ -181,11 +178,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> SpecializeSite(
-		GrammarContext site,
+		GrammarNamespace site,
 		Dictionary<RuleSymbol, List<RuleSymbol>> forward,
 		Dictionary<RuleSymbol, List<RuleSymbol>> calledBy)
 	{
-		var targets = site.ContextBindings;
+		var targets = site.Rebindings;
 
 		if (targets.Count == 0)
 			return EmptyClones;
@@ -200,7 +197,7 @@ public sealed partial class GrammarNormalizer
 	/// Every clone's RuleSymbol is allocated before any body is cloned: a body being
 	/// cloned may call a rule not yet cloned, including itself (§10) — the same
 	/// two-pass shape `Machine`'s own `_entries[rule] = Reserve(out _)` uses, and for
-	/// the same reason. Shared by both extents §5.1 now has: a `context (...)` block's
+	/// the same reason. Shared by both extents §5.1 now has: a `namespace (...)` block's
 	/// own site, and a `with (...)` expression's (§18/§20).
 	/// </summary>
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneAffected(
@@ -211,7 +208,7 @@ public sealed partial class GrammarNormalizer
 		var cloneMap = new Dictionary<RuleSymbol, RuleSymbol>();
 
 		foreach (var rule in affected)
-			cloneMap[rule] = new RuleSymbol(NameFor(rule, siteName), rule.Context, rule.Declaration);
+			cloneMap[rule] = new RuleSymbol(NameFor(rule, siteName), rule.Namespace, rule.Declaration);
 
 		foreach (var rule in affected)
 		{
@@ -221,7 +218,7 @@ public sealed partial class GrammarNormalizer
 			_rules.Add(clone);
 
 			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
-			// rewritten the same way as any other node, so a `context (trivia = none)`
+			// rewritten the same way as any other node, so a `namespace (trivia = none)`
 			// binding reaches it exactly like any other call.
 			if (_trivia.TryGetValue(rule, out var trivia))
 				_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap);
@@ -281,41 +278,29 @@ public sealed partial class GrammarNormalizer
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> cloneMap)
 	{
-		Node clone = node switch
+		var clone = node switch
 		{
-			Node.Empty                              => new Node.Empty(),
-			Node.Element(var negated, var ranges, var categories, var references) =>
-				new Node.Element(negated, ranges, categories, references),
-			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
-			Node.Guard(var text, var at)             => new Node.Guard(text, at),
-			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
-
-			Node.Sequence(var nodes) =>
-				new Node.Sequence([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
-			Node.Choice(var nodes) =>
-				new Node.Choice([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
-			Node.Atomic(var body) =>
-				new Node.Atomic(CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Repeat(var body, var min, var max) =>
-				new Node.Repeat(CloneAndRewrite(body, targets, cloneMap), min, max),
-
-			Node.Lookahead(var positive, var body) =>
-				new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Capture(var name, var body) =>
-				new Node.Capture(name, CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Construct(var body, var how) =>
-				new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
-
-			Node.Call(var called, var arguments) =>
-				new Node.Call(
+			Node.Empty                                                              => new Node.Empty    (),
+			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
+			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
+			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
+			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
+			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
+			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
+			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap)),
+			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap), min, max),
+			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap)),
+			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap)),
+			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
+			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
+			// built-in nothing in the grammar happened to call yet (`with (trivia =
+			// none)` when `none` is otherwise unused) — built-ins are registered on
+			// demand (§3.1) at the one place that ordinarily does it, and rewriting a
+			// call onto one bypasses that place unless this does it too.
+			Node.Call     (var called, var arguments)                               =>
+				CallTo(
 					RewriteTarget(called, targets, cloneMap),
 					[.. arguments.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
 			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
 		};
 
@@ -340,11 +325,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Remaps a `parse`/`find` directive declared inside a bound context to the clone it
+	/// Remaps a `parse`/`find` directive declared inside a bound namespace to the clone it
 	/// meant, once one exists — the reason <see cref="Publication.DeclaredIn"/> exists at
 	/// all.
 	/// </summary>
-	void RemapPublications(Dictionary<GrammarContext, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
+	void RemapPublications(Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
 	{
 		var remapped = new List<Publication>(_model.Publications.Count);
 
@@ -363,40 +348,40 @@ public sealed partial class GrammarNormalizer
 		_publications = remapped;
 	}
 
-	static GrammarContext? NearestSite(GrammarContext from)
+	static GrammarNamespace? NearestSite(GrammarNamespace from)
 	{
 		for (var at = from; at is not null; at = at.Parent)
-			if (at.OwnBindings.Count > 0)
+			if (at.OwnRebindings.Count > 0)
 				return at;
 
 		return null;
 	}
 
 	/// <summary>
-	/// §14: a contextual replacement must be valid wherever the target rule is used.
-	/// Checked once <see cref="ComputeResults"/> has run, over every <c>OwnBindings</c>
-	/// entry actually written rather than the layered <c>ContextBindings</c> — checking
+	/// §14: a rebinding's replacement must be valid wherever the target rule is used.
+	/// Checked once <see cref="ComputeResults"/> has run, over every <c>OwnRebindings</c>
+	/// entry actually written rather than the layered <c>Rebindings</c> — checking
 	/// only what a level wrote itself avoids re-reporting the same inherited binding at
 	/// every nesting depth it is visible from.
 	/// </summary>
-	void CheckContextReplacements() => CheckContextReplacements(_model.Root);
+	void CheckNamespaceReplacements() => CheckNamespaceReplacements(_model.Root);
 
-	void CheckContextReplacements(GrammarContext context)
+	void CheckNamespaceReplacements(GrammarNamespace ns)
 	{
-		foreach (var binding in context.OwnBindings)
+		foreach (var binding in ns.OwnRebindings)
 			if (_types.TryGetValue(binding.Left, out var expected))
 			{
 				var actual = _types.TryGetValue(binding.Right, out var declared) ? declared : "string";
 
 				if (!_resolver.IsAssignable(actual, expected))
 					Report(
-						IncompatibleContextReplacement,
+						IncompatibleRebinding,
 						$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
 						$"compatible with '{expected}', found '{actual}'.",
 						binding.At);
 			}
 
-		foreach (var nested in context.Nested)
-			CheckContextReplacements(nested);
+		foreach (var nested in ns.Nested)
+			CheckNamespaceReplacements(nested);
 	}
 }

@@ -58,10 +58,11 @@ public abstract record Decl : ILocated
 	public sealed record Rule(
 		string Name, IReadOnlyList<Param> Params, TypeRef? Type, Expr Body) : Decl;
 
-	public sealed record Context(
+	public sealed record Namespace(
 		string Name, IReadOnlyList<Rebinding> Rebindings, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
 
-	public sealed record Publish(PublishKind Kind, string RuleName, string? Alias) : Decl;
+	public sealed record Publish(
+		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl;
 
 	public sealed override string ToString() => Dump.Of(this);
 }
@@ -115,7 +116,7 @@ public abstract record Expr : ILocated
 
 	/// <summary>
 	/// <c>Expression with (A = B, ...)</c> — §5.1's substitution, applied to one
-	/// expression instead of a whole <see cref="Decl.Context"/> block.
+	/// expression instead of a whole <see cref="Decl.Namespace"/> block.
 	/// </summary>
 	public sealed record With(Expr Operand, IReadOnlyList<Rebinding> Rebindings) : Expr;
 
@@ -187,9 +188,9 @@ static class Dump
 				Write(text, depth + 1, body);
 				break;
 
-			case Decl.Context(var name, var rebindings, var usings, var declarations):
+			case Decl.Namespace(var name, var rebindings, var usings, var declarations):
 
-				Write(text, depth, $"Context {Quote(name)}");
+				Write(text, depth, $"Namespace {Quote(name)}");
 
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));
@@ -202,11 +203,14 @@ static class Dump
 
 				break;
 
-			case Decl.Publish(var kind, var rule, var alias):
+			case Decl.Publish(var kind, var rule, var rebindings, var alias):
 
 				Write(text, depth, alias is null
 					? $"Publication {kind} {Quote(rule)}"
 					: $"Publication {kind} {Quote(rule)} as {Quote(alias)}");
+
+				foreach (var rebinding in rebindings)
+					Write(text, depth + 1, Label(rebinding));
 
 				break;
 		}

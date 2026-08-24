@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -466,16 +465,16 @@ public static class Retention
 
 	static IEnumerable<Node> Children(Node node)
 	{
-		switch (node)
+		return node switch
 		{
-			case Node.Sequence(var parts):        return parts;
-			case Node.Choice(var alternatives):   return alternatives;
-			case Node.Repeat(var body, _, _):     return [body];
-			case Node.Capture(_, var captured):   return [captured];
-			case Node.Construct(var built, _):    return [built];
-			case Node.Atomic(var body):            return [body];
-			default:                              return [];
-		}
+			Node.Sequence (var parts)        => parts,
+			Node.Choice   (var alternatives) => alternatives,
+			Node.Repeat   (var body, _, _)   => [body],
+			Node.Capture  (_, var captured)  => [captured],
+			Node.Construct(var built, _)     => [built],
+			Node.Atomic   (var body)         => [body],
+			_                                => (IEnumerable<Node>)[]
+		};
 	}
 
 	static string Describe(Stage stage) =>
@@ -527,17 +526,13 @@ public static class Retention
 			// Consumes nothing, so it takes no part of a line. What a lookahead needs to
 			// *see* is a window question rather than a retention one, and §6.3 does not
 			// answer it.
-			case Node.Lookahead:
-			case Node.Guard:
-			case Node.Empty:
-				return LineExtent.None;
-
-			case Node.Call(var called, _):
-				return rules.TryGetValue(called, out var known) ? known : LineExtent.None;
-
-			case Node.Capture(_, var captured): return Extent(captured, rules, consuming);
-			case Node.Construct(var built, _):  return Extent(built, rules, consuming);
-			case Node.Atomic(var body):          return Extent(body, rules, consuming);
+			case Node.Lookahead                 :
+			case Node.Guard                     :
+			case Node.Empty                     : return LineExtent.None;
+			case Node.Call     (var called, _)  : return rules.TryGetValue(called, out var known) ? known : LineExtent.None;
+			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming);
+			case Node.Construct(var built, _)   : return Extent(built, rules, consuming);
+			case Node.Atomic   (var body)       : return Extent(body, rules, consuming);
 
 			case Node.Choice(var alternatives):
 			{
@@ -626,7 +621,7 @@ public static class Retention
 
 	/// <summary>Whether the last item of a literal is a terminator.</summary>
 	static bool EndsWithTerminator(string text) =>
-		text.Length > 0 && text[text.Length - 1] is '\n' or '\r';
+		text.Length > 0 && text[^1] is '\n' or '\r';
 
 	/// <summary>
 	/// Whether an element set admits a line terminator.
@@ -644,10 +639,9 @@ public static class Retention
 		var named = false;
 
 		foreach (var range in element.Ranges)
-			if ((range.From <= '\n' && '\n' <= range.To) || (range.From <= '\r' && '\r' <= range.To))
+			if (range is { From: <= '\n', To: >= '\n' } or { From: <= '\r', To: >= '\r' })
 			{
 				named = true;
-
 				break;
 			}
 

@@ -175,8 +175,8 @@ public sealed class GramParser
 
 	Decl? ParseDeclaration()
 	{
-		if (AtKeyword("context") && Next.Kind == TokenKind.Identifier && !StartsRule())
-			return ParseContext();
+		if (AtKeyword("namespace") && Next.Kind == TokenKind.Identifier && !StartsRule())
+			return ParseNamespace();
 
 		if (AtPublication())
 			return ParsePublication();
@@ -184,14 +184,14 @@ public sealed class GramParser
 		if (At(TokenKind.Identifier))
 			return ParseRule();
 
-		Report(ExpectedDeclaration, "Expected a rule, a context or a publication directive.");
+		Report(ExpectedDeclaration, "Expected a rule, a namespace or a publication directive.");
 
 		return null;
 	}
 
 	/// <summary>
 	/// Whether the current identifier starts a rule rather than being a contextual
-	/// keyword — the check that lets `context`, `parse` and the rest stay ordinary names.
+	/// keyword — the check that lets `namespace`, `parse` and the rest stay ordinary names.
 	/// </summary>
 	bool StartsRule() =>
 		At(TokenKind.Identifier) &&
@@ -232,11 +232,11 @@ public sealed class GramParser
 		(AtKeyword("parse") || AtKeyword("find")) &&
 		Next.Kind == TokenKind.Identifier;
 
-	Decl ParseContext()
+	Decl ParseNamespace()
 	{
 		var start = Current.Position;
 
-		Take();                                     // `context`
+		Take();                                     // `namespace`
 
 		var name         = ExpectName();
 		var rebindings   = At(TokenKind.OpenParen) ? ParseRebindings() : [];
@@ -262,7 +262,7 @@ public sealed class GramParser
 
 		Expect(TokenKind.CloseBrace);
 
-		return new Decl.Context(name, rebindings, usings, declarations) { At = From(start) };
+		return new Decl.Namespace(name, rebindings, usings, declarations) { At = From(start) };
 	}
 
 	List<Rebinding> ParseRebindings()
@@ -293,13 +293,14 @@ public sealed class GramParser
 
 	Decl ParsePublication()
 	{
-		var start = Current.Position;
-		var word  = Take().Value!;
-		var kind  = word == "parse" ? PublishKind.Parse : PublishKind.Find;
-		var name  = ExpectQualifiedName();
-		var alias = TakeIfKeyword("as") ? ExpectName() : null;
+		var start      = Current.Position;
+		var word       = Take().Value!;
+		var kind       = word == "parse" ? PublishKind.Parse : PublishKind.Find;
+		var name       = ExpectQualifiedName();
+		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
+		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
 
-		return new Decl.Publish(kind, name, alias) { At = From(start) };
+		return new Decl.Publish(kind, name, rebindings, alias) { At = From(start) };
 	}
 
 	Decl ParseRule()
@@ -490,7 +491,7 @@ public sealed class GramParser
 
 	/// <summary>
 	/// <c>Number with (Point = Comma)</c> — §5.1's substitution, applied to one
-	/// expression instead of a whole <c>context</c> block. Checked last, outermost of
+	/// expression instead of a whole <c>namespace</c> block. Checked last, outermost of
 	/// quantifier/<c>recover</c>/<c>with</c> at this one precedence level: <c>Number+
 	/// with (X=Y)</c> is <c>(Number+) with (X=Y)</c>, and the reverse needs parens.
 	/// </summary>
@@ -768,7 +769,7 @@ public sealed class GramParser
 
 		while (!AtEnd && !At(TokenKind.CloseBrace))
 		{
-			if (StartsRule() || AtUsing() || AtKeyword("context") || AtPublication())
+			if (StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication())
 				return;
 
 			Take();

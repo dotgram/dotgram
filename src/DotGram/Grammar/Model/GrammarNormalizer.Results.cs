@@ -75,7 +75,7 @@ public sealed partial class GrammarNormalizer
 			// §4.1 case 3: `A : B` says A's value is B's. Recorded the same way and
 			// resolved with the rest — a rule named in type position is a rule whose type
 			// this one takes.
-			if (rule.Context.LookupQualified(type.Name) is { } produced)
+			if (rule.Namespace.LookupQualified(type.Name) is { } produced)
 			{
 				_produces[rule] = (produced, type.IsSequence);
 
@@ -350,7 +350,7 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var property in properties)
 		{
-			var found = (string?)null;
+			var found = null as string;
 
 			foreach (var member in members)
 				if (string.Equals(member.Name, property.Name, StringComparison.OrdinalIgnoreCase))
@@ -749,20 +749,15 @@ public sealed partial class GrammarNormalizer
 
 	static bool HasCapture(Node node) => node switch
 	{
-		Node.Capture                       => true,
-		Node.Sequence(var nodes)           => nodes.Any(HasCapture),
-		Node.Choice(var nodes)             => nodes.Any(HasCapture),
-		Node.Repeat(var body, _, _)        => HasCapture(body),
-		Node.Atomic(var body)              => HasCapture(body),
-		Node.Construct(var built, _)       => HasCapture(built),
+		Node.Capture                 => true,
+		Node.Sequence(var nodes)     => nodes.Any(HasCapture),
+		Node.Choice(var nodes)       => nodes.Any(HasCapture),
+		Node.Repeat(var body, _, _)  => HasCapture(body),
+		Node.Atomic(var body)        => HasCapture(body),
+		Node.Construct(var built, _) => HasCapture(built),
 
 		// Not across a call — that is another rule's result — and not into a lookahead,
 		// which consumes nothing and is compiled with its captures stripped.
-		_                                  => false,
+		_                            => false,
 	};
-
-	/// <summary>
-	/// Whether every way through this node writes <paramref name="name"/>. What decides
-	/// whether the member can be null, and so whether the generated property is nullable.
-	/// </summary>
 }

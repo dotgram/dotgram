@@ -14,7 +14,7 @@ public abstract record Symbol(string Name);
 /// source.
 /// </summary>
 public sealed record RuleSymbol(
-	string Name, GrammarContext Context, Decl.Rule? Declaration) : Symbol(Name)
+	string Name, GrammarNamespace Namespace, Decl.Rule? Declaration) : Symbol(Name)
 {
 	public bool IsBuiltIn => Declaration is null;
 
@@ -24,41 +24,41 @@ public sealed record RuleSymbol(
 /// <summary>A rule's parameter, in scope only inside that rule's body.</summary>
 public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
 
-/// <summary>One `A = B` entry in a `context (...)` header, resolved to symbols (§5, §7).</summary>
-public sealed record ContextRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
+/// <summary>One `A = B` entry in a `with (...)` header, resolved to symbols (§5, §7).</summary>
+public sealed record ResolvedRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
 
 /// <summary>A name that lives on the C# side.</summary>
 public sealed record CSharpSymbol(string Name) : Symbol(Name);
 
 /// <summary>
-/// One lexical context: the global one at the top of a file, or a `context` block.
+/// One lexical namespace: the global one at the top of a file, or a `namespace` block.
 /// </summary>
-public sealed class GrammarContext(string name, GrammarContext? parent)
+public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 {
 	readonly Dictionary<string, RuleSymbol> _rules   = [];
-	readonly List<GrammarContext>           _nested  = [];
-	readonly List<GrammarContext>           _imports = [];
+	readonly List<GrammarNamespace>         _nested  = [];
+	readonly List<GrammarNamespace>         _imports = [];
 	readonly List<string>                   _csharpImports = [];
-	readonly List<ContextRebinding>         _ownBindings   = [];
+	readonly List<ResolvedRebinding>        _ownRebindings = [];
 
-	/// <summary>Empty for the global context.</summary>
-	public string          Name   { get; } = name;
-	public GrammarContext? Parent { get; } = parent;
+	/// <summary>Empty for the global namespace.</summary>
+	public string            Name   { get; } = name;
+	public GrammarNamespace? Parent { get; } = parent;
 
 	public IReadOnlyDictionary<string, RuleSymbol> Rules         => _rules;
-	public IReadOnlyList<GrammarContext>           Nested        => _nested;
-	public IReadOnlyList<GrammarContext>           Imports       => _imports;
+	public IReadOnlyList<GrammarNamespace>         Nested        => _nested;
+	public IReadOnlyList<GrammarNamespace>         Imports       => _imports;
 	public IReadOnlyList<string>                   CSharpImports => _csharpImports;
 
-	/// <summary>This context's own `context (...)` header, resolved, in source order (§5, §7).</summary>
-	public IReadOnlyList<ContextRebinding> OwnBindings => _ownBindings;
+	/// <summary>This namespace's own `with (...)` header, resolved, in source order (§5, §7).</summary>
+	public IReadOnlyList<ResolvedRebinding> OwnRebindings => _ownRebindings;
 
 	/// <summary>
-	/// The layered environment this context and everything lexically inside it sees: the
-	/// parent's <see cref="ContextBindings"/>, overridden key-by-key by
-	/// <see cref="OwnBindings"/> (§11).
+	/// The layered environment this namespace and everything lexically inside it sees: the
+	/// parent's <see cref="Rebindings"/>, overridden key-by-key by
+	/// <see cref="OwnRebindings"/> (§11).
 	/// </summary>
-	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> ContextBindings { get; internal set; } =
+	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings { get; internal set; } =
 		EmptyBindings;
 
 	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> EmptyBindings =
@@ -74,33 +74,33 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 		return true;
 	}
 
-	internal bool TryBind(ContextRebinding binding)
+	internal bool TryBind(ResolvedRebinding binding)
 	{
-		if (_ownBindings.Exists(existing => existing.Left == binding.Left))
+		if (_ownRebindings.Exists(existing => existing.Left == binding.Left))
 			return false;
 
-		_ownBindings.Add(binding);
+		_ownRebindings.Add(binding);
 
 		return true;
 	}
 
-	internal void Add(GrammarContext nested)  => _nested.Add(nested);
-	internal void Import(GrammarContext other) => _imports.Add(other);
-	internal void ImportCSharp(string name)   => _csharpImports.Add(name);
+	internal void Add(GrammarNamespace nested)   => _nested.Add(nested);
+	internal void Import(GrammarNamespace other) => _imports.Add(other);
+	internal void ImportCSharp(string name)      => _csharpImports.Add(name);
 
 	/// <summary>
-	/// Looks a name up the way §5 says: this context, then what it imports, then
+	/// Looks a name up the way §5 says: this namespace, then what it imports, then
 	/// outwards. The first hit wins, which is what makes an inner declaration shadow
 	/// an outer one.
 	/// </summary>
 	public RuleSymbol? Lookup(string name)
 	{
-		for (var context = this; context is not null; context = context.Parent)
+		for (var ns = this; ns is not null; ns = ns.Parent)
 		{
-			if (context._rules.TryGetValue(name, out var rule))
+			if (ns._rules.TryGetValue(name, out var rule))
 				return rule;
 
-			foreach (var imported in context._imports)
+			foreach (var imported in ns._imports)
 				if (imported._rules.TryGetValue(name, out var fromImport))
 					return fromImport;
 		}
@@ -108,7 +108,7 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 		return null;
 	}
 
-	/// <summary>A qualified name, `Context.Rule`, resolved from here.</summary>
+	/// <summary>A qualified name, `Namespace.Rule`, resolved from here.</summary>
 	public RuleSymbol? LookupQualified(string qualifiedName)
 	{
 		var separator = qualifiedName.LastIndexOf('.');
@@ -116,14 +116,14 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 		if (separator < 0)
 			return Lookup(qualifiedName);
 
-		var context = FindContext(qualifiedName.Substring(0, separator));
+		var ns = FindNamespace(qualifiedName.Substring(0, separator));
 
-		return context?._rules.TryGetValue(qualifiedName.Substring(separator + 1), out var rule) == true
+		return ns?._rules.TryGetValue(qualifiedName.Substring(separator + 1), out var rule) == true
 			? rule
 			: null;
 	}
 
-	GrammarContext? FindContext(string path)
+	GrammarNamespace? FindNamespace(string path)
 	{
 		var head = path;
 		var tail = "";
@@ -135,10 +135,10 @@ public sealed class GrammarContext(string name, GrammarContext? parent)
 			tail = path.Substring(dot + 1);
 		}
 
-		for (var context = this; context is not null; context = context.Parent)
-			foreach (var nested in context._nested)
+		for (var ns = this; ns is not null; ns = ns.Parent)
+			foreach (var nested in ns._nested)
 				if (nested.Name == head)
-					return tail.Length == 0 ? nested : nested.FindContext(tail);
+					return tail.Length == 0 ? nested : nested.FindNamespace(tail);
 
 		return null;
 	}
@@ -170,12 +170,18 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// not produce belongs — the rule is fine, the directive is what asked for the method.
 /// </param>
 /// <param name="DeclaredIn">
-/// The context the directive itself sits in — not <paramref name="Rule"/>'s own context —
-/// which is what lets a `parse`/`find` declared inside a bound `context (...)` be remapped
+/// The namespace the directive itself sits in — not <paramref name="Rule"/>'s own namespace —
+/// which is what lets a `parse`/`find` declared inside a bound `namespace (...)` be remapped
 /// to the specialized clone it meant (§18) once one exists.
 /// </param>
+/// <param name="Rebindings">
+/// This directive's own `with (A = B, ...)` (§5.1), resolved — empty when it has none.
+/// The same substitution a `namespace (...)` header applies to a whole block, written
+/// directly on the one publication that needs it instead.
+/// </param>
 public sealed record Publication(
-	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarContext DeclaredIn)
+	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarNamespace DeclaredIn,
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
@@ -184,16 +190,16 @@ public sealed record Publication(
 	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
 }
 
-/// <summary>What binding produced: a context tree, resolved references, diagnostics.</summary>
+/// <summary>What binding produced: a namespace tree, resolved references, diagnostics.</summary>
 public sealed class GrammarModel(
-	GrammarContext                                  root,
-	IReadOnlyDictionary<Expr, Symbol>         bindings,
+	GrammarNamespace                                                       root,
+	IReadOnlyDictionary<Expr, Symbol>                                      bindings,
 	IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> withBindings,
-	IReadOnlyDictionary<GrammarContext, RuleSymbol> trivia,
-	IReadOnlyList<Publication>                      publications,
-	IReadOnlyList<GramDiagnostic>                   diagnostics)
+	IReadOnlyDictionary<GrammarNamespace, RuleSymbol>                      trivia,
+	IReadOnlyList<Publication>                                             publications,
+	IReadOnlyList<GramDiagnostic>                                          diagnostics)
 {
-	public GrammarContext                          Root        { get; } = root;
+	public GrammarNamespace                  Root        { get; } = root;
 	public IReadOnlyDictionary<Expr, Symbol> Bindings    { get; } = bindings;
 
 	/// <summary>Each `with (...)`'s own rebindings, resolved (§5.1) — keyed by the
@@ -201,17 +207,17 @@ public sealed class GrammarModel(
 	/// by node identity rather than by value.</summary>
 	public IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> WithBindings { get; } = withBindings;
 
-	public IReadOnlyList<GramDiagnostic>           Diagnostics { get; } = diagnostics;
+	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
 
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
-	/// <summary>The `trivia` each context sees — §4.5, resolved once per context.</summary>
-	public IReadOnlyDictionary<GrammarContext, RuleSymbol> Trivia { get; } = trivia;
+	/// <summary>The `trivia` each namespace sees — §4.5, resolved once per namespace.</summary>
+	public IReadOnlyDictionary<GrammarNamespace, RuleSymbol> Trivia { get; } = trivia;
 
 	public bool HasErrors => Diagnostics.Count > 0;
 
-	/// <summary>The context tree, then the diagnostics, in one comparable dump.</summary>
+	/// <summary>The namespace tree, then the diagnostics, in one comparable dump.</summary>
 	public override string ToString()
 	{
 		var text = new StringBuilder();
@@ -226,23 +232,23 @@ public sealed class GrammarModel(
 
 		return text.ToString().TrimEnd();
 
-		void Write(GrammarContext context, int depth)
+		void Write(GrammarNamespace ns, int depth)
 		{
-			text.Append('\t', depth).Append("context ").AppendEndingWith(context.ToString());
+			text.Append('\t', depth).Append("namespace ").AppendEndingWith(ns.ToString());
 
-			foreach (var import in context.CSharpImports)
+			foreach (var import in ns.CSharpImports)
 				text.Append('\t', depth + 1).Append("using @").AppendEndingWith(import);
 
-			foreach (var import in context.Imports)
+			foreach (var import in ns.Imports)
 				text.Append('\t', depth + 1).Append("using ").AppendEndingWith(import.Name);
 
-			if (Trivia.TryGetValue(context, out var trivia))
+			if (Trivia.TryGetValue(ns, out var trivia))
 				text.Append('\t', depth + 1).Append("trivia = ").AppendEndingWith(trivia.Name);
 
-			foreach (var rule in context.Rules.Values)
+			foreach (var rule in ns.Rules.Values)
 				text.Append('\t', depth + 1).Append("rule ").AppendEndingWith(rule.Name);
 
-			foreach (var nested in context.Nested)
+			foreach (var nested in ns.Nested)
 				Write(nested, depth + 1);
 		}
 	}

@@ -44,13 +44,13 @@ using Lexical;
 Header = "H" & '|' & date: Date & '|' & source: Text & eol
 ```
 
-`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar context (§2). The syntax
+`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar namespace (§2). The syntax
 is C#'s own directive, semicolon and all; there is no module system of our own for
 C# — project references already are one.
 
 ---
 
-## 2. Two namespaces: `@` and its absence
+## 2. Two vocabularies: `@` and its absence
 
 One rule, no exceptions and no clever resolution:
 
@@ -60,7 +60,7 @@ One rule, no exceptions and no clever resolution:
 | `@Name` | among C# symbols (type, method, property) |
 | `string`, `int`, `bool`, `char`, `decimal`, … | always a C# type — these are keywords and cannot name a rule |
 
-`@` never qualifies or overrides — it switches namespace. There is no fallback in
+`@` never qualifies or overrides — it switches vocabulary. There is no fallback in
 either direction (a bare name that sometimes finds a C# type and sometimes generates
 one): that is the single source of ambiguity worth removing outright.
 
@@ -75,17 +75,17 @@ directive as well as a name:
 
 ```dotgram
 @using System.Text;      // import a C# namespace
-using Lexical.Numbers;   // import a grammar context
+using Lexical.Numbers;   // import a grammar namespace
 
 @Encoding.UTF8           // a static C# property
-Lexical.Token            // a rule from a grammar context
+Lexical.Token            // a rule from a grammar namespace
 ```
 
 Otherwise `using System;` and `using Lexical;` would look identical while resolving
-in different namespaces — exactly the implicit context dependency `@` exists to
+in different vocabularies — exactly the implicit ambiguity `@` exists to
 remove.
 
-Of all keywords `@` applies only to `using`, and that is not an exception: `context`,
+Of all keywords `@` applies only to `using`, and that is not an exception: `namespace`,
 `parse`, `when` and the rest are constructs of `.Gram` with no C# counterpart, so
 there is nothing to transition into. `using` is the one directive that exists in both
 languages. The model is Razor's, where `@using`, `@model` and `@inherits` mean
@@ -687,7 +687,7 @@ List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — trivia is i
 ```dotgram
 trivia = WhitespaceAndComments
 
-context Lexical
+namespace Lexical
 {
     trivia = none                              // whitespace is significant here
 
@@ -695,7 +695,7 @@ context Lexical
     Number     = ['0'..'9']+
 }
 
-context Syntax
+namespace Syntax
 {
     using Lexical;
 
@@ -716,9 +716,9 @@ When `trivia` is empty the insertions are dropped entirely during normalization:
 nothing of them survives to run time.
 
 A silent failure is possible here — a lexical rule that ended up by oversight in a
-context with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism catches
-that, but a warning does: a rule whose operands all test a single input item is
-almost certainly a mistake in such a context.
+namespace with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism
+catches that, but a warning does: a rule whose operands all test a single input item
+is almost certainly a mistake in such a namespace.
 
 ### 4.6 Keyword boundaries
 
@@ -743,45 +743,45 @@ whether a letter follows the whitespace rather than whether it follows the keywo
 
 ---
 
-## 5. Contexts
+## 5. Namespaces
 
 ```dotgram
 @using System;
 
 Common = ...
 
-context Lexical
+namespace Lexical
 {
     Token = ...
 }
 
-context Syntax
+namespace Syntax
 {
-    using Lexical;              // import a grammar context
+    using Lexical;              // import a grammar namespace
 
     Unit = Token*               // instead of Lexical.Token
 }
 ```
 
-The top of a file is an implicit global context. The `{ }` after `context Name` is a
-block of declarations, not an expression; in expression position braces mean a
-repetition count and nothing else (§3.3). An inner context sees the outer one; a rule
-of the same name shadows the outer one; the qualified name `Context.Rule` is available
+The top of a file is an implicit global namespace. The `{ }` after `namespace Name` is
+a block of declarations, not an expression; in expression position braces mean a
+repetition count and nothing else (§3.3). An inner namespace sees the outer one; a rule
+of the same name shadows the outer one; the qualified name `Namespace.Rule` is available
 from outside.
 
-`using X;` without `@` brings the names of context `X` into the current context
+`using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
-`context` block — where C# expects them. If two imports supply the same name, the
+`namespace` block — where C# expects them. If two imports supply the same name, the
 error is raised at the use site rather than at the import, and is settled by
 qualification, as in C#.
 
-Every context becomes a nested static class in the generated code.
+Every namespace becomes a nested static class in the generated code.
 
-### 5.1 Contextual rebinding
+### 5.1 Rebinding
 
-A `context` may carry a header, `context Name (A = B, ...) { ... }`. This does
+A `namespace` may carry a header, `namespace Name (A = B, ...) { ... }`. This does
 something different from an ordinary declaration in the block: it rebinds `A` to `B`
-for the *whole call graph reached from what the context declares* — not only for
+for the *whole call graph reached from what the namespace declares* — not only for
 calls written lexically inside it.
 
 ```dotgram
@@ -789,7 +789,7 @@ B = 'c'
 A = B
 F = A
 
-context Ctx (B = D)
+namespace Ns (B = D)
 {
     E = A
 }
@@ -797,10 +797,10 @@ context Ctx (B = D)
 D = 'd'
 ```
 
-`F`, outside the context, still resolves `A` to the ordinary `B`. `E`, inside,
-resolves the same `A` through `D` — even though `A` is declared outside the context
+`F`, outside the namespace, still resolves `A` to the ordinary `B`. `E`, inside,
+resolves the same `A` through `D` — even though `A` is declared outside the namespace
 and never mentions `D`. `A` itself is untouched: nothing about `F`'s behavior depends
-on the context existing.
+on the namespace existing.
 
 The contrast with an ordinary declaration of the same name is the whole of what this
 section adds:
@@ -809,13 +809,13 @@ section adds:
 B = 'c'
 A = B
 
-context Ctx
+namespace Ns
 {
     B = 'd'                 // shadowing: a new, unrelated rule named B
     E = A                   // E -> outer A -> outer B -> 'c'
 }
 
-context Ctx2 (B = D)
+namespace Ns2 (B = D)
 {
     E = A                   // E -> A, with B substituted -> D
 }
@@ -824,36 +824,37 @@ D = 'd'
 ```
 
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
-not shadow anything and nothing inside the same context, at any nesting depth, may
+not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
-`context (B = ...)` instead of redeclaring `B`. Both sides must already resolve to a
+`namespace (B = ...)` instead of redeclaring `B`. Both sides must already resolve to a
 visible, parameterless rule.
 
-Bindings in one header resolve simultaneously, against the context the header itself
-is written in: `context (A = B, B = C)` sends a call to `A` all the way to `C`
-regardless of which entry is written first. A nested context inherits its enclosing
+Bindings in one header resolve simultaneously, against the namespace the header itself
+is written in: `namespace (A = B, B = C)` sends a call to `A` all the way to `C`
+regardless of which entry is written first. A nested namespace inherits its enclosing
 one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`context (trivia = none)` reuses an already-written rule under different whitespace
+`namespace (trivia = none)` reuses an already-written rule under different whitespace
 handling — the same substitution as any other binding, and a different mechanism from
 shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
 
 **Which of the two to reach for is a question of what the result needs to be, not a
 style choice between them.** A binding clones the whole call graph reached from inside
-the context and rewrites every call inside those clones — so the *same* shared rule,
-called from both inside and outside the context, behaves two different ways depending
+the namespace and rewrites every call inside those clones — so the *same* shared rule,
+called from both inside and outside the namespace, behaves two different ways depending
 on which call path reached it. Shadowing does not do that: it changes what a name
 means only where the replacement is lexically visible, and a rule declared outside the
-shadowing scope never sees it, context block or not. Reach for a header when the point
-is exactly that a shared rule should mean something different from inside one place
-than from everywhere else it is called — `LocaleNumberExample`'s two decimal points
-over one `Number` rule is the shape this exists for. Reach for shadowing — an ordinary
-declaration, no `context` needed at all — when a rule's meaning is simply different for
-the rest of the file or block from that point on, with nothing shared reaching back out
-to an unshadowed view of it: `trivia = none` at the top of a whole grammar is exactly
-that, and wrapping the entire file in `context (trivia = none) { ... }` for it adds a
-block with nothing on the other side of the substitution to contrast against.
+shadowing scope never sees it, namespace block or not. Reach for a header when the
+point is exactly that a shared rule should mean something different from inside one
+place than from everywhere else it is called — `LocaleNumberExample`'s two decimal
+points over one `Number` rule is the shape this exists for. Reach for shadowing — an
+ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
+different for the rest of the file or block from that point on, with nothing shared
+reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
+grammar is exactly that, and wrapping the entire file in `namespace (trivia = none)
+{ ... }` for it adds a block with nothing on the other side of the substitution to
+contrast against.
 
 **The same substitution is also available on a single expression, without declaring a
 block or a name for it:** `Expression with (A = B, ...)`.
@@ -862,7 +863,7 @@ block or a name for it:** `Expression with (A = B, ...)`.
 ParseEuropeanNumber = Number with (Point = Comma)
 ```
 
-is the one-line version of wrapping `Number` in a single-purpose `context (Point =
+is the one-line version of wrapping `Number` in a single-purpose `namespace (Point =
 Comma) { ... }` just to reach the substitution once. `with` binds as tightly as a
 quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X = Y)`,
 not `Number+` of something already rebound — and reaches only the one expression it is
@@ -877,17 +878,29 @@ for `with` when the substitution belongs to one place a rule is used; reach for 
 header once more than one call needs the same rebinding, or the substitution is worth
 a name of its own.
 
+A `parse`/`find` directive (§6) may carry the same header directly, rather than being
+wrapped in a `namespace (...)` block just to reach it:
+
+```dotgram
+parse Number with (Point = Comma) as Evaluate
+```
+
+is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
+block, no name for the substitution beyond the publication's own. A publication's own
+`with` is the more locally written of the two extents, so it composes on top of an
+enclosing `namespace (...)`'s own rebinding of the same rule rather than instead of it.
+
 Write a rebinding in the header rather than as a same-named declaration in the body —
-`context (A = B) { ... }` is a substitution, written where a reader expects one; a
+`namespace (A = B) { ... }` is a substitution, written where a reader expects one; a
 declaration with the same name sitting in the body, with no header entry for it, is
 shadowing, and reads as one unless it is checked against the header. The two are one
-pair of parentheses apart, so a rule declared inside a nested `context { ... }` whose
+pair of parentheses apart, so a rule declared inside a nested `namespace { ... }` whose
 name also resolves in an enclosing *grammar* scope is reported — `GRAM3012`, `Info`, not
 a refusal, since the declaration is legal and stays exactly what it was. Scoped
 narrowly, to keep it a pointer rather than noise: shadowing the standard library
 (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`), at any depth, is the language's
 normal, silent mechanism and is never reported; neither is shadowing at the top level of
-a file, where there is no `context (...)` header nearby to have meant instead.
+a file, where there is no `namespace (...)` header nearby to have meant instead.
 
 ---
 
@@ -1534,11 +1547,11 @@ than two tokens of lookahead.
 File        = Using* & Declaration*
 Using       = ("@using" | "using") & QualifiedName & ';'
 
-Declaration = Context | Publication | Rule
-Context     = "context" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
+Declaration = Namespace | Publication | Rule
+Namespace   = "namespace" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
 Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 Rebinding   = Identifier & '=' & Identifier
-Publication = ("parse" | "find") & QualifiedName & ("as" & Identifier)?
+Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?
 
 Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body
 Parameters  = '(' & (Parameter & (',' & Parameter)*)? & ')'

@@ -1000,11 +1000,11 @@ public static partial class CSharpEmitter
 	/// A rule's name as one C# identifier, unique across the grammar.
 	/// </summary>
 	/// <remarks>
-	/// The short name is not unique and is not meant to be — shadowing is what a context
-	/// is for, so a grammar with a <c>trivia</c> per context is the ordinary case rather
-	/// than a clash. The contexts a rule is declared in are prefixed to tell them apart,
+	/// The short name is not unique and is not meant to be — shadowing is what a namespace
+	/// is for, so a grammar with a <c>trivia</c> per namespace is the ordinary case rather
+	/// than a clash. The namespaces a rule is declared in are prefixed to tell them apart,
 	/// named rather than numbered so that a reader of the generated code can still see
-	/// which rule a method came from. The standard library's context is not an identifier
+	/// which rule a method came from. The standard library's namespace is not an identifier
 	/// and is left off: its names are fixed, and a grammar that shadows one of them takes
 	/// the name with it.
 	/// </remarks>
@@ -1012,9 +1012,9 @@ public static partial class CSharpEmitter
 	{
 		var name = rule.Name;
 
-		for (var context = rule.Context; context is { Name.Length: > 0 }; context = context.Parent)
-			if (IsIdentifier(context.Name))
-				name = context.Name + "_" + name;
+		for (var ns = rule.Namespace; ns is { Name.Length: > 0 }; ns = ns.Parent)
+			if (IsIdentifier(ns.Name))
+				name = ns.Name + "_" + name;
 
 		return name;
 	}

@@ -151,7 +151,7 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_number_is_where_a_space_still_means_something()
 	{
-		// `Number` is declared in a context that shadows trivia with `none`, so the spaces
+		// `Number` is declared in a namespace that shadows trivia with `none`, so the spaces
 		// this grammar ignores everywhere else are not ignored between digits.
 		Assert.Equal("1.5", Decimal(" 1.5 "));
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
@@ -176,7 +176,7 @@ public sealed class ExampleTests
 	[Fact]
 	public void Each_publication_only_accepts_its_own_separator()
 	{
-		// Proof that the context specializes this one use of `Number` rather than
+		// Proof that the namespace specializes this one use of `Number` rather than
 		// mutating it globally — the same rule, published twice, disagrees with itself
 		// about which character is `Point`.
 		Assert.False(LocaleNumber.TryParseNumber("1,5").IsSuccess);

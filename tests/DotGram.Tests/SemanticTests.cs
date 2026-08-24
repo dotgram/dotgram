@@ -257,12 +257,12 @@ public sealed class SemanticTests
 				"Word = ['a'..'z']+\nfind Word as AllWords", "AllWords", "ab")!);
 
 	[Fact]
-	public void A_rule_in_a_context_can_be_published() =>
-		// §5 and §6 together: the directive reaches into a context by the qualified name,
+	public void A_rule_in_a_namespace_can_be_published() =>
+		// §5 and §6 together: the directive reaches into a namespace by the qualified name,
 		// and the method is named after the rule rather than after the path to it.
 		Assert.Equal(
 			"ab",
-			Published("context Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
+			Published("namespace Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
 
 	[Fact]
 	public void A_find_of_a_rule_that_matches_nothing_ends()
@@ -438,8 +438,8 @@ public sealed class SemanticTests
 		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
 	[InlineData(GrammarNormalizer.UnbuiltCall,
 		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
-	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedContextBinding,
-		"B(item) = item\nD = 'd'\ncontext Ctx (B = D) { }")]
+	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
+		"B(item) = item\nD = 'd'\nnamespace Ctx (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
 
 	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────
@@ -1706,18 +1706,18 @@ public sealed class SemanticTests
 			Number : @int = digits: ['0'..'9']+ => @int.Parse(digits)
 			""");
 
-	// ── Contexts (§5) ────────────────────────────────────────────────────────────
+	// ── Namespaces (§5) ──────────────────────────────────────────────────────────
 
 	[Fact]
-	public void Two_contexts_may_each_have_a_rule_of_the_same_name() =>
-		// Which is the whole point of a context, and which used to emit two C# methods
-		// of the same name into the consumer's build. The contexts a rule is declared in
+	public void Two_namespaces_may_each_have_a_rule_of_the_same_name() =>
+		// Which is the whole point of a namespace, and which used to emit two C# methods
+		// of the same name into the consumer's build. The namespaces a rule is declared in
 		// are prefixed to the identifier it becomes.
 		Assert.True(Matches(
 			"""
 			using Inner;
 
-			context Inner
+			namespace Inner
 			{
 				Digit = ['0'..'9']
 				Pair  = Digit & Digit
@@ -1731,9 +1731,9 @@ public sealed class SemanticTests
 	[Theory]
 	[InlineData("1.5",   true)]
 	[InlineData("1 . 5", false)]
-	public void A_context_shadows_Trivia_the_other_way_round(string input, bool expected) =>
+	public void A_namespace_shadows_Trivia_the_other_way_round(string input, bool expected) =>
 		// trivia goes between the operands of every sequence, `Number`'s included. A
-		// context that shadows it with `none` is how a rule says a space means something
+		// namespace that shadows it with `none` is how a rule says a space means something
 		// here.
 		Assert.Equal(
 			expected,
@@ -1741,7 +1741,7 @@ public sealed class SemanticTests
 				"""
 				using Lexical;
 
-				context Lexical
+				namespace Lexical
 				{
 					trivia = none
 
@@ -1771,12 +1771,12 @@ public sealed class SemanticTests
 	public void Bounded_repetition(string input, bool expected) =>
 		Assert.Equal(expected, Matches("Start = 'a'{2,3}", input));
 
-	// ── Contextual bindings — §23 ────────────────────────────────────────────────
+	// ── Namespace rebindings — §23 ───────────────────────────────────────────────
 
 	[Fact]
-	public void A_context_bound_publication_coexists_with_the_unbound_one()
+	public void A_namespace_bound_publication_coexists_with_the_unbound_one()
 	{
-		// §23: the context specializes a use of `A`; it does not mutate `A` globally —
+		// §23: the namespace specializes a use of `A`; it does not mutate `A` globally —
 		// both publications have to exist side by side in the one generated parser.
 		var result = Compile("""
 			B = 'b'
@@ -1786,9 +1786,9 @@ public sealed class SemanticTests
 
 			D = 'd'
 
-			context Ctx (B = D)
+			namespace Ns (B = D)
 			{
-				parse A as ContextA
+				parse A as NamespaceA
 			}
 			""");
 
@@ -1799,17 +1799,17 @@ public sealed class SemanticTests
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultA", "b").IsSuccess);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryDefaultA", "d").IsSuccess);
 
-		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryContextA", "d").IsSuccess);
-		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryContextA", "b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "d").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "b").IsSuccess);
 	}
 
 	[Fact]
-	public void Lexical_Trivia_shadowing_does_not_reach_a_reused_outer_rule_but_a_contextual_binding_does()
+	public void Lexical_Trivia_shadowing_does_not_reach_a_reused_outer_rule_but_a_namespace_binding_does()
 	{
-		// §22 test 12: `context { trivia = none }` is lexical and has no effect on `Pair`,
+		// §22 test 12: `namespace { trivia = none }` is lexical and has no effect on `Pair`,
 		// declared outside it and merely published from inside — `LexicalPair` behaves
-		// exactly like `DefaultPair`. `context (trivia = none) { ... }` is contextual and
-		// does reach `Pair` — `ContextPair` rejects the space `DefaultPair` accepts.
+		// exactly like `DefaultPair`. `namespace (trivia = none) { ... }` is a rebinding and
+		// does reach `Pair` — `NamespacePair` rejects the space `DefaultPair` accepts.
 		var result = Compile("""
 			trivia = ' '*
 			Pair   = A & B
@@ -1818,16 +1818,16 @@ public sealed class SemanticTests
 
 			parse Pair as DefaultPair
 
-			context Lex
+			namespace Lex
 			{
 				trivia = none
 
 				parse Pair as LexicalPair
 			}
 
-			context Ctx (trivia = none)
+			namespace Ns (trivia = none)
 			{
-				parse Pair as ContextPair
+				parse Pair as NamespacePair
 			}
 			""");
 
@@ -1840,8 +1840,8 @@ public sealed class SemanticTests
 
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLexicalPair", "a b").IsSuccess);
 
-		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "a b").IsSuccess);
-		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryContextPair", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNamespacePair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryNamespacePair", "ab").IsSuccess);
 	}
 
 	// ── `Expression with (A = B, ...)` — §5.1's substitution, expression-scoped ────
@@ -1871,4 +1871,33 @@ public sealed class SemanticTests
 		// The first field is still the plain, unrebound `Number` — a comma there is
 		// refused exactly as it would be with no `with` in the grammar at all.
 		Assert.False(Matches(RowGrammar, "1,2;3.4;5,6"));
+
+	[Fact]
+	public void A_publication_may_carry_its_own_with_header()
+	{
+		// The question that started this feature: `parse Sum with (trivia = none) as
+		// Evaluate` alongside the ordinary, whitespace-tolerant publication of the same
+		// rule — one directive, no block, no name for the substitution beyond the
+		// publication's own. Mirrors what `namespace (trivia = none) { parse ... }`
+		// already proved elsewhere, through the publication's own header instead.
+		var result = Compile("""
+			trivia = ' '*
+			Pair   = A & B
+			A      = 'a'
+			B      = 'b'
+
+			parse Pair as DefaultPair
+			parse Pair with (trivia = none) as TightPair
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "ab").IsSuccess);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "ab").IsSuccess);
+	}
 }

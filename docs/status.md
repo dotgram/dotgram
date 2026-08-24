@@ -21,10 +21,11 @@ then quietly mean nothing.
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a capture of what a lookahead saw §3.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
-| contexts, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same rule name in two contexts | ✓ | ✓ | ✓ | ✓ | ✓ |
-| contextual rebinding `context (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| namespaces, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same rule name in two namespaces | ✓ | ✓ | ✓ | ✓ | ✓ |
+| rebinding `namespace (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, expression-scoped, `Expr with (A = B)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
