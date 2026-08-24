@@ -34,20 +34,30 @@ public sealed partial class GrammarNormalizer
 	/// <remarks>
 	/// Runs before <see cref="SpecializeNamespaces"/> (§5.1): a `with` mutates a rule's
 	/// body in place, and an enclosing `namespace (...)` clone of that same rule must see
-	/// the mutation already applied. Each pass computes its own fresh call-graph
-	/// snapshot rather than sharing one — <see cref="SpecializeWithSites"/> is the one
-	/// that leaves the graph stale for whoever runs after it.
+	/// the mutation already applied. The same has to hold between two `with` sites in
+	/// different rules — `R2 = R1 with (C = D)` must see whatever `R1`'s own `with`
+	/// already did to it, since a `with` rebinds what a rule actually resolves to, not a
+	/// syntactic snapshot of it taken before this pass ran. So rule-groups are processed
+	/// in dependency order (<see cref="OrderByDependency"/>, a rule after everything its
+	/// own sites can reach), and the call graph is rebuilt fresh before each group rather
+	/// than shared across the whole pass — sharing it once left a later group unable to
+	/// see an earlier one's splice, silently dropping the later rebinding as a no-op
+	/// wherever it only reached the earlier group's rule through a call the splice itself
+	/// introduced.
 	/// </remarks>
 	void SpecializeWithSites()
 	{
 		if (_pendingWith.Count == 0)
 			return;
 
-		var forward  = BuildCallGraph();
-		var calledBy = Reverse(forward);
+		var groups = _pendingWith.GroupBy(site => site.Rule).ToList();
+		var order  = OrderByDependency(groups, BuildCallGraph());
 
-		foreach (var group in _pendingWith.GroupBy(site => site.Rule))
+		foreach (var group in order)
 		{
+			var forward  = BuildCallGraph();
+			var calledBy = Reverse(forward);
+
 			var rewrites = new Dictionary<Node, (
 				IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
 				IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneMap)>(NodeIdentity.Instance);
@@ -84,6 +94,51 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
 		}
+	}
+
+	/// <summary>
+	/// <paramref name="groups"/>, ordered so that a rule is processed only after every
+	/// other with-bearing rule its own sites can reach — the dependency <c>R2 = R1 with
+	/// (C = D)</c> has on <c>R1</c>'s own <c>with</c> having already run, generalized to
+	/// however deep the chain goes.
+	/// </summary>
+	/// <remarks>
+	/// Read off <paramref name="forward"/> as it was before any group in this pass ran:
+	/// which with-bearing rules a site's own operand can reach does not change once one
+	/// of them is spliced, only what lies inside it does, so one snapshot answers the
+	/// ordering question for the whole pass even though <see cref="SpecializeWithSites"/>
+	/// rebuilds the graph again, per group, for the affected-set computation itself.
+	/// A cycle between two with-bearing rules — each reachable from the other's own site —
+	/// has no order that satisfies both. <c>visited</c> does not distinguish a rule still
+	/// partway through recursing into its own dependencies from one already fully placed,
+	/// and does not need to: either way a repeat visit is one side of the cycle simply
+	/// giving up on seeing the other's splice, rather than looping forever.
+	/// </remarks>
+	static List<IGrouping<RuleSymbol, WithSite>> OrderByDependency(
+		List<IGrouping<RuleSymbol, WithSite>> groups,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var byKey   = groups.ToDictionary(g => g.Key);
+		var ordered = new List<IGrouping<RuleSymbol, WithSite>>(groups.Count);
+		var visited = new HashSet<RuleSymbol>();
+
+		void Visit(RuleSymbol rule)
+		{
+			if (!byKey.TryGetValue(rule, out var group) || !visited.Add(rule))
+				return;
+
+			foreach (var site in group)
+				foreach (var called in ReachableFromSeed(DirectCalls(site.Root), forward))
+					if (called != rule)
+						Visit(called);
+
+			ordered.Add(group);
+		}
+
+		foreach (var group in groups)
+			Visit(group.Key);
+
+		return ordered;
 	}
 
 	/// <summary>

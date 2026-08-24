@@ -511,6 +511,38 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void A_with_site_sees_another_rules_with_already_applied()
+	{
+		// R2's own site reaches R1 only through the call R1's own with-splice introduced
+		// (R1 originally called A, not A's with-clone) — a call graph shared across the
+		// whole pass, built once before either site ran, would never see that call and
+		// would treat R2's rebinding as reaching nothing.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			B = '.'
+			C = ','
+			D = ' '
+			A = Digit & B & Digit
+			R1 = A_With1
+			R2 = R1_With2
+			A_With1 = Digit & C & Digit
+			A_With1_With2 = Digit & D & Digit
+			R1_With2 = A_With1_With2
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				B = '.'
+				C = ','
+				D = ' '
+				A = Digit & B & Digit
+
+				R1 = A with (B = C)
+				R2 = R1 with (C = D)
+				""").ToString());
+	}
+
+	[Fact]
 	public void A_publication_s_own_with_clones_and_publishes_the_clone()
 	{
 		Assert.Equal(
