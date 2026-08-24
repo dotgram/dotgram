@@ -131,9 +131,25 @@ public static class GramLanguageService
 
 		return new GramDocument(
 			classifications,
-			compilation.Diagnostics,
+			NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens),
 			SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules));
 	}
+
+	static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
+		IReadOnlyList<GramDiagnostic> diagnostics,
+		IReadOnlyList<Token> tokens) =>
+		diagnostics.Select(diagnostic =>
+		{
+			if (diagnostic.Id != "GRAM3002")
+				return diagnostic;
+
+			var token = tokens.FirstOrDefault(candidate =>
+				candidate.Position == diagnostic.Position && candidate.Kind == TokenKind.Identifier);
+
+			return token.Length > 0 && token.Length < diagnostic.Length
+				? diagnostic with { Length = token.Length }
+				: diagnostic;
+		}).ToArray();
 
 	static IReadOnlyList<GramSymbolOccurrence> SymbolOccurrences(
 		IReadOnlyList<Decl> declarations,

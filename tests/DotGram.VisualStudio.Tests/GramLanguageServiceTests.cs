@@ -187,7 +187,7 @@ public sealed class GramLanguageServiceTests
 
 		Assert.Equal("GRAM3002", diagnostic.Id);
 		Assert.Equal(source.IndexOf("Missing", StringComparison.Ordinal), diagnostic.Position);
-		Assert.StartsWith("Missing", source.Substring(diagnostic.Position, diagnostic.Length));
+		Assert.Equal("Missing", source.Substring(diagnostic.Position, diagnostic.Length));
 	}
 
 	[Fact]

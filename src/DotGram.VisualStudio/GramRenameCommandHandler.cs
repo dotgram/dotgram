@@ -1,10 +1,9 @@
 using System.ComponentModel.Composition;
-using System.Linq;
 
+using Microsoft.VisualBasic;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Utilities;
 
@@ -35,19 +34,27 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 		if (found is null)
 			return false;
 
-		var snapshot   = args.TextView.TextSnapshot;
-		var selections = found.Positions
-			.Select(position => new Selection(
-				new SnapshotSpan(snapshot, position, found.Name.Length),
-				isReversed: false))
-			.ToArray();
-		var caretPosition = args.TextView.Caret.Position.BufferPosition
-			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
-		var primary = selections.First(selection => selection.Extent.SnapshotSpan.Contains(caretPosition));
-
-		args.TextView.GetMultiSelectionBroker().SetSelectionRange(selections, primary);
+		Rename(args.SubjectBuffer, found);
 
 		return true;
+	}
+
+	internal static void Rename(ITextBuffer buffer, GramFindReferencesTarget found)
+	{
+		var replacement = Interaction.InputBox(
+			$"Rename DotGram rule '{found.Name}' to:",
+			"Rename DotGram Rule",
+			found.Name);
+
+		if (replacement.Length == 0 || replacement == found.Name)
+			return;
+
+		using var edit = buffer.CreateEdit();
+
+		foreach (var position in found.Positions)
+			edit.Replace(position, found.Name.Length, replacement);
+
+		edit.Apply();
 	}
 
 	GramFindReferencesTarget? Target(RenameCommandArgs args)
