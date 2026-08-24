@@ -11,10 +11,15 @@ using System.Windows.Input;
 using DotGram.Language;
 
 using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Language.StandardClassification;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.Imaging;
+using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Classification;
+using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
 namespace DotGram.VisualStudio;
@@ -25,8 +30,14 @@ namespace DotGram.VisualStudio;
 [ContentType(GramContentType.Name)]
 sealed class GramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 {
+	[Import]
+	IClassificationFormatMapService FormatMaps { get; set; } = null!;
+
+	[Import]
+	IClassificationTypeRegistryService ClassificationTypes { get; set; } = null!;
+
 	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) =>
-		new GramQuickInfoSource(textBuffer, GramBufferAnalysis.For(textBuffer));
+		new GramQuickInfoSource(textBuffer, GramBufferAnalysis.For(textBuffer), FormatMaps, ClassificationTypes);
 }
 
 [Export(typeof(IAsyncQuickInfoSourceProvider))]
@@ -41,13 +52,25 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
+	[Import]
+	IClassificationFormatMapService FormatMaps { get; set; } = null!;
+
+	[Import]
+	IClassificationTypeRegistryService ClassificationTypes { get; set; } = null!;
+
 	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) =>
 		new EmbeddedGramQuickInfoSource(
 			textBuffer,
-			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents));
+			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents),
+			FormatMaps,
+			ClassificationTypes);
 }
 
-sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis) : IAsyncQuickInfoSource
+sealed class GramQuickInfoSource(
+	ITextBuffer buffer,
+	GramBufferAnalysis analysis,
+	IClassificationFormatMapService formatMaps,
+	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
 	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
 		IAsyncQuickInfoSession session,
@@ -64,6 +87,9 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 				return Create(
+					session.TextView,
+					formatMaps,
+					classificationTypes,
 					snapshot,
 					item.Position,
 					item.Length,
@@ -79,6 +105,9 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 	}
 
 	internal static QuickInfoItem Create(
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
 		ITextSnapshot snapshot,
 		int position,
 		int length,
@@ -87,35 +116,64 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 	{
 		var span = new SnapshotSpan(snapshot, position, length);
 		var text = span.GetText();
+		var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
 
 		return new QuickInfoItem(
-			snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive),
-			Expandable(quickInfo) ?? Describe(kind, text));
+			trackingSpan,
+			Expandable(
+				view,
+				formatMaps,
+				classificationTypes,
+				quickInfo ?? Describe(kind, text),
+				trackingSpan,
+				kind,
+				quickInfo is not null));
 	}
 
-	static object? Expandable(string? quickInfo)
+	static object Expandable(
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
+		string quickInfo,
+		ITrackingSpan trackingSpan,
+		GramSyntaxKind kind,
+		bool isDefinition)
 	{
-		if (quickInfo is null)
-			return null;
-
 		var referenced = quickInfo.IndexOf("\n\nReferenced rule:", StringComparison.Ordinal);
 		var recursive  = quickInfo.IndexOf("\n\nRecursive reference:", StringComparison.Ordinal);
 		var split = referenced < 0
 			? recursive
 			: recursive < 0 ? referenced : Math.Min(referenced, recursive);
 
-		if (split < 0)
-			return quickInfo;
-
 		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
 			?? SystemColors.InfoTextBrush;
-		var details = new TextBlock
+		var panel = new InteractiveQuickInfoPanel(trackingSpan);
+		var header = new StackPanel { Orientation = Orientation.Horizontal };
+		header.Children.Add(new CrispImage
 		{
-			Text = quickInfo.Substring(split).TrimStart(),
-			Margin = new Thickness(0, 6, 0, 0),
-			Visibility = Visibility.Collapsed,
-			Foreground = foreground,
-		};
+			Moniker = isDefinition
+				? KnownMonikers.Method
+				: kind == GramSyntaxKind.Identifier ? KnownMonikers.LocalVariable : KnownMonikers.IntellisenseKeyword,
+			Width = 16,
+			Height = 16,
+			Margin = new Thickness(0, 0, 6, 0),
+			VerticalAlignment = VerticalAlignment.Top,
+		});
+		var summary = split < 0 ? quickInfo : quickInfo.Substring(0, split);
+		header.Children.Add(ClassifiedText(view, formatMaps, classificationTypes, summary, kind, isDefinition, foreground));
+		panel.Children.Add(header);
+
+		if (split < 0)
+			return panel;
+
+		var details = ClassifiedDetails(
+			view,
+			formatMaps,
+			classificationTypes,
+			quickInfo.Substring(split).TrimStart(),
+			foreground);
+		details.Margin = new Thickness(0, 6, 0, 0);
+		details.Visibility = Visibility.Collapsed;
 		var link = new Hyperlink(new Run("Show referenced rules"))
 		{
 			Cursor = Cursors.Hand,
@@ -134,12 +192,6 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 			link.Inlines.Add(new Run(expanded ? "Show referenced rules" : "Hide referenced rules"));
 		};
 
-		var panel = new InteractiveQuickInfoPanel();
-		panel.Children.Add(new TextBlock
-		{
-			Text = quickInfo.Substring(0, split),
-			Foreground = foreground,
-		});
 		panel.Children.Add(linkText);
 		panel.Children.Add(new ScrollViewer
 		{
@@ -150,8 +202,120 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 		return panel;
 	}
 
-	sealed class InteractiveQuickInfoPanel : StackPanel, IInteractiveQuickInfoContent
+	static TextBlock ClassifiedText(
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
+		string text,
+		GramSyntaxKind fallbackKind,
+		bool grammar,
+		System.Windows.Media.Brush foreground)
 	{
+		var block = new TextBlock { TextWrapping = TextWrapping.Wrap };
+		AppendClassified(block, view, formatMaps, classificationTypes, text, fallbackKind, grammar, foreground);
+		return block;
+	}
+
+	static TextBlock ClassifiedDetails(
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
+		string text,
+		System.Windows.Media.Brush foreground)
+	{
+		var block = new TextBlock { TextWrapping = TextWrapping.Wrap };
+		var lines = text.Replace("\r", string.Empty).Split('\n');
+		for (var index = 0; index < lines.Length; index++)
+		{
+			var line = lines[index];
+			if (line.StartsWith("Referenced rule:", StringComparison.Ordinal)
+				|| line.StartsWith("Recursive reference:", StringComparison.Ordinal))
+				block.Inlines.Add(new Run(line) { Foreground = foreground });
+			else if (line.Length > 0)
+				AppendClassified(block, view, formatMaps, classificationTypes, line, GramSyntaxKind.Identifier, true, foreground);
+
+			if (index + 1 < lines.Length)
+				block.Inlines.Add(new LineBreak());
+		}
+		return block;
+	}
+
+	static void AppendClassified(
+		TextBlock block,
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
+		string text,
+		GramSyntaxKind fallbackKind,
+		bool grammar,
+		System.Windows.Media.Brush foreground)
+	{
+		var formatMap = formatMaps.GetClassificationFormatMap(view);
+		var position = 0;
+
+		if (grammar)
+			foreach (var item in GramLanguageService.Analyze(text).Classifications)
+			{
+				if (item.Position < position || item.Position + item.Length > text.Length)
+					continue;
+
+				if (item.Position > position)
+					Add(PredefinedClassificationTypeNames.Text, text.Substring(position, item.Position - position));
+
+				Add(Classification(item.Kind), text.Substring(item.Position, item.Length));
+				position = item.Position + item.Length;
+			}
+
+		if (position < text.Length)
+			Add(grammar ? PredefinedClassificationTypeNames.Text : Classification(fallbackKind), text.Substring(position));
+
+		void Add(string classification, string value)
+		{
+			var run = new Run(value) { Foreground = foreground };
+			var type = classificationTypes.GetClassificationType(classification);
+			if (type is not null)
+			{
+				var properties = formatMap.GetTextProperties(type);
+				if (properties.ForegroundBrush is not null)
+					run.Foreground = properties.ForegroundBrush;
+				if (properties.BackgroundBrush is not null)
+					run.Background = properties.BackgroundBrush;
+				if (properties.Typeface is not null)
+				{
+					run.FontFamily  = properties.Typeface.FontFamily;
+					run.FontStyle   = properties.Typeface.Style;
+					run.FontWeight  = properties.Typeface.Weight;
+					run.FontStretch = properties.Typeface.Stretch;
+				}
+				if (properties.FontRenderingEmSize > 0)
+					run.FontSize = properties.FontRenderingEmSize;
+			}
+			block.Inlines.Add(run);
+		}
+	}
+
+	static string Classification(GramSyntaxKind kind) => kind switch
+	{
+		GramSyntaxKind.Invalid        => GramClassificationTypes.Invalid,
+		GramSyntaxKind.Comment        => GramClassificationTypes.Comment,
+		GramSyntaxKind.Keyword        => GramClassificationTypes.Keyword,
+		GramSyntaxKind.Identifier     => GramClassificationTypes.Identifier,
+		GramSyntaxKind.Number         => GramClassificationTypes.Number,
+		GramSyntaxKind.Character      => GramClassificationTypes.Literal,
+		GramSyntaxKind.String         => GramClassificationTypes.Literal,
+		GramSyntaxKind.CharacterClass => GramClassificationTypes.Literal,
+		GramSyntaxKind.EmbeddedCode   => GramClassificationTypes.EmbeddedCode,
+		GramSyntaxKind.Transition     => GramClassificationTypes.TransitionStyle,
+		GramSyntaxKind.SpecialSymbol  => GramClassificationTypes.SpecialSymbol,
+		GramSyntaxKind.Operator       => GramClassificationTypes.Operator,
+		GramSyntaxKind.Punctuation    => GramClassificationTypes.Punctuation,
+		_ => PredefinedClassificationTypeNames.Text,
+	};
+
+	sealed class InteractiveQuickInfoPanel(ITrackingSpan trackingSpan) : StackPanel, IInteractiveQuickInfoContent, IDotGramQuickInfoContent
+	{
+		public bool ShouldDisplay => true;
+		public ITrackingSpan TrackingSpan { get; } = trackingSpan;
 		public bool KeepQuickInfoOpen => false;
 		public bool IsMouseOverAggregated => IsMouseOver;
 	}
@@ -193,7 +357,9 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 
 sealed class EmbeddedGramQuickInfoSource(
 	ITextBuffer buffer,
-	EmbeddedGrammarBufferAnalysis analysis) : IAsyncQuickInfoSource
+	EmbeddedGrammarBufferAnalysis analysis,
+	IClassificationFormatMapService formatMaps,
+	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
 	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
 		IAsyncQuickInfoSession session,
@@ -210,11 +376,24 @@ sealed class EmbeddedGramQuickInfoSource(
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 				return GramQuickInfoSource.Create(
+					session.TextView,
+					formatMaps,
+					classificationTypes,
 					snapshot,
 					item.Span.Start,
 					item.Span.Length,
 					item.Kind,
 					item.QuickInfo);
+			}
+
+		foreach (var item in classifications)
+			if (item.GrammarSpan.Contains(point.Value.Position))
+			{
+				var span = new SnapshotSpan(snapshot, point.Value.Position, 0);
+				var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
+				return new QuickInfoItem(
+					trackingSpan,
+					new DotGramQuickInfoSuppression(trackingSpan));
 			}
 
 		return null;
