@@ -248,12 +248,92 @@ public sealed class GrammarBinderTests
 	[Fact]
 	public void A_duplicate_in_a_nested_context_is_shadowing_not_an_error()
 	{
+		// Still legal — still not GrammarBinder.DuplicateRule — but worth a note now:
+		// shadowing an enclosing rule from inside a nested context is one parenthesis away
+		// from a context binding that would have meant something else (§5.1).
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+
+				context Inner
+				{
+					A = 'b'
+				}
+				"""));
+	}
+
+	[Fact]
+	public void The_warning_fires_regardless_of_whether_the_context_already_has_a_header()
+	{
+		// The risk is "was a header entry meant here", not "does this specific block
+		// already use one" — a header for an unrelated name does not change that.
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+				C = 'c'
+
+				context Inner (C = A)
+				{
+					A = 'b'
+				}
+				"""));
+	}
+
+	[Fact]
+	public void The_warning_reaches_two_levels_deep_the_same_way()
+	{
+		Assert.Equal(
+			[GrammarBinder.ShadowsEnclosingRule],
+			Diagnostics("""
+				A = 'a'
+
+				context Outer
+				{
+					context Inner
+					{
+						A = 'b'
+					}
+				}
+				"""));
+	}
+
+	[Fact]
+	public void A_name_shadowed_only_through_an_import_is_a_known_first_cut_gap()
+	{
+		// Declare (where the check runs) is pass one; ResolveImports runs after it, so an
+		// imported name is not yet visible on Lookup's import branch at the point this asks.
+		// Reaching it would mean moving the check to pass two — accepted as under-reporting
+		// rather than done, the same shape as this project's other documented diagnostic
+		// narrowings: it never mis-attributes, it simply has less to say than the full
+		// mechanism eventually could.
 		Assert.Empty(Diagnostics("""
-			A = 'a'
+			context Lib
+			{
+				A = 'a'
+			}
 
 			context Inner
 			{
+				using Lib;
+
 				A = 'b'
+			}
+			"""));
+	}
+
+	[Fact]
+	public void Re_shadowing_the_standard_library_a_second_time_stays_silent()
+	{
+		// `trivia` was already shadowed once at the top level; shadowing it again inside a
+		// nested context is the same always-legal mechanism, not a new grammar rule.
+		Assert.Empty(Diagnostics("""
+			trivia = none
+
+			context Inner
+			{
+				trivia = [' ']
 			}
 			"""));
 	}

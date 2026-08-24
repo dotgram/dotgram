@@ -726,32 +726,44 @@ as a loop kept the position of a turn that broke halfway.
 Further performance work is optional and now has a stated obstacle rather than a target —
 see the gate above. The full suite remains below the 30-second ceiling.
 
-## Open: a warning for accidental shadowing inside a nested context
+## Built: a warning for accidental shadowing inside a nested context
 
-`docs/syntax.md` §5.1 names the footgun but does not close it: `context (A = B) { ... }`
-and `context { A = B }` are one pair of parentheses apart and mean different things — a
-substitution reaching the whole call graph, against an ordinary declaration that shadows
-only what is lexically inside the block. A missing header entry compiles either way, so a
-typo silently changes which mechanism runs rather than being caught.
+`docs/syntax.md` §5.1 names the footgun: `context (A = B) { ... }` and `context { A = B }`
+are one pair of parentheses apart and mean different things — a substitution reaching the
+whole call graph, against an ordinary declaration that shadows only what is lexically
+inside the block. A missing header entry used to compile either way with nothing to say
+so.
 
-Not built. Settled scope, after going back and forth on it — a warning, and exactly this
-narrow:
+`GrammarBinder.ShadowsEnclosingRule` (`GRAM3012`) now does, at exactly the narrow scope
+settled on after going back and forth over it:
 
 - **A rule declared inside a nested `context { ... }` block, whose name also resolves in
   an enclosing *grammar* scope**, gets an `Info`-level diagnostic (docs/status.md's own
   convention for "the grammar is correct and there is nothing to fix" pointers, e.g.
-  `GRAM5001`) — not a refusal. This is the one place the ambiguity is real: the block
-  could as easily have been a header entry. Applies whether or not that context already
-  carries a header for something else — the risk is "was a header entry meant here," not
-  "does this specific block already use one."
+  `GRAM5001`) — not a refusal. Fires in `GrammarBinder.Declare`, right after a successful
+  `TryDeclare`, by looking the name up starting from the declaring context's *parent* —
+  found and not in `StandardLibrary` means an enclosing grammar rule was shadowed. Applies
+  whether or not that context already carries a header for something else — the risk is
+  "was a header entry meant here," not "does this specific block already use one."
 - **Shadowing the standard library** (`trivia`, `wordboundary`, `any`, `none`, `eol`,
-  `eof`), at any nesting depth, stays completely silent — the language's normal,
-  intentionally frictionless mechanism (§3.1.1: "no directive, no mode, nothing declared
-  specially to make it possible"), used throughout the examples, and not what this warning
-  is for.
+  `eof`), at any nesting depth and any number of times over, stays completely silent —
+  excluded by name, not by whether the symbol found is literally the original built-in
+  (an already-shadowed `trivia` re-shadowed again is still `trivia`). The language's
+  normal, intentionally frictionless mechanism (§3.1.1: "no directive, no mode, nothing
+  declared specially to make it possible"), used throughout the examples, and not what
+  this warning is for.
 - **Top-level shadowing** (declaring `trivia = none` etc. at the top of a file, not inside
   any `context {}`) stays silent too — there is no `context (...)` header syntax anywhere
-  nearby to have meant instead, so there is nothing to be ambiguous about.
+  nearby to have meant instead, so there is nothing to be ambiguous about. (Provably
+  redundant with the standard-library exclusion above, since the top level's only possible
+  parent is the standard-library context itself — kept as its own explicit condition
+  anyway, for a reader rather than for correctness.)
+
+**Known first-cut gap, accepted rather than chased**: a name shadowed only by way of an
+import (`using Lib;` bringing in a name that collides with an enclosing scope's) is not
+caught. `Declare` (pass one, where the check runs) executes before `ResolveImports`, so
+the import is not wired up yet at the point this asks — reaching it would mean moving the
+check to pass two. Under-reports; never mis-attributes.
 
 A related, separate idea raised alongside this and not designed yet: `with (Bindings)
 Expression` as an expression-extent counterpart to `context (Bindings) { ... }` — the same

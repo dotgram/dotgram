@@ -28,6 +28,7 @@ public sealed class GrammarBinder
 	public const string ParameterizedContextBinding = "GRAM3009";
 	public const string ContextBoundNameRedeclared = "GRAM3010";
 	public const string CircularContextBinding    = "GRAM3011";
+	public const string ShadowsEnclosingRule      = "GRAM3012";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a context outside
@@ -45,6 +46,14 @@ public sealed class GrammarBinder
 	readonly Dictionary<GrammarContext, RuleSymbol> _trivia   = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
+
+	/// <summary>
+	/// Set once, by <see cref="CreateStandardLibrary"/> — the one context whose own rules
+	/// a declaration may shadow in silence (§4.5). Anything else an enclosing context
+	/// declares is a grammar rule, and <see cref="Declare"/> warns about shadowing one of
+	/// those from inside a nested context.
+	/// </summary>
+	GrammarContext? _standard;
 
 	GrammarBinder(ISymbolResolver symbols) => _symbols = symbols;
 
@@ -77,11 +86,18 @@ public sealed class GrammarBinder
 		foreach (var name in StandardLibrary)
 			context.TryDeclare(new RuleSymbol(name, context, Declaration: null));
 
-		return context;
+		return _standard = context;
 	}
 
 	void Report(string id, string message, Location at) =>
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+
+	/// <summary>
+	/// Correct as written — nothing to fix, same as every other <c>Info</c>-level pointer
+	/// this project reports (docs/status.md's own convention, e.g. <c>GRAM5001</c>).
+	/// </summary>
+	void ReportInfo(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Info));
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
@@ -98,6 +114,25 @@ public sealed class GrammarBinder
 							DuplicateRule,
 							$"'{rule.Name}' is already defined in this context; put one of them in a nested context to shadow the other.",
 							node.At);
+
+					// A nested context is one parenthesis away from a header that would have
+					// meant this as a replacement rather than a new declaration (§5.1) — worth
+					// naming, not the standard library's own always-silent shadowing (§4.5),
+					// silent at any depth and any number of times over (an already-shadowed
+					// `trivia` re-shadowed again is still `trivia`, by name, whichever rule
+					// currently answers to it), and not anything at the top level, where no
+					// header syntax sits nearby to have meant instead.
+					else if (!StandardLibrary.Contains(rule.Name) &&
+						context.Parent != _standard &&
+						context.Parent?.Lookup(rule.Name) is not null)
+					{
+						ReportInfo(
+							ShadowsEnclosingRule,
+							$"'{rule.Name}' is already declared in an enclosing context. If this means to " +
+							$"replace it rather than declare a new rule under the same name, say so with a " +
+							$"context binding instead: 'context ({rule.Name} = ...)' (§5.1).",
+							node.At);
+					}
 
 					break;
 

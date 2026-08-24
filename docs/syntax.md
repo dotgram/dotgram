@@ -849,15 +849,17 @@ to an unshadowed view of it: `trivia = none` at the top of a whole grammar is ex
 that, and wrapping the entire file in `context (trivia = none) { ... }` for it adds a
 block with nothing on the other side of the substitution to contrast against.
 
-Inside a context that already has a header for something else, write every rebinding
-in that header rather than as a same-named declaration in the body — `context (A = B) {
-... }` is a substitution, written where a reader expects one; a declaration with the
-same name sitting in the body, with no header entry for it, is shadowing, and reads as
-one unless it is checked against the header. The two are one pair of parentheses apart
-and currently indistinguishable to the compiler: nothing today flags a body declaration
-that happens to share a name with something in an enclosing scope as behaving
-differently from what a header entry would have done, so a missing header entry is a
-silent change of mechanism rather than a caught mistake.
+Write a rebinding in the header rather than as a same-named declaration in the body —
+`context (A = B) { ... }` is a substitution, written where a reader expects one; a
+declaration with the same name sitting in the body, with no header entry for it, is
+shadowing, and reads as one unless it is checked against the header. The two are one
+pair of parentheses apart, so a rule declared inside a nested `context { ... }` whose
+name also resolves in an enclosing *grammar* scope is reported — `GRAM3012`, `Info`, not
+a refusal, since the declaration is legal and stays exactly what it was. Scoped
+narrowly, to keep it a pointer rather than noise: shadowing the standard library
+(`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`), at any depth, is the language's
+normal, silent mechanism and is never reported; neither is shadowing at the top level of
+a file, where there is no `context (...)` header nearby to have meant instead.
 
 ---
 
