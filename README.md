@@ -78,6 +78,24 @@ Working end to end — a `.gram` file becomes a parser that runs:
 - rules calling rules, contexts and shadowing, the standard library
   (`any`, `none`, `eol`, `eof`, `Trivia`)
 - whitespace handling by shadowing `Trivia`, which needs no notation of its own
+- **contextual rebinding** — a `context` header substitutes a rule across everything it
+  reaches, not just what is written inside the block:
+
+  ```dotgram
+  B = 'b'
+  A = B
+
+  context Ctx (B = D)
+  {
+      E = A                    // E -> A, with B substituted -> D
+  }
+
+  D = 'd'
+  ```
+
+  `A` itself is untouched — nothing outside the context depends on it existing. The same
+  substitution reuses an already-written rule under a different `Trivia`, without a
+  second copy of it
 - both publication directives, and diagnostics that point into the `.gram` file — and
   a refusal names the furthest position the input could be followed to
 - **typed results** — a rule with captures gets a type of its own, generated beside the
