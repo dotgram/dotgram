@@ -3,11 +3,17 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
 
 using DotGram.Language;
 
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Utilities;
 
@@ -43,7 +49,7 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 
 sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis) : IAsyncQuickInfoSource
 {
-	public Task<QuickInfoItem?> GetQuickInfoItemAsync(
+	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{
@@ -51,19 +57,21 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 		var point    = session.GetTriggerPoint(snapshot);
 
 		if (point is null)
-			return Task.FromResult<QuickInfoItem?>(null);
+			return null;
 
 		foreach (var item in analysis.Document(snapshot).Classifications)
 			if (Contains(item.Position, item.Length, point.Value.Position))
-				return Task.FromResult<QuickInfoItem?>(
-					Create(
-						snapshot,
-						item.Position,
-						item.Length,
-						item.Kind,
-						item.QuickInfo));
+			{
+				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				return Create(
+					snapshot,
+					item.Position,
+					item.Length,
+					item.Kind,
+					item.QuickInfo);
+			}
 
-		return Task.FromResult<QuickInfoItem?>(null);
+		return null;
 	}
 
 	public void Dispose()
@@ -82,7 +90,70 @@ sealed class GramQuickInfoSource(ITextBuffer buffer, GramBufferAnalysis analysis
 
 		return new QuickInfoItem(
 			snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive),
-			quickInfo ?? Describe(kind, text));
+			Expandable(quickInfo) ?? Describe(kind, text));
+	}
+
+	static object? Expandable(string? quickInfo)
+	{
+		if (quickInfo is null)
+			return null;
+
+		var referenced = quickInfo.IndexOf("\n\nReferenced rule:", StringComparison.Ordinal);
+		var recursive  = quickInfo.IndexOf("\n\nRecursive reference:", StringComparison.Ordinal);
+		var split = referenced < 0
+			? recursive
+			: recursive < 0 ? referenced : Math.Min(referenced, recursive);
+
+		if (split < 0)
+			return quickInfo;
+
+		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
+			?? SystemColors.InfoTextBrush;
+		var details = new TextBlock
+		{
+			Text = quickInfo.Substring(split).TrimStart(),
+			Margin = new Thickness(0, 6, 0, 0),
+			Visibility = Visibility.Collapsed,
+			Foreground = foreground,
+		};
+		var link = new Hyperlink(new Run("Show referenced rules"))
+		{
+			Cursor = Cursors.Hand,
+		};
+		var linkText = new TextBlock
+		{
+			Margin = new Thickness(0, 6, 0, 0),
+			Foreground = foreground,
+		};
+		linkText.Inlines.Add(link);
+		link.Click += (_, _) =>
+		{
+			var expanded = details.Visibility == Visibility.Visible;
+			details.Visibility = expanded ? Visibility.Collapsed : Visibility.Visible;
+			link.Inlines.Clear();
+			link.Inlines.Add(new Run(expanded ? "Show referenced rules" : "Hide referenced rules"));
+		};
+
+		var panel = new InteractiveQuickInfoPanel();
+		panel.Children.Add(new TextBlock
+		{
+			Text = quickInfo.Substring(0, split),
+			Foreground = foreground,
+		});
+		panel.Children.Add(linkText);
+		panel.Children.Add(new ScrollViewer
+		{
+			Content = details,
+			MaxHeight = 500,
+			VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+		});
+		return panel;
+	}
+
+	sealed class InteractiveQuickInfoPanel : StackPanel, IInteractiveQuickInfoContent
+	{
+		public bool KeepQuickInfoOpen => false;
+		public bool IsMouseOverAggregated => IsMouseOver;
 	}
 
 	static string Describe(GramSyntaxKind kind, string text) => kind switch
@@ -124,7 +195,7 @@ sealed class EmbeddedGramQuickInfoSource(
 	ITextBuffer buffer,
 	EmbeddedGrammarBufferAnalysis analysis) : IAsyncQuickInfoSource
 {
-	public Task<QuickInfoItem?> GetQuickInfoItemAsync(
+	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{
@@ -132,19 +203,21 @@ sealed class EmbeddedGramQuickInfoSource(
 		var point    = session.GetTriggerPoint(snapshot);
 
 		if (point is null || !analysis.TryGet(snapshot, out var classifications, out _))
-			return Task.FromResult<QuickInfoItem?>(null);
+			return null;
 
 		foreach (var item in classifications)
 			if (item.Span.Contains(point.Value.Position))
-				return Task.FromResult<QuickInfoItem?>(
-					GramQuickInfoSource.Create(
-						snapshot,
-						item.Span.Start,
-						item.Span.Length,
-						item.Kind,
-						item.QuickInfo));
+			{
+				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				return GramQuickInfoSource.Create(
+					snapshot,
+					item.Span.Start,
+					item.Span.Length,
+					item.Kind,
+					item.QuickInfo);
+			}
 
-		return Task.FromResult<QuickInfoItem?>(null);
+		return null;
 	}
 
 	public void Dispose()
