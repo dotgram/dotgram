@@ -29,7 +29,7 @@ public sealed class EmbeddedGrammarAnalysisTests
 			.ToArray();
 
 		Assert.Contains(("'a'", GramSyntaxKind.Character), classified);
-		Assert.Contains(("parse", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("parse", GramSyntaxKind.Keyword), classified);
 		Assert.Empty(analysis.Diagnostics);
 	}
 

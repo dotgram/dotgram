@@ -11,10 +11,11 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.VisualStudio;
 
 /// <summary>One grammar classification mapped into its containing C# document.</summary>
-public readonly struct HostClassification(TextSpan span, GramSyntaxKind kind)
+public readonly struct HostClassification(TextSpan span, GramSyntaxKind kind, string? quickInfo)
 {
 	public TextSpan      Span { get; } = span;
 	public GramSyntaxKind Kind { get; } = kind;
+	public string?       QuickInfo { get; } = quickInfo;
 }
 
 /// <summary>One grammar diagnostic mapped into its containing C# document.</summary>
@@ -55,7 +56,10 @@ public static class EmbeddedGrammarService
 			foreach (var classification in document.Classifications)
 				if (grammar.SourceMap.TryMap(
 					classification.Position, classification.Length, out var span))
-					classifications.Add(new HostClassification(span, classification.Kind));
+					classifications.Add(new HostClassification(
+						span,
+						classification.Kind,
+						classification.QuickInfo));
 
 			foreach (var diagnostic in document.Diagnostics)
 			{

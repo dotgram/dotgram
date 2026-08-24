@@ -262,13 +262,23 @@ public sealed class CSharpStringMap
 
 		while (line < closingLine)
 		{
-			if (!text.AsSpan(line).StartsWith(indentation.AsSpan(), StringComparison.Ordinal))
+			var lineEnd    = NextLine(text, line, closingLine, out var afterLine);
+			var whitespace = line;
+
+			while (whitespace < lineEnd && text[whitespace] is ' ' or '\t')
+				whitespace++;
+
+			var blank = whitespace == lineEnd;
+			var start = line;
+
+			if (text.AsSpan(line, lineEnd - line).StartsWith(indentation.AsSpan(), StringComparison.Ordinal))
+				start += indentation.Length;
+			else if (blank && indentation.AsSpan().StartsWith(text.AsSpan(line, lineEnd - line), StringComparison.Ordinal))
+				start = lineEnd;
+			else
 				return false;
 
-			line += indentation.Length;
-			var lineEnd = NextLine(text, line, closingLine, out var afterLine);
-
-			for (var at = line; at < lineEnd; at++)
+			for (var at = start; at < lineEnd; at++)
 			{
 				starts.Add(offset + at);
 				ends.Add(offset + at + 1);

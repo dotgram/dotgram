@@ -32,6 +32,26 @@ static class GramContentType
 	#pragma warning restore CS0414
 }
 
+[Export(typeof(IFilePathToContentTypeProvider))]
+[Name("DotGram file path")]
+[FileExtension(".gram")]
+sealed class GramFilePathToContentTypeProvider : IFilePathToContentTypeProvider
+{
+	readonly IContentType _contentType;
+
+	[ImportingConstructor]
+	public GramFilePathToContentTypeProvider(IContentTypeRegistryService contentTypes) =>
+		_contentType = contentTypes.GetContentType(GramContentType.Name) ??
+			throw new InvalidOperationException($"Visual Studio content type '{GramContentType.Name}' is unavailable.");
+
+	public bool TryGetContentTypeForFilePath(string filePath, out IContentType contentType)
+	{
+		contentType = _contentType;
+
+		return true;
+	}
+}
+
 [Export(typeof(IClassifierProvider))]
 [ContentType(GramContentType.Name)]
 sealed class GramClassifierProvider : IClassifierProvider
@@ -54,15 +74,19 @@ sealed class GramClassifier : IClassifier
 		_analysis = analysis;
 		_types    = new Dictionary<GramSyntaxKind, IClassificationType>
 		{
-			[GramSyntaxKind.Invalid]        = Type(classifications, "excluded code"),
-			[GramSyntaxKind.Identifier]     = Type(classifications, "identifier"),
-			[GramSyntaxKind.Number]         = Type(classifications, "number"),
-			[GramSyntaxKind.Character]      = Type(classifications, "character"),
-			[GramSyntaxKind.String]         = Type(classifications, "string"),
-			[GramSyntaxKind.CharacterClass] = Type(classifications, "string"),
-			[GramSyntaxKind.EmbeddedCode]   = Type(classifications, "code"),
-			[GramSyntaxKind.Operator]       = Type(classifications, "operator"),
-			[GramSyntaxKind.Punctuation]    = Type(classifications, "punctuation"),
+			[GramSyntaxKind.Invalid]        = Type(classifications, GramClassificationTypes.Invalid),
+			[GramSyntaxKind.Comment]        = Type(classifications, GramClassificationTypes.Comment),
+			[GramSyntaxKind.Keyword]        = Type(classifications, GramClassificationTypes.Keyword),
+			[GramSyntaxKind.Identifier]     = Type(classifications, GramClassificationTypes.Identifier),
+			[GramSyntaxKind.Number]         = Type(classifications, GramClassificationTypes.Number),
+			[GramSyntaxKind.Character]      = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.String]         = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.CharacterClass] = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.EmbeddedCode]   = Type(classifications, GramClassificationTypes.EmbeddedCode),
+			[GramSyntaxKind.Transition]     = Type(classifications, GramClassificationTypes.TransitionStyle),
+			[GramSyntaxKind.SpecialSymbol]  = Type(classifications, GramClassificationTypes.SpecialSymbol),
+			[GramSyntaxKind.Operator]       = Type(classifications, GramClassificationTypes.Operator),
+			[GramSyntaxKind.Punctuation]    = Type(classifications, GramClassificationTypes.Punctuation),
 		};
 
 		_analysis.Changed += Changed;

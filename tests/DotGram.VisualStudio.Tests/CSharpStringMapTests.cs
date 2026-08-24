@@ -54,6 +54,17 @@ public sealed class CSharpStringMapTests
 		Assert.Equal("parse", Slice(literal, map, at, "parse".Length));
 	}
 
+	[Fact]
+	public void MapsIndentedRawStringWithUnindentedBlankLine()
+	{
+		const string literal = "\"\"\"\r\n\t\tRule = 'a'\r\n\r\n\t\tparse Rule\r\n\t\t\"\"\"";
+		var map = Map(literal, out var value);
+		var at  = value.IndexOf("parse", StringComparison.Ordinal);
+
+		Assert.Equal("Rule = 'a'\r\n\r\nparse Rule", value);
+		Assert.Equal("parse", Slice(literal, map, at, "parse".Length));
+	}
+
 	static CSharpStringMap Map(string literal, out string value)
 	{
 		var expression = Assert.IsType<LiteralExpressionSyntax>(SyntaxFactory.ParseExpression(literal));

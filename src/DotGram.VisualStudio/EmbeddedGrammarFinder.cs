@@ -50,8 +50,20 @@ public static class EmbeddedGrammarFinder
 	static bool IsGramAttribute(
 		SemanticModel model, AttributeSyntax attribute, CancellationToken cancellationToken)
 	{
-		var symbol = model.GetSymbolInfo(attribute, cancellationToken).Symbol as IMethodSymbol;
+		var symbolInfo = model.GetSymbolInfo(attribute, cancellationToken);
+		var actual     = (symbolInfo.Symbol as IMethodSymbol)?.ContainingType ??
+			symbolInfo.CandidateSymbols.OfType<IMethodSymbol>().Select(static symbol => symbol.ContainingType).FirstOrDefault() ??
+			model.GetTypeInfo(attribute, cancellationToken).Type;
 
-		return symbol?.ContainingType.ToDisplayString() == GramAttribute;
+		return actual?.ToDisplayString() == GramAttribute && IsAttribute(actual);
+	}
+
+	static bool IsAttribute(ITypeSymbol type)
+	{
+		for (var current = type.BaseType; current is not null; current = current.BaseType)
+			if (current.ToDisplayString() == "System.Attribute")
+				return true;
+
+		return false;
 	}
 }

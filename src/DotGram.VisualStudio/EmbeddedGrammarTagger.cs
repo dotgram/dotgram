@@ -12,6 +12,7 @@ using DotGram.Language;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Classification;
@@ -20,10 +21,9 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace DotGram.VisualStudio;
 
-[Export(typeof(ITaggerProvider))]
+[Export(typeof(IClassifierProvider))]
 [ContentType("CSharp")]
-[TagType(typeof(ClassificationTag))]
-sealed class EmbeddedGrammarTaggerProvider : ITaggerProvider
+sealed class EmbeddedGrammarClassifierProvider : IClassifierProvider
 {
 	[Import]
 	VisualStudioWorkspace Workspace { get; set; } = null!;
@@ -34,64 +34,68 @@ sealed class EmbeddedGrammarTaggerProvider : ITaggerProvider
 	[Import]
 	IClassificationTypeRegistryService Classifications { get; set; } = null!;
 
-	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag =>
-		new EmbeddedGrammarTagger(
-			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
-			Classifications) as ITagger<T>;
+	public IClassifier GetClassifier(ITextBuffer buffer) =>
+		buffer.Properties.GetOrCreateSingletonProperty(() =>
+			new EmbeddedGrammarClassifier(
+				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
+				Classifications));
 }
 
-sealed class EmbeddedGrammarTagger : ITagger<ClassificationTag>
+sealed class EmbeddedGrammarClassifier : IClassifier
 {
 	readonly EmbeddedGrammarBufferAnalysis       _analysis;
 	readonly Dictionary<GramSyntaxKind, IClassificationType> _types;
 
-	public EmbeddedGrammarTagger(
+	public EmbeddedGrammarClassifier(
 		EmbeddedGrammarBufferAnalysis analysis,
 		IClassificationTypeRegistryService classifications)
 	{
 		_analysis = analysis;
 		_types    = new Dictionary<GramSyntaxKind, IClassificationType>
 		{
-			[GramSyntaxKind.Invalid]        = Type(classifications, "excluded code"),
-			[GramSyntaxKind.Identifier]     = Type(classifications, "identifier"),
-			[GramSyntaxKind.Number]         = Type(classifications, "number"),
-			[GramSyntaxKind.Character]      = Type(classifications, "character"),
-			[GramSyntaxKind.String]         = Type(classifications, "string"),
-			[GramSyntaxKind.CharacterClass] = Type(classifications, "string"),
-			[GramSyntaxKind.EmbeddedCode]   = Type(classifications, "code"),
-			[GramSyntaxKind.Operator]       = Type(classifications, "operator"),
-			[GramSyntaxKind.Punctuation]    = Type(classifications, "punctuation"),
+			[GramSyntaxKind.Invalid]        = Type(classifications, GramClassificationTypes.Invalid),
+			[GramSyntaxKind.Comment]        = Type(classifications, GramClassificationTypes.Comment),
+			[GramSyntaxKind.Keyword]        = Type(classifications, GramClassificationTypes.Keyword),
+			[GramSyntaxKind.Identifier]     = Type(classifications, GramClassificationTypes.Identifier),
+			[GramSyntaxKind.Number]         = Type(classifications, GramClassificationTypes.Number),
+			[GramSyntaxKind.Character]      = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.String]         = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.CharacterClass] = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.EmbeddedCode]   = Type(classifications, GramClassificationTypes.EmbeddedCode),
+			[GramSyntaxKind.Transition]     = Type(classifications, GramClassificationTypes.TransitionStyle),
+			[GramSyntaxKind.SpecialSymbol]  = Type(classifications, GramClassificationTypes.SpecialSymbol),
+			[GramSyntaxKind.Operator]       = Type(classifications, GramClassificationTypes.Operator),
+			[GramSyntaxKind.Punctuation]    = Type(classifications, GramClassificationTypes.Punctuation),
 		};
 
 		_analysis.Changed += Changed;
 	}
 
-	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
+	public event EventHandler<ClassificationChangedEventArgs>? ClassificationChanged;
 
-	public IEnumerable<ITagSpan<ClassificationTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
 	{
-		if (spans.Count == 0)
-			yield break;
-
-		var snapshot = spans[0].Snapshot;
+		var snapshot = span.Snapshot;
+		var result   = new List<ClassificationSpan>();
 
 		if (!_analysis.TryGet(snapshot, out var classifications, out _))
-			yield break;
+			return result;
 
 		foreach (var item in classifications)
 		{
 			var classified = new SnapshotSpan(snapshot, item.Span.Start, item.Span.Length);
 
-			if (spans.IntersectsWith(classified))
-				yield return new TagSpan<ClassificationTag>(
-					classified,
-					new ClassificationTag(_types[item.Kind]));
+			if (classified.IntersectsWith(span))
+				result.Add(new ClassificationSpan(classified, _types[item.Kind]));
 		}
+
+		return result;
 	}
 
 	void Changed(ITextSnapshot snapshot) =>
-		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
-			new SnapshotSpan(snapshot, 0, snapshot.Length)));
+		ClassificationChanged?.Invoke(
+			this,
+			new ClassificationChangedEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
 
 	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name) =>
 		classifications.GetClassificationType(name) ??
@@ -186,6 +190,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 	CancellationTokenSource?          _cancellation;
 	ITextSnapshot?                    _snapshot;
+	ITextSnapshot?                    _retrySnapshot;
+	int                               _retryCount;
 	IReadOnlyList<HostClassification> _classifications = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
 
@@ -199,6 +205,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 		_documents = documents;
 
 		_buffer.Changed += BufferChanged;
+		_workspace.WorkspaceChanged += WorkspaceChanged;
 		Schedule(buffer.CurrentSnapshot);
 	}
 
@@ -236,6 +243,21 @@ sealed class EmbeddedGrammarBufferAnalysis
 	}
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change) => Schedule(change.After);
+
+	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
+	{
+		if (!_documents.TryGetTextDocument(_buffer, out var textDocument) || textDocument.FilePath is null)
+			return;
+
+		var ids = change.NewSolution.GetDocumentIdsWithFilePath(textDocument.FilePath);
+
+		if (!ids.Any() ||
+			change.DocumentId is not null && !ids.Contains(change.DocumentId) ||
+			change.ProjectId is not null && !ids.Any(id => id.ProjectId == change.ProjectId))
+			return;
+
+		Schedule(_buffer.CurrentSnapshot);
+	}
 
 	void Schedule(ITextSnapshot snapshot)
 	{
@@ -276,6 +298,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics).ToArray();
+			var retry           = false;
 
 			lock (_gate)
 			{
@@ -287,16 +310,44 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_snapshot        = snapshot;
 				_classifications = classifications;
 				_diagnostics     = diagnostics;
+
+				if (_retrySnapshot != snapshot)
+				{
+					_retrySnapshot = snapshot;
+					_retryCount    = 0;
+				}
+
+				retry = analyses.Count == 0 &&
+					snapshot.GetText().IndexOf("[Gram", StringComparison.Ordinal) >= 0 &&
+					_retryCount++ < 5;
 			}
 
 			Changed?.Invoke(snapshot);
+
+			if (retry)
+				_ = RetryAsync(snapshot, cancellationToken);
 		}
 		catch (OperationCanceledException)
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
+			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
 			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
+		}
+	}
+
+	async Task RetryAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+
+			if (_buffer.CurrentSnapshot == snapshot)
+				Schedule(snapshot);
+		}
+		catch (OperationCanceledException)
+		{
 		}
 	}
 }
