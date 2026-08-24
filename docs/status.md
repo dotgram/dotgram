@@ -24,6 +24,7 @@ then quietly mean nothing.
 | contexts, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same rule name in two contexts | ✓ | ✓ | ✓ | ✓ | ✓ |
 | contextual rebinding `context (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same, expression-scoped, `Expr with (A = B)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |

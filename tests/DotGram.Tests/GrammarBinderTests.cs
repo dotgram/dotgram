@@ -338,6 +338,48 @@ public sealed class GrammarBinderTests
 			"""));
 	}
 
+	[Theory]
+	[InlineData("A = Number with (Typo = D)\nNumber = 'n'\nD = 'd'",
+		GrammarBinder.UnknownContextTarget)]
+	[InlineData("A = Number with (Number = Typo)\nNumber = 'n'",
+		GrammarBinder.UnknownContextReplacement)]
+	[InlineData("A = Number with (B = D)\nB(item) = item\nD = 'd'\nNumber = 'n'",
+		GrammarBinder.ParameterizedContextBinding)]
+	[InlineData("A = Number with (B = C, B = D)\nNumber = 'n'\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateContextBinding)]
+	public void With_reuses_context_s_own_rebinding_diagnostics(string source, string expectedId)
+	{
+		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void With_never_reports_a_bound_name_redeclared()
+	{
+		// `with` declares nothing of its own — `ContextBoundNameRedeclared` is a check
+		// against a context *block*'s own declarations and has nothing to port here.
+		Assert.DoesNotContain(
+			GrammarBinder.ContextBoundNameRedeclared,
+			Diagnostics("""
+				Number = 'n'
+				Point  = '.'
+				Comma  = ','
+
+				A = Number with (Point = Comma)
+				"""));
+	}
+
+	[Fact]
+	public void With_resolves_its_operand_under_the_same_context_it_sits_in()
+	{
+		Assert.Empty(Diagnostics("""
+			Number = 'n'
+			Point  = '.'
+			Comma  = ','
+
+			A = Number with (Point = Comma)
+			"""));
+	}
+
 	[Fact]
 	public void C_sharp_methods_do_not_go_through_the_resolver()
 	{

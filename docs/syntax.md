@@ -365,6 +365,12 @@ Highest to lowest:
 `=>` binds to a single alternative rather than to the whole rule body, which is what
 lets each branch of a `|` construct its own result.
 
+`recover` (§8.2) and `with (...)` (§5.1) are not in the table: both are optional
+suffixes on row 1 rather than levels of their own, and `with` — when both are written
+on the same operand — always comes after `recover`, applying to everything to its
+left, quantifier included. `X* recover S with (A = B)` recovers `X*` first and rebinds
+the result of that as a whole.
+
 ---
 
 ## 4. Rules
@@ -848,6 +854,28 @@ the rest of the file or block from that point on, with nothing shared reaching b
 to an unshadowed view of it: `trivia = none` at the top of a whole grammar is exactly
 that, and wrapping the entire file in `context (trivia = none) { ... }` for it adds a
 block with nothing on the other side of the substitution to contrast against.
+
+**The same substitution is also available on a single expression, without declaring a
+block or a name for it:** `Expression with (A = B, ...)`.
+
+```dotgram
+ParseEuropeanNumber = Number with (Point = Comma)
+```
+
+is the one-line version of wrapping `Number` in a single-purpose `context (Point =
+Comma) { ... }` just to reach the substitution once. `with` binds as tightly as a
+quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X = Y)`,
+not `Number+` of something already rebound — and reaches only the one expression it is
+written on, not the rest of the rule around it:
+
+```dotgram
+Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
+```
+
+only `c`'s use of `Number` is affected; `a` and `b` still call the ordinary one. Reach
+for `with` when the substitution belongs to one place a rule is used; reach for the
+header once more than one call needs the same rebinding, or the substitution is worth
+a name of its own.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
 `context (A = B) { ... }` is a substitution, written where a reader expects one; a
@@ -1524,9 +1552,10 @@ Sequence    = Operand & ('&' & Operand)*
 Operand     = Guard | Quantified
 Guard       = "when" & Value
 
-Quantified  = Prefixed & Quantifier? & Recovery?
+Quantified  = Prefixed & Quantifier? & Recovery? & With?
 Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
 Recovery    = "recover" & Prefixed & ("=>" & Value)?
+With        = "with" & Rebindings
 Count       = Int | Identifier
 Prefixed    = ("?=" | "?!")? & Captured
 Captured    = (Identifier & ':')? & Primary

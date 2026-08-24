@@ -60,8 +60,25 @@ public sealed partial class GrammarNormalizer
 		// recurse for ever here rather than being reported by the left-recursion check.
 		_bodies[rule] = Node.Empty.Instance;
 
-		return _bodies[rule] = Lower(rule.Declaration.Body, rule.Context);
+		var outerRule = _currentRule;
+		_currentRule  = rule;
+
+		var lowered = Lower(rule.Declaration.Body, rule.Context);
+
+		_currentRule = outerRule;
+
+		return _bodies[rule] = lowered;
 	}
+
+	/// <summary>
+	/// The rule whose body is currently being lowered — which of it a pending
+	/// <c>with (...)</c> site's rewrite has to be spliced back into once lowering is
+	/// done (§18). Saved and restored around every place a top-level <see cref="Lower"/>
+	/// result is assigned into <see cref="_bodies"/>, <see cref="BodyOf"/> and
+	/// <see cref="Specialize"/> — including the reentrant case where an elementary
+	/// rule's own <see cref="BodyOf"/> is asked for from inside another rule's lowering.
+	/// </summary>
+	RuleSymbol? _currentRule;
 
 	Node Lower(Expr expression, GrammarContext context) => expression switch
 	{
@@ -98,6 +115,8 @@ public sealed partial class GrammarNormalizer
 			LowerCall(RuleOf(expression, target.Name), arguments, context),
 
 		Expr.Reference(_, var name, _) => LowerReference(expression, name),
+
+		Expr.With(var operand, _) => LowerWith(expression, operand, context),
 
 		_ => Node.Empty.Instance,
 	};
@@ -310,6 +329,24 @@ public sealed partial class GrammarNormalizer
 		return repetition;
 	}
 
+	/// <summary>
+	/// <c>Number with (Point = Comma)</c> — lowered to exactly what the operand alone
+	/// would be, no wrapper node, so a capture, a sequence or another <c>with</c> stays
+	/// literally embedded in the enclosing rule's own body (§5.1). What is recorded is
+	/// where to come back once every rule is lowered and the whole call graph is known —
+	/// the same ordering <see cref="SpecializeContexts"/> already relies on for
+	/// <c>context (...)</c>.
+	/// </summary>
+	Node LowerWith(Expr expression, Expr operand, GrammarContext context)
+	{
+		var lowered = Lower(operand, context);
+
+		if (_model.WithBindings.TryGetValue(expression, out var targets) && targets.Count > 0)
+			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter)));
+
+		return lowered;
+	}
+
 	/// <summary>Something the notation says and the compiler cannot do yet.</summary>
 	Node Unbuilt(Expr body, GrammarContext context, Expr at, string id, string message)
 	{
@@ -489,7 +526,11 @@ public sealed partial class GrammarNormalizer
 
 		_specializing.Add(specialized.Name);
 
+		var outerRule = _currentRule;
+		_currentRule  = specialized;
+
 		_bodies[specialized] = Lower(declaration.Body, rule.Context);
+		_currentRule         = outerRule;
 		_arguments           = outerArguments;
 		_counts              = outerCounts;
 

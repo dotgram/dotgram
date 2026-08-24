@@ -405,6 +405,111 @@ public sealed class GrammarNormalizerTests
 				""").ToString());
 	}
 
+	// ── `with (...)` — an expression-scoped counterpart to `context (...)` ─────────
+
+	[Fact]
+	public void With_clones_only_what_the_binding_can_reach()
+	{
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			ParseEuropeanNumber = Number_With1
+			Number_With1 = Digit & Comma & Digit
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				Point = '.'
+				Comma = ','
+				Number = Digit & Point & Digit
+
+				ParseEuropeanNumber = Number with (Point = Comma)
+				""").ToString());
+	}
+
+	[Fact]
+	public void With_scoped_to_one_operand_in_a_sequence_leaves_the_others_alone()
+	{
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			Row = a: Number & ',' & b: Number & ',' & c: Number_With1
+			Number_With1 = Digit & Comma & Digit
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				Point = '.'
+				Comma = ','
+				Number = Digit & Point & Digit
+
+				Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_with_site_composes_with_an_enclosing_context()
+	{
+		// The context's own clone of `A` must call a clone of `Number`'s with-clone —
+		// not of the plain, unrebound `Number` — which is only possible because `with`
+		// runs before `context (...)` is specialized and leaves `A`'s own body mutated.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			OtherDigit = ['1'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			A = Number_With1
+			Number_With1 = Digit & Comma & Digit
+			Number_With1_Ctx = OtherDigit & Comma & OtherDigit
+			A_Ctx = Number_With1_Ctx
+			""",
+			Normalize("""
+				Digit      = ['0'..'9']
+				OtherDigit = ['1'..'9']
+				Point      = '.'
+				Comma      = ','
+				Number     = Digit & Point & Digit
+
+				context Ctx (Digit = OtherDigit)
+				{
+					A = Number with (Point = Comma)
+				}
+				""").ToString());
+	}
+
+	[Fact]
+	public void Directly_stacked_with_sites_compose()
+	{
+		// `Group` is transparent at lowering, so both `with`s' operand lowers to the
+		// exact same node — the one case where two sites share a root and have to be
+		// merged rather than cloned twice (§20).
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Space = ' '
+			Number = Digit & Point & Digit
+			A = Number_With2
+			Number_With2 = Space & Comma & Space
+			""",
+			Normalize("""
+				Digit  = ['0'..'9']
+				Point  = '.'
+				Comma  = ','
+				Space  = ' '
+				Number = Digit & Point & Digit
+
+				A = (Number with (Point = Comma)) with (Digit = Space)
+				""").ToString());
+	}
+
 	[Fact]
 	public void An_incompatible_contextual_replacement_is_reported_at_the_binding()
 	{

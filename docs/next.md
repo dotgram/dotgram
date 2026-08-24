@@ -765,8 +765,55 @@ caught. `Declare` (pass one, where the check runs) executes before `ResolveImpor
 the import is not wired up yet at the point this asks — reaching it would mean moving the
 check to pass two. Under-reports; never mis-attributes.
 
-A related, separate idea raised alongside this and not designed yet: `with (Bindings)
-Expression` as an expression-extent counterpart to `context (Bindings) { ... }` — the same
-substitution semantics, applied to one operand instead of a whole block, so a single
-override does not need a block wrapped around it. Independent of the warning above; worth
-its own design pass before either is built.
+## Built: `Expression with (A = B, ...)`
+
+The idea raised alongside the warning above, now designed and shipped: an expression-
+extent counterpart to `context (A = B) { ... }` — the same substitution, applied to one
+operand instead of a whole block, so a single override does not need a block wrapped
+around it. `docs/syntax.md` §5.1 has the notation and the "which of the two to reach
+for" guidance; §3.8 and §10 have the precedence and the grammar.
+
+Postfix, and settled as such rather than reconsidered: `Number with (Point = Comma)`,
+binding at the same tightness as a quantifier or `recover` — outermost of the three,
+checked last in `GramParser.ParseQuantified` (split into `ParseQuantifiedCore` plus a
+new `ParseWith`). A capture written before the wrapped operand ends up *inside* the
+`with`, not beside it — `c: Number with (...)` parses as `(c: Number) with (...)`, since
+`with` wraps whatever `ParseQuantifiedCore` already built. That single fact is what
+shaped the implementation: an earlier sketch that lowered the operand into a synthesized
+rule (mirroring the external-recognizer-value feature's `ExternalRuleFor`) would have
+isolated that capture inside a private, unreachable rule and silently dropped it from
+the enclosing rule's own result. Caught by a Plan agent explicitly asked to verify
+rather than accept the sketch, before any of it was written.
+
+What shipped instead: the operand lowers exactly as if `with` were not there — no
+wrapper node — and the pending site is recorded by the *node identity* of its own
+lowered root (`GrammarNormalizer.Lowering.cs`'s new `LowerWith`, tracking which rule is
+currently being lowered via a new `_currentRule` field). A new pass,
+`GrammarNormalizer.With.cs`'s `SpecializeWithSites`, runs after `LowerAll()` and before
+`SpecializeContexts()` — `with` mutates a rule's body in place, and an enclosing
+`context (...)` clone of that rule has to see the mutation already applied. It computes
+each site's affected set exactly as a `context (...)` block does (`Seed` replaced by a
+new `DirectCalls`, since a `with` names what it calls directly rather than what a block
+declares; `ReachableFromSeed`/`AffectedSet`/`CloneAndRewrite` reused unmodified), then
+splices the rewritten root back into the enclosing rule's body with a new identity-keyed
+rebuild pass, `SpliceWithSites` — needed because nodes are immutable records, so
+replacing one descendant means reconstructing every ancestor up to the rule's own root.
+
+One case needed more than a straight port of the `context (...)` machinery: `Group` is
+transparent at lowering, so `(X with (A=B)) with (C=D)` has both `with`s' operand lower
+to the *exact same node*. Cloning each site independently and applying both rewrites in
+sequence does not compose — the second pass, built against the pre-splice call graph,
+cannot see inside the clone the first pass already made, since that clone is a new rule
+referenced only by symbol. Fixed by detecting the shared root and merging the two sites'
+rebindings into one combined set (later overriding earlier for the same key — the same
+child-overrides-parent layering nested `context (...)` headers already use) before
+cloning once. `SpecializeSite`'s clone-building tail was extracted into a reusable
+`CloneAffected`, and `NameFor` generalized to take a bare site name instead of a
+`GrammarContext`, so both features share the one implementation.
+
+`GrammarBinder.cs`: `ResolveContextBindings`'s per-entry validation extracted into
+`ValidateRebinding`, reusing the header form's own diagnostic IDs
+(`UnknownContextTarget`/`UnknownContextReplacement`/`ParameterizedContextBinding`/
+`DuplicateContextBinding`) rather than minting new ones — same failure, different
+syntactic position. `ContextBoundNameRedeclared` does not port: `with` declares nothing,
+so there is nothing to check a redeclaration against.

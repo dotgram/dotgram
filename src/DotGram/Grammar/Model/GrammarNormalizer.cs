@@ -75,9 +75,11 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
-		// Before RewriteLeftRecursion(): a cloned recursive rule's self-call must already
-		// point at the clone itself, and specialization is what makes that call resolve
-		// there in the first place.
+		// Both before RewriteLeftRecursion(), for the reason already there — a clone's
+		// self-call must resolve to the clone before left-recursion rewriting runs. `with`
+		// goes first: it mutates a rule's own body in place, and an enclosing
+		// `context (...)` clone of the same rule must see that mutation already applied.
+		normalizer.SpecializeWithSites();
 		normalizer.SpecializeContexts();
 
 		normalizer.RewriteLeftRecursion();

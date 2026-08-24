@@ -113,6 +113,83 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void Parses_a_with_expression()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "ParseEuropeanNumber"
+					With
+						Reference "Number"
+						Rebinding "Point" = "Comma"
+			""",
+			Parse("ParseEuropeanNumber = Number with (Point = Comma)"));
+	}
+
+	[Fact]
+	public void A_preceding_capture_becomes_with_s_own_operand()
+	{
+		// §5.1: `with` is checked outermost of quantifier/capture/`recover` at this one
+		// precedence level (it wraps what `ParseQuantifiedCore` already built), so
+		// `c: Number with (...)` puts the capture inside `With`, not the other way
+		// round — the property the whole splice-by-identity design depends on: lowering
+		// `With`'s operand lowers the capture right along with it.
+		Assert.Equal(
+			"""
+			File
+				Rule "Row"
+					Sequence
+						Capture "a"
+							Reference "Number"
+						Char ","
+						Capture "b"
+							Reference "Number"
+						Char ","
+						With
+							Capture "c"
+								Reference "Number"
+							Rebinding "Point" = "Comma"
+			""",
+			Parse("Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)"));
+	}
+
+	[Fact]
+	public void With_binds_outside_a_quantifier_not_inside_it()
+	{
+		// §5.1: checked last, outermost of quantifier/`recover`/`with` at this one
+		// precedence level — `Number+ with (X=Y)` is `(Number+) with (X=Y)`, and the
+		// reverse needs parens.
+		Assert.Equal(
+			"""
+			File
+				Rule "A"
+					With
+						OneOrMore
+							Reference "Number"
+						Rebinding "X" = "Y"
+			""",
+			Parse("A = Number+ with (X = Y)"));
+
+		Assert.Equal(
+			"""
+			File
+				Rule "B"
+					OneOrMore
+						Group
+							With
+								Reference "Number"
+								Rebinding "X" = "Y"
+			""",
+			Parse("B = (Number with (X = Y))+"));
+	}
+
+	[Fact]
+	public void A_malformed_with_header_recovers()
+	{
+		Assert.Contains(GramParser.ExpectedToken, Diagnostics("A = Number with (X)"));
+	}
+
+	[Fact]
 	public void Where_is_not_an_alias_for_when()
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(

@@ -1,0 +1,170 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using DotGram.Grammar.Binding;
+
+namespace DotGram.Grammar.Model;
+
+/// <summary>
+/// Realizes every `with (...)` site (§5.1, §18/§20 of the contextual-bindings spec) —
+/// <c>context (...)</c>'s substitution, applied to one expression instead of a whole
+/// block. Reuses <see cref="GrammarNormalizer"/>'s context machinery almost entirely:
+/// the only genuinely new step is splicing a rewritten subtree back into the rule that
+/// contains it, since a `with` declares no block of its own to specialize.
+/// </summary>
+public sealed partial class GrammarNormalizer
+{
+	/// <summary>
+	/// One pending `with` site, recorded while lowering the rule it sits in: which rule
+	/// to splice back into, the identity of the operand's own already-lowered root, its
+	/// resolved rebindings, and the name a clone made for it is given.
+	/// </summary>
+	internal sealed record WithSite(
+		RuleSymbol Rule, Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Name);
+
+	readonly List<WithSite> _pendingWith = [];
+	int _withCounter;
+
+	/// <summary>
+	/// One pass per rule that contains at least one `with`, computing each site's own
+	/// affected set (§18 step 1) exactly as a `context (...)` block does, then splicing
+	/// the rewritten result back into that rule's own body — which is the one thing a
+	/// `with` site needs that a context site does not, since it declares no block of its
+	/// own to specialize.
+	/// </summary>
+	/// <remarks>
+	/// Runs before <see cref="SpecializeContexts"/> (§5.1): a `with` mutates a rule's
+	/// body in place, and an enclosing `context (...)` clone of that same rule must see
+	/// the mutation already applied. Each pass computes its own fresh call-graph
+	/// snapshot rather than sharing one — <see cref="SpecializeWithSites"/> is the one
+	/// that leaves the graph stale for whoever runs after it.
+	/// </remarks>
+	void SpecializeWithSites()
+	{
+		if (_pendingWith.Count == 0)
+			return;
+
+		var forward  = BuildCallGraph();
+		var calledBy = Reverse(forward);
+
+		foreach (var group in _pendingWith.GroupBy(site => site.Rule))
+		{
+			var rewrites = new Dictionary<Node, (
+				IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
+				IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneMap)>(NodeIdentity.Instance);
+
+			// Two or more sites sharing the same root only arise from direct stacking —
+			// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
+			// both `with`s' operand lowers to the exact same node. Merged into one
+			// combined rebinding set, later overriding earlier for a shared key — the
+			// same child-overrides-parent layering `context (...)` nesting already uses
+			// (`ChainResolve`) — rather than cloned in two separate passes: a second pass
+			// computed against the pre-splice graph could not reach inside the clone the
+			// first pass already made, since that clone is a new rule referenced only by
+			// symbol, and nothing about a bare `Node.Call` carries a rule's body along
+			// for a second rewrite to see.
+			foreach (var atRoot in group.GroupBy(site => site.Root, NodeIdentity.Instance))
+			{
+				var merged = new Dictionary<RuleSymbol, RuleSymbol>();
+				var name   = "";
+
+				foreach (var site in atRoot)
+				{
+					foreach (var pair in site.Targets)
+						merged[pair.Key] = pair.Value;
+
+					name = site.Name;
+				}
+
+				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward);
+				var affected  = AffectedSet(merged, calledBy, reachable);
+
+				rewrites[atRoot.Key] = (merged,
+					affected.Count == 0 ? EmptyClones : CloneAffected(affected, merged, name));
+			}
+
+			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
+		}
+	}
+
+	/// <summary>
+	/// Every rule this node calls, at any depth — a with-site's own Seed (§18 step 1):
+	/// what a `context` block names by declaring rules in its span, a `with` expression
+	/// names by calling them directly in the one expression it wraps.
+	/// </summary>
+	static HashSet<RuleSymbol> DirectCalls(Node root)
+	{
+		var seed = new HashSet<RuleSymbol>();
+
+		foreach (var node in NodeWalk.Descendants(root))
+			if (node is Node.Call(var called, _))
+				seed.Add(called);
+
+		return seed;
+	}
+
+	/// <summary>
+	/// Rebuilds <paramref name="node"/> unconditionally — same shape and the same reason
+	/// as <see cref="CloneAndRewrite"/>'s own full rebuild, so an ancestor on the path
+	/// to a registered root gets a new identity the same way a clone into a new rule
+	/// would. At a node that is one of <paramref name="rewrites"/>' own roots, that
+	/// site's already-merged rewrite is applied to the freshly rebuilt subtree.
+	/// </summary>
+	Node SpliceWithSites(
+		Node node,
+		Dictionary<Node, (
+			IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
+			IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneMap)> rewrites)
+	{
+		Node rebuilt = node switch
+		{
+			Node.Empty                              => new Node.Empty(),
+			Node.Element(var negated, var ranges, var categories, var references) =>
+				new Node.Element(negated, ranges, categories, references),
+			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
+			Node.Guard(var text, var at)             => new Node.Guard(text, at),
+			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
+
+			Node.Sequence(var nodes) =>
+				new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+
+			Node.Choice(var nodes) =>
+				new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+
+			Node.Atomic(var body) =>
+				new Node.Atomic(SpliceWithSites(body, rewrites)),
+
+			Node.Repeat(var body, var min, var max) =>
+				new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
+
+			Node.Lookahead(var positive, var body) =>
+				new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
+
+			Node.Capture(var name, var body) =>
+				new Node.Capture(name, SpliceWithSites(body, rewrites)),
+
+			Node.Construct(var body, var how) =>
+				new Node.Construct(SpliceWithSites(body, rewrites), how),
+
+			// Left unrewritten here — no targets/cloneMap apply at this level. A call that
+			// needs rewriting is inside some registered root's own subtree, and that is
+			// what CloneAndRewrite below is for.
+			Node.Call(var called, var arguments) =>
+				new Node.Call(called, [.. arguments.Select(child => SpliceWithSites(child, rewrites))]),
+
+			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
+		};
+
+		if (_bounds.TryGetValue(node, out var bound))
+			_bounds[rebuilt] = bound;
+
+		if (_recoveries.TryGetValue(node, out var recovery))
+			_recoveries[rebuilt] = recovery;
+
+		if (rewrites.TryGetValue(node, out var site))
+			rebuilt = CloneAndRewrite(rebuilt, site.Targets, site.CloneMap);
+
+		return rebuilt;
+	}
+}

@@ -113,6 +113,12 @@ public abstract record Expr : ILocated
 	public sealed record Quantified(
 		Expr Operand, QuantifierKind Kind, int? Min, string? MinName, int? Max, string? MaxName) : Expr;
 
+	/// <summary>
+	/// <c>Expression with (A = B, ...)</c> — §5.1's substitution, applied to one
+	/// expression instead of a whole <see cref="Decl.Context"/> block.
+	/// </summary>
+	public sealed record With(Expr Operand, IReadOnlyList<Rebinding> Rebindings) : Expr;
+
 	public sealed override string ToString() => Dump.Of(this);
 }
 
@@ -220,6 +226,10 @@ static class Dump
 		if (expression is Expr.Reference(_, _, var typeArguments))
 			foreach (var typeArgument in typeArguments)
 				Write(text, depth + 1, Label(typeArgument));
+
+		if (expression is Expr.With(_, var rebindings))
+			foreach (var rebinding in rebindings)
+				Write(text, depth + 1, Label(rebinding));
 	}
 
 	/// <summary>Sub-expressions, in source order. The one place traversal is defined.</summary>
@@ -237,6 +247,7 @@ static class Dump
 		Expr.Atomic(var body)               => [body],
 		Expr.Lookahead(_, var operand)      => [operand],
 		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
+		Expr.With(var operand, _)            => [operand],
 		Expr.Call(var target, var arguments) => [target, .. arguments],
 		_                                   => [],
 	};
@@ -280,6 +291,8 @@ static class Dump
 			QuantifierKind.OneOrMore  => "OneOrMore",
 			_                         => $"Count {Bound(min, minName)}..{Bound(max, maxName) ?? "*"}",
 		},
+
+		Expr.With                                 => "With",
 
 		_ => expression.GetType().Name,
 	};

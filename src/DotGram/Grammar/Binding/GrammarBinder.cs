@@ -43,9 +43,14 @@ public sealed class GrammarBinder
 
 	readonly ISymbolResolver                        _symbols;
 	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings =
+		new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarContext, RuleSymbol> _trivia   = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
+
+	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> EmptyBindings =
+		new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>
 	/// Set once, by <see cref="CreateStandardLibrary"/> — the one context whose own rules
@@ -76,7 +81,7 @@ public sealed class GrammarBinder
 		binder.Resolve(file.Decls, global);
 
 		return new GrammarModel(
-			global, binder._bindings, binder._trivia, binder._publications, binder._diagnostics);
+			global, binder._bindings, binder._withBindings, binder._trivia, binder._publications, binder._diagnostics);
 	}
 
 	GrammarContext CreateStandardLibrary()
@@ -251,57 +256,11 @@ public sealed class GrammarBinder
 	void ResolveContextBindings(Decl.Context nested, GrammarContext child, GrammarContext context)
 	{
 		foreach (var rebinding in nested.Rebindings)
-		{
-			var left = context.LookupQualified(rebinding.Left);
-
-			if (left is null)
-			{
-				Report(
-					UnknownContextTarget,
-					$"'{rebinding.Left}' cannot be contextually bound because no visible rule with that name exists.",
-					rebinding.At);
-
-				continue;
-			}
-
-			var right = context.LookupQualified(rebinding.Right);
-
-			if (right is null)
-			{
-				Report(
-					UnknownContextReplacement,
-					$"'{rebinding.Right}' cannot replace '{rebinding.Left}' because no visible rule with that name exists.",
-					rebinding.At);
-
-				continue;
-			}
-
-			if (left.Declaration is { Params.Count: > 0 })
-			{
-				Report(
-					ParameterizedContextBinding,
-					$"'{rebinding.Left}' cannot be contextually bound: parameterized rules are not supported in a context header yet.",
-					rebinding.At);
-
-				continue;
-			}
-
-			if (right.Declaration is { Params.Count: > 0 })
-			{
-				Report(
-					ParameterizedContextBinding,
-					$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a context header yet.",
-					rebinding.At);
-
-				continue;
-			}
-
-			if (!child.TryBind(new ContextRebinding(left, right, rebinding.At)))
+			if (ValidateRebinding(rebinding, context) is { } resolved && !child.TryBind(resolved))
 				Report(
 					DuplicateContextBinding,
 					$"'{rebinding.Left}' is bound more than once in this context.",
 					rebinding.At);
-		}
 
 		child.ContextBindings = ChainResolve(context.ContextBindings, child.OwnBindings);
 
@@ -311,6 +270,60 @@ public sealed class GrammarBinder
 					ContextBoundNameRedeclared,
 					$"Rule '{rule.Name}' is contextually bound in the active context and cannot be redeclared. Use a nested context binding to replace it.",
 					rule.Declaration!.At);
+	}
+
+	/// <summary>
+	/// One `A = B` entry, checked against <paramref name="context"/> — the enclosing
+	/// lexical environment, same as a `context (...)` header's own bindings — and shared
+	/// by both extents §5.1 now has: a whole block, or one expression's `with (...)`.
+	/// </summary>
+	ContextRebinding? ValidateRebinding(Rebinding rebinding, GrammarContext context)
+	{
+		var left = context.LookupQualified(rebinding.Left);
+
+		if (left is null)
+		{
+			Report(
+				UnknownContextTarget,
+				$"'{rebinding.Left}' cannot be contextually bound because no visible rule with that name exists.",
+				rebinding.At);
+
+			return null;
+		}
+
+		var right = context.LookupQualified(rebinding.Right);
+
+		if (right is null)
+		{
+			Report(
+				UnknownContextReplacement,
+				$"'{rebinding.Right}' cannot replace '{rebinding.Left}' because no visible rule with that name exists.",
+				rebinding.At);
+
+			return null;
+		}
+
+		if (left.Declaration is { Params.Count: > 0 })
+		{
+			Report(
+				ParameterizedContextBinding,
+				$"'{rebinding.Left}' cannot be contextually bound: parameterized rules are not supported in a context header yet.",
+				rebinding.At);
+
+			return null;
+		}
+
+		if (right.Declaration is { Params.Count: > 0 })
+		{
+			Report(
+				ParameterizedContextBinding,
+				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a context header yet.",
+				rebinding.At);
+
+			return null;
+		}
+
+		return new ContextRebinding(left, right, rebinding.At);
 	}
 
 	/// <summary>
@@ -508,6 +521,27 @@ public sealed class GrammarBinder
 			// The text inside @(...) is C#, checked by the C# compiler where the
 			// generator puts it. Nothing here can say anything useful about it.
 			case Expr.CSharp:
+				return;
+
+			case Expr.With(var operand, var rebindings):
+
+				var own = new List<ContextRebinding>();
+
+				foreach (var rebinding in rebindings)
+					if (ValidateRebinding(rebinding, context) is { } resolved)
+					{
+						if (own.Exists(existing => existing.Left == resolved.Left))
+							Report(
+								DuplicateContextBinding,
+								$"'{rebinding.Left}' is bound more than once in this 'with'.",
+								rebinding.At);
+						else
+							own.Add(resolved);
+					}
+
+				_withBindings[expression] = ChainResolve(EmptyBindings, own);
+
+				ResolveExpression(operand, context, parameters, csharpValue);
 				return;
 		}
 
