@@ -34,6 +34,8 @@ public sealed class ExampleTests
 	[InlineData("gopher://example.com",             false)]
 	[InlineData("https://exa mple.com",             false)]
 	[InlineData("ht tps://example.com",             false)]
+	[InlineData("HTTPS://example.com",              true)]     // RFC 3986 §3.1: the scheme
+	[InlineData("Http://example.com",               true)]     // is case-insensitive
 	public void Is_url(string text, bool expected) => Assert.Equal(expected, Links.IsUrl(text));
 
 	[Theory]
@@ -41,6 +43,7 @@ public sealed class ExampleTests
 	[InlineData("https://example.com",       443)]
 	[InlineData("http://example.com",         80)]
 	[InlineData("ftp://example.com",          80)]
+	[InlineData("HTTPS://example.com",       443)]
 	public void Port_of(string url, int expected) => Assert.Equal(expected, Links.PortOf(url));
 
 	[Fact]
