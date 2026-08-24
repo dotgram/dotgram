@@ -684,15 +684,15 @@ almost certainly a mistake in such a context.
 
 ### 4.6 Keyword boundaries
 
-`KeywordBoundary` is a standard-library rule, `none` by default, naming the characters
+`keywordBoundary` is a standard-library rule, `none` by default, naming the characters
 that continue a word:
 
 ```dotgram
-KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+keywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 ```
 
 Once it is not empty, every string literal **whose characters all fall in that class**
-picks up a `& ?!KeywordBoundary`, so `"if"` no longer matches the start of `iffy`.
+picks up a `& ?!keywordBoundary`, so `"if"` no longer matches the start of `iffy`.
 Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
 check, `"("` does not.
 

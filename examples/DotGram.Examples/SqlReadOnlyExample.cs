@@ -48,7 +48,7 @@ namespace DotGram.Examples;
 
 	// Every literal that is all word characters may not be the start of a longer word
 	// (§4.6), so `into` does not match inside `into_stock`.
-	KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']
+	keywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']
 
 	trivia = none
 
@@ -97,25 +97,25 @@ namespace DotGram.Examples;
 	S = ['s' | 'S']   T = ['t' | 'T']   U = ['u' | 'U']   V = ['v' | 'V']
 	W = ['w' | 'W']   X = ['x' | 'X']   Y = ['y' | 'Y']   Z = ['z' | 'Z']
 
-	Select   = S & E & L & E & C & T & ?!KeywordBoundary
-	With     = W & I & T & H & ?!KeywordBoundary
-	Insert   = I & N & S & E & R & T & ?!KeywordBoundary
-	Update   = U & P & D & A & T & E & ?!KeywordBoundary
-	Delete   = D & E & L & E & T & E & ?!KeywordBoundary
-	Merge    = M & E & R & G & E & ?!KeywordBoundary
-	Into     = I & N & T & O & ?!KeywordBoundary
-	Create   = C & R & E & A & T & E & ?!KeywordBoundary
-	Drop     = D & R & O & P & ?!KeywordBoundary
-	Alter    = A & L & T & E & R & ?!KeywordBoundary
-	Truncate = T & R & U & N & C & A & T & E & ?!KeywordBoundary
-	Grant    = G & R & A & N & T & ?!KeywordBoundary
-	Revoke   = R & E & V & O & K & E & ?!KeywordBoundary
-	Exec     = E & X & E & C & (U & T & E)? & ?!KeywordBoundary
-	Call     = C & A & L & L & ?!KeywordBoundary
-	Set      = S & E & T & ?!KeywordBoundary
-	Copy     = C & O & P & Y & ?!KeywordBoundary
-	Vacuum   = V & A & C & U & U & M & ?!KeywordBoundary
-	Analyze  = A & N & A & L & Y & (Z | S) & E & ?!KeywordBoundary
+	Select   = S & E & L & E & C & T & ?!keywordBoundary
+	With     = W & I & T & H & ?!keywordBoundary
+	Insert   = I & N & S & E & R & T & ?!keywordBoundary
+	Update   = U & P & D & A & T & E & ?!keywordBoundary
+	Delete   = D & E & L & E & T & E & ?!keywordBoundary
+	Merge    = M & E & R & G & E & ?!keywordBoundary
+	Into     = I & N & T & O & ?!keywordBoundary
+	Create   = C & R & E & A & T & E & ?!keywordBoundary
+	Drop     = D & R & O & P & ?!keywordBoundary
+	Alter    = A & L & T & E & R & ?!keywordBoundary
+	Truncate = T & R & U & N & C & A & T & E & ?!keywordBoundary
+	Grant    = G & R & A & N & T & ?!keywordBoundary
+	Revoke   = R & E & V & O & K & E & ?!keywordBoundary
+	Exec     = E & X & E & C & (U & T & E)? & ?!keywordBoundary
+	Call     = C & A & L & L & ?!keywordBoundary
+	Set      = S & E & T & ?!keywordBoundary
+	Copy     = C & O & P & Y & ?!keywordBoundary
+	Vacuum   = V & A & C & U & U & M & ?!keywordBoundary
+	Analyze  = A & N & A & L & Y & (Z | S) & E & ?!keywordBoundary
 
 	parse Query
 	""")]

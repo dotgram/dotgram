@@ -164,7 +164,7 @@ public sealed partial class GrammarNormalizer
 		for (var outer = context; outer is not null; outer = outer.Parent)
 			foreach (var rule in outer.Rules.Values)
 				if (rule.IsBuiltIn)
-					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "KeywordBoundary";
+					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "keywordBoundary";
 	}
 
 	bool IsNullable(Node node) => node switch
