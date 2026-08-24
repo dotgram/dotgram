@@ -98,6 +98,31 @@ public sealed class GramLexerTests
 	}
 
 	[Fact]
+	public void A_trailing_i_marks_a_literal_case_insensitive()
+	{
+		Assert.Equal(
+			"""
+			CaseInsensitiveString "http"
+			CaseInsensitiveCharacter "a"
+			""",
+			GramLexer.Tokenize("""  "http"i 'a'i  """).ToString());
+	}
+
+	[Fact]
+	public void An_i_that_starts_a_longer_name_is_not_the_marker()
+	{
+		// `.Gram` has no juxtaposition (§3.2), so this was always a syntax error — the
+		// point of this test is that it stays the *same* error: a string followed by an
+		// ordinary identifier, not a literal silently swallowing part of one.
+		Assert.Equal(
+			"""
+			String "text"
+			Identifier "id"
+			""",
+			GramLexer.Tokenize("""  "text"id  """).ToString());
+	}
+
+	[Fact]
 	public void Drops_comments_and_whitespace()
 	{
 		Assert.Equal(

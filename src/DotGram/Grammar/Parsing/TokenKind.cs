@@ -16,6 +16,12 @@ public enum TokenKind
 	Character,
 	String,
 
+	/// <summary><c>'x'i</c> — a character literal matched without regard to case.</summary>
+	CaseInsensitiveCharacter,
+
+	/// <summary><c>"text"i</c> — a string literal matched without regard to case.</summary>
+	CaseInsensitiveString,
+
 	/// <summary><c>\p{Lu}</c> — carries the category name.</summary>
 	UnicodeCategory,
 

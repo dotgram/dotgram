@@ -39,9 +39,12 @@ namespace DotGram.Examples;
 // Refusing to close a comment buys an attacker nothing: it takes the hiding place away
 // rather than extending it.
 //
-// SQL is case-insensitive, so each keyword is spelled as its letters in either case.
-// That is what `Sel & Ect` below is doing — the language has no case-insensitive
-// literal, and a rule per letter pair is the honest way to say it.
+// SQL is case-insensitive, so each keyword below is written `"select"i` rather than
+// `"select"`. §4.6's automatic keyword boundary still applies to a case-insensitive
+// literal exactly as it does to an ordinary one: every character of `"select"i`
+// continues a word under this grammar's own `wordboundary`, so `Select` gets the
+// `?!wordboundary` check without asking for it, and `into` still does not match inside
+// `into_stock`.
 
 [Gram("""
 	@using DotGram.Examples;
@@ -88,34 +91,31 @@ namespace DotGram.Examples;
 	Writes = Insert | Update | Delete | Merge | Into | Create | Drop | Alter
 	       | Truncate | Grant | Revoke | Exec | Call | Set | Copy | Vacuum | Analyze
 
-	// ── Keywords, spelled in either case ─────────────────────────────────────────
+	// ── Keywords, matched without regard to case ─────────────────────────────────
 
-	A = ['a' | 'A']   B = ['b' | 'B']   C = ['c' | 'C']   D = ['d' | 'D']
-	E = ['e' | 'E']   F = ['f' | 'F']   G = ['g' | 'G']   H = ['h' | 'H']
-	I = ['i' | 'I']   K = ['k' | 'K']   L = ['l' | 'L']   M = ['m' | 'M']
-	N = ['n' | 'N']   O = ['o' | 'O']   P = ['p' | 'P']   R = ['r' | 'R']
-	S = ['s' | 'S']   T = ['t' | 'T']   U = ['u' | 'U']   V = ['v' | 'V']
-	W = ['w' | 'W']   X = ['x' | 'X']   Y = ['y' | 'Y']   Z = ['z' | 'Z']
+	Select   = "select"i
+	With     = "with"i
+	Insert   = "insert"i
+	Update   = "update"i
+	Delete   = "delete"i
+	Merge    = "merge"i
+	Into     = "into"i
+	Create   = "create"i
+	Drop     = "drop"i
+	Alter    = "alter"i
+	Truncate = "truncate"i
+	Grant    = "grant"i
+	Revoke   = "revoke"i
+	Call     = "call"i
+	Set      = "set"i
+	Copy     = "copy"i
+	Vacuum   = "vacuum"i
 
-	Select   = S & E & L & E & C & T & ?!wordboundary
-	With     = W & I & T & H & ?!wordboundary
-	Insert   = I & N & S & E & R & T & ?!wordboundary
-	Update   = U & P & D & A & T & E & ?!wordboundary
-	Delete   = D & E & L & E & T & E & ?!wordboundary
-	Merge    = M & E & R & G & E & ?!wordboundary
-	Into     = I & N & T & O & ?!wordboundary
-	Create   = C & R & E & A & T & E & ?!wordboundary
-	Drop     = D & R & O & P & ?!wordboundary
-	Alter    = A & L & T & E & R & ?!wordboundary
-	Truncate = T & R & U & N & C & A & T & E & ?!wordboundary
-	Grant    = G & R & A & N & T & ?!wordboundary
-	Revoke   = R & E & V & O & K & E & ?!wordboundary
-	Exec     = E & X & E & C & (U & T & E)? & ?!wordboundary
-	Call     = C & A & L & L & ?!wordboundary
-	Set      = S & E & T & ?!wordboundary
-	Copy     = C & O & P & Y & ?!wordboundary
-	Vacuum   = V & A & C & U & U & M & ?!wordboundary
-	Analyze  = A & N & A & L & Y & (Z | S) & E & ?!wordboundary
+	// Each alternative is a complete spelling, so each gets its own trailing boundary
+	// check — writing this as one literal with an optional suffix would put the check
+	// right after "exec", refusing "execute" before the optional part was even tried.
+	Exec     = "execute"i | "exec"i
+	Analyze  = "analyze"i | "analyse"i
 
 	parse Query
 	""")]

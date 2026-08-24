@@ -395,7 +395,11 @@ sealed partial class Machine
 	{
 		var run = 0;
 
-		while (at - run >= 0 && alternatives[at - run] is Node.Literal)
+		// An ignore-case literal opts out of this run: its shared-prefix read would have
+		// to be case-folded too, and its own comparison already differs from an ordinary
+		// literal's — left for the general path, the same first-cut choice `Predictive`
+		// makes for it via `First.All` (docs/status.md).
+		while (at - run >= 0 && alternatives[at - run] is Node.Literal { IgnoreCase: false })
 			run++;
 
 		if (run < 2)
@@ -482,7 +486,7 @@ sealed partial class Machine
 				return test == "false" ? null : test;
 			}
 
-			case Node.Literal(var value) when value.Length == 1:
+			case Node.Literal(var value) { IgnoreCase: false } when value.Length == 1:
 				return $"c == {CSharpEmitter.Char(value[0])}";
 
 			// A rule that is inlined anyway is its body written somewhere else, and a grammar

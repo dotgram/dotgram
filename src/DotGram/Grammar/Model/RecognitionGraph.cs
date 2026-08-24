@@ -85,8 +85,11 @@ public abstract record Node
 	/// <summary>A fixed run of input items.</summary>
 	public sealed record Literal(string Text) : Node
 	{
+		/// <summary>Whether this matches without regard to case (`"text"i`, `'x'i`).</summary>
+		public bool IgnoreCase { get; init; }
+
 		public override string ToString() =>
-			Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"";
+			(Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"") + (IgnoreCase ? "i" : "");
 	}
 
 	public sealed record Sequence(IReadOnlyList<Node> Nodes) : Node

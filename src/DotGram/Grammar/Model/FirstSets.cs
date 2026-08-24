@@ -244,6 +244,13 @@ public static class FirstSets
 	{
 		switch (node)
 		{
+			// Case folding could report both ranges instead of giving up entirely, but
+			// that is future work — see docs/status.md's diagnostics section for the
+			// other first-set-driven optimizations an ignore-case literal opts out of
+			// the same way.
+			case Node.Literal { IgnoreCase: true }:
+				return First.All;
+
 			case Node.Literal(var text):
 				return text.Length == 0
 					? First.None

@@ -2,6 +2,16 @@
 
 A typed grammar notation for .NET, compiled to C# by a source generator.
 
+**The grammar is the product; the parser is a generated artifact.** A `.gram` file is
+the one place the language's meaning is written down; everything else — the generated
+code, its speed, static analysis, diagnostics, streaming, tooling, a description handed
+to an agent — exists to agree with that text, not to replace it. That holds even where
+a hand-written parser turns out faster: what a grammar buys is meaning read
+declaratively rather than reconstructed from someone's control flow, and speed does not
+touch that. When the compiler also gets speed right — predictive dispatch, possessive
+repetition, region-scoped lowering, deferred construction — that is a bonus worth
+having, not the reason to reach for this over a parser written by hand.
+
 ## What it looks like
 
 A grammar lives in a `.gram` file beside a partial class:

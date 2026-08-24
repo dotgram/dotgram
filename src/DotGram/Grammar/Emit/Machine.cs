@@ -825,7 +825,7 @@ sealed partial class Machine
 			case Node.Empty:
 				return next;
 
-			case Node.Literal(var value):
+			case Node.Literal(var value) { IgnoreCase: var ignoreCase }:
 			{
 				var state     = Reserve(out var writer);
 				var arrayName = DeclareExpected([node.ToString()]);
@@ -848,9 +848,24 @@ sealed partial class Machine
 
 				for (var i = 0; i < value.Length; i++)
 				{
-					writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(value[i])})");
+					// ToUpperInvariant on an uncased character (a digit, punctuation) returns
+					// it unchanged, so one comparison shape covers cased and uncased
+					// characters alike — no per-character branching needed.
+					var test = ignoreCase
+						? $"global::System.Char.ToUpperInvariant(text[p + {i}]) != " +
+						  $"{CSharpEmitter.Char(char.ToUpperInvariant(value[i]))}"
+						: $"text[p + {i}] != {CSharpEmitter.Char(value[i])}";
+
+					writer.Line($"if ({test})");
 					using (writer.Block(""))
+					{
+						// The position at a terminal failure names where the character that
+						// did not fit actually is, not where the whole literal started.
+						if (i > 0)
+							writer.Line($"p += {i};");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
+					}
 				}
 
 				writer.Line($"p += {value.Length};");
@@ -1603,7 +1618,14 @@ sealed partial class Machine
 			{
 				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])})");
 				using (writer.Block(""))
+				{
+					// Same sharpening as Node.Literal's own per-character loop: name the
+					// character that did not fit, not where the shared prefix started.
+					if (i > 0)
+						writer.Line($"p += {i};");
+
 					EmitTerminalFailure(writer, fail, arrayName);
+				}
 			}
 		}
 

@@ -20,7 +20,10 @@ namespace DotGram.Examples;
 	Url        = scheme: Scheme & "://" & authority: Authority & path: Path
 	           & ('?' & query: Rest)? & ('#' & fragment: Rest)?
 
-	Scheme     = "https" | "http" | "ftp"
+	// RFC 3986 §3.1: the scheme is case-insensitive. `PortOf` compares the captured
+	// text with StringComparison.OrdinalIgnoreCase rather than normalizing it here — a
+	// URL keeps the case its author wrote it in.
+	Scheme     = "https"i | "http"i | "ftp"i
 
 	// A userinfo is followed by '@' and nothing else is, so trying the group and
 	// giving it back is the whole of "is there a userinfo here".
@@ -62,7 +65,7 @@ public static partial class Links
 
 		return parsed.Authority.Port is { } port
 			? int.Parse(port, CultureInfo.InvariantCulture)
-			: parsed.Scheme == "https" ? 443 : 80;
+			: string.Equals(parsed.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? 443 : 80;
 	}
 
 	/// <summary>The hosts of every URL in a piece of prose, in order, without repeats.</summary>

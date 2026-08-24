@@ -119,7 +119,9 @@ Each tests exactly one input item.
 
 ```dotgram
 'x'                     character literal
+'x'i                    character literal, case-insensitive
 "text"                  string literal (a sequence of characters)
+"text"i                 string literal, case-insensitive
 ['a'..'z']              element set: a range
 [Letter | @IsDigit]     element set: a union
 [\p{Lu} | \p{Nd}]       element set: Unicode categories
@@ -129,6 +131,12 @@ any                     any single item
 
 `\p{...}` is the .NET regular-expression spelling, with the same category names
 (`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
+
+A trailing `i` — no space before it — comes from Lark, where the same suffix on a
+quoted literal means the same thing. It compares by `char.ToUpperInvariant`, a
+character at a time: no culture sensitivity, and a character with no case (a digit,
+punctuation) compares exactly as it would without `i`. It attaches to the literal
+alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input
 item. Inside them `|` is set union rather than ordered choice, and only ranges,
