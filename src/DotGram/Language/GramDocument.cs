@@ -80,7 +80,7 @@ public static class GramLanguageService
 {
 	static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
 	{
-		"using", "context", "parse", "find", "as", "when", "recover",
+		"using", "context", "parse", "find", "as", "when", "recover", "with",
 		"any", "none", "eol", "eof", "trivia", "KeywordBoundary",
 	};
 
@@ -205,6 +205,18 @@ public static class GramLanguageService
 				Add(reference.Name, reference.At, false);
 		}
 
+		void AddRebinding(Rebinding rebinding)
+		{
+			var names = tokens.Where(token =>
+				token.Kind == TokenKind.Identifier &&
+				token.Position >= rebinding.At.Position &&
+				token.Position < rebinding.At.End);
+
+			foreach (var token in names)
+				if (token.Value == rebinding.Left || token.Value == rebinding.Right)
+					Add(token.Value, new Location(token.Position, token.Length), false);
+		}
+
 		void Visit(Expr item)
 		{
 			switch (item)
@@ -255,6 +267,10 @@ public static class GramLanguageService
 					break;
 				case Expr.Quantified quantified:
 					Visit(quantified.Operand);
+					break;
+				case Expr.With with:
+					Visit(with.Operand);
+					foreach (var rebinding in with.Rebindings) AddRebinding(rebinding);
 					break;
 			}
 		}
@@ -350,6 +366,12 @@ public static class GramLanguageService
 				result.Add(reference.Name);
 		}
 
+		void AddName(string name)
+		{
+			if (!result.Contains(name))
+				result.Add(name);
+		}
+
 		void Visit(Expr item)
 		{
 			switch (item)
@@ -400,6 +422,14 @@ public static class GramLanguageService
 					break;
 				case Expr.Quantified quantified:
 					Visit(quantified.Operand);
+					break;
+				case Expr.With with:
+					Visit(with.Operand);
+					foreach (var rebinding in with.Rebindings)
+					{
+						AddName(rebinding.Left);
+						AddName(rebinding.Right);
+					}
 					break;
 			}
 		}

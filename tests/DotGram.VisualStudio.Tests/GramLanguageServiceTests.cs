@@ -89,6 +89,33 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void SupportsExpressionScopedRebinding()
+	{
+		const string source =
+			"Point = '.'\n" +
+			"Comma = ','\n" +
+			"Number = Point\n" +
+			"Start = Number with (Point = Comma)";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Empty(document.Diagnostics);
+		Assert.Contains(("with", GramSyntaxKind.Keyword), classified);
+		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "Point"));
+		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Comma"));
+		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Number"));
+
+		var start = document.Classifications.First(span =>
+			source.Substring(span.Position, span.Length) == "Start");
+		Assert.Contains("Referenced rule:\nNumber = Point", start.QuickInfo);
+		Assert.Contains("Referenced rule:\nPoint = '.'", start.QuickInfo);
+		Assert.Contains("Referenced rule:\nComma = ','", start.QuickInfo);
+	}
+
+	[Fact]
 	public void AttachesCompleteRuleDefinitionToRuleReferences()
 	{
 		const string source = "Start = 'a'\n      | 'b'\nparse Start";
