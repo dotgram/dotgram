@@ -438,6 +438,8 @@ public sealed class SemanticTests
 		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
 	[InlineData(GrammarNormalizer.UnbuiltCall,
 		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
+	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedContextBinding,
+		"B(item) = item\nD = 'd'\ncontext Ctx (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
 
 	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────

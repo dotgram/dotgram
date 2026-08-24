@@ -23,6 +23,7 @@ then quietly mean nothing.
 | contexts, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same rule name in two contexts | ✓ | ✓ | ✓ | ✓ | ✓ |
 | contextual rebinding `context (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `Trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -10,7 +10,7 @@ dotnet build DotGram.slnx
 tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe
 ```
 
-The test runner takes no filter arguments; it runs everything, in about eight seconds.
+The test runner takes no filter arguments; it runs everything, in about 25-30 seconds.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
