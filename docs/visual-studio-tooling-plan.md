@@ -31,7 +31,7 @@ architecture and possible VS Code/LSP/metadata work remain in
 
 ## Next milestone: C# seam after `@`
 
-- [ ] Roslyn completion for C# names.
+- [x] Roslyn completion for C# names after `@` and in member-access chains.
 - [ ] Roslyn Quick Info for C# symbols.
 - [ ] Go To Definition from grammar C# references.
 - [ ] Preserve DotGram behavior for `@(...)` expressions and grammar arguments.

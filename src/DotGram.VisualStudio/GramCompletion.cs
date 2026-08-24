@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 using DotGram.Language;
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 using Microsoft.VisualStudio.LanguageServices;
@@ -16,6 +18,8 @@ using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
+using RoslynCompletionService = Microsoft.CodeAnalysis.Completion.CompletionService;
+
 namespace DotGram.VisualStudio;
 
 [Export(typeof(IAsyncCompletionSourceProvider))]
@@ -23,11 +27,18 @@ namespace DotGram.VisualStudio;
 [ContentType(GramContentType.Name)]
 sealed class GramCompletionSourceProvider : IAsyncCompletionSourceProvider
 {
+	[Import]
+	VisualStudioWorkspace Workspace { get; set; } = null!;
+
+	[Import]
+	ITextDocumentFactoryService Documents { get; set; } = null!;
+
 	public IAsyncCompletionSource GetOrCreate(ITextView textView) =>
 		textView.Properties.GetOrCreateSingletonProperty(() =>
 			new GramCompletionSource(
 				textView.TextBuffer,
-				GramBufferAnalysis.For(textView.TextBuffer)));
+				GramBufferAnalysis.For(textView.TextBuffer),
+				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
 }
 
 [Export(typeof(IAsyncCompletionSourceProvider))]
@@ -45,7 +56,8 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 		textView.Properties.GetOrCreateSingletonProperty(() =>
 			new EmbeddedGramCompletionSource(
 				textView.TextBuffer,
-				EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents)));
+				EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents),
+				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
 }
 
 abstract class GramCompletionSourceBase : IAsyncCompletionSource
@@ -57,6 +69,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	];
 
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
+	readonly HashSet<string> _csharpItems = new(StringComparer.Ordinal);
 
 	public CompletionStartData InitializeCompletion(
 		CompletionTrigger trigger,
@@ -71,18 +84,29 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			WordSpan(triggerLocation));
 	}
 
-	public Task<CompletionContext> GetCompletionContextAsync(
+	public async Task<CompletionContext> GetCompletionContextAsync(
 		IAsyncCompletionSession session,
 		CompletionTrigger trigger,
 		SnapshotPoint triggerLocation,
 		SnapshotSpan applicableToSpan,
 		CancellationToken token)
 	{
+		if (GramCSharpCompletionContext.TryGetPrefix(
+			triggerLocation.Snapshot.GetText(), triggerLocation.Position, out var prefix))
+		{
+			var csharpItems = await CSharpCompletionsAsync(prefix, token).ConfigureAwait(false);
+			_csharpItems.Clear();
+			foreach (var item in csharpItems)
+				_csharpItems.Add(item.DisplayText);
+			return new CompletionContext(csharpItems);
+		}
+
 		var definitions = Definitions(triggerLocation);
 		var names = definitions.Keys.Concat(BuiltIns).Distinct(StringComparer.Ordinal).OrderBy(static name => name);
 		var items = ImmutableArray.CreateBuilder<CompletionItem>();
 
 		_descriptions.Clear();
+		_csharpItems.Clear();
 
 		foreach (var name in names)
 		{
@@ -106,7 +130,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 				: BuiltInDescription(name);
 		}
 
-		return Task.FromResult(new CompletionContext(items.ToImmutable()));
+		return new CompletionContext(items.ToImmutable());
 	}
 
 	public Task<object> GetDescriptionAsync(
@@ -116,10 +140,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		Task.FromResult<object>(
 			_descriptions.TryGetValue(item.DisplayText, out var description)
 				? description
+				: _csharpItems.Contains(item.DisplayText)
+					? "C# symbol provided by Roslyn"
 				: "DotGram syntax");
 
 	protected abstract bool IsApplicable(SnapshotPoint point);
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
+	protected abstract Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
+		string prefix, CancellationToken cancellationToken);
 
 	protected readonly struct RuleCompletion(string description, string signature, int parameterCount)
 	{
@@ -163,7 +191,10 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	};
 }
 
-sealed class GramCompletionSource(ITextBuffer buffer, GramBufferAnalysis analysis) : GramCompletionSourceBase
+sealed class GramCompletionSource(
+	ITextBuffer buffer,
+	GramBufferAnalysis analysis,
+	RoslynGramCompletion roslyn) : GramCompletionSourceBase
 {
 	protected override bool IsApplicable(SnapshotPoint point) => point.Snapshot.TextBuffer == buffer;
 
@@ -195,11 +226,16 @@ sealed class GramCompletionSource(ITextBuffer buffer, GramBufferAnalysis analysi
 		return definitions;
 	}
 
+	protected override Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
+		string prefix, CancellationToken cancellationToken) =>
+		roslyn.GetItemsAsync(this, prefix, cancellationToken);
+
 }
 
 sealed class EmbeddedGramCompletionSource(
 	ITextBuffer buffer,
-	EmbeddedGrammarBufferAnalysis analysis) : GramCompletionSourceBase
+	EmbeddedGrammarBufferAnalysis analysis,
+	RoslynGramCompletion roslyn) : GramCompletionSourceBase
 {
 	protected override bool IsApplicable(SnapshotPoint point)
 	{
@@ -243,5 +279,78 @@ sealed class EmbeddedGramCompletionSource(
 			}
 
 		return definitions;
+	}
+
+	protected override Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
+		string prefix, CancellationToken cancellationToken) =>
+		roslyn.GetItemsAsync(this, prefix, cancellationToken);
+}
+
+sealed class RoslynGramCompletion(
+	ITextBuffer buffer,
+	VisualStudioWorkspace workspace,
+	ITextDocumentFactoryService documents)
+{
+	public async Task<ImmutableArray<CompletionItem>> GetItemsAsync(
+		IAsyncCompletionSource source,
+		string prefix,
+		CancellationToken cancellationToken)
+	{
+		var project = Project();
+		if (project is null)
+			return [];
+
+		const string before = "using System; class __DotGramCompletion { object __Value() { return ";
+		const string after = "; } }";
+		var document = project.AddDocument(
+			"__DotGramCompletion.cs",
+			SourceText.From(before + prefix + after));
+		var service = RoslynCompletionService.GetService(document);
+		if (service is null)
+			return [];
+
+		var completions = await service.GetCompletionsAsync(
+			document,
+			before.Length + prefix.Length,
+			cancellationToken: cancellationToken).ConfigureAwait(false);
+		if (completions is null)
+			return [];
+
+		return completions.ItemsList
+			.GroupBy(static item => item.DisplayText, StringComparer.Ordinal)
+			.Select(group => group.First())
+			.Select(item => new CompletionItem(
+				item.DisplayText,
+				source,
+				ImageElement.Empty,
+				ImmutableArray<CompletionFilter>.Empty,
+				item.InlineDescription ?? "",
+				item.DisplayText,
+				item.SortText,
+				item.FilterText,
+				ImmutableArray<ImageElement>.Empty))
+			.ToImmutableArray();
+	}
+
+	Project? Project()
+	{
+		if (documents.TryGetTextDocument(buffer, out var textDocument) &&
+			textDocument.FilePath is not null)
+		{
+			var solution = workspace.CurrentSolution;
+			var id = solution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
+			if (id is not null)
+				return solution.GetProject(id.ProjectId);
+
+
+			var additionalProject = solution.Projects.FirstOrDefault(project =>
+				project.AdditionalDocuments.Any(document =>
+					string.Equals(document.FilePath, textDocument.FilePath, StringComparison.OrdinalIgnoreCase)));
+			if (additionalProject is not null)
+				return additionalProject;
+		}
+
+		return workspace.CurrentSolution.Projects.FirstOrDefault(
+			static project => project.Language == LanguageNames.CSharp);
 	}
 }
