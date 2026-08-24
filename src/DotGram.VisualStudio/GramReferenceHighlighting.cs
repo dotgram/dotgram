@@ -43,8 +43,8 @@ sealed class EmbeddedGramReferenceHighlightTaggerProvider : IViewTaggerProvider
 
 sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 {
-	const string DefinitionMarker = "MarkerFormatDefinition/HighlightedDefinition";
-	const string ReferenceMarker  = "MarkerFormatDefinition/HighlightedReference";
+	const string DefinitionMarker = "DefinitionHighlightTag";
+	const string ReferenceMarker  = "ReferenceHighlightTag";
 
 	readonly ITextView         _view;
 	readonly GramBufferAnalysis _analysis;
@@ -106,8 +106,8 @@ sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 
 sealed class EmbeddedGramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 {
-	const string DefinitionMarker = "MarkerFormatDefinition/HighlightedDefinition";
-	const string ReferenceMarker  = "MarkerFormatDefinition/HighlightedReference";
+	const string DefinitionMarker = "DefinitionHighlightTag";
+	const string ReferenceMarker  = "ReferenceHighlightTag";
 
 	readonly ITextView                    _view;
 	readonly EmbeddedGrammarBufferAnalysis _analysis;
