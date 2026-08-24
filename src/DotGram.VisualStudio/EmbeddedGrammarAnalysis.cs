@@ -43,6 +43,22 @@ public readonly record struct HostBracePair(TextSpan OpenSpan, TextSpan CloseSpa
 
 public readonly record struct HostFoldingRange(TextSpan Span, TextSpan GrammarSpan, string CollapsedText);
 
+public sealed class HostDocumentSymbol(
+	string name,
+	GramDocumentSymbolKind kind,
+	TextSpan span,
+	TextSpan selectionSpan,
+	TextSpan grammarSpan,
+	IReadOnlyList<HostDocumentSymbol> children)
+{
+	public string Name { get; } = name;
+	public GramDocumentSymbolKind Kind { get; } = kind;
+	public TextSpan Span { get; } = span;
+	public TextSpan SelectionSpan { get; } = selectionSpan;
+	public TextSpan GrammarSpan { get; } = grammarSpan;
+	public IReadOnlyList<HostDocumentSymbol> Children { get; } = children;
+}
+
 /// <summary>One grammar rule occurrence mapped into its containing C# document.</summary>
 public readonly struct HostSymbolOccurrence(
 	string name,
@@ -69,7 +85,8 @@ public sealed class EmbeddedGrammarAnalysis(
 	IReadOnlyList<HostDiagnostic> diagnostics,
 	IReadOnlyList<HostSymbolOccurrence> symbols,
 	IReadOnlyList<HostBracePair> braces,
-	IReadOnlyList<HostFoldingRange> foldingRanges)
+	IReadOnlyList<HostFoldingRange> foldingRanges,
+	IReadOnlyList<HostDocumentSymbol> documentSymbols)
 {
 	public EmbeddedGrammar                   Grammar         { get; } = grammar;
 	public IReadOnlyList<HostClassification> Classifications { get; } = classifications;
@@ -77,6 +94,7 @@ public sealed class EmbeddedGrammarAnalysis(
 	public IReadOnlyList<HostSymbolOccurrence> Symbols        { get; } = symbols;
 	public IReadOnlyList<HostBracePair> Braces { get; } = braces;
 	public IReadOnlyList<HostFoldingRange> FoldingRanges { get; } = foldingRanges;
+	public IReadOnlyList<HostDocumentSymbol> DocumentSymbols { get; } = documentSymbols;
 }
 
 /// <summary>Runs shared grammar intelligence and maps its answers into a C# document.</summary>
@@ -97,6 +115,7 @@ public static class EmbeddedGrammarService
 			var symbols         = new List<HostSymbolOccurrence>(document.Symbols.Count);
 			var braces          = new List<HostBracePair>(document.Braces.Count);
 			var foldingRanges   = new List<HostFoldingRange>(document.FoldingRanges.Count);
+			var documentSymbols = MapSymbols(document.DocumentSymbols, grammar);
 
 			foreach (var classification in document.Classifications)
 				if (grammar.SourceMap.TryMap(
@@ -163,9 +182,30 @@ public static class EmbeddedGrammarService
 				diagnostics,
 				symbols,
 				braces,
-				foldingRanges));
+				foldingRanges,
+				documentSymbols));
 		}
 
 		return analyses;
+	}
+
+	static IReadOnlyList<HostDocumentSymbol> MapSymbols(
+		IReadOnlyList<GramDocumentSymbol> symbols,
+		EmbeddedGrammar grammar)
+	{
+		var result = new List<HostDocumentSymbol>(symbols.Count);
+
+		foreach (var symbol in symbols)
+			if (grammar.SourceMap.TryMap(symbol.Position, symbol.Length, out var span) &&
+				grammar.SourceMap.TryMap(symbol.SelectionPosition, symbol.SelectionLength, out var selectionSpan))
+				result.Add(new HostDocumentSymbol(
+					symbol.Name,
+					symbol.Kind,
+					span,
+					selectionSpan,
+					grammar.Token.Span,
+					MapSymbols(symbol.Children, grammar)));
+
+		return result;
 	}
 }

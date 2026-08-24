@@ -197,6 +197,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
 	IReadOnlyList<HostBracePair>       _braces        = [];
 	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
+	IReadOnlyList<HostDocumentSymbol> _documentSymbols = [];
 
 	EmbeddedGrammarBufferAnalysis(
 		ITextBuffer buffer,
@@ -286,6 +287,24 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
+	public bool TryGetDocumentSymbols(
+		ITextSnapshot snapshot,
+		out IReadOnlyList<HostDocumentSymbol> symbols)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				symbols = _documentSymbols;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		symbols = [];
+		return false;
+	}
+
 	void BufferChanged(object sender, TextContentChangedEventArgs change) => Schedule(change.After);
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
@@ -345,6 +364,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
 			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
 			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
+			var documentSymbols = analyses.SelectMany(static analysis => analysis.DocumentSymbols).ToArray();
 			var retry           = false;
 
 			lock (_gate)
@@ -360,6 +380,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_symbols         = symbols;
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
+				_documentSymbols = documentSymbols;
 
 				if (_retrySnapshot != snapshot)
 				{

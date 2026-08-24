@@ -80,19 +80,46 @@ public readonly record struct GramBracePair(int OpenPosition, int OpenLength, in
 
 public readonly record struct GramFoldingRange(int Position, int Length, string CollapsedText);
 
+public enum GramDocumentSymbolKind
+{
+	Namespace,
+	Rule,
+	Publication,
+}
+
+public sealed class GramDocumentSymbol(
+	string name,
+	GramDocumentSymbolKind kind,
+	int position,
+	int length,
+	int selectionPosition,
+	int selectionLength,
+	IReadOnlyList<GramDocumentSymbol> children)
+{
+	public string Name { get; } = name;
+	public GramDocumentSymbolKind Kind { get; } = kind;
+	public int Position { get; } = position;
+	public int Length { get; } = length;
+	public int SelectionPosition { get; } = selectionPosition;
+	public int SelectionLength { get; } = selectionLength;
+	public IReadOnlyList<GramDocumentSymbol> Children { get; } = children;
+}
+
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
 public sealed class GramDocument(
 	IReadOnlyList<GramClassifiedSpan> classifications,
 	IReadOnlyList<GramDiagnostic> diagnostics,
 	IReadOnlyList<GramSymbolOccurrence> symbols,
 	IReadOnlyList<GramBracePair> braces,
-	IReadOnlyList<GramFoldingRange> foldingRanges)
+	IReadOnlyList<GramFoldingRange> foldingRanges,
+	IReadOnlyList<GramDocumentSymbol> documentSymbols)
 {
 	public IReadOnlyList<GramClassifiedSpan> Classifications { get; } = classifications;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
 	public IReadOnlyList<GramSymbolOccurrence> Symbols { get; } = symbols;
 	public IReadOnlyList<GramBracePair> Braces { get; } = braces;
 	public IReadOnlyList<GramFoldingRange> FoldingRanges { get; } = foldingRanges;
+	public IReadOnlyList<GramDocumentSymbol> DocumentSymbols { get; } = documentSymbols;
 }
 
 /// <summary>
@@ -168,13 +195,79 @@ public static class GramLanguageService
 		});
 
 		var (braces, foldingRanges) = Structure(text, tokens.Tokens, rules, classifications);
+		var documentSymbols = DocumentSymbols(parsed.File.Decls, tokens.Tokens);
 
 		return new GramDocument(
 			classifications,
 			NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens),
 			symbols,
 			braces,
-			foldingRanges);
+			foldingRanges,
+			documentSymbols);
+	}
+
+	static IReadOnlyList<GramDocumentSymbol> DocumentSymbols(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new List<GramDocumentSymbol>(declarations.Count);
+
+		foreach (var declaration in declarations)
+		{
+			var end = tokens
+				.Where(token => token.Position >= declaration.At.Position && token.Position < declaration.At.End)
+				.Select(static token => token.Position + token.Length)
+				.DefaultIfEmpty(declaration.At.End)
+				.Max();
+
+			switch (declaration)
+			{
+				case Decl.Rule rule:
+					result.Add(new GramDocumentSymbol(
+						rule.Name,
+						GramDocumentSymbolKind.Rule,
+						declaration.At.Position,
+						end - declaration.At.Position,
+						declaration.At.Position,
+						rule.Name.Length,
+						[]));
+					break;
+
+				case Decl.Namespace @namespace:
+					var namespaceToken = tokens.FirstOrDefault(token =>
+						token.Kind == TokenKind.Identifier &&
+						token.Value == @namespace.Name &&
+						token.Position >= declaration.At.Position &&
+						token.Position < declaration.At.End);
+					result.Add(new GramDocumentSymbol(
+						@namespace.Name,
+						GramDocumentSymbolKind.Namespace,
+						declaration.At.Position,
+						end - declaration.At.Position,
+						namespaceToken.Position,
+						namespaceToken.Length,
+						DocumentSymbols(@namespace.Decls, tokens)));
+					break;
+
+				case Decl.Publish publish:
+					var target = tokens.FirstOrDefault(token =>
+						token.Kind == TokenKind.Identifier &&
+						token.Value == publish.RuleName &&
+						token.Position >= declaration.At.Position &&
+						token.Position < declaration.At.End);
+					result.Add(new GramDocumentSymbol(
+						$"{publish.Kind.ToString().ToLowerInvariant()} {publish.RuleName}",
+						GramDocumentSymbolKind.Publication,
+						declaration.At.Position,
+						end - declaration.At.Position,
+						target.Position,
+						target.Length,
+						[]));
+					break;
+			}
+		}
+
+		return result;
 	}
 
 	static (IReadOnlyList<GramBracePair> Braces, IReadOnlyList<GramFoldingRange> FoldingRanges) Structure(

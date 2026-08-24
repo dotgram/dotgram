@@ -158,6 +158,14 @@ public sealed class GramLanguageServiceTests
 		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Start"));
+
+		Assert.Equal(new[] { "A", "B", "N" }, document.DocumentSymbols.Select(symbol => symbol.Name));
+		var @namespace = document.DocumentSymbols[2];
+		Assert.Equal(GramDocumentSymbolKind.Namespace, @namespace.Kind);
+		Assert.Equal(new[] { "Start", "parse Start" }, @namespace.Children.Select(symbol => symbol.Name));
+		Assert.All(@namespace.Children, symbol =>
+			Assert.True(@namespace.Position <= symbol.Position &&
+				symbol.Position + symbol.Length <= @namespace.Position + @namespace.Length));
 	}
 
 	[Fact]

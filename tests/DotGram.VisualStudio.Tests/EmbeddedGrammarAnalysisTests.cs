@@ -103,6 +103,10 @@ public sealed class EmbeddedGrammarAnalysisTests
 		});
 		Assert.Equal(2, analysis.FoldingRanges.Count);
 		Assert.All(analysis.FoldingRanges, range => Assert.True(range.GrammarSpan.Contains(range.Span)));
+		var symbol = Assert.Single(analysis.DocumentSymbols);
+		Assert.Equal("Start", symbol.Name);
+		Assert.Equal(GramDocumentSymbolKind.Rule, symbol.Kind);
+		Assert.True(symbol.GrammarSpan.Contains(symbol.SelectionSpan));
 	}
 
 	static string Host(string literal) => $$"""
