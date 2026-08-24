@@ -150,6 +150,32 @@ public sealed class ExampleTests
 		Assert.Throws<FormatException>(static () => DecimalCalculator.Evaluate("1 . 5"));
 	}
 
+	// ── A number read under two decimal points ───────────────────────────────────
+
+	[Theory]
+	[InlineData("1.5",   "1.5")]
+	[InlineData("42",     "42")]
+	[InlineData("0.125", "0.125")]
+	public void ParseNumber_reads_a_point(string text, string expected) =>
+		Assert.Equal(expected, LocaleNumber.ParseNumber(text).ToString(CultureInfo.InvariantCulture));
+
+	[Theory]
+	[InlineData("1,5",   "1.5")]
+	[InlineData("42",     "42")]
+	[InlineData("0,125", "0.125")]
+	public void ParseEuropeanNumber_reads_the_same_grammar_under_a_comma(string text, string expected) =>
+		Assert.Equal(expected, LocaleNumber.ParseEuropeanNumber(text).ToString(CultureInfo.InvariantCulture));
+
+	[Fact]
+	public void Each_publication_only_accepts_its_own_separator()
+	{
+		// Proof that the context specializes this one use of `Number` rather than
+		// mutating it globally — the same rule, published twice, disagrees with itself
+		// about which character is `Point`.
+		Assert.False(LocaleNumber.TryParseNumber("1,5").IsSuccess);
+		Assert.False(LocaleNumber.TryParseEuropeanNumber("1.5").IsSuccess);
+	}
+
 	// ── The calculator of one rule ───────────────────────────────────────────────
 
 	static string Strength(string expression) =>
