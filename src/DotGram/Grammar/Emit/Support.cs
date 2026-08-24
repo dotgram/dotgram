@@ -529,11 +529,11 @@ public static partial class CSharpEmitter
 
 			internal object?[] Materialization(int count)
 			{
-				// Doubled, not sized to fit exactly: eager construction calls this once per
-				// return of an eager rule, and a grammar with many of those in one parse — a
-				// repeated record, one eager value each — would otherwise pay for a fresh
-				// copy of the whole table on every one of them, turning an O(n) parse back
-				// into the O(n^2) the incremental materializer exists to avoid.
+				// Doubled, not sized to fit exactly: a `when` guard calls this once per
+				// evaluation, and a repeated record with a guard inside the repeat would
+				// otherwise pay for a fresh copy of the whole table on every turn, turning
+				// an O(n) parse back into the O(n^2) the incremental materializer exists to
+				// avoid.
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, global::System.Math.Max(count, _values.Length * 2));
 				/*TYPED_RESIZE*/

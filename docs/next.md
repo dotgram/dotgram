@@ -890,3 +890,49 @@ in scope via `using DotGram.Grammar.Parsing;`, so the resolved form became
 for `Decl.Rule` vs. `RuleSymbol`. `GRAM####` values did not change, only the C# constant
 names and message text. `GrammarNormalizer.Contexts.cs` was renamed to
 `GrammarNormalizer.Namespaces.cs` to match.
+
+## Reverted: eager construction violated deferred-construction semantics
+
+A review of `main` found two problems in "Eager construction: built, wired in, and
+caught its own bug" above, confirmed directly against the code rather than assumed, and
+the whole feature was removed rather than patched.
+
+**The concept itself is unsound**, independent of any bug in it. `Committed` proves only
+that no alternative derivation could still replace this one through backtracking — it
+says nothing about whether the suffix that follows will go on to succeed. The project's
+own test already proved this observably wrong:
+`GeneratorDriverTests.An_eager_eligible_rule_is_constructed_even_when_the_parse_later_fails`
+asserted that `Built()` **is** called on input `"1"` for `Start : @int = value: Inner &
+'x' => @(value)` / `Inner : @int = '1' => @Built()`, even though there is no trailing
+`'x'`, the whole parse fails, and `Accept:` — the only other place a value is ever
+built — is never reached. That directly contradicts §3 of `docs/implementation.md`
+("nothing is built while matching") and the deferred-construction guarantee
+`README.md` advertises. No atomic group is even involved in that example — `Inner` is
+`Committed` simply because nothing precedes it to backtrack into.
+
+**A separate, compounding bug** made `Committed` wrong more often than intended. The
+runtime commit for an atomic group (the `atCommit` writer in `Machine.cs`) only marks
+arena entries created *inside* the group `Dead` — entries from before the group, such as
+an outer rule's own still-live alternative, are never touched; the code's own comment
+said as much ("committing is about the first only... the ways back are put out and
+everything stays where it is"). But the region walk in the now-deleted `Region.cs`
+returned fully committed unconditionally after any successful atomic group, regardless
+of the incoming committed state — narrower in the runtime than in the analysis that was
+supposed to describe it.
+
+Removed rather than patched: even with the atomic-group propagation corrected, the first
+problem stands on its own — local commitment never implies eventual acceptance.
+`Region`/`DecisionClass`/`ComputeRegions()` had exactly one consumer
+(`ComputeEagerRules`, confirmed by grep — nothing else in `Machine`/`Compile` ever read
+`_regions`), so removing eager construction left the whole region-analysis subsystem
+unused, and it went with it: `Region.cs`, `Machine.Regions.cs`,
+`EnsureEagerMaterializer` and the `Return:`-time trigger in `Machine.cs`,
+`benchmarks/DotGram.Benchmarks/EagerConstruction.cs`, and `RegionTests.cs`. If a future
+storage or lifetime optimization wants a "can this resume point be dropped" concept, it
+should be built with correct commit semantics from scratch rather than inherit this
+one's bug.
+
+`MaterializeRange`'s `fromExpr` parameter — the bounded-start capability eager
+construction was the only caller of with anything other than `"0"` — went with it too,
+collapsed back into a plain `Materialize(file, cached)` that always walks from the start
+of what changed since the last call.

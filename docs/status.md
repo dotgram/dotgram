@@ -1385,16 +1385,15 @@ lowered version): 119 ns and zero allocation against 691 ns and 952 B through th
 engine. A grammar with even one rule that still needs the arena pays the whole cost for
 every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
 
-**Eager construction**: a rule proved `Committed && Deterministic` at every call site runs
-its `=>` the moment it returns rather than waiting for the parse to be accepted, and the
-materializer behind it is bounded by what changed since the last trigger rather than by
-arena size — `docs/next.md`, "Incremental materializer" and "Eager construction: built,
-wired in, and caught its own bug" have the mechanism. Measured on
-`benchmarks/DotGram.Benchmarks/EagerConstruction.cs` — a repeated record, nothing following
-the repeat so the outer rule qualifies — a tenfold increase in records, 10,000 to 100,000,
-costs eightfold to elevenfold in time and allocation rather than the roughly hundredfold
-either an O(n²) materializer or an exactly-sized array table (both tried, both measured,
-neither shipped) would have paid: 2.6 ms and 11 MB against 22 ms and 125 MB.
+**Eager construction** — a rule proved `Committed && Deterministic` at every call site
+running its `=>` the moment it returns, rather than waiting for the parse to be accepted —
+was built, measured, and then found unsound and removed. `Committed` proves only that no
+alternative derivation can still replace this one through backtracking; it says nothing
+about whether the suffix that follows will go on to succeed, so a rule could be, and in
+practice was, constructed on a parse that later failed entirely — a direct violation of
+§3's "nothing is built while matching." See `docs/next.md`, "Reverted: eager construction
+violated deferred-construction semantics" for the full account, including a second,
+compounding bug in how the region analysis it depended on read atomic-group commitment.
 
 Everything the architecture claims now has a number behind it.
 

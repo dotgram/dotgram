@@ -36,48 +36,10 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// The materializer an eager-eligible rule calls from its own <c>Return:</c>, bounded to
-	/// its own subtree instead of the whole arena.
+	/// Turns an accepted derivation into values, walking whatever the arena holds since the
+	/// last call.
 	/// </summary>
-	/// <remarks>
-	/// Cached, the same as the guard materializer <see cref="EnsureMaterializer"/> builds:
-	/// this rule's own values may already be asked for again by an outer materialization once
-	/// the parse is accepted, or by an eager rule that turns out to sit inside another one —
-	/// <c>built[]</c> is what stops that from constructing twice.
-	/// </remarks>
-	void EnsureEagerMaterializer()
-	{
-		if (_eagerMaterializer)
-			return;
-
-		_eagerMaterializer = true;
-
-		var helper = new Writer(0);
-
-		using (helper.Block(
-			"static void Materialize_DotGram_Eager(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			"ParserArena entries, int from)"))
-			MaterializeRange(helper, "from", cached: true);
-
-		_extra.Add(helper.ToString());
-	}
-
-	void Materialize(Writer file, bool cached) =>
-		MaterializeRange(file, "0", cached);
-
-	/// <summary>
-	/// Turns an accepted derivation into values, bounded to what changed since the last call.
-	/// </summary>
-	/// <remarks>
-	/// <paramref name="fromExpr"/> is <c>"0"</c> for a fresh parse's one full sweep — the
-	/// whole arena is what changed, because nothing before it was ever materialized. An eager
-	/// materializer passes a rule's own call index instead, and gets the same walk narrowed to
-	/// one subtree: <see cref="MaterializeRule"/> already reads a rule's captures purely
-	/// through <c>linkHeads</c>/<c>linkNexts</c> starting from its own <c>completedAt</c>, so
-	/// bounding where the owner-marking and build sweeps start is the whole of what a caller
-	/// has to say to ask for less than everything.
-	/// </remarks>
-	void MaterializeRange(Writer file, string fromExpr, bool cached)
+	void Materialize(Writer file, bool cached)
 	{
 		file.Line("var values = parser.Materialization(entries.Count);");
 		DeclareTables(file);
@@ -116,8 +78,8 @@ sealed partial class Machine
 		// the complete accepted value tree without recursion or another typed collection.
 		file.Line();
 		if (!cached)
-			file.Line($"values[{fromExpr}] = parser;");
-		using (file.Block($"for (var ownerAt = {fromExpr}; ownerAt < entries.Count; ownerAt++)"))
+			file.Line("values[0] = parser;");
+		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
 		{
 			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
 
@@ -136,7 +98,7 @@ sealed partial class Machine
 		{
 			file.Line();
 
-			using (file.Block($"for (var recoveryAt = {fromExpr}; recoveryAt < entries.Count; recoveryAt++)"))
+			using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
 			{
 				file.Line("var recovered = entries[recoveryAt];");
 				file.Line(
@@ -155,7 +117,7 @@ sealed partial class Machine
 		}
 
 		using (file.Block(
-			$"for (var completedAt = entries.Count - 1; completedAt >= {fromExpr}; completedAt--)"))
+			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
 		{
 			file.Line("var completed = entries[completedAt];");
 			file.Line(

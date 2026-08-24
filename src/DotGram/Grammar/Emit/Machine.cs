@@ -56,7 +56,6 @@ sealed partial class Machine
 	/// </remarks>
 	int _fail = Fail;
 	bool _materializer;
-	bool _eagerMaterializer;
 	bool _guardValues;
 	int _guards;
 	int _captures;
@@ -121,8 +120,6 @@ sealed partial class Machine
 		}
 
 		_plan    = ExecutionPlan.Of(graph);
-		_regions = ComputeRegions();
-		_eagerRules = ComputeEagerRules();
 
 		CollectValueTypes();
 
@@ -189,11 +186,10 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether the generated <c>Parser</c> needs the value-cache fields at all: a typed
-	/// guard reads a value before the parse is accepted, and an eager rule's value may be
-	/// asked for again by an outer materialization once the arena has moved on — both need
-	/// <c>built[]</c> to tell an already-materialized value from one still owed.
+	/// guard reads a value before the parse is accepted, and <c>built[]</c> is what tells
+	/// an already-materialized value from one still owed.
 	/// </summary>
-	public bool Caches => _guardValues || _eagerRules.Count > 0;
+	public bool Caches => _guardValues;
 
 	/// <summary>
 	/// Every type a rule's value can have, each with a table of its own to sit in.
@@ -390,9 +386,6 @@ sealed partial class Machine
 		if (hasValues && Caches)
 			EnsureMaterializer();
 
-		if (hasValues && _eagerRules.Count > 0)
-			EnsureEagerMaterializer();
-
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
 			$"int rootRule{strength}, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
@@ -507,32 +500,6 @@ sealed partial class Machine
 						"returned.Position, returned.CallIndex, returned.AtomicIndex, " +
 						"returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex" +
 						(_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
-
-					// Only the rules Committed && Deterministic proved safe — see
-					// Machine.Regions.cs's ComputeEagerRules — and only right here, after the
-					// rewrite above: before it, entries[call] is still Kind == Call, not
-					// Completed, and MaterializeRule reads a rule's value off its Completed
-					// entry.
-					if (_eagerRules.Count > 0)
-					{
-						using (file.Block("switch (returned.RuleIndex)"))
-						{
-							foreach (var rule in _eagerRules)
-								file.Line($"case {_ruleIds[rule]}:");
-
-							using (file.Indent())
-							{
-								// The generic mark, not RootValue's typed tables: nothing
-								// here reads the value back — it stays in the arena for
-								// whichever capture or the final sweep reads it later.
-								file.Line("var eagerValues = parser.Materialization(entries.Count);");
-								file.Line("var eagerBuilt  = parser.Materialized();");
-								file.Line("if (!eagerBuilt[call]) eagerValues[call] = parser;");
-								file.Line("Materialize_DotGram_Eager(text, parser, entries, call);");
-								file.Line("break;");
-							}
-						}
-					}
 				}
 				if (Caches)
 				{
@@ -1462,9 +1429,7 @@ sealed partial class Machine
 	/// </remarks>
 	bool CanInline(RuleSymbol rule) => _plan.CompiledInPlace.Contains(rule);
 
-	readonly ExecutionPlan               _plan;
-	readonly IReadOnlyCollection<Region> _regions;
-	readonly HashSet<RuleSymbol>         _eagerRules;
+	readonly ExecutionPlan _plan;
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{

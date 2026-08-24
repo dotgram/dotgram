@@ -726,94 +726,52 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
-	// ── Eager construction ───────────────────────────────────────────────────────
+	// ── Deferred construction ────────────────────────────────────────────────────
 
 	[Fact]
-	public void An_eager_eligible_rule_is_constructed_even_when_the_parse_later_fails()
+	public void A_committed_rule_is_not_constructed_before_the_parse_is_accepted()
 	{
 		var type = Build("""
 			[DotGram.Gram("Start : @int = value: Inner & 'x' => @(value)\nInner : @int = '1' => @Built()\nparse Start")]
-			public partial class EagerBeforeFailure
+			public partial class CommittedBeforeFailure
 			{
 				public static int Calls;
 				static int Built() { Calls++; return 1; }
 			}
-			""").GetType("EagerBeforeFailure")!;
+			""").GetType("CommittedBeforeFailure")!;
 
-		// No trailing 'x', so the whole parse fails and Accept: — the only other place a
-		// value is ever constructed — is never reached. Inner is Committed && Deterministic
-		// the moment it returns, so the only way Built() can have run at all is the eager
-		// trigger at Inner's own Return:.
+		// No trailing 'x', so the whole parse fails and Accept: — the only place a value is
+		// ever constructed — is never reached. Inner has nothing before it left to
+		// backtrack into the moment it returns, which once made it eligible for a since-
+		// removed eager-construction optimization; Built() must still never run for a
+		// derivation whose surrounding parse does not succeed (docs/implementation.md §3).
 		Assert.Throws<TargetInvocationException>(
 			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
-		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
+		Assert.Equal(0, type.GetField("Calls")!.GetValue(null));
 	}
 
 	[Fact]
-	public void Eager_construction_survives_a_repetition_giving_back_its_last_turn()
+	public void A_rule_before_an_atomic_group_is_not_constructed_before_the_parse_is_accepted()
 	{
-		// Nothing follows Item* inside Start's own body — a repeat followed by anything
-		// else in the same sequence is enough on its own to disqualify the rule (confirmed
-		// against the shape the recovery test below uses, which has an eof after Item* and
-		// does not qualify). Checked here rather than assumed, since a comment claiming
-		// eager fired is worth exactly as much as the sub-string search that confirms it.
-		Assert.Contains(
-			"Materialize_DotGram_Eager",
-			GetGeneratedSource(
-				RunGenerator("""
-					[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
-					public partial class EagerRepeatProbe { static int Built() => 1; }
-					"""),
-				"EagerRepeatProbe.g.cs"),
-			StringComparison.Ordinal);
-
+		// Prefix has a live alternative (`none`) still available when { 'x' } closes; a
+		// since-removed eager-construction analysis treated any successful atomic group as
+		// committing everything before it, which is not what the runtime commit actually
+		// does — the atomic group only discards entries created inside itself. Value would
+		// have been wrongly eligible for eager construction under that analysis, even
+		// though Prefix's own alternative can still be reached if the parse fails after it.
 		var type = Build("""
-			[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
-			public partial class EagerOverGivenBackTurn
+			[DotGram.Gram("Prefix = 'a' | none\nValue : @int = 'b' => @Built()\nStart = Prefix & { 'x' } & Value & 'z'\nparse Start")]
+			public partial class AtomicBeforeFailure
 			{
 				public static int Calls;
 				static int Built() { Calls++; return 1; }
 			}
-			""").GetType("EagerOverGivenBackTurn")!;
+			""").GetType("AtomicBeforeFailure")!;
 
-		// The third turn has no digit left to try — Item* gives it back with nothing
-		// consumed, and the repeat exits cleanly with the two that already matched. Start
-		// is Committed && Deterministic the moment it returns (it is the one publication,
-		// with nothing above it left to retry), so its own eager trigger walks a subtree
-		// whose last repetition was truncated out from under it — exactly what
-		// Parser.Truncate's head reversion exists for.
-		var items = (int[])type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1,1,"])!;
-
-		Assert.Equal([1, 1], items);
-		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
-	}
-
-	[Fact]
-	public void Recovery_anywhere_turns_eager_construction_off_for_the_whole_grammar()
-	{
-		var plain = GetGeneratedSource(
-			RunGenerator("""
-				[DotGram.Gram("Start : @int[] = items: Item* => @(items)\nItem : @int = value: ['0'..'9']+ & ',' => @Built()\nparse Start")]
-				public partial class EagerNoRecovery { static int Built() => 1; }
-				"""),
-			"EagerNoRecovery.g.cs");
-
-		var recovering = GetGeneratedSource(
-			RunGenerator("""
-				[DotGram.Gram("Start : @int = value: Inner & Trailer => @(value)\nInner : @int = '1' => @Built()\nTrailer = Row* recover eol\nRow : @string = text: ['a'..'z']+ & eol => @(text)\nparse Start")]
-				public partial class EagerWithRecovery { static int Built() => 1; }
-				"""),
-			"EagerWithRecovery.g.cs");
-
-		// Two different grammars, not a minimal pair over one — but both have a rule that
-		// is Committed && Deterministic the moment it returns (Start itself in the first,
-		// Inner in the second), so both would use the eager path if anything in the
-		// grammar allowed it. Recovery is what tells them apart: the conservative,
-		// whole-grammar guard (docs/next.md, "Incremental materializer") is the same one
-		// CanLower already uses for the same reason — the recovery pass has not been
-		// checked against a bounded range.
-		Assert.Contains("Materialize_DotGram_Eager", plain, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram_Eager", recovering, StringComparison.Ordinal);
+		// No trailing 'z', so the whole parse fails and Built() must never run.
+		Assert.Throws<TargetInvocationException>(
+			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["axb"]));
+		Assert.Equal(0, type.GetField("Calls")!.GetValue(null));
 	}
 
 	// ── A sequence result (§4.1 case 2) ──────────────────────────────────────────
