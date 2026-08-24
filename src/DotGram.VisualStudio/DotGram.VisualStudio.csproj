@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<Description>Visual Studio tooling for .gram documents.</Description>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+		<GeneratePkgDefFile>false</GeneratePkgDefFile>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Enabled Polyfills">
+		<Polyfill></Polyfill>
+		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Index</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.RequiredMemberAttribute</Polyfill>
+		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VisualStudio.LanguageServices" Version="4.14.0" ExcludeAssets="runtime" />
+		<PackageReference Include="Meziantou.Polyfill" Version="1.0.159" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.9.820" PrivateAssets="all" />
+		<Reference Include="System.ComponentModel.Composition" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="source.extension.vsixmanifest" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="*.cs" />
+		<Compile Include="..\DotGram\Grammar\**\*.cs"
+		         Link="Grammar\%(RecursiveDir)%(Filename)%(Extension)" />
+		<Compile Include="..\DotGram\Generation\RoslynCSharpScanner.cs"
+		         Link="Generation\RoslynCSharpScanner.cs" />
+		<Compile Include="..\DotGram\Language\**\*.cs"
+		         Link="Language\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+</Project>

@@ -28,8 +28,10 @@
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src/DotGram/DotGram.csproj" />
+		<Project Path="src/DotGram.VisualStudio/DotGram.VisualStudio.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
+		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj" />
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj" />
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj" />
 		<Project Path="tests/Snapshots/Snapshots.csproj">
