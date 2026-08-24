@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 using DotGram.Grammar.Binding;
@@ -113,14 +112,9 @@ public static class Regions
 		Func<Node, FirstSets.First, bool, DecisionClass> classify,
 		Func<IReadOnlyList<Node>, bool> predictive)
 	{
-		if (graph is null)
-			throw new ArgumentNullException(nameof(graph));
-
-		if (classify is null)
-			throw new ArgumentNullException(nameof(classify));
-
-		if (predictive is null)
-			throw new ArgumentNullException(nameof(predictive));
+		if (graph      is null) throw new ArgumentNullException(nameof(graph));
+		if (classify   is null) throw new ArgumentNullException(nameof(classify));
+		if (predictive is null) throw new ArgumentNullException(nameof(predictive));
 
 		var regions = new HashSet<Region>(RegionIdentity.Instance);
 
@@ -227,7 +221,7 @@ public static class Regions
 
 			// An atomic group is the one place this is not "what came in, narrowed": its
 			// own close is what makes everything before it irreversible, whatever that was.
-			return node is Node.Atomic ? true : committed && @class.Deterministic;
+			return node is Node.Atomic || committed && @class.Deterministic;
 		}
 	}
 }

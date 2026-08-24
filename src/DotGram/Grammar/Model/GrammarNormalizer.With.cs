@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -119,40 +117,22 @@ public sealed partial class GrammarNormalizer
 	{
 		Node rebuilt = node switch
 		{
-			Node.Empty                              => new Node.Empty(),
-			Node.Element(var negated, var ranges, var categories, var references) =>
-				new Node.Element(negated, ranges, categories, references),
-			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
-			Node.Guard(var text, var at)             => new Node.Guard(text, at),
-			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
-
-			Node.Sequence(var nodes) =>
-				new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-
-			Node.Choice(var nodes) =>
-				new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-
-			Node.Atomic(var body) =>
-				new Node.Atomic(SpliceWithSites(body, rewrites)),
-
-			Node.Repeat(var body, var min, var max) =>
-				new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
-
-			Node.Lookahead(var positive, var body) =>
-				new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
-
-			Node.Capture(var name, var body) =>
-				new Node.Capture(name, SpliceWithSites(body, rewrites)),
-
-			Node.Construct(var body, var how) =>
-				new Node.Construct(SpliceWithSites(body, rewrites), how),
-
+			Node.Empty                                                              => new Node.Empty(),
+			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element(negated, ranges, categories, references),
+			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal(text) { IgnoreCase = ignoreCase },
+			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
+			Node.External (var name) { HasValue: var hasValue }                     => new Node.External(name) { HasValue = hasValue },
+			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Choice   (var nodes)                                               => new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Atomic   (var body)                                                => new Node.Atomic(SpliceWithSites(body, rewrites)),
+			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
+			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
+			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
+			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
 			// Left unrewritten here — no targets/cloneMap apply at this level. A call that
 			// needs rewriting is inside some registered root's own subtree, and that is
 			// what CloneAndRewrite below is for.
-			Node.Call(var called, var arguments) =>
-				new Node.Call(called, [.. arguments.Select(child => SpliceWithSites(child, rewrites))]),
-
+			Node.Call(var called, var arguments)                                    => new Node.Call(called, [.. arguments.Select(child => SpliceWithSites(child, rewrites))]),
 			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
 		};
 

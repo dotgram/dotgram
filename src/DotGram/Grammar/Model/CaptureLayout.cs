@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 using DotGram.Grammar.Binding;
@@ -81,12 +80,7 @@ public sealed class CaptureLayout
 	/// <summary>Every slot that collects rather than holds.</summary>
 	public IEnumerable<CaptureSlot> Sequences
 	{
-		get
-		{
-			foreach (var slot in _slots)
-				if (slot.IsSequence)
-					yield return slot;
-		}
+		get { return _slots.Where(static slot => slot.IsSequence); }
 	}
 
 	/// <param name="fold">
@@ -212,7 +206,7 @@ public sealed record Recovery(Node Sync, string? Factory)
 	public static readonly IReadOnlyList<string> Supplied =
 		[
 			"parserText", "parserPosition", "parserOrdinal",
-			"parserLine", "parserColumn", "parserSpan", "parserMessage",
+			"parserLine", "parserColumn",   "parserSpan", "parserMessage",
 		];
 
 	/// <summary>

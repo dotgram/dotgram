@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -281,46 +278,29 @@ public sealed partial class GrammarNormalizer
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> cloneMap)
 	{
-		Node clone = node switch
+		var clone = node switch
 		{
-			Node.Empty                              => new Node.Empty(),
-			Node.Element(var negated, var ranges, var categories, var references) =>
-				new Node.Element(negated, ranges, categories, references),
-			Node.Literal(var text) { IgnoreCase: var ignoreCase } => new Node.Literal(text) { IgnoreCase = ignoreCase },
-			Node.Guard(var text, var at)             => new Node.Guard(text, at),
-			Node.External(var name) { HasValue: var hasValue } => new Node.External(name) { HasValue = hasValue },
-
-			Node.Sequence(var nodes) =>
-				new Node.Sequence([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
-			Node.Choice(var nodes) =>
-				new Node.Choice([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
-			Node.Atomic(var body) =>
-				new Node.Atomic(CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Repeat(var body, var min, var max) =>
-				new Node.Repeat(CloneAndRewrite(body, targets, cloneMap), min, max),
-
-			Node.Lookahead(var positive, var body) =>
-				new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Capture(var name, var body) =>
-				new Node.Capture(name, CloneAndRewrite(body, targets, cloneMap)),
-
-			Node.Construct(var body, var how) =>
-				new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
-
+			Node.Empty                                                              => new Node.Empty    (),
+			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
+			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
+			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
+			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
+			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
+			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
+			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap)),
+			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap), min, max),
+			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap)),
+			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap)),
+			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
 			// built-in nothing in the grammar happened to call yet (`with (trivia =
 			// none)` when `none` is otherwise unused) — built-ins are registered on
 			// demand (§3.1) at the one place that ordinarily does it, and rewriting a
 			// call onto one bypasses that place unless this does it too.
-			Node.Call(var called, var arguments) =>
+			Node.Call     (var called, var arguments)                               =>
 				CallTo(
 					RewriteTarget(called, targets, cloneMap),
 					[.. arguments.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-
 			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
 		};
 

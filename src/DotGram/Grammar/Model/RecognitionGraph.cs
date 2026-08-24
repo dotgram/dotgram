@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 using DotGram.Grammar.Binding;
@@ -120,12 +119,12 @@ public abstract record Node
 
 		public override string ToString() => (Min, Max) switch
 		{
-			(0, 1)                             => $"{Repeated}?",
-			(0, null)                          => $"{Repeated}*",
-			(1, null)                          => $"{Repeated}+",
-			(var min, var max) when min == max => $"{Repeated}{{{min}}}",
-			(var min, null)                    => $"{Repeated}{{{min},}}",
-			(var min, var max)                 => $"{Repeated}{{{min},{max}}}",
+			(0, 1)                         => $"{Repeated}?",
+			(0, null)                      => $"{Repeated}*",
+			(1, null)                      => $"{Repeated}+",
+			var (min, max) when min == max => $"{Repeated}{{{min}}}",
+			(var min, null)                => $"{Repeated}{{{min},}}",
+			var (min, max)                 => $"{Repeated}{{{min},{max}}}",
 		};
 
 		/// <summary>
@@ -359,9 +358,7 @@ public sealed class RecognitionGraph(
 	/// it at every call site.
 	/// </para>
 	/// </remarks>
-	public IReadOnlyCollection<RuleSymbol> Recursive => _recursive ??= FindRecursive();
-
-	IReadOnlyCollection<RuleSymbol>? _recursive;
+	public IReadOnlyCollection<RuleSymbol> Recursive => field ??= FindRecursive();
 
 	HashSet<RuleSymbol> FindRecursive()
 	{

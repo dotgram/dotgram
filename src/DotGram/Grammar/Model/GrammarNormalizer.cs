@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -182,19 +180,19 @@ public sealed partial class GrammarNormalizer
 
 	bool IsNullable(Node node) => node switch
 	{
-		Node.Empty                     => true,
-		Node.Literal(var text)         => text.Length == 0,
-		Node.Element                   => false,
-		Node.Guard                     => true,
-		Node.Lookahead                 => true,
-		Node.Atomic(var body)          => IsNullable(body),
-		Node.Capture(_, var body)      => IsNullable(body),
-		Node.Construct(var body, _)    => IsNullable(body),
-		Node.Repeat(var body, var min, _) => min == 0 || IsNullable(body),
-		Node.Sequence(var nodes)       => nodes.All(IsNullable),
-		Node.Choice(var nodes)         => nodes.Any(IsNullable),
-		Node.Call(var rule, _)         => _nullable.TryGetValue(rule, out var nullable) && nullable,
-		_                              => false,
+		Node.Empty                           => true,
+		Node.Literal  (var text)             => text.Length == 0,
+		Node.Element                         => false,
+		Node.Guard                           => true,
+		Node.Lookahead                       => true,
+		Node.Atomic   (var body)             => IsNullable(body),
+		Node.Capture  (_, var body)          => IsNullable(body),
+		Node.Construct(var body, _)          => IsNullable(body),
+		Node.Repeat   (var body, var min, _) => min == 0 || IsNullable(body),
+		Node.Sequence (var nodes)            => nodes.All(IsNullable),
+		Node.Choice   (var nodes)            => nodes.Any(IsNullable),
+		Node.Call     (var rule, _)          => _nullable.TryGetValue(rule, out var nullable) && nullable,
+		_                                    => false,
 	};
 
 	// ── Results ──────────────────────────────────────────────────────────────────
@@ -445,11 +443,11 @@ public sealed partial class GrammarNormalizer
 		while (true)
 			switch (node)
 			{
-				case Node.Construct(var built, _):    node = built; break;
-				case Node.Capture(_, var captured):   node = captured; break;
-				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
-				case Node.Call(var called, _):        return ReferenceEquals(called, rule) ? (Node.Call)node : null;
-				default:                              return null;
+				case Node.Construct(var built,  _)           : node = built; break;
+				case Node.Capture  (_,          var captured): node = captured; break;
+				case Node.Sequence (var operands)            : node = operands[^1]; break;
+				case Node.Call     (var called, _) call      : return ReferenceEquals(called, rule) ? call : null;
+				default                                      : return null;
 			}
 	}
 
@@ -477,7 +475,7 @@ public sealed partial class GrammarNormalizer
 		for (var i = 1; i < operands.Count; i++)
 			rest.Add(operands[i]);
 
-		Node tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
+		var tail = rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
 
 		return (built is null ? tail : built with { Body = tail }, name ?? "");
 	}
@@ -488,10 +486,10 @@ public sealed partial class GrammarNormalizer
 		while (true)
 			switch (node)
 			{
-				case Node.Construct(var built, _):    node = built; break;
-				case Node.Capture(_, var captured):   node = captured; break;
-				case Node.Sequence(var operands):     node = operands[operands.Count - 1]; break;
-				case Node.Call(var called, _):        return ReferenceEquals(called, rule);
+				case Node.Construct(var built, _)   : node = built; break;
+				case Node.Capture  (_, var captured): node = captured; break;
+				case Node.Sequence (var operands)   : node = operands[^1]; break;
+				case Node.Call     (var called, _)  : return ReferenceEquals(called, rule);
 				default:                              return false;
 			}
 	}
@@ -511,16 +509,16 @@ public sealed partial class GrammarNormalizer
 
 	internal static bool Writes(Node node, string name) => node switch
 	{
-		Node.Capture(var captured, var body) => captured == name || Writes(body, name),
-		Node.Atomic(var body)                  => Writes(body, name),
-		Node.Sequence(var nodes)             => nodes.Any(child => Writes(child, name)),
-		Node.Choice(var nodes)               => nodes.All(child => Writes(child, name)),
-		Node.Construct(var built, _)         => Writes(built, name),
+		Node.Capture  (var captured, var body)  => captured == name || Writes(body, name),
+		Node.Atomic   (var body)                => Writes(body, name),
+		Node.Sequence (var nodes)               => nodes.Any(child => Writes(child, name)),
+		Node.Choice   (var nodes)               => nodes.All(child => Writes(child, name)),
+		Node.Construct(var built, _)            => Writes(built, name),
 
 		// A run that may be empty still writes: the text of no iterations is "". Only a
 		// genuine option — `X?`, which either happened or did not — leaves it unwritten.
 		Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
 
-		_                                    => false,
+		_                                       => false,
 	};
 }

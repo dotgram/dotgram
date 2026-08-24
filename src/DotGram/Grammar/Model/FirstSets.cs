@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -65,14 +64,9 @@ public static class FirstSets
 		/// <summary>Both, for a place either could begin.</summary>
 		public First Or(First other)
 		{
-			if (Anything || other.Anything)
-				return All;
-
-			if (Nothing)
-				return other;
-
-			if (other.Nothing)
-				return this;
+			if (Anything || other.Anything) return All;
+			if (Nothing)                    return other;
+			if (other.Nothing)              return this;
 
 			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
 
@@ -108,11 +102,8 @@ public static class FirstSets
 
 		public bool Overlaps(First other)
 		{
-			if (Nothing || other.Nothing)
-				return false;
-
-			if (Anything || other.Anything)
-				return true;
+			if (Nothing  || other.Nothing)  return false;
+			if (Anything || other.Anything) return true;
 
 			foreach (var mine in Ranges)
 				foreach (var theirs in other.Ranges)
@@ -160,6 +151,7 @@ public static class FirstSets
 		List<GramDiagnostic> reported, RecognitionGraph graph)
 	{
 		if (node is Node.Sequence(var parts))
+		{
 			for (var i = 0; i < parts.Count - 1; i++)
 			{
 				if (!Undecided(parts, i, graph))
@@ -169,13 +161,14 @@ public static class FirstSets
 					Ambiguous,
 					$"In '{rule.Name}', the repetition '{parts[i]}' can begin with the same input as " +
 					"what follows it, so where it ends is decided by backtracking rather than by the " +
-					"grammar. It parses, and the reading you get is the one the engine happened to " +
+					"grammar. It parses, and the reading you get is the one the engine happened to "   +
 					"find. It is also what stops the rule being read from a stream, where an element " +
 					"handed over cannot be taken back (docs/syntax.md §6.3).",
 					declaration.At.Position,
 					declaration.At.Length,
 					GramSeverity.Info));
 			}
+		}
 
 		foreach (var child in Children(node))
 			Walk(child, rule, declaration, reported, graph);
@@ -194,11 +187,8 @@ public static class FirstSets
 	/// <param name="at">Where in that sequence it is.</param>
 	public static bool Undecided(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
 	{
-		if (parts is null)
-			throw new ArgumentNullException(nameof(parts));
-
-		if (graph is null)
-			throw new ArgumentNullException(nameof(graph));
+		if (parts is null) throw new ArgumentNullException(nameof(parts));
+		if (graph is null) throw new ArgumentNullException(nameof(graph));
 
 		return at < parts.Count - 1 &&
 			parts[at] is Node.Repeat(var body, _, null) &&
@@ -268,10 +258,10 @@ public static class FirstSets
 			case Node.Lookahead:
 				return First.None;
 
-			case Node.Capture(_, var captured):  return Of(captured, graph, seen);
-			case Node.Construct(var built, _):   return Of(built,    graph, seen);
-			case Node.Atomic(var body):           return Of(body,     graph, seen);
-			case Node.Repeat(var body, _, _):    return Of(body,     graph, seen);
+			case Node.Capture  (_,  var captured): return Of(captured, graph, seen);
+			case Node.Construct(var built, _):     return Of(built,    graph, seen);
+			case Node.Atomic   (var body):         return Of(body,     graph, seen);
+			case Node.Repeat   (var body, _, _):   return Of(body,     graph, seen);
 
 			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
 			// down — not one met and left somewhere else. Kept as the path rather than as
@@ -358,13 +348,13 @@ public static class FirstSets
 	{
 		switch (node)
 		{
-			case Node.Sequence(var parts):       return parts;
-			case Node.Choice(var alternatives):  return alternatives;
-			case Node.Repeat(var body, _, _):    return [body];
-			case Node.Capture(_, var captured):  return [captured];
-			case Node.Construct(var built, _):   return [built];
-			case Node.Atomic(var body):           return [body];
-			default:                             return [];
+			case Node.Sequence (var parts):        return parts;
+			case Node.Choice   (var alternatives): return alternatives;
+			case Node.Repeat   (var body, _, _):   return [body];
+			case Node.Capture  (_, var captured):  return [captured];
+			case Node.Construct(var built, _):     return [built];
+			case Node.Atomic   (var body):         return [body];
+			default:                               return [];
 		}
 	}
 }

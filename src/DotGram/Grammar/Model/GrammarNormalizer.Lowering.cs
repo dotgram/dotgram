@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
+using DotGram.Generation;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
 
@@ -82,23 +81,20 @@ public sealed partial class GrammarNormalizer
 
 	Node Lower(Expr expression, GrammarNamespace ns) => expression switch
 	{
-		Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
-		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
-		Expr.Group(var body)                    => Lower(body, ns),
-		Expr.Atomic(var body)                   => new Node.Atomic(Lower(body, ns)),
-		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, ns)),
-		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
-		Expr.Guard(var value)                   => Guarded(value),
-		Expr.CSharp(var text)                   => new Node.Guard($"@({text})", StartOf(expression)),
-
-		Expr.Construct(var pattern, var value)  => LowerConstruct(pattern, value, ns),
-
-		Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
+		Expr.Literal   (_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
+		Expr.ElementSet(var negated, var items)          => LowerElementSet(negated, items, expression),
+		Expr.Group     (var body)                        => Lower(body, ns),
+		Expr.Atomic    (var body)                        => new Node.Atomic(Lower(body, ns)),
+		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
+		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
+		Expr.Guard     (var value)                       => Guarded(value),
+		Expr.CSharp    (var text)                        => new Node.Guard($"@({text})", StartOf(expression)),
+		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
+		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
 
 		// Parsed and refused rather than parsed and ignored: a `recover` that means
 		// nothing would swallow a bad record in silence.
-		Expr.Recovering(var body, var sync, var factory) =>
-			LowerRecovery(body, sync, factory, ns, expression),
+		Expr.Recovering(var body, var sync, var factory) => LowerRecovery(body, sync, factory, ns, expression),
 
 		// §4.2: a count may be a parameter's name, and inside a specialization it stands
 		// for the number the call passed.
@@ -108,17 +104,12 @@ public sealed partial class GrammarNormalizer
 				Bounds(kind, Counted(min, minName, expression)).Min,
 				Bounds(kind, Counted(max, maxName, expression)).Max),
 
-		Expr.Sequence(var operands)             => LowerSequence(operands, ns),
-		Expr.Choice(var alternatives)           => LowerChoice(alternatives, ns),
-
-		Expr.Call(var target, var arguments) =>
-			LowerCall(RuleOf(expression, target.Name), arguments, ns),
-
-		Expr.Reference(_, var name, _) => LowerReference(expression, name),
-
-		Expr.With(var operand, _) => LowerWith(expression, operand, ns),
-
-		_ => Node.Empty.Instance,
+		Expr.Sequence (var operands)              => LowerSequence(operands, ns),
+		Expr.Choice   (var alternatives)          => LowerChoice(alternatives, ns),
+		Expr.Call     (var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
+		Expr.Reference(_, var name, _)            => LowerReference(expression, name),
+		Expr.With     (var operand, _)            => LowerWith(expression, operand, ns),
+		_                                         => Node.Empty.Instance,
 	};
 
 	/// <summary><c>=&gt; expr</c>.</summary>
@@ -142,7 +133,7 @@ public sealed partial class GrammarNormalizer
 	static int StartOf(Expr value) => value switch
 	{
 		Expr.CSharp                      => value.At.Position + 1,
-		Expr.Call(var target, _)         => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
+		Expr.Call     (var target, _)    => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
 		Expr.Reference(var csharp, _, _) => csharp ? value.At.Position + 1 : value.At.Position,
 		_                                => value.At.Position,
 	};
@@ -237,11 +228,9 @@ public sealed partial class GrammarNormalizer
 	/// <para>
 	/// Rewritten directly rather than through <c>_produces</c>/<c>PassThrough</c>'s own
 	/// generic machinery, and for a specific reason: that machinery settles whether an
-	/// operand's value fits the declared type by asking <see cref="ISymbolResolver.
-	/// IsAssignable"/> as an ordinary, separately cached question — which needs both types
+	/// operand's value fits the declared type by asking <see cref="ISymbolResolver.IsAssignable"/> as an ordinary, separately cached question — which needs both types
 	/// known from grammar syntax alone, ahead of asking. The type on this side of the
-	/// question is discovered by <em>this same call</em> (<see cref="ISymbolResolver.
-	/// TryResolveExternalValue"/>'s <c>against</c> parameter already verified it), so
+	/// question is discovered by <em>this same call</em> (<see cref="ISymbolResolver.TryResolveExternalValue"/>'s <c>against</c> parameter already verified it), so
 	/// nothing upstream could have pre-asked an ordinary <c>Fits</c> question about it —
 	/// asking one here would be the exact "question the collector did not foresee" defect
 	/// <see cref="AnsweredSymbolResolver"/> exists to catch. Fitness is settled once, by the
@@ -430,8 +419,8 @@ public sealed partial class GrammarNormalizer
 			Report(
 				UnbuiltCall,
 				$"'{rule.Name}' is called with an argument built from its own, so every call needs " +
-				"another rule and there is no end to them — " +
-				$"{_specializing[0]} … {_specializing[_specializing.Count - 1]}, and growing. " +
+				"another rule and there is no end to them — "                                        +
+				$"{_specializing[0]} … {_specializing[^1]}, and growing. "                           +
 				"§4.2 rejects this when the grammar is built rather than letting it run.",
 				declaration.At);
 
@@ -688,15 +677,13 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	static string Text(Expr value) => value switch
 	{
-		Expr.CSharp(var text)                   => $"({text})",
-		Expr.Reference(_, var name, var types)  => name + TypeArguments(types),
-		Expr.Call(var target, var arguments)    =>
+		Expr.CSharp   (var text)                  => $"({text})",
+		Expr.Reference(_, var name, var types)    => name + TypeArguments(types),
+		Expr.Call     (var target, var arguments) =>
 			Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
-
-		Expr.Literal(true,  var text)           => CharRange.Quote(text[0]),
-		Expr.Literal(false, var text)           => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
-
-		_                                       => value.ToString() ?? "",
+		Expr.Literal  (true,  var text)           => CharRange.Quote(text[0]),
+		Expr.Literal  (false, var text)           => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
+		_                                         => value.ToString(),
 	};
 
 	static string TypeArguments(IReadOnlyList<TypeRef> types) =>
@@ -729,7 +716,7 @@ public sealed partial class GrammarNormalizer
 				// guard let it through to be indexed, which is a generator crash rather than
 				// a grammar error. What it lowers to is nothing: the set goes on without it,
 				// and the diagnostic that is already there is what the author reads.
-				case Elem.Chars(var from, var to) when from.Length > 0 && (to is null || to.Length > 0):
+				case Elem.Chars({ Length: > 0 } from, var to) when (to is null || to.Length > 0):
 					ranges.Add(new CharRange(from[0], (to ?? from)[0]));
 					break;
 
@@ -809,11 +796,11 @@ public sealed partial class GrammarNormalizer
 
 		for (var i = 1; i < ranges.Count; i++)
 		{
-			var last = merged[merged.Count - 1];
+			var last = merged[^1];
 			var next = ranges[i];
 
 			if (next.From <= last.To || next.From == last.To + 1)
-				merged[merged.Count - 1] = new CharRange(last.From, (char)Math.Max(last.To, next.To));
+				merged[^1] = new CharRange(last.From, (char)Math.Max(last.To, next.To));
 			else
 				merged.Add(next);
 		}
@@ -879,10 +866,9 @@ public sealed partial class GrammarNormalizer
 	/// side can answer while it still has the grammar in hand.
 	/// </remarks>
 	bool Continues(Node boundary, char character) =>
-		boundary is Node.Call(var rule, _) &&
-		_bodies.TryGetValue(rule, out var body) &&
-		body is Node.Element(var negated, var ranges, var categories, _) &&
-		categories.Count == 0 &&
+		boundary is Node.Call(var rule, _)                             &&
+		_bodies.TryGetValue(rule, out var body)                        &&
+		body is Node.Element(var negated, var ranges, { Count: 0 }, _) &&
 		negated != ranges.Any(range => character >= range.From && character <= range.To);
 
 	/// <summary>The `wordboundary` this namespace sees, or null while it matches nothing.</summary>
@@ -938,10 +924,10 @@ public sealed partial class GrammarNormalizer
 		{
 			if (node is Node.Literal(var text) { IgnoreCase: var ignoreCase } &&
 				merged.Count > 0 &&
-				merged[merged.Count - 1] is Node.Literal(var previous) { IgnoreCase: var previousIgnoreCase } &&
+				merged[^1] is Node.Literal(var previous) { IgnoreCase: var previousIgnoreCase } &&
 				ignoreCase == previousIgnoreCase)
 			{
-				merged[merged.Count - 1] = new Node.Literal(previous + text) { IgnoreCase = ignoreCase };
+				merged[^1] = new Node.Literal(previous + text) { IgnoreCase = ignoreCase };
 				continue;
 			}
 
@@ -1044,9 +1030,4 @@ public sealed partial class GrammarNormalizer
 
 		return new Node.Element(false, Coalesce(ranges), categories, references);
 	}
-
-	/// <summary>
-	/// An alternative that a preceding literal shadows as a prefix can never be
-	/// reached. Diagnosed rather than repaired — see docs/syntax.md §11.
-	/// </summary>
 }
