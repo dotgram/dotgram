@@ -293,13 +293,14 @@ public sealed class GramParser
 
 	Decl ParsePublication()
 	{
-		var start = Current.Position;
-		var word  = Take().Value!;
-		var kind  = word == "parse" ? PublishKind.Parse : PublishKind.Find;
-		var name  = ExpectQualifiedName();
-		var alias = TakeIfKeyword("as") ? ExpectName() : null;
+		var start      = Current.Position;
+		var word       = Take().Value!;
+		var kind       = word == "parse" ? PublishKind.Parse : PublishKind.Find;
+		var name       = ExpectQualifiedName();
+		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
+		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
 
-		return new Decl.Publish(kind, name, alias) { At = From(start) };
+		return new Decl.Publish(kind, name, rebindings, alias) { At = From(start) };
 	}
 
 	Decl ParseRule()

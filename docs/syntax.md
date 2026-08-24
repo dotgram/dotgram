@@ -877,6 +877,18 @@ for `with` when the substitution belongs to one place a rule is used; reach for 
 header once more than one call needs the same rebinding, or the substitution is worth
 a name of its own.
 
+A `parse`/`find` directive (§6) may carry the same header directly, rather than being
+wrapped in a `context (...)` block just to reach it:
+
+```dotgram
+parse Number with (Point = Comma) as Evaluate
+```
+
+is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
+block, no name for the substitution beyond the publication's own. A publication's own
+`with` is the more locally written of the two extents, so it composes on top of an
+enclosing `context (...)`'s own rebinding of the same rule rather than instead of it.
+
 Write a rebinding in the header rather than as a same-named declaration in the body —
 `context (A = B) { ... }` is a substitution, written where a reader expects one; a
 declaration with the same name sitting in the body, with no header entry for it, is
@@ -1538,7 +1550,7 @@ Declaration = Context | Publication | Rule
 Context     = "context" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
 Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 Rebinding   = Identifier & '=' & Identifier
-Publication = ("parse" | "find") & QualifiedName & ("as" & Identifier)?
+Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?
 
 Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body
 Parameters  = '(' & (Parameter & (',' & Parameter)*)? & ')'

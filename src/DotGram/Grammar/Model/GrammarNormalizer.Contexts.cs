@@ -311,8 +311,13 @@ public sealed partial class GrammarNormalizer
 			Node.Construct(var body, var how) =>
 				new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
 
+			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
+			// built-in nothing in the grammar happened to call yet (`with (trivia =
+			// none)` when `none` is otherwise unused) — built-ins are registered on
+			// demand (§3.1) at the one place that ordinarily does it, and rewriting a
+			// call onto one bypasses that place unless this does it too.
 			Node.Call(var called, var arguments) =>
-				new Node.Call(
+				CallTo(
 					RewriteTarget(called, targets, cloneMap),
 					[.. arguments.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
 

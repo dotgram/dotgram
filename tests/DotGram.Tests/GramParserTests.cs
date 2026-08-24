@@ -190,6 +190,18 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void A_publication_may_carry_its_own_with_header()
+	{
+		Assert.Equal(
+			"""
+			File
+				Publication Parse "Sum" as "Evaluate"
+					Rebinding "trivia" = "none"
+			""",
+			Parse("parse Sum with (trivia = none) as Evaluate"));
+	}
+
+	[Fact]
 	public void Where_is_not_an_alias_for_when()
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(

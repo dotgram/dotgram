@@ -511,6 +511,84 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void A_publication_s_own_with_clones_and_publishes_the_clone()
+	{
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			Number_With1 = Digit & Comma & Digit
+			publish Parse Number_With1 -> Evaluate
+			""",
+			Normalize("""
+				Digit  = ['0'..'9']
+				Point  = '.'
+				Comma  = ','
+				Number = Digit & Point & Digit
+
+				parse Number with (Point = Comma) as Evaluate
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_publication_with_no_with_is_unaffected_by_an_unrelated_one()
+	{
+		// The unbound publication still names the plain `Number` — a `with` on one
+		// publication does not leak into a sibling one for the same rule.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			Number_With1 = Digit & Comma & Digit
+			publish Parse Number -> Plain
+			publish Parse Number_With1 -> Evaluate
+			""",
+			Normalize("""
+				Digit  = ['0'..'9']
+				Point  = '.'
+				Comma  = ','
+				Number = Digit & Point & Digit
+
+				parse Number as Plain
+				parse Number with (Point = Comma) as Evaluate
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_publication_s_with_composes_on_top_of_an_enclosing_context()
+	{
+		// The publication's own `with` is the more locally written of the two: it
+		// clones `Number_Ctx` (the context's own clone), not the plain `Number`.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			OtherDigit = ['1'..'9']
+			Point = '.'
+			Comma = ','
+			Number = Digit & Point & Digit
+			Number_Ctx = OtherDigit & Point & OtherDigit
+			Number_Ctx_With1 = OtherDigit & Comma & OtherDigit
+			publish Parse Number_Ctx_With1 -> Evaluate
+			""",
+			Normalize("""
+				Digit      = ['0'..'9']
+				OtherDigit = ['1'..'9']
+				Point      = '.'
+				Comma      = ','
+				Number     = Digit & Point & Digit
+
+				context Ctx (Digit = OtherDigit)
+				{
+					parse Number with (Point = Comma) as Evaluate
+				}
+				""").ToString());
+	}
+
+	[Fact]
 	public void An_incompatible_contextual_replacement_is_reported_at_the_binding()
 	{
 		// §14, §22 test 11: the diagnostic belongs at the binding itself, not at some

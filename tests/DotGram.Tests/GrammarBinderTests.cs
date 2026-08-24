@@ -368,6 +368,26 @@ public sealed class GrammarBinderTests
 				"""));
 	}
 
+	[Theory]
+	[InlineData("parse Number with (Typo = D) as X\nNumber = 'n'\nD = 'd'",
+		GrammarBinder.UnknownContextTarget)]
+	[InlineData("parse Number with (Number = Typo) as X\nNumber = 'n'",
+		GrammarBinder.UnknownContextReplacement)]
+	[InlineData("parse Number with (B = C, B = D) as X\nNumber = 'n'\nB = 'b'\nC = 'c'\nD = 'd'",
+		GrammarBinder.DuplicateContextBinding)]
+	public void A_publication_s_own_with_reuses_the_same_rebinding_diagnostics(string source, string expectedId)
+	{
+		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void A_publication_s_with_does_not_stop_it_being_reported_as_undefined()
+	{
+		Assert.Contains(
+			GrammarBinder.UndefinedName,
+			Diagnostics("parse Missing with (A = B) as X\nA = 'a'\nB = 'b'"));
+	}
+
 	[Fact]
 	public void With_resolves_its_operand_under_the_same_context_it_sits_in()
 	{

@@ -231,12 +231,35 @@ public sealed class GrammarBinder
 					// same signature — a C# error in the consumer's build, pointing at code
 					// they never wrote. Better to say it here.
 					if (_publications.Find(other => other.MethodName == method) is { } clash)
+					{
 						Report(
 							DuplicatePublication,
 							$"'{method}' is already published by '{clash.Kind} {clash.Rule.Name}'; use 'as' to give one of them another name.",
 							publish.At);
-					else
-						_publications.Add(new Publication(publish.Kind, published, method, publish.At, context));
+
+						break;
+					}
+
+					// §5.1's substitution, written directly on the directive rather than on a
+					// `context (...)` block around it — the same per-entry validation, sharing
+					// the same diagnostics.
+					var ownPublicationBindings = new List<ContextRebinding>();
+
+					foreach (var rebinding in publish.Rebindings)
+						if (ValidateRebinding(rebinding, context) is { } resolved)
+						{
+							if (ownPublicationBindings.Exists(existing => existing.Left == resolved.Left))
+								Report(
+									DuplicateContextBinding,
+									$"'{rebinding.Left}' is bound more than once in this 'with'.",
+									rebinding.At);
+							else
+								ownPublicationBindings.Add(resolved);
+						}
+
+					_publications.Add(new Publication(
+						publish.Kind, published, method, publish.At, context,
+						ChainResolve(EmptyBindings, ownPublicationBindings)));
 
 					break;
 			}

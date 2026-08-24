@@ -174,8 +174,14 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// which is what lets a `parse`/`find` declared inside a bound `context (...)` be remapped
 /// to the specialized clone it meant (§18) once one exists.
 /// </param>
+/// <param name="Rebindings">
+/// This directive's own `with (A = B, ...)` (§5.1), resolved — empty when it has none.
+/// The same substitution a `context (...)` header applies to a whole block, written
+/// directly on the one publication that needs it instead.
+/// </param>
 public sealed record Publication(
-	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarContext DeclaredIn)
+	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarContext DeclaredIn,
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>

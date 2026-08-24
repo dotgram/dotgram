@@ -75,12 +75,16 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
-		// Both before RewriteLeftRecursion(), for the reason already there — a clone's
-		// self-call must resolve to the clone before left-recursion rewriting runs. `with`
-		// goes first: it mutates a rule's own body in place, and an enclosing
-		// `context (...)` clone of the same rule must see that mutation already applied.
+		// All three before RewriteLeftRecursion(), for the reason already there — a
+		// clone's self-call must resolve to the clone before left-recursion rewriting
+		// runs. Expression-scoped `with` goes first: it mutates a rule's own body in
+		// place, and an enclosing `context (...)` clone of the same rule must see that
+		// mutation already applied. A publication's own `with` goes last, after
+		// `context (...)`, since it is the more locally written of the two and composes
+		// on top of whatever the context already did to the rule it publishes.
 		normalizer.SpecializeWithSites();
 		normalizer.SpecializeContexts();
+		normalizer.SpecializePublicationWith();
 
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();

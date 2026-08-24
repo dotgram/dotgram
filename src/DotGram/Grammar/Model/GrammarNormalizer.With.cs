@@ -167,4 +167,53 @@ public sealed partial class GrammarNormalizer
 
 		return rebuilt;
 	}
+
+	/// <summary>
+	/// `parse Rule with (A = B) as Alias` — the same substitution, written directly on a
+	/// publication instead of on the rule body it targets. Unlike either other extent,
+	/// there is no node to splice into: the site's own seed is just the published rule
+	/// itself, and specializing it either produces a clone to publish instead, or —
+	/// when the rebinding cannot reach anything from there — leaves the publication
+	/// exactly as it was, the same "no-op when nothing is affected" shape
+	/// <see cref="SpecializeWithSites"/> and <see cref="SpecializeContexts"/> both have.
+	/// </summary>
+	/// <remarks>
+	/// Runs after <see cref="SpecializeContexts"/>, deliberately: a publication's own
+	/// `with` is the more locally written of the two, and composes on top of whatever an
+	/// enclosing `context (...)` already did to it — the child-overrides-parent ordering
+	/// nested context headers already use for a shared key, applied here between a block
+	/// and the one directive inside it that names its own rebinding.
+	/// </remarks>
+	void SpecializePublicationWith()
+	{
+		if (_publications.All(publication => publication.Rebindings.Count == 0))
+			return;
+
+		var forward  = BuildCallGraph();
+		var calledBy = Reverse(forward);
+		var remapped = new List<Publication>(_publications.Count);
+
+		foreach (var publication in _publications)
+		{
+			if (publication.Rebindings.Count == 0)
+			{
+				remapped.Add(publication);
+				continue;
+			}
+
+			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward);
+			var affected  = AffectedSet(publication.Rebindings, calledBy, reachable);
+
+			var cloneMap = affected.Count == 0
+				? EmptyClones
+				: CloneAffected(affected, publication.Rebindings, "With" + (++_withCounter));
+
+			remapped.Add(
+				cloneMap.TryGetValue(publication.Rule, out var clone)
+					? publication with { Rule = clone }
+					: publication);
+		}
+
+		_publications = remapped;
+	}
 }

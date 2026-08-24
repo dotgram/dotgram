@@ -61,7 +61,8 @@ public abstract record Decl : ILocated
 	public sealed record Context(
 		string Name, IReadOnlyList<Rebinding> Rebindings, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
 
-	public sealed record Publish(PublishKind Kind, string RuleName, string? Alias) : Decl;
+	public sealed record Publish(
+		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl;
 
 	public sealed override string ToString() => Dump.Of(this);
 }
@@ -202,11 +203,14 @@ static class Dump
 
 				break;
 
-			case Decl.Publish(var kind, var rule, var alias):
+			case Decl.Publish(var kind, var rule, var rebindings, var alias):
 
 				Write(text, depth, alias is null
 					? $"Publication {kind} {Quote(rule)}"
 					: $"Publication {kind} {Quote(rule)} as {Quote(alias)}");
+
+				foreach (var rebinding in rebindings)
+					Write(text, depth + 1, Label(rebinding));
 
 				break;
 		}

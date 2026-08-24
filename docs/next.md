@@ -817,3 +817,37 @@ cloning once. `SpecializeSite`'s clone-building tail was extracted into a reusab
 `DuplicateContextBinding`) rather than minting new ones — same failure, different
 syntactic position. `ContextBoundNameRedeclared` does not port: `with` declares nothing,
 so there is nothing to check a redeclaration against.
+
+## Built: `with (...)` on a publication directly
+
+Asked in conversation: why can't `parse Sum with (trivia = none) as Evaluate` be
+written directly, instead of wrapping the directive in a single-purpose
+`context (trivia = none) { parse Sum as Evaluate }`? Answered and shipped —
+`Publication` gained `Rebindings` (`GrammarModel.cs`), `Decl.Publish` gained the same
+(`Tree.cs`), and `GramParser.ParsePublication` parses an optional `with (...)` between
+the rule name and `as`, reusing `ParseRebindings()` verbatim.
+
+Simpler than either other extent: a publication has no node tree to splice into and no
+block to specialize — it names one rule directly. `GrammarNormalizer.With.cs`'s new
+`SpecializePublicationWith` seeds straight from `Publication.Rule` (no `DirectCalls`
+needed, since there is no operand to walk), computes the affected set exactly like the
+other two, and either remaps `Publication.Rule` to the clone or leaves the publication
+untouched — no splice, no rewrite pass of its own. Runs *after* `SpecializeContexts`,
+not before like `SpecializeWithSites` does: a publication's own `with` is the more
+locally written of the two extents, so it composes on top of whatever an enclosing
+`context (...)` already did to the rule it publishes, rather than the reverse.
+
+Caught along the way, not by reasoning but by a crash on the very first grammar that
+exercised it: `CloneAndRewrite`'s `Node.Call` case rewrote a call's target via
+`RewriteTarget` and built the new node directly (`new Node.Call(...)`), bypassing
+`CallTo`'s on-demand built-in registration (§3.1 — "a grammar that never says `eol`
+carries no `eol`"). A rebinding's replacement can easily be a built-in nothing else in
+the grammar calls yet (`with (trivia = none)` when `none` is otherwise unused) — the
+rewritten call reached `none` correctly, but nothing had ever registered it into
+`_rules`/`_bodies`, and `Machine.ValueRule` threw `KeyNotFoundException` reading its
+results at emission. **Latent in `context (...)` too** — the existing test that
+exercises `context (trivia = none)` happened to also declare `trivia = none` as an
+ordinary shadowing rule elsewhere in the same grammar, which registered `none` as a
+side effect and masked the gap. Fixed at the one shared spot, `CloneAndRewrite` calling
+`CallTo(RewriteTarget(...), ...)` instead of constructing the node directly — every
+caller (context blocks, expression `with`, publication `with`) gets the fix for free.

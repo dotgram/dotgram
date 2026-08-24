@@ -1871,4 +1871,33 @@ public sealed class SemanticTests
 		// The first field is still the plain, unrebound `Number` — a comma there is
 		// refused exactly as it would be with no `with` in the grammar at all.
 		Assert.False(Matches(RowGrammar, "1,2;3.4;5,6"));
+
+	[Fact]
+	public void A_publication_may_carry_its_own_with_header()
+	{
+		// The question that started this feature: `parse Sum with (trivia = none) as
+		// Evaluate` alongside the ordinary, whitespace-tolerant publication of the same
+		// rule — one directive, no block, no name for the substitution beyond the
+		// publication's own. Mirrors what `context (trivia = none) { parse ... }`
+		// already proved elsewhere, through the publication's own header instead.
+		var result = Compile("""
+			trivia = ' '*
+			Pair   = A & B
+			A      = 'a'
+			B      = 'b'
+
+			parse Pair as DefaultPair
+			parse Pair with (trivia = none) as TightPair
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryDefaultPair", "ab").IsSuccess);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "ab").IsSuccess);
+	}
 }
