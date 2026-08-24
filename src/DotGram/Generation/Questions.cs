@@ -182,7 +182,7 @@ static class Questions
 
 						break;
 
-					case Decl.Context(_, _, var nested, var inner):
+					case Decl.Namespace(_, _, var nested, var inner):
 						Collect(nested, inner);
 						break;
 				}

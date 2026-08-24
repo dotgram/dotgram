@@ -78,12 +78,12 @@ public sealed partial class GrammarNormalizer
 		// All three before RewriteLeftRecursion(), for the reason already there — a
 		// clone's self-call must resolve to the clone before left-recursion rewriting
 		// runs. Expression-scoped `with` goes first: it mutates a rule's own body in
-		// place, and an enclosing `context (...)` clone of the same rule must see that
+		// place, and an enclosing `namespace (...)` clone of the same rule must see that
 		// mutation already applied. A publication's own `with` goes last, after
-		// `context (...)`, since it is the more locally written of the two and composes
-		// on top of whatever the context already did to the rule it publishes.
+		// `namespace (...)`, since it is the more locally written of the two and composes
+		// on top of whatever the namespace already did to the rule it publishes.
 		normalizer.SpecializeWithSites();
-		normalizer.SpecializeContexts();
+		normalizer.SpecializeNamespaces();
 		normalizer.SpecializePublicationWith();
 
 		normalizer.RewriteLeftRecursion();
@@ -106,9 +106,9 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.ComputeResults();
 
-		// After the results: what a contextual replacement must be compatible with is the
+		// After the results: what a rebinding's replacement must be compatible with is the
 		// result each rule was just worked out to have.
-		normalizer.CheckContextReplacements();
+		normalizer.CheckNamespaceReplacements();
 
 		// After the results, because what a constructor is matched against is the members
 		// they worked out (§7.3).
@@ -172,9 +172,9 @@ public sealed partial class GrammarNormalizer
 	/// Built-in rules have no body to compute from, so their nullability is stated:
 	/// `none`, `eof` and the default `trivia` consume nothing, `any` and `eol` consume.
 	/// </summary>
-	void SeedBuiltIns(GrammarContext context)
+	void SeedBuiltIns(GrammarNamespace ns)
 	{
-		for (var outer = context; outer is not null; outer = outer.Parent)
+		for (var outer = ns; outer is not null; outer = outer.Parent)
 			foreach (var rule in outer.Rules.Values)
 				if (rule.IsBuiltIn)
 					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "wordboundary";
@@ -496,12 +496,12 @@ public sealed partial class GrammarNormalizer
 			}
 	}
 
-	/// <summary>Every <c>@using</c> in the grammar, outermost context first.</summary>
-	static IReadOnlyList<string> Imports(GrammarContext context)
+	/// <summary>Every <c>@using</c> in the grammar, outermost namespace first.</summary>
+	static IReadOnlyList<string> Imports(GrammarNamespace ns)
 	{
-		var imports = new List<string>(context.CSharpImports);
+		var imports = new List<string>(ns.CSharpImports);
 
-		foreach (var nested in context.Nested)
+		foreach (var nested in ns.Nested)
 			foreach (var import in Imports(nested))
 				if (!imports.Contains(import))
 					imports.Add(import);

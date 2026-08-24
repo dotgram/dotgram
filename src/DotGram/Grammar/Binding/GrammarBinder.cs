@@ -8,7 +8,7 @@ namespace DotGram.Grammar.Binding;
 
 /// <summary>
 /// Resolves names: which rule, parameter or C# symbol every reference means, and
-/// which `trivia` each context sees.
+/// which `trivia` each namespace sees.
 /// </summary>
 /// <remarks>
 /// This is where §5 and §4.5 stop being prose. Scoping is lexical throughout: a rule
@@ -19,19 +19,19 @@ public sealed class GrammarBinder
 {
 	public const string DuplicateRule  = "GRAM3001";
 	public const string UndefinedName  = "GRAM3002";
-	public const string UnknownContext = "GRAM3003";
+	public const string UnknownNamespace = "GRAM3003";
 	public const string UnknownCSharp  = "GRAM3004";
 	public const string DuplicatePublication = "GRAM3005";
-	public const string UnknownContextTarget      = "GRAM3006";
-	public const string UnknownContextReplacement = "GRAM3007";
-	public const string DuplicateContextBinding   = "GRAM3008";
-	public const string ParameterizedContextBinding = "GRAM3009";
-	public const string ContextBoundNameRedeclared = "GRAM3010";
-	public const string CircularContextBinding    = "GRAM3011";
+	public const string UnknownRebindingTarget      = "GRAM3006";
+	public const string UnknownRebindingReplacement = "GRAM3007";
+	public const string DuplicateRebinding    = "GRAM3008";
+	public const string ParameterizedRebinding = "GRAM3009";
+	public const string NamespaceBoundNameRedeclared = "GRAM3010";
+	public const string CircularRebinding     = "GRAM3011";
 	public const string ShadowsEnclosingRule      = "GRAM3012";
 
 	/// <summary>
-	/// Rules every grammar has without declaring them. They live in a context outside
+	/// Rules every grammar has without declaring them. They live in a namespace outside
 	/// the global one, so a grammar can shadow any of them by declaring its own — which
 	/// is exactly how whitespace handling works (§4.5).
 	/// </summary>
@@ -45,7 +45,7 @@ public sealed class GrammarBinder
 	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings =
 		new(NodeIdentityComparer.Instance);
-	readonly Dictionary<GrammarContext, RuleSymbol> _trivia   = [];
+	readonly Dictionary<GrammarNamespace, RuleSymbol> _trivia   = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
 
@@ -53,12 +53,12 @@ public sealed class GrammarBinder
 		new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>
-	/// Set once, by <see cref="CreateStandardLibrary"/> — the one context whose own rules
-	/// a declaration may shadow in silence (§4.5). Anything else an enclosing context
+	/// Set once, by <see cref="CreateStandardLibrary"/> — the one namespace whose own rules
+	/// a declaration may shadow in silence (§4.5). Anything else an enclosing namespace
 	/// declares is a grammar rule, and <see cref="Declare"/> warns about shadowing one of
-	/// those from inside a nested context.
+	/// those from inside a nested namespace.
 	/// </summary>
-	GrammarContext? _standard;
+	GrammarNamespace? _standard;
 
 	GrammarBinder(ISymbolResolver symbols) => _symbols = symbols;
 
@@ -69,7 +69,7 @@ public sealed class GrammarBinder
 
 		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance);
 		var standard = binder.CreateStandardLibrary();
-		var global   = new GrammarContext("", standard);
+		var global   = new GrammarNamespace("", standard);
 
 		standard.Add(global);
 
@@ -84,14 +84,14 @@ public sealed class GrammarBinder
 			global, binder._bindings, binder._withBindings, binder._trivia, binder._publications, binder._diagnostics);
 	}
 
-	GrammarContext CreateStandardLibrary()
+	GrammarNamespace CreateStandardLibrary()
 	{
-		var context = new GrammarContext("<standard>", parent: null);
+		var standard = new GrammarNamespace("<standard>", parent: null);
 
 		foreach (var name in StandardLibrary)
-			context.TryDeclare(new RuleSymbol(name, context, Declaration: null));
+			standard.TryDeclare(new RuleSymbol(name, standard, Declaration: null));
 
-		return _standard = context;
+		return _standard = standard;
 	}
 
 	void Report(string id, string message, Location at) =>
@@ -106,7 +106,7 @@ public sealed class GrammarBinder
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
-	void Declare(IReadOnlyList<Decl> declarations, GrammarContext context)
+	void Declare(IReadOnlyList<Decl> declarations, GrammarNamespace ns)
 	{
 		foreach (var node in declarations)
 		{
@@ -114,13 +114,13 @@ public sealed class GrammarBinder
 			{
 				case Decl.Rule rule:
 
-					if (!context.TryDeclare(new RuleSymbol(rule.Name, context, rule)))
+					if (!ns.TryDeclare(new RuleSymbol(rule.Name, ns, rule)))
 						Report(
 							DuplicateRule,
-							$"'{rule.Name}' is already defined in this context; put one of them in a nested context to shadow the other.",
+							$"'{rule.Name}' is already defined in this namespace; put one of them in a nested namespace to shadow the other.",
 							node.At);
 
-					// A nested context is one parenthesis away from a header that would have
+					// A nested namespace is one parenthesis away from a header that would have
 					// meant this as a replacement rather than a new declaration (§5.1) — worth
 					// naming, not the standard library's own always-silent shadowing (§4.5),
 					// silent at any depth and any number of times over (an already-shadowed
@@ -128,24 +128,24 @@ public sealed class GrammarBinder
 					// currently answers to it), and not anything at the top level, where no
 					// header syntax sits nearby to have meant instead.
 					else if (!StandardLibrary.Contains(rule.Name) &&
-						context.Parent != _standard &&
-						context.Parent?.Lookup(rule.Name) is not null)
+						ns.Parent != _standard &&
+						ns.Parent?.Lookup(rule.Name) is not null)
 					{
 						ReportInfo(
 							ShadowsEnclosingRule,
-							$"'{rule.Name}' is already declared in an enclosing context. If this means to " +
+							$"'{rule.Name}' is already declared in an enclosing namespace. If this means to " +
 							$"replace it rather than declare a new rule under the same name, say so with a " +
-							$"context binding instead: 'context ({rule.Name} = ...)' (§5.1).",
+							$"rebinding instead: 'namespace ({rule.Name} = ...)' (§5.1).",
 							node.At);
 					}
 
 					break;
 
-				case Decl.Context nested:
+				case Decl.Namespace nested:
 
-					var child = new GrammarContext(nested.Name, context);
+					var child = new GrammarNamespace(nested.Name, ns);
 
-					context.Add(child);
+					ns.Add(child);
 					Declare(nested.Decls, child);
 					break;
 			}
@@ -154,29 +154,29 @@ public sealed class GrammarBinder
 
 	// ── Pass two: imports, trivia, references ────────────────────────────────────
 
-	void ResolveImports(IReadOnlyList<Using> usings, GrammarContext context)
+	void ResolveImports(IReadOnlyList<Using> usings, GrammarNamespace ns)
 	{
 		foreach (var import in usings)
 		{
 			if (import.IsCSharp)
 			{
-				context.ImportCSharp(import.Name);
+				ns.ImportCSharp(import.Name);
 				continue;
 			}
 
-			var target = FindContext(context, import.Name);
+			var target = FindNamespace(ns, import.Name);
 
 			if (target is null)
-				Report(UnknownContext, $"No context named '{import.Name}' is in view here.", import.At);
+				Report(UnknownNamespace, $"No namespace named '{import.Name}' is in view here.", import.At);
 			else
-				context.Import(target);
+				ns.Import(target);
 		}
 	}
 
-	static GrammarContext? FindContext(GrammarContext from, string name)
+	static GrammarNamespace? FindNamespace(GrammarNamespace from, string name)
 	{
-		for (var context = from; context is not null; context = context.Parent)
-			foreach (var nested in context.Nested)
+		for (var ns = from; ns is not null; ns = ns.Parent)
+			foreach (var nested in ns.Nested)
 				if (nested.Name == name)
 					return nested;
 
@@ -184,19 +184,19 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>
-	/// Which `trivia` a context sees. Ordinary lookup — the mechanism is shadowing and
+	/// Which `trivia` a namespace sees. Ordinary lookup — the mechanism is shadowing and
 	/// nothing else (§4.5).
 	/// </summary>
-	void ResolveTrivia(GrammarContext context)
+	void ResolveTrivia(GrammarNamespace ns)
 	{
-		if (context.Lookup(TriviaRule) is { } trivia)
-			_trivia[context] = trivia;
+		if (ns.Lookup(TriviaRule) is { } trivia)
+			_trivia[ns] = trivia;
 
-		foreach (var nested in context.Nested)
+		foreach (var nested in ns.Nested)
 			ResolveTrivia(nested);
 	}
 
-	void Resolve(IReadOnlyList<Decl> declarations, GrammarContext context)
+	void Resolve(IReadOnlyList<Decl> declarations, GrammarNamespace ns)
 	{
 		var nestedIndex = 0;
 
@@ -205,21 +205,21 @@ public sealed class GrammarBinder
 			switch (node)
 			{
 				case Decl.Rule rule:
-					ResolveRule(rule, context);
+					ResolveRule(rule, ns);
 					break;
 
-				case Decl.Context nested:
+				case Decl.Namespace nested:
 
-					var child = context.Nested[nestedIndex++];
+					var child = ns.Nested[nestedIndex++];
 
-					ResolveContextBindings(nested, child, context);
+					ResolveNamespaceRebindings(nested, child, ns);
 					ResolveImports(nested.Usings, child);
 					Resolve(nested.Decls, child);
 					break;
 
 				case Decl.Publish publish:
 
-					if (context.LookupQualified(publish.RuleName) is not { } published)
+					if (ns.LookupQualified(publish.RuleName) is not { } published)
 					{
 						Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
 						break;
@@ -241,16 +241,16 @@ public sealed class GrammarBinder
 					}
 
 					// §5.1's substitution, written directly on the directive rather than on a
-					// `context (...)` block around it — the same per-entry validation, sharing
+					// `namespace (...)` block around it — the same per-entry validation, sharing
 					// the same diagnostics.
-					var ownPublicationBindings = new List<ContextRebinding>();
+					var ownPublicationBindings = new List<ResolvedRebinding>();
 
 					foreach (var rebinding in publish.Rebindings)
-						if (ValidateRebinding(rebinding, context) is { } resolved)
+						if (ValidateRebinding(rebinding, ns) is { } resolved)
 						{
 							if (ownPublicationBindings.Exists(existing => existing.Left == resolved.Left))
 								Report(
-									DuplicateContextBinding,
+									DuplicateRebinding,
 									$"'{rebinding.Left}' is bound more than once in this 'with'.",
 									rebinding.At);
 							else
@@ -258,7 +258,7 @@ public sealed class GrammarBinder
 						}
 
 					_publications.Add(new Publication(
-						publish.Kind, published, method, publish.At, context,
+						publish.Kind, published, method, publish.At, ns,
 						ChainResolve(EmptyBindings, ownPublicationBindings)));
 
 					break;
@@ -266,60 +266,60 @@ public sealed class GrammarBinder
 		}
 	}
 
-	// ── Contextual bindings — §5, §7, §12 ───────────────────────────────────────
+	// ── Rebindings — §5, §7, §12 ─────────────────────────────────────────────────
 
 	/// <summary>
-	/// Resolves a `context (...)` header's rebindings against <paramref name="context"/>,
+	/// Resolves a `namespace (...)` header's rebindings against <paramref name="ns"/>,
 	/// the enclosing lexical environment — never against <paramref name="child"/> itself,
 	/// which is what keeps a header from naming something declared in the very body it
-	/// introduces. Runs for every nested context, header or not, since the §12
+	/// introduces. Runs for every nested namespace, header or not, since the §12
 	/// redeclaration check has to see every level's layered environment regardless of
 	/// whether this level added a binding of its own.
 	/// </summary>
-	void ResolveContextBindings(Decl.Context nested, GrammarContext child, GrammarContext context)
+	void ResolveNamespaceRebindings(Decl.Namespace nested, GrammarNamespace child, GrammarNamespace ns)
 	{
 		foreach (var rebinding in nested.Rebindings)
-			if (ValidateRebinding(rebinding, context) is { } resolved && !child.TryBind(resolved))
+			if (ValidateRebinding(rebinding, ns) is { } resolved && !child.TryBind(resolved))
 				Report(
-					DuplicateContextBinding,
-					$"'{rebinding.Left}' is bound more than once in this context.",
+					DuplicateRebinding,
+					$"'{rebinding.Left}' is bound more than once in this namespace.",
 					rebinding.At);
 
-		child.ContextBindings = ChainResolve(context.ContextBindings, child.OwnBindings);
+		child.Rebindings = ChainResolve(ns.Rebindings, child.OwnRebindings);
 
 		foreach (var rule in child.Rules.Values)
-			if (child.ContextBindings.Keys.Any(bound => bound.Name == rule.Name))
+			if (child.Rebindings.Keys.Any(bound => bound.Name == rule.Name))
 				Report(
-					ContextBoundNameRedeclared,
-					$"Rule '{rule.Name}' is contextually bound in the active context and cannot be redeclared. Use a nested context binding to replace it.",
+					NamespaceBoundNameRedeclared,
+					$"Rule '{rule.Name}' is bound by the active namespace's own header and cannot be redeclared. Use a nested namespace header to replace it.",
 					rule.Declaration!.At);
 	}
 
 	/// <summary>
-	/// One `A = B` entry, checked against <paramref name="context"/> — the enclosing
-	/// lexical environment, same as a `context (...)` header's own bindings — and shared
+	/// One `A = B` entry, checked against <paramref name="ns"/> — the enclosing
+	/// lexical environment, same as a `namespace (...)` header's own bindings — and shared
 	/// by both extents §5.1 now has: a whole block, or one expression's `with (...)`.
 	/// </summary>
-	ContextRebinding? ValidateRebinding(Rebinding rebinding, GrammarContext context)
+	ResolvedRebinding? ValidateRebinding(Rebinding rebinding, GrammarNamespace ns)
 	{
-		var left = context.LookupQualified(rebinding.Left);
+		var left = ns.LookupQualified(rebinding.Left);
 
 		if (left is null)
 		{
 			Report(
-				UnknownContextTarget,
-				$"'{rebinding.Left}' cannot be contextually bound because no visible rule with that name exists.",
+				UnknownRebindingTarget,
+				$"'{rebinding.Left}' cannot be bound because no visible rule with that name exists.",
 				rebinding.At);
 
 			return null;
 		}
 
-		var right = context.LookupQualified(rebinding.Right);
+		var right = ns.LookupQualified(rebinding.Right);
 
 		if (right is null)
 		{
 			Report(
-				UnknownContextReplacement,
+				UnknownRebindingReplacement,
 				$"'{rebinding.Right}' cannot replace '{rebinding.Left}' because no visible rule with that name exists.",
 				rebinding.At);
 
@@ -329,8 +329,8 @@ public sealed class GrammarBinder
 		if (left.Declaration is { Params.Count: > 0 })
 		{
 			Report(
-				ParameterizedContextBinding,
-				$"'{rebinding.Left}' cannot be contextually bound: parameterized rules are not supported in a context header yet.",
+				ParameterizedRebinding,
+				$"'{rebinding.Left}' cannot be bound: parameterized rules are not supported in a rebinding yet.",
 				rebinding.At);
 
 			return null;
@@ -339,28 +339,28 @@ public sealed class GrammarBinder
 		if (right.Declaration is { Params.Count: > 0 })
 		{
 			Report(
-				ParameterizedContextBinding,
-				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a context header yet.",
+				ParameterizedRebinding,
+				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a rebinding yet.",
 				rebinding.At);
 
 			return null;
 		}
 
-		return new ContextRebinding(left, right, rebinding.At);
+		return new ResolvedRebinding(left, right, rebinding.At);
 	}
 
 	/// <summary>
-	/// Layers <paramref name="ownBindings"/> over <paramref name="inherited"/>, chain-
+	/// Layers <paramref name="ownRebindings"/> over <paramref name="inherited"/>, chain-
 	/// following each of this level's own bindings so that a header like
-	/// <c>context (A = B, B = D)</c> resolves <c>A</c> straight to <c>D</c> — §8's "a
+	/// <c>namespace (A = B, B = D)</c> resolves <c>A</c> straight to <c>D</c> — §8's "a
 	/// chain of rebindings composes" done once here, rather than by repeated lookup
 	/// wherever a binding is used. An inherited entry is already fully resolved by the
 	/// level that produced it, so it needs no re-following of its own.
 	/// </summary>
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> ChainResolve(
-		IReadOnlyDictionary<RuleSymbol, RuleSymbol> inherited, IReadOnlyList<ContextRebinding> ownBindings)
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> inherited, IReadOnlyList<ResolvedRebinding> ownRebindings)
 	{
-		if (ownBindings.Count == 0)
+		if (ownRebindings.Count == 0)
 			return inherited;
 
 		var raw      = new Dictionary<RuleSymbol, RuleSymbol>();
@@ -372,16 +372,16 @@ public sealed class GrammarBinder
 			resolved[pair.Key] = pair.Value;
 		}
 
-		foreach (var binding in ownBindings)
+		foreach (var binding in ownRebindings)
 			raw[binding.Left] = binding.Right;
 
-		foreach (var binding in ownBindings)
+		foreach (var binding in ownRebindings)
 			resolved[binding.Left] = Follow(binding, raw);
 
 		return resolved;
 	}
 
-	RuleSymbol Follow(ContextRebinding binding, Dictionary<RuleSymbol, RuleSymbol> raw)
+	RuleSymbol Follow(ResolvedRebinding binding, Dictionary<RuleSymbol, RuleSymbol> raw)
 	{
 		var visited = new HashSet<RuleSymbol> { binding.Left };
 		var current = binding.Right;
@@ -391,8 +391,8 @@ public sealed class GrammarBinder
 			if (!visited.Add(current))
 			{
 				Report(
-					CircularContextBinding,
-					$"'{binding.Left}' is contextually bound in a cycle through '{current}'.",
+					CircularRebinding,
+					$"'{binding.Left}' is bound in a cycle through '{current}'.",
 					binding.At);
 
 				return current;
@@ -404,9 +404,9 @@ public sealed class GrammarBinder
 		return current;
 	}
 
-	void ResolveRule(Decl.Rule rule, GrammarContext context)
+	void ResolveRule(Decl.Rule rule, GrammarNamespace ns)
 	{
-		var owner      = context.Rules[rule.Name];
+		var owner      = ns.Rules[rule.Name];
 		var parameters = new Dictionary<string, ParameterSymbol>();
 
 		foreach (var parameter in rule.Params)
@@ -414,11 +414,11 @@ public sealed class GrammarBinder
 			parameters[parameter.Name] = new ParameterSymbol(parameter.Name, owner);
 
 			if (parameter.Type is not null)
-				ResolveType(parameter.Type, context, parameters);
+				ResolveType(parameter.Type, ns, parameters);
 		}
 
 		if (rule.Type is not null)
-			ResolveType(rule.Type, context, parameters);
+			ResolveType(rule.Type, ns, parameters);
 
 		// `when` and `=>` see the rule's captures as values, so they have to be in view
 		// before its body is resolved — and the whole body's, since a `=>` at the end
@@ -428,7 +428,7 @@ public sealed class GrammarBinder
 
 		Captures(rule.Body);
 
-		ResolveExpression(rule.Body, context, parameters);
+		ResolveExpression(rule.Body, ns, parameters);
 	}
 
 	readonly HashSet<string> _captures = new(StringComparer.Ordinal);
@@ -450,7 +450,7 @@ public sealed class GrammarBinder
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
 	/// works in place of type parameters (§4.2).
 	/// </summary>
-	void ResolveType(TypeRef type, GrammarContext context, Dictionary<string, ParameterSymbol> parameters)
+	void ResolveType(TypeRef type, GrammarNamespace ns, Dictionary<string, ParameterSymbol> parameters)
 	{
 		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
 		{
@@ -461,13 +461,13 @@ public sealed class GrammarBinder
 			if (IsSourceSpan(type.Name))
 				return;
 
-			if (!TypeInView(type.Name, context))
+			if (!TypeInView(type.Name, ns))
 				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
 
 			return;
 		}
 
-		if (parameters.ContainsKey(type.Name) || context.LookupQualified(type.Name) is not null)
+		if (parameters.ContainsKey(type.Name) || ns.LookupQualified(type.Name) is not null)
 			return;
 
 		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
@@ -484,12 +484,12 @@ public sealed class GrammarBinder
 	/// through an import is emitted as it was written, and the generated file carries the
 	/// same <c>using</c> directives, so it stands there too.
 	/// </remarks>
-	bool TypeInView(string name, GrammarContext context)
+	bool TypeInView(string name, GrammarNamespace ns)
 	{
 		if (_symbols.TypeExists(name))
 			return true;
 
-		for (var at = context; at is not null; at = at.Parent)
+		for (var at = ns; at is not null; at = at.Parent)
 			foreach (var import in at.CSharpImports)
 				if (_symbols.TypeExists(import + "." + name))
 					return true;
@@ -504,30 +504,30 @@ public sealed class GrammarBinder
 
 	void ResolveExpression(
 		Expr expression,
-		GrammarContext context,
+		GrammarNamespace ns,
 		Dictionary<string, ParameterSymbol> parameters,
 		bool csharpValue = false)
 	{
 		switch (expression)
 		{
 			case Expr.Reference reference:
-				ResolveReference(reference, reference, context, parameters, csharpValue);
+				ResolveReference(reference, reference, ns, parameters, csharpValue);
 				return;
 
 			case Expr.Construct(var pattern, var value):
-				ResolveExpression(pattern, context, parameters);
-				ResolveExpression(value, context, parameters, csharpValue: true);
+				ResolveExpression(pattern, ns, parameters);
+				ResolveExpression(value, ns, parameters, csharpValue: true);
 				return;
 
 			case Expr.Guard(var guarded):
-				ResolveExpression(guarded, context, parameters, csharpValue: true);
+				ResolveExpression(guarded, ns, parameters, csharpValue: true);
 				return;
 
 			case Expr.Call(var target, var arguments):
-				ResolveReference(target, expression, context, parameters, csharpValue);
+				ResolveReference(target, expression, ns, parameters, csharpValue);
 
 				foreach (var argument in arguments)
-					ResolveExpression(argument, context, parameters, csharpValue);
+					ResolveExpression(argument, ns, parameters, csharpValue);
 
 				return;
 
@@ -537,7 +537,7 @@ public sealed class GrammarBinder
 				// what it names into the set, and for that it needs to know what it is.
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, bind: reference, context, parameters);
+						ResolveReference(reference, bind: reference, ns, parameters);
 
 				return;
 
@@ -548,14 +548,14 @@ public sealed class GrammarBinder
 
 			case Expr.With(var operand, var rebindings):
 
-				var own = new List<ContextRebinding>();
+				var own = new List<ResolvedRebinding>();
 
 				foreach (var rebinding in rebindings)
-					if (ValidateRebinding(rebinding, context) is { } resolved)
+					if (ValidateRebinding(rebinding, ns) is { } resolved)
 					{
 						if (own.Exists(existing => existing.Left == resolved.Left))
 							Report(
-								DuplicateContextBinding,
+								DuplicateRebinding,
 								$"'{rebinding.Left}' is bound more than once in this 'with'.",
 								rebinding.At);
 						else
@@ -564,18 +564,18 @@ public sealed class GrammarBinder
 
 				_withBindings[expression] = ChainResolve(EmptyBindings, own);
 
-				ResolveExpression(operand, context, parameters, csharpValue);
+				ResolveExpression(operand, ns, parameters, csharpValue);
 				return;
 		}
 
 		foreach (var child in Dump.Children(expression))
-			ResolveExpression(child, context, parameters, csharpValue);
+			ResolveExpression(child, ns, parameters, csharpValue);
 	}
 
 	void ResolveReference(
 		Expr.Reference                      reference,
 		Expr?                               bind,
-		GrammarContext                      context,
+		GrammarNamespace                    ns,
 		Dictionary<string, ParameterSymbol> parameters,
 		bool                                csharpValue = false)
 	{
@@ -583,7 +583,7 @@ public sealed class GrammarBinder
 
 		if (!csharpValue || !reference.IsCSharp)
 			foreach (var typeArgument in reference.TypeArguments)
-				ResolveType(typeArgument, context, parameters);
+				ResolveType(typeArgument, ns, parameters);
 
 		void Bind(Symbol symbol)
 		{
@@ -615,7 +615,7 @@ public sealed class GrammarBinder
 		if (_captures.Contains(reference.Name))
 			return;
 
-		if (context.LookupQualified(reference.Name) is { } rule)
+		if (ns.LookupQualified(reference.Name) is { } rule)
 		{
 			Bind(rule);
 		}
@@ -623,7 +623,7 @@ public sealed class GrammarBinder
 		{
 			// A dotted name is a C# one nine times in ten — `CultureInfo.InvariantCulture`
 			// written where the grammar expects one of its own. §2 makes no exception for
-			// argument lists, so the fix is the one character that switches namespace, and
+			// argument lists, so the fix is the one character that switches vocabulary, and
 			// saying which character is the difference between a message and a message
 			// worth reading.
 			Report(

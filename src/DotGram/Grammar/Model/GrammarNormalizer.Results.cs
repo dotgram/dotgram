@@ -75,7 +75,7 @@ public sealed partial class GrammarNormalizer
 			// §4.1 case 3: `A : B` says A's value is B's. Recorded the same way and
 			// resolved with the rest — a rule named in type position is a rule whose type
 			// this one takes.
-			if (rule.Context.LookupQualified(type.Name) is { } produced)
+			if (rule.Namespace.LookupQualified(type.Name) is { } produced)
 			{
 				_produces[rule] = (produced, type.IsSequence);
 

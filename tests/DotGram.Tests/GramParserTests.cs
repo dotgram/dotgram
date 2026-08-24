@@ -213,13 +213,13 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
-	public void Parses_usings_contexts_and_publications()
+	public void Parses_usings_namespaces_and_publications()
 	{
 		Assert.Equal(
 			"""
 			File
 				Using (C#) "System.Text"
-				Context "Lexical"
+				Namespace "Lexical"
 					Using "Common"
 					Rule "Token"
 						Reference "A"
@@ -228,7 +228,7 @@ public sealed class GramParserTests
 			Parse("""
 				@using System.Text;
 
-				context Lexical
+				namespace Lexical
 				{
 					using Common;
 
@@ -240,19 +240,19 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
-	public void Parses_a_context_header()
+	public void Parses_a_namespace_header()
 	{
 		Assert.Equal(
 			"""
 			File
-				Context "Ctx"
+				Namespace "Ctx"
 					Rebinding "B" = "D"
 					Rebinding "Identifier" = "SqlIdentifier"
 					Rule "E"
 						Reference "A"
 			""",
 			Parse("""
-				context Ctx (B = D, Identifier = SqlIdentifier)
+				namespace Ctx (B = D, Identifier = SqlIdentifier)
 				{
 					E = A
 				}
@@ -260,17 +260,17 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
-	public void A_context_with_no_header_still_parses()
+	public void A_namespace_with_no_header_still_parses()
 	{
 		Assert.Equal(
 			"""
 			File
-				Context "Ctx"
+				Namespace "Ctx"
 					Rule "E"
 						Reference "A"
 			""",
 			Parse("""
-				context Ctx
+				namespace Ctx
 				{
 					E = A
 				}
@@ -278,10 +278,10 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
-	public void A_malformed_context_header_recovers()
+	public void A_malformed_namespace_header_recovers()
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(
-			"context Ctx (B) { E = A }\nGood = 'a'",
+			"namespace Ctx (B) { E = A }\nGood = 'a'",
 			RoslynCSharpScanner.Instance));
 
 		Assert.NotEmpty(result.Diagnostics);
@@ -291,21 +291,21 @@ public sealed class GramParserTests
 	[Fact]
 	public void Contextual_keywords_are_still_ordinary_names()
 	{
-		// `parse`, `context` and `find` only mean something where a declaration can start
+		// `parse`, `namespace` and `find` only mean something where a declaration can start
 		// and no `=`, `:` or `(` follows.
 		Assert.Equal(
 			"""
 			File
 				Rule "parse"
 					Reference "A"
-				Rule "context"
+				Rule "namespace"
 					Reference "B"
 				Rule "find"
 					Reference "parse"
 			""",
 			Parse("""
 				parse = A
-				context = B
+				namespace = B
 				find  = parse
 				"""));
 	}

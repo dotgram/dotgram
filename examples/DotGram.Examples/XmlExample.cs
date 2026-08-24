@@ -30,7 +30,7 @@ namespace DotGram.Examples;
 
 	using Lexical;
 
-	context Lexical
+	namespace Lexical
 	{
 		// No trivia in here: a name stops at the first character that is not one of these,
 		// and text is whatever sits between the tags, spaces included.

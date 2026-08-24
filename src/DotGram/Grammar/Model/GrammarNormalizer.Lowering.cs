@@ -21,18 +21,18 @@ public sealed partial class GrammarNormalizer
 	/// get it whatever the declaration order was — which a reference inside an element
 	/// set needs, since it has to be merged into the set that names it.
 	/// </remarks>
-	void Collect(GrammarContext context)
+	void Collect(GrammarNamespace ns)
 	{
 		// A parameterized rule is not a rule until it is called: its body names things
 		// that only a call gives values to (§4.2). What goes in the graph is the
 		// specializations, made where the calls are, so the template itself is left out —
 		// lowering it here would report a count with nothing passed for it, and emit a
 		// recognizer nobody could call.
-		foreach (var rule in context.Rules.Values)
+		foreach (var rule in ns.Rules.Values)
 			if (rule.Declaration is { Params.Count: 0 })
 				_rules.Add(rule);
 
-		foreach (var nested in context.Nested)
+		foreach (var nested in ns.Nested)
 			Collect(nested);
 	}
 
@@ -43,7 +43,7 @@ public sealed partial class GrammarNormalizer
 			BodyOf(_rules[i]);
 
 		foreach (var rule in _rules)
-			if (rule.Declaration is not null && TriviaFor(rule.Context) is { } trivia)
+			if (rule.Declaration is not null && TriviaFor(rule.Namespace) is { } trivia)
 				_trivia[rule] = trivia;
 	}
 
@@ -63,7 +63,7 @@ public sealed partial class GrammarNormalizer
 		var outerRule = _currentRule;
 		_currentRule  = rule;
 
-		var lowered = Lower(rule.Declaration.Body, rule.Context);
+		var lowered = Lower(rule.Declaration.Body, rule.Namespace);
 
 		_currentRule = outerRule;
 
@@ -80,52 +80,52 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	RuleSymbol? _currentRule;
 
-	Node Lower(Expr expression, GrammarContext context) => expression switch
+	Node Lower(Expr expression, GrammarNamespace ns) => expression switch
 	{
-		Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, context, ignoreCase),
+		Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
 		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
-		Expr.Group(var body)                    => Lower(body, context),
-		Expr.Atomic(var body)                   => new Node.Atomic(Lower(body, context)),
-		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, context)),
-		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, context)),
+		Expr.Group(var body)                    => Lower(body, ns),
+		Expr.Atomic(var body)                   => new Node.Atomic(Lower(body, ns)),
+		Expr.Capture(var name, var operand)     => new Node.Capture(name, Lower(operand, ns)),
+		Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard(var value)                   => Guarded(value),
 		Expr.CSharp(var text)                   => new Node.Guard($"@({text})", StartOf(expression)),
 
-		Expr.Construct(var pattern, var value)  => LowerConstruct(pattern, value, context),
+		Expr.Construct(var pattern, var value)  => LowerConstruct(pattern, value, ns),
 
-		Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, context),
+		Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
 
 		// Parsed and refused rather than parsed and ignored: a `recover` that means
 		// nothing would swallow a bad record in silence.
 		Expr.Recovering(var body, var sync, var factory) =>
-			LowerRecovery(body, sync, factory, context, expression),
+			LowerRecovery(body, sync, factory, ns, expression),
 
 		// §4.2: a count may be a parameter's name, and inside a specialization it stands
 		// for the number the call passed.
 		Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
 			new Node.Repeat(
-				Lower(operand, context),
+				Lower(operand, ns),
 				Bounds(kind, Counted(min, minName, expression)).Min,
 				Bounds(kind, Counted(max, maxName, expression)).Max),
 
-		Expr.Sequence(var operands)             => LowerSequence(operands, context),
-		Expr.Choice(var alternatives)           => LowerChoice(alternatives, context),
+		Expr.Sequence(var operands)             => LowerSequence(operands, ns),
+		Expr.Choice(var alternatives)           => LowerChoice(alternatives, ns),
 
 		Expr.Call(var target, var arguments) =>
-			LowerCall(RuleOf(expression, target.Name), arguments, context),
+			LowerCall(RuleOf(expression, target.Name), arguments, ns),
 
 		Expr.Reference(_, var name, _) => LowerReference(expression, name),
 
-		Expr.With(var operand, _) => LowerWith(expression, operand, context),
+		Expr.With(var operand, _) => LowerWith(expression, operand, ns),
 
 		_ => Node.Empty.Instance,
 	};
 
 	/// <summary><c>=&gt; expr</c>.</summary>
-	Node LowerConstruct(Expr pattern, Expr value, GrammarContext context)
+	Node LowerConstruct(Expr pattern, Expr value, GrammarNamespace ns)
 	{
 		return new Node.Construct(
-			Lower(pattern, context), new Construction.Expression(Text(value), StartOf(value)));
+			Lower(pattern, ns), new Construction.Expression(Text(value), StartOf(value)));
 	}
 
 	static Node Guarded(Expr value) => new Node.Guard(Text(value), StartOf(value));
@@ -208,8 +208,8 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	/// <remarks>
 	/// Never looked up by name — nothing in a grammar can write this rule's name — so its
-	/// context is a placeholder rather than one that matters: nothing downstream reads
-	/// <see cref="RuleSymbol.Context"/> for a rule whose <see cref="RuleSymbol.Declaration"/>
+	/// namespace is a placeholder rather than one that matters: nothing downstream reads
+	/// <see cref="RuleSymbol.Namespace"/> for a rule whose <see cref="RuleSymbol.Declaration"/>
 	/// is null (confirmed at <c>ComputeTypes</c>'s first line, the same guarantee every
 	/// built-in already relies on).
 	/// </remarks>
@@ -218,7 +218,7 @@ public sealed partial class GrammarNormalizer
 		if (_externals.TryGetValue(method, out var existing))
 			return existing;
 
-		var rule = new RuleSymbol("@" + method, new GrammarContext("<external>", null), Declaration: null);
+		var rule = new RuleSymbol("@" + method, new GrammarNamespace("<external>", null), Declaration: null);
 
 		_externals[method] = rule;
 		_rules.Add(rule);
@@ -285,9 +285,9 @@ public sealed partial class GrammarNormalizer
 	/// and everything that reads a body — nullability, captures, results — must go on
 	/// reading it without knowing about this.
 	/// </remarks>
-	Node LowerBound(Expr body, bool isLeft, int level, GrammarContext context)
+	Node LowerBound(Expr body, bool isLeft, int level, GrammarNamespace ns)
 	{
-		var alternative = Lower(body, context);
+		var alternative = Lower(body, ns);
 
 		_bounds[alternative] = (isLeft, level);
 
@@ -305,9 +305,9 @@ public sealed partial class GrammarNormalizer
 	/// collecting apply to it unchanged. What recovery adds is one more way out of the
 	/// loop, taken where the ordinary one would have ended it.
 	/// </remarks>
-	Node LowerRecovery(Expr body, Expr sync, Expr? factory, GrammarContext context, Expr at)
+	Node LowerRecovery(Expr body, Expr sync, Expr? factory, GrammarNamespace ns, Expr at)
 	{
-		var repetition = Lower(body, context);
+		var repetition = Lower(body, ns);
 
 		if (repetition is not Node.Repeat)
 		{
@@ -323,7 +323,7 @@ public sealed partial class GrammarNormalizer
 		// Without a `=>` the broken element is dropped and reported out of band (§8.3) —
 		// to a `partial void` the generated class declares and the consumer may implement.
 		_recoveries[repetition] = new Recovery(
-			Lower(sync, context),
+			Lower(sync, ns),
 			factory is null ? null : Text(factory));
 
 		return repetition;
@@ -334,12 +334,12 @@ public sealed partial class GrammarNormalizer
 	/// would be, no wrapper node, so a capture, a sequence or another <c>with</c> stays
 	/// literally embedded in the enclosing rule's own body (§5.1). What is recorded is
 	/// where to come back once every rule is lowered and the whole call graph is known —
-	/// the same ordering <see cref="SpecializeContexts"/> already relies on for
-	/// <c>context (...)</c>.
+	/// the same ordering <see cref="SpecializeNamespaces"/> already relies on for
+	/// <c>namespace (...)</c>.
 	/// </summary>
-	Node LowerWith(Expr expression, Expr operand, GrammarContext context)
+	Node LowerWith(Expr expression, Expr operand, GrammarNamespace ns)
 	{
-		var lowered = Lower(operand, context);
+		var lowered = Lower(operand, ns);
 
 		if (_model.WithBindings.TryGetValue(expression, out var targets) && targets.Count > 0)
 			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter)));
@@ -348,11 +348,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Something the notation says and the compiler cannot do yet.</summary>
-	Node Unbuilt(Expr body, GrammarContext context, Expr at, string id, string message)
+	Node Unbuilt(Expr body, GrammarNamespace ns, Expr at, string id, string message)
 	{
 		Report(id, message, at.At);
 
-		return Lower(body, context);
+		return Lower(body, ns);
 	}
 
 	/// <summary>
@@ -388,12 +388,12 @@ public sealed partial class GrammarNormalizer
 	/// value is decided here: a number is neither a recognizer nor lowerable into one, and
 	/// stands where a count goes rather than where an operand does.
 	/// </remarks>
-	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarContext context)
+	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns)
 	{
 		if (rule.Declaration is not { Params.Count: > 0 })
-			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, context))]);
+			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, ns))]);
 
-		return Specialize(rule, arguments, context);
+		return Specialize(rule, arguments, ns);
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>
@@ -416,7 +416,7 @@ public sealed partial class GrammarNormalizer
 	/// recognizer, and the machine's own recursion check sees a cycle where there is one.
 	/// </para>
 	/// </remarks>
-	Node Specialize(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarContext context)
+	Node Specialize(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns)
 	{
 		var declaration = rule.Declaration!;
 
@@ -470,7 +470,7 @@ public sealed partial class GrammarNormalizer
 			}
 			else
 			{
-				passed.Add(Lower(argument, context));
+				passed.Add(Lower(argument, ns));
 				counts.Add(null);
 			}
 
@@ -503,7 +503,7 @@ public sealed partial class GrammarNormalizer
 		if (_specialized.TryGetValue(key, out var made))
 			return new Node.Call(made, []);
 
-		var specialized = new RuleSymbol(NameFor(rule, passed, counts), rule.Context, declaration);
+		var specialized = new RuleSymbol(NameFor(rule, passed, counts), rule.Namespace, declaration);
 
 		_specialized[key] = specialized;
 		_rules.Add(specialized);
@@ -529,7 +529,7 @@ public sealed partial class GrammarNormalizer
 		var outerRule = _currentRule;
 		_currentRule  = specialized;
 
-		_bodies[specialized] = Lower(declaration.Body, rule.Context);
+		_bodies[specialized] = Lower(declaration.Body, rule.Namespace);
 		_currentRule         = outerRule;
 		_arguments           = outerArguments;
 		_counts              = outerCounts;
@@ -675,7 +675,7 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>Binding already reported it; a placeholder keeps lowering going.</summary>
 	static RuleSymbol Unresolved(string name) =>
-		new(name, new GrammarContext("<unresolved>", null), Declaration: null);
+		new(name, new GrammarNamespace("<unresolved>", null), Declaration: null);
 
 	/// <summary>
 	/// Values in `=&gt;` and `when` are C# by the time they get here — and are rendered
@@ -821,17 +821,17 @@ public sealed partial class GrammarNormalizer
 		return merged;
 	}
 
-	Node LowerSequence(IReadOnlyList<Expr> operands, GrammarContext context)
+	Node LowerSequence(IReadOnlyList<Expr> operands, GrammarNamespace ns)
 	{
 		var nodes  = new List<Node>();
-		var trivia = TriviaFor(context);
+		var trivia = TriviaFor(ns);
 
 		foreach (var operand in operands)
 		{
 			if (nodes.Count > 0 && trivia is not null)
 				nodes.Add(trivia);
 
-			nodes.Add(Lower(operand, context));
+			nodes.Add(Lower(operand, ns));
 		}
 
 		return Flatten(MergeLiterals(nodes));
@@ -858,11 +858,11 @@ public sealed partial class GrammarNormalizer
 	/// it.
 	/// </para>
 	/// </remarks>
-	Node Bounded(string value, GrammarContext context, bool ignoreCase)
+	Node Bounded(string value, GrammarNamespace ns, bool ignoreCase)
 	{
 		var literal = new Node.Literal(value) { IgnoreCase = ignoreCase };
 
-		if (value.Length == 0 || BoundaryFor(context) is not { } boundary)
+		if (value.Length == 0 || BoundaryFor(ns) is not { } boundary)
 			return literal;
 
 		foreach (var character in value)
@@ -885,10 +885,10 @@ public sealed partial class GrammarNormalizer
 		categories.Count == 0 &&
 		negated != ranges.Any(range => character >= range.From && character <= range.To);
 
-	/// <summary>The `wordboundary` this context sees, or null while it matches nothing.</summary>
-	Node? BoundaryFor(GrammarContext context)
+	/// <summary>The `wordboundary` this namespace sees, or null while it matches nothing.</summary>
+	Node? BoundaryFor(GrammarNamespace ns)
 	{
-		for (var at = context; at is not null; at = at.Parent)
+		for (var at = ns; at is not null; at = at.Parent)
 			if (at.Rules.TryGetValue("wordboundary", out var rule) && !rule.IsBuiltIn)
 				return MatchesNothing(rule, []) ? null : CallTo(rule, []);
 
@@ -896,11 +896,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// The `trivia` this context sees, or null when it matches nothing — in which case the
+	/// The `trivia` this namespace sees, or null when it matches nothing — in which case the
 	/// insertions are not emitted at all rather than emitted and skipped (§4.5).
 	/// </summary>
-	Node? TriviaFor(GrammarContext context) =>
-		_model.Trivia.TryGetValue(context, out var trivia) && !MatchesNothing(trivia, [])
+	Node? TriviaFor(GrammarNamespace ns) =>
+		_model.Trivia.TryGetValue(ns, out var trivia) && !MatchesNothing(trivia, [])
 			? CallTo(trivia, [])
 			: null;
 
@@ -966,9 +966,9 @@ public sealed partial class GrammarNormalizer
 		return flat.Count == 1 ? flat[0] : new Node.Sequence(flat);
 	}
 
-	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarContext context)
+	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarNamespace ns)
 	{
-		var nodes = alternatives.Select(a => Lower(a, context)).ToList();
+		var nodes = alternatives.Select(a => Lower(a, ns)).ToList();
 
 		var merged = MergeAdjacentElements(nodes);
 

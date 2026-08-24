@@ -7,9 +7,9 @@ using DotGram.Grammar.Binding;
 namespace DotGram.Grammar.Model;
 
 /// <summary>
-/// Realizes every `with (...)` site (§5.1, §18/§20 of the contextual-bindings spec) —
-/// <c>context (...)</c>'s substitution, applied to one expression instead of a whole
-/// block. Reuses <see cref="GrammarNormalizer"/>'s context machinery almost entirely:
+/// Realizes every `with (...)` site (§5.1, §18/§20 of the rebinding spec) —
+/// <c>namespace (...)</c>'s substitution, applied to one expression instead of a whole
+/// block. Reuses <see cref="GrammarNormalizer"/>'s namespace machinery almost entirely:
 /// the only genuinely new step is splicing a rewritten subtree back into the rule that
 /// contains it, since a `with` declares no block of its own to specialize.
 /// </summary>
@@ -28,14 +28,14 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// One pass per rule that contains at least one `with`, computing each site's own
-	/// affected set (§18 step 1) exactly as a `context (...)` block does, then splicing
+	/// affected set (§18 step 1) exactly as a `namespace (...)` block does, then splicing
 	/// the rewritten result back into that rule's own body — which is the one thing a
-	/// `with` site needs that a context site does not, since it declares no block of its
+	/// `with` site needs that a namespace site does not, since it declares no block of its
 	/// own to specialize.
 	/// </summary>
 	/// <remarks>
-	/// Runs before <see cref="SpecializeContexts"/> (§5.1): a `with` mutates a rule's
-	/// body in place, and an enclosing `context (...)` clone of that same rule must see
+	/// Runs before <see cref="SpecializeNamespaces"/> (§5.1): a `with` mutates a rule's
+	/// body in place, and an enclosing `namespace (...)` clone of that same rule must see
 	/// the mutation already applied. Each pass computes its own fresh call-graph
 	/// snapshot rather than sharing one — <see cref="SpecializeWithSites"/> is the one
 	/// that leaves the graph stale for whoever runs after it.
@@ -58,7 +58,7 @@ public sealed partial class GrammarNormalizer
 			// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
 			// both `with`s' operand lowers to the exact same node. Merged into one
 			// combined rebinding set, later overriding earlier for a shared key — the
-			// same child-overrides-parent layering `context (...)` nesting already uses
+			// same child-overrides-parent layering `namespace (...)` nesting already uses
 			// (`ChainResolve`) — rather than cloned in two separate passes: a second pass
 			// computed against the pre-splice graph could not reach inside the clone the
 			// first pass already made, since that clone is a new rule referenced only by
@@ -90,7 +90,7 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// Every rule this node calls, at any depth — a with-site's own Seed (§18 step 1):
-	/// what a `context` block names by declaring rules in its span, a `with` expression
+	/// what a `namespace` block names by declaring rules in its span, a `with` expression
 	/// names by calling them directly in the one expression it wraps.
 	/// </summary>
 	static HashSet<RuleSymbol> DirectCalls(Node root)
@@ -175,13 +175,13 @@ public sealed partial class GrammarNormalizer
 	/// itself, and specializing it either produces a clone to publish instead, or —
 	/// when the rebinding cannot reach anything from there — leaves the publication
 	/// exactly as it was, the same "no-op when nothing is affected" shape
-	/// <see cref="SpecializeWithSites"/> and <see cref="SpecializeContexts"/> both have.
+	/// <see cref="SpecializeWithSites"/> and <see cref="SpecializeNamespaces"/> both have.
 	/// </summary>
 	/// <remarks>
-	/// Runs after <see cref="SpecializeContexts"/>, deliberately: a publication's own
+	/// Runs after <see cref="SpecializeNamespaces"/>, deliberately: a publication's own
 	/// `with` is the more locally written of the two, and composes on top of whatever an
-	/// enclosing `context (...)` already did to it — the child-overrides-parent ordering
-	/// nested context headers already use for a shared key, applied here between a block
+	/// enclosing `namespace (...)` already did to it — the child-overrides-parent ordering
+	/// nested namespace headers already use for a shared key, applied here between a block
 	/// and the one directive inside it that names its own rebinding.
 	/// </remarks>
 	void SpecializePublicationWith()

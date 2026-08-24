@@ -1667,7 +1667,7 @@ public sealed class GeneratorDriverTests
 		{ "Repeated",        "Start = ('a' | 'b')* & eof\nparse Start" },
 		{ "Counted",         "Start = ('a' | 'b'){2} & eof\nparse Start" },
 		{ "SequenceType",    "Start : @string[] = Item* & eof\nItem : @string = 'a'\nparse Start" },
-		{ "InContext",       "context Inner { Start = Item+ }\nItem = 'a'\nparse Inner.Start" },
+		{ "InNamespace",     "namespace Inner { Start = Item+ }\nItem = 'a'\nparse Inner.Start" },
 		{ "Guard",           "Start = value: ['a'..'z']+ & when @Accept(value)\nparse Start" },
 		{ "Construction",    "Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start" },
 		{ "InlineCSharp",    "Start = ['a'..'z']+ & when @(parserText.Length < 4)\nparse Start" },
@@ -1679,7 +1679,7 @@ public sealed class GeneratorDriverTests
 		{ "BrokenSequence",  "Start = 'a' & & 'b'\nparse Start" },
 		{ "BrokenSet",       "Start = ['a'..]\nparse Start" },
 		{ "BrokenCount",     "Start = 'a'{x,}\nparse Start" },
-		{ "BrokenContext",   "context Inner { Start = 'a'\nparse Inner.Start" },
+		{ "BrokenNamespace", "namespace Inner { Start = 'a'\nparse Inner.Start" },
 		{ "BrokenCSharp",    "Start = 'a' & when @(true\nparse Start" },
 	};
 

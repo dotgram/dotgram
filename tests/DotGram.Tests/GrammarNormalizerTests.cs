@@ -107,7 +107,7 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void Trivia_switches_per_context_by_shadowing()
+	public void Trivia_switches_per_namespace_by_shadowing()
 	{
 		Assert.Equal(
 			"""
@@ -121,7 +121,7 @@ public sealed class GrammarNormalizerTests
 				trivia = ' '*
 				Loose  = 'a' & 'b'
 
-				context Lexical
+				namespace Lexical
 				{
 					trivia = none
 					Tight  = 'a' & 'b'
@@ -246,7 +246,7 @@ public sealed class GrammarNormalizerTests
 		Assert.False(graph.Nullable[graph.Rules.Single(r => r.Name == "Number")]);
 	}
 
-	// ── Contextual bindings — §22, §25 ────────────────────────────────────────────
+	// ── Namespace rebindings — §22, §25 ─────────────────────────────────────────
 
 	static RecognitionGraph Normalize(string source, ISymbolResolver resolver) =>
 		GrammarNormalizer.Normalize(
@@ -255,11 +255,11 @@ public sealed class GrammarNormalizerTests
 			resolver);
 
 	[Fact]
-	public void An_ordinary_context_body_declaration_stays_lexical_and_clones_nothing()
+	public void An_ordinary_namespace_body_declaration_stays_lexical_and_clones_nothing()
 	{
-		// §3, §22 test 1: `B = D` inside a header-less `context` is ordinary shadowing.
+		// §3, §22 test 1: `B = D` inside a header-less `namespace` is ordinary shadowing.
 		// `F` still resolves through the outer `A` to the outer `B`, and nothing is
-		// cloned — proof that a plain `context { ... }` is exactly as before this
+		// cloned — proof that a plain `namespace { ... }` is exactly as before this
 		// feature.
 		Assert.Equal(
 			"""
@@ -273,7 +273,7 @@ public sealed class GrammarNormalizerTests
 				B = 'c'
 				A = B
 
-				context Ctx
+				namespace Ctx
 				{
 					B = 'd'
 					E = A
@@ -283,9 +283,9 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void A_contextual_binding_propagates_through_the_call_graph_and_leaves_the_outside_alone()
+	public void A_namespace_binding_propagates_through_the_call_graph_and_leaves_the_outside_alone()
 	{
-		// §4, §22 tests 2 and 4, §25 — the primary example: `F`, outside the context,
+		// §4, §22 tests 2 and 4, §25 — the primary example: `F`, outside the namespace,
 		// still resolves `A` to the ordinary `B`; `E`, inside, resolves the same `A`
 		// through the rebound `B`.
 		Assert.Equal(
@@ -305,7 +305,7 @@ public sealed class GrammarNormalizerTests
 				A = B
 				F = A
 
-				context Ctx (B = D)
+				namespace Ctx (B = D)
 				{
 					E = A
 				}
@@ -338,7 +338,7 @@ public sealed class GrammarNormalizerTests
 				B = C
 				A = B
 
-				context Ctx (C = Y)
+				namespace Ctx (C = Y)
 				{
 					E = A
 				}
@@ -348,9 +348,9 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void A_nested_context_may_override_an_inherited_binding()
+	public void A_nested_namespace_may_override_an_inherited_binding()
 	{
-		// §11, §22 test 6: the inner context's own `B = E` replaces the outer `B = D`
+		// §11, §22 test 6: the inner namespace's own `B = E` replaces the outer `B = D`
 		// for everything declared inside it — `F`'s clone resolves through `E`, not `D`.
 		Assert.Equal(
 			"""
@@ -368,9 +368,9 @@ public sealed class GrammarNormalizerTests
 				E = 'e'
 				A = B
 
-				context Outer (B = D)
+				namespace Outer (B = D)
 				{
-					context Inner (B = E)
+					namespace Inner (B = E)
 					{
 						F = A
 					}
@@ -379,7 +379,7 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void A_context_binding_survives_recursion()
+	public void A_namespace_binding_survives_recursion()
 	{
 		// §10, §22 test 7: the clone's own recursive call closes onto itself, not onto
 		// the unbound original — otherwise a nested "(((b)))" would fall back to 'a'
@@ -396,7 +396,7 @@ public sealed class GrammarNormalizerTests
 				Atom = 'a'
 				Tree = Atom | '(' & Tree & ')'
 
-				context Ctx (Atom = BAtom)
+				namespace Ctx (Atom = BAtom)
 				{
 					parse Tree as BTree
 				}
@@ -405,7 +405,7 @@ public sealed class GrammarNormalizerTests
 				""").ToString());
 	}
 
-	// ── `with (...)` — an expression-scoped counterpart to `context (...)` ─────────
+	// ── `with (...)` — an expression-scoped counterpart to `namespace (...)` ─────────
 
 	[Fact]
 	public void With_clones_only_what_the_binding_can_reach()
@@ -452,11 +452,11 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void A_with_site_composes_with_an_enclosing_context()
+	public void A_with_site_composes_with_an_enclosing_namespace()
 	{
-		// The context's own clone of `A` must call a clone of `Number`'s with-clone —
+		// The namespace's own clone of `A` must call a clone of `Number`'s with-clone —
 		// not of the plain, unrebound `Number` — which is only possible because `with`
-		// runs before `context (...)` is specialized and leaves `A`'s own body mutated.
+		// runs before `namespace (...)` is specialized and leaves `A`'s own body mutated.
 		Assert.Equal(
 			"""
 			Digit = ['0'..'9']
@@ -476,7 +476,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				context Ctx (Digit = OtherDigit)
+				namespace Ctx (Digit = OtherDigit)
 				{
 					A = Number with (Point = Comma)
 				}
@@ -559,10 +559,10 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void A_publication_s_with_composes_on_top_of_an_enclosing_context()
+	public void A_publication_s_with_composes_on_top_of_an_enclosing_namespace()
 	{
 		// The publication's own `with` is the more locally written of the two: it
-		// clones `Number_Ctx` (the context's own clone), not the plain `Number`.
+		// clones `Number_Ctx` (the namespace's own clone), not the plain `Number`.
 		Assert.Equal(
 			"""
 			Digit = ['0'..'9']
@@ -581,7 +581,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				context Ctx (Digit = OtherDigit)
+				namespace Ctx (Digit = OtherDigit)
 				{
 					parse Number with (Point = Comma) as Evaluate
 				}
@@ -589,32 +589,32 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
-	public void An_incompatible_contextual_replacement_is_reported_at_the_binding()
+	public void An_incompatible_replacement_is_reported_at_the_binding()
 	{
 		// §14, §22 test 11: the diagnostic belongs at the binding itself, not at some
 		// transitive call site.
 		Assert.Contains(
-			GrammarNormalizer.IncompatibleContextReplacement,
+			GrammarNormalizer.IncompatibleRebinding,
 			Normalize("""
 				Value   : @Expr   = 'v'
 				RawText : @string = 'r'
 
-				context Ctx (Value = RawText)
+				namespace Ctx (Value = RawText)
 				{
 				}
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
 	}
 
 	[Fact]
-	public void A_compatible_contextual_replacement_is_not_reported()
+	public void A_compatible_replacement_is_not_reported()
 	{
 		Assert.DoesNotContain(
-			GrammarNormalizer.IncompatibleContextReplacement,
+			GrammarNormalizer.IncompatibleRebinding,
 			Normalize("""
 				Value   : @string = 'v'
 				RawText : @string = 'r'
 
-				context Ctx (Value = RawText)
+				namespace Ctx (Value = RawText)
 				{
 				}
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));

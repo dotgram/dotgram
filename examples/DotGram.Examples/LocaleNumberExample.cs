@@ -13,14 +13,14 @@ namespace DotGram.Examples;
 //
 // The replacement happens at the publication, not in the rule:
 //
-//   context (Point = Comma)
+//   namespace (Point = Comma)
 //   {
 //       parse Number as ParseEuropeanNumber
 //   }
 //
 // `ParseEuropeanNumber` calls the same `Number`, with every rule it transitively reaches
 // specialized under `Point -> Comma` first (docs/syntax.md §5.1). `ParseNumber`, declared
-// outside the context, still calls the original `Number` with the original `Point` — one
+// outside the namespace, still calls the original `Number` with the original `Point` — one
 // grammar, two publications, and `Number`'s own `=>` never had to learn there was a
 // second decimal point at all: it reads the digits on either side of whatever `Point`
 // matched and never looks at the character itself.
@@ -36,7 +36,7 @@ namespace DotGram.Examples;
 
 	Comma = ','
 
-	context Ctx (Point = Comma)
+	namespace Ctx (Point = Comma)
 	{
 		parse Number as ParseEuropeanNumber
 	}

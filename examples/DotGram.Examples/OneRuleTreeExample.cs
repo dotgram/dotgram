@@ -35,7 +35,7 @@ namespace DotGram.Examples;
 
 	using Lexical;
 
-	context Lexical
+	namespace Lexical
 	{
 		trivia = none
 
