@@ -45,6 +45,8 @@ public sealed class GrammarBinder
 	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings =
 		new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>> _withOwnRebindings =
+		new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarNamespace, RuleSymbol> _trivia   = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
@@ -81,7 +83,8 @@ public sealed class GrammarBinder
 		binder.Resolve(file.Decls, global);
 
 		return new GrammarModel(
-			global, binder._bindings, binder._withBindings, binder._trivia, binder._publications, binder._diagnostics);
+			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
+			binder._publications, binder._diagnostics);
 	}
 
 	GrammarNamespace CreateStandardLibrary()
@@ -259,7 +262,7 @@ public sealed class GrammarBinder
 
 					_publications.Add(new Publication(
 						publish.Kind, published, method, publish.At, ns,
-						ChainResolve(EmptyBindings, ownPublicationBindings)));
+						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings));
 
 					break;
 			}
@@ -562,7 +565,8 @@ public sealed class GrammarBinder
 							own.Add(resolved);
 					}
 
-				_withBindings[expression] = ChainResolve(EmptyBindings, own);
+				_withBindings[expression]     = ChainResolve(EmptyBindings, own);
+				_withOwnRebindings[expression] = own;
 
 				ResolveExpression(operand, ns, parameters, csharpValue);
 				return;

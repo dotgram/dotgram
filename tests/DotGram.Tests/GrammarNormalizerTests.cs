@@ -652,6 +652,38 @@ public sealed class GrammarNormalizerTests
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
 	}
 
+	[Fact]
+	public void An_incompatible_expression_with_replacement_is_reported()
+	{
+		// The same check as a namespace header's, now reached through an expression
+		// `with` instead — GRAM4014 used to be checked only against
+		// GrammarNamespace.OwnRebindings, so this extent's own rebindings never ran
+		// through it at all.
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Value   : @Expr   = 'v'
+				RawText : @string = 'r'
+				Number  = Value
+
+				A = Number with (Value = RawText)
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void An_incompatible_publication_with_replacement_is_reported()
+	{
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Value   : @Expr   = 'v'
+				RawText : @string = 'r'
+				Number  = Value
+
+				parse Number with (Value = RawText) as Evaluate
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
 	sealed class StrictAssignabilityResolver : ISymbolResolver
 	{
 		public bool TypeExists(string qualifiedName) => true;
