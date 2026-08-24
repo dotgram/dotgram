@@ -3,9 +3,10 @@ using Microsoft.VisualStudio.Text;
 
 namespace DotGram.VisualStudio;
 
-sealed class GramFindReferencesTarget(string name, int[] positions)
+sealed class GramFindReferencesTarget(string name, int definitionPosition, int[] positions)
 {
 	public string Name { get; } = name;
+	public int DefinitionPosition { get; } = definitionPosition;
 	public int[] Positions { get; } = positions;
 
 	public static GramFindReferencesTarget? Standalone(
@@ -21,6 +22,7 @@ sealed class GramFindReferencesTarget(string name, int[] positions)
 			? null
 			: new GramFindReferencesTarget(
 				current.Name,
+				current.DefinitionPosition,
 				symbols.Where(symbol => symbol.Name == current.Name).Select(symbol => symbol.Position).ToArray());
 	}
 
@@ -38,6 +40,7 @@ sealed class GramFindReferencesTarget(string name, int[] positions)
 			? null
 			: new GramFindReferencesTarget(
 				current.Name,
+				current.DefinitionSpan.Start,
 				symbols
 					.Where(symbol => symbol.Name == current.Name &&
 						symbol.GrammarSpan == current.GrammarSpan &&
