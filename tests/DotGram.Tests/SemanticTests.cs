@@ -854,6 +854,49 @@ public sealed class SemanticTests
 			2,
 			Refusal("Inner = ['a'] & ['b'] & ['c']\nStart = Inner", "abq").Position);
 
+	// ── What was expected there (§11's first tier) ───────────────────────────────
+
+	[Fact]
+	public void A_refusal_names_the_one_thing_that_would_have_fit() =>
+		// `a: 'a'` keeps the two literals from merging into one "a)"-shaped token during
+		// normalization (adjacent bare literals in a sequence would otherwise become
+		// one, which §11's own concerns start only after) — and unlike a repetition,
+		// a plain capture tries its operand exactly once, so nothing else ties with ')'
+		// at the position it fails.
+		Assert.Equal("Expected ')'.", Refusal("Start = a: 'a' & ')'", "a").Error);
+
+	[Fact]
+	public void And_names_every_alternative_tried_at_the_same_furthest_position() =>
+		// "ab"/"ac" share a prefix and are read once as one merged run (Machine.cs's
+		// CompileLiterals) — both alternatives fail together, at the same position, and
+		// both are named.
+		Assert.Equal("Expected \"ab\" or \"ac\".", Refusal("""Start = "ab" | "ac" """, "ax").Error);
+
+	[Fact]
+	public void And_names_a_repeated_element_the_same_way_as_a_single_one() =>
+		Assert.Equal("Expected ['0'..'9'].", Refusal("Start = ['0'..'9']+", "").Error);
+
+	[Fact]
+	public void With_nothing_left_to_try_it_says_the_input_ran_out() =>
+		// The guard fails at the end of the input and names no terminal of its own; a
+		// clear failure at a tied position does not erase what an earlier one recorded
+		// there, so this only holds when nothing else was tried at that exact position.
+		Assert.Equal(
+			"Expected more input.",
+			Refusal("Start = 'a' & when @(false)", "a").Error);
+
+	[Fact]
+	public void A_prefix_conflicted_run_can_under_report_what_it_covers()
+	{
+		// A known, accepted first-cut gap (Machine.cs's CompileLiterals doc comment):
+		// "p"/"pr" cannot share a merged run (one prefixes the other), so LiteralRun
+		// splits this into a "p"/"q" run chained into "pr" compiled on its own. Both
+		// fail at the same position, but the second overwrites the first's `expected`
+		// before either reaches the real Fail: — losing "p" and "q", keeping "pr". If
+		// this is ever fixed, this test should change on purpose, not by surprise.
+		Assert.Equal("Expected \"pr\".", Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
+	}
+
 	[Fact]
 	public void A_lookahead_does_not_report_how_far_it_looked() =>
 		// It reached position 2 inside itself and consumed nothing. Naming 2 would point

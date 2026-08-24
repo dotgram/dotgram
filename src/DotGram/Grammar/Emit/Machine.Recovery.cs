@@ -62,7 +62,7 @@ sealed partial class Machine
 		atAttempt.Line($"goto {Label(inner)};");
 
 		atAsked.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-		atAsked.Line("if (!owned && reach <= p) goto Fail;");
+		atAsked.Line("if (!owned && reach <= p) { expected = null; goto Fail; }");
 		atAsked.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {asked}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(scan)};");
@@ -72,7 +72,7 @@ sealed partial class Machine
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {advance}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(sync)};");
 
-		atSynced.Line($"if (p <= syncFrom) goto Fail;");
+		atSynced.Line($"if (p <= syncFrom) {{ expected = null; goto Fail; }}");
 		atSynced.Line($"goto {Label(recovered)};");
 
 		atAdvance.Line("p++;");

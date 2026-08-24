@@ -335,7 +335,8 @@ public static partial class CSharpEmitter
 		{
 			file.Write(FailureStructWith(
 				reach: graph.Recoveries.Count > 0 && Streaming(graph),
-				starved: Streaming(graph)));
+				starved: Streaming(graph),
+				expected: true));
 			file.Line();
 		}
 
@@ -440,7 +441,23 @@ public static partial class CSharpEmitter
 			file.Line($"var end = {WholeOf(publication.Rule)}(text, 0{hands});");
 			file.Line();
 			file.Line("if (end < 0)");
-			file.Then($"return {match}.Failed(\"Input does not match '{name}'.\", failure.Position);");
+			using (file.Block(""))
+			{
+				file.Line("string message;");
+				file.Line();
+				file.Line("if (failure.Expected is { Count: 1 } one)");
+				file.Then("message = \"Expected \" + one[0] + \".\";");
+				file.Line("else if (failure.Expected is { Count: > 1 } many)");
+				file.Then(
+					"message = \"Expected \" + string.Join(\", \", many.GetRange(0, many.Count - 1)) + " +
+					"\" or \" + many[many.Count - 1] + \".\";");
+				file.Line("else if (failure.Position >= text.Length)");
+				file.Then("message = \"Expected more input.\";");
+				file.Line("else");
+				file.Then($"message = \"Input does not match '{name}'.\";");
+				file.Line();
+				file.Line($"return {match}.Failed(message, failure.Position);");
+			}
 			file.Line();
 			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
 		}

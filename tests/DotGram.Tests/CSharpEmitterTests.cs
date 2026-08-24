@@ -246,7 +246,11 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserEntry.Capture", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
-		Assert.DoesNotContain("List<string>", source);
+
+		// No longer also `Assert.DoesNotContain("List<string>", source)`: every generated
+		// parser now carries `Failure.Expected`, a `List<string>?` unrelated to how a
+		// capture is stored (§11's first-tier diagnostics) — the claim this test makes is
+		// about captures, not about the file being free of `List<string>` altogether.
 	}
 
 	[Fact]
@@ -313,7 +317,11 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("List<ParserEntry>", source);
 		Assert.Contains("var items = new string[count];", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
-		Assert.DoesNotContain("List<string>", source);
+
+		// No longer also `Assert.DoesNotContain("List<string>", source)`: every generated
+		// parser now carries `Failure.Expected`, a `List<string>?` unrelated to how a
+		// sequence is materialized (§11's first-tier diagnostics) — the array assertion
+		// just above is what actually proves the sequence itself uses no `List<T>`.
 		Assert.True(result.Matched);
 		Assert.Equal(new[] { "a", "a", "a" }, Assert.IsType<string[]>(result.Value));
 	}
@@ -735,7 +743,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("static int Recognize_E_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
 		Assert.DoesNotContain("static int Recognize_D(", source);
 		Assert.Contains("int rootRule, int initialPower, bool whole", source);
-		Assert.Contains("if (1 < power) goto Fail;", source);
+		Assert.Contains("if (1 < power) { expected = null; goto Fail; }", source);
 
 		// `<< 1` reads its right operand at 2 — one tighter, so a `+` cannot appear in it.
 		Assert.Contains("power = 2;", source);
@@ -904,5 +912,44 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("namespace My.App",  Assert.Single(source.Sources).Text);
 		Assert.Contains("partial class Feed", source.Sources[0].Text);
+	}
+
+	// ── What was expected there (§11's first tier) ───────────────────────────────
+
+	[Fact]
+	public void A_terminal_failure_site_records_its_own_display_before_jumping()
+	{
+		// Not pinned to a specific Recognize_DotGram_ExpectedN index: which number a
+		// given occurrence gets depends on how many terminals were visited compiling the
+		// rest of the grammar first, which is an implementation detail this test has no
+		// business caring about.
+		var source = Emit("Start = 'x'\nparse Start");
+
+		Assert.Matches(
+			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""'x'"" \};", source);
+		Assert.Matches(@"expected = Recognize_DotGram_Expected\d+;", source);
+	}
+
+	[Fact]
+	public void A_non_terminal_failure_site_clears_it_instead()
+	{
+		var source = Emit("Start = 'x' & when @(false)\nparse Start");
+
+		Assert.Contains("if (!Recognize_DotGram_Guard0()) { expected = null; goto Fail; }", source);
+	}
+
+	[Fact]
+	public void The_Fail_label_replaces_on_a_new_furthest_position_and_appends_on_a_tie()
+	{
+		// A capture keeps this off the flat/no-arena path (Silent has no case for
+		// Node.Capture), so the shared Fail: label — the one with a max/tie to make,
+		// unlike the flat path's single, unconditional attempt — is the one compiled.
+		var source = Emit("Start = a: 'x'\nparse Start");
+
+		Assert.Contains(
+			"failure.Expected = expected is null ? null : " +
+			"new global::System.Collections.Generic.List<string>(expected);",
+			source);
+		Assert.Contains("failure.Expected.AddRange(expected);", source);
 	}
 }

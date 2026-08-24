@@ -28,6 +28,7 @@ then quietly mean nothing.
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
+| what a refusal says was expected, first tier §0/§11 | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -318,15 +319,36 @@ gives up on where it is. Nothing is paid on the path that matches, a rule call c
 its callee's failure out with it, and a lookahead is the one machine that does not take
 the state — how far it looked before answering "no" is not how far the parse got.
 
-Two things it does not do yet, and both fit where it stands rather than replacing it:
+`Failure` now also carries `Expected` — §0/§11's first tier, built live beside
+`Position` rather than re-derived afterward: every literal or element test that fails
+records, before it jumps, an already-built display array naming itself; a new furthest
+position replaces what is recorded there, a tie with the current one adds to it. A
+message reads it once the whole attempt has failed — `"Expected ')'."` for one, a
+comma-and-`"or"`-joined list for several, `"Expected more input."` when the furthest
+point was the end of the input and nothing else was tried there. Reached through
+`RenderEngine`'s shared `Fail:` and `RenderFlat`'s own, identically, so a lowered rule
+carries it too. A binding-power guard, a `when`, an external recognizer, a negative
+lookahead that matched, and the rest of what is not a literal-or-element test clear it
+rather than leave a stale value behind, the same care `lookahead < 0` already takes for
+`Position`.
+
+Deliberately narrower than it could be for a first cut, both documented at the sites
+that make the choice: `CompilePredictedChoice` (a choice one character decides) does
+not yet contribute a display; a prefix-conflicted run of literals — `"p" | "q" | "pr"` —
+can under-report what it covers, since two entry-less runs chained by `fail` overwrite
+rather than merge when both fail at the one position neither could move past. Neither
+mis-attributes or moves the position; both simply have less to say than the full
+mechanism eventually could.
+
+One thing it does not do yet:
 
 - **the position is where the failing operand began**, not where its first wrong
   character is. `"abcd"` against `abXY` names 0, not 2. Sharpening it means recording an
   offset at each failing test instead of one position at the point of giving up.
-- **nothing says what was expected there.** That is a second field on the same struct,
-  which is why the struct is threaded by `ref` rather than returned: `Expected`, and the
-  outcome that tells a malformed record from no record (§8.1), go in beside `Position`
-  without changing a single signature.
+
+And one thing bundled with `Expected` when it was still a plan is still not built on
+its own: the outcome that tells a malformed record from no record (§8.1) — a third
+thing beside `Position`, not delivered by this.
 
 ## Captures, and what they build
 

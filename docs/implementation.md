@@ -344,14 +344,22 @@ The recovery engine does not have to be pulled forward whole — message quality
 in two tiers of very different cost, and the first is nearly free.
 
 **The first comes out of the fast path**, and it is the standard answer for a parser
-that backtracks: remember the furthest position of failure reached and the set of what
-was expected there — at that position, try every terminal of the grammar and keep those
-that would have fitted. That yields a message of the form "expected `)`" with an exact
-place.
+that backtracks: remember the furthest position of failure reached, live, the same way
+the position itself already is — every place a literal or an element test fails records,
+beside the position, which terminal it was; a new furthest position replaces what was
+recorded there, a tie with the current one adds to it. That yields a message of the
+form "expected `)`" with an exact place, built once the whole attempt has failed, from
+whatever survived.
 
-It costs almost nothing: the position is tracked anyway, and the expected set is known
-from the grammar at build time. But it yields **one** message per run — parsing was
-abandoned at the first failure, so there is no tree.
+Trying every terminal of the grammar against the character actually there and keeping
+the ones that "fit" is not this mechanism, and must not become it: the terminal that
+caused the failure never fits what is actually at that position — that is the failure.
+What is cheap here is recording what was tried, not testing what would succeed.
+
+It costs almost nothing: the position is tracked anyway, and each failing test already
+knows what it is — one array reference assigned before the jump it was already making.
+But it yields **one** message per run — parsing was abandoned at the first failure, so
+there is no tree.
 
 **The second is recovery.** It gives what the first cannot:
 

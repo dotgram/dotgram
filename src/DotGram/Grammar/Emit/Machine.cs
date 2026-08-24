@@ -35,6 +35,7 @@ sealed partial class Machine
 	readonly List<RecoveryPlan> _recoveryPlans = [];
 	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
 	readonly List<string> _extra = [];
+	int _expectedCount;
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
@@ -431,6 +432,7 @@ sealed partial class Machine
 
 				if (_usesChar)
 					file.Line("var c       = '\\0';");
+				file.Line("string[]? expected = null;");
 
 				// One per repetition written as a loop, and only where the way out that reads
 				// it was kept: a turn that cannot fail after consuming has no way back to
@@ -468,7 +470,7 @@ sealed partial class Machine
 				{
 					file.Line($"case {Return}: goto Return;");
 					file.Line($"case {Accept}: goto Accept;");
-					file.Line($"case {Fail}:   goto Fail;");
+					file.Line($"case {Fail}:   expected = null; goto Fail;");
 
 					// Only where the label is one that was written. A state nothing reaches
 					// cannot be resumed at either, so the case for it would name a label that
@@ -477,7 +479,7 @@ sealed partial class Machine
 						if (Written(Resolved(i + First)))
 							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
 
-					file.Line("default: goto Fail;");
+					file.Line("default: expected = null; goto Fail;");
 				}
 
 				RenderStates(file);
@@ -552,7 +554,7 @@ sealed partial class Machine
 
 				file.Line();
 				file.Line("Accept:");
-				file.Line("if (whole && p != text.Length) goto Fail;");
+				file.Line("if (whole && p != text.Length) { expected = null; goto Fail; }");
 
 				if (hasValues || _recoveryPlans.Count > 0)
 				{
@@ -597,7 +599,19 @@ sealed partial class Machine
 				file.Line();
 				file.Line("Fail:");
 				file.Line("if (lookahead < 0 && p > failure.Position)");
-				file.Then("failure.Position = p;");
+				using (file.Block(""))
+				{
+					file.Line("failure.Position = p;");
+					file.Line(
+						"failure.Expected = expected is null ? null : " +
+						"new global::System.Collections.Generic.List<string>(expected);");
+				}
+				file.Line("else if (lookahead < 0 && p == failure.Position && expected is not null)");
+				using (file.Block(""))
+				{
+					file.Line("failure.Expected ??= new global::System.Collections.Generic.List<string>();");
+					file.Line("failure.Expected.AddRange(expected);");
+				}
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
@@ -795,7 +809,7 @@ sealed partial class Machine
 			var inner = CompileUnguarded(node, next, following);
 			var state = Reserve(out var writer);
 
-			writer.Line($"if ({level} < power) goto Fail;");
+			writer.Line($"if ({level} < power) {{ expected = null; goto Fail; }}");
 			writer.Line($"goto {Label(inner)};");
 
 			return state;
@@ -813,7 +827,8 @@ sealed partial class Machine
 
 			case Node.Literal(var value):
 			{
-				var state = Reserve(out var writer);
+				var state     = Reserve(out var writer);
+				var arrayName = DeclareExpected([node.ToString()]);
 
 				if (_starves)
 				{
@@ -821,15 +836,22 @@ sealed partial class Machine
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
-						writer.Line($"goto {Label(_fail)};");
+						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
 				else
-					writer.Line($"if (p + {value.Length} > text.Length) goto {Label(_fail)};");
+				{
+					writer.Line($"if (p + {value.Length} > text.Length)");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
+				}
 
 				for (var i = 0; i < value.Length; i++)
-					writer.Line(
-						$"if (text[p + {i}] != {CSharpEmitter.Char(value[i])}) goto {Label(_fail)};");
+				{
+					writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(value[i])})");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
+				}
 
 				writer.Line($"p += {value.Length};");
 				writer.Line($"goto {Label(next)};");
@@ -839,12 +861,13 @@ sealed partial class Machine
 
 			case Node.Element element:
 			{
-				var state = Reserve(out var writer);
-				var test  = CSharpEmitter.Test(element);
+				var state     = Reserve(out var writer);
+				var test      = CSharpEmitter.Test(element);
+				var arrayName = DeclareExpected([node.ToString()]);
 
 				if (test == "false")
 				{
-					writer.Line($"goto {Label(_fail)};");
+					EmitTerminalFailure(writer, _fail, arrayName);
 
 					return state;
 				}
@@ -855,17 +878,23 @@ sealed partial class Machine
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
-						writer.Line($"goto {Label(_fail)};");
+						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
 				else
-					writer.Line($"if (p >= text.Length) goto {Label(_fail)};");
+				{
+					writer.Line("if (p >= text.Length)");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
+				}
 
 				if (test != "true")
 				{
 					_usesChar = true;
 					writer.Line("c = text[p];");
-					writer.Line($"if (!({test})) goto {Label(_fail)};");
+					writer.Line($"if (!({test}))");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
 				writer.Line("p++;");
@@ -1063,7 +1092,7 @@ sealed partial class Machine
 			{
 				var state = Reserve(out var writer);
 
-				writer.Line($"if (!{method}(text, ref p)) goto Fail;");
+				writer.Line($"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
 				writer.Line($"goto {Label(next)};");
 
 				return state;
@@ -1274,7 +1303,7 @@ sealed partial class Machine
 					}
 				}
 
-				writer.Line($"if (!{method}({string.Join(", ", arguments)})) goto Fail;");
+				writer.Line($"if (!{method}({string.Join(", ", arguments)})) {{ expected = null; goto Fail; }}");
 				writer.Line($"goto {Label(next)};");
 
 				return state;
@@ -1501,6 +1530,7 @@ sealed partial class Machine
 		atMatched.Line("atomic    = looked.AtomicIndex;");
 		atMatched.Line("repeat    = looked.RepeatIndex;");
 		atMatched.Line("lookahead = looked.LookaheadIndex;");
+		atMatched.Line("expected  = null;");
 		atMatched.Line("goto Fail;");
 
 		return state;
@@ -1526,11 +1556,15 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileLiterals(IReadOnlyList<Node> alternatives, int from, int to, int next, int fail)
 	{
-		var texts = new List<string>(to - from + 1);
+		var texts    = new List<string>(to - from + 1);
+		var displays = new List<string>(to - from + 1);
 
 		for (var i = from; i <= to; i++)
 			if (alternatives[i] is Node.Literal(var text))
+			{
 				texts.Add(text);
+				displays.Add(alternatives[i].ToString());
+			}
 
 		var shared = texts[0];
 
@@ -1544,7 +1578,8 @@ sealed partial class Machine
 			shared = shared.Substring(0, common);
 		}
 
-		var state = Reserve(out var writer);
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected(displays);
 
 		if (shared.Length > 0)
 		{
@@ -1554,14 +1589,22 @@ sealed partial class Machine
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
-					writer.Line($"goto {Label(fail)};");
+					EmitTerminalFailure(writer, fail, arrayName);
 				}
 			}
 			else
-				writer.Line($"if (p + {shared.Length} > text.Length) goto {Label(fail)};");
+			{
+				writer.Line($"if (p + {shared.Length} > text.Length)");
+				using (writer.Block(""))
+					EmitTerminalFailure(writer, fail, arrayName);
+			}
 
 			for (var i = 0; i < shared.Length; i++)
-				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])}) goto {Label(fail)};");
+			{
+				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])})");
+				using (writer.Block(""))
+					EmitTerminalFailure(writer, fail, arrayName);
+			}
 		}
 
 		foreach (var text in texts)
@@ -1584,7 +1627,16 @@ sealed partial class Machine
 
 		}
 
-		writer.Line($"goto {Label(fail)};");
+		// Every failure site in this run — the shared-prefix guards above and this
+		// catch-all — covers the same, full set of `texts`: nothing here narrows a
+		// subset the way a real trie would. One known gap accepted for now: where a
+		// prefix conflict (`"p" | "q" | "pr"`) splits one grammar-level choice into
+		// several entry-less `CompileLiterals` runs chained by `fail`, a later run's own
+		// `expected` can overwrite an earlier one's before either reaches the real
+		// `Fail:` — under-reporting, never mis-attributing or over-reporting. Left as a
+		// documented first-cut gap rather than solved, per docs/implementation.md's own
+		// "the corpus grows by one rule" policy.
+		EmitTerminalFailure(writer, fail, arrayName);
 
 		return state;
 	}
@@ -1610,18 +1662,28 @@ sealed partial class Machine
 			using (writer.Block(""))
 			{
 				writer.Line("failure.Starved = true;");
-				writer.Line($"goto {Label(_fail)};");
+				EmitFailure(writer, _fail);
 			}
 		}
 		else
-			writer.Line($"if (p >= text.Length) goto {Label(_fail)};");
+		{
+			writer.Line("if (p >= text.Length)");
+			using (writer.Block(""))
+				EmitFailure(writer, _fail);
+		}
 
 		writer.Line("c = text[p];");
 
 		for (var i = 0; i < targets.Length; i++)
 			writer.Line($"if ({tests[i]}) goto {Label(targets[i])};");
 
-		writer.Line($"goto {Label(_fail)};");
+		// Predicted by disjoint first sets (Predictive), which is a genuine "this input
+		// character cannot begin any alternative" failure — the closest thing this site
+		// has to a terminal mismatch. Left as a clear (not a terminal) failure for this
+		// first cut: synthesizing a display from the union of every alternative's
+		// first-set ranges is straightforward but not required for a first, reviewable
+		// change.
+		EmitFailure(writer, _fail);
 
 		return state;
 	}
@@ -1690,7 +1752,13 @@ sealed partial class Machine
 		var floor = min == 0 ? "runStart" : $"runStart + {min}";
 
 		if (min > 0)
-			writer.Line($"if (p < {floor}) goto Fail;");
+		{
+			var arrayName = DeclareExpected([repeatNode.Body.ToString()]);
+
+			writer.Line($"if (p < {floor})");
+			using (writer.Block(""))
+				EmitTerminalFailure(writer, Fail, arrayName);
+		}
 
 		writer.Line($"if (p > {floor})");
 		writer.Then(
@@ -1917,6 +1985,84 @@ sealed partial class Machine
 
 	/// <summary>Whether a rule's value is where it matched rather than something built.</summary>
 	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+	/// <summary>
+	/// A precomputed, once-per-occurrence table of what a terminal test would have
+	/// wanted, named so the site that failed can point at it.
+	/// </summary>
+	/// <remarks>
+	/// One array per occurrence, not deduplicated by content — the same shape as every
+	/// other per-occurrence `Reserve`, and for the same reason: two occurrences of `'a'`
+	/// in different places are two different things that can fail.
+	/// </remarks>
+	string DeclareExpected(IReadOnlyList<string> display)
+	{
+		var name  = "Recognize_DotGram_Expected" + _expectedCount++;
+		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));
+
+		_extra.Add($"static readonly string[] {name} = {{ {items} }};");
+
+		return name;
+	}
+
+	/// <summary>
+	/// Wider than <see cref="Escape"/>: this embeds <see cref="Node.ToString"/> output —
+	/// arbitrary grammar text — rather than a rule name, and needs the same per-character
+	/// care <see cref="CSharpEmitter.Char"/> already takes for a matched character, not
+	/// just <c>\</c>/<c>"</c>. A multi-character <see cref="Node.Literal"/> does not
+	/// escape control characters the way a single one does through
+	/// <see cref="CharRange.Quote"/>, and even a single one only escapes the common
+	/// cases — U+2028 LINE SEPARATOR, "legal in a grammar, not in C# source"
+	/// (<c>SemanticTests.cs</c>'s own words for it), is one of the characters C# itself
+	/// treats as a newline inside a string literal and would otherwise break the file
+	/// this lands in.
+	/// </summary>
+	static string EscapeExpected(string value)
+	{
+		var text = "";
+
+		foreach (var character in value)
+			text += character switch
+			{
+				'\\'              => "\\\\",
+				'"'               => "\\\"",
+				>= ' ' and <= '~' => character.ToString(),
+				'\0'              => "\\0",
+				'\a'              => "\\a",
+				'\b'              => "\\b",
+				'\f'              => "\\f",
+				'\n'              => "\\n",
+				'\r'              => "\\r",
+				'\t'              => "\\t",
+				'\v'              => "\\v",
+				_                 => $"\\u{(int)character:X4}",
+			};
+
+		return text;
+	}
+
+	/// <summary>
+	/// A failure that names what would have fit — a terminal test's own `goto`, with
+	/// `expected` set right before it so <c>Fail:</c> knows what to blame this on.
+	/// </summary>
+	static void EmitTerminalFailure(Writer writer, int fail, string arrayName)
+	{
+		writer.Line($"expected = {arrayName};");
+		writer.Line($"goto {Label(fail)};");
+	}
+
+	/// <summary>
+	/// A failure that is not a terminal test — a binding-power guard, a `when`, an
+	/// external recognizer, leftover input, and the rest of the "clear" sites this
+	/// mechanism has to account for. Must clear `expected` rather than leave whatever the
+	/// last terminal test set: `Fail:` cannot otherwise tell a stale value from one that
+	/// belongs to this failure.
+	/// </summary>
+	static void EmitFailure(Writer writer, int fail)
+	{
+		writer.Line("expected = null;");
+		writer.Line($"goto {Label(fail)};");
+	}
 
 	static void PushRepeatExit(Writer writer, int exit) =>
 		writer.Line(

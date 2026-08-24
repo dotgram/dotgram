@@ -456,14 +456,17 @@ public static partial class CSharpEmitter
 	/// otherwise be another parameter on every recognizer and another edit at every call
 	/// site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach, bool starved = false) =>
+	internal static string FailureStructWith(bool reach, bool starved = false, bool expected = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
 				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
 			.Replace(
 				"\t{{starved}}" + Lines.Ending,
-				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "");
+				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "")
+			.Replace(
+				"\t{{expected}}" + Lines.Ending,
+				expected ? Lines.Normalize(ExpectedField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -476,6 +479,7 @@ public static partial class CSharpEmitter
 			public int Position;
 			{{reach}}
 			{{starved}}
+			{{expected}}
 		}
 		""";
 
@@ -492,6 +496,22 @@ public static partial class CSharpEmitter
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
+		""";
+
+	/// <summary>
+	/// What would have fit where the match gave up, or null when nothing at the furthest
+	/// position was a plain literal or element test.
+	/// </summary>
+	/// <remarks>
+	/// Set beside <c>Position</c>, at the same moment and by the same reasoning: replaced
+	/// on a new furthest position, added to on a tie with the current one, left alone
+	/// otherwise. Threaded the same way — a second field on a struct already passed by
+	/// <c>ref</c>, not a new parameter.
+	/// </remarks>
+	const string ExpectedField = """
+
+			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
+			public global::System.Collections.Generic.List<string>? Expected;
 		""";
 
 	/// <summary>The reusable state owned by the automaton.</summary>
