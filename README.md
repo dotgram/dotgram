@@ -97,7 +97,9 @@ Working end to end — a `.gram` file becomes a parser that runs:
   substitution reuses an already-written rule under a different `trivia`, without a
   second copy of it
 - both publication directives, and diagnostics that point into the `.gram` file — and
-  a refusal names the furthest position the input could be followed to
+  a refusal names the furthest position the input could be followed to, and what would
+  have fit there: `"Expected ')'."`, built live at the position rather than guessed
+  afterward
 - **typed results** — a rule with captures gets a type of its own, generated beside the
   parser, and every published method hands it back:
 
@@ -276,7 +278,6 @@ then quietly means nothing is the failure this project is most careful about:
 - a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
   refused rather than quietly taken as a recognizer
 - a second `recover` in one rule, and indirect left recursion
-- diagnostics beyond a position: the set of what was expected there is next
 - the allocation-free `Read()`/`Current` and generated-outcome surfaces from §8.3;
   typed streamed results and the `OnRecovered` sink already work
 - incremental parsing

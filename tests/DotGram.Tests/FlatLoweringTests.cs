@@ -41,9 +41,13 @@ public sealed class FlatLoweringTests
 
 	static void AssertLowered(string source)
 	{
+		// A flat-lowered rule still gets a Recognize_DotGram_ExpectedN table per terminal
+		// (§11's first-tier diagnostics) — plain static arrays, declared under the same
+		// synthetic-helper prefix guards already use, no arena, no dispatch, no pooling.
+		// What actually distinguishes lowering is the absence of the arena machinery
+		// itself, which is what these two check.
 		Assert.DoesNotContain("ParserArena", source);
 		Assert.DoesNotContain("RentParser", source);
-		Assert.DoesNotContain("Recognize_DotGram", source);
 	}
 
 	static void AssertNotLowered(string source)

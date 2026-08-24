@@ -107,7 +107,11 @@ public sealed class ExampleTests
 	public void And_says_where_an_expression_stops_being_one()
 	{
 		Assert.Equal("2*3 = 6", Calculator.Explain("2*3"));
-		Assert.StartsWith("Input does not match", Calculator.Explain("2*"));
+
+		// Every alternative that could follow `*` is out of input to try, at that same
+		// furthest position — a predictive dispatch, and its display is the union of what
+		// each alternative could have begun with (docs/status.md).
+		Assert.StartsWith("Expected ['-' | '(' | '0'..'9'].", Calculator.Explain("2*"));
 		Assert.Throws<FormatException>(static () => Calculator.Evaluate("2*"));
 	}
 
@@ -138,7 +142,7 @@ public sealed class ExampleTests
 	public void And_says_where_a_decimal_expression_stops_being_one()
 	{
 		Assert.Equal("1/8 = 0.125", DecimalCalculator.Explain("1/8"));
-		Assert.StartsWith("Input does not match", DecimalCalculator.Explain("1/"));
+		Assert.StartsWith("Expected ['-' | '(' | '0'..'9' | '(' | '0'..'9'].", DecimalCalculator.Explain("1/"));
 	}
 
 	[Fact]
@@ -197,7 +201,7 @@ public sealed class ExampleTests
 
 		// A strength refuses nothing by itself: what fails here is that `+` needs a right
 		// operand, and the position named is where one stopped being available.
-		Assert.StartsWith("Input does not match", StrengthCalculator.Explain("1+"));
+		Assert.StartsWith("Expected ['-' | '(' | '0'..'9'].", StrengthCalculator.Explain("1+"));
 	}
 
 	/// <summary>

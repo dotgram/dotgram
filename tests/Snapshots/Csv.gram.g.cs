@@ -59,6 +59,7 @@ namespace DotGram.Snapshots
 				var repeat  = -1;
 				var lookahead = -1;
 				var c       = '\0';
+				string[]? expected = null;
 				var completedCall = -1;
 				var capture3 = 0;
 				var capture4 = 0;
@@ -71,7 +72,7 @@ namespace DotGram.Snapshots
 				{
 					case 0: goto Return;
 					case 1: goto Accept;
-					case 2:   goto Fail;
+					case 2:   expected = null; goto Fail;
 					case 3: goto S3;
 					case 4: goto S4;
 					case 5: goto S5;
@@ -125,7 +126,7 @@ namespace DotGram.Snapshots
 					case 53: goto S53;
 					case 54: goto S54;
 					case 55: goto S55;
-					default: goto Fail;
+					default: expected = null; goto Fail;
 				}
 
 				S3:
@@ -188,7 +189,11 @@ namespace DotGram.Snapshots
 
 				S11:
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
 					p++;
 					goto S10;
 				}
@@ -258,8 +263,16 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					if (p + 1 > text.Length) goto Fail;
-					if (text[p + 0] != '\r') goto Fail;
+					if (p + 1 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					if (text[p + 0] != '\r')
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
 					p += 1;
 					goto S21;
 				}
@@ -276,6 +289,7 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto S21;
 					}
+					expected = Recognize_DotGram_Expected2;
 					goto S22;
 				}
 
@@ -300,8 +314,16 @@ namespace DotGram.Snapshots
 
 				S27:
 				{
-					if (p + 1 > text.Length) goto Fail;
-					if (text[p + 0] != ',') goto Fail;
+					if (p + 1 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					if (text[p + 0] != ',')
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
 					p += 1;
 					goto S25;
 				}
@@ -347,7 +369,7 @@ namespace DotGram.Snapshots
 						}
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
-					if (!Recognize_DotGram_Guard0(guardCaptured0)) goto Fail;
+					if (!Recognize_DotGram_Guard0(guardCaptured0)) { expected = null; goto Fail; }
 					goto S32;
 				}
 
@@ -400,9 +422,17 @@ namespace DotGram.Snapshots
 
 				S39:
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
 					c = text[p];
-					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))) goto Fail;
+					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
 					p++;
 					goto S38;
 				}
@@ -469,9 +499,17 @@ namespace DotGram.Snapshots
 
 				S48:
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+					{
+						expected = Recognize_DotGram_Expected5;
+						goto Fail;
+					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9')))) goto Fail;
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected5;
+						goto Fail;
+					}
 					p++;
 					goto S47;
 				}
@@ -499,7 +537,11 @@ namespace DotGram.Snapshots
 
 				S52:
 				{
-					if (p >= text.Length) goto Fail;
+					if (p >= text.Length)
+					{
+						expected = Recognize_DotGram_Expected6;
+						goto Fail;
+					}
 					p++;
 					goto S51;
 				}
@@ -515,8 +557,16 @@ namespace DotGram.Snapshots
 
 				S54:
 				{
-					if (p + 1 > text.Length) goto Fail;
-					if (text[p + 0] != '\r') goto Fail;
+					if (p + 1 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected7;
+						goto Fail;
+					}
+					if (text[p + 0] != '\r')
+					{
+						expected = Recognize_DotGram_Expected7;
+						goto Fail;
+					}
 					p += 1;
 					goto Return;
 				}
@@ -533,6 +583,7 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
+					expected = Recognize_DotGram_Expected8;
 					goto S54;
 				}
 
@@ -558,7 +609,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) goto Fail;
+				if (whole && p != text.Length) { expected = null; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -780,7 +831,15 @@ namespace DotGram.Snapshots
 
 				Fail:
 				if (lookahead < 0 && p > failure.Position)
+				{
 					failure.Position = p;
+					failure.Expected = expected is null ? null : new global::System.Collections.Generic.List<string>(expected);
+				}
+				else if (lookahead < 0 && p == failure.Position && expected is not null)
+				{
+					failure.Expected ??= new global::System.Collections.Generic.List<string>();
+					failure.Expected.AddRange(expected);
+				}
 				Trace("fail", state, p, entries.Count);
 
 				while (entries.Count > 0)
@@ -903,10 +962,28 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
+		static readonly string[] Recognize_DotGram_Expected0 = { "[^ ]" };
+
+		static readonly string[] Recognize_DotGram_Expected1 = { "'\\r'" };
+
+		static readonly string[] Recognize_DotGram_Expected2 = { "\"\r\n\"", "'\\n'" };
+
+		static readonly string[] Recognize_DotGram_Expected3 = { "','" };
+
 		static bool Recognize_DotGram_Guard0(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
+
+		static readonly string[] Recognize_DotGram_Expected4 = { "['A'..'Z' | 'a'..'z']" };
+
+		static readonly string[] Recognize_DotGram_Expected5 = { "['0'..'9']" };
+
+		static readonly string[] Recognize_DotGram_Expected6 = { "[^ ]" };
+
+		static readonly string[] Recognize_DotGram_Expected7 = { "'\\r'" };
+
+		static readonly string[] Recognize_DotGram_Expected8 = { "\"\r\n\"", "'\\n'" };
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
@@ -916,6 +993,9 @@ namespace DotGram.Snapshots
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
+			public global::System.Collections.Generic.List<string>? Expected;
 		}
 
 		private sealed class Parser

@@ -720,7 +720,7 @@ public sealed partial class GrammarNormalizer
 	/// </para>
 	/// <para>
 	/// Before the trivia insertion, which is what §4.6 says and what makes it mean
-	/// anything: `"select" &amp; ?!KeywordBoundary` asks whether a letter follows the
+	/// anything: `"select" &amp; ?!wordboundary` asks whether a letter follows the
 	/// keyword, while the other order would ask whether one follows the whitespace after
 	/// it.
 	/// </para>
@@ -752,11 +752,11 @@ public sealed partial class GrammarNormalizer
 		categories.Count == 0 &&
 		negated != ranges.Any(range => character >= range.From && character <= range.To);
 
-	/// <summary>The `KeywordBoundary` this context sees, or null while it matches nothing.</summary>
+	/// <summary>The `wordboundary` this context sees, or null while it matches nothing.</summary>
 	Node? BoundaryFor(GrammarContext context)
 	{
 		for (var at = context; at is not null; at = at.Parent)
-			if (at.Rules.TryGetValue("KeywordBoundary", out var rule) && !rule.IsBuiltIn)
+			if (at.Rules.TryGetValue("wordboundary", out var rule) && !rule.IsBuiltIn)
 				return MatchesNothing(rule, []) ? null : CallTo(rule, []);
 
 		return null;
@@ -778,7 +778,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
 		rule.IsBuiltIn
-			? rule.Name is "none" or "trivia" or "eof" or "KeywordBoundary"
+			? rule.Name is "none" or "trivia" or "eof" or "wordboundary"
 			: seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && MatchesNothing(body, seen);
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch

@@ -130,15 +130,39 @@ any                     any single item
 `\p{...}` is the .NET regular-expression spelling, with the same category names
 (`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
 
-`any`, `none`, `eol`, `eof` and `trivia` are ordinary standard-library rules rather
-than keywords: a rule of the same name shadows them. Whitespace handling rests on
-exactly that (§4.5).
-
 Square brackets in an expression are always an element set, testing **one** input
 item. Inside them `|` is set union rather than ordered choice, and only ranges,
 characters and references to other elementary rules are allowed. The brackets are
 required: without them `Letter | @IsDigit` would be indistinguishable from structural
 alternation, which means something else.
+
+#### 3.1.1 The standard library
+
+Six ordinary rules, not keywords, that every grammar has without declaring them:
+
+```dotgram
+any             one input item, whatever it is — fails only where there is none left
+none            zero input items — always succeeds, consumes nothing
+eol             one line ending: "\r\n" | "\n" | "\r", CRLF checked first
+eof             the end of input — succeeds exactly where `any` would fail, consuming nothing
+trivia          none by default (§4.5)
+wordboundary    none by default (§4.6)
+```
+
+A rule of the same name shadows the built-in one exactly like any other lexical
+shadowing (§5) — no directive, no mode, nothing declared specially to make it
+possible. Whitespace handling and keyword boundaries rest on exactly that: `trivia`
+and `wordboundary` are ordinary rules whose only distinction is what the compiler
+automatically does around them once they are not empty (their own sections, §4.5
+and §4.6, cover the insertion and the appended check).
+
+`any` and `none` are complements of each other and, along with `eol` and `eof`,
+each stand on their own: `eol` is an ordinary choice of literals and `eof` is
+built the same way `?!any` would be, but neither is a *call* to `any` under the
+name `any` — each carries its own copy of "one input item, whatever it is."
+Shadowing `any` therefore changes what `any` itself matches and nothing else;
+`eof` still means the true end of input even in a grammar that redefines `any` to
+mean something narrower.
 
 ### 3.2 Composition
 
@@ -684,15 +708,15 @@ almost certainly a mistake in such a context.
 
 ### 4.6 Keyword boundaries
 
-`KeywordBoundary` is a standard-library rule, `none` by default, naming the characters
+`wordboundary` is a standard-library rule, `none` by default, naming the characters
 that continue a word:
 
 ```dotgram
-KeywordBoundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 ```
 
 Once it is not empty, every string literal **whose characters all fall in that class**
-picks up a `& ?!KeywordBoundary`, so `"if"` no longer matches the start of `iffy`.
+picks up a `& ?!wordboundary`, so `"if"` no longer matches the start of `iffy`.
 Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
 check, `"("` does not.
 

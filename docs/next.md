@@ -38,7 +38,7 @@ better.
   inspect generated snapshot changes rather than accepting them mechanically.
 
 Current baseline: the build succeeds with no warnings or errors. The runner discovers
-871 tests and all 871 pass. The stray-character recovery regression is fixed: a broken
+887 tests and all 887 pass. The stray-character recovery regression is fixed: a broken
 expression now produces the lexer error and one parser synchronization diagnostic, while
 rules following the broken declaration are still bound and checked.
 
