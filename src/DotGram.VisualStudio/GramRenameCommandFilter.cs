@@ -73,6 +73,9 @@ sealed class GramRenameCommandFilter(
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 
+		if (GramRenameAdornment.TryHandleCommand(view, commandGroup, commandId))
+			return VSConstants.S_OK;
+
 		if (!IsRename(commandGroup, commandId))
 			return Next.Exec(ref commandGroup, commandId, options, input, output);
 
@@ -81,7 +84,7 @@ sealed class GramRenameCommandFilter(
 		if (found is null)
 			return Next.Exec(ref commandGroup, commandId, options, input, output);
 
-		GramRenameCommandHandler.Rename(view.TextBuffer, found);
+		GramRenameCommandHandler.Rename(view, found);
 
 		return VSConstants.S_OK;
 	}

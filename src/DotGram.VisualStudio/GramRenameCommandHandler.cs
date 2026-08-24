@@ -1,9 +1,9 @@
 using System.ComponentModel.Composition;
 
-using Microsoft.VisualBasic;
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Utilities;
 
@@ -31,30 +31,28 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 	{
 		var found = Target(args);
 
-		if (found is null)
+		if (found is null || args.TextView is not IWpfTextView view)
 			return false;
 
-		Rename(args.SubjectBuffer, found);
+		Rename(view, found);
 
 		return true;
 	}
 
-	internal static void Rename(ITextBuffer buffer, GramFindReferencesTarget found)
+	internal static void Rename(IWpfTextView view, GramFindReferencesTarget found)
 	{
-		var replacement = Interaction.InputBox(
-			$"Rename DotGram rule '{found.Name}' to:",
-			"Rename DotGram Rule",
-			found.Name);
+		GramRenameAdornment.Show(view, found.Name, replacement =>
+		{
+			if (replacement == found.Name)
+				return;
 
-		if (replacement.Length == 0 || replacement == found.Name)
-			return;
+			using var edit = view.TextBuffer.CreateEdit();
 
-		using var edit = buffer.CreateEdit();
+			foreach (var position in found.Positions)
+				edit.Replace(position, found.Name.Length, replacement);
 
-		foreach (var position in found.Positions)
-			edit.Replace(position, found.Name.Length, replacement);
-
-		edit.Apply();
+			edit.Apply();
+		});
 	}
 
 	GramFindReferencesTarget? Target(RenameCommandArgs args)
