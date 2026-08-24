@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -30,12 +31,14 @@ public readonly struct GramClassifiedSpan(
 	int position,
 	int length,
 	GramSyntaxKind kind,
-	string? quickInfo = null)
+	string? quickInfo = null,
+	int? definitionPosition = null)
 {
 	public int Position { get; } = position;
 	public int Length { get; } = length;
 	public GramSyntaxKind Kind { get; } = kind;
 	public string? QuickInfo { get; } = quickInfo;
+	public int? DefinitionPosition { get; } = definitionPosition;
 }
 
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
@@ -72,13 +75,20 @@ public static class GramLanguageService
 
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, out var kind))
-				classifications.Add(new GramClassifiedSpan(
-					token.Position,
-					token.Length,
-					kind,
-					token.Value is not null && rules.TryGetValue(token.Value, out var definition)
-						? definition
-						: null));
+			{
+				if (token.Value is not null && rules.TryGetValue(token.Value, out var rule))
+					classifications.Add(new GramClassifiedSpan(
+						token.Position,
+						token.Length,
+						kind,
+						rule.ExpandedDefinition,
+						rule.Position));
+				else
+					classifications.Add(new GramClassifiedSpan(
+						token.Position,
+						token.Length,
+						kind));
+			}
 
 		ClassifyComments(text, tokens.Tokens, classifications);
 
@@ -98,11 +108,14 @@ public static class GramLanguageService
 		return new GramDocument(classifications, compilation.Diagnostics);
 	}
 
-	static Dictionary<string, string> RuleDefinitions(string text, IReadOnlyList<Decl> declarations)
+	static Dictionary<string, RuleInfo> RuleDefinitions(string text, IReadOnlyList<Decl> declarations)
 	{
-		var result = new Dictionary<string, string>(StringComparer.Ordinal);
+		var result = new Dictionary<string, RuleInfo>(StringComparer.Ordinal);
 
 		Collect(declarations);
+
+		foreach (var pair in result)
+			pair.Value.ExpandedDefinition = Expand(pair.Key, result);
 
 		return result;
 
@@ -115,7 +128,10 @@ public static class GramLanguageService
 						var length = Math.Min(rule.At.Length, text.Length - rule.At.Position);
 
 						if (length > 0 && !result.ContainsKey(rule.Name))
-							result.Add(rule.Name, text.Substring(rule.At.Position, length).TrimEnd());
+							result.Add(rule.Name, new RuleInfo(
+								text.Substring(rule.At.Position, length).TrimEnd(),
+								rule.At.Position,
+								References(rule.Body)));
 
 						break;
 					case Decl.Context context:
@@ -123,6 +139,117 @@ public static class GramLanguageService
 						break;
 				}
 		}
+	}
+
+	static string Expand(string name, IReadOnlyDictionary<string, RuleInfo> rules)
+	{
+		var text    = new StringBuilder(rules[name].Definition);
+		var emitted = new HashSet<string>(StringComparer.Ordinal) { name };
+		var stack   = new HashSet<string>(StringComparer.Ordinal) { name };
+
+		AppendDependencies(rules[name]);
+
+		return text.ToString();
+
+		void AppendDependencies(RuleInfo rule)
+		{
+			foreach (var reference in rule.References)
+			{
+				if (!rules.TryGetValue(reference, out var dependency))
+					continue;
+
+				if (stack.Contains(reference))
+				{
+					text.Append("\n\nRecursive reference: ").Append(reference);
+					continue;
+				}
+
+				if (!emitted.Add(reference))
+					continue;
+
+				text.Append("\n\nReferenced rule:\n").Append(dependency.Definition);
+				stack.Add(reference);
+				AppendDependencies(dependency);
+				stack.Remove(reference);
+			}
+		}
+	}
+
+	static IReadOnlyList<string> References(Expr expression)
+	{
+		var result = new List<string>();
+
+		Visit(expression);
+
+		return result;
+
+		void Add(Expr.Reference reference)
+		{
+			if (!reference.IsCSharp && !result.Contains(reference.Name))
+				result.Add(reference.Name);
+		}
+
+		void Visit(Expr item)
+		{
+			switch (item)
+			{
+				case Expr.Choice choice:
+					foreach (var alternative in choice.Alternatives) Visit(alternative);
+					break;
+				case Expr.Sequence sequence:
+					foreach (var operand in sequence.Operands) Visit(operand);
+					break;
+				case Expr.Construct construct:
+					Visit(construct.Pattern);
+					Visit(construct.Value);
+					break;
+				case Expr.Bound bound:
+					Visit(bound.Body);
+					break;
+				case Expr.Recovering recovering:
+					Visit(recovering.Body);
+					Visit(recovering.Sync);
+					if (recovering.Factory is not null) Visit(recovering.Factory);
+					break;
+				case Expr.Guard guard:
+					Visit(guard.Value);
+					break;
+				case Expr.Capture capture:
+					Visit(capture.Operand);
+					break;
+				case Expr.Group group:
+					Visit(group.Body);
+					break;
+				case Expr.Atomic atomic:
+					Visit(atomic.Body);
+					break;
+				case Expr.Lookahead lookahead:
+					Visit(lookahead.Operand);
+					break;
+				case Expr.ElementSet set:
+					foreach (var element in set.Items)
+						if (element is Elem.Ref reference) Add(reference.Reference);
+					break;
+				case Expr.Reference reference:
+					Add(reference);
+					break;
+				case Expr.Call call:
+					Add(call.Target);
+					foreach (var argument in call.Arguments) Visit(argument);
+					break;
+				case Expr.Quantified quantified:
+					Visit(quantified.Operand);
+					break;
+			}
+		}
+	}
+
+	sealed class RuleInfo(string definition, int position, IReadOnlyList<string> references)
+	{
+		public string Definition { get; } = definition;
+		public int Position { get; } = position;
+		public IReadOnlyList<string> References { get; } = references;
+		public string ExpandedDefinition { get; set; } = definition;
 	}
 
 	static bool Intersects(GramClassifiedSpan left, GramClassifiedSpan right) =>

@@ -30,6 +30,13 @@ public sealed class EmbeddedGrammarAnalysisTests
 
 		Assert.Contains(("'a'", GramSyntaxKind.Character), classified);
 		Assert.Contains(("parse", GramSyntaxKind.Keyword), classified);
+
+		var references = analysis.Classifications
+			.Where(item => source.Substring(item.Span.Start, item.Span.Length) == "Start")
+			.ToArray();
+
+		Assert.Equal(2, references.Length);
+		Assert.All(references, item => Assert.Equal(references[0].Span, item.DefinitionSpan));
 		Assert.Empty(analysis.Diagnostics);
 	}
 

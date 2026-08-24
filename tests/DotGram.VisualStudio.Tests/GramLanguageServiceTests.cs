@@ -100,6 +100,22 @@ public sealed class GramLanguageServiceTests
 
 		Assert.Equal(2, references.Length);
 		Assert.All(references, span => Assert.Equal(definition, span.QuickInfo));
+		Assert.All(references, span => Assert.Equal(0, span.DefinitionPosition));
+	}
+
+	[Fact]
+	public void ExpandsReferencedRulesAndMarksRecursionInQuickInfo()
+	{
+		const string source = "Expression = Primary\nPrimary = '(' & Expression & ')' | '0'";
+
+		var expression = GramLanguageService.Analyze(source).Classifications
+			.First(span => source.Substring(span.Position, span.Length) == "Expression");
+
+		Assert.Equal(
+			"Expression = Primary\n\n" +
+			"Referenced rule:\nPrimary = '(' & Expression & ')' | '0'\n\n" +
+			"Recursive reference: Expression",
+			expression.QuickInfo);
 	}
 
 	[Fact]
