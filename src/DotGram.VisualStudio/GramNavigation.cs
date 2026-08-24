@@ -53,15 +53,14 @@ sealed class GramNavigableSymbolSource(
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
 
-		foreach (var item in analysis.Document(snapshot).Classifications)
-			if (item.DefinitionPosition is int definitionPosition &&
-				item.Position <= position && position < item.Position + item.Length)
+		foreach (var item in analysis.Document(snapshot).Symbols)
+			if (item.Position <= position && position < item.Position + item.Length)
 				return Task.FromResult<INavigableSymbol?>(Create(
 					view,
 					snapshot,
 					item.Position,
 					item.Length,
-					definitionPosition));
+					item.DefinitionPosition));
 
 		return Task.FromResult<INavigableSymbol?>(null);
 	}
@@ -94,17 +93,17 @@ sealed class EmbeddedGramNavigableSymbolSource(
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
 
-		if (!analysis.TryGet(snapshot, out var classifications, out _))
+		if (!analysis.TryGetSymbols(snapshot, out var symbols))
 			return Task.FromResult<INavigableSymbol?>(null);
 
-		foreach (var item in classifications)
-			if (item.DefinitionSpan is { } definition && item.Span.Contains(position))
+		foreach (var item in symbols)
+			if (item.Span.Contains(position))
 				return Task.FromResult<INavigableSymbol?>(GramNavigableSymbolSource.Create(
 					view,
 					snapshot,
 					item.Span.Start,
 					item.Span.Length,
-					definition.Start));
+					item.DefinitionSpan.Start));
 
 		return Task.FromResult<INavigableSymbol?>(null);
 	}
