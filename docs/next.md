@@ -726,7 +726,7 @@ as a loop kept the position of a turn that broke halfway.
 Further performance work is optional and now has a stated obstacle rather than a target —
 see the gate above. The full suite remains below the 30-second ceiling.
 
-## Open: a warning for accidental shadowing inside a bound context
+## Open: a warning for accidental shadowing inside a nested context
 
 `docs/syntax.md` §5.1 names the footgun but does not close it: `context (A = B) { ... }`
 and `context { A = B }` are one pair of parentheses apart and mean different things — a
@@ -734,12 +734,27 @@ substitution reaching the whole call graph, against an ordinary declaration that
 only what is lexically inside the block. A missing header entry compiles either way, so a
 typo silently changes which mechanism runs rather than being caught.
 
-Not built. The shape it would need: a context that already has a header, checked for a
-body declaration whose name also resolves in an enclosing scope but is *not* one of the
-header's own left-hand names — that pattern is indistinguishable from a forgotten header
-entry, worth an `Info`-level diagnostic (docs/status.md's own convention for "the grammar
-is correct and there is nothing to fix" pointers, e.g. `GRAM5001`) rather than a refusal,
-since ordinary shadowing inside an otherwise header-less context is exactly the language's
-normal, silent mechanism and must stay unflagged. Scoped to *only* contexts that already
-carry a header — a `context {}` with no header at all is ordinary shadowing through and
-through, nothing accidental to catch there.
+Not built. Settled scope, after going back and forth on it — a warning, and exactly this
+narrow:
+
+- **A rule declared inside a nested `context { ... }` block, whose name also resolves in
+  an enclosing *grammar* scope**, gets an `Info`-level diagnostic (docs/status.md's own
+  convention for "the grammar is correct and there is nothing to fix" pointers, e.g.
+  `GRAM5001`) — not a refusal. This is the one place the ambiguity is real: the block
+  could as easily have been a header entry. Applies whether or not that context already
+  carries a header for something else — the risk is "was a header entry meant here," not
+  "does this specific block already use one."
+- **Shadowing the standard library** (`trivia`, `wordboundary`, `any`, `none`, `eol`,
+  `eof`), at any nesting depth, stays completely silent — the language's normal,
+  intentionally frictionless mechanism (§3.1.1: "no directive, no mode, nothing declared
+  specially to make it possible"), used throughout the examples, and not what this warning
+  is for.
+- **Top-level shadowing** (declaring `trivia = none` etc. at the top of a file, not inside
+  any `context {}`) stays silent too — there is no `context (...)` header syntax anywhere
+  nearby to have meant instead, so there is nothing to be ambiguous about.
+
+A related, separate idea raised alongside this and not designed yet: `with (Bindings)
+Expression` as an expression-extent counterpart to `context (Bindings) { ... }` — the same
+substitution semantics, applied to one operand instead of a whole block, so a single
+override does not need a block wrapped around it. Independent of the warning above; worth
+its own design pass before either is built.
