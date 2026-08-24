@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 using DotGram.Generation;
@@ -75,7 +76,7 @@ public static class GramLanguageService
 		var tokens = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance);
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
-		var rules = RuleDefinitions(text, parsed.File.Decls);
+		var rules = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
 
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, out var kind))
@@ -114,7 +115,10 @@ public static class GramLanguageService
 		return new GramDocument(classifications, compilation.Diagnostics);
 	}
 
-	static Dictionary<string, RuleInfo> RuleDefinitions(string text, IReadOnlyList<Decl> declarations)
+	static Dictionary<string, RuleInfo> RuleDefinitions(
+		string text,
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
 	{
 		var result = new Dictionary<string, RuleInfo>(StringComparer.Ordinal);
 
@@ -131,7 +135,12 @@ public static class GramLanguageService
 				switch (declaration)
 				{
 					case Decl.Rule rule:
-						var length = Math.Min(rule.At.Length, text.Length - rule.At.Position);
+						var end = tokens
+							.Where(token => token.Position >= rule.At.Position && token.Position < rule.At.End)
+							.Select(static token => token.Position + token.Length)
+							.DefaultIfEmpty(rule.At.Position)
+							.Max();
+						var length = Math.Min(end - rule.At.Position, text.Length - rule.At.Position);
 
 						if (length > 0 && !result.ContainsKey(rule.Name))
 							result.Add(rule.Name, new RuleInfo(

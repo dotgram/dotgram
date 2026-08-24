@@ -133,6 +133,17 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void RuleQuickInfoDoesNotIncludeTriviaBeforeNextDeclaration()
+	{
+		const string source = "Digits(n) = any{n}\n\n// The next rule.\nStart = Digits(2)";
+
+		var digits = GramLanguageService.Analyze(source).Classifications
+			.First(span => source.Substring(span.Position, span.Length) == "Digits");
+
+		Assert.Equal("Digits(n) = any{n}", digits.QuickInfo);
+	}
+
+	[Fact]
 	public void ReturnsCompilerDiagnosticsWithoutEditorSpecificTypes()
 	{
 		const string source = "Start = Missing\nparse Start";
