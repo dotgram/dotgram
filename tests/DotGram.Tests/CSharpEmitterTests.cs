@@ -982,4 +982,20 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("text[p + 0] != 'h'", source);
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
 	}
+
+	// ── Position sharpening: the character that failed, not the operand's start ──
+
+	[Fact]
+	public void A_terminal_failure_advances_p_to_the_character_that_did_not_fit()
+	{
+		var source = Emit("""Start = "abcd" """);
+
+		// The first character needs no adjustment — p is already there — so its own
+		// failure branch has no `p +=` line at all; every later one advances p by its
+		// own offset before the jump, never by anyone else's.
+		Assert.Matches(@"if \(text\[p \+ 0\] != 'a'\)\s*\{\s*expected", source);
+		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*\{\s*p \+= 1;", source);
+		Assert.Matches(@"if \(text\[p \+ 2\] != 'c'\)\s*\{\s*p \+= 2;", source);
+		Assert.Matches(@"if \(text\[p \+ 3\] != 'd'\)\s*\{\s*p \+= 3;", source);
+	}
 }

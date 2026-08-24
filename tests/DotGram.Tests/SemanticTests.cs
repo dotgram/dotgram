@@ -865,12 +865,19 @@ public sealed class SemanticTests
 		Assert.Equal(2, Refusal("""Start = "ab" & ['c'] & ['d']""", "abXY").Position);
 
 	[Fact]
-	public void The_position_is_where_the_failing_operand_began_not_where_it_gave_up() =>
-		// `"abcd"` is one operand and it starts at 0, so that is what is named, though the
-		// character that did not fit is at 2. Sharpening this means recording the offset
-		// at each failing test rather than one position at the point of giving up — a
-		// refinement of what is here, not a different shape.
-		Assert.Equal(0, Refusal("""Start = "abcd" """, "abXY").Position);
+	public void The_position_is_the_character_that_did_not_fit_not_the_operand_s_start() =>
+		// `"abcd"` is one operand and it starts at 0, but the character that did not fit
+		// is at 2 — the offset is recorded at each failing test rather than one position
+		// at the point of giving up.
+		Assert.Equal(2, Refusal("""Start = "abcd" """, "abXY").Position);
+
+	[Fact]
+	public void The_same_sharpening_applies_inside_a_merged_literal_run() =>
+		// "abcd"/"abef" share the prefix "ab" and compile through CompileLiterals's own
+		// merged read rather than Node.Literal's loop — this input fails inside that
+		// shared prefix itself (at 'X', index 1), which needs the identical fix rather
+		// than a free ride off the other site.
+		Assert.Equal(1, Refusal("""Start = "abcd" | "abef" """, "aXYZ").Position);
 
 	[Fact]
 	public void It_is_the_furthest_reached_and_not_the_last_tried() =>

@@ -858,7 +858,14 @@ sealed partial class Machine
 
 					writer.Line($"if ({test})");
 					using (writer.Block(""))
+					{
+						// The position at a terminal failure names where the character that
+						// did not fit actually is, not where the whole literal started.
+						if (i > 0)
+							writer.Line($"p += {i};");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
+					}
 				}
 
 				writer.Line($"p += {value.Length};");
@@ -1611,7 +1618,14 @@ sealed partial class Machine
 			{
 				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])})");
 				using (writer.Block(""))
+				{
+					// Same sharpening as Node.Literal's own per-character loop: name the
+					// character that did not fit, not where the shared prefix started.
+					if (i > 0)
+						writer.Line($"p += {i};");
+
 					EmitTerminalFailure(writer, fail, arrayName);
+				}
 			}
 		}
 

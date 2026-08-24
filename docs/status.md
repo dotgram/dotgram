@@ -352,11 +352,18 @@ same conservative answer an unreadable Unicode category or a complement gives, s
 opts out of `CompilePredictedChoice` and `CompileLiterals`'s optimizations the same way
 those two narrowings do — a first-cut cost, not a correctness one.
 
-One thing it does not do yet:
-
-- **the position is where the failing operand began**, not where its first wrong
-  character is. `"abcd"` against `abXY` names 0, not 2. Sharpening it means recording an
-  offset at each failing test instead of one position at the point of giving up.
+The position itself is now the character that did not fit, not where the failing
+operand began: `"abcd"` against `abXY` names 2, not 0. Each of `Node.Literal`'s
+per-character comparisons and `CompileLiterals`'s shared-prefix read advances `p` by
+its own offset immediately before the jump to `Fail:` — safe because nothing between
+that jump and the next resume ever reads `p` for anything but recording it; every
+resume restores `p` from the arena entry being popped rather than trusting whatever it
+was left at. `CompileLiterals`'s own *per-alternative* suffix tests are the one place
+this is not true yet: each alternative's remainder is one combined boolean rather than
+a per-character branch, which is the whole of that optimization's saving, so a failure
+there still names where the shared prefix ended rather than the exact character —
+narrower than the rest, in the same accepted-first-cut way as the two narrowings
+above it.
 
 And one thing bundled with `Expected` when it was still a plan is still not built on
 its own: the outcome that tells a malformed record from no record (§8.1) — a third

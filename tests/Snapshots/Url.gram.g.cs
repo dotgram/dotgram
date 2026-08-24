@@ -2349,11 +2349,13 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != '/')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected24;
 						goto Fail;
 					}
 					if (text[p + 2] != '/')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected24;
 						goto Fail;
 					}
@@ -2383,11 +2385,13 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
 					}
 					if (text[p + 2] != 'p')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
 					}
@@ -2410,16 +2414,19 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected26;
 						goto Fail;
 					}
 					if (text[p + 2] != 't')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected26;
 						goto Fail;
 					}
 					if (text[p + 3] != 'p')
 					{
+						p += 3;
 						expected = Recognize_DotGram_Expected26;
 						goto Fail;
 					}
@@ -2455,21 +2462,25 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected27;
 						goto Fail;
 					}
 					if (text[p + 2] != 't')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected27;
 						goto Fail;
 					}
 					if (text[p + 3] != 'p')
 					{
+						p += 3;
 						expected = Recognize_DotGram_Expected27;
 						goto Fail;
 					}
 					if (text[p + 4] != 's')
 					{
+						p += 4;
 						expected = Recognize_DotGram_Expected27;
 						goto Fail;
 					}
@@ -2511,11 +2522,13 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected28;
 						goto Fail;
 					}
 					if (text[p + 2] != 'p')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected28;
 						goto Fail;
 					}
@@ -2538,16 +2551,19 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
 					}
 					if (text[p + 2] != 't')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
 					}
 					if (text[p + 3] != 'p')
 					{
+						p += 3;
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
 					}
@@ -2583,21 +2599,25 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != 't')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;
 					}
 					if (text[p + 2] != 't')
 					{
+						p += 2;
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;
 					}
 					if (text[p + 3] != 'p')
 					{
+						p += 3;
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;
 					}
 					if (text[p + 4] != 's')
 					{
+						p += 4;
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;
 					}
@@ -3254,6 +3274,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected53;
 						goto Fail;
 					}
@@ -3615,6 +3636,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected64;
 						goto Fail;
 					}
@@ -4490,6 +4512,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected95;
 						goto Fail;
 					}
@@ -5490,6 +5513,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected131;
 						goto Fail;
 					}
@@ -6531,6 +6555,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected167;
 						goto Fail;
 					}
@@ -7572,6 +7597,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected203;
 						goto Fail;
 					}
@@ -8613,6 +8639,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected239;
 						goto Fail;
 					}
@@ -9489,6 +9516,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected270;
 						goto Fail;
 					}
@@ -11420,6 +11448,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected350;
 						goto Fail;
 					}
@@ -11781,6 +11810,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected361;
 						goto Fail;
 					}
@@ -12656,6 +12686,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected392;
 						goto Fail;
 					}
@@ -13656,6 +13687,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected428;
 						goto Fail;
 					}
@@ -14697,6 +14729,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected464;
 						goto Fail;
 					}
@@ -15738,6 +15771,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected500;
 						goto Fail;
 					}
@@ -16779,6 +16813,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected536;
 						goto Fail;
 					}
@@ -17655,6 +17690,7 @@ namespace DotGram.Snapshots
 					}
 					if (text[p + 1] != ':')
 					{
+						p += 1;
 						expected = Recognize_DotGram_Expected567;
 						goto Fail;
 					}
