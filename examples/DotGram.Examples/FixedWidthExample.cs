@@ -46,7 +46,7 @@ namespace DotGram.Examples;
 	// that stops where its content stops. Nothing in the language knows about columns:
 	// a width is `{n}` and a delimiter is a literal, so a record may mix them freely.
 	Row : @Settlement = id: Digits(6) & name: Text(20) & on: Date & currency: Raw(3)
-	                  & amount: Digits(12)
+	                  & amount:Digits(12)
 	                  & '|' & desk: Bar & '|' & book: Bar & '|'
 	                  & flags: Raw(2)
 	                  & note: Rest & eol
