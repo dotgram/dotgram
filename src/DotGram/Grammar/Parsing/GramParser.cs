@@ -583,10 +583,14 @@ public sealed class GramParser
 		{
 			case TokenKind.Character:
 			case TokenKind.String:
+			case TokenKind.CaseInsensitiveCharacter:
+			case TokenKind.CaseInsensitiveString:
 			{
-				var token = Take();
+				var token      = Take();
+				var isChar     = token.Kind is TokenKind.Character or TokenKind.CaseInsensitiveCharacter;
+				var ignoreCase = token.Kind is TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString;
 
-				return new Expr.Literal(token.Kind == TokenKind.Character, token.Value!) { At = From(start) };
+				return new Expr.Literal(isChar, token.Value!) { At = From(start), IgnoreCase = ignoreCase };
 			}
 
 			case TokenKind.CSharpExpression:

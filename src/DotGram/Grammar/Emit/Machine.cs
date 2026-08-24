@@ -825,7 +825,7 @@ sealed partial class Machine
 			case Node.Empty:
 				return next;
 
-			case Node.Literal(var value):
+			case Node.Literal(var value) { IgnoreCase: var ignoreCase }:
 			{
 				var state     = Reserve(out var writer);
 				var arrayName = DeclareExpected([node.ToString()]);
@@ -848,7 +848,15 @@ sealed partial class Machine
 
 				for (var i = 0; i < value.Length; i++)
 				{
-					writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(value[i])})");
+					// ToUpperInvariant on an uncased character (a digit, punctuation) returns
+					// it unchanged, so one comparison shape covers cased and uncased
+					// characters alike — no per-character branching needed.
+					var test = ignoreCase
+						? $"global::System.Char.ToUpperInvariant(text[p + {i}]) != " +
+						  $"{CSharpEmitter.Char(char.ToUpperInvariant(value[i]))}"
+						: $"text[p + {i}] != {CSharpEmitter.Char(value[i])}";
+
+					writer.Line($"if ({test})");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}

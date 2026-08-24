@@ -132,7 +132,24 @@ public static class GramLexer
 							start,
 							position - start);
 
-					Add(current == '\'' ? TokenKind.Character : TokenKind.String, start, position - start, value);
+					// A bare `i` right after the closing quote was always a syntax error
+					// before this — `.Gram` has no juxtaposition (§3.2) — so it is free to
+					// claim as a case-insensitive marker. The word-boundary check keeps
+					// `"text"id` lexing as a string followed by the identifier `id`, the
+					// same trick C#'s own lexer uses for numeric suffixes (`1u`, `1L`).
+					var caseInsensitive =
+						position < text.Length && text[position] == 'i' &&
+						(position + 1 >= text.Length ||
+						 !(char.IsLetterOrDigit(text[position + 1]) || text[position + 1] == '_'));
+
+					if (caseInsensitive)
+						position++;
+
+					Add(
+						caseInsensitive
+							? current == '\'' ? TokenKind.CaseInsensitiveCharacter : TokenKind.CaseInsensitiveString
+							: current == '\'' ? TokenKind.Character : TokenKind.String,
+						start, position - start, value);
 					continue;
 
 				case '\\':

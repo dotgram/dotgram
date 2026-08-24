@@ -11,6 +11,7 @@ then quietly mean nothing.
 | | Parse | Bind | Normalize | Emit | Runs |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | character and string literals | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a literal marked case-insensitive, `"text"i` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | element sets, ranges, complement | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Unicode categories `\p{Lu}`, groups `\p{L}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | references to elementary rules in a set | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -343,6 +344,13 @@ literals — `"p" | "q" | "pr"` — can under-report what it covers, since two e
 runs chained by `fail` overwrite rather than merge when both fail at the one position
 neither could move past. It never mis-attributes or moves the position; it simply has
 less to say than the full mechanism eventually could.
+
+A case-insensitive literal (`"text"i`) needs nothing special here — it fails through
+the same `Node.Literal` codegen as any other and names itself with its own `i`:
+`"http"i` names `Expected "http"i.` But it reports its first set as "anything," the
+same conservative answer an unreadable Unicode category or a complement gives, so it
+opts out of `CompilePredictedChoice` and `CompileLiterals`'s optimizations the same way
+those two narrowings do — a first-cut cost, not a correctness one.
 
 One thing it does not do yet:
 

@@ -65,7 +65,7 @@ public sealed partial class GrammarNormalizer
 
 	Node Lower(Expr expression, GrammarContext context) => expression switch
 	{
-		Expr.Literal(_, var value)              => Bounded(value, context),
+		Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, context, ignoreCase),
 		Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
 		Expr.Group(var body)                    => Lower(body, context),
 		Expr.Atomic(var body)                   => new Node.Atomic(Lower(body, context)),
@@ -725,9 +725,9 @@ public sealed partial class GrammarNormalizer
 	/// it.
 	/// </para>
 	/// </remarks>
-	Node Bounded(string value, GrammarContext context)
+	Node Bounded(string value, GrammarContext context, bool ignoreCase)
 	{
-		var literal = new Node.Literal(value);
+		var literal = new Node.Literal(value) { IgnoreCase = ignoreCase };
 
 		if (value.Length == 0 || BoundaryFor(context) is not { } boundary)
 			return literal;
@@ -803,11 +803,12 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var node in nodes)
 		{
-			if (node is Node.Literal(var text) &&
+			if (node is Node.Literal(var text) { IgnoreCase: var ignoreCase } &&
 				merged.Count > 0 &&
-				merged[merged.Count - 1] is Node.Literal(var previous))
+				merged[merged.Count - 1] is Node.Literal(var previous) { IgnoreCase: var previousIgnoreCase } &&
+				ignoreCase == previousIgnoreCase)
 			{
-				merged[merged.Count - 1] = new Node.Literal(previous + text);
+				merged[merged.Count - 1] = new Node.Literal(previous + text) { IgnoreCase = ignoreCase };
 				continue;
 			}
 
@@ -881,7 +882,7 @@ public sealed partial class GrammarNormalizer
 
 	static bool IsSingleItem(Node node) => node switch
 	{
-		Node.Literal(var text) => text.Length == 1,
+		Node.Literal(var text) { IgnoreCase: false } => text.Length == 1,
 		Node.Element(var negated, _, _, _) => !negated,
 		_ => false,
 	};

@@ -88,7 +88,12 @@ public abstract record Expr : ILocated
 	public sealed record Group     (Expr Body)                                 : Expr;
 	public sealed record Atomic    (Expr Body)                                 : Expr;
 	public sealed record Lookahead (bool IsPositive, Expr Operand)             : Expr;
-	public sealed record Literal   (bool IsChar, string Value)                 : Expr;
+	public sealed record Literal(bool IsChar, string Value) : Expr
+	{
+		/// <summary>Whether a trailing `i` asked for this literal to match without regard to case.</summary>
+		public bool IgnoreCase { get; init; }
+	}
+
 	public sealed record ElementSet(bool IsNegated, IReadOnlyList<Elem> Items) : Expr;
 	public sealed record CSharp    (string Text)                               : Expr;
 

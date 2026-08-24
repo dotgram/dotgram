@@ -952,4 +952,34 @@ public sealed class CSharpEmitterTests
 			source);
 		Assert.Contains("failure.Expected.AddRange(expected);", source);
 	}
+
+	// ── Case-insensitive literals ─────────────────────────────────────────────────
+
+	[Fact]
+	public void A_case_insensitive_literal_compares_folded()
+	{
+		// ToUpperInvariant on both sides, so one comparison shape covers every character
+		// — the constant side is folded once, at generation time.
+		var source = Emit("""Start = "http"i""");
+
+		Assert.Matches(
+			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""\\""http\\""i"" \};", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 3]) != 'P'", source);
+	}
+
+	[Fact]
+	public void A_case_insensitive_run_does_not_join_the_shared_prefix_optimization()
+	{
+		// "https" and "httpx" share a prefix and merge into one CompileLiterals block;
+		// "http"i sits outside that run entirely, on its own case-folded site.
+		var source = Emit("""Start = "http"i | "https" | "httpx" """);
+
+		Assert.Matches(
+			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = " +
+			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
+			source);
+		Assert.Contains("text[p + 0] != 'h'", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+	}
 }

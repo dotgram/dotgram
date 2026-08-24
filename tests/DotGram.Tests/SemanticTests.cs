@@ -815,6 +815,39 @@ public sealed class SemanticTests
 	public void Control_and_non_ascii_characters_survive_emission(string literal, string input) =>
 		Assert.True(Matches($"Start = {literal}", input));
 
+	[Theory]
+	[InlineData("http")]
+	[InlineData("HTTP")]
+	[InlineData("Http")]
+	[InlineData("hTtP")]
+	public void A_trailing_i_matches_any_case(string input) =>
+		Assert.True(Matches("""Start = "http"i""", input));
+
+	[Fact]
+	public void A_trailing_i_still_refuses_a_different_word() =>
+		Assert.False(Matches("""Start = "http"i""", "htttp"));
+
+	[Theory]
+	[InlineData("a")]
+	[InlineData("A")]
+	public void A_single_character_literal_takes_i_too(string input) =>
+		Assert.True(Matches("Start = 'a'i", input));
+
+	[Fact]
+	public void A_digit_has_no_case_to_ignore_but_i_does_not_mind() =>
+		Assert.True(Matches("Start = '5'i", "5"));
+
+	[Fact]
+	public void Without_i_the_literal_stays_case_sensitive() =>
+		Assert.False(Matches("""Start = "http" """, "HTTP"));
+
+	[Theory]
+	[InlineData("htTP", true)]      // "ht" case-sensitive, "tp"i folded — this is what both allow
+	[InlineData("HTtp", false)]     // "ht" wrong case — adjacent-literal merging must not have
+	                                 // silently dropped the second literal's own `i`
+	public void Adjacent_literals_of_different_case_sensitivity_do_not_merge(string input, bool expected) =>
+		Assert.Equal(expected, Matches("""Start = "ht" & "tp"i""", input));
+
 	// ── Where a failure is reported ─────────────────────────────────────────────
 
 	/// <summary>The message and the position a grammar refuses an input with.</summary>
@@ -896,6 +929,10 @@ public sealed class SemanticTests
 		// this is ever fixed, this test should change on purpose, not by surprise.
 		Assert.Equal("Expected \"pr\".", Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
 	}
+
+	[Fact]
+	public void A_case_insensitive_literal_names_itself_with_its_own_i() =>
+		Assert.Equal("Expected \"http\"i.", Refusal("""Start = "http"i""", "xxxx").Error);
 
 	[Fact]
 	public void A_lookahead_does_not_report_how_far_it_looked() =>
