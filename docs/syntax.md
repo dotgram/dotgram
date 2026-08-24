@@ -833,6 +833,32 @@ one's bindings and may replace any of them with its own.
 handling — the same substitution as any other binding, and a different mechanism from
 shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
 
+**Which of the two to reach for is a question of what the result needs to be, not a
+style choice between them.** A binding clones the whole call graph reached from inside
+the context and rewrites every call inside those clones — so the *same* shared rule,
+called from both inside and outside the context, behaves two different ways depending
+on which call path reached it. Shadowing does not do that: it changes what a name
+means only where the replacement is lexically visible, and a rule declared outside the
+shadowing scope never sees it, context block or not. Reach for a header when the point
+is exactly that a shared rule should mean something different from inside one place
+than from everywhere else it is called — `LocaleNumberExample`'s two decimal points
+over one `Number` rule is the shape this exists for. Reach for shadowing — an ordinary
+declaration, no `context` needed at all — when a rule's meaning is simply different for
+the rest of the file or block from that point on, with nothing shared reaching back out
+to an unshadowed view of it: `trivia = none` at the top of a whole grammar is exactly
+that, and wrapping the entire file in `context (trivia = none) { ... }` for it adds a
+block with nothing on the other side of the substitution to contrast against.
+
+Inside a context that already has a header for something else, write every rebinding
+in that header rather than as a same-named declaration in the body — `context (A = B) {
+... }` is a substitution, written where a reader expects one; a declaration with the
+same name sitting in the body, with no header entry for it, is shadowing, and reads as
+one unless it is checked against the header. The two are one pair of parentheses apart
+and currently indistinguishable to the compiler: nothing today flags a body declaration
+that happens to share a name with something in an enclosing scope as behaving
+differently from what a header entry would have done, so a missing header entry is a
+silent change of mechanism rather than a caught mistake.
+
 ---
 
 ## 6. Publication
