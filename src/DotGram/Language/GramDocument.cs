@@ -199,6 +199,30 @@ public static class GramLanguageService
 				case TokenKind.CloseBrace:   Close(blocks, token);       break;
 			}
 
+		var pairedPositions = new HashSet<int>(braces.SelectMany(static pair =>
+			new[] { pair.OpenPosition, pair.ClosePosition }));
+		var classifiedParentheses = new Stack<GramClassifiedSpan>();
+		var classifiedBrackets    = new Stack<GramClassifiedSpan>();
+		var classifiedBlocks      = new Stack<GramClassifiedSpan>();
+
+		foreach (var span in classifications)
+		{
+			if (span.Kind != GramSyntaxKind.Punctuation ||
+				span.Length != 1 ||
+				pairedPositions.Contains(span.Position))
+				continue;
+
+			switch (text[span.Position])
+			{
+				case '(': classifiedParentheses.Push(span); break;
+				case '[': classifiedBrackets.Push(span);    break;
+				case '{': classifiedBlocks.Push(span);      break;
+				case ')': CloseClassified(classifiedParentheses, span); break;
+				case ']': CloseClassified(classifiedBrackets, span);    break;
+				case '}': CloseClassified(classifiedBlocks, span);       break;
+			}
+		}
+
 		braces.Sort(static (left, right) => left.OpenPosition.CompareTo(right.OpenPosition));
 
 		var folding = new List<GramFoldingRange>();
@@ -224,6 +248,15 @@ public static class GramLanguageService
 		return (braces, folding);
 
 		void Close(Stack<Token> stack, Token close)
+		{
+			if (stack.Count == 0)
+				return;
+
+			var open = stack.Pop();
+			braces.Add(new GramBracePair(open.Position, open.Length, close.Position, close.Length));
+		}
+
+		void CloseClassified(Stack<GramClassifiedSpan> stack, GramClassifiedSpan close)
 		{
 			if (stack.Count == 0)
 				return;

@@ -91,7 +91,7 @@ public sealed class GramLanguageServiceTests
 	[Fact]
 	public void ReportsBracePairsAndMultilineFoldingRanges()
 	{
-		const string source = "/* heading\n   text */\nStart(value) = (\n  ['a'] & value\n)";
+		const string source = "/* heading\n   text */\nStart(value) = (\n  ['a'] & value\n) => @(Call(value))";
 
 		var document = GramLanguageService.Analyze(source);
 		var pairs = document.Braces
@@ -100,7 +100,7 @@ public sealed class GramLanguageServiceTests
 				 source.Substring(pair.ClosePosition, pair.CloseLength)))
 			.ToArray();
 
-		Assert.Equal(3, pairs.Length);
+		Assert.Equal(5, pairs.Length);
 		Assert.Contains(("(", ")"), pairs);
 		Assert.Contains(("[", "]"), pairs);
 		Assert.Equal(3, document.FoldingRanges.Count);

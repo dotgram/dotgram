@@ -90,12 +90,12 @@ public sealed class EmbeddedGrammarAnalysisTests
 			"""
 			Start = (
 				['a']
-			)
+			) => @(Call())
 			"""
 			"""");
 
 		var analysis = Assert.Single(Analyze(source));
-		Assert.Equal(2, analysis.Braces.Count);
+		Assert.Equal(4, analysis.Braces.Count);
 		Assert.All(analysis.Braces, pair =>
 		{
 			Assert.True(pair.GrammarSpan.Contains(pair.OpenSpan));
