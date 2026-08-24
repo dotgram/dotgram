@@ -53,7 +53,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	static readonly string[] BuiltIns =
 	[
 		"any", "none", "eol", "eof", "trivia", "KeywordBoundary",
-		"using", "context", "parse", "find", "as", "when", "recover",
+		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 	];
 
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);

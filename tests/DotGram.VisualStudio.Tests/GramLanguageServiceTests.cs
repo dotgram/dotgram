@@ -137,6 +137,30 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void SupportsNamespacesAndPublicationScopedRebinding()
+	{
+		const string source =
+			"A = 'a'\n" +
+			"B = 'b'\n" +
+			"namespace N {\n" +
+			"  Start = A\n" +
+			"  parse Start with (A = B)\n" +
+			"}";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Empty(document.Diagnostics);
+		Assert.Contains(("namespace", GramSyntaxKind.Keyword), classified);
+		Assert.DoesNotContain(("context", GramSyntaxKind.Keyword), classified);
+		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
+		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));
+		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Start"));
+	}
+
+	[Fact]
 	public void AttachesCompleteRuleDefinitionToRuleReferences()
 	{
 		const string source = "Start = 'a'\n      | 'b'\nparse Start";

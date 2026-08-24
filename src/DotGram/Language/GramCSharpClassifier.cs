@@ -32,7 +32,7 @@ static class GramCSharpClassifier
 				Classify(body, text, result);
 				break;
 
-			case Decl.Context(_, _, _, var declarations):
+			case Decl.Namespace(_, _, _, var declarations):
 				foreach (var nested in declarations)
 					Classify(nested, text, result);
 				break;

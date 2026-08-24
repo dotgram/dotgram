@@ -103,7 +103,7 @@ public static class GramLanguageService
 {
 	static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
 	{
-		"using", "context", "parse", "find", "as", "when", "recover", "with",
+		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 		"any", "none", "eol", "eof", "trivia", "KeywordBoundary",
 	};
 
@@ -348,8 +348,8 @@ public static class GramLanguageService
 						AddRule(rule.Name, rule.At, true);
 						VisitRule(rule);
 						break;
-					case Decl.Context context:
-						VisitDeclarations(context.Decls);
+					case Decl.Namespace @namespace:
+						VisitDeclarations(@namespace.Decls);
 						break;
 					case Decl.Publish publish:
 						var token = tokens.FirstOrDefault(candidate =>
@@ -358,6 +358,7 @@ public static class GramLanguageService
 							candidate.Value == publish.RuleName);
 						if (token.Length > 0)
 							AddRule(publish.RuleName, new Location(token.Position, token.Length), false);
+						foreach (var rebinding in publish.Rebindings) AddRebinding(rebinding);
 						break;
 				}
 		}
@@ -554,8 +555,8 @@ public static class GramLanguageService
 								rule.Params.Count));
 
 						break;
-					case Decl.Context context:
-						Collect(context.Decls);
+					case Decl.Namespace @namespace:
+						Collect(@namespace.Decls);
 						break;
 				}
 		}
