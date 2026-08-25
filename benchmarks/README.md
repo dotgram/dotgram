@@ -210,6 +210,13 @@ grammar compiles to is 3,772 lines of generated C# against the URL one's 21,500,
 saving is in how large the method was. A benchmark small enough to be readable is
 sometimes small enough to miss what it is measuring.
 
+`HotLoop.cs` is the other instrument, and for changes to materialization it is the one to
+read: `--hot 5 everypart` runs the real URL grammar on the input that keeps the most, and
+the three materialization changes together took it from 13.44M parses in five seconds to
+17.97M. Medians of five, each measured against its own immediate predecessor rather than
+against a number from earlier in the day — `docs/next.md` has what believing the second
+kind cost.
+
 **The span row does not isolate what strings cost, though it was written to.** After the
 walk stopped dominating, it came out *slower* than the strings it was meant to be cheaper
 than — declaring seven rules `: @SourceSpan` gives each a value, a rule with a value gets

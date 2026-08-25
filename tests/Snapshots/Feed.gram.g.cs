@@ -1512,18 +1512,31 @@ namespace DotGram.Snapshots
 			parser.LinkedUpTo = entries.Count;
 
 			values[0] = parser;
-			for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
+
+			var owners     = parser.MaterializationOwners();
+			var ownerCount = 0;
+
+			owners[ownerCount++] = 0;
+
+			for (var ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++)
 			{
-				if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
+				var ownerAt = owners[ownerIndex];
+
 				for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 				{
 					var candidate = entries[capturedAt];
-					if (candidate.Kind == ParserEntry.RuleCapture)
+
+					if (candidate.Kind == ParserEntry.RuleCapture && !global::System.Object.ReferenceEquals(values[candidate.Position], parser))
+					{
 						values[candidate.Position] = parser;
+						owners[ownerCount++] = candidate.Position;
+					}
 				}
 			}
-			for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
+
+			for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)
 			{
+				var completedAt = owners[ownerIndex];
 				var completed = entries[completedAt];
 				if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
 				switch (completed.RuleIndex)
@@ -1971,6 +1984,17 @@ namespace DotGram.Snapshots
 			global::DotGram.Snapshots.Feed.Trailer[] _values3 = global::System.Array.Empty<global::DotGram.Snapshots.Feed.Trailer>();
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
+
+			/// <summary>
+			/// The calls whose values the accepted derivation reaches, in the order they were
+			/// reached from the root.
+			/// </summary>
+			/// <remarks>
+			/// Written afresh on every materialization and read back to front, so unlike the
+			/// link tables it needs no initial value — what is past the count written this
+			/// time is never looked at.
+			/// </remarks>
+			int[] _owners = global::System.Array.Empty<int>();
 			internal int LinkedUpTo;
 			int _valuesUsed;
 
@@ -2000,6 +2024,11 @@ namespace DotGram.Snapshots
 				Grow(ref _linkHeads, count);
 				Grow(ref _linkNexts, count);
 
+				// No `Grow`: nothing here is carried between calls, so a plain resize is
+				// what it needs and the -1 fill would be work for nobody.
+				if (_owners.Length < count)
+					global::System.Array.Resize(ref _owners, global::System.Math.Max(count, _owners.Length * 2));
+
 				_valuesUsed = count;
 
 				return _values;
@@ -2012,6 +2041,7 @@ namespace DotGram.Snapshots
 			
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
+			internal int[] MaterializationOwners() => _owners;
 
 			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
 			// smaller call is still the answer for that index, and re-zeroing it would erase

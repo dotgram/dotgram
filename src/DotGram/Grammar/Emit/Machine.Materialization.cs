@@ -85,23 +85,75 @@ sealed partial class Machine
 		// A transparent rule may have completed before a surrounding path backtracked and
 		// selected another derivation. Such completed entries can remain useful as history,
 		// but only calls reached through RuleCapture from the accepted root may run user
-		// construction code. Call entries precede their children, so one forward pass marks
-		// the complete accepted value tree without recursion or another typed collection.
+		// construction code.
+		//
+		// Two shapes, and which one applies is the same question `cached` already answers:
+		// what the marks mean when this is entered.
+		//
+		// Without caching this runs once, at `Accept:`, and the root call is the only thing
+		// marked — so the accepted value tree can be reached from it, and the calls it
+		// reaches kept rather than looked for a second time. A URL scans twenty-odd entries
+		// twice to act on two.
+		//
+		// With caching a `when` guard calls this mid-parse, having marked whichever values
+		// its own condition asks for: the marked set is then not reachable from the root
+		// and not knowable without looking, so the scan is still what finds it. Seeding a
+		// walk from the root there would silently build a different set from the one the
+		// guard asked about, which is the sort of thing the guard tests in
+		// `GeneratorDriverTests` exist to catch, and did.
 		file.Line();
-		if (!cached)
-			file.Line("values[0] = parser;");
-		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
-		{
-			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
 
-			using (file.Block(
-				"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
-				"capturedAt = linkNexts[capturedAt])"))
+		if (cached)
+		{
+			using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
 			{
-				file.Line("var candidate = entries[capturedAt];");
-				file.Line("if (candidate.Kind == ParserEntry.RuleCapture" +
-					(cached ? " && !built[candidate.Position]" : "") + ")");
-				file.Then("values[candidate.Position] = parser;");
+				file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
+
+				using (file.Block(
+					"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line("if (candidate.Kind == ParserEntry.RuleCapture && !built[candidate.Position])");
+					file.Then("values[candidate.Position] = parser;");
+				}
+			}
+		}
+		else
+		{
+			file.Line("values[0] = parser;");
+			file.Line();
+			file.Line("var owners     = parser.MaterializationOwners();");
+			file.Line("var ownerCount = 0;");
+			file.Line();
+			file.Line("owners[ownerCount++] = 0;");
+			file.Line();
+
+			// Grows while it is walked, which is the whole of the breadth-first order: a
+			// call appended here is one whose own captures have not been looked at yet.
+			// The mark doubles as the guard against keeping the same call twice — a scan
+			// visits an index once however many ways it was reached, and a list would
+			// otherwise run that call's `=>` once per way.
+			using (file.Block("for (var ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++)"))
+			{
+				file.Line("var ownerAt = owners[ownerIndex];");
+				file.Line();
+
+				using (file.Block(
+					"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line();
+
+					using (file.Block(
+						"if (candidate.Kind == ParserEntry.RuleCapture && " +
+						"!global::System.Object.ReferenceEquals(values[candidate.Position], parser))"))
+					{
+						file.Line("values[candidate.Position] = parser;");
+						file.Line("owners[ownerCount++] = candidate.Position;");
+					}
+				}
 			}
 		}
 
@@ -127,9 +179,26 @@ sealed partial class Machine
 			}
 		}
 
-		using (file.Block(
-			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
+		// A value has to be built before the call that reads it is, and both shapes say so
+		// the same way round, by different means.
+		//
+		// The list was built outwards from the root, so back to front is every child before
+		// its parent whatever the arena looks like. Descending index says the same only
+		// because a child's call is written after its parent's — true, and true by an
+		// invariant a walk over a list does not have to depend on.
+		//
+		// The kind and the mark are tested in both: one compare each against something
+		// already in hand, and neither is a fact this walk is the right place to be
+		// certain about.
+		file.Line();
+
+		using (file.Block(cached
+			? "for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"
+			: "for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)"))
 		{
+			if (!cached)
+				file.Line("var completedAt = owners[ownerIndex];");
+
 			file.Line("var completed = entries[completedAt];");
 			file.Line(
 				"if (completed.Kind != ParserEntry.Completed || " +

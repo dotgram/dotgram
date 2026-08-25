@@ -1172,3 +1172,46 @@ So the gate was right, and it was right for a reason that has nothing to do with
 walk being faster: it is the same code, called rather than pasted. Nothing else about
 this project's generated output has been shown to move for that reason, and it is the
 first thing to try on the next hot method rather than the last.
+
+## Built: the accepted value tree is reached, not scanned for
+
+With the materializer visible to a profiler at last, it turned out to cost about what the
+entire recognizer does — 3,427 against 3,585 in own samples on a capture-heavy URL, with
+the strings it ends in a third of that at 992. So the walk itself, not what it builds.
+
+It was three passes over every arena entry to act on two. Building the links needs them
+all and still does. The other two did not: one scanned forward for entries already marked
+as reachable, marking their rule-captured children as it went, and the other scanned
+backward for the marked ones that were `Completed`. The marking is what says which entries
+those are — so the walk that does the marking now keeps them, in a reused `int[]` on the
+parser, and the build walks that list back to front instead of the arena.
+
+Two things had to be got right, and one of them was got wrong first.
+
+**Back to front is every child before its parent**, which is what a parent's `=>` needs,
+and it is true because the list was built outwards from the root. Descending index said
+the same only because a child's call is written after its parent's — true, but an
+invariant a walk over a list no longer has to lean on.
+
+**The mark also has to stop a call being kept twice.** A scan visits an index once however
+many ways it was reached; a list would otherwise hold it once per way and run its `=>`
+once per copy, which is the deferred-construction guarantee broken in a new place.
+
+**And the guard path is not this shape at all.** With caching, a `when` guard calls this
+mid-parse having marked whichever values its own condition asks for — a set that is not
+reachable from the root and not knowable without looking. Seeding a walk from the root
+there quietly builds a different set from the one the guard asked about. The first version
+did exactly that; `GeneratorDriverTests`'s guard tests and two `ExampleTests` said so
+immediately, which is what they are for. The scan stays for `cached`, and the two shapes
+sit side by side under the flag that already told them apart.
+
+**11.9%** on the capture-heavy URL — 16.06M parses in five seconds against 17.97M, medians
+of five, back to back, with no overlap at all between the two sets. On the mixed hot loop
+the running total, measured the same way at each step:
+
+```text
+after the prefix-literal change             20.21M
+after one walk per call                     20.96M
+after the materializer became a method      22.11M
+after the value tree is reached not scanned 23.62M
+```
