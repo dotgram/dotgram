@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
@@ -357,6 +359,57 @@ sealed class RoslynGramCompletion(
 			item.Sections.Select(static section => section.TaggedParts).ToImmutableArray());
 	}
 
+	public async Task<bool> NavigateToDefinitionAsync(
+		string expression,
+		int position,
+		CancellationToken cancellationToken)
+	{
+		var project = Project();
+		if (project is null)
+			return false;
+
+		var document = SyntheticDocument(project, expression);
+		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		if (model is null)
+			return false;
+
+		var symbol = await SymbolFinder.FindSymbolAtPositionAsync(
+			model,
+			Before.Length + position,
+			workspace,
+			cancellationToken).ConfigureAwait(false);
+		if (symbol is not null && await RoslynSymbolNavigation.NavigateAsync(
+			workspace, symbol, project, cancellationToken).ConfigureAwait(false))
+			return true;
+
+		var name = IdentifierAt(expression, position);
+		if (name.Length == 0)
+			return false;
+
+		var declarations = await SymbolFinder.FindDeclarationsAsync(
+			project, name, ignoreCase: false, cancellationToken).ConfigureAwait(false);
+		foreach (var declaration in declarations
+			.Where(candidate => candidate.Name == name)
+			.OrderByDescending(static candidate => candidate.Locations.Any(static location => location.IsInSource)))
+			if (await RoslynSymbolNavigation.NavigateAsync(
+				workspace, declaration, project, cancellationToken).ConfigureAwait(false))
+				return true;
+
+		return false;
+	}
+
+	static string IdentifierAt(string expression, int position)
+	{
+		var start = Math.Min(position, expression.Length);
+		var end = start;
+		while (start > 0 && IsIdentifierCharacter(expression[start - 1])) start--;
+		while (end < expression.Length && IsIdentifierCharacter(expression[end])) end++;
+		return expression.Substring(start, end - start);
+	}
+
+	static bool IsIdentifierCharacter(char character) =>
+		char.IsLetterOrDigit(character) || character == '_';
+
 	static Document SyntheticDocument(Project project, string expression) =>
 		project.AddDocument(
 			"__DotGramCompletion.cs",
@@ -382,6 +435,65 @@ sealed class RoslynGramCompletion(
 
 		return workspace.CurrentSolution.Projects.FirstOrDefault(
 			static project => project.Language == LanguageNames.CSharp);
+	}
+}
+
+static class RoslynSymbolNavigation
+{
+	public static async Task<bool> NavigateAsync(
+		Workspace workspace,
+		ISymbol symbol,
+		Project project,
+		CancellationToken cancellationToken)
+	{
+		try
+		{
+			var features = typeof(QuickInfoService).Assembly;
+			var serviceType = features.GetType("Microsoft.CodeAnalysis.Navigation.ISymbolNavigationService");
+			var locationType = features.GetType("Microsoft.CodeAnalysis.Navigation.INavigableLocation");
+			var optionsType = features.GetType("Microsoft.CodeAnalysis.Navigation.NavigationOptions");
+			if (serviceType is null || locationType is null || optionsType is null)
+				return false;
+
+			var getService = workspace.Services.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
+				.FirstOrDefault(method => method.Name == "GetService" &&
+					method.IsGenericMethodDefinition && method.GetParameters().Length == 0);
+			var service = getService?.MakeGenericMethod(serviceType).Invoke(workspace.Services, null);
+			if (service is null)
+				return false;
+
+			var getLocation = serviceType.GetMethod("GetNavigableLocationAsync");
+			var pendingLocation = getLocation?.Invoke(service, [symbol, project, cancellationToken]);
+			var location = pendingLocation is null ? null : await ResultAsync(pendingLocation).ConfigureAwait(false);
+			if (location is null)
+				return false;
+
+			var options = Activator.CreateInstance(optionsType, true, true);
+			var navigate = locationType.GetMethod("NavigateToAsync");
+			var pendingNavigation = navigate?.Invoke(location, [options, cancellationToken]);
+			var result = pendingNavigation is null ? null : await ResultAsync(pendingNavigation).ConfigureAwait(false);
+			return result is true;
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			Microsoft.VisualStudio.Shell.ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			return false;
+		}
+	}
+
+	static async Task<object?> ResultAsync(object awaitable)
+	{
+		var task = awaitable as Task;
+		if (task is null)
+		{
+			var asTask = awaitable.GetType().GetMethod("AsTask", Type.EmptyTypes);
+			task = asTask?.Invoke(awaitable, null) as Task;
+		}
+		if (task is null)
+			return null;
+
+		await task.ConfigureAwait(false);
+		return task.GetType().GetProperty("Result")?.GetValue(task);
 	}
 }
 

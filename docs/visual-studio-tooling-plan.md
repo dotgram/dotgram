@@ -33,8 +33,10 @@ architecture and possible VS Code/LSP/metadata work remain in
 
 - [x] Roslyn completion for C# names after `@` and in member-access chains.
 - [x] Roslyn Quick Info for C# types and members after `@`.
-- [ ] Go To Definition from grammar C# references.
-- [ ] Preserve DotGram behavior for `@(...)` expressions and grammar arguments.
+- [x] Go To Definition from grammar C# references, including project declarations
+  and Metadata-as-Source.
+- [x] Preserve DotGram behavior while enabling Roslyn tooling inside `@(...)`
+  expressions and grammar arguments.
 
 ## Later milestones
 

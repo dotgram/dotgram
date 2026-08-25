@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Threading;
 using System.ComponentModel.Composition;
 
 using Microsoft.VisualStudio.Commanding;
@@ -23,11 +25,26 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 	public string DisplayName => "DotGram Go To Definition";
 
-	public CommandState GetCommandState(GoToDefinitionCommandArgs args) =>
-		Target(args) is null ? CommandState.Unavailable : CommandState.Available;
+	public CommandState GetCommandState(GoToDefinitionCommandArgs args)
+	{
+		var snapshot = args.TextView.TextSnapshot;
+		var position = Position(args, snapshot);
+		return IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null
+			? CommandState.Available
+			: CommandState.Unavailable;
+	}
 
 	public bool ExecuteCommand(GoToDefinitionCommandArgs args, CommandExecutionContext executionContext)
 	{
+		var snapshot = args.TextView.TextSnapshot;
+		var position = Position(args, snapshot);
+		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
+		{
+			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
+			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
+				roslyn.NavigateToDefinitionAsync(expression, expressionPosition, CancellationToken.None));
+		}
+
 		var found = Target(args);
 
 		if (found is null)
@@ -43,8 +60,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	GramFindReferencesTarget? Target(GoToDefinitionCommandArgs args)
 	{
 		var snapshot = args.TextView.TextSnapshot;
-		var position = args.TextView.Caret.Position.BufferPosition
-			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
+		var position = Position(args, snapshot);
 
 		return args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
 			? GramFindReferencesTarget.Standalone(snapshot, position, GramBufferAnalysis.For(args.SubjectBuffer))
@@ -53,4 +69,39 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 				position,
 				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents));
 	}
+
+	bool IsCSharpContext(
+		GoToDefinitionCommandArgs args,
+		ITextSnapshot snapshot,
+		int position,
+		out string expression,
+		out int expressionPosition)
+	{
+		if (!args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name))
+		{
+			var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
+			if (!analysis.TryGet(snapshot, out var classifications, out _) ||
+				!classifications.Any(item => item.GrammarSpan.Contains(position)))
+			{
+				expression = "";
+				expressionPosition = 0;
+				return false;
+			}
+		}
+
+		if (!GramCSharpCompletionContext.TryGetExpression(
+			snapshot.GetText(), position,
+			out expression, out var expressionStart, out _, out _))
+		{
+			expressionPosition = 0;
+			return false;
+		}
+
+		expressionPosition = position - expressionStart;
+		return true;
+	}
+
+	static int Position(GoToDefinitionCommandArgs args, ITextSnapshot snapshot) =>
+		args.TextView.Caret.Position.BufferPosition
+			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 }
