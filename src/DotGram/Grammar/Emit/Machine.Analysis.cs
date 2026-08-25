@@ -384,14 +384,13 @@ sealed partial class Machine
 	/// the next.
 	/// </para>
 	/// <para>
-	/// And only where none of them is the beginning of another. Where one is, both match at
-	/// the same place — the shorter is taken, being first or not — and if what follows the
-	/// choice then fails, the longer has to be tried. That is a way back, and a way back is
-	/// what the entry is. <c>"ab" | "abc"</c> is such a pair and is compiled as it always
-	/// was; <c>"abc_x" | "abc_y"</c> is not, and at most one of them can match anywhere.
+	/// A run is decided where its members differ, in the order they were written, and never
+	/// comes back — so it is admitted only where no pair of them needs coming back for. Two
+	/// that begin differently never do; a pair where one begins the other is the case
+	/// <see cref="PrefixSettled"/> decides.
 	/// </para>
 	/// </remarks>
-	static int LiteralRun(IReadOnlyList<Node> alternatives, int at)
+	static int LiteralRun(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
 	{
 		var run = 0;
 
@@ -409,13 +408,60 @@ sealed partial class Machine
 			for (var j = i + 1; j <= at; j++)
 				if (alternatives[i] is Node.Literal(var one) &&
 					alternatives[j] is Node.Literal(var other) &&
-					(one.StartsWith(other, StringComparison.Ordinal) ||
-					 other.StartsWith(one, StringComparison.Ordinal)))
+					!PrefixSettled(one, other, following))
 				{
 					return 0;
 				}
 
 		return run;
+	}
+
+	/// <summary>
+	/// Whether two literal alternatives, <paramref name="first"/> written before
+	/// <paramref name="second"/>, can be decided where they differ and never returned to.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only a pair where one begins the other is in question; anything else differs at a
+	/// character, and the character decides it.
+	/// </para>
+	/// <para>
+	/// Written longer-first, the shorter reading is the one that would be come back for,
+	/// and where it stands is known exactly: at the character the longer went on with. If
+	/// what follows the choice cannot begin with that character, the shorter reading fails
+	/// wherever it is tried, and an entry that leads only to a failure is one nothing needs.
+	/// <c>"https" | "http"</c> before <c>"://"</c> is that: taking <c>"http"</c> leaves an
+	/// <c>'s'</c>, and <c>"://"</c> does not begin with one.
+	/// </para>
+	/// <para>
+	/// Written shorter-first it is the reverse, and the entry is the whole of what makes the
+	/// longer reachable: <c>"http" | "https"</c> takes <c>"http"</c> first, and only coming
+	/// back for the second alternative can ever match the extra character. §11 of
+	/// docs/syntax.md promises alternatives are never reordered, so this is a fact about the
+	/// grammar as written and not one to be optimized away.
+	/// </para>
+	/// <para>
+	/// An unknown following — a complement, a category, a predicate — says nothing that can
+	/// be held to, and the general machinery stays. The end of the input is not unknown: no
+	/// character is the end of the text, so nothing that must read a character can begin
+	/// there.
+	/// </para>
+	/// </remarks>
+	static bool PrefixSettled(string first, string second, FirstSets.First following)
+	{
+		if (first.Length == second.Length)
+			return !string.Equals(first, second, StringComparison.Ordinal);
+
+		if (first.Length < second.Length)
+			return !second.StartsWith(first, StringComparison.Ordinal);
+
+		if (!first.StartsWith(second, StringComparison.Ordinal))
+			return true;
+
+		var carriedOn = first[second.Length];
+
+		return following.IsKnown &&
+			!following.Overlaps(new FirstSets.First(false, false, [new CharRange(carriedOn, carriedOn)]));
 	}
 
 	/// <summary>What a run of literal alternatives can begin with.</summary>

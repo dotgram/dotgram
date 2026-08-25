@@ -1018,3 +1018,52 @@ neither change touched, so the absolute figures were measuring the machine. Two 
 still lose to the compiled pattern, both by less than before — the refusal, and the one
 that materializes every named part, which is where `MaterializationCost.cs` already
 pointed.
+
+## Built: a literal that begins another can still be decided where they differ
+
+With the furthest-failure set no longer rebuilt on every step back, `ParserArena.Add` was
+what the profiler put on top — 72M calls against 6.5M parses. The first thing to establish
+was where those come from, and probing the emitter with small grammars answered it in a
+way that settled most of the question by ruling things out. All of these already write
+nothing at all:
+
+```text
+(':' & D+)? & '/'            an optional whose branches are told apart
+U & '@'      U = ['a'..'z']+ a repetition and what cannot follow it
+(U & '@')? & H               U = ['a'..'z']+, H = ['0'..'9']+
+'a' | 'b'                    a choice one character decides
+"aax" | "aay"                literals decided where they differ
+```
+
+So `Possessive` and `Predictive` were doing better than the counts suggested, and what is
+left in the URL grammar is mostly the grammar being genuinely ambiguous — `(UserInfo &
+'@')? & Host` cannot know which of the two it is reading until an `@` arrives or does not,
+and `Host = IPv4 | RegName` can begin either way with a digit. Neither is an analysis
+failure and neither is fixable without unbounded lookahead.
+
+One case was not that. `LiteralRun` refused any run holding a pair where one literal
+begins another, because the shorter is a second reading the parse may have to come back
+for. That is true of `"ab" | "abc"` and false of `"https" | "http" | "ftp"` before
+`"://"`: the longer is written first, so taking it and failing later would leave the
+shorter standing at the `'s'` the longer went on with — and `"://"` does not begin with
+one. The shorter reading fails wherever it is tried, and an entry leading only to a
+failure is one nothing needs.
+
+`PrefixSettled` decides exactly that, and only that. Written shorter-first the entry is
+what makes the longer reachable at all and is kept; where what follows can begin with the
+character the longer carried on with, it is kept; where the following set says nothing
+that can be held to, it is kept. `docs/syntax.md` §11 promises alternatives are never
+reordered, so the order a grammar was written in is a fact to read and not one to
+normalize away.
+
+`CompileLiterals` needed one repair to go with it: a run may now hold a literal that *is*
+the shared prefix, whose own test is empty, so it takes the position unconditionally —
+and everything written after it, the catch-all failure included, is unreachable. Emitting
+it anyway is a `CS0162` in somebody else's build, which the test harness rightly counts
+as a failure.
+
+Worth, measured on the hot loop: about 5% on the URL grammar (18.75M parses in six
+seconds against 19.74M, medians of three). Four choice sites gone out of 85, and 236
+fewer lines of generated C#. The wider case is `eol` — `"\r\n" | "\n" | "\r"`, where
+`"\r"` begins `"\r\n"` — which every line-oriented grammar reaches for and which now
+compiles to one entry-less run wherever a line cannot be followed by a bare newline.

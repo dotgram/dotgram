@@ -902,7 +902,7 @@ sealed partial class Machine
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
 				var last   = alternatives.Count - 1;
-				var run    = LiteralRun(alternatives, last);
+				var run    = LiteralRun(alternatives, last, following);
 				var target = run > 0
 					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 					: Compile(alternatives[last], next, following);
@@ -915,7 +915,7 @@ sealed partial class Machine
 					// matched, so where they differ is where the next is tried — which is
 					// what a common prefix is worth, and it is worth it whether or not there
 					// is one.
-					if (LiteralRun(alternatives, i) is var here and > 0)
+					if (LiteralRun(alternatives, i, following) is var here and > 0)
 					{
 						var from = i - here + 1;
 
@@ -1597,6 +1597,14 @@ sealed partial class Machine
 			}
 		}
 
+		// One of the texts may be the shared prefix itself — a shorter alternative that
+		// begins a longer one, admitted by `PrefixSettled` because nothing can come back
+		// for it. Its own test is then empty, which is to say it matches wherever the
+		// shared prefix did: it takes the position unconditionally, and neither the
+		// alternatives written after it nor the catch-all below can be reached. Writing
+		// them anyway is a CS0162 in somebody else's build.
+		var settled = false;
+
 		foreach (var text in texts)
 		{
 			var tests = new List<string>();
@@ -1607,7 +1615,9 @@ sealed partial class Machine
 			for (var i = shared.Length; i < text.Length; i++)
 				tests.Add($"text[p + {i}] == {CSharpEmitter.Char(text[i])}");
 
-			using (writer.Block(tests.Count == 0 ? "" : $"if ({string.Join(" && ", tests)})"))
+			settled = tests.Count == 0;
+
+			using (writer.Block(settled ? "" : $"if ({string.Join(" && ", tests)})"))
 			{
 				if (text.Length > 0)
 					writer.Line($"p += {text.Length};");
@@ -1615,6 +1625,8 @@ sealed partial class Machine
 				writer.Line($"goto {Label(next)};");
 			}
 
+			if (settled)
+				break;
 		}
 
 		// Every failure site in this run — the shared-prefix guards above and this
@@ -1626,7 +1638,8 @@ sealed partial class Machine
 		// `Fail:` — under-reporting, never mis-attributing or over-reporting. Left as a
 		// documented first-cut gap rather than solved, per docs/implementation.md's own
 		// "the corpus grows by one rule" policy.
-		EmitTerminalFailure(writer, fail, arrayName);
+		if (!settled)
+			EmitTerminalFailure(writer, fail, arrayName);
 
 		return state;
 	}

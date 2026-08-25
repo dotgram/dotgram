@@ -224,6 +224,50 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void Unless_the_longer_comes_first_and_nothing_can_follow_where_the_shorter_would_stand()
+	{
+		// Taking "https" and failing later would leave "http" standing at the 's' the longer
+		// went on with — and "://" does not begin with one, so the shorter reading fails
+		// wherever it is tried. An entry that leads only to a failure is one nothing needs.
+		const string grammar = """Start = ("https" | "http" | "ftp") & "://" """;
+
+		Assert.DoesNotContain(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "https://").Matched);
+		Assert.True(Run(grammar, "http://").Matched);
+		Assert.True(Run(grammar, "ftp://").Matched);
+		Assert.False(Run(grammar, "htt://").Matched);
+	}
+
+	[Fact]
+	public void The_shorter_written_first_is_still_a_reading_to_come_back_for()
+	{
+		// The same pair the other way round. "http" is taken first, and coming back for the
+		// second alternative is the only thing that can ever match the extra character —
+		// docs/syntax.md §11 promises alternatives are never reordered, so this is a fact
+		// about the grammar as written and not one to optimize away.
+		const string grammar = """Start = ("http" | "https") & "://" """;
+
+		Assert.Contains(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "https://").Matched);
+		Assert.True(Run(grammar, "http://").Matched);
+	}
+
+	[Fact]
+	public void Nor_where_what_follows_can_begin_where_the_shorter_would_stand()
+	{
+		// Longer first, but 'b' is exactly the character "ab" went on with, so taking it and
+		// failing leaves "a" standing somewhere 'b' can begin: a real second reading, and
+		// the entry is what reaches it.
+		const string grammar = """Start = ("ab" | "a") & 'b' """;
+
+		Assert.Contains(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "ab").Matched);
+	}
+
+	[Fact]
 	public void A_guard_is_handed_what_it_names_and_not_what_it_could_have()
 	{
 		// Every value a guard is given is built to give it — a run cut into a string, a rule's
