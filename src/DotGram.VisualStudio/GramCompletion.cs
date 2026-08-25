@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,6 +14,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 using Microsoft.VisualStudio.LanguageServices;
@@ -388,14 +390,64 @@ sealed class RoslynGramCompletion(
 
 		var declarations = await SymbolFinder.FindDeclarationsAsync(
 			project, name, ignoreCase: false, cancellationToken).ConfigureAwait(false);
+		var hostType = await HostTypeAsync(project, cancellationToken).ConfigureAwait(false);
 		foreach (var declaration in declarations
 			.Where(candidate => candidate.Name == name)
-			.OrderByDescending(static candidate => candidate.Locations.Any(static location => location.IsInSource)))
+			.OrderByDescending(candidate => hostType is not null && SymbolEqualityComparer.Default.Equals(
+				candidate.ContainingType, hostType))
+			.ThenByDescending(static candidate => candidate.Locations.Any(static location => location.IsInSource)))
 			if (await RoslynSymbolNavigation.NavigateAsync(
 				workspace, declaration, project, cancellationToken).ConfigureAwait(false))
 				return true;
 
 		return false;
+	}
+
+	async Task<INamedTypeSymbol?> HostTypeAsync(Project project, CancellationToken cancellationToken)
+	{
+		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
+			return null;
+
+		var grammarFile = Path.GetFileName(textDocument.FilePath);
+		foreach (var document in project.Documents)
+		{
+			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+			if (root is null || model is null)
+				continue;
+
+			foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+			{
+				var type = model.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol;
+				if (type is null)
+					continue;
+
+				foreach (var attribute in type.GetAttributes())
+				{
+					if (attribute.AttributeClass?.ToDisplayString() != "DotGram.GramAttribute")
+						continue;
+
+					var source = attribute.ConstructorArguments.Length > 0
+						? attribute.ConstructorArguments[0].Value as string
+						: null;
+					if (source is not null && (!source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) ||
+						source.IndexOf('\n') >= 0 || source.IndexOf('\r') >= 0))
+						continue;
+
+					var wanted = source is null ? type.Name + ".gram" : FileName(source);
+					if (string.Equals(wanted, grammarFile, StringComparison.OrdinalIgnoreCase))
+						return type;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	static string FileName(string path)
+	{
+		var separator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+		return separator < 0 ? path : path.Substring(separator + 1);
 	}
 
 	static string IdentifierAt(string expression, int position)

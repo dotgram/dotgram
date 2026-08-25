@@ -28,5 +28,9 @@
 		       d:Source="Project"
 		       d:ProjectName="%CurrentProject%"
 		       Path="|%CurrentProject%;BuiltProjectOutputGroup|" />
+		<Asset Type="Microsoft.VisualStudio.VsPackage"
+		       Path="DotGram.VisualStudio.pkgdef" />
+		<Asset Type="Microsoft.VisualStudio.ImageManifest"
+		       Path="DotGram.VisualStudio.imagemanifest" />
 	</Assets>
 </PackageManifest>
