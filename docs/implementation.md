@@ -7,11 +7,18 @@ something below turns out to be inconvenient, this is what changes, not the nota
 [`status.md`](status.md) says which parts are real and which are still plans; what is
 marked a plan here is marked as one.
 
-Four sections were removed rather than corrected, because what they described was never
-built and the engine that exists does the same work differently: a fast recursive parser
-beside a second one, the shape of the code that fast path would generate, memoization by
-input position, and recovery as a search for the cheapest edit. What replaced all four is
-§1.
+Several sections were removed rather than corrected, because what they described was
+either never built, or was built and later superseded — and left as prose describing
+neither would be worse than a gap in the numbering. Removed early: a fast recursive
+parser beside a second one, the shape of the code that fast path would generate,
+memoization by input position, and recovery as a search for the cheapest edit over a
+whole document. What replaced all of that is this document's own §1 and `syntax.md`
+§8.2 — one automaton, and a recovery mechanism scoped to a repetition rather than a
+whole document. Removed
+later, once each had either shipped in a different shape than planned or simply never
+been reached: a memo-table sketch for incremental parsing, an unstarted plan to compile
+this language's own grammar with itself, and a prototype build-order checklist whose
+every reachable step is now done.
 
 References to **Roc** are to an earlier unpublished project of my own, a BNF macro for
 Nemerle. Most of what is in the code today came from there — normalization done before
@@ -31,24 +38,32 @@ worse than a slow one that shows where and why.
 
 Several things follow that would otherwise look arbitrary.
 
-**The two-parser architecture exists for diagnostics, not for speed** (§1). The fast
-path is there so the slow one can be afforded: since recovery runs only on broken
-input, it is free to be as expensive as it likes — and therefore free to look for the
-*right* answer rather than the first one.
+**Diagnostics come in two tiers, and both run inside the one automaton** (§1) — there
+is no separate, slower engine behind them. The first is close to free: every place a
+literal or an element test fails already knows the position and what it wanted, so
+recording the furthest one reached costs one array write, live, on the same pass that
+is recognizing anyway. It yields a message of the form "expected `)`" with an exact
+place, built once the whole attempt has failed, from whatever survived — one message
+per run, since parsing stopped at the first failure and there is no tree past it.
 
-**Repairing a document has no notation** for the same reason. The quality of messages
-about a source file must not depend on whether the author placed synchronization
-points; place them wrongly and it gets worse than having none. A feed is the other
-case and does have notation — `recover`, `syntax.md` §8.2 — because there the answer
-wanted is not a repair.
+**A feed needs more than that, and `recover` (`syntax.md` §8.2) is the second tier**:
+one bad record must not cost the message for every record after it. It is deliberately
+narrow — one repetition, named in the notation, committing what it already took so a
+later failure cannot un-take it — not a general repair pass over a whole document.
+That case was tried and abandoned: a document-wide search for the cheapest edit that
+makes broken input parse is a different kind of engine, one this project does not
+build (`syntax.md` §11).
 
-**There is no commit point in an expression**, and diagnostics are why. Early
-commitment existed to stop a real error inside an alternative from being discarded in
-favour of "nothing matched" at the top; the recovery engine does that job better, from
-the cheapest edit, and an operator scattered through expressions costs more than it is
-worth — the same alternative would mean different things depending on where it sits.
-`recover` commits on one repetition instead, which is the case the recovery engine
-cannot serve: a hundred million records, of which one is bad.
+**There is no commit point in an expression**, and the furthest-failure tier is why.
+Early commitment existed to keep a real error inside an alternative from being
+discarded in favour of "nothing matched" at the top once that alternative backtracked
+out — but the furthest position reached is already recorded by then, independently of
+which alternative is eventually chosen, so nothing is lost by backtracking past it. An
+operator doing the same job inside expressions would cost more than it is worth besides:
+the same alternative would mean different things depending on where it sits. `recover`
+commits on one repetition instead, which is the case furthest-failure tracking alone
+cannot serve: a hundred million records, of which one is bad, needs the parse to
+continue past it, not just report where it broke.
 
 **Position mapping is mandatory** (`syntax.md` §7.6). A type error in `=> @Add(l, r)`
 must be shown on the grammar's line. Without `#line` in the generated code every C#
@@ -69,6 +84,14 @@ Obligations on the implementation that follow:
 - **a message names what was expected**, not only what was found — "expected `)`" is
   worth more than "unexpected token".
 
+**Diagnostics are tested by a corpus, not by comparing implementations.** "Good in
+absolute terms" is the requirement, not "the same as some other implementation", so
+comparing two parsers against each other cannot test it. What is needed instead is
+broken input paired with the expected message identifier, position and text — the same
+way compilers are tested, and the only way to keep messages from quietly degrading as
+the engine changes. It grows by one rule: whenever a message turns out unclear on a
+real grammar, that case goes in, together with what the message should have said.
+
 ## 1. One automaton over the whole grammar
 
 Every rule of a grammar is compiled into one C# method. A rule is not a method and a call
@@ -76,7 +99,7 @@ is not a call: each place a rule can be in becomes a labelled state, and moving 
 them is `goto`. What a rule call leaves behind is an entry in an array — the arena — saying
 where to carry on when the called rule is done.
 
-The reason is §11's promise that a rule call is transparent to backtracking. A C# method
+The reason is `syntax.md` §4's promise that a rule call is transparent to backtracking. A C# method
 cannot be suspended and resumed, and resuming is exactly what it means to come back into a
 rule and take a different alternative. Once the continuation lives in an array rather than
 on the machine's stack, that is possible — and so is recursion deeper than the stack
@@ -133,10 +156,13 @@ follows a rule is the union over its call sites, computed as a fixed point over 
 graph; a `parse` publication contributes the end of the input, which is a fact and not a
 silence.
 
-The direction this points in is worth stating: the arena should be what a grammar gets when
-resumability is required, not what every grammar pays for the language having it. The
-analyses above remove entries one at a time; the next step is to remove arena-backed
-execution from whole regions, and after that from whole parsers.
+The direction this points in goes further than removing entries one at a time: a
+publication whose whole reachable grammar needs none of the arena's three uses — no
+recursion, no backtracking, no deferred construction — is compiled as an ordinary
+recursive method instead, with no arena, no state table and no dispatcher at all. A
+grammar with even one rule elsewhere that still needs the arena still pays the whole
+cost for every rule in it, since one automaton serves the whole grammar (`docs/next.md`
+has the mechanism and what does not fit it yet).
 
 ### Values are built afterwards
 
@@ -161,19 +187,16 @@ typed result is materialized once it has succeeded.** Speculative parsing then c
 almost nothing — backtracking restores a position and has nothing to undo — which is
 what makes ordered choice affordable without a commit point.
 
-It is in the code, in a shape of its own. A capture records a pair of positions into
-the input; every state a match can resume at clears the slots an abandoned attempt
-could have written, as literals worked out while generating; and the value is built by
-one expression at the accepting state. `RecognitionResult<T>` is a struct with a
-discriminant field, and records are built on the way out rather than along the way.
+It is in the code, in a shape of its own: `ParserEntry` (§1) is an all-integer struct —
+positions, indices, no value field — so recognition can run to completion writing
+nothing but those. Materialization is a separate pass, over what the arena holds once a
+parse has accepted (`syntax.md` §7.3): one walk turns `Capture`/`RuleCapture` entries
+into the typed values a rule's own `=>` needs, and calls it exactly once per rule, from
+what the arena already recorded rather than by re-deriving it.
 
 The alternative — a flat `int[]` holding the whole raw tree as offsets, materialized
 lazily — buys the same property and costs memory proportional to the input, which
 line-oriented streaming cannot afford (§7). Not taken.
-
-The recovery engine is the one piece that is both grammar-independent and large enough
-for duplicating it into every assembly to be noticeable. It is also the only candidate
-for someday justifying the shared mode of §6.1 by volume of code rather than by types.
 
 ## 5. Filtering alternatives by their first element
 
@@ -205,77 +228,53 @@ item; beyond that it is a diagnostic, not a rewrite (`syntax.md` §11).
 ## 7. Execution modes, and what bounds retention
 
 Which mode a parse runs in is decided by the type of the input, at the call site
-(`syntax.md` §6.2). The compiler decides *how* each mode is implemented.
+(`syntax.md` §6.3). The compiler decides *whether* the reader mode is offered at all,
+and both input types that ask for it end up in the same one.
 
 ```text
-in memory      string / ReadOnlySpan<char>
-               full backtracking, the whole input addressable throughout
+in memory   string / ReadOnlySpan<char>
+            full backtracking, the whole input addressable throughout
 
-line by line   TextReader / IEnumerable<string>
-               retention is one line: read it into a reused buffer, hand the parser
-               a ReadOnlySpan<char> over it, parse, discard. No window, no
-               cross-chunk logic, no allocation per line.
-
-by window      retention bounded but not by a line — deferred, see below
+by reader   TextReader / IEnumerable<string>
+            retention is a reused, growable buffer (`Window`), advanced as the
+            parse no longer needs what falls behind it. IEnumerable<string> is
+            not a second mode: a thin adapter (`Lines`) glues the sequence back
+            into an ordinary TextReader — \n reattached, since a grammar's
+            `eol` expects it — and everything past that point is the reader
+            case, unchanged.
 ```
 
-**The line-oriented mode is not an optimization of a windowed one; it is a simpler
-implementation.** When every repeated element ends at a line boundary the parser can
-never need to look further back than the current line, so the sliding buffer, the
-release logic and the position arithmetic all collapse into one reused array.
+**Whether a grammar can stream at all is the retention analysis** (`Retention.cs`):
+how far back a pending alternative could still return. Within what the window can be
+asked to hold, the reader overloads are emitted; back past the start of the whole
+input, they are not, and the method that would have taken a reader simply does not
+exist — a call that tried anyway is a C# compile error at the call site, not a runtime
+one. Note what this restricts and what it leaves alone: it decides which overloads
+exist, and changes the meaning of none of them.
 
-Detecting it is an analysis of the same nature as nullability: does every path through
-the repeated element end with `eol`? It is not particular to feeds — any line-oriented
-language lands in the same mode.
+**A grammar that does not get the reader overload is told so.** Not a refusal — the
+grammar is fine in memory — but a call that would otherwise just fail to bind with
+`cannot convert from TextReader to string`, naming neither the rule responsible nor
+anything to do about it:
 
-**Whether a grammar can stream at all is the retention analysis**: how far back a
-pending alternative could return. Bounded by a line, the streaming overloads are
-emitted; bounded by the whole input, they are not, and the message names the rule
-responsible. Note what this does and does not do — it restricts what may stream, and
-changes the meaning of nothing.
+```text
+'ParseLog' gets no overload taking a reader: the alternative at Log:7 may return to
+the start of the input. docs/syntax.md §6.3 says which rules get one, and why.
+```
 
 `recover` (`syntax.md` §8.2) reaches the same bound from the other side, by being told
 rather than by inference: its synchronization expression is a point the parse cannot
 return past, so a marked repetition streams by construction and the analysis has
 nothing to prove. It commits as well, which the analysis does not — but on one
 repetition, named in the notation, and the rules it calls mean the same thing inside it
-as anywhere else. That is the whole difference from the commit point `syntax.md` §11
-refuses: an operator scattered through expressions would make one alternative mean
-different things depending on where it was written.
+as anywhere else.
 
-**The compiler reports the mode it picked.** Not a warning — a statement of fact, so
-that one grammar eating four kilobytes and its neighbour eating a hundred megabytes is
-never a mystery:
-
-```text
-Feed streams line by line — retention is one line
-Log  cannot stream — the alternative at Log:7 may return to the start of the input
-```
-
-**The windowed mode is deferred and may never be needed.** Source files fit in memory,
-feeds are line-oriented, and what is left — huge input that is neither — is binary
-formats, which are out of scope.
-
-Positions follow from the mode: inside a line an ordinary `int` has room to spare,
-while what crosses the publication boundary for a streamed parse is a `long`, since a
-feed of tens of gigabytes has offsets that do not fit in one.
-
-Anything indexed by absolute position assumes memory-sized input: such a table costs tens
-of gigabytes on a ten-gigabyte feed. In line-oriented mode what the parser keeps is
-per-line and reused, which is what makes that mode cheap rather than merely possible.
-
-## 8. Incremental parsing
-
-Thirty lines over the memo table of §4:
-
-1. compare old and new text from the start — the length of the common prefix;
-2. compare from the end — the length of the common suffix;
-3. carry over whatever was already established past the edit, shifted by the difference
-   in lengths;
-4. parse again, landing in what was carried over.
-
-Only the **tail** is worth reusing; the head is recomputed. For an editor that is
-enough — an edit is usually in the middle, and the tail is the longer part.
+**`Match<T>.Position` is a `long` regardless of mode** — an offset into the whole
+input, and an in-memory `string` could in principle be one an `int` cannot index just
+as much as a streamed file could. What is mode-specific is what happens *inside*
+recognition: an ordinary index into the current window, which is what `ParserEntry`
+(§1) actually stores while a parse is running, widened to a `long` only once, at the
+one place a position crosses a publication's own boundary out to the caller.
 
 ## 9. Operator precedence
 
@@ -307,139 +306,13 @@ so nothing is ever doubled. The whole rule collapses into "insert everywhere", w
 insertion at the start of a published rule for leading whitespace, and normalization
 drops the insertions entirely when `trivia` is empty.
 
-Keyword boundaries want to be declarative in the same way — a class of keyword
-characters plus a separator rule, after which every string literal falling into that
-class gets the boundary check automatically. That remains open (`syntax.md` §11).
-
-## 11. Order of work
-
-The front-end stages are hand-written and already work: the `.gram` lexer and parser in
-`Grammar/Syntax`, each with a textual dump the tests are built on. Further along the
-pipeline: name binding, normalization, generation.
-
-An engine prototype has to confirm execution rather than notation, hence:
-
-1. **The fast path over a frozen subset**: sequence, ordered choice, quantifiers,
-   captures, result construction. No trivia, no precedence, no streaming input.
-2. **First-tier diagnostics together with the fast path, not after it.** See below:
-   without them there is nothing to show even on a prototype, and by §0 they are a
-   requirement of the product.
-3. The flat representation — immediately, because it determines the shape of the
-   generated code rather than optimizes it afterwards.
-4. Filtering by first element — right after, since full backtracking makes it the main
-   thing keeping ordered choice cheap (§5).
-5. Second-tier diagnostics — recovery that carries on past a bad element, once
-   recognition works.
-6. The line-oriented mode (§7) — retention analysis, then the reused buffer. Feeds do
-   not work without it, and it is far simpler than the windowed mode it replaces.
-7. Incremental parsing last; whatever it reuses between runs, it changes nothing about
-   how a single run recognizes.
-
-Check against the three scenarios with the widest coverage: a calculator (recursion
-and levels), a feed (sequence results and recovery), a URL (shared literal prefixes).
-
-### Two tiers of diagnostics
-
-The recovery engine does not have to be pulled forward whole — message quality comes
-in two tiers of very different cost, and the first is nearly free.
-
-**The first comes out of the fast path**, and it is the standard answer for a parser
-that backtracks: remember the furthest position of failure reached, live, the same way
-the position itself already is — every place a literal or an element test fails records,
-beside the position, which terminal it was; a new furthest position replaces what was
-recorded there, a tie with the current one adds to it. That yields a message of the
-form "expected `)`" with an exact place, built once the whole attempt has failed, from
-whatever survived.
-
-Trying every terminal of the grammar against the character actually there and keeping
-the ones that "fit" is not this mechanism, and must not become it: the terminal that
-caused the failure never fits what is actually at that position — that is the failure.
-What is cheap here is recording what was tried, not testing what would succeed.
-
-It costs almost nothing: the position is tracked anyway, and each failing test already
-knows what it is — one array reference assigned before the jump it was already making.
-But it yields **one** message per run — parsing was abandoned at the first failure, so
-there is no tree.
-
-**The second is recovery.** It gives what the first cannot:
-
-```text
-first tier      one error, parsing abandoned, no tree — so no highlighting,
-                no completion, no go-to-definition
-
-second tier     every error in one pass, a complete tree,
-                the IDE works on broken input
-```
-
-The second is what an editor is for: text being typed is almost always broken. So the
-second tier is not "better messages" but the condition of being usable in an IDE.
-
-### Diagnostics are tested by a corpus, not by comparing implementations
-
-The requirement in §0 is "good in absolute terms", not "the same as some other
-implementation". Comparing two parsers against each other therefore cannot test it.
-
-What is needed is a corpus: broken input, the expected message identifier, the expected
-position, the expected text. That is how compilers are tested, and it is the only way
-to keep messages from quietly degrading as the engine changes.
-
-The corpus grows by one rule: **whenever a message turns out to be unclear on a real
-grammar, that case goes into the corpus** — together with what the message should have
-said.
-
-## 12. `Gram.gram` — the grammar of `.gram` written in `.Gram`
-
-Write the grammar of our own language and compile it with our own generator. Not to
-replace the hand-written front end, but for three things, each of which pays for
-itself separately.
-
-**An answer to whether the notation can describe itself.** `.gram` is a real grammar:
-keywords with boundaries, comments, nested brackets, quantifiers, and exactly one
-external recognizer (`@(...)`, where a C# lexer is required). If describing it is
-awkward, that is a verdict on the notation, and it should be heard while changing it
-is still cheap.
-
-**A differential test.** Two independent implementations compared over a corpus of
-grammars by their parse trees. It catches what no snapshot will.
-
-An honest limit: this can compare **valid input only**. On broken input two different
-algorithms legitimately differ — the hand-written one recovers to a declaration
-boundary, the generated one looks for the cheapest edit. Diagnostics are tested by the
-corpus (§11), not by this comparison.
-
-**The most honest check on the code generator.** The diff of the generated file in
-review shows exactly what changed in the emitter — on a real grammar rather than a toy.
-
-### What it costs
-
-Compiling `Gram.gram` needs a working `.gram` parser. At build time that is the
-hand-written one, so there are two options:
-
-- generate on every build — then the hand-written parser ships anyway;
-- **keep the generated source in the repository** and refresh it with a command.
-
-The second is bootstrapping in its mildest form: one generated `.cs` and a refresh
-script, rather than a chain of frozen stages. Manageable, but the cost should be
-admitted up front.
-
-### The rule to hold from day one
-
-**On a disagreement, `Gram.gram` is right**, and the hand-written parser is brought
-into line with it.
-
-Otherwise the familiar thing happens: the fix goes into C# because that is quicker,
-the grammar falls behind, the differential test starts failing "for understandable
-reasons" and gets muted. That is how dogfooding dies.
-
-### Order
-
-1. Take the hand-written front end as far as generation — otherwise there is nothing
-   to compile `Gram.gram` with.
-2. Write `Gram.gram`. The main thing is already here: either the notation describes
-   itself comfortably or it does not.
-3. A differential test over parse trees on a corpus, `Gram.gram` included.
-4. Measure: speed, message quality, size of the code.
-5. Only then decide whether to commit the generated parser and switch production to it.
+**Keyword boundaries are declarative the same way** (`syntax.md` §4.6): `wordboundary`
+names the characters that continue a word, and once it is not empty, every string
+literal whose characters all fall in that class picks up a `& ?!wordboundary` of its
+own — decided when the grammar is built, so `"if"` gets the check and `"("` does not.
+Whether a literal qualifies never has to be written down; the class alone decides it.
+The check goes before the trivia insertion, so it asks whether a letter follows the
+keyword rather than whether one follows the whitespace after it.
 
 ## 13. What this engine is not for
 
@@ -453,8 +326,10 @@ project is not asking. Listed so that not having them reads as a decision.
 - **Language composition**: grammars extending other grammars, dynamic extension
   points, resolving ambiguity between extensions. Where most of the runtime complexity
   of such engines comes from.
-- **A chain of bootstrap stages.** Self-description is taken (§12), the chain is not:
-  the front end stays hand-written and `Gram.gram` serves as a check against it.
+- **A chain of bootstrap stages.** The `.gram` front end — lexer and parser — is
+  hand-written and stays that way; compiling this language's own grammar with its own
+  generator was considered as a differential check on the generator, not to replace the
+  front end, but was never started.
 - **Formatting markers** — soft breaks, indentation, block outlining, so that one
   grammar yields a printer and code folding as well. A good idea that widens the task
   well beyond the current one.

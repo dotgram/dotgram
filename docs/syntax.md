@@ -1615,17 +1615,16 @@ the grammar has no comparison operators.
 
 None of what follows changes the notation described above.
 
-- **Repairing a document.** When a whole input is one construct — a source file in an
-  editor — recovery needs no notation: the engine runs a pass of its own, only after
-  ordinary parsing failed, and looks for the cheapest edit that makes the input parse.
-  The author writes nothing. Details in `implementation.md` §1 and §6.
+- **Repairing a document.** When a whole input is one construct — a source
+  file in an editor — there is no notation for it: recovery here is scoped to
+  one repetition (§8.2), for a feed. A general repair pass over a whole
+  broken document — finding the edit an author most likely meant — is a
+  different kind of engine this project has not built.
 
-  Cheapest-edit repair answers "what did the author most likely mean", which is the
-  right question for one document and the wrong one for a feed of a hundred million
-  records: there the answer wanted is "this record is bad, say why and go on", which is
-  a policy rather than a repair, and it must hold nothing but the current record. That
-  case has notation, and it is §8.2. The two do not overlap — one runs after a failed
-  parse over the whole input, the other during a successful one, per element.
+  The two do not overlap in what they'd answer even if both existed: repair
+  answers "what did the author most likely mean" for one document; §8.2
+  answers "this record is bad, say why and go on" for a hundred million of
+  them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
   where one literal alternative is a prefix of another. `"http" | "https"` matches
