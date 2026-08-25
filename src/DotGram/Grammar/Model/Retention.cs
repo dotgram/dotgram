@@ -210,6 +210,9 @@ public static class Retention
 						"anyone could look at it.";
 				}
 
+		if (WholeInput(graph, root) is { } wanted)
+			return wanted;
+
 		foreach (var owner in Reachable(graph, root))
 			foreach (var node in Everything(graph.Bodies[owner]))
 				if (node is Node.External(var method))
@@ -274,6 +277,31 @@ public static class Retention
 	/// </remarks>
 	static bool Streamable(RecognitionGraph graph, RuleSymbol rule) =>
 		graph.Types.TryGetValue(rule, out var type) && type.EndsWith("[]", StringComparison.Ordinal);
+
+	/// <summary>
+	/// Why a rule that asks for the whole input cannot be read from a reader, or null.
+	/// </summary>
+	/// <remarks>
+	/// The plainest of these refusals: <c>parserInput</c> is the input, and a stream is what
+	/// having no input to hand over is called. A window holds the part being read, and the
+	/// part it holds is not what a construction asking for this means. Refused rather than
+	/// handed the window's own text, which would be one name meaning two different things
+	/// and the wrong one silently.
+	/// </remarks>
+	static string? WholeInput(RecognitionGraph graph, RuleSymbol root)
+	{
+		foreach (var owner in Reachable(graph, root))
+			foreach (var node in Everything(graph.Bodies[owner]))
+				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
+					built.Contains("parserInput"))
+				{
+					return $"'{owner.Name}' builds its value with 'parserInput' (docs/syntax.md §8.2), " +
+						"which is the whole of what was read. A streamed parse reads through a window " +
+						"that holds one part at a time, so there is no whole input for it to be handed.";
+				}
+
+		return null;
+	}
 
 	/// <summary>
 	/// Why a <c>parse</c> cannot be read from a reader, or null when it can.
@@ -413,13 +441,22 @@ public static class Retention
 
 			if (publication.Kind == PublishKind.Find)
 			{
-				if (!extents.TryGetValue(publication.Rule, out var extent) || extent != LineExtent.Beyond)
+				if (WholeInput(graph, publication.Rule) is { } asked)
+				{
+					why = asked;
+				}
+				else if (!extents.TryGetValue(publication.Rule, out var extent) ||
+					extent != LineExtent.Beyond)
+				{
 					continue;
-
-				why =
-					$"{Culprit(graph.Bodies[publication.Rule], extents, consuming)} may take more than " +
-					$"one line, so reading '{publication.Rule.Name}' from one would have to hold the " +
-					"input rather than one occurrence.";
+				}
+				else
+				{
+					why =
+						$"{Culprit(graph.Bodies[publication.Rule], extents, consuming)} may take more " +
+						$"than one line, so reading '{publication.Rule.Name}' from one would have to " +
+						"hold the input rather than one occurrence.";
+				}
 			}
 			else if (Streamable(graph, publication.Rule) &&
 				StreamedParse(graph, publication.Rule) is { } refused)

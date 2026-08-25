@@ -97,7 +97,8 @@ public static partial class CSharpEmitter
 				results,
 				graph.Climbing.ContainsKey(publication.Rule),
 				Streams(graph, publication),
-				flat);
+				flat,
+				machine?.UsesInput ?? false);
 
 			file.Line();
 		}
@@ -247,21 +248,21 @@ public static partial class CSharpEmitter
 			foreach (var probe in continuationProbes.Values)
 			{
 				file.Write(Machine.RenderProbe(
-					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0));
+					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput));
 				file.Line();
 			}
 
 			foreach (var probe in streamedParts.Values)
 			{
 				file.Write(Machine.RenderProbe(
-					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0));
+					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput));
 				file.Line();
 			}
 
 			foreach (var probe in streamedSyncs.Values)
 			{
 				file.Write(Machine.RenderSyncProbe(
-					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0));
+					probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput));
 				file.Line();
 			}
 		}
@@ -309,7 +310,8 @@ public static partial class CSharpEmitter
 					found?.Recovery, sync, factory,
 					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
 						? probe.Name
-						: null);
+						: null,
+					machine.UsesInput);
 				file.Line();
 			}
 		}
@@ -381,7 +383,8 @@ public static partial class CSharpEmitter
 	/// another parameter on every signature.
 	/// </remarks>
 	static void EmitPublication(
-		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat)
+		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
+		bool input)
 	{
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
@@ -393,7 +396,15 @@ public static partial class CSharpEmitter
 		// not leaves the extent it matched, and the text is cut from the input.
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
-			(built is null ? ", ref failure" : ", ref failure, out var recognized");
+			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
+			(input ? ", input" : "");
+
+		// The same call from a window, where there is no whole input to hand over — and no
+		// rule under it that could ask for one, because a publication whose rules do is
+		// refused a stream (Retention, GRAM5001).
+		var streamedHands = (climbs ? ", 0" : "") +
+			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
+			(input ? ", null!" : "");
 
 		string Recognized(string from, string to) =>
 			built is null ? $"input.Substring({from}, {to})" : "recognized";
@@ -406,7 +417,7 @@ public static partial class CSharpEmitter
 			{
 				file.Line();
 
-				EmitStreamingFind(file, publication, method, name, match, hands, built is not null);
+				EmitStreamingFind(file, publication, method, name, match, streamedHands, built is not null);
 			}
 
 			return;
@@ -683,6 +694,14 @@ public static partial class CSharpEmitter
 
 		if (Asks(factory, "parserSpan"))
 			parameters.Add("SourceSpan parserSpan");
+
+		// The whole input, for a construction that wants to keep where it matched and cut
+		// the string later rather than be handed one now — §8.2. Nothing else here hands
+		// over anything the parse did not itself produce, and that is the point of it: a
+		// value built from this outlives the parse holding the input alive, which is a
+		// bargain only the author of the grammar can strike.
+		if (Asks(factory, "parserInput"))
+			parameters.Add("string parserInput");
 
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
@@ -995,7 +1014,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static string TypeOfSupplied(string name) => name switch
 	{
-		"parserText" or "parserMessage" => "string",
+		"parserText" or "parserMessage" or "parserInput" => "string",
 		"parserSpan"                    => "SourceSpan",
 		"parserPosition"                => "long",
 		_                               => "int",

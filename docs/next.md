@@ -1581,3 +1581,43 @@ the input to a construction — `parserText` is a string already cut and `parser
 integers — so a user's lazy struct can hold the extent but must be handed the text to cut
 it. A supplied `parserInput` beside the three §8.2 already has would close that, and is not
 built.
+
+## Built: `parserInput`, the one thing a consumer's own lazy value was missing
+
+The `with` work above settled who decides what a capture costs — the grammar author, per
+publication. One thing was missing to make the third option buildable at all. A value that
+means to keep where it matched and cut its string later needs two things: the extent, which
+`parserSpan` already gave, and the input to cut it out of, which nothing did. `parserText`
+is a string already cut, which is the very allocation such a value exists to avoid.
+
+So `parserInput`, beside the names §8.2 already supplies:
+
+```dotgram
+Host : @Text = (Unreserved | SubDelim)+ => @(new Text(parserInput, parserSpan))
+```
+
+Threaded rather than reconstructed. The engine, the wrapper and the materializer take a
+`string` parameter, and only when something in the grammar names it — a grammar that does
+not is compiled exactly as before, which the snapshots confirmed by not moving.
+
+**A rule that asks for it gets no reader overload**, reported as `GRAM5001` at `Info` like
+every other refusal of §6.3, and next to the one for `parserSpan` that it is the twin of. A
+stream is what having no whole input is called: a window holds the part being read, and
+handing that over under this name would be one name meaning two things and the wrong one
+silently. That refusal is also what makes the threading safe — probes and streamed wrappers
+pass `null!`, and a probe only exists for a publication whose rules provably never name it.
+
+Two things this does not do, both deliberate and both worth writing down.
+
+**It does not choose a default.** `: @string` is eager, `: @SourceSpan` is the extent with
+no string, and this is the middle one. Which to use is said in the grammar. The cost is
+real and belongs to whoever writes it: a value built this way keeps the whole input alive
+for as long as any part of the result lives, which for three names lifted out of a large
+document is the document. `Regex` takes the same bet with `Match`.
+
+**It works in `=> @(...)` and not in `=> @Method(...)`.** Not a decision taken here — §7.3
+matches a factory's arguments against captures and not against the supplied names, so
+`parserSpan` has always been the same, and `WantsText`'s second arm is described in the code
+as "insurance rather than a feature" for exactly this reason. Found by writing the test in
+the natural form first and being told `GRAM3002: No rule, parameter or capture named
+'parserSpan'`. Left as it is, and now documented in §8.2 rather than discovered.

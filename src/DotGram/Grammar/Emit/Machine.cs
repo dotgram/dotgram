@@ -121,6 +121,15 @@ sealed partial class Machine
 
 		_plan    = ExecutionPlan.Of(graph);
 
+		foreach (var rule in graph.Rules)
+			if (graph.Bodies.TryGetValue(rule, out var checking))
+				foreach (var node in NodeWalk.Descendants(checking))
+					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
+						built.Contains("parserInput"))
+					{
+						UsesInput = true;
+					}
+
 		CollectValueTypes();
 
 		// What follows each rule, before any of them is compiled. A body is compiled once and
@@ -306,7 +315,33 @@ sealed partial class Machine
 	FirstSets.First Follows(RuleSymbol rule) =>
 		_follow.TryGetValue(rule, out var after) ? after : FirstSets.First.All;
 
-	public static string RenderProbe(string name, string engine, int entry, bool powers)
+	/// <summary>
+	/// Whether any construction in this grammar asks for the whole input (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// Asked once and answered for the whole grammar, because what it decides is a
+	/// parameter on the engine and on the materializer: a grammar that never names it is
+	/// compiled exactly as it was before the name existed. Read out of the C# for the same
+	/// reason every other supplied name is — §8.2 matches by name.
+	/// </remarks>
+	public bool UsesInput { get; private set; }
+
+	string InputParameter => UsesInput ? ", string parserInput" : "";
+
+	string InputArgument  => UsesInput ? ", parserInput" : "";
+
+	/// <summary>
+	/// What a probe hands over instead, and why it may.
+	/// </summary>
+	/// <remarks>
+	/// A probe exists only for a streamed publication, and a publication whose rules ask
+	/// for the input is refused a stream (<c>Retention</c>). So a probe that runs at all
+	/// runs over states that never name it — and it recognizes without materializing
+	/// besides, which is the other half of the same guarantee.
+	/// </remarks>
+	const string NoInput = ", null!";
+
+	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input)
 	{
 		var file = new Writer(0);
 
@@ -317,13 +352,13 @@ sealed partial class Machine
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				"false, false, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
 	}
 
-	public static string RenderSyncProbe(string name, string engine, int entry, bool powers)
+	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input)
 	{
 		var file = new Writer(0);
 
@@ -334,7 +369,7 @@ sealed partial class Machine
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				"false, false, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
@@ -354,12 +389,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -388,8 +423,8 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
-			"out object? recognized)"))
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}, " +
+			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
 			file.Line();
@@ -547,7 +582,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line("Materialize_DotGram(text, parser, entries);");
+								file.Line($"Materialize_DotGram(text, parser, entries{InputArgument});");
 								RootValue(file);
 							}
 						}

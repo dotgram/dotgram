@@ -207,6 +207,7 @@ public sealed record Recovery(Node Sync, string? Factory)
 		[
 			"parserText", "parserPosition", "parserOrdinal",
 			"parserLine", "parserColumn",   "parserSpan", "parserMessage",
+			"parserInput",
 		];
 
 	/// <summary>

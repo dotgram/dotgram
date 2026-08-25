@@ -1962,6 +1962,48 @@ public sealed class GeneratorDriverTests
 		static int Length(object span) => (int)span.GetType().GetProperty("Length")!.GetValue(span)!;
 	}
 
+	// ── The whole input, handed to a construction ────────────────────────────────
+
+	[Fact]
+	public void A_construction_may_ask_for_the_whole_input_and_cut_it_later()
+	{
+		var type = Build("""
+			[DotGram.Gram("Url  : @Held = \"http://\" & held: Host => @(held)\nHost : @Held = (Letter | Digit | '.')+ => @(new Held(parserInput, parserSpan.Start, parserSpan.Length))\nLetter = ['a'..'z']\nDigit  = ['0'..'9']\nparse Url")]
+			public partial class Deferred
+			{
+				public readonly struct Held
+				{
+					public Held(string input, int start, int length)
+					{
+						Input  = input;
+						Start  = start;
+						Length = length;
+					}
+
+					public string Input  { get; }
+					public int    Start  { get; }
+					public int    Length { get; }
+
+					public string Value { get { return Input.Substring(Start, Length); } }
+				}
+
+			}
+			""").GetType("Deferred")!;
+
+		var held = type.GetMethod("ParseUrl", [typeof(string)])!.Invoke(null, ["http://a.com"])!;
+
+		string Read(string name) => (string)held.GetType().GetProperty(name)!.GetValue(held)!;
+		int    Count(string name) => (int)held.GetType().GetProperty(name)!.GetValue(held)!;
+
+		// The whole of what was read, not the part the rule matched — which is the point of
+		// it. A value built from this cuts its own string whenever somebody asks, and holds
+		// the input alive until then; §14 says that is the grammar author's bargain to make.
+		Assert.Equal("http://a.com", Read("Input"));
+		Assert.Equal(7,              Count("Start"));
+		Assert.Equal(5,              Count("Length"));
+		Assert.Equal("a.com",        Read("Value"));
+	}
+
 	/// <summary>
 	/// One rule published twice, the second rebinding the port to a rule that gives it a
 	/// value of its own — §14's own example, written the way a consumer writes it.

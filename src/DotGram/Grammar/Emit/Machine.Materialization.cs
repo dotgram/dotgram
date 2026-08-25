@@ -40,7 +40,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			"ParserArena entries)"))
+			$"ParserArena entries{InputParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -573,6 +573,9 @@ sealed partial class Machine
 						arguments.Add(
 							"new SourceSpan(" +
 							"completed.Position, completed.Value - completed.Position)");
+
+					if (CSharpEmitter.Asks(factory, "parserInput"))
+						arguments.Add("parserInput");
 
 					foreach (var member in factory.Members)
 					{

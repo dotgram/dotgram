@@ -913,6 +913,38 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_construction_asking_for_the_whole_input_gets_no_reader_overload()
+	{
+		// `parserInput` is the input, and a stream is what having no input to hand over is
+		// called: a window holds the part being read, and the part it holds is not what a
+		// construction asking for this means (§6.3, §8.2). Refused rather than handed the
+		// window's own text, which would be one name meaning two different things and the
+		// wrong one silently.
+		var source = Emit(
+			"Start : @Held = 'a'+ => @(new Held(parserInput))\nfind Start");
+
+		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_says_which_rule_asked_for_it()
+	{
+		var result = GramCompiler.Compile(
+			"Start : @Held = 'a'+ => @(new Held(parserInput))\nfind Start",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		var told = Assert.Single(result.Diagnostics);
+
+		Assert.Equal(Retention.NotStreamable, told.Id);
+		Assert.Equal(GramSeverity.Info,       told.Severity);
+		Assert.Contains("parserInput", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void And_is_told_so_where_it_asked()
 	{
 		// The alternative is what the author actually meets: a call that does not bind,

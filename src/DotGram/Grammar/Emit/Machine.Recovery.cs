@@ -199,6 +199,7 @@ sealed partial class Machine
 		"parserSpan"     => "new SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+		"parserInput"    => "parserInput",
 		_                => "default",
 	};
 

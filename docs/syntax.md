@@ -328,7 +328,9 @@ Expr = value: Number           => value
 
 A name, a call or a parenthesized C# expression may stand on the right (§2). Captures
 are visible there as ordinary local variables, along with the names the parser supplies
-itself — `parserText`, `parserSpan` and the rest of §8.2's table:
+itself — `parserText`, `parserSpan`, `parserInput` and the rest of §8.2's table. All but
+`parserText` are read out of a parenthesized expression, so a construction wanting one
+writes `=> @(...)` rather than `=> @Method(...)`:
 
 ```dotgram
 Number : int    = ['0'..'9']+ => @int.Parse(parserText)
@@ -1407,6 +1409,7 @@ names are supplied rather than captured:
 | `parserLine`, `parserColumn` | where it starts, for a person, from 1 |
 | `parserPosition` | absolute offset, `long` — for a machine |
 | `parserSpan`, `parserText` | its extent, and the input it covers |
+| `parserInput` | the whole of what was read, `string` — see below |
 | `parserMessage` | why it was rejected — only here, never in a capture |
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
@@ -1415,6 +1418,29 @@ story: the supplied names become parameters of the generated factory for a `=>` 
 would take a name already spoken for. With the prefix nothing an author would naturally
 write collides, and a capture that takes one of these names anyway is refused by name
 rather than by a C# error in a file nobody wrote (GRAM4012).
+
+`parserInput` is the one name here that hands over something the parse did not itself
+produce, and it is what a value that means to cut its own string later is built from:
+`parserSpan` says where, `parserInput` says what to cut it out of. Nothing else offers
+that, because nothing else has to — every other name is about the one element.
+
+```dotgram
+Host : @Text = (Unreserved | SubDelim)+ => @(new Text(parserInput, parserSpan))
+```
+
+**What that buys and what it costs are both the grammar author's to choose.** A value
+built this way is two integers and a reference where an eager one is a built string, so
+a caller who reads one part of seven pays for one; and it keeps the whole input alive
+for as long as any part of the result lives, which for three names lifted out of a large
+document is the document. `Regex` makes exactly this bargain — a `Match` holds its input
+— and it is invisible until somebody parses something large. The generator does not
+choose a default here: `: @string` is the eager form, `: @SourceSpan` is the extent with
+no string at all, and this is the middle one, said in the grammar rather than settled
+for everybody by a switch.
+
+A rule asking for it gets no overload taking a reader, and is told so (§6.3, GRAM5001).
+A stream is what having no whole input is called: a window holds the part being read,
+and that is not what this name means.
 
 `parserOrdinal` and `parserLine` are not the same number and neither substitutes for
 the other: a header shifts the first record off line one, a record may span lines,
