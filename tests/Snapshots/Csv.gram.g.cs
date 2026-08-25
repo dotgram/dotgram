@@ -261,7 +261,7 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto S21;
@@ -539,7 +539,7 @@ namespace DotGram.Snapshots
 
 				S53:
 				{
-					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;

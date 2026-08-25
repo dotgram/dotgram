@@ -2144,20 +2144,15 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("://")))
 					{
-						expected = Recognize_DotGram_Expected7;
-						goto Fail;
-					}
-					if (text[p + 1] != '/')
-					{
-						p += 1;
-						expected = Recognize_DotGram_Expected7;
-						goto Fail;
-					}
-					if (text[p + 2] != '/')
-					{
-						p += 2;
+						if (text[p] == ':')
+						{
+							if (text[p + 1] != '/')
+								p += 1;
+							else
+								p += 2;
+						}
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
 					}
@@ -2174,17 +2169,17 @@ namespace DotGram.Snapshots
 
 				S74:
 				{
-					if (p + 5 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
+					if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
 					{
 						p += 5;
 						goto S73;
 					}
-					if (p + 4 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
+					if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 					{
 						p += 4;
 						goto S73;
 					}
-					if (p + 3 <= text.Length && text[p] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
+					if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
 					{
 						p += 3;
 						goto S73;
@@ -2201,17 +2196,17 @@ namespace DotGram.Snapshots
 
 				S76:
 				{
-					if (p + 5 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
+					if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
 					{
 						p += 5;
 						goto Return;
 					}
-					if (p + 4 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
+					if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 					{
 						p += 4;
 						goto Return;
 					}
-					if (p + 3 <= text.Length && text[p] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
+					if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
 					{
 						p += 3;
 						goto Return;
@@ -2813,14 +2808,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -3175,14 +3166,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -4051,14 +4038,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -5052,14 +5035,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -6094,14 +6073,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -7136,14 +7111,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -8178,14 +8149,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -9055,14 +9022,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -10807,14 +10770,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -11169,14 +11128,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -12045,14 +12000,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -13046,14 +12997,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -14088,14 +14035,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -15130,14 +15073,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -16172,14 +16111,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
@@ -17049,14 +16984,10 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 					{
-						expected = Recognize_DotGram_Expected15;
-						goto Fail;
-					}
-					if (text[p + 1] != ':')
-					{
-						p += 1;
+						if (text[p] == ':')
+							p += 1;
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}

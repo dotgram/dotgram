@@ -1075,14 +1075,18 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("""Start = "abcd" """);
 
-		// The first character needs no adjustment — p is already there — so its own
-		// failure branch has no `p +=` line at all; every later one advances p by its
-		// own offset before the jump, never by anyone else's. The room check rides along
-		// with the first test, having the same branch to jump to.
-		Assert.Matches(
-			@"if \(p \+ 4 > text\.Length \|\| text\[p\] != 'a'\)\s*\{\s*expected", source);
-		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*\{\s*p \+= 1;", source);
-		Assert.Matches(@"if \(text\[p \+ 2\] != 'c'\)\s*\{\s*p \+= 2;", source);
-		Assert.Matches(@"if \(text\[p \+ 3\] != 'd'\)\s*\{\s*p \+= 3;", source);
+		// The literal is one comparison, so where it went wrong is worked out afterwards,
+		// inside the branch that comparison already failed. The first character needs no
+		// adjustment — p is already there — and the last needs no test: if every earlier
+		// one matched and the whole did not, it is the one.
+		Assert.Contains(
+			"if (!global::System.MemoryExtensions.SequenceEqual(" +
+			"text.Slice(p, 4), global::System.MemoryExtensions.AsSpan(\"abcd\")))",
+			source, StringComparison.Ordinal);
+
+		Assert.Matches(@"if \(text\[p\] == 'a'\)", source);
+		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*p \+= 1;", source);
+		Assert.Matches(@"else if \(text\[p \+ 2\] != 'c'\)\s*p \+= 2;", source);
+		Assert.Matches(@"else\s*p \+= 3;", source);
 	}
 }

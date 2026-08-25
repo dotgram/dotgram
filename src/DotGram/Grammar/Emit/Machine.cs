@@ -871,6 +871,52 @@ sealed partial class Machine
 				var state     = Reserve(out var writer);
 				var arrayName = DeclareExpected([node.ToString()]);
 
+				// Two or more characters are one comparison, not one per character.
+				// `SequenceEqual` against a constant string is folded by the JIT into
+				// word-sized compares — "abcd" becomes a single 64-bit `cmp` against
+				// 0x64006300620061 — and it is bounds-checked once. The chain of
+				// `text[p + i]` it replaces was checked once per character despite the
+				// room check above having proved every one of them in range: `p + 4 <=
+				// Length` does not tell the range-check eliminator that `p + 1 < Length`
+				// without also knowing `p` cannot overflow, so it kept all four. Nor could
+				// it widen the chain itself — four short-circuiting comparisons are four
+				// branches with an order that is observable, and only what the JIT
+				// recognizes as one comparison is emitted as one.
+				//
+				// Case-insensitive stays as it was. What it compares is each character
+				// folded, which is not the comparison any span method makes.
+				if (value.Length > 1 && !ignoreCase)
+				{
+					writer.Line($"if ({Short(value.Length)})");
+					using (writer.Block(""))
+					{
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
+						EmitTerminalFailure(writer, _fail, arrayName);
+					}
+
+					writer.Line(
+						"if (!global::System.MemoryExtensions.SequenceEqual(" +
+						$"text.Slice(p, {value.Length}), {Spanned(value)}))");
+
+					using (writer.Block(""))
+					{
+						// Where the character that did not fit actually is, worked out on a
+						// branch already taken rather than on the way in. The comparison has
+						// said they differ; this only says where, and nothing reaches it
+						// unless the parse is failing anyway.
+						Sharpen(writer, value);
+
+						EmitTerminalFailure(writer, _fail, arrayName);
+					}
+
+					writer.Line($"p += {value.Length};");
+					writer.Line($"goto {Label(next)};");
+
+					return state;
+				}
+
 				// The room check and the first character's test fail the same way, so they
 				// are one question wherever nothing is written between them — and the only
 				// thing that writes between them is starvation, which marks the failure
@@ -1692,8 +1738,22 @@ sealed partial class Machine
 			if (text.Length > shared.Length)
 				tests.Add(Room(text.Length));
 
-			for (var i = shared.Length; i < text.Length; i++)
-				tests.Add($"{At(i)} == {CSharpEmitter.Char(text[i])}");
+			// What is left of this alternative once the shared prefix is behind it, as one
+			// comparison rather than one per character — the same trade `Node.Literal`
+			// makes, and for the same reason: the room test above has proved every one of
+			// these in range and the range-check eliminator will not take its word for it,
+			// while `SequenceEqual` against a constant is checked once and compared a
+			// machine word at a time. Nothing is sharpened here; an alternative that does
+			// not fit is not a failure, it is the next alternative.
+			var rest = text.Substring(shared.Length);
+
+			if (rest.Length > 1)
+				tests.Add(
+					"global::System.MemoryExtensions.SequenceEqual(text.Slice(" +
+					$"{(shared.Length == 0 ? "p" : $"p + {shared.Length}")}, {rest.Length}), " +
+					$"{Spanned(rest)})");
+			else if (rest.Length == 1)
+				tests.Add($"{At(shared.Length)} == {CSharpEmitter.Char(rest[0])}");
 
 			settled = tests.Count == 0;
 
@@ -2200,6 +2260,71 @@ sealed partial class Machine
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
 	static string Room(int count) => count == 1 ? "p < text.Length" : $"p + {count} <= text.Length";
+
+	/// <summary>The literal as a span, for a comparison to be made against.</summary>
+	/// <remarks>
+	/// <c>AsSpan</c> written out rather than left to the implicit conversion, which arrived
+	/// with .NET Core 2.1: the emitted file may land in a <c>netstandard2.0</c> compilation,
+	/// where <c>string</c> does not convert to <c>ReadOnlySpan&lt;char&gt;</c> on its own and
+	/// this is a compile error in somebody else's build. <c>DotGram.Compatibility</c> is
+	/// there to catch exactly this, and did.
+	/// </remarks>
+	static string Spanned(string value) =>
+		$"global::System.MemoryExtensions.AsSpan({Quoted(value)})";
+
+	/// <summary>The literal as C# source, with anything unprintable spelled out.</summary>
+	/// <remarks>
+	/// Everything outside printable ASCII goes as an escape rather than as itself. This
+	/// file is written by us and read by a compiler that is not, and a literal newline or a
+	/// U+2028 inside a string is what breaks one build and not another.
+	/// </remarks>
+	static string Quoted(string value)
+	{
+		var text = "";
+
+		foreach (var c in value)
+			text += c switch
+			{
+				'\\' => "\\\\",
+				'"'  => "\\\"",
+				_    => c is >= ' ' and <= '~' ? c.ToString() : $"\\u{(int)c:X4}",
+			};
+
+		return $"\"{text}\"";
+	}
+
+	/// <summary>
+	/// Move <c>p</c> to the character of a literal that did not fit, knowing one of them
+	/// did not.
+	/// </summary>
+	/// <remarks>
+	/// Written only inside a branch the comparison has already failed, so what it costs is
+	/// a cost of failing. The last character needs no test of its own: if every earlier one
+	/// matched and the whole did not, it is the one.
+	/// </remarks>
+	static void Sharpen(Writer writer, string value)
+	{
+		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");
+
+		if (value.Length == 2)
+		{
+			writer.Then("p += 1;");
+
+			return;
+		}
+
+		using (writer.Block(""))
+		{
+			for (var i = 1; i < value.Length - 1; i++)
+			{
+				writer.Line($"{(i == 1 ? "if" : "else if")} ({At(i)} != {CSharpEmitter.Char(value[i])})");
+				writer.Then($"p += {i};");
+			}
+
+			writer.Line("else");
+			writer.Then($"p += {value.Length - 1};");
+		}
+	}
 
 	int Reserve(out Writer writer)
 	{

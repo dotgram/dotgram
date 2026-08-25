@@ -1,9 +1,16 @@
-// The smallest grammar there is — one literal, one publication, no captures, no
-// alternatives, nothing to backtrack into. The baseline for the ongoing work on what a
-// capture costs (benchmarks/README.md, "What captures cost"): every step from here adds
-// exactly one thing, and Minimal.gram.g.cs is where the diff shows what that one thing
-// cost in generated code.
+// The smallest grammar there is, and the smallest step up from it, in one file so that
+// the two are read against each other.
+//
+// `A` is one character: a room check and a comparison, folded into a single `if` because
+// they fail the same way. `B` is four, which is a different shape entirely — one span
+// comparison the JIT folds into a single 64-bit `cmp`, with the position of the character
+// that did not fit worked out afterwards, on the branch that comparison already failed.
+//
+// Nothing else differs between them, so the diff between the two methods in
+// Minimal.gram.g.cs is exactly what the extra three characters cost.
 
 A = "a"
+B = "abcd"
 
 parse A
+parse B

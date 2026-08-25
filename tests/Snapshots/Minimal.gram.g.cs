@@ -39,6 +39,40 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>B</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The input is not <c>B</c>. <c>TryParseB</c> answers instead.
+		/// </exception>
+		public static string ParseB(string input)
+		{
+			var match = TryParseB(input);
+
+			if (match.IsSuccess)
+				return match.Value;
+
+			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+		}
+
+		/// <summary>Parses the whole input as <c>B</c>, answering rather than throwing.</summary>
+		public static Match<string> TryParseB(string input)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_B_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				var otherwise = failure.Position >= text.Length
+					? "Expected more input."
+					: "Input does not match 'B'.";
+
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
+			}
+
+			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
 		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
@@ -64,7 +98,48 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
+		static int Recognize_B_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+			string[]? expected = null;
+
+			{
+				if (p + 4 > text.Length)
+				{
+					expected = Recognize_DotGram_Expected1;
+					goto Fail;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("abcd")))
+				{
+					if (text[p] == 'a')
+					{
+						if (text[p + 1] != 'b')
+							p += 1;
+						else if (text[p + 2] != 'c')
+							p += 2;
+						else
+							p += 3;
+					}
+					expected = Recognize_DotGram_Expected1;
+					goto Fail;
+				}
+				p += 4;
+				goto Accept;
+			}
+
+			Accept:
+			if (p != text.Length) { expected = null; goto Fail; }
+			return p;
+
+			Fail:
+			failure.Position = p;
+			failure.Expected = expected;
+			return -1;
+		}
+
 		static readonly string[] Recognize_DotGram_Expected0 = { "'a'" };
+
+		static readonly string[] Recognize_DotGram_Expected1 = { "\"abcd\"" };
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

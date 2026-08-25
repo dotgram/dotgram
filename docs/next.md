@@ -1875,3 +1875,85 @@ is its own extent — the one construction that needs no arena — would want it
 reason to write it then, against whatever that widening turns out to need, rather than to
 keep a method no call reaches in the hope that a future one will. `IsExtent` stays: the arena
 path uses it in four places.
+
+## Built: a literal is one comparison, not one per character
+
+`Minimal.gram` grew a second rule — `A = "a"` beside `B = "abcd"` — and the four-character
+one showed what a multi-character literal had been costing.
+
+The old shape was a room check and then one `if` per character. The disassembly says what
+that really was:
+
+```asm
+cmp  esi, ecx                    ; bounds check for p+0
+jae  → throw
+cmp  word ptr [rax+2*r10], 97    ; 'a'
+lea  esi, [rdx+0x01]
+cmp  esi, ecx                    ; bounds check for p+1, AGAIN
+…                                ; and for p+2, and p+3
+```
+
+**Four bounds checks the room check above had already made unnecessary.** `p + 4 <= Length`
+does not tell the range-check eliminator that `p + 1 < Length` without also knowing `p`
+cannot overflow, so it kept every one. And it could not widen the four comparisons either:
+they are short-circuiting branches with an order that is observable.
+
+`SequenceEqual` against a constant is a comparison the JIT recognizes, and it unrolls that
+one itself:
+
+```asm
+mov  rcx, 0x64006300620061       ; "abcd", four characters in one constant
+cmp  qword ptr [rax], rcx        ; one compare
+```
+
+So a literal of two or more characters is now `text.Slice(p, n)` against the constant, and
+the position of the character that did not fit is worked out **afterwards**, inside the
+branch that comparison already failed. Nothing reaches it unless the parse is failing, and
+the last character needs no test of its own: if every earlier one matched and the whole did
+not, it is the one. `CompileLiterals` does the same for each alternative's remainder — which
+is where `"https" | "http" | "ftp"` lives.
+
+Case-insensitive literals stay per character. What they compare is each character folded,
+which is not the comparison any span method makes.
+
+**Measured, two binaries alternating, medians of five:** +6.5% and +7.0% on the two inputs
+whose parse is mostly scheme and host, +2.0% on the refusal, and −0.4% and −4.5% on the two
+where a literal is a small part of the work. The last is the layout lottery again and says
+so under the usual test: with `DOTNET_TieredPGO=0` the long path's −6.5% becomes −0.1%,
+flat, while nothing else moves.
+
+**`AsSpan` is written out rather than left to the implicit conversion**, which arrived with
+.NET Core 2.1. `DotGram.Compatibility` builds the emitted code for `netstandard2.0`, where
+`string` does not convert to `ReadOnlySpan<char>` on its own — it caught this as a `CS1503`
+in a file nobody wrote, which is exactly what that project is for.
+
+## Measured: what a list pattern does, and why it is not this
+
+Raised as the other way to write it — `text.Slice(p) is ['a', 'b', 'c', 'd', ..]`, or the
+same thing as a `switch`. Both lower identically, and the answer is interesting enough to
+keep:
+
+```asm
+cmp  ecx, 4                      ; the length, once
+jl   → fail
+cmp  word ptr [rax], 97          ; 'a'
+cmp  word ptr [rax+0x02], 98     ; 'b'
+cmp  word ptr [rax+0x04], 99     ; 'c'
+cmp  word ptr [rax+0x06], 100    ; 'd'
+```
+
+**Every bounds check is gone** — the indices became constant offsets from the slice's base
+with its length tested once, which is exactly what the `text[p + i]` chain could not manage.
+But there is no widening: four narrow compares where `SequenceEqual` makes one.
+
+| | bounds checks | comparisons |
+| --- | --: | --- |
+| one `if` per character | 4 | 4 × 16-bit |
+| list pattern | **0** | 4 × 16-bit |
+| `SequenceEqual` | 1 | **1 × 64-bit** |
+
+So for a literal, `SequenceEqual` wins. Where a list pattern would win is the thing
+`SequenceEqual` cannot express at all: a fixed-length run of character *classes*
+(`[>= '0' and <= '9', …]`) — `Octet`, `H16`, and every `Class{n}` in any grammar, all of
+which pay a bounds check per character today for the same reason the literal chain did. Not
+started, and this is where to start it.
