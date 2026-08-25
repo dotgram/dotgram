@@ -6,11 +6,18 @@
 // comparison the JIT folds into a single 64-bit `cmp`, with the position of the character
 // that did not fit worked out afterwards, on the branch that comparison already failed.
 //
-// Nothing else differs between them, so the diff between the two methods in
-// Minimal.gram.g.cs is exactly what the extra three characters cost.
+// Nothing else differs between them, so the diff between those two methods is exactly
+// what the extra three characters cost.
+//
+// `C` is the next thing after that: a choice of literals, compiled as a run rather than
+// as a choice, decided where the texts differ with nothing written down to come back to.
+// Written shortest-prefix-first on purpose, so the snapshot shows what the generator
+// makes of `"http"` standing in front of `"https"` rather than behind it.
 
 A = "a"
 B = "abcd"
+C = "http" | "https" | "ftp"
 
 parse A
 parse B
+parse C

@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'A'.";
 
-				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
@@ -67,79 +67,379 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'B'.";
 
-				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
-		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		/// <summary>Parses the whole input as <c>C</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The input is not <c>C</c>. <c>TryParseC</c> answers instead.
+		/// </exception>
+		public static string ParseC(string input)
 		{
-			var p = pos;
-			string[]? expected = null;
+			var match = TryParseC(input);
 
+			if (match.IsSuccess)
+				return match.Value;
+
+			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+		}
+
+		/// <summary>Parses the whole input as <c>C</c>, answering rather than throwing.</summary>
+		public static Match<string> TryParseC(string input)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_C_Whole(text, 0, ref failure);
+
+			if (end < 0)
 			{
-				if ((uint)p >= (uint)text.Length || text[p] != 'a')
-				{
-					expected = Recognize_DotGram_Expected0;
-					goto Fail;
-				}
-				p += 1;
-				goto Accept;
+				var otherwise = failure.Position >= text.Length
+					? "Expected more input."
+					: "Input does not match 'C'.";
+
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 
-			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
-			return p;
+			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
 
-			Fail:
-			failure.Position = p;
-			failure.Expected = expected;
-			return -1;
+		static int Recognize_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
+		{
+			recognized = null;
+
+			Parser parser = null!;
+			RentParser(ref parser);
+			var lent = parser != null;
+			parser ??= Recycled();
+
+			try
+			{
+				var entries = parser.Entries;
+				var p       = pos;
+				var call    = -1;
+				var atomic  = -1;
+				var repeat  = -1;
+				var lookahead = -1;
+				var c       = '\0';
+				string[]? expected = null;
+
+				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
+				call = 0;
+				goto Dispatch;
+				Dispatch:
+				switch (state)
+				{
+					case 0: goto Return;
+					case 1: goto Accept;
+					case 2:   expected = null; goto Fail;
+					case 3: goto S3;
+					case 4: goto S4;
+					case 5: goto S5;
+					case 6: goto S6;
+					case 7: goto S7;
+					case 8: goto S8;
+					case 9: goto S9;
+					case 10: goto S10;
+					case 11: goto S11;
+					case 12: goto S12;
+					default: expected = null; goto Fail;
+				}
+
+				S3:
+				{
+					Trace("enter A", 3, p, entries.Count);
+					goto S6;
+				}
+
+				S4:
+				{
+					Trace("enter B", 4, p, entries.Count);
+					goto S7;
+				}
+
+				S5:
+				{
+					Trace("enter C", 5, p, entries.Count);
+					goto S12;
+				}
+
+				S6:
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != 'a')
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p += 1;
+					goto Return;
+				}
+
+				S7:
+				{
+					if (p + 4 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("abcd")))
+					{
+						if (text[p] == 'a')
+						{
+							if (text[p + 1] != 'b')
+								p += 1;
+							else if (text[p + 2] != 'c')
+								p += 2;
+							else
+								p += 3;
+						}
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					p += 4;
+					goto Return;
+				}
+
+				S8:
+				{
+					if (p + 3 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected2;
+						goto Fail;
+					}
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
+					{
+						if (text[p] == 'f')
+						{
+							if (text[p + 1] != 't')
+								p += 1;
+							else
+								p += 2;
+						}
+						expected = Recognize_DotGram_Expected2;
+						goto Fail;
+					}
+					p += 3;
+					goto Return;
+				}
+
+				S9:
+				{
+					if (p + 5 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
+					{
+						if (text[p] == 'h')
+						{
+							if (text[p + 1] != 't')
+								p += 1;
+							else if (text[p + 2] != 't')
+								p += 2;
+							else if (text[p + 3] != 'p')
+								p += 3;
+							else
+								p += 4;
+						}
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					p += 5;
+					goto Return;
+				}
+
+				S10:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!(c == 'h')) goto S8;
+						if (!(c == 'f')) goto S9;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 8, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 8, p, entries.Count);
+					goto S9;
+				}
+
+				S11:
+				{
+					if (p + 4 > text.Length)
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
+					{
+						if (text[p] == 'h')
+						{
+							if (text[p + 1] != 't')
+								p += 1;
+							else if (text[p + 2] != 't')
+								p += 2;
+							else
+								p += 3;
+						}
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					p += 4;
+					goto Return;
+				}
+
+				S12:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!(c == 'h')) goto S10;
+						if (!(c == 'h' || c == 'f')) goto S11;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 10, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 10, p, entries.Count);
+					goto S11;
+				}
+
+				Return:
+				global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
+				var returned = entries[call];
+				global::System.Diagnostics.Debug.Assert(returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);
+				state = returned.State;
+				var previousCall = returned.CallIndex;
+				repeat = returned.RepeatIndex;
+				lookahead = returned.LookaheadIndex;
+
+				if (returned.RuleIndex >= 0)
+				{
+					entries[call] = new ParserEntry(ParserEntry.Completed, returned.State, returned.Position, returned.CallIndex, returned.AtomicIndex, returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex);
+				}
+				else if (entries.Count == call + 1)
+					entries.RemoveAt(call);
+
+				call = previousCall;
+				Trace("return", state, p, entries.Count);
+				goto Dispatch;
+
+				Accept:
+				if (whole && p != text.Length) { expected = null; goto Fail; }
+				return p;
+
+				Fail:
+				if (lookahead < 0 && p > failure.Position)
+				{
+					failure.Position = p;
+					failure.Expected = expected;
+					failure.ExpectedMore = null;
+				}
+				else if (lookahead < 0 && p == failure.Position && expected != null)
+					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				Trace("fail", state, p, entries.Count);
+
+				while (entries.Count > 0)
+				{
+					var last = entries.Count - 1;
+					var entry = entries[last];
+					entries.RemoveAt(last);
+
+					if (entry.Kind == ParserEntry.Choice)
+					{
+						state  = entry.State;
+						p      = entry.Position;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						Trace("resume", state, p, entries.Count);
+						goto Dispatch;
+					}
+					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
+					{
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						p      = entry.Position;
+					}
+					else if (entry.Kind == ParserEntry.Atomic)
+					{
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+					}
+					else if (entry.Kind == ParserEntry.Repeat)
+					{
+						p      = entry.Position;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+					}
+					else
+					{
+						global::System.Diagnostics.Debug.Assert(entry.Kind == ParserEntry.Lookahead);
+						p         = entry.Position;
+						call      = entry.CallIndex;
+						atomic    = entry.AtomicIndex;
+						repeat    = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+
+						if (entry.Value == 0)
+						{
+							state = entry.State;
+							if (entry.RuleIndex >= 0)
+							{
+								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+							}
+							Trace("negative lookahead succeeds", state, p, entries.Count);
+							goto Dispatch;
+						}
+					}
+				}
+
+				return -1;
+			}
+			finally
+			{
+				parser.Reset();
+				if (lent) ReturnParser(parser); else Recycle(parser);
+			}
+		}
+
+		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			object? recognized;
+			var end = Recognize_DotGram(text, pos, 3, -1, true, true, ref failure, out recognized);
+			return end;
 		}
 
 		static int Recognize_B_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
-			var p = pos;
-			string[]? expected = null;
+			object? recognized;
+			var end = Recognize_DotGram(text, pos, 4, -1, true, true, ref failure, out recognized);
+			return end;
+		}
 
-			{
-				if (p + 4 > text.Length)
-				{
-					expected = Recognize_DotGram_Expected1;
-					goto Fail;
-				}
-				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("abcd")))
-				{
-					if (text[p] == 'a')
-					{
-						if (text[p + 1] != 'b')
-							p += 1;
-						else if (text[p + 2] != 'c')
-							p += 2;
-						else
-							p += 3;
-					}
-					expected = Recognize_DotGram_Expected1;
-					goto Fail;
-				}
-				p += 4;
-				goto Accept;
-			}
-
-			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
-			return p;
-
-			Fail:
-			failure.Position = p;
-			failure.Expected = expected;
-			return -1;
+		static int Recognize_C_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			object? recognized;
+			var end = Recognize_DotGram(text, pos, 5, -1, true, true, ref failure, out recognized);
+			return end;
 		}
 
 		static readonly string[] Recognize_DotGram_Expected0 = { "'a'" };
 
 		static readonly string[] Recognize_DotGram_Expected1 = { "\"abcd\"" };
+
+		static readonly string[] Recognize_DotGram_Expected2 = { "\"ftp\"" };
+
+		static readonly string[] Recognize_DotGram_Expected3 = { "\"https\"" };
+
+		static readonly string[] Recognize_DotGram_Expected4 = { "\"http\"" };
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
@@ -272,7 +572,242 @@ namespace DotGram.Snapshots
 			/// a copy of it.
 			/// </summary>
 			public string[]? Expected;
+
+			/// <summary>
+			/// A second array and beyond, where more than one terminal tied for the
+			/// furthest position. Null until an actual tie needs one.
+			/// </summary>
+			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
 
+		private sealed class Parser
+		{
+			internal readonly ParserArena Entries = new ParserArena();
+			object?[] _values = global::System.Array.Empty<object?>();
+			int[] _linkHeads = global::System.Array.Empty<int>();
+			int[] _linkNexts = global::System.Array.Empty<int>();
+
+			/// <summary>
+			/// The calls whose values the accepted derivation reaches, in the order they were
+			/// reached from the root.
+			/// </summary>
+			/// <remarks>
+			/// Written afresh on every materialization and read back to front, so unlike the
+			/// link tables it needs no initial value — what is past the count written this
+			/// time is never looked at.
+			/// </remarks>
+			int[] _owners = global::System.Array.Empty<int>();
+			internal int LinkedUpTo;
+			int _valuesUsed;
+
+			internal object?[] Materialization(int count)
+			{
+				// Doubled, not sized to fit exactly: a `when` guard calls this once per
+				// evaluation, and a repeated record with a guard inside the repeat would
+				// otherwise pay for a fresh copy of the whole table on every turn, turning
+				// an O(n) parse back into the O(n^2) the incremental materializer exists to
+				// avoid.
+				if (_values.Length < count)
+					global::System.Array.Resize(ref _values, global::System.Math.Max(count, _values.Length * 2));
+
+				// Grown here, alongside the value table, rather than where the links are
+				// read — a guard that finds everything it needs already built calls this
+				// and nothing else, and a link table sized only where it is read would fall
+				// out of step with `_valuesUsed`, which is exactly what Reset and Truncate
+				// walk off the end of.
+				Grow(ref _linkHeads, count);
+				Grow(ref _linkNexts, count);
+
+				// No `Grow`: nothing here is carried between calls, so a plain resize is
+				// what it needs and the -1 fill would be work for nobody.
+				if (_owners.Length < count)
+					global::System.Array.Resize(ref _owners, global::System.Math.Max(count, _owners.Length * 2));
+
+				_valuesUsed = count;
+
+				return _values;
+			}
+
+			internal int[] MaterializationHeads() => _linkHeads;
+			internal int[] MaterializationNexts() => _linkNexts;
+			internal int[] MaterializationOwners() => _owners;
+
+			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
+			// smaller call is still the answer for that index, and re-zeroing it would erase
+			// it. Only the newly reachable slots need a fresh -1.
+			static void Grow(ref int[] links, int count)
+			{
+				if (links.Length < count)
+				{
+					var from = links.Length;
+
+					global::System.Array.Resize(ref links, global::System.Math.Max(count, from * 2));
+
+					for (var i = from; i < links.Length; i++)
+						links[i] = -1;
+				}
+			}
+
+			internal void Reset()
+			{
+				Entries.Clear();
+				global::System.Array.Clear(_values, 0, _valuesUsed);
+
+				// A rule call that captures nothing this parse never writes its own head, so
+				// whatever a previous parse through the same pooled slot left there has to be
+				// cleared here instead — otherwise a lookup falls through to a stale chain from
+				// an earlier parse, one that can splice into a cycle once enough reuse has
+				// pointed two heads at each other.
+				for (var i = 0; i < _valuesUsed; i++)
+				{
+					_linkHeads[i] = -1;
+					_linkNexts[i] = -1;
+				}
+
+				_valuesUsed = 0;
+				LinkedUpTo = 0;
+			}
+		}
+
+		private sealed class ParserArena
+		{
+			ParserEntry[] _items = global::System.Array.Empty<ParserEntry>();
+
+			internal int Count { get; private set; }
+
+			internal int Capacity { get { return _items.Length; } }
+
+			internal ParserEntry this[int index]
+			{
+				get => _items[index];
+				set => _items[index] = value;
+			}
+
+			internal void Add(ParserEntry entry)
+			{
+				if (Count == _items.Length)
+					global::System.Array.Resize(ref _items, Count == 0 ? 16 : Count * 2);
+
+				_items[Count++] = entry;
+			}
+
+			internal void RemoveAt(int index)
+			{
+				var after = Count - index - 1;
+
+				if (after > 0)
+					global::System.Array.Copy(_items, index + 1, _items, index, after);
+
+				Count--;
+			}
+
+			internal void RemoveRange(int index, int count)
+			{
+				if (count == 0)
+					return;
+
+				var after = Count - index - count;
+
+				if (after > 0)
+					global::System.Array.Copy(_items, index + count, _items, index, after);
+
+				Count -= count;
+			}
+
+			internal void Clear()
+			{
+				Count = 0;
+			}
+		}
+
+		private readonly struct ParserEntry
+		{
+			internal const int Choice = 1;
+			internal const int Call   = 2;
+			internal const int Atomic = 3;
+			internal const int Repeat = 4;
+			internal const int Lookahead = 5;
+			internal const int Capture = 6;
+			internal const int Construct = 7;
+			internal const int Completed = 8;
+			internal const int RuleCapture = 9;
+			internal const int Dead = 10;
+			internal const int Recovery = 11;
+			internal const int PendingRecovery = 12;
+			internal const int Run = 13;
+
+			internal ParserEntry(
+				int kind, int state, int position, int callIndex, int atomicIndex,
+				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)
+			{
+				Kind        = kind;
+				State       = state;
+				Position    = position;
+				CallIndex   = callIndex;
+				AtomicIndex = atomicIndex;
+				RepeatIndex = repeatIndex;
+				LookaheadIndex = lookaheadIndex;
+				Value       = value;
+				RuleIndex   = ruleIndex;
+			}
+
+			internal int Kind        { get; }
+			internal int State       { get; }
+			internal int Position    { get; }
+			internal int CallIndex   { get; }
+			internal int AtomicIndex { get; }
+			internal int RepeatIndex { get; }
+			internal int LookaheadIndex { get; }
+			internal int Value       { get; }
+			internal int RuleIndex   { get; }
+		}
+
+		static partial void RentParser(ref Parser parser);
+		static partial void ReturnParser(Parser parser);
+
+		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
+		/// <remarks>
+		/// A parse allocates nothing it can help — the arena, the value table and the links
+		/// are all grown once and reused — but that is only true of a parser that outlives
+		/// the parse. Without this, every call built the whole machinery from nothing and
+		/// grew the arena from empty by doubling, which for a parse of any size costs more
+		/// than the parse.
+		/// <para>
+		/// One slot, taken out of the field while it is in use, so a parse reached from
+		/// inside another — a guard that parses, a value that does — gets its own rather
+		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
+		/// so one outsized input does not leave every thread holding its arena for ever.
+		/// </para>
+		/// </remarks>
+		[global::System.ThreadStatic]
+		static Parser? _spareParser;
+
+		const int KeptEntries = 4096;
+
+		static Parser Recycled()
+		{
+			var spare = _spareParser;
+
+			if (spare == null)
+				return new Parser();
+
+			_spareParser = null;
+
+			return spare;
+		}
+
+		static void Recycle(Parser parser)
+		{
+			if (parser.Entries.Capacity <= KeptEntries)
+				_spareParser = parser;
+		}
+
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(string action, int state, int position, int arena)
+		{
+			global::System.Diagnostics.Debug.WriteLine(
+				".Gram " + action + " state=" + state.ToString() +
+				" position=" + position.ToString() + " arena=" + arena.ToString());
+		}
 	}
 }

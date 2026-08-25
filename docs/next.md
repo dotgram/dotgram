@@ -2111,3 +2111,35 @@ wrong about what a build does; that project cannot.
 **Snapshots stay single**, at the floor. One file per grammar. Doubling them per form would
 double the diff every codegen change produces, to check something the layer above checks
 better.
+
+## Found: one publication that cannot lower costs every sibling its flat path
+
+`Minimal.gram` gained `C = "http" | "https" | "ftp"` — a choice of literals, written
+shortest-prefix-first on purpose. It compiles the way it should: the two texts beginning `h`
+are not told apart by one character, so the choice is not predictive, so it is not silent,
+so it needs the arena and a way back. On input `https` the run matches `"http"`, the
+whole-input check refuses, and the parse resumes at the `Choice` entry and takes `"https"`.
+
+**What was not expected is that `A` and `B` went with it.** Lowering is decided for the
+whole grammar — `graph.Publications.All(machine.CanLower(...))` — so one publication that
+cannot lower puts every other one through the shared engine. `A = "a"` and `B = "abcd"` are
+each perfectly lowerable and nothing calls them from the automaton; they are separate entry
+points that never meet `C`. They are compiled as arena states anyway, and each pays what
+`CallCost.cs` measures: about 25% for going through the arena at all, and the whole engine's
+machinery emitted into the file besides.
+
+This is not the case that was investigated and rejected. "Mixed lowering: investigated, has
+no target" above is about a *rule* inside a grammar compiling flat and being **called from**
+the shared automaton — the two coexisting, with a plain call across the seam. What this is
+about is *sibling publications* that never call each other at all. Nothing has to cross: `A`
+gets a flat method, `C` gets the engine, and neither knows the other exists.
+
+The condition that makes it safe is narrower than "silent", and it is checkable: a
+publication may lower on its own when its rule is not reachable from any publication that
+cannot. Where it is reachable from one, the rule is in the engine anyway and a flat copy
+would be a second copy — which is the trade the earlier investigation was about, and can
+stay rejected.
+
+Not built. Worth doing when a grammar with several entry points, most of them simple, is a
+shape anyone has — a DSL with `parse Document` beside `parse Identifier` is exactly that,
+and `Minimal.gram` is now a small one.
