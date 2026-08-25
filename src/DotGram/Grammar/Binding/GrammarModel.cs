@@ -175,13 +175,21 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// to the specialized clone it meant (§18) once one exists.
 /// </param>
 /// <param name="Rebindings">
-/// This directive's own `with (A = B, ...)` (§5.1), resolved — empty when it has none.
-/// The same substitution a `namespace (...)` header applies to a whole block, written
-/// directly on the one publication that needs it instead.
+/// This directive's own `with (A = B, ...)` (§5.1), resolved and chain-followed — empty
+/// when it has none. The same substitution a `namespace (...)` header applies to a whole
+/// block, written directly on the one publication that needs it instead.
+/// </param>
+/// <param name="OwnRebindings">
+/// The same header, one entry per `A = B` exactly as written — not chain-followed, so
+/// each keeps its own position and its own two names rather than the target a chain of
+/// several might resolve to. What a type-compatibility check reports against
+/// (<see cref="GrammarNamespace.OwnRebindings"/> is the same split, for a header); what
+/// specialization clones against is <see cref="Rebindings"/>.
 /// </param>
 public sealed record Publication(
 	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarNamespace DeclaredIn,
-	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings)
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings,
+	IReadOnlyList<ResolvedRebinding> OwnRebindings)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
@@ -195,6 +203,7 @@ public sealed class GrammarModel(
 	GrammarNamespace                                                       root,
 	IReadOnlyDictionary<Expr, Symbol>                                      bindings,
 	IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> withBindings,
+	IReadOnlyDictionary<Expr, IReadOnlyList<ResolvedRebinding>>            withOwnRebindings,
 	IReadOnlyDictionary<GrammarNamespace, RuleSymbol>                      trivia,
 	IReadOnlyList<Publication>                                             publications,
 	IReadOnlyList<GramDiagnostic>                                          diagnostics)
@@ -202,10 +211,18 @@ public sealed class GrammarModel(
 	public GrammarNamespace                  Root        { get; } = root;
 	public IReadOnlyDictionary<Expr, Symbol> Bindings    { get; } = bindings;
 
-	/// <summary>Each `with (...)`'s own rebindings, resolved (§5.1) — keyed by the
-	/// <see cref="Expr.With"/> node itself, the same way <see cref="Bindings"/> is keyed
-	/// by node identity rather than by value.</summary>
+	/// <summary>Each `with (...)`'s own rebindings, resolved and chain-followed (§5.1) —
+	/// keyed by the <see cref="Expr.With"/> node itself, the same way <see cref="Bindings"/>
+	/// is keyed by node identity rather than by value. What specialization clones against;
+	/// see <see cref="WithOwnRebindings"/> for the entry-by-entry form a type-compatibility
+	/// check needs instead.</summary>
 	public IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> WithBindings { get; } = withBindings;
+
+	/// <summary>The same headers as <see cref="WithBindings"/>, one entry per `A = B`
+	/// exactly as written rather than chain-followed — the same split
+	/// <see cref="Publication.OwnRebindings"/> and <see cref="GrammarNamespace.OwnRebindings"/>
+	/// each make for the same reason.</summary>
+	public IReadOnlyDictionary<Expr, IReadOnlyList<ResolvedRebinding>> WithOwnRebindings { get; } = withOwnRebindings;
 
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
 

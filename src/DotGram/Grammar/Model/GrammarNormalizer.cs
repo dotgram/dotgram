@@ -106,7 +106,7 @@ public sealed partial class GrammarNormalizer
 
 		// After the results: what a rebinding's replacement must be compatible with is the
 		// result each rule was just worked out to have.
-		normalizer.CheckNamespaceReplacements();
+		normalizer.CheckRebindingReplacements();
 
 		// After the results, because what a constructor is matched against is the members
 		// they worked out (§7.3).

@@ -1330,18 +1330,44 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Generated parsing comes out between 1.1× and 1.9× faster than
-interpreted `Regex`, and between 1.2× and 2.6× **slower** than
-`RegexOptions.Compiled` — the same order as the best the BCL does, and on the wrong side of
-it. Allocation is not at parity and has not been since the parser began to be kept between
-parses: a URL costs 176 bytes against the pattern's 1032, and what is left is the result
-and nothing else — the value, the value nested in it, and one string for each part kept.
+every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the
+deferred-`Expected` change: generated parsing beats `RegexOptions.Compiled` on three of
+the five benchmarked inputs — 163.7 ns against 257.4 ns for the short URL, 148.2 against
+243.8 for the IP-host form, 318.9 against 553.0 for the 84-character path — and loses on
+two: 131.5 against 103.8 ns on the refusal (expected; `benchmarks/README.md` says why —
+refusal is where a backtracking engine does its worst work), and 336.8 against 260.7 ns on
+the one input that exercises every named part, which is the input that materializes the
+most values and the likeliest place to look next. Against interpreted `Regex`, faster on
+every input, by 1.7× to 5.1×.
 
-An earlier version of this paragraph claimed the compiled pattern was beaten. It was, by
-the generator that compiled each rule to its own method, and that generator was removed:
-one automaton is what made backtracking across a rule boundary possible, and it costs
-what a method call did not. Between 630 ns and 362 the gap has been closed by more than
-half; it is not closed. `benchmarks/README.md` has the table and what not to read into it.
+Read the ratios rather than the nanoseconds when comparing against an earlier run: the
+BCL's own numbers moved between these two runs by as much as a third, on code neither
+change touched, so the machine and not the compiler is what the absolute figures are
+measuring. Against that control the deferred-`Expected` change improved every one of the
+five — 1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73.
+
+**Allocation** is not at parity and has not been since the parser began to be kept between
+parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the
+result and nothing else — the value, the value nested in it, and one string for each part
+kept. Measured exactly rather than sampled (`--alloc`), 2026-08-25, after the
+deferred-`Expected` change: 400 → 264 B for the short URL, 480 → 352 for the one with
+every part, 424 → 392 for host-and-path, 440 → 344 for the refusal, and 2016 → 784 for
+twenty struct-valued numbers. An earlier version of this paragraph said a rejected URL
+allocated nothing at all; it never did — it allocated the furthest-failure set, which is
+exactly what that change stopped rebuilding on every step back.
+
+An earlier version of this paragraph claimed the compiled pattern was beaten across the
+board, then that it was uniformly 1.2×–2.6× slower. Both were true once: the first, by the
+generator that compiled each rule to its own method, before it was removed because one
+automaton is what made backtracking across a rule boundary possible, and it costs what a
+method call did not; the second, at whatever point between then and 2026-08-24 the numbers
+above were last refreshed — this project's own accumulated optimizations (possessive
+repetitions, predictive choices, the parser kept between parses, typed value tables) closed
+most of the gap without anyone re-running the benchmark to notice. `benchmarks/README.md`
+has the fuller table and what not to read into it; `CallCost.cs` isolates the one piece
+still costing something on every call regardless of allocation — going through the arena
+rather than being compiled in place costs about 25% (568 ns against 711 ns, pooled either
+way) — and never had its own numbers written up before now.
 
 **Throughput on a large feed**, under *What the window costs* above: a million wide
 records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the same
@@ -1385,16 +1411,15 @@ lowered version): 119 ns and zero allocation against 691 ns and 952 B through th
 engine. A grammar with even one rule that still needs the arena pays the whole cost for
 every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
 
-**Eager construction**: a rule proved `Committed && Deterministic` at every call site runs
-its `=>` the moment it returns rather than waiting for the parse to be accepted, and the
-materializer behind it is bounded by what changed since the last trigger rather than by
-arena size — `docs/next.md`, "Incremental materializer" and "Eager construction: built,
-wired in, and caught its own bug" have the mechanism. Measured on
-`benchmarks/DotGram.Benchmarks/EagerConstruction.cs` — a repeated record, nothing following
-the repeat so the outer rule qualifies — a tenfold increase in records, 10,000 to 100,000,
-costs eightfold to elevenfold in time and allocation rather than the roughly hundredfold
-either an O(n²) materializer or an exactly-sized array table (both tried, both measured,
-neither shipped) would have paid: 2.6 ms and 11 MB against 22 ms and 125 MB.
+**Eager construction** — a rule proved `Committed && Deterministic` at every call site
+running its `=>` the moment it returns, rather than waiting for the parse to be accepted —
+was built, measured, and then found unsound and removed. `Committed` proves only that no
+alternative derivation can still replace this one through backtracking; it says nothing
+about whether the suffix that follows will go on to succeed, so a rule could be, and in
+practice was, constructed on a parse that later failed entirely — a direct violation of
+§3's "nothing is built while matching." See `docs/next.md`, "Reverted: eager construction
+violated deferred-construction semantics" for the full account, including a second,
+compounding bug in how the region analysis it depended on read atomic-group commitment.
 
 Everything the architecture claims now has a number behind it.
 

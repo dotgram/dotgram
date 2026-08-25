@@ -52,26 +52,39 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `--job medium`. Indicative, not stable CI thresholds:
+Windows, .NET 10, `DefaultJob`, 2026-08-25, after the deferred-`Expected` change
+(`docs/next.md`). Indicative, not stable CI thresholds:
 
-| input | .Gram | allocated |
-| --- | --: | --: |
-| `http://example.com` | 362 ns | 176 B |
-| `https://192.168.0.1/` | 294 ns | 200 B |
-| `https://exa mple.com/` — no match | 274 ns | 0 B |
-| a 47-character URL with every part | 525 ns | 352 B |
-| an 84-character path of eight segments | 599 ns | 328 B |
+| input | .Gram | Regex | Regex, compiled |
+| --- | --: | --: | --: |
+| `http://example.com` | 163.7 ns | 568.8 ns (3.48×) | 257.4 ns (1.57×) |
+| `https://192.168.0.1/` | 148.2 ns | 525.5 ns (3.55×) | 243.8 ns (1.64×) |
+| `https://exa mple.com/` — no match | 131.5 ns | 439.8 ns (3.34×) | 103.8 ns (0.79×) |
+| a 47-character URL with every part | 336.8 ns | 559.5 ns (1.66×) | 260.7 ns (0.78×) |
+| an 84-character path of eight segments | 318.9 ns | 1614.4 ns (5.06×) | 553.0 ns (1.73×) |
 
-Against `RegexOptions.Compiled` on the same inputs that is between 1.2 and 2.6 times
-slower, and against the interpreted pattern between 1.1 and 1.9 times faster. What is not
-close is the allocation: the pattern takes about 1032 bytes for the short URL against
-176, and what `.Gram` takes is the result and nothing else.
+Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
+long path — and loses on two: the refusal, expected (refusal is where a backtracking
+engine does its worst work), and the one input exercising every named part, which is also
+the one materializing the most values. Against interpreted `Regex`, faster on every input.
 
-The earlier numbers this table used to carry — 774 ns for the short URL, 1.84 us for the
-long path — were measured before possessive repetitions, predictive choices, the parser
-being kept between parses and the value tables. `docs/next.md` keeps what each of those
-was worth, and `Membership.cs` and `Scanning.cs` beside this file keep the experiments
-that were measured and rejected.
+**Compare the ratios between runs, not the nanoseconds.** The run before this one had
+`Regex, compiled` at 365.5/328.2/138.9/332.8/570.6 ns on the same five inputs — the BCL
+got no faster in between, the machine was simply quieter for this one. Against that
+control, the deferred-`Expected` change moved the ratio on every input: 1.30→1.57,
+1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Two inputs still lose; both lose by less.
+
+**This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
+below are what it was measured against — but nobody had re-run the benchmark since enough
+of this project's own accumulated optimizations (possessive repetitions, predictive
+choices, the parser kept between parses, typed value tables) landed to close most of the
+gap. Re-measure before trusting either table; `docs/status.md`, "What has been measured"
+carries whichever numbers were most recently refreshed.
+
+The earlier numbers this table used to carry before that — 774 ns for the short URL,
+1.84 us for the long path — were measured before those same optimizations landed.
+`docs/next.md` keeps what each of those was worth, and `Membership.cs` and `Scanning.cs`
+beside this file keep the experiments that were measured and rejected.
 
 ### Historical per-rule result
 
@@ -107,3 +120,82 @@ in a static field, outside the timed region, which flatters it against a parser 
 no build step at all because the build happened at compile time. A benchmark that included
 first-call cost would say something quite different, and neither number is the whole
 truth on its own.
+
+## What a parse allocates
+
+`--alloc` (`Allocation.cs`) asks the runtime what the thread allocated between two points
+and divides by how many parses happened in between — exact, where `MemoryDiagnoser` gives
+a rounded per-operation figure. 2026-08-25, before and after the deferred-`Expected`
+change (`docs/next.md`):
+
+| parse | before | after |
+| --- | --: | --: |
+| url, whole value | 400 B | 264 B |
+| url, every part | 480 B | 352 B |
+| url, host and path | 424 B | 392 B |
+| url, no match | 440 B | 344 B |
+| forty letters, one string | 168 B | 104 B |
+| a hundred letters, one string | 288 B | 224 B |
+| forty letters, kept as a span | 0 B | 0 B |
+| twenty numbers, each a struct value | 2016 B | 784 B |
+
+**A rejected URL was never free.** This file and `docs/status.md` both used to say it
+allocated nothing; it allocated 440 B, and the furthest-failure set was what it spent them
+on. What is genuinely zero is a recognition whose value is its own extent — the two
+`kept as a span` rows, where nothing is stored because the entry the rule completed into
+already holds where it began and where it reached.
+
+## What a rule boundary costs
+
+`CallCost.cs` isolates the two things "one automaton instead of methods" (`next.md`) could
+plausibly cost — going through the arena, and not reusing the parser — measured separately
+so neither is blamed for the other's share. `--job short`, 2026-08-24, first numbers this
+file has carried:
+
+| | mean | allocated |
+| --- | --: | --: |
+| compiled in place, no arena | 568.5 ns | 168 B |
+| called as an arena rule, default pooling | 711.2 ns | 168 B |
+| called, an explicit one-slot pool | 698.3 ns | 168 B |
+| called, a fresh `Parser` every call | 1276.8 ns | 11064 B |
+
+**Going through the arena instead of being compiled in place costs about 25%** (568 ns
+against 711 ns), with the parser pooled either way and allocation identical — this is the
+one piece of "one automaton" overhead that shows up on every call regardless of allocation,
+and the reason a silent, arena-free subtree of an otherwise arena-using grammar is worth
+pulling out into its own method rather than leaving as a state in the shared one.
+
+**The parser is pooled by default, without the consumer doing anything.** `Called as an
+arena rule` uses no `RentParser`/`ReturnParser` override at all — the generated code's own
+fallback (`Recycled()`, a thread-static one-slot cache) is what ran, and it already lands
+within 2% of an explicit consumer-supplied pool. What actually costs — 2.25× the time and
+66× the allocation — is a consumer explicitly forcing a fresh `Parser` per call
+(`Called_without_pooling`), which nothing does by default and no reasonable consumer would
+opt into. "Heavy initialization" is not a default-path problem; it is what happens if
+pooling is deliberately turned off.
+
+## What captures cost
+
+`MaterializationCost.cs` asks a narrower question than the URL benchmark above: on the
+input that materializes the most values (the 47-character URL with every part), how much
+of the time is recognition and how much is capturing and building the typed result? Two
+copies of the same grammar, same rule boundaries, same character tests, differing only in
+whether anything is captured — `WithCaptures` publishes seven named parts into a record,
+`NoCaptures` publishes the same shape as `@SourceSpan` and captures nothing. `--job short`,
+2026-08-24, first numbers this file has carried:
+
+| | mean | allocated |
+| --- | --: | --: |
+| materialized, 7 captures | 336.7 ns | 456 B |
+| recognized only, nothing captured | 115.8 ns | 64 B |
+
+**Capturing and materializing costs about 2.9× what bare recognition of the identical
+shape costs** — 221 ns of the 337, against `CallCost.cs`'s ~25% for the arena call
+boundary alone. This does not separate "writing a capture entry to the arena as it
+matches" from "walking the arena at `Accept:` and building the record" from "capturing
+disqualifying a repetition that would otherwise have been possessive and arena-free" —
+all three are real candidates and this benchmark does not tell them apart. What it does
+say plainly: on a capture-heavy input, this is where the time is going, not the
+dispatch overhead `CallCost.cs` measures. That is the more promising place to look next,
+and the reason the URL benchmark's own worst case is the input with every part present
+rather than the longest one.

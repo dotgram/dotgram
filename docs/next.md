@@ -890,3 +890,131 @@ in scope via `using DotGram.Grammar.Parsing;`, so the resolved form became
 for `Decl.Rule` vs. `RuleSymbol`. `GRAM####` values did not change, only the C# constant
 names and message text. `GrammarNormalizer.Contexts.cs` was renamed to
 `GrammarNormalizer.Namespaces.cs` to match.
+
+## Reverted: eager construction violated deferred-construction semantics
+
+A review of `main` found two problems in "Eager construction: built, wired in, and
+caught its own bug" above, confirmed directly against the code rather than assumed, and
+the whole feature was removed rather than patched.
+
+**The concept itself is unsound**, independent of any bug in it. `Committed` proves only
+that no alternative derivation could still replace this one through backtracking — it
+says nothing about whether the suffix that follows will go on to succeed. The project's
+own test already proved this observably wrong:
+`GeneratorDriverTests.An_eager_eligible_rule_is_constructed_even_when_the_parse_later_fails`
+asserted that `Built()` **is** called on input `"1"` for `Start : @int = value: Inner &
+'x' => @(value)` / `Inner : @int = '1' => @Built()`, even though there is no trailing
+`'x'`, the whole parse fails, and `Accept:` — the only other place a value is ever
+built — is never reached. That directly contradicts §3 of `docs/implementation.md`
+("nothing is built while matching") and the deferred-construction guarantee
+`README.md` advertises. No atomic group is even involved in that example — `Inner` is
+`Committed` simply because nothing precedes it to backtrack into.
+
+**A separate, compounding bug** made `Committed` wrong more often than intended. The
+runtime commit for an atomic group (the `atCommit` writer in `Machine.cs`) only marks
+arena entries created *inside* the group `Dead` — entries from before the group, such as
+an outer rule's own still-live alternative, are never touched; the code's own comment
+said as much ("committing is about the first only... the ways back are put out and
+everything stays where it is"). But the region walk in the now-deleted `Region.cs`
+returned fully committed unconditionally after any successful atomic group, regardless
+of the incoming committed state — narrower in the runtime than in the analysis that was
+supposed to describe it.
+
+Removed rather than patched: even with the atomic-group propagation corrected, the first
+problem stands on its own — local commitment never implies eventual acceptance.
+`Region`/`DecisionClass`/`ComputeRegions()` had exactly one consumer
+(`ComputeEagerRules`, confirmed by grep — nothing else in `Machine`/`Compile` ever read
+`_regions`), so removing eager construction left the whole region-analysis subsystem
+unused, and it went with it: `Region.cs`, `Machine.Regions.cs`,
+`EnsureEagerMaterializer` and the `Return:`-time trigger in `Machine.cs`,
+`benchmarks/DotGram.Benchmarks/EagerConstruction.cs`, and `RegionTests.cs`. If a future
+storage or lifetime optimization wants a "can this resume point be dropped" concept, it
+should be built with correct commit semantics from scratch rather than inherit this
+one's bug.
+
+`MaterializeRange`'s `fromExpr` parameter — the bounded-start capability eager
+construction was the only caller of with anything other than `"0"` — went with it too,
+collapsed back into a plain `Materialize(file, cached)` that always walks from the start
+of what changed since the last call.
+
+## Fixed: `with` sites in different rules could not see each other's own splice
+
+`SpecializeWithSites` built the call graph once, before iterating its rule-groups, and
+walked the groups in whatever order `_pendingWith` happened to hold them — encounter
+order, not dependency order. `R2 = R1 with (C = D)`, where `R1` is itself `R1 = A with
+(B = C)`, needs `R2`'s own affected-set computation to see the call `R1`'s own splice
+introduced (from `R1` into `A`'s with-clone); the graph built before either site ran
+never had that call in it, so `R2`'s rebinding silently became a no-op wherever it only
+reached its target through a call the earlier splice itself introduced. Fixed by
+ordering rule-groups so a rule runs only after every other with-bearing rule its own
+sites can reach, and rebuilding the call graph fresh before each group.
+
+## Fixed: a `with` extent's own type-compatibility went unchecked
+
+GRAM4014 (a rebinding's replacement must be assignable to what it replaces, §14) was
+checked only against `GrammarNamespace.OwnRebindings` — a namespace header. An
+expression `with (A = B)` or a publication's own `with (A = B)` could rebind onto an
+incompatible type with nothing to say so, because `Publication.Rebindings` and
+`GrammarModel.WithBindings` were already flattened to a chain-resolved `RuleSymbol ->
+RuleSymbol` dict in the binder, and each pair's own position went with the flattening.
+Fixed by giving both the same `OwnRebindings`/`Rebindings` split `GrammarNamespace`
+already has: an entry-by-entry, positioned list for the check, the chain-resolved dict
+still for specialization. `CheckNamespaceReplacements` is now
+`CheckRebindingReplacements`, run over all three extents through one shared
+`CheckReplacement`.
+
+## Fixed: `GRAM3012` promoted to `Error`, and its own known gap closed
+
+"Built: a warning for accidental shadowing inside a nested namespace" above shipped
+`ShadowsEnclosingRule` at `Info` — a pointer, not a refusal, while the `with`/`namespace`
+rebinding model was still settling. It has settled: a declaration always means a new
+rule, and a rebinding is the only way to replace one, so silently landing a declaration
+on a name that already resolves to something else is now `Error`, not a pointer.
+
+The entry above also named its own known first-cut gap: a name shadowed only by way of
+an import (`using Lib;` bringing in a name a namespace then redeclares itself) went
+uncaught, because `Declare` — pass one, where the enclosing-namespace half of this check
+runs — executes before `ResolveImports`, so the import is not wired up yet at the point
+`Declare` asks. Closed by checking the import half separately: `CheckImportShadowing`
+runs in `Resolve` (pass two), right after each namespace's own imports are resolved, so
+it asks the same question — does a name this namespace just declared already resolve to
+something else? — once there is something to find. Never runs for the global namespace,
+which has no header syntax to suggest instead, the same exclusion the enclosing-
+namespace check already made.
+
+## Fixed: the furthest-failure set was rebuilt on every step back
+
+Found with a profiler rather than by reading: `HotLoop.cs` runs the URL grammar's own two
+losing cases against `RegexOptions.Compiled` in a tight loop, and dotTrace's CLI
+(`dottrace start`, then `Reporter.exe report` for a readable XML) put
+`List<string>.AddRange` and `List<string>..ctor` together at the top — 9.8M constructions
+against 6.5M parses, more than one per parse, for a diagnostic nothing reads unless the
+whole parse fails. Three profiling modes (Line-by-Line, Tracing, Sampling) disagreed
+wildly about everything else and agreed about this.
+
+`Fail:` is not the end of a parse; it is every local dead end backtracking walks through.
+Each time the furthest position advanced, it copied a static `string[]` — one the
+generator had already declared — into a fresh `List<string>`, and every one of those was
+thrown away by any parse that went on to succeed.
+
+`Failure.Expected` is now the `string[]` itself, assigned by reference, and
+`Failure.ExpectedMore` (a `List<string[]>`) stays null until terminals genuinely tie for
+the furthest position. The merge into one exactly-sized `string[]` happens once, in the
+`TryParseX` wrapper, and only on a failure that actually reached the caller. `GetRange` in
+the message builder went too — `string.Join`'s range overload says the same thing without
+a second list. A flat, arena-free grammar never reaches a tie at all, so it does not
+declare `ExpectedMore` and skips the merge entirely.
+
+Measured exactly (`--alloc`): the short URL 400 → 264 B, every-part 480 → 352, host-and-
+path 424 → 392, the refusal 440 → 344, forty letters 168 → 104, twenty struct-valued
+numbers 2016 → 784. The refusal number also corrected a claim in `benchmarks/README.md`
+and `docs/status.md` that a rejected URL allocated nothing: it allocated 440 B, and this
+is what it was spending them on.
+
+On time, the ratio against `RegexOptions.Compiled` improved on all five URL inputs —
+1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Ratios rather than nanoseconds,
+deliberately: the BCL's own numbers moved by up to a third between the two runs on code
+neither change touched, so the absolute figures were measuring the machine. Two inputs
+still lose to the compiled pattern, both by less than before — the refusal, and the one
+that materializes every named part, which is where `MaterializationCost.cs` already
+pointed.

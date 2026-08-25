@@ -9,7 +9,7 @@ to an agent — exists to agree with that text, not to replace it. That holds ev
 a hand-written parser turns out faster: what a grammar buys is meaning read
 declaratively rather than reconstructed from someone's control flow, and speed does not
 touch that. When the compiler also gets speed right — predictive dispatch, possessive
-repetition, region-scoped lowering, deferred construction — that is a bonus worth
+repetition, whole-grammar lowering, deferred construction — that is a bonus worth
 having, not the reason to reach for this over a parser written by hand.
 
 ## What it looks like
@@ -95,7 +95,7 @@ Working end to end — a `.gram` file becomes a parser that runs:
   B = 'b'
   A = B
 
-  namespace Ns (B = D)
+  namespace Ns with (B = D)
   {
       E = A                    // E -> A, with B substituted -> D
   }
@@ -305,7 +305,7 @@ written against it, with no test framework anywhere near them.
 | [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `trivia` |
 | [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a namespace that shadows `trivia` back off |
 | [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
-| [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
+| [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace with (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
 | [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |
 | [`OneRuleTreeExample.cs`](examples/DotGram.Examples/OneRuleTreeExample.cs) | that tree from one rule of eight lines — the whole of a small DSL in one place, and the same nodes its five-rule twin builds |
 | [`Expression.cs`](examples/DotGram.Examples/Expression.cs) | the tree those two build, and everything it can do. No grammar in it, deliberately |
@@ -328,11 +328,11 @@ written against it, with no test framework anywhere near them.
 | | |
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | the language: the notation and its bond with C# |
-| [`docs/implementation.md`](docs/implementation.md) | the engine: what is being built, and in what order |
+| [`docs/implementation.md`](docs/implementation.md) | the engine: how it executes the language |
 | [`docs/status.md`](docs/status.md) | what actually works, feature by pipeline stage |
 
-Nothing decided in the second is a decision about the first. The third is the only one
-that describes today.
+Nothing decided in the second is a decision about the first. The second describes how
+the current engine works; the third says how much of the language it covers so far.
 
 ## Building
 

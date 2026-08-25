@@ -28,6 +28,7 @@ public sealed class GramParser
 	public const string ExpectedExpression  = "GRAM2003";
 	public const string ExpectedName        = "GRAM2004";
 	public const string InvalidCount        = "GRAM2005";
+	public const string NamespaceNeedsWith  = "GRAM2006";
 
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
@@ -232,13 +233,29 @@ public sealed class GramParser
 		(AtKeyword("parse") || AtKeyword("find")) &&
 		Next.Kind == TokenKind.Identifier;
 
+	/// <remarks>
+	/// `with` is required before the rebindings here (§5.1), matching the other two
+	/// extents an author already writes it for. The bare `Name (A = B)` form is still
+	/// parsed underneath the check below rather than rejected at the grammar level —
+	/// an author who never nests one namespace inside another might reasonably want
+	/// the short form back, and if that turns out to be wanted, only the check needs
+	/// to move or go, not the parsing it gates.
+	/// </remarks>
 	Decl ParseNamespace()
 	{
 		var start = Current.Position;
 
 		Take();                                     // `namespace`
 
-		var name         = ExpectName();
+		var name    = ExpectName();
+		var hasWith = TakeIfKeyword("with");
+
+		if (!hasWith && At(TokenKind.OpenParen))
+			Report(
+				NamespaceNeedsWith,
+				$"A namespace header's rebindings need 'with': write 'namespace {name} with " +
+				"(A = B) { ... }' (§5.1).");
+
 		var rebindings   = At(TokenKind.OpenParen) ? ParseRebindings() : [];
 		var usings       = new List<Using>();
 		var declarations = new List<Decl>();

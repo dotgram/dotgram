@@ -45,6 +45,8 @@ public sealed class GrammarBinder
 	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings =
 		new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>> _withOwnRebindings =
+		new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarNamespace, RuleSymbol> _trivia   = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
@@ -81,7 +83,8 @@ public sealed class GrammarBinder
 		binder.Resolve(file.Decls, global);
 
 		return new GrammarModel(
-			global, binder._bindings, binder._withBindings, binder._trivia, binder._publications, binder._diagnostics);
+			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
+			binder._publications, binder._diagnostics);
 	}
 
 	GrammarNamespace CreateStandardLibrary()
@@ -98,11 +101,15 @@ public sealed class GrammarBinder
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
 
 	/// <summary>
-	/// Correct as written — nothing to fix, same as every other <c>Info</c>-level pointer
-	/// this project reports (docs/status.md's own convention, e.g. <c>GRAM5001</c>).
+	/// One message for <see cref="ShadowsEnclosingRule"/> regardless of which of its two
+	/// check sites found the shadow — an enclosing namespace's own rule (<see cref="Declare"/>)
+	/// or one of this namespace's own imports (<see cref="Resolve"/>): the fix is the same
+	/// either way, and a reader should not have to care which pass caught it.
 	/// </summary>
-	void ReportInfo(string id, string message, Location at) =>
-		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Info));
+	static string ShadowsMessage(string name) =>
+		$"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
+		$"this means to replace it rather than declare a new rule under the same name, say " +
+		$"so with a rebinding instead: 'namespace ({name} = ...)' (§5.1).";
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
@@ -121,21 +128,24 @@ public sealed class GrammarBinder
 							node.At);
 
 					// A nested namespace is one parenthesis away from a header that would have
-					// meant this as a replacement rather than a new declaration (§5.1) — worth
-					// naming, not the standard library's own always-silent shadowing (§4.5),
-					// silent at any depth and any number of times over (an already-shadowed
-					// `trivia` re-shadowed again is still `trivia`, by name, whichever rule
-					// currently answers to it), and not anything at the top level, where no
-					// header syntax sits nearby to have meant instead.
+					// meant this as a replacement rather than a new declaration (§5.1) — a
+					// declaration always means a new rule, and a rebinding is the only way to
+					// replace one, so silently landing on an enclosing namespace's own rule is
+					// an error here, not the standard library's own always-silent shadowing
+					// (§4.5), silent at any depth and any number of times over (an
+					// already-shadowed `trivia` re-shadowed again is still `trivia`, by name,
+					// whichever rule currently answers to it), and not anything at the top
+					// level, where no header syntax sits nearby to have meant instead.
+					// Shadowing one of this namespace's own `using` imports the same way is
+					// caught separately, in Resolve below — an import is not in view yet
+					// during this pass (§9).
 					else if (!StandardLibrary.Contains(rule.Name) &&
 						ns.Parent != _standard &&
 						ns.Parent?.Lookup(rule.Name) is not null)
 					{
-						ReportInfo(
+						Report(
 							ShadowsEnclosingRule,
-							$"'{rule.Name}' is already declared in an enclosing namespace. If this means to " +
-							$"replace it rather than declare a new rule under the same name, say so with a " +
-							$"rebinding instead: 'namespace ({rule.Name} = ...)' (§5.1).",
+							ShadowsMessage(rule.Name),
 							node.At);
 					}
 
@@ -184,6 +194,23 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>
+	/// §5's "the first hit wins" cuts the other way here: a rule this namespace declares
+	/// itself always beats one of its own same-level imports at that same lookup, so
+	/// declaring a name an import already brought in silently shadows the import the same
+	/// way an enclosing namespace's own rule can (<see cref="Declare"/>) — checked here,
+	/// once <paramref name="ns"/>'s imports are actually in view, rather than there, where
+	/// they are not yet (§9). Never called for the global namespace, which has no header
+	/// syntax to suggest instead — the same exclusion <see cref="Declare"/> makes.
+	/// </summary>
+	void CheckImportShadowing(GrammarNamespace ns)
+	{
+		foreach (var rule in ns.Rules.Values)
+			if (!StandardLibrary.Contains(rule.Name) &&
+				ns.Imports.Any(imported => imported.Rules.ContainsKey(rule.Name)))
+				Report(ShadowsEnclosingRule, ShadowsMessage(rule.Name), rule.Declaration!.At);
+	}
+
+	/// <summary>
 	/// Which `trivia` a namespace sees. Ordinary lookup — the mechanism is shadowing and
 	/// nothing else (§4.5).
 	/// </summary>
@@ -214,6 +241,7 @@ public sealed class GrammarBinder
 
 					ResolveNamespaceRebindings(nested, child, ns);
 					ResolveImports(nested.Usings, child);
+					CheckImportShadowing(child);
 					Resolve(nested.Decls, child);
 					break;
 
@@ -259,7 +287,7 @@ public sealed class GrammarBinder
 
 					_publications.Add(new Publication(
 						publish.Kind, published, method, publish.At, ns,
-						ChainResolve(EmptyBindings, ownPublicationBindings)));
+						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings));
 
 					break;
 			}
@@ -562,7 +590,8 @@ public sealed class GrammarBinder
 							own.Add(resolved);
 					}
 
-				_withBindings[expression] = ChainResolve(EmptyBindings, own);
+				_withBindings[expression]     = ChainResolve(EmptyBindings, own);
+				_withOwnRebindings[expression] = own;
 
 				ResolveExpression(operand, ns, parameters, csharpValue);
 				return;

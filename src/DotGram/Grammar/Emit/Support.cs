@@ -456,7 +456,8 @@ public static partial class CSharpEmitter
 	/// otherwise be another parameter on every recognizer and another edit at every call
 	/// site.
 	/// </remarks>
-	internal static string FailureStructWith(bool reach, bool starved = false, bool expected = false) =>
+	internal static string FailureStructWith(
+		bool reach, bool starved = false, bool expected = false, bool expectedMore = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
@@ -466,7 +467,10 @@ public static partial class CSharpEmitter
 				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{expected}}" + Lines.Ending,
-				expected ? Lines.Normalize(ExpectedField) + Lines.Ending : "");
+				expected ? Lines.Normalize(ExpectedField) + Lines.Ending : "")
+			.Replace(
+				"\t{{expectedMore}}" + Lines.Ending,
+				expectedMore ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -480,6 +484,7 @@ public static partial class CSharpEmitter
 			{{reach}}
 			{{starved}}
 			{{expected}}
+			{{expectedMore}}
 		}
 		""";
 
@@ -507,11 +512,38 @@ public static partial class CSharpEmitter
 	/// on a new furthest position, added to on a tie with the current one, left alone
 	/// otherwise. Threaded the same way — a second field on a struct already passed by
 	/// <c>ref</c>, not a new parameter.
+	/// <para>
+	/// The ordinary case — a furthest position that keeps advancing, which is most of
+	/// them, including every attempt that goes on to succeed — costs a reference
+	/// assignment and nothing more: a plain array straight from wherever the generator
+	/// already declared it, not a copy. <see cref="ExpectedMoreField"/> is the one that
+	/// costs something, and only a grammar that can actually reach a tie carries it.
+	/// </para>
 	/// </remarks>
 	const string ExpectedField = """
 
-			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
-			public global::System.Collections.Generic.List<string>? Expected;
+			/// <summary>
+			/// What would have fit at the furthest position, or null. Meaningless unless
+			/// the match failed. A reference into one of the generator's own arrays, not
+			/// a copy of it.
+			/// </summary>
+			public string[]? Expected;
+		""";
+
+	/// <summary>
+	/// The field a grammar needs beside <see cref="ExpectedField"/> only if it can ever
+	/// reach a genuine tie for the furthest position — a flat-lowered grammar's single,
+	/// unconditional attempt never can (<c>Machine.Flat.cs</c>'s own <c>Fail:</c>), so it
+	/// declares <see cref="ExpectedField"/> alone and would otherwise carry a field
+	/// nothing ever assigns.
+	/// </summary>
+	const string ExpectedMoreField = """
+
+			/// <summary>
+			/// A second array and beyond, where more than one terminal tied for the
+			/// furthest position. Null until an actual tie needs one.
+			/// </summary>
+			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		""";
 
 	/// <summary>The reusable state owned by the automaton.</summary>
@@ -529,11 +561,11 @@ public static partial class CSharpEmitter
 
 			internal object?[] Materialization(int count)
 			{
-				// Doubled, not sized to fit exactly: eager construction calls this once per
-				// return of an eager rule, and a grammar with many of those in one parse — a
-				// repeated record, one eager value each — would otherwise pay for a fresh
-				// copy of the whole table on every one of them, turning an O(n) parse back
-				// into the O(n^2) the incremental materializer exists to avoid.
+				// Doubled, not sized to fit exactly: a `when` guard calls this once per
+				// evaluation, and a repeated record with a guard inside the repeat would
+				// otherwise pay for a fresh copy of the whole table on every turn, turning
+				// an O(n) parse back into the O(n^2) the incremental materializer exists to
+				// avoid.
 				if (_values.Length < count)
 					global::System.Array.Resize(ref _values, global::System.Math.Max(count, _values.Length * 2));
 				/*TYPED_RESIZE*/

@@ -305,7 +305,7 @@ public sealed class GrammarNormalizerTests
 				A = B
 				F = A
 
-				namespace Ctx (B = D)
+				namespace Ctx with (B = D)
 				{
 					E = A
 				}
@@ -338,7 +338,7 @@ public sealed class GrammarNormalizerTests
 				B = C
 				A = B
 
-				namespace Ctx (C = Y)
+				namespace Ctx with (C = Y)
 				{
 					E = A
 				}
@@ -368,9 +368,9 @@ public sealed class GrammarNormalizerTests
 				E = 'e'
 				A = B
 
-				namespace Outer (B = D)
+				namespace Outer with (B = D)
 				{
-					namespace Inner (B = E)
+					namespace Inner with (B = E)
 					{
 						F = A
 					}
@@ -396,7 +396,7 @@ public sealed class GrammarNormalizerTests
 				Atom = 'a'
 				Tree = Atom | '(' & Tree & ')'
 
-				namespace Ctx (Atom = BAtom)
+				namespace Ctx with (Atom = BAtom)
 				{
 					parse Tree as BTree
 				}
@@ -476,7 +476,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				namespace Ctx (Digit = OtherDigit)
+				namespace Ctx with (Digit = OtherDigit)
 				{
 					A = Number with (Point = Comma)
 				}
@@ -507,6 +507,38 @@ public sealed class GrammarNormalizerTests
 				Number = Digit & Point & Digit
 
 				A = (Number with (Point = Comma)) with (Digit = Space)
+				""").ToString());
+	}
+
+	[Fact]
+	public void A_with_site_sees_another_rules_with_already_applied()
+	{
+		// R2's own site reaches R1 only through the call R1's own with-splice introduced
+		// (R1 originally called A, not A's with-clone) — a call graph shared across the
+		// whole pass, built once before either site ran, would never see that call and
+		// would treat R2's rebinding as reaching nothing.
+		Assert.Equal(
+			"""
+			Digit = ['0'..'9']
+			B = '.'
+			C = ','
+			D = ' '
+			A = Digit & B & Digit
+			R1 = A_With1
+			R2 = R1_With2
+			A_With1 = Digit & C & Digit
+			A_With1_With2 = Digit & D & Digit
+			R1_With2 = A_With1_With2
+			""",
+			Normalize("""
+				Digit = ['0'..'9']
+				B = '.'
+				C = ','
+				D = ' '
+				A = Digit & B & Digit
+
+				R1 = A with (B = C)
+				R2 = R1 with (C = D)
 				""").ToString());
 	}
 
@@ -581,7 +613,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				namespace Ctx (Digit = OtherDigit)
+				namespace Ctx with (Digit = OtherDigit)
 				{
 					parse Number with (Point = Comma) as Evaluate
 				}
@@ -599,7 +631,7 @@ public sealed class GrammarNormalizerTests
 				Value   : @Expr   = 'v'
 				RawText : @string = 'r'
 
-				namespace Ctx (Value = RawText)
+				namespace Ctx with (Value = RawText)
 				{
 				}
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
@@ -614,9 +646,41 @@ public sealed class GrammarNormalizerTests
 				Value   : @string = 'v'
 				RawText : @string = 'r'
 
-				namespace Ctx (Value = RawText)
+				namespace Ctx with (Value = RawText)
 				{
 				}
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void An_incompatible_expression_with_replacement_is_reported()
+	{
+		// The same check as a namespace header's, now reached through an expression
+		// `with` instead — GRAM4014 used to be checked only against
+		// GrammarNamespace.OwnRebindings, so this extent's own rebindings never ran
+		// through it at all.
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Value   : @Expr   = 'v'
+				RawText : @string = 'r'
+				Number  = Value
+
+				A = Number with (Value = RawText)
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void An_incompatible_publication_with_replacement_is_reported()
+	{
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Value   : @Expr   = 'v'
+				RawText : @string = 'r'
+				Number  = Value
+
+				parse Number with (Value = RawText) as Evaluate
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
 	}
 

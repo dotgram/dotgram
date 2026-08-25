@@ -779,17 +779,18 @@ Every namespace becomes a nested static class in the generated code.
 
 ### 5.1 Rebinding
 
-A `namespace` may carry a header, `namespace Name (A = B, ...) { ... }`. This does
+A `namespace` may carry a header, `namespace Name with (A = B, ...) { ... }`. This does
 something different from an ordinary declaration in the block: it rebinds `A` to `B`
 for the *whole call graph reached from what the namespace declares* — not only for
-calls written lexically inside it.
+calls written lexically inside it. `with` is required; a header written without it is
+refused (`GRAM2006`) rather than silently accepted as something else.
 
 ```dotgram
 B = 'c'
 A = B
 F = A
 
-namespace Ns (B = D)
+namespace Ns with (B = D)
 {
     E = A
 }
@@ -815,7 +816,7 @@ namespace Ns
     E = A                   // E -> outer A -> outer B -> 'c'
 }
 
-namespace Ns2 (B = D)
+namespace Ns2 with (B = D)
 {
     E = A                   // E -> A, with B substituted -> D
 }
@@ -826,18 +827,19 @@ D = 'd'
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
-`namespace (B = ...)` instead of redeclaring `B`. Both sides must already resolve to a
-visible, parameterless rule.
+`namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
+to a visible, parameterless rule.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
-is written in: `namespace (A = B, B = C)` sends a call to `A` all the way to `C`
+is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested namespace inherits its enclosing
 one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`namespace (trivia = none)` reuses an already-written rule under different whitespace
-handling — the same substitution as any other binding, and a different mechanism from
-shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
+`namespace with (trivia = none)` reuses an already-written rule under different
+whitespace handling — the same substitution as any other binding, and a different
+mechanism from shadowing `trivia` locally (§4.5), which affects only what the block
+itself declares.
 
 **Which of the two to reach for is a question of what the result needs to be, not a
 style choice between them.** A binding clones the whole call graph reached from inside
@@ -852,9 +854,9 @@ points over one `Number` rule is the shape this exists for. Reach for shadowing 
 ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
 different for the rest of the file or block from that point on, with nothing shared
 reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
-grammar is exactly that, and wrapping the entire file in `namespace (trivia = none)
-{ ... }` for it adds a block with nothing on the other side of the substitution to
-contrast against.
+grammar is exactly that, and wrapping the entire file in `namespace with (trivia =
+none) { ... }` for it adds a block with nothing on the other side of the substitution
+to contrast against.
 
 **The same substitution is also available on a single expression, without declaring a
 block or a name for it:** `Expression with (A = B, ...)`.
@@ -863,11 +865,11 @@ block or a name for it:** `Expression with (A = B, ...)`.
 ParseEuropeanNumber = Number with (Point = Comma)
 ```
 
-is the one-line version of wrapping `Number` in a single-purpose `namespace (Point =
-Comma) { ... }` just to reach the substitution once. `with` binds as tightly as a
-quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X = Y)`,
-not `Number+` of something already rebound — and reaches only the one expression it is
-written on, not the rest of the rule around it:
+is the one-line version of wrapping `Number` in a single-purpose `namespace with
+(Point = Comma) { ... }` just to reach the substitution once. `with` binds as tightly
+as a quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X =
+Y)`, not `Number+` of something already rebound — and reaches only the one expression
+it is written on, not the rest of the rule around it:
 
 ```dotgram
 Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
@@ -879,7 +881,7 @@ header once more than one call needs the same rebinding, or the substitution is 
 a name of its own.
 
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
-wrapped in a `namespace (...)` block just to reach it:
+wrapped in a `namespace with (...)` block just to reach it:
 
 ```dotgram
 parse Number with (Point = Comma) as Evaluate
@@ -888,19 +890,20 @@ parse Number with (Point = Comma) as Evaluate
 is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
 block, no name for the substitution beyond the publication's own. A publication's own
 `with` is the more locally written of the two extents, so it composes on top of an
-enclosing `namespace (...)`'s own rebinding of the same rule rather than instead of it.
+enclosing `namespace with (...)`'s own rebinding of the same rule rather than instead
+of it.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
-`namespace (A = B) { ... }` is a substitution, written where a reader expects one; a
-declaration with the same name sitting in the body, with no header entry for it, is
-shadowing, and reads as one unless it is checked against the header. The two are one
-pair of parentheses apart, so a rule declared inside a nested `namespace { ... }` whose
-name also resolves in an enclosing *grammar* scope is reported — `GRAM3012`, `Info`, not
-a refusal, since the declaration is legal and stays exactly what it was. Scoped
-narrowly, to keep it a pointer rather than noise: shadowing the standard library
-(`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`), at any depth, is the language's
-normal, silent mechanism and is never reported; neither is shadowing at the top level of
-a file, where there is no `namespace (...)` header nearby to have meant instead.
+`namespace with (A = B) { ... }` is a substitution, written where a reader expects one;
+a declaration with the same name sitting in the body, with no header entry for it, is
+an error. A declaration always means a new rule; a rebinding is the only way to replace
+one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
+an enclosing *grammar* scope, or through that namespace's own `using` import, is
+refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
+shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
+at any depth, is the language's normal, silent mechanism and is never reported; neither
+is shadowing at the top level of a file, where there is no `namespace with (...)`
+header nearby to have meant instead.
 
 ---
 
@@ -943,7 +946,7 @@ public readonly struct Match<T>
 {
     public T?      Value    { get; }   // null when it did not match
     public string? Error    { get; }
-    public int     Position { get; }   // where it matched, or where it gave up
+    public long    Position { get; }   // where it matched, or where it gave up
     public int     Length   { get; }
 
     public bool IsSuccess { get; }
@@ -1003,7 +1006,7 @@ because it is a property of the data rather than of the grammar.
 | Input | How it runs | Retains |
 | --- | --- | --- |
 | `string`, `ReadOnlySpan<char>` | everything in memory | all of it, and the result may be walked again |
-| `IEnumerable<string>`, `TextReader` | one line at a time, buffer reused | one line, and the result is walked once |
+| `IEnumerable<string>`, `TextReader` | through a reused, growable buffer | whatever the parse cannot yet let go of — one record's worth, for a well-formed feed — and the result is walked once |
 
 The shape of what comes back does not change with the input: `parse` of a sequence
 rule yields a sequence either way, and `find` yields one either way. What changes is
@@ -1014,15 +1017,18 @@ checks that there is exactly one header, that the trailer is there and that noth
 follows — which is precisely what is lost when the caller chops the input into records
 and parses them one by one.
 
-**The streaming overloads are emitted only when the grammar can stream.** What decides
-that is how far back the parser might have to return: a rule whose repeated element
-always ends at a line boundary need never hold more than the current line, and the
-overloads appear. A grammar where an alternative could reach back to the start of the
-input gets no streaming overload, and a message saying which rule is responsible:
+**The reader overload is emitted only where retention analysis can prove it needs
+none of what a window has already let go of.** A rule whose repeated part can begin
+with the same input as what follows it has not settled where it ends until
+backtracking says so, and the overload does not appear; naming a rule's value a
+`SourceSpan` into input a window will have moved past does the same. Where the
+overload is refused, the reason is reported at the publication:
 
 ```text
-'Feed' has no streaming overload — the alternative at Feed:3 may return to the
-start of the input, so retention would be the whole file.
+'ParseFeed' gets no overload taking a reader: in 'Feed', the repetition 'Row' can
+begin with the same input as what follows it, so where it ends is settled by
+backtracking. A streamed parse hands each element to the caller as it reads it and
+cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 ```
 
 Which is the shared responsibility: the author picks an overload, and the compiler
@@ -1053,9 +1059,12 @@ input may be a file larger than an `int` can index. An extent — a span, a leng
 capture — is into a buffer, and a buffer never is. Counts of things, like a line number
 or an ordinal, are `int`: nothing has two billion lines.
 
-Positions inside a line are ordinary `int`. What crosses the publication boundary for
-a streamed parse is a `long`, so an error at offset 8,432,109,553 can be reported as
-such.
+Inside recognition, a position is an ordinary index into whatever currently holds the
+input — a reused window, or the in-memory buffer itself. `Match<T>.Position` (§6.1) is
+a `long` regardless of mode, since even in-memory input could in principle be a string
+an `int` cannot index; it is only ever widened once, at the one place a position
+crosses a publication's own boundary out to the caller, so an error at offset
+8,432,109,553 can be reported as such.
 
 ---
 
@@ -1548,7 +1557,7 @@ File        = Using* & Declaration*
 Using       = ("@using" | "using") & QualifiedName & ';'
 
 Declaration = Namespace | Publication | Rule
-Namespace   = "namespace" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
+Namespace   = "namespace" & Identifier & With? & '{' & Using* & Declaration* & '}'
 Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 Rebinding   = Identifier & '=' & Identifier
 Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?
@@ -1615,17 +1624,16 @@ the grammar has no comparison operators.
 
 None of what follows changes the notation described above.
 
-- **Repairing a document.** When a whole input is one construct — a source file in an
-  editor — recovery needs no notation: the engine runs a pass of its own, only after
-  ordinary parsing failed, and looks for the cheapest edit that makes the input parse.
-  The author writes nothing. Details in `implementation.md` §1 and §6.
+- **Repairing a document.** When a whole input is one construct — a source
+  file in an editor — there is no notation for it: recovery here is scoped to
+  one repetition (§8.2), for a feed. A general repair pass over a whole
+  broken document — finding the edit an author most likely meant — is a
+  different kind of engine this project has not built.
 
-  Cheapest-edit repair answers "what did the author most likely mean", which is the
-  right question for one document and the wrong one for a feed of a hundred million
-  records: there the answer wanted is "this record is bad, say why and go on", which is
-  a policy rather than a repair, and it must hold nothing but the current record. That
-  case has notation, and it is §8.2. The two do not overlap — one runs after a failed
-  parse over the whole input, the other during a successful one, per element.
+  The two do not overlap in what they'd answer even if both existed: repair
+  answers "what did the author most likely mean" for one document; §8.2
+  answers "this record is bad, say why and go on" for a hundred million of
+  them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
   where one literal alternative is a prefix of another. `"http" | "https"` matches

@@ -9,7 +9,9 @@ namespace DotGram.Grammar.Model;
 /// by cloning the rules that can observe it into ordinary new <see cref="RuleSymbol"/>s.
 /// This is the whole of the feature — everything downstream (regions, `ExecutionPlan`,
 /// capture layout, materialization, emission) sees only a larger, ordinary
-/// <c>graph.Rules</c> and needs no idea a namespace was ever there.
+/// <c>graph.Rules</c> and needs no idea a namespace was ever there. Also hosts the
+/// call-graph machinery <see cref="SpecializeWithSites"/> reuses for expression- and
+/// publication-scoped `with`, and the §14 type-compatibility check shared by all three.
 /// </summary>
 public sealed partial class GrammarNormalizer
 {
@@ -358,30 +360,51 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// §14: a rebinding's replacement must be valid wherever the target rule is used.
-	/// Checked once <see cref="ComputeResults"/> has run, over every <c>OwnRebindings</c>
-	/// entry actually written rather than the layered <c>Rebindings</c> — checking
-	/// only what a level wrote itself avoids re-reporting the same inherited binding at
-	/// every nesting depth it is visible from.
+	/// §14: a rebinding's replacement must be valid wherever the target rule is used —
+	/// checked identically for all three places §5.1 lets a `with (...)` appear: a
+	/// namespace header, an expression, a publication.
 	/// </summary>
-	void CheckNamespaceReplacements() => CheckNamespaceReplacements(_model.Root);
+	/// <remarks>
+	/// Checked once <see cref="ComputeResults"/> has run, over every <c>OwnRebindings</c>
+	/// entry actually written rather than any chain-resolved <c>Rebindings</c> form —
+	/// checking only what a site wrote itself avoids re-reporting the same binding at
+	/// every namespace-nesting depth it is visible from, or the same wrong link twice
+	/// where a chain resolves through more than one hop.
+	/// </remarks>
+	void CheckRebindingReplacements()
+	{
+		CheckRebindingReplacements(_model.Root);
 
-	void CheckNamespaceReplacements(GrammarNamespace ns)
+		foreach (var rebindings in _model.WithOwnRebindings.Values)
+			foreach (var binding in rebindings)
+				CheckReplacement(binding);
+
+		foreach (var publication in _model.Publications)
+			foreach (var binding in publication.OwnRebindings)
+				CheckReplacement(binding);
+	}
+
+	void CheckRebindingReplacements(GrammarNamespace ns)
 	{
 		foreach (var binding in ns.OwnRebindings)
-			if (_types.TryGetValue(binding.Left, out var expected))
-			{
-				var actual = _types.TryGetValue(binding.Right, out var declared) ? declared : "string";
-
-				if (!_resolver.IsAssignable(actual, expected))
-					Report(
-						IncompatibleRebinding,
-						$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
-						$"compatible with '{expected}', found '{actual}'.",
-						binding.At);
-			}
+			CheckReplacement(binding);
 
 		foreach (var nested in ns.Nested)
-			CheckNamespaceReplacements(nested);
+			CheckRebindingReplacements(nested);
+	}
+
+	void CheckReplacement(ResolvedRebinding binding)
+	{
+		if (_types.TryGetValue(binding.Left, out var expected))
+		{
+			var actual = _types.TryGetValue(binding.Right, out var declared) ? declared : "string";
+
+			if (!_resolver.IsAssignable(actual, expected))
+				Report(
+					IncompatibleRebinding,
+					$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
+					$"compatible with '{expected}', found '{actual}'.",
+					binding.At);
+		}
 	}
 }

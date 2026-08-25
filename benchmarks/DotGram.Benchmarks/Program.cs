@@ -35,6 +35,18 @@ static class Program
 			return;
 		}
 
+		// `--hot [seconds]` is not a benchmark either: it runs the URL grammar's two
+		// losing cases in a loop long enough for a profiler to attach to and get a
+		// line-by-line breakdown from. See HotLoop.cs.
+		if (args.Length >= 1 && args[0] == "--hot")
+		{
+			var seconds = args.Length == 2 && int.TryParse(args[1], out var given) ? given : 10;
+
+			HotLoop.Run(seconds);
+
+			return;
+		}
+
 		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 	}
 }

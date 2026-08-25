@@ -252,7 +252,7 @@ public sealed class GramParserTests
 						Reference "A"
 			""",
 			Parse("""
-				namespace Ctx (B = D, Identifier = SqlIdentifier)
+				namespace Ctx with (B = D, Identifier = SqlIdentifier)
 				{
 					E = A
 				}
@@ -281,11 +281,33 @@ public sealed class GramParserTests
 	public void A_malformed_namespace_header_recovers()
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(
-			"namespace Ctx (B) { E = A }\nGood = 'a'",
+			"namespace Ctx with (B) { E = A }\nGood = 'a'",
 			RoslynCSharpScanner.Instance));
 
 		Assert.NotEmpty(result.Diagnostics);
 		Assert.Contains("Good", result.File.ToString(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_namespace_header_without_with_is_refused_but_still_parsed()
+	{
+		// The check, not the capability: rebindings are still read and put in the
+		// tree exactly as they would be with `with` written, so an author fixing the
+		// diagnostic changes one word rather than rewriting the header.
+		var result = GramParser.Parse(GramLexer.Tokenize(
+			"namespace Ctx (B = D)\n{\n\tE = A\n}",
+			RoslynCSharpScanner.Instance));
+
+		Assert.Contains(GramParser.NamespaceNeedsWith, result.Diagnostics.Select(d => d.Id));
+		Assert.Equal(
+			"""
+			File
+				Namespace "Ctx"
+					Rebinding "B" = "D"
+					Rule "E"
+						Reference "A"
+			""",
+			result.File.ToString());
 	}
 
 	[Fact]

@@ -58,7 +58,7 @@ public sealed class GraphIntegrityTests
 		{ "Counted",        "Start = item: Item{2}\nItem = ['a'..'z']" },
 		{ "SequenceResult", "Start : @Item[] = Item*\nItem : @Item = ['a'..'z']" },
 		{ "InNamespace",    "namespace Inner { Start = Item+\nItem = ['a'..'z'] }" },
-		{ "NamespaceBound", "Item = ['a'..'z']\nStart : @Item[] = Item*\nnamespace Ns (Item = Other)\n{\n\tUsed = Start\n}\nOther = ['A'..'Z']" },
+		{ "NamespaceBound", "Item = ['a'..'z']\nStart : @Item[] = Item*\nnamespace Ns with (Item = Other)\n{\n\tUsed = Start\n}\nOther = ['A'..'Z']" },
 		{ "Guarded",        "Start = item: Item & when @Accept(item)\nItem = ['a'..'z']" },
 		{ "Constructed",    "Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)" },
 		{ "Parameterized",  "List(item) = item & (',' & item)*\nStart = List(Word)\nWord = ['a'..'z']+" },
