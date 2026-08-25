@@ -1,0 +1,9 @@
+// The smallest grammar there is — one literal, one publication, no captures, no
+// alternatives, nothing to backtrack into. The baseline for the ongoing work on what a
+// capture costs (benchmarks/README.md, "What captures cost"): every step from here adds
+// exactly one thing, and Minimal.gram.g.cs is where the diff shows what that one thing
+// cost in generated code.
+
+A = "a"
+
+parse A
