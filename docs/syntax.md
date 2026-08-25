@@ -328,9 +328,9 @@ Expr = value: Number           => value
 
 A name, a call or a parenthesized C# expression may stand on the right (§2). Captures
 are visible there as ordinary local variables, along with the names the parser supplies
-itself — `parserText`, `parserSpan`, `parserInput` and the rest of §8.2's table. All but
-`parserText` are read out of a parenthesized expression, so a construction wanting one
-writes `=> @(...)` rather than `=> @Method(...)`:
+itself — `parserText`, `parserSpan`, `parserInput` and the rest of §8.2's table. They are
+names of the rule like a capture is, so either form reaches them: `=> @Hold(parserSpan)`
+and `=> @(Hold(parserSpan))` say the same thing.
 
 ```dotgram
 Number : int    = ['0'..'9']+ => @int.Parse(parserText)

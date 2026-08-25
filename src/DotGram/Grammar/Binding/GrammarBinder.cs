@@ -452,7 +452,14 @@ public sealed class GrammarBinder
 		// before its body is resolved — and the whole body's, since a `=>` at the end
 		// names what the front of it captured.
 		_captures.Clear();
-		_captures.Add("parserText");
+
+		// Every one of them, not just `parserText`. §2 makes a bare name in an argument
+		// list a grammar name looked up among rules and captures, and these are among the
+		// names a rule has — so `=> @Hold(parserSpan, parserInput)` has to resolve exactly
+		// as `=> @int.Parse(parserText)` always did. Only the first was registered, which
+		// made one supplied name work in that form and the other seven undefined.
+		foreach (var supplied in SuppliedNames.All)
+			_captures.Add(supplied);
 
 		Captures(rule.Body);
 

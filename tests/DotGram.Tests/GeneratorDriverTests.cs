@@ -1968,7 +1968,7 @@ public sealed class GeneratorDriverTests
 	public void A_construction_may_ask_for_the_whole_input_and_cut_it_later()
 	{
 		var type = Build("""
-			[DotGram.Gram("Url  : @Held = \"http://\" & held: Host => @(held)\nHost : @Held = (Letter | Digit | '.')+ => @(new Held(parserInput, parserSpan.Start, parserSpan.Length))\nLetter = ['a'..'z']\nDigit  = ['0'..'9']\nparse Url")]
+			[DotGram.Gram("Url  : @Held = \"http://\" & held: Host => @(held)\nHost : @Held = (Letter | Digit | '.')+ => @Hold(parserInput, parserSpan)\nLetter = ['a'..'z']\nDigit  = ['0'..'9']\nparse Url")]
 			public partial class Deferred
 			{
 				public readonly struct Held
@@ -1987,6 +1987,11 @@ public sealed class GeneratorDriverTests
 					public string Value { get { return Input.Substring(Start, Length); } }
 				}
 
+				static Held Hold(string parserInput, SourceSpan parserSpan)
+				{
+					return new Held(parserInput, parserSpan.Start, parserSpan.Length);
+				}
+
 			}
 			""").GetType("Deferred")!;
 
@@ -1995,6 +2000,11 @@ public sealed class GeneratorDriverTests
 		string Read(string name) => (string)held.GetType().GetProperty(name)!.GetValue(held)!;
 		int    Count(string name) => (int)held.GetType().GetProperty(name)!.GetValue(held)!;
 
+		// Written in the call form on purpose: §2 makes a bare name in an argument list a
+		// grammar name, and a supplied name is one of the names a rule has, so this and
+		// `=> @(new Held(parserInput, parserSpan.Start, parserSpan.Length))` are the same
+		// thing said two ways. Only `parserText` used to resolve here.
+		//
 		// The whole of what was read, not the part the rule matched — which is the point of
 		// it. A value built from this cuts its own string whenever somebody asks, and holds
 		// the input alive until then; §14 says that is the grammar author's bargain to make.

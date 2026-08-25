@@ -1615,9 +1615,43 @@ real and belongs to whoever writes it: a value built this way keeps the whole in
 for as long as any part of the result lives, which for three names lifted out of a large
 document is the document. `Regex` takes the same bet with `Match`.
 
-**It works in `=> @(...)` and not in `=> @Method(...)`.** Not a decision taken here — §7.3
-matches a factory's arguments against captures and not against the supplied names, so
-`parserSpan` has always been the same, and `WantsText`'s second arm is described in the code
-as "insurance rather than a feature" for exactly this reason. Found by writing the test in
-the natural form first and being told `GRAM3002: No rule, parameter or capture named
-'parserSpan'`. Left as it is, and now documented in §8.2 rather than discovered.
+**It works in `=> @(...)` and not in `=> @Method(...)`** — which turned out to be wrong,
+and is corrected in the entry below.
+
+## Fixed: seven of the eight supplied names were undefined in an argument list
+
+`=> @Hold(parserSpan, parserInput)` was refused with `GRAM3002: No rule, parameter or
+capture named 'parserSpan'`, while `=> @(new Held(parserInput, parserSpan))` was accepted.
+The entry above recorded that as a property of the language. It was a missing line.
+
+§2 has a rule about this and it is deliberate: a bare name in an argument list is a
+**grammar** name, looked up among rules and captures, and every C# name needs its own `@` —
+which is why `@int.Parse(d, CultureInfo.InvariantCulture)` is refused and
+`@int.Parse(d, @CultureInfo.InvariantCulture)` is not. Two tests in `SemanticTests` hold
+that, and it is worth holding: it is what lets the grammar compiler catch a mistyped capture
+instead of the consumer's C# compiler catching it in a file nobody wrote.
+
+The names the parser supplies are among the names a rule has, exactly like a capture — which
+is why they resolve at all. The binder registered one of them:
+
+```csharp
+_captures.Clear();
+_captures.Add("parserText");
+```
+
+So `@int.Parse(parserText)` worked and the other seven did not. Nothing downstream cared:
+a factory's parameters come from the rule's captures (`graph.Results`) and the supplied ones
+from `Asks`, which reads the lowered text — and both forms lower to the same
+`Construction.Expression`. The two notations were only ever different at the binder.
+
+Registering all eight needed the list to be somewhere both halves can see it. It lived on
+`Recovery` in `Grammar.Model`, and `Grammar.Binding` has no dependency on `Model` and should
+not acquire one — the dependency runs the other way. Moved to `Binding.SuppliedNames.All`,
+with `Recovery.Supplied` now pointing at it, so there is one list rather than two that have
+to agree.
+
+**A wrong turn on the way, recorded because it nearly shipped.** The first fix was to stop
+resolving inside a C# call at all — paste it verbatim, the way `@(...)` is pasted. That is
+a coherent design, it is one line, and the whole suite passes except two tests, whose
+comments say exactly why it is the wrong one. A prior decision written down as a test with
+its reasoning is what stopped it, which is what those two tests are for.
