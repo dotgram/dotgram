@@ -1830,3 +1830,44 @@ then dropped — which is what a local is for.
 deterministic: one attempt, one write either way. It stays anyway. `EmitTerminalFailure` is
 shared by both paths, and splitting it to save one line and one local in the simpler of the
 two is a worse trade than the line.
+
+## Built: the flat recognizer takes the wrapper's name instead of being forwarded to
+
+`Minimal.gram.g.cs` ended with this, and every lowered publication with something like it:
+
+```csharp
+static int Recognize_A_Whole(ReadOnlySpan<char> text, int pos, ref Failure failure)
+{
+    var end = Recognize_A_Whole_Flat(text, pos, ref failure);
+    return end;
+}
+```
+
+`RenderFlatWrapper` exists to give the lowered path the signature `RenderWrapper` would have
+produced, "so the caller cannot tell which one it got". What it actually adds is the `out`
+parameter a rule with a value needs, and the line that fills it. A rule without one asks the
+recognizer exactly what the wrapper would have asked and hands back exactly what it answered
+— the two signatures are one signature, and what stands between them is a call and a name.
+So the recognizer takes the name.
+
+## And that leaves `RenderFlatWrapper` with no reachable case
+
+Worth writing down rather than acting on, because the conclusion is stronger than it looks.
+
+The wrapper is now emitted only where `results.QualifiedOf(rule)` is not null — a rule with
+a value of its own. A value comes from a `Node.Construct`; the normalizer makes one even for
+`: @SourceSpan`, rewriting it to `Construct(…, Expression("parserSpan"))`. And `CanLower` is
+`Silent`, which has no case for a construction and defaults to not silent. So a rule with a
+value is never lowered, and a lowered rule never has one: the two conditions cannot both
+hold.
+
+Checked rather than reasoned at: `A : @SourceSpan = "a"` compiles to the arena engine, with
+`Recognize_A_Whole` coming from `RenderWrapper` and no flat method at all.
+
+The method's own `IsExtent` branch was written for exactly the case that cannot arise, and
+one of its arms is already commented "Not reachable". This repository's practice with an
+analysis that has no reachable target is to remove it rather than leave it (`docs/next.md`,
+mixed lowering, and the eager-construction revert). Left standing for now because removing
+it is a decision about `CanLower`'s future rather than about this change: if lowering is ever
+widened to admit a construction whose value is its own extent — which is the one construction
+that needs no arena — the wrapper is what it would need.

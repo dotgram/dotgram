@@ -149,12 +149,25 @@ public static partial class CSharpEmitter
 					continue;
 
 				var wrapperName = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
-				var flatName    = MethodOf(publication.Rule) + (whole ? "_Whole" : "") + "_Flat";
+
+				// The wrapper exists to add the `out` parameter a rule with a value needs,
+				// and to fill it. A rule without one asks the recognizer exactly what the
+				// wrapper would have asked and hands back exactly what it answered — so
+				// the two signatures are the same signature, and what stands between them
+				// is a call and a name. The recognizer takes the name instead.
+				var wrapped  = results.QualifiedOf(publication.Rule) is not null;
+				var flatName = wrapped
+					? MethodOf(publication.Rule) + (whole ? "_Whole" : "") + "_Flat"
+					: wrapperName;
 
 				file.Write(machine!.RenderFlat(publication.Rule, flatName, whole));
 				file.Line();
-				file.Write(machine.RenderFlatWrapper(publication.Rule, wrapperName, flatName));
-				file.Line();
+
+				if (wrapped)
+				{
+					file.Write(machine.RenderFlatWrapper(publication.Rule, wrapperName, flatName));
+					file.Line();
+				}
 			}
 		}
 

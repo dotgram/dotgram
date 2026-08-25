@@ -39,7 +39,7 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
-		static int Recognize_A_Whole_Flat(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			string[]? expected = null;
@@ -62,12 +62,6 @@ namespace DotGram.Snapshots
 			failure.Position = p;
 			failure.Expected = expected;
 			return -1;
-		}
-
-		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var end = Recognize_A_Whole_Flat(text, pos, ref failure);
-			return end;
 		}
 
 		static readonly string[] Recognize_DotGram_Expected0 = { "'a'" };
