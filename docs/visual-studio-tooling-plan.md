@@ -38,9 +38,20 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Preserve DotGram behavior while enabling Roslyn tooling inside `@(...)`
   expressions and grammar arguments.
 
+## Completed: generated API navigation
+
+- [x] Navigate from grammar publications to generated C# APIs.
+- [x] Navigate from generated C# APIs back to standalone and embedded publications.
+
+## Current milestone: VSIX packaging
+
+- [x] Produce a Release VSIX for Visual Studio 18.
+- [x] Add Extension Manager metadata and installation documentation.
+- [x] Validate installation through VSIXInstaller.
+- [ ] Validate an update when a package with a later version is available.
+
 ## Later milestones
 
-- Navigate between grammar rules and generated C# APIs.
 - Define and emit versioned generated-language discovery metadata.
 - Discover user-created DSLs in parser API and attribute string arguments.
 - Reuse the editor-neutral service from an LSP/VS Code adapter.

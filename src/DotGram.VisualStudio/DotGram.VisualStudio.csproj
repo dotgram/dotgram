@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net472</TargetFramework>
+		<Version>0.1.0</Version>
 		<UseWPF>true</UseWPF>
 		<Description>Visual Studio tooling for .gram documents.</Description>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -37,6 +38,16 @@
 
 	<ItemGroup>
 		<None Include="source.extension.vsixmanifest" />
+		<Content Include="..\..\LICENSE" Link="LICENSE.txt">
+			<IncludeInVSIX>true</IncludeInVSIX>
+			<TargetPath>LICENSE.txt</TargetPath>
+		</Content>
+		<Content Include="VSIX.ReleaseNotes.txt">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<Content Include="Assets\DotGram.LetterIcon.16.16.png">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
 		<Content Include="DotGram.VisualStudio.pkgdef">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
@@ -55,5 +66,7 @@
 		<Compile Include="..\DotGram\Language\**\*.cs"
 		         Link="Language\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
+
+	<Target Name="GetVsixVersion" Returns="$(Version)" />
 
 </Project>

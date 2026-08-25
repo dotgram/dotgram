@@ -3,9 +3,17 @@
 	              xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
 	              xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
 	<Metadata>
-		<Identity Id="DotGram.VisualStudio" Version="0.1.0" Language="en-US" Publisher="DotGram" />
-		<DisplayName>.Gram language support</DisplayName>
-		<Description xml:space="preserve">Visual Studio language support for .gram grammars.</Description>
+		<Identity Id="DotGram.VisualStudio"
+		          Version="|%CurrentProject%;GetVsixVersion|"
+		          Language="en-US"
+		          Publisher="DotGram" />
+		<DisplayName>DotGram language support</DisplayName>
+		<Description xml:space="preserve">Language support for standalone .gram files and DotGram grammars embedded in C#.</Description>
+		<MoreInfo>https://github.com/dotgram/dotgram</MoreInfo>
+		<License>LICENSE.txt</License>
+		<ReleaseNotes>VSIX.ReleaseNotes.txt</ReleaseNotes>
+		<Icon>Assets\DotGram.LetterIcon.16.16.png</Icon>
+		<Tags>DotGram, grammar, parser, language, CSharp</Tags>
 	</Metadata>
 	<Installation>
 		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[18.0,19.0)">

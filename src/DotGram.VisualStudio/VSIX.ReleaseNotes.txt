@@ -1,0 +1,8 @@
+DotGram language support 0.1.0
+
+Initial preview for Visual Studio 18.
+
+- Syntax classification and diagnostics for standalone .gram files and embedded grammars.
+- Completion, signature help, Quick Info, brace matching, and folding.
+- Go To Definition, Find References, reference highlighting, and Rename.
+- Navigation between grammar publications and generated C# APIs.
