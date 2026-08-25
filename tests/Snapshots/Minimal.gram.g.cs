@@ -47,7 +47,7 @@ namespace DotGram.Snapshots
 			{
 				if (p >= text.Length || text[p] != 'a')
 				{
-					expected = Recognize_DotGram_Expected1;
+					expected = Recognize_DotGram_Expected0;
 					goto Fail;
 				}
 				p += 1;
@@ -71,8 +71,6 @@ namespace DotGram.Snapshots
 		}
 
 		static readonly string[] Recognize_DotGram_Expected0 = { "'a'" };
-
-		static readonly string[] Recognize_DotGram_Expected1 = { "'a'" };
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

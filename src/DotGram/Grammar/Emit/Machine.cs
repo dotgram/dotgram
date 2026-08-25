@@ -35,6 +35,15 @@ sealed partial class Machine
 	readonly List<RecoveryPlan> _recoveryPlans = [];
 	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
 	readonly List<string> _extra = [];
+
+	/// <summary>Every array declared, by name, in the order they were asked for.</summary>
+	readonly List<(string Name, string Declaration)> _expected = [];
+
+	/// <summary>The names something actually wrote into a state.</summary>
+	readonly HashSet<string> _expectedUsed = [];
+
+	/// <summary>One name per distinct set, so the same list is not written out twice.</summary>
+	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
 	int _expectedCount;
 	readonly ILineMap? _lines;
 	readonly bool _starves;
@@ -191,7 +200,30 @@ sealed partial class Machine
 		throw new InvalidOperationException("A construction has no factory.");
 	}
 
-	public IReadOnlyList<string> Extra => _extra;
+	/// <summary>
+	/// What the machine needs beside its methods — helper methods, and the arrays a
+	/// terminal failure names.
+	/// </summary>
+	/// <remarks>
+	/// An array is written only where something reached <see cref="EmitTerminalFailure"/>
+	/// with its name. A site may declare one and then not fail that way — a shared-prefix
+	/// run that turns out settled writes neither the later texts nor the catch-all — and
+	/// what it left behind was a static field, allocated when the type is first touched and
+	/// held for the life of the program. In the URL grammar that was 564 of 1,137.
+	/// </remarks>
+	public IReadOnlyList<string> Extra
+	{
+		get
+		{
+			var kept = new List<string>(_extra);
+
+			foreach (var (name, declaration) in _expected)
+				if (_expectedUsed.Contains(name))
+					kept.Add(declaration);
+
+			return kept;
+		}
+	}
 
 	/// <summary>
 	/// Whether the generated <c>Parser</c> needs the value-cache fields at all: a typed
@@ -2207,10 +2239,18 @@ sealed partial class Machine
 	/// </remarks>
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
-		var name  = "Recognize_DotGram_Expected" + _expectedCount++;
 		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));
 
-		_extra.Add($"static readonly string[] {name} = {{ {items} }};");
+		// The same set asked for twice is the same array. Two terminals that accept the
+		// same thing are commonplace — a rule called from two places, a character class
+		// written out in two alternatives — and each used to get a field of its own.
+		if (_expectedByItems.TryGetValue(items, out var already))
+			return already;
+
+		var name = "Recognize_DotGram_Expected" + _expectedCount++;
+
+		_expectedByItems[items] = name;
+		_expected.Add((name, $"static readonly string[] {name} = {{ {items} }};"));
 
 		return name;
 	}
@@ -2255,8 +2295,10 @@ sealed partial class Machine
 	/// A failure that names what would have fit — a terminal test's own `goto`, with
 	/// `expected` set right before it so <c>Fail:</c> knows what to blame this on.
 	/// </summary>
-	static void EmitTerminalFailure(Writer writer, int fail, string arrayName)
+	void EmitTerminalFailure(Writer writer, int fail, string arrayName)
 	{
+		_expectedUsed.Add(arrayName);
+
 		writer.Line($"expected = {arrayName};");
 		writer.Line($"goto {Label(fail)};");
 	}

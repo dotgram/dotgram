@@ -1778,3 +1778,55 @@ hand-written `var length = text.Length;` would compile to the same thing — one
 spill, a stack read per use — because a method this size cannot hold it in a register and
 neither can we. The `[reg+0x08]` reads elsewhere in the listing are `ParserEntry` fields and
 list counts, not the span.
+
+## Built: one array per distinct set, and only where something names it
+
+`DeclareExpected` wrote a `static readonly string[]` for every call and never looked at what
+it had written before. Two faults compounded, and the URL grammar carried **1,137 arrays**
+because of them.
+
+**The same set was written out again for every site that wanted it.** A rule called from two
+places, a character class appearing in two alternatives — each got a field of its own with
+identical contents. Now one name per distinct list.
+
+**An array was written whether or not anything named it.** A site declares one before it
+knows whether it will fail that way, and some do not: a shared-prefix run that turns out
+`settled` writes neither the later texts nor the catch-all, so the name it reserved reached
+nothing. `EmitTerminalFailure` is the only thing that ever writes such a name into a state,
+so marking there is exact — `Extra` now yields only what was marked.
+
+| grammar | arrays | generated lines |
+| --- | --: | --: |
+| `Url` | 1137 → **22** | 21,111 → 18,881 |
+| `Feed` | 55 → **12** | 2,261 → 2,175 |
+| `Csv` | 7 → **5** | 1,253 → 1,249 |
+| `Minimal` | 2 → **1** | 211 → 209 |
+
+**It is not faster, and it was not going to be.** Two binaries, separate processes,
+alternating, medians of five: −1.2, −1.5, −1.8, +4.0, +1.0 per cent, which is this machine's
+noise and nothing else. What it removes is 1,115 static fields, each an array allocated when
+the type is first touched and held for the life of the program, and a tenth of the file the
+consumer compiles. Recorded so that nobody re-runs the benchmark hoping.
+
+## Asked and answered: the `expected` local stays
+
+Raised while reading the flat recognizer — `string[]? expected = null;` and a write to it
+before every `goto Fail`.
+
+**In the arena engine it is load-bearing.** `Fail:` is not the end of a parse; it is every
+local dead end backtracking walks through, and it decides rather than records:
+
+```csharp
+if (lookahead < 0 && p > failure.Position) { …; failure.Expected = expected; … }
+else if (lookahead < 0 && p == failure.Position && expected is not null) …
+```
+
+Writing `failure.Expected` at the terminal instead would let every dead end overwrite the
+furthest-failure record, which is the bug "the furthest-failure set was rebuilt on every step
+back" fixed. Inside a lookahead nothing is recorded at all, so the value is often carried and
+then dropped — which is what a local is for.
+
+**In the flat path it could go**, since `Fail:` there is unconditional and the path is
+deterministic: one attempt, one write either way. It stays anyway. `EmitTerminalFailure` is
+shared by both paths, and splitting it to save one line and one local in the simpler of the
+two is a worse trade than the line.

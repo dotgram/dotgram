@@ -521,7 +521,7 @@ namespace DotGram.Snapshots
 				{
 					if (p >= text.Length)
 					{
-						expected = Recognize_DotGram_Expected5;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
 					p++;
@@ -554,7 +554,7 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Expected6;
+					expected = Recognize_DotGram_Expected1;
 					goto Fail;
 				}
 
@@ -743,24 +743,10 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static readonly string[] Recognize_DotGram_Expected0 = { "[^ ]" };
-
-		static readonly string[] Recognize_DotGram_Expected1 = { "\"\r\n\"", "'\\n'", "'\\r'" };
-
-		static readonly string[] Recognize_DotGram_Expected2 = { "','" };
-
 		static bool Recognize_DotGram_Guard0(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
-
-		static readonly string[] Recognize_DotGram_Expected3 = { "['A'..'Z' | 'a'..'z']" };
-
-		static readonly string[] Recognize_DotGram_Expected4 = { "['0'..'9']" };
-
-		static readonly string[] Recognize_DotGram_Expected5 = { "[^ ]" };
-
-		static readonly string[] Recognize_DotGram_Expected6 = { "\"\r\n\"", "'\\n'", "'\\r'" };
 
 		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
@@ -983,6 +969,16 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
+
+		static readonly string[] Recognize_DotGram_Expected0 = { "[^ ]" };
+
+		static readonly string[] Recognize_DotGram_Expected1 = { "\"\r\n\"", "'\\n'", "'\\r'" };
+
+		static readonly string[] Recognize_DotGram_Expected2 = { "','" };
+
+		static readonly string[] Recognize_DotGram_Expected3 = { "['A'..'Z' | 'a'..'z']" };
+
+		static readonly string[] Recognize_DotGram_Expected4 = { "['0'..'9']" };
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
