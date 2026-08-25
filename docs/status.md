@@ -1330,15 +1330,21 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Re-measured 2026-08-24, `DefaultJob`, pooled parser: generated parsing beats
-`RegexOptions.Compiled` on three of the five benchmarked inputs — 280.5 ns against 365.5 ns
-for the short URL, 252.8 against 328.2 for the IP-host form, 381.7 against 570.6 for the
-84-character path — and loses on two: 190.9 against 138.9 ns on the refusal (expected;
-`benchmarks/README.md` already says why — refusal is where a backtracking engine does its
-worst work), and 441.4 against 332.8 ns on the one input that exercises every named part,
-which is the input that materializes the most values and the likeliest place to look next.
-Against interpreted `Regex`, faster on every input, by 1.5× to 3.7×. Those timings predate
-the deferred-`Expected` change below and have not been re-measured since.
+every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the
+deferred-`Expected` change: generated parsing beats `RegexOptions.Compiled` on three of
+the five benchmarked inputs — 163.7 ns against 257.4 ns for the short URL, 148.2 against
+243.8 for the IP-host form, 318.9 against 553.0 for the 84-character path — and loses on
+two: 131.5 against 103.8 ns on the refusal (expected; `benchmarks/README.md` says why —
+refusal is where a backtracking engine does its worst work), and 336.8 against 260.7 ns on
+the one input that exercises every named part, which is the input that materializes the
+most values and the likeliest place to look next. Against interpreted `Regex`, faster on
+every input, by 1.7× to 5.1×.
+
+Read the ratios rather than the nanoseconds when comparing against an earlier run: the
+BCL's own numbers moved between these two runs by as much as a third, on code neither
+change touched, so the machine and not the compiler is what the absolute figures are
+measuring. Against that control the deferred-`Expected` change improved every one of the
+five — 1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73.
 
 **Allocation** is not at parity and has not been since the parser began to be kept between
 parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the

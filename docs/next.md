@@ -1010,3 +1010,11 @@ path 424 → 392, the refusal 440 → 344, forty letters 168 → 104, twenty str
 numbers 2016 → 784. The refusal number also corrected a claim in `benchmarks/README.md`
 and `docs/status.md` that a rejected URL allocated nothing: it allocated 440 B, and this
 is what it was spending them on.
+
+On time, the ratio against `RegexOptions.Compiled` improved on all five URL inputs —
+1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Ratios rather than nanoseconds,
+deliberately: the BCL's own numbers moved by up to a third between the two runs on code
+neither change touched, so the absolute figures were measuring the machine. Two inputs
+still lose to the compiled pattern, both by less than before — the refusal, and the one
+that materializes every named part, which is where `MaterializationCost.cs` already
+pointed.

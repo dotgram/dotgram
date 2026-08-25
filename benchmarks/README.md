@@ -52,24 +52,27 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `DefaultJob`, 2026-08-24. Indicative, not stable CI thresholds:
+Windows, .NET 10, `DefaultJob`, 2026-08-25, after the deferred-`Expected` change
+(`docs/next.md`). Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 280.5 ns | 778.5 ns (2.78×) | 365.5 ns (1.30×) |
-| `https://192.168.0.1/` | 252.8 ns | 701.8 ns (2.78×) | 328.2 ns (1.30×) |
-| `https://exa mple.com/` — no match | 190.9 ns | 582.4 ns (3.05×) | 138.9 ns (0.73×) |
-| a 47-character URL with every part | 441.4 ns | 726.5 ns (1.65×) | 332.8 ns (0.75×) |
-| an 84-character path of eight segments | 381.7 ns | 1420.5 ns (3.73×) | 570.6 ns (1.50×) |
+| `http://example.com` | 163.7 ns | 568.8 ns (3.48×) | 257.4 ns (1.57×) |
+| `https://192.168.0.1/` | 148.2 ns | 525.5 ns (3.55×) | 243.8 ns (1.64×) |
+| `https://exa mple.com/` — no match | 131.5 ns | 439.8 ns (3.34×) | 103.8 ns (0.79×) |
+| a 47-character URL with every part | 336.8 ns | 559.5 ns (1.66×) | 260.7 ns (0.78×) |
+| an 84-character path of eight segments | 318.9 ns | 1614.4 ns (5.06×) | 553.0 ns (1.73×) |
 
 Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
 long path — and loses on two: the refusal, expected (refusal is where a backtracking
 engine does its worst work), and the one input exercising every named part, which is also
 the one materializing the most values. Against interpreted `Regex`, faster on every input.
 
-**The timings above predate the deferred-`Expected` change** (`docs/next.md`, "Fixed: the
-furthest-failure set was rebuilt on every step back"); the allocation figures below are
-after it. Re-measure the timings before comparing the two columns against each other.
+**Compare the ratios between runs, not the nanoseconds.** The run before this one had
+`Regex, compiled` at 365.5/328.2/138.9/332.8/570.6 ns on the same five inputs — the BCL
+got no faster in between, the machine was simply quieter for this one. Against that
+control, the deferred-`Expected` change moved the ratio on every input: 1.30→1.57,
+1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Two inputs still lose; both lose by less.
 
 **This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
 below are what it was measured against — but nobody had re-run the benchmark since enough
