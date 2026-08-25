@@ -10,12 +10,11 @@ namespace DotGram.Examples;
 [Gram("VisualStudioToolingPlayground.gram")]
 public static partial class StandaloneVisualStudioToolingPlayground
 {
-	// F12 on Raise in VisualStudioToolingPlayground.gram should land here. F12 on
-	// ToolingEvaluate below should eventually navigate in the opposite direction once
-	// generated-API navigation is implemented.
+	// F12 on Raise in VisualStudioToolingPlayground.gram should land here.
 	static decimal Raise(decimal value, decimal exponent) =>
 		(decimal)Math.Pow((double)value, (double)exponent);
 
+	// F12 on ToolingEvaluate should return to its publication in the standalone .gram file.
 	public static decimal EvaluateForTooling(string expression) =>
 		ToolingEvaluate(expression);
 }

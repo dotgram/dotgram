@@ -403,6 +403,79 @@ sealed class RoslynGramCompletion(
 		return false;
 	}
 
+	public async Task<GeneratedApiSource?> GeneratedApiSourceAsync(
+		int position,
+		CancellationToken cancellationToken)
+	{
+		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
+			return null;
+
+		var solution = workspace.CurrentSolution;
+		var documentId = solution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
+		var document = documentId is null ? null : solution.GetDocument(documentId);
+		if (document is null)
+			return null;
+
+		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		if (model is null)
+			return null;
+
+		var symbol = await SymbolFinder.FindSymbolAtPositionAsync(
+			model, position, workspace, cancellationToken).ConfigureAwait(false);
+		if (symbol is not IMethodSymbol method)
+			return null;
+
+		var names = method.Name.StartsWith("Try", StringComparison.Ordinal) && method.Name.Length > 3
+			? new[] { method.Name, method.Name.Substring(3) }
+			: new[] { method.Name };
+
+		foreach (var attribute in method.ContainingType.GetAttributes())
+		{
+			if (attribute.AttributeClass?.ToDisplayString() != "DotGram.GramAttribute" ||
+				attribute.ConstructorArguments.Length == 0 ||
+				attribute.ConstructorArguments[0].Value is not string source)
+				continue;
+
+			if (source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
+				source.IndexOf('\n') < 0 && source.IndexOf('\r') < 0)
+			{
+				var grammar = solution.Projects
+					.SelectMany(static project => project.AdditionalDocuments)
+					.FirstOrDefault(candidate => candidate.FilePath is not null &&
+						string.Equals(FileName(candidate.FilePath), FileName(source), StringComparison.OrdinalIgnoreCase));
+				if (grammar?.FilePath is null)
+					continue;
+
+				var text = await grammar.GetTextAsync(cancellationToken).ConfigureAwait(false);
+				var api = GramLanguageService.Analyze(text.ToString()).PublishedApis
+					.FirstOrDefault(candidate => names.Contains(candidate.MethodName, StringComparer.Ordinal));
+				if (api.MethodName is not null)
+				{
+					var location = text.Lines.GetLinePosition(api.Position);
+					return new GeneratedApiSource(grammar.FilePath, location.Line, location.Character);
+				}
+			}
+			else if (attribute.ApplicationSyntaxReference is { } syntaxReference &&
+				await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false) is AttributeSyntax syntax &&
+				syntax.ArgumentList?.Arguments is [{ Expression: LiteralExpressionSyntax literal }] &&
+				CSharpStringMap.TryCreate(literal.Token, out var map))
+			{
+				var api = GramLanguageService.Analyze(literal.Token.ValueText).PublishedApis
+					.FirstOrDefault(candidate => names.Contains(candidate.MethodName, StringComparer.Ordinal));
+				var host = solution.GetDocument(syntax.SyntaxTree);
+				if (api.MethodName is not null && host?.FilePath is not null &&
+					map!.TryMap(api.Position, api.Length, out var span))
+				{
+					var hostText = await host.GetTextAsync(cancellationToken).ConfigureAwait(false);
+					var location = hostText.Lines.GetLinePosition(span.Start);
+					return new GeneratedApiSource(host.FilePath, location.Line, location.Character);
+				}
+			}
+		}
+
+		return null;
+	}
+
 	async Task<INamedTypeSymbol?> HostTypeAsync(Project project, CancellationToken cancellationToken)
 	{
 		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
@@ -489,6 +562,8 @@ sealed class RoslynGramCompletion(
 			static project => project.Language == LanguageNames.CSharp);
 	}
 }
+
+readonly record struct GeneratedApiSource(string FilePath, int Line, int Column);
 
 static class RoslynSymbolNavigation
 {

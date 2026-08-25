@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.ComponentModel.Composition;
@@ -7,6 +8,9 @@ using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Utilities;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.TextManager.Interop;
 
 namespace DotGram.VisualStudio;
 
@@ -23,13 +27,17 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
+	[Import(typeof(SVsServiceProvider))]
+	System.IServiceProvider Services { get; set; } = null!;
+
 	public string DisplayName => "DotGram Go To Definition";
 
 	public CommandState GetCommandState(GoToDefinitionCommandArgs args)
 	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
-		return PublishedApi(args, snapshot, position) is not null ||
+		return args.SubjectBuffer.ContentType.IsOfType("CSharp") ||
+			PublishedApi(args, snapshot, position) is not null ||
 			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null
 			? CommandState.Available
 			: CommandState.Unavailable;
@@ -37,8 +45,17 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 	public bool ExecuteCommand(GoToDefinitionCommandArgs args, CommandExecutionContext executionContext)
 	{
+		ThreadHelper.ThrowIfNotOnUIThread();
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
+		if (args.SubjectBuffer.ContentType.IsOfType("CSharp") &&
+			Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
+				new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
+					.GeneratedApiSourceAsync(position, CancellationToken.None)) is { } source)
+		{
+			return Navigate(source);
+		}
+
 		if (PublishedApi(args, snapshot, position) is { } publishedApi)
 		{
 			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
@@ -62,6 +79,24 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		args.TextView.Caret.MoveTo(point);
 		args.TextView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
 
+		return true;
+	}
+
+	bool Navigate(GeneratedApiSource source)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		VsShellUtilities.OpenDocument(
+			Services,
+			source.FilePath,
+			Guid.Empty,
+			out _,
+			out _,
+			out IVsWindowFrame frame,
+			out IVsTextView view);
+
+		frame.Show();
+		view.SetCaretPos(source.Line, source.Column);
+		view.CenterLines(source.Line, 1);
 		return true;
 	}
 
