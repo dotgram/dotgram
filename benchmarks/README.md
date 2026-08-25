@@ -52,27 +52,36 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `DefaultJob`, 2026-08-25, after the deferred-`Expected` change
+Windows, .NET 10, `DefaultJob`, 2026-08-25, after the prefix-literal change
 (`docs/next.md`). Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 163.7 ns | 568.8 ns (3.48×) | 257.4 ns (1.57×) |
-| `https://192.168.0.1/` | 148.2 ns | 525.5 ns (3.55×) | 243.8 ns (1.64×) |
-| `https://exa mple.com/` — no match | 131.5 ns | 439.8 ns (3.34×) | 103.8 ns (0.79×) |
-| a 47-character URL with every part | 336.8 ns | 559.5 ns (1.66×) | 260.7 ns (0.78×) |
-| an 84-character path of eight segments | 318.9 ns | 1614.4 ns (5.06×) | 553.0 ns (1.73×) |
+| `http://example.com` | 168.0 ns | 574.7 ns (3.42×) | 259.1 ns (1.54×) |
+| `https://192.168.0.1/` | 152.0 ns | 519.9 ns (3.42×) | 246.0 ns (1.62×) |
+| `https://exa mple.com/` — no match | 123.7 ns | 436.1 ns (3.53×) | 103.0 ns (0.83×) |
+| a 47-character URL with every part | 316.5 ns | 531.3 ns (1.68×) | 245.8 ns (0.78×) |
+| an 84-character path of eight segments | 235.8 ns | 1105.4 ns (4.69×) | 419.6 ns (1.78×) |
 
 Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
 long path — and loses on two: the refusal, expected (refusal is where a backtracking
 engine does its worst work), and the one input exercising every named part, which is also
 the one materializing the most values. Against interpreted `Regex`, faster on every input.
 
-**Compare the ratios between runs, not the nanoseconds.** The run before this one had
-`Regex, compiled` at 365.5/328.2/138.9/332.8/570.6 ns on the same five inputs — the BCL
-got no faster in between, the machine was simply quieter for this one. Against that
-control, the deferred-`Expected` change moved the ratio on every input: 1.30→1.57,
-1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Two inputs still lose; both lose by less.
+**Two of these five inputs are too short to compare between runs.** Run the identical
+binary twice and `http://example.com` and `https://192.168.0.1/` — both around 150 ns —
+move by 9% and 14%; the other three hold to within 2%. A difference smaller than that on
+either of them is not a difference, whatever the compiled pattern beside it did. The one
+time this was ignored, a 17% "regression" on the IP-host form survived a stable control
+and three repetitions of a second instrument before five repetitions said it had never
+been there (`docs/next.md`, "Three measurements said this was a regression").
+
+**Compare the ratios between runs, not the nanoseconds**, for the three that are stable
+enough to compare at all. Two runs back `Regex, compiled` sat at
+365.5/328.2/138.9/332.8/570.6 ns on these inputs — the BCL got no faster in between, the
+machine was quieter. Against that control the deferred-`Expected` change moved every
+ratio (1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73), and the prefix-literal
+change after it moved the refusal 0.79→0.83 and the long path 1.73→1.78.
 
 **This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
 below are what it was measured against — but nobody had re-run the benchmark since enough

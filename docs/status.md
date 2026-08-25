@@ -1331,20 +1331,24 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
 every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the
-deferred-`Expected` change: generated parsing beats `RegexOptions.Compiled` on three of
-the five benchmarked inputs — 163.7 ns against 257.4 ns for the short URL, 148.2 against
-243.8 for the IP-host form, 318.9 against 553.0 for the 84-character path — and loses on
-two: 131.5 against 103.8 ns on the refusal (expected; `benchmarks/README.md` says why —
-refusal is where a backtracking engine does its worst work), and 336.8 against 260.7 ns on
+prefix-literal change: generated parsing beats `RegexOptions.Compiled` on three of the
+five benchmarked inputs — 168.0 ns against 259.1 ns for the short URL, 152.0 against
+246.0 for the IP-host form, 235.8 against 419.6 for the 84-character path — and loses on
+two: 123.7 against 103.0 ns on the refusal (expected; `benchmarks/README.md` says why —
+refusal is where a backtracking engine does its worst work), and 316.5 against 245.8 ns on
 the one input that exercises every named part, which is the input that materializes the
 most values and the likeliest place to look next. Against interpreted `Regex`, faster on
-every input, by 1.7× to 5.1×.
+every input, by 1.7× to 4.7×.
 
-Read the ratios rather than the nanoseconds when comparing against an earlier run: the
-BCL's own numbers moved between these two runs by as much as a third, on code neither
-change touched, so the machine and not the compiler is what the absolute figures are
-measuring. Against that control the deferred-`Expected` change improved every one of the
-five — 1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73.
+Read the ratios rather than the nanoseconds when comparing against an earlier run, and
+only for the three inputs stable enough to compare at all: the two shortest move by 9% to
+14% between runs of one unchanged binary, and the BCL's own numbers have moved by as much
+as a third between runs, on code no change of ours touched. Against that control the
+deferred-`Expected` change improved every one of the five — 1.30→1.57, 1.30→1.64,
+0.73→0.79, 0.75→0.78, 1.50→1.73 — and the prefix-literal change after it moved the
+refusal to 0.83 and the long path to 1.78, worth 4.7% on the hot loop over medians of
+five. Three repetitions is not enough on this machine, and `docs/next.md` records what
+believing three of them cost.
 
 **Allocation** is not at parity and has not been since the parser began to be kept between
 parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the

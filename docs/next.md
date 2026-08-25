@@ -1062,8 +1062,27 @@ and everything written after it, the catch-all failure included, is unreachable.
 it anyway is a `CS0162` in somebody else's build, which the test harness rightly counts
 as a failure.
 
-Worth, measured on the hot loop: about 5% on the URL grammar (18.75M parses in six
-seconds against 19.74M, medians of three). Four choice sites gone out of 85, and 236
-fewer lines of generated C#. The wider case is `eol` — `"\r\n" | "\n" | "\r"`, where
-`"\r"` begins `"\r\n"` — which every line-oriented grammar reaches for and which now
+Worth, measured on the hot loop: **4.7%** on the URL grammar — 19.31M parses in six
+seconds against 20.21M, medians of five, and the ranges barely touch (19.86M was the best
+of the five before, 19.82M the worst of the five after). Four choice sites gone out of 85,
+and 236 fewer lines of generated C#. The wider case is `eol` — `"\r\n" | "\n" | "\r"`,
+where `"\r"` begins `"\r\n"` — which every line-oriented grammar reaches for and which now
 compiles to one entry-less run wherever a line cannot be followed by a bare newline.
+
+### Three measurements said this was a regression, and none of them was
+
+The `Regex` comparison first reported the IP-host URL 17% *slower* — 148.2 ns against
+173.9, while the compiled pattern beside it moved less than a nanosecond, which is exactly
+the control that normally says an effect is real. Running the identical binary again put
+it at 152.0 ns. Two of the five inputs — the two shortest, around 150 ns — swing 9% to 14%
+between runs of the same build; the other three hold to within 2%.
+
+The hot loop then said it too, at three repetitions: 23.16M against 23.87M. At five it
+said the opposite, 23.84M against 23.57M, which is to say it said nothing.
+
+So three repetitions is not enough for this machine, and a stable control does not make a
+difference real when the thing being controlled is itself the noisy one. What survives at
+five repetitions is the aggregate above and the two inputs that were stable all along —
+the refusal and the 84-character path. `docs/next.md`'s own "Future optimization gate"
+already said measure in a parser and expect noise; this is what that costs in practice,
+and the answer is repetitions and medians rather than a better single run.
