@@ -63,21 +63,41 @@ sealed partial class Machine
 	/// dispatcher is what would otherwise take back what was written. <see cref="Silent"/>
 	/// is the test for that, and it is the only thing that sets this.
 	/// </remarks>
+	/// <summary>The rules this machine is built from — see the constructor's <c>only</c>.</summary>
+	readonly IReadOnlyCollection<RuleSymbol> _rules;
+
+	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
+	readonly string _tag;
+
 	int _fail = Fail;
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
 	int _captures;
 
-	public Machine(RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false)
+	/// <param name="only">
+	/// The rules this machine compiles, or null for all of them. A machine is built for one
+	/// published rule and what that rule reaches, so a grammar with several publications has
+	/// several machines and none of them carries the others' states.
+	/// </param>
+	/// <param name="tag">
+	/// What distinguishes this machine's method and array names from another's in the same
+	/// file. Empty where there is only one, so a grammar with a single publication is
+	/// compiled to exactly the names it always was.
+	/// </param>
+	public Machine(
+		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
+		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "")
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
+		_tag = tag;
+		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
@@ -120,17 +140,18 @@ sealed partial class Machine
 			}
 		}
 
-		for (var i = 0; i < graph.Rules.Count; i++)
-		{
-			var rule = graph.Rules[i];
+		var ruleIndex = 0;
 
-			_ruleIds[rule] = i;
+		foreach (var rule in _rules)
+		{
+
+			_ruleIds[rule] = ruleIndex++;
 			_entries[rule] = Reserve(out _);
 		}
 
 		_plan    = ExecutionPlan.Of(graph);
 
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 			if (graph.Bodies.TryGetValue(rule, out var checking))
 				foreach (var node in NodeWalk.Descendants(checking))
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
@@ -146,7 +167,7 @@ sealed partial class Machine
 		// and that is only known once every one of them has been looked at.
 		_follow = FollowSets.Of(graph);
 
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
@@ -156,9 +177,15 @@ sealed partial class Machine
 		}
 	}
 
-	static bool HasTypedGuards(RecognitionGraph graph)
+	/// <summary>Whether any rule this machine compiles has a guard that reads a value.</summary>
+	/// <remarks>
+	/// Asked of this machine's own rules rather than of the whole grammar: the incremental
+	/// materializer it turns on is machinery a machine whose rules never ask for a value
+	/// mid-parse has no use for, and a sibling machine's guard is not its business.
+	/// </remarks>
+	bool HasTypedGuards(RecognitionGraph graph)
 	{
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
@@ -614,7 +641,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram(text, parser, entries{InputArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument});");
 								RootValue(file);
 							}
 						}
@@ -1217,7 +1244,7 @@ sealed partial class Machine
 					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
 					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 				var before = layout.Before(node);
-				var method = "Recognize_DotGram_Guard" + _guards++;
+				var method = $"Recognize_DotGram{_tag}_Guard" + _guards++;
 				var helper = new Writer(0);
 				var parameters = new List<string>();
 				var arguments  = new List<string>();
@@ -1355,7 +1382,7 @@ sealed partial class Machine
 
 				if (hasTyped)
 				{
-					writer.Line("if (guardNeedsMaterialization) Materialize_DotGram(text, parser, entries);");
+					writer.Line($"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, entries);");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{
@@ -2385,7 +2412,7 @@ sealed partial class Machine
 		if (_expectedByItems.TryGetValue(items, out var already))
 			return already;
 
-		var name = "Recognize_DotGram_Expected" + _expectedCount++;
+		var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
 
 		_expectedByItems[items] = name;
 		_expected.Add((name, $"static readonly string[] {name} = {{ {items} }};"));

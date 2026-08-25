@@ -39,7 +39,7 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
 			$"ParserArena entries{InputParameter})"))
 			Materialize(helper, cached: Caches);
 
