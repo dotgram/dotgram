@@ -2,7 +2,7 @@
 <ImageManifest xmlns="http://schemas.microsoft.com/VisualStudio/ImageManifestSchema/2014">
 	<Symbols>
 		<String Name="Resources" Value="/DotGram.VisualStudio;Component/Assets" />
-		<Guid Name="DotGramImages" Value="{8bd061ed-57f1-4f76-9df0-f57694734da1}" />
+		<Guid Name="DotGramImages" Value="{cad1f01e-68b1-4a1f-9c01-7c55d277c311}" />
 		<ID Name="GramFile" Value="1" />
 	</Symbols>
 	<Images>
