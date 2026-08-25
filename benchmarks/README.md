@@ -144,3 +144,29 @@ within 2% of an explicit consumer-supplied pool. What actually costs — 2.25× 
 (`Called_without_pooling`), which nothing does by default and no reasonable consumer would
 opt into. "Heavy initialization" is not a default-path problem; it is what happens if
 pooling is deliberately turned off.
+
+## What captures cost
+
+`MaterializationCost.cs` asks a narrower question than the URL benchmark above: on the
+input that materializes the most values (the 47-character URL with every part), how much
+of the time is recognition and how much is capturing and building the typed result? Two
+copies of the same grammar, same rule boundaries, same character tests, differing only in
+whether anything is captured — `WithCaptures` publishes seven named parts into a record,
+`NoCaptures` publishes the same shape as `@SourceSpan` and captures nothing. `--job short`,
+2026-08-24, first numbers this file has carried:
+
+| | mean | allocated |
+| --- | --: | --: |
+| materialized, 7 captures | 336.7 ns | 456 B |
+| recognized only, nothing captured | 115.8 ns | 64 B |
+
+**Capturing and materializing costs about 2.9× what bare recognition of the identical
+shape costs** — 221 ns of the 337, against `CallCost.cs`'s ~25% for the arena call
+boundary alone. This does not separate "writing a capture entry to the arena as it
+matches" from "walking the arena at `Accept:` and building the record" from "capturing
+disqualifying a repetition that would otherwise have been possessive and arena-free" —
+all three are real candidates and this benchmark does not tell them apart. What it does
+say plainly: on a capture-heavy input, this is where the time is going, not the
+dispatch overhead `CallCost.cs` measures. That is the more promising place to look next,
+and the reason the URL benchmark's own worst case is the input with every part present
+rather than the longest one.
