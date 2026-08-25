@@ -1650,8 +1650,37 @@ not acquire one — the dependency runs the other way. Moved to `Binding.Supplie
 with `Recovery.Supplied` now pointing at it, so there is one list rather than two that have
 to agree.
 
-**A wrong turn on the way, recorded because it nearly shipped.** The first fix was to stop
-resolving inside a C# call at all — paste it verbatim, the way `@(...)` is pasted. That is
-a coherent design, it is one line, and the whole suite passes except two tests, whose
-comments say exactly why it is the wrong one. A prior decision written down as a test with
-its reasoning is what stopped it, which is what those two tests are for.
+**And then the decision went the other way, which is the entry below.** Registering all
+eight names made the call form work, but left the two spellings of one construction
+accepting different things — and that, not the missing names, was the actual defect.
+
+## Decided: nothing under an `@` is resolved, so the two spellings are one thing
+
+`=> @M(a, b)` and `=> @(M(a, b))` did not accept the same things. The parenthesized form
+went across as text; the call form had its arguments looked up as grammar names, so a C#
+name needed its own `@` in one and not the other, and a name the parser supplies resolved
+in one and was undefined in the other. The entry above fixed the second half of that by
+registering all eight supplied names. This removes the cause.
+
+The rule that stood was deliberate and written down: §2 with no exception for argument
+lists — a bare name there is a capture, a rule or a parameter, and C# is reached with `@`,
+which is why `@int.Parse(d, CultureInfo.InvariantCulture)` was refused and
+`@int.Parse(d, @CultureInfo.InvariantCulture)` was not. What it bought is real: the grammar
+compiler catching a mistyped capture in that position, rather than the consumer's C#
+compiler catching it in a file nobody wrote.
+
+It is given up anyway, and the argument that settles it is not about this position at all.
+**Resolving names inside a consumer's C# is a commitment to keep up with C#.** This compiler
+is not a C# compiler and will not become one, so every construct it has not learnt is a
+construct the language forbids for no reason of its own — a limit that grows as C# does and
+that nothing here can pay down. Catching one class of typo a little earlier is not worth
+standing in front of the language the consumer actually writes in.
+
+So `ResolveExpression` stops at a call whose target is C#, in a `=>` or a `when` value.
+Outside an `@` nothing changes: a call to a rule of the grammar still takes grammar names,
+and one that names nothing is still found here. The line is the `@`, not the bracket.
+
+Two tests went with it, and their replacements say the new rule with the old one's reasoning
+kept: `Everything_under_an_at_sign_is_the_consumer_s_own_C_sharp` runs three spellings of one
+construction through the same assertion, and `And_a_name_in_a_grammar_argument_list_still_is_one`
+holds the half that stayed. §7.1's table entry is rewritten to match.

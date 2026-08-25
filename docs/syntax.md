@@ -1089,18 +1089,27 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
-**The arguments are read by §2, with no exception made for being in an argument list.**
-A bare name is looked up among the grammar's own — a capture, a rule, a parameter — and
-anything of C#'s is reached with `@`:
+**Everything under the `@` is the consumer's own C#, and the grammar does not look
+inside it.** `=> @M(a, b)` and `=> @(M(a, b))` are one construction written two ways:
+both go across as text, so a name in either needs no `@` of its own, and both see the
+same things — the rule's captures and the names of §8.2, which are what the generated
+method takes as parameters.
 
 ```dotgram
-=> @int.Parse(digits, @CultureInfo.InvariantCulture)     // a capture, then a C# name
-=> @(int.Parse(digits, CultureInfo.InvariantCulture))    // or all of it as one expression
+=> @int.Parse(digits, CultureInfo.InvariantCulture)      // a capture, then a C# name
+=> @(int.Parse(digits, CultureInfo.InvariantCulture))    // the same thing, one bracket out
+=> @Hold(parserInput, parserSpan)                        // and the supplied names, likewise
 ```
 
-Both are written the same way in the generated file; which to use is a matter of how
-much of the line is C#. A dotted name written without the `@` is the ordinary mistake
-here, and the compiler says so by name.
+**This is the one place §2's rule stops.** Outside an `@` a bare name is the grammar's —
+a capture, a rule, a parameter — and that is unchanged, including in the argument list of
+a call to a rule. The line is the `@`, not the bracket.
+
+The reason it stops there is worth stating, because the other way was tried: resolving
+names inside a consumer's C# means keeping up with C#, and every construct this compiler
+has not learnt becomes one the language forbids for no reason of its own. What it bought
+was catching a mistyped capture in that one position a little earlier. What it cost was
+two spellings of the same construction that did not accept the same things.
 
 There is one rule to read this by: **syntactic position determines the call shape.**
 `[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#

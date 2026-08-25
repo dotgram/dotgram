@@ -546,30 +546,41 @@ public sealed class SemanticTests
 			"ab cd ef"));
 	}
 
-	[Fact]
-	public void An_argument_is_a_grammar_name_unless_it_says_otherwise()
+	[Theory]
+	[InlineData("@int.Parse(d, CultureInfo.InvariantCulture)")]
+	[InlineData("@int.Parse(d, @CultureInfo.InvariantCulture)")]
+	[InlineData("@(int.Parse(d, CultureInfo.InvariantCulture))")]
+	public void Everything_under_an_at_sign_is_the_consumer_s_own_C_sharp(string construction)
 	{
-		// §2 with no exception made for argument lists: a bare name is looked up among
-		// rules and captures, and `@` is what reaches into C#. So a capture goes in as it
-		// is written, and anything of C#'s needs the transition — which is why
-		// `@int.Parse(d, CultureInfo.InvariantCulture)` is refused and this is not.
+		// One rule, three spellings of it. Whatever follows an `@` in a `=>` goes across as
+		// text: the grammar does not look inside it, so a name there needs no `@` of its own
+		// and is given none of the grammar's meanings either. `@Hold(x)` and `@(Hold(x))`
+		// are the same construction written two ways, and this is what makes them so.
+		//
+		// This used to be the other way round — a bare name in an argument list was looked
+		// up among rules and captures, so `CultureInfo.InvariantCulture` was refused there
+		// and accepted one bracket away. What that bought was the grammar compiler catching
+		// a mistyped capture in that one position. What it cost is the reason it is gone:
+		// resolving C# means keeping up with C#, and every construct this compiler does not
+		// know becomes a construct the language forbids for no reason of its own.
 		Assert.Empty(Compile(
 			"@using System.Globalization;\n"
-			+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, @CultureInfo.InvariantCulture)\n"
+			+ "Start : @int = d: ['0'..'9']+ => " + construction + "\n"
 			+ "parse Start").Diagnostics);
 	}
 
 	[Fact]
-	public void And_a_C_sharp_name_written_without_it_is_told_what_is_missing() =>
-		// The message named what it looked for and not what to do about it. A dotted name
-		// is a C# one nine times in ten, and the fix is one character.
-		Assert.Contains(
-			"@CultureInfo.InvariantCulture",
-			Compile(
-				"@using System.Globalization;\n"
-				+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, CultureInfo.InvariantCulture)\n"
-				+ "parse Start").Diagnostics[0].Message,
-			StringComparison.Ordinal);
+	public void And_a_name_in_a_grammar_argument_list_still_is_one()
+	{
+		// The half that stays. Outside an `@` nothing changed: a call to a rule of the
+		// grammar takes grammar names, and one that names nothing is found here rather
+		// than in a file nobody wrote.
+		var told = Assert.Single(Compile(
+			"Pair(a, b) = a & ',' & b\nStart = Pair(Word, Missing)\nWord = ['a'..'z']+\n"
+			+ "parse Start").Diagnostics);
+
+		Assert.Contains("Missing", told.Message, StringComparison.Ordinal);
+	}
 
 	[Fact]
 	public void And_the_scalar_form_of_it_works_the_same_way()

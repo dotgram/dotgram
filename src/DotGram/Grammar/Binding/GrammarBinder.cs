@@ -561,6 +561,20 @@ public sealed class GrammarBinder
 			case Expr.Call(var target, var arguments):
 				ResolveReference(target, expression, ns, parameters, csharpValue);
 
+				// Under an `@` in a `=>` or a `when`, nothing is looked at again. The two
+				// ways of writing the same construction — `=> @Hold(x)` and
+				// `=> @(Hold(x))` — are one thing said twice, and they were not: the
+				// parenthesized form went across as text while the call form had its
+				// arguments resolved as grammar names. So a C# name needed its own `@`
+				// inside one and not the other, and seven of the eight names the parser
+				// supplies were undefined in the first.
+				//
+				// What is given up with it is the grammar compiler catching a mistyped
+				// capture in that position; the consumer's C# compiler catches it instead,
+				// which is the same bargain every other `@` in the language already makes.
+				if (csharpValue && target.IsCSharp)
+					return;
+
 				foreach (var argument in arguments)
 					ResolveExpression(argument, ns, parameters, csharpValue);
 
@@ -658,10 +672,10 @@ public sealed class GrammarBinder
 		else
 		{
 			// A dotted name is a C# one nine times in ten — `CultureInfo.InvariantCulture`
-			// written where the grammar expects one of its own. §2 makes no exception for
-			// argument lists, so the fix is the one character that switches vocabulary, and
-			// saying which character is the difference between a message and a message
-			// worth reading.
+			// written where the grammar expects one of its own. The fix is the one character
+			// that switches vocabulary, and saying which character is the difference between
+			// a message and a message worth reading. Inside an `@` call this no longer
+			// arises: everything under the `@` is the consumer's C# and is not looked up.
 			Report(
 				UndefinedName,
 				$"No rule, parameter or capture named '{reference.Name}'." +
