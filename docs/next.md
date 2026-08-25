@@ -1684,3 +1684,46 @@ Two tests went with it, and their replacements say the new rule with the old one
 kept: `Everything_under_an_at_sign_is_the_consumer_s_own_C_sharp` runs three spellings of one
 construction through the same assertion, and `And_a_name_in_a_grammar_argument_list_still_is_one`
 holds the half that stayed. §7.1's table entry is rewritten to match.
+
+## Later: something other than a name on the right of a rebinding
+
+`with (A = B)` takes a name on each side and nothing else — `ParseRebindings` is two
+`ExpectName()` calls around an `=`. So a substitution used in one place still has to invent
+a name for what it substitutes, and a rebinding that would rather be written in place is
+refused by the parser:
+
+```dotgram
+parse Start with (A = a : int "aa" => A(a))
+// GRAM2001: Expected ')'.  GRAM2001: Expected '='.
+```
+
+Written today in two steps, which is the workaround and not a bad one:
+
+```dotgram
+B : @int = a: "aa" => @Make(a)
+parse Start with (A = B)
+```
+
+**Two tiers, and they are not the same feature.** Worth keeping apart when this is picked
+up, because the first is much cheaper than the second.
+
+*An expression on the right* — `with (Sep = ',' | ';')`. No type, no captures, no factory,
+no value: the same thing `A = B` is, with a body instead of a name. `with (Point = Comma)`
+already means exactly this and only spells it with a name.
+
+*A whole rule on the right* — the example above, with a type, captures and a `=>`. This is
+the one that costs, and what it costs is a property worth naming: today a rebinding is
+**fully checkable before anything is generated**, because both sides are symbols. That is
+where GRAM4014's assignability check lives, and what lets specialization clone exactly what
+the binding reaches — `Number_With1` in the normalizer's own output. An inline rule gives
+the binding a body, and the body has to go through specialization, which works on symbols
+rather than trees.
+
+**And a scoping question that does not arise for a name.** A rule resolves where it is
+declared. An inline rule inside a `with` on a publication is written in one place and
+substituted into another — so which namespace's `trivia`, imports and rebindings does it
+see? The answer has to be chosen rather than inherited, and choosing it wrongly is the kind
+of thing §5.1 exists to keep unambiguous.
+
+Not started. Recorded so the next attempt begins at the expression tier and argues about
+scope before syntax.
