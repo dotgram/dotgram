@@ -52,21 +52,26 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `DefaultJob`, 2026-08-25, after the prefix-literal change
-(`docs/next.md`). Indicative, not stable CI thresholds:
+Windows, .NET 10, `DefaultJob`, 2026-08-25, after the materialization work and the lazy
+refusal message (`docs/next.md`). Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 168.0 ns | 574.7 ns (3.42×) | 259.1 ns (1.54×) |
-| `https://192.168.0.1/` | 152.0 ns | 519.9 ns (3.42×) | 246.0 ns (1.62×) |
-| `https://exa mple.com/` — no match | 123.7 ns | 436.1 ns (3.53×) | 103.0 ns (0.83×) |
-| a 47-character URL with every part | 316.5 ns | 531.3 ns (1.68×) | 245.8 ns (0.78×) |
-| an 84-character path of eight segments | 235.8 ns | 1105.4 ns (4.69×) | 419.6 ns (1.78×) |
+| `http://example.com` | 141.0 ns | 572.6 ns (4.06×) | 262.1 ns (1.86×) |
+| `https://192.168.0.1/` | 135.2 ns | 521.8 ns (3.86×) | 245.4 ns (1.81×) |
+| `https://exa mple.com/` — no match | 75.6 ns | 430.5 ns (5.70×) | 102.5 ns (1.36×) |
+| a 47-character URL with every part | 242.5 ns | 582.2 ns (2.40×) | 248.9 ns (1.03×) |
+| an 84-character path of eight segments | 219.6 ns | 1102.0 ns (5.02×) | 413.5 ns (1.88×) |
 
-Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
-long path — and loses on two: the refusal, expected (refusal is where a backtracking
-engine does its worst work), and the one input exercising every named part, which is also
-the one materializing the most values. Against interpreted `Regex`, faster on every input.
+**Faster than `RegexOptions.Compiled` on all five**, and than the interpreted pattern by
+2.4× to 5.7×. Both inputs that used to lose turned round: the one with every part present,
+by the materialization work, and the refusal, by not wording the failure message until
+somebody asks for it.
+
+Read the closest of them, the 47-character URL at 1.03×, knowing what each side was asked
+for: the pattern is asked for one named group and cuts one substring, this is asked for a
+record and builds all seven. Even at parity it is doing seven times the string work, which
+is the asymmetry `docs/next.md` names and leaves standing.
 
 **Two of these five inputs are too short to compare between runs.** Run the identical
 binary twice and `http://example.com` and `https://192.168.0.1/` — both around 150 ns —
@@ -142,7 +147,7 @@ change (`docs/next.md`):
 | url, whole value | 400 B | 264 B |
 | url, every part | 480 B | 352 B |
 | url, host and path | 424 B | 392 B |
-| url, no match | 440 B | 344 B |
+| url, no match | 440 B | 88 B |
 | forty letters, one string | 168 B | 104 B |
 | a hundred letters, one string | 288 B | 224 B |
 | forty letters, kept as a span | 0 B | 0 B |
@@ -150,7 +155,12 @@ change (`docs/next.md`):
 
 **A rejected URL was never free.** This file and `docs/status.md` both used to say it
 allocated nothing; it allocated 440 B, and the furthest-failure set was what it spent them
-on. What is genuinely zero is a recognition whose value is its own extent — the two
+on. Two changes took that to 88: not rebuilding the set on every step back, and then not
+wording the message until somebody asks for it (`docs/next.md`, "a refusal says nothing
+until it is asked"). What is left is the list that accumulates tied terminals during the
+parse itself, which nothing can defer.
+
+What is genuinely zero is a recognition whose value is its own extent — the two
 `kept as a span` rows, where nothing is stored because the entry the rule completed into
 already holds where it began and where it reached.
 

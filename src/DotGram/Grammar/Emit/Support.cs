@@ -395,13 +395,30 @@ public static partial class CSharpEmitter
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
 		{
-			private Match(bool isSuccess, T value, string? error, long position, int length)
+			/// <summary>What would have fit at the furthest position, or null.</summary>
+			private readonly string[]? _expected;
+
+			/// <summary>The arrays that tied with it, or null where none did.</summary>
+			private readonly global::System.Collections.Generic.List<string[]>? _tied;
+
+			/// <summary>
+			/// What <c>Error</c> says when nothing named what would have fit. A literal
+			/// chosen where the match failed, so naming it costs nothing.
+			/// </summary>
+			private readonly string? _otherwise;
+
+			private Match(
+				bool isSuccess, T value, long position, int length,
+				string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
+				string? otherwise)
 			{
-				IsSuccess = isSuccess;
-				Value     = value;
-				Error     = error;
-				Position  = position;
-				Length    = length;
+				IsSuccess  = isSuccess;
+				Value      = value;
+				Position   = position;
+				Length     = length;
+				_expected  = expected;
+				_tied      = tied;
+				_otherwise = otherwise;
 			}
 
 			/// <summary>Whether there is a value.</summary>
@@ -410,8 +427,60 @@ public static partial class CSharpEmitter
 			/// <summary>What was recognized. Meaningless unless <c>IsSuccess</c>.</summary>
 			public T Value { get; }
 
-			/// <summary>Why nothing was recognized, or null.</summary>
-			public string? Error { get; }
+			/// <summary>
+			/// Why nothing was recognized, or null.
+			/// </summary>
+			/// <remarks>
+			/// Built where it is asked for rather than where the match failed, and built
+			/// again on each ask. A caller that only wants to know whether the input
+			/// matched pays for none of it, which is most callers and every one in a loop
+			/// over input that is expected to fail sometimes.
+			/// </remarks>
+			public string? Error
+			{
+				get
+				{
+					if (IsSuccess)
+						return null;
+
+					var expected = _expected;
+
+					if (_tied != null)
+					{
+						var total = expected == null ? 0 : expected.Length;
+
+						foreach (var each in _tied)
+							total += each.Length;
+
+						var merged = new string[total];
+						var at     = 0;
+
+						if (expected != null)
+						{
+							expected.CopyTo(merged, 0);
+							at = expected.Length;
+						}
+
+						foreach (var each in _tied)
+						{
+							each.CopyTo(merged, at);
+							at += each.Length;
+						}
+
+						expected = merged;
+					}
+
+					if (expected == null || expected.Length == 0)
+						return _otherwise;
+
+					if (expected.Length == 1)
+						return "Expected " + expected[0] + ".";
+
+					return "Expected " +
+						string.Join(", ", expected, 0, expected.Length - 1) +
+						" or " + expected[expected.Length - 1] + ".";
+				}
+			}
 
 			/// <summary>
 			/// Where the match began, or how far the input could be followed before it
@@ -428,12 +497,14 @@ public static partial class CSharpEmitter
 
 			internal static Match<T> Success(T value, long position, int length)
 			{
-				return new Match<T>(true, value, null, position, length);
+				return new Match<T>(true, value, position, length, null, null, null);
 			}
 
-			internal static Match<T> Failed(string error, long position)
+			internal static Match<T> Failed(
+				string otherwise, long position, string[]? expected,
+				global::System.Collections.Generic.List<string[]>? tied)
 			{
-				return new Match<T>(false, default!, error, position, 0);
+				return new Match<T>(false, default!, position, 0, expected, tied, otherwise);
 			}
 		}
 		""";

@@ -1245,3 +1245,47 @@ The mass that is left is recognition, and 59% of samples are in native code the 
 cannot attribute at all — most likely the character loops the JIT has inlined flat. That
 is a different kind of problem from the one this section solved, and wants its own
 instrument before anyone starts guessing at it.
+
+## Built: a refusal says nothing until it is asked
+
+Asking what `Regex` does that this does not turned up one answer worth taking, and it was
+not where it was looked for.
+
+`Capture.Value` in `System.Text.RegularExpressions` is
+
+```csharp
+public string Value => Text is string text ? text.Substring(Index, Length) : string.Empty;
+```
+
+— the match records *where*, and the string is cut when somebody asks for it. Both engines
+record positions while matching; only one of them then builds every string whether or not
+the caller wanted it.
+
+That looked like it explained the URL benchmark's remaining loss on the input with every
+part present, where the pattern is asked for one group and this is asked for a record of
+seven. It did not: the materialization work above had already turned that input round to
+1.08× while still building all seven, and the loss that was left was the refusal — where
+no captures are built at all.
+
+The refusal was allocating **344 bytes to say no**, against the pattern's zero. All of it
+was the message: merging the furthest-failure arrays, joining them, and wording the
+sentence — at the one moment nobody had yet asked what went wrong. So `Match<T>` now keeps
+what the failure recorded, and `Error` merges and words it on access, the same bargain
+`Group.Value` makes. Two references wider on the struct, and the wrapper's failure path
+chooses between two literals and returns.
+
+**344 B down to 88 B**, the remainder being the `List<string[]>` that accumulates ties
+during the parse itself and cannot be deferred with the rest. On the hot loop the refusal
+went from 28.97M parses in five seconds to **48.56M**, medians of five, back to back —
+172.6 ns to 103.0, or **+67.6%**.
+
+In the `Regex` comparison it takes the refusal from 0.85× to **1.36×**, which was the last
+input where the compiled pattern was ahead. All five are now this side of parity: 1.86,
+1.81, 1.36, 1.88, 1.03.
+
+Worth naming what this does not change. The seven eager strings are still seven eager
+strings, and a caller who wants one of them still pays for all seven; `Group.Value` would
+not. Making those lazy needs an input to slice later, and the `ReadOnlySpan<char>` entry
+point has nothing to hold — so it would be a split between entry points rather than one
+design, and the typed record with every part filled in is closer to what this project
+sells than a lazy match object is. Left undone deliberately, with the asymmetry stated.

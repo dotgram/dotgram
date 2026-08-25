@@ -445,68 +445,25 @@ public static partial class CSharpEmitter
 			file.Line("if (end < 0)");
 			using (file.Block(""))
 			{
-				file.Line("string message;");
+				// Nothing is built here. What the arrays recorded is handed over as it
+				// stands, and `Match<T>.Error` merges and words it if anybody asks —
+				// a caller that only wants to know whether the input matched pays for
+				// none of it. `.NET`'s own `Group.Value` is the same bargain from the
+				// other side: it stores where a capture was and cuts the string on
+				// access. A flat, arena-free recognizer never reaches a tie at all
+				// (Machine.Flat.cs's own Fail:), so it has no second array to hand over.
+				//
+				// The one thing chosen here rather than there is which literal stands in
+				// when nothing named what would have fit: only this end knows how far the
+				// input went, and both answers are literals, so choosing costs a branch
+				// and no allocation at all.
+				file.Line("var otherwise = failure.Position >= text.Length");
+				file.Then("? \"Expected more input.\"");
+				file.Then($": \"Input does not match '{name}'.\";");
 				file.Line();
-
-				// Merged once, only here, only on a failure that reached the caller — every
-				// other Fail: along the way kept Expected/ExpectedMore as cheap array
-				// references (Support.cs's own comment on the field split). A flat,
-				// arena-free recognizer never reaches a tie at all (Machine.Flat.cs's own
-				// Fail:), so it never declared ExpectedMore and there is nothing to merge
-				// here either — the one array it recorded is the whole answer.
-				file.Line("var expected = failure.Expected;");
-
-				if (!flat)
-				{
-					file.Line();
-
-					// Counted before anything is allocated, so the one array that comes out
-					// of this is exactly the size it needs and never grows into a second.
-					// Expected can be null with ExpectedMore set: a furthest position
-					// reached by something with nothing to say records null, and a later
-					// terminal ties with it.
-					using (file.Block("if (failure.ExpectedMore is { } more)"))
-					{
-						file.Line("var total = expected is null ? 0 : expected.Length;");
-						file.Line();
-						file.Line("foreach (var each in more)");
-						file.Then("total += each.Length;");
-						file.Line();
-						file.Line("var merged = new string[total];");
-						file.Line("var at     = 0;");
-						file.Line();
-						using (file.Block("if (expected is not null)"))
-						{
-							file.Line("expected.CopyTo(merged, 0);");
-							file.Line("at = expected.Length;");
-						}
-						file.Line();
-						using (file.Block("foreach (var each in more)"))
-						{
-							file.Line("each.CopyTo(merged, at);");
-							file.Line("at += each.Length;");
-						}
-						file.Line();
-						file.Line("expected = merged;");
-					}
-				}
-
-				file.Line();
-				file.Line("if (expected is { Length: 1 })");
-				file.Then("message = \"Expected \" + expected[0] + \".\";");
-				file.Line("else if (expected is { Length: > 1 })");
-
-				// The range overload rather than GetRange: the same text, without a second
-				// list allocated on the way to it.
-				file.Then(
-					"message = \"Expected \" + string.Join(\", \", expected, 0, expected.Length - 1) + " +
-					"\" or \" + expected[expected.Length - 1] + \".\";");
-				file.Line("else if (failure.Position >= text.Length)");
-				file.Then("message = \"Expected more input.\";");
-				file.Line("else");
-				file.Then($"message = \"Input does not match '{name}'.\";");
-				file.Line();
-				file.Line($"return {match}.Failed(message, failure.Position);");
+				file.Line(
+					$"return {match}.Failed(otherwise, failure.Position, failure.Expected, " +
+					(flat ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
 			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
