@@ -1285,10 +1285,17 @@ input where the compiled pattern was ahead. All five are now this side of parity
 
 Worth naming what this does not change. The seven eager strings are still seven eager
 strings, and a caller who wants one of them still pays for all seven; `Group.Value` would
-not. Making those lazy needs an input to slice later, and the `ReadOnlySpan<char>` entry
-point has nothing to hold — so it would be a split between entry points rather than one
-design, and the typed record with every part filled in is closer to what this project
-sells than a lazy match object is. Left undone deliberately, with the asymmetry stated.
+not. Left undone deliberately, with the asymmetry stated.
+
+**The reason first given here for leaving it undone was wrong**, and is struck rather than
+quietly edited. It said making them lazy "needs an input to slice later, and the
+`ReadOnlySpan<char>` entry point has nothing to hold". There is no `ReadOnlySpan<char>`
+entry point: every published one takes a `string` (`ParseX`, `TryParseX`, `FindX`, and
+`TextReader`/`IEnumerable<string>` for the streaming finds), the span exists only inside
+the recognizer, and `TryParseX` has the string in hand at the moment it hands back a value.
+The emitted value types are ours too — a `sealed class` of auto-properties this generator
+writes — so their shape is not a constraint either. What the entry above should have said
+is in "Deferred materialization: what actually stands in the way" below.
 
 ## Measured: what the seven eager strings actually cost, against a pattern's one lazy one
 
@@ -1335,3 +1342,57 @@ One thing to carry forward about the instrument itself: the 47-character URL, wh
 repository's own guidance called stable to within 2%, moved 6.6% (242.5 → 226.6 ns) between
 the two runs `benchmarks/README.md` has carried, on parsing code neither run touched. Only
 the 84-character path has earned that 2%. The guidance in that file is corrected to say so.
+
+## Deferred materialization: what actually stands in the way
+
+Raised again after the every-part measurement above, and the honest answer is that the
+obstacles named earlier in this file were not obstacles. A capture of a contiguous extent
+is the input string and two integers; the string is in `TryParseX`'s hand, the two integers
+are in the arena at the moment the value is built, and the value type is one this generator
+writes. None of the three is a constraint.
+
+What is real, in order of how much it costs to answer:
+
+**The arena is recycled.** `ReturnParser` puts the parser back before the wrapper returns,
+so a value must copy `(from, to)` out rather than point into `entries`. Two integers copied
+where a reference is stored today, which is not a cost worth discussing.
+
+**The value object grows.** A lazy string member is `string? _cache` plus two integers
+where an eager one is a single reference, and the object needs one reference to the input
+besides. `UrlValue` and `Authority` together would gain roughly 64 bytes, and the seven
+strings — 30 to 60 bytes each — would not exist until read. A caller who reads one part
+wins; a caller who reads all seven pays the object growth and a branch per read for
+nothing. That is the same shape of trade as the two tables in `benchmarks/README.md`, which
+is why it is a real decision rather than an obvious win.
+
+**Only a flat contiguous string capture qualifies.** A `=> @(...)` factory cannot be
+deferred without deferring the consumer's own C#, moving when its side effects happen and
+when it throws — that is a change of meaning, not an optimization. A typed conversion
+(`@int` and its kind) is deferrable in principle and raises the same question from the
+other end: a malformed number fails the parse today and would fail a property read instead.
+A repetition member is a list, not two integers. `@SourceSpan` already costs nothing and
+has nothing to defer. What is left is the leaf string capture — which happens to be the
+common case, and is exactly what the seven parts of the URL benchmark are.
+
+**The streaming finds cannot have it at all.** `FindX(TextReader)` and
+`FindX(IEnumerable<string>)` read through `Window`, which advances over chunks. A value
+handed out of that iterator would hold two integers into a chunk that has moved on. Those
+entry points stay eager, which is a split between entry points — small and contained, but
+it has to be said in the documentation rather than discovered.
+
+**And the input outlives the value.** This is the one that decides the design. Today a
+value is self-contained and the input can be collected the moment the caller drops it.
+Lazily, any surviving part keeps the whole input alive: three names lifted out of a
+ten-megabyte document are three short strings now and ten megabytes then. `Regex` takes
+that bet — a `Match` holds its input — and it is not free; it is simply invisible until
+somebody parses something large.
+
+So the question is not whether it can be done but what the default should be, and the
+grammar already answers questions of that shape by declaration rather than by switch: a
+rule says `@SourceSpan` when the caller wants the extent instead of the string. A third
+form — the string, cut when asked — belongs in the same place, chosen by the author of the
+grammar, who is the only one who knows whether the input outlives the value. A global
+option would be the wrong instrument, and so would a change of default.
+
+Not started. Written down so the next attempt argues about the default rather than about
+whether the two integers are reachable.
