@@ -57,33 +57,28 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, 2026-08-25, after the predicted-dispatch change (`docs/next.md`).
-Measured with `--against` rather than `DefaultJob`, for the reason under
-"Which instrument, and why" below. Indicative, not stable CI thresholds:
+Windows, .NET 10, 2026-08-25, after the literal work (`docs/next.md`). Measured with
+`--against` rather than `DefaultJob`, for the reason under "Which instrument, and why"
+below. Two independent runs agreed to within 0.05 on every ratio. Indicative, not stable CI
+thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 145.0 ns | 604.1 ns (4.17×) | 301.6 ns (2.08×) |
-| `https://192.168.0.1/` | 153.6 ns | 567.9 ns (3.70×) | 287.2 ns (1.87×) |
-| `https://exa mple.com/` — no match | 90.6 ns | 438.8 ns (4.84×) | 111.6 ns (1.23×) |
-| a 47-character URL with every part | 282.7 ns | 620.4 ns (2.19×) | 280.1 ns (**0.99×**) |
-| an 84-character path of eight segments | 212.4 ns | 1242.5 ns (5.85×) | 456.0 ns (2.15×) |
+| `http://example.com` | 133.8 ns | 608.3 ns (4.55×) | 298.9 ns (2.23×) |
+| `https://192.168.0.1/` | 146.9 ns | 568.7 ns (3.87×) | 285.4 ns (1.94×) |
+| `https://exa mple.com/` — no match | 80.2 ns | 447.4 ns (5.57×) | 113.5 ns (1.41×) |
+| a 47-character URL with every part | 274.4 ns | 609.5 ns (2.22×) | 278.0 ns (1.01×) |
+| an 84-character path of eight segments | 191.0 ns | 1239.9 ns (6.49×) | 453.0 ns (2.37×) |
 
-**Faster than `RegexOptions.Compiled` on four of the five, and level with it on the fifth**,
-and faster than the interpreted pattern by 2.2× to 5.9×.
+**Faster than `RegexOptions.Compiled` on all five**, and faster than the interpreted pattern
+by 2.2× to 6.5×.
 
-**The fifth used to be ahead, at 1.12×, and this is not a mystery.** The predicted-dispatch
-change removes work on every one of these inputs and made that one slower anyway, because on
-a method this size the profile-guided block layout is worth more than the work — the same
-change turns it into a gain the moment dynamic PGO is switched off, and on the larger RFC
-grammar the same input gains 10% instead. `docs/next.md`, "What that change actually
-measured", has it. Reported as it stands rather than tuned around: the layout is not
-something this generator chooses.
-
-The absolute nanoseconds are higher across the board than the tables this file used to carry
-— every row, both engines, by roughly a tenth. That is the machine, not the code: these were
-taken while another workload was running, which is exactly the condition `--against` exists
-for. Read the ratios.
+**The 47-character URL is the one to watch, and it has been both sides of parity.** It was
+1.12× before the predicted-dispatch change, 0.99× after — that change removes work on every
+input and lost this one to profile-guided block layout anyway, which `docs/next.md` records
+under "What that change actually measured". Comparing a literal as one span put it back at
+1.01×. A margin of a few per cent on this input is layout as often as it is work, and is
+worth nothing without the `DOTNET_TieredPGO=0` check beside it.
 
 ### Asked for every part instead of one
 
@@ -98,11 +93,11 @@ The same five inputs, with every part read on both sides:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 146.8 ns | 729.2 ns (4.97×) | 433.7 ns (2.95×) |
-| `https://192.168.0.1/` | 152.4 ns | 710.2 ns (4.66×) | 421.8 ns (2.77×) |
-| `https://exa mple.com/` — no match | 86.5 ns | 441.7 ns (5.11×) | 113.7 ns (1.31×) |
-| a 47-character URL with every part | 284.6 ns | 781.8 ns (2.75×) | 446.1 ns (1.57×) |
-| an 84-character path of eight segments | 207.3 ns | 1389.3 ns (6.70×) | 597.7 ns (2.88×) |
+| `http://example.com` | 134.4 ns | 738.6 ns (5.50×) | 437.0 ns (3.25×) |
+| `https://192.168.0.1/` | 148.6 ns | 717.8 ns (4.83×) | 434.2 ns (2.92×) |
+| `https://exa mple.com/` — no match | 80.3 ns | 450.7 ns (5.61×) | 114.0 ns (1.42×) |
+| a 47-character URL with every part | 276.9 ns | 771.0 ns (2.78×) | 461.2 ns (1.67×) |
+| an 84-character path of eight segments | 191.0 ns | 1385.3 ns (7.25×) | 607.3 ns (3.18×) |
 
 **Asking for all seven costs this nothing.** Every row is within 5% of its own row above,
 in both directions, and the allocation figures are identical to the byte. They were built
@@ -110,8 +105,8 @@ before the call returned; reading them reads fields. It is also the check that s
 a run is worth reading at all — two measurements that must agree, and a run where they come
 out 20% apart is a run something else was happening during.
 
-**It costs the compiled pattern 44% to 60%** on the four inputs that match — 302→434,
-287→422, 456→598 and 280→446 ns, and 32 to 208 bytes more each. Only the refusal is
+**It costs the compiled pattern 46% to 66%** on the four inputs that match — 299→437,
+285→434, 453→607 and 278→461 ns, and 32 to 208 bytes more each. Only the refusal is
 unchanged, because a refusal has no parts to cut.
 
 **The input that is level on the first table is 1.57× ahead on this one.** That is the whole

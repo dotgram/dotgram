@@ -1331,17 +1331,17 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
 every input. Re-measured 2026-08-25, pooled parser, after the predicted-dispatch change:
-**generated parsing is faster than `RegexOptions.Compiled` on four of the five benchmarked
-inputs and level with it on the fifth** — 145.0 ns against 301.6 for the short URL, 153.6
-against 287.2 for the IP-host form, 90.6 against 111.6 on the refusal, 212.4 against 456.0
-for the 84-character path, and 282.7 against 280.1 on the one that exercises every named
-part. Against interpreted `Regex`, 2.2× to 5.9×.
+**generated parsing is faster than `RegexOptions.Compiled` on all five benchmarked inputs**
+— 133.8 ns against 298.9 for the short URL, 146.9 against 285.4 for the IP-host form, 80.2
+against 113.5 on the refusal, 191.0 against 453.0 for the 84-character path, and 274.4
+against 278.0 on the one that exercises every named part. Against interpreted `Regex`,
+2.2× to 6.5×.
 
-That fifth was ahead at 1.12× before the predicted-dispatch change, which removed work on
-every input and cost it its lead anyway: on a method of this size the profile-guided block
-layout is worth more than the work removed, and the same change is a gain on that input the
-moment dynamic PGO is off, and a 10% gain on the larger RFC grammar. Reported as it stands
-— the layout is not something this generator chooses. `docs/next.md` has the whole of it.
+That last one has been both sides of parity within a day: 1.12× before the predicted-dispatch
+change, 0.99× after — that change removes work on every input and lost this one to
+profile-guided block layout anyway — and 1.01× once a literal became one span comparison. A
+few per cent on this input is layout as often as it is work, and means nothing without the
+`DOTNET_TieredPGO=0` check beside it. `docs/next.md` has both.
 
 **Measured with `--against` rather than `DefaultJob`**, and the difference matters for a
 ratio. BenchmarkDotNet runs each case in a process of its own, one after another, so
