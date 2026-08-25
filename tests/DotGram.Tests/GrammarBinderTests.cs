@@ -160,19 +160,19 @@ public sealed class GrammarBinderTests
 	[InlineData("namespace S { }\nA = Other.X",   GrammarBinder.UndefinedName)]
 	[InlineData("using Absent;\nA = 'a'",       GrammarBinder.UnknownNamespace)]
 	[InlineData("parse Absent\nA = 'a'",        GrammarBinder.UndefinedName)]
-	[InlineData("namespace S (Typo = D) { }\nD = 'd'",
+	[InlineData("namespace S with (Typo = D) { }\nD = 'd'",
 		GrammarBinder.UnknownRebindingTarget)]
-	[InlineData("namespace S (B = Typo) { }\nB = 'b'",
+	[InlineData("namespace S with (B = Typo) { }\nB = 'b'",
 		GrammarBinder.UnknownRebindingReplacement)]
-	[InlineData("namespace S (B = C, B = D) { }\nB = 'b'\nC = 'c'\nD = 'd'",
+	[InlineData("namespace S with (B = C, B = D) { }\nB = 'b'\nC = 'c'\nD = 'd'",
 		GrammarBinder.DuplicateRebinding)]
-	[InlineData("B(item) = item\nD = 'd'\nnamespace S (B = D) { }",
+	[InlineData("B(item) = item\nD = 'd'\nnamespace S with (B = D) { }",
 		GrammarBinder.ParameterizedRebinding)]
-	[InlineData("B = 'b'\nD = 'd'\nnamespace S (B = D) { B = 'e' }",
+	[InlineData("B = 'b'\nD = 'd'\nnamespace S with (B = D) { B = 'e' }",
 		GrammarBinder.NamespaceBoundNameRedeclared)]
-	[InlineData("B = 'b'\nD = 'd'\nnamespace S (B = D) { namespace T { B = 'e' } }",
+	[InlineData("B = 'b'\nD = 'd'\nnamespace S with (B = D) { namespace T { B = 'e' } }",
 		GrammarBinder.NamespaceBoundNameRedeclared)]
-	[InlineData("A = 'a'\nB = 'b'\nnamespace S (A = B, B = A) { }",
+	[InlineData("A = 'a'\nB = 'b'\nnamespace S with (A = B, B = A) { }",
 		GrammarBinder.CircularRebinding)]
 	public void Reports(string source, string expectedId)
 	{
@@ -188,7 +188,7 @@ public sealed class GrammarBinderTests
 			B = 'b'
 			D = 'd'
 
-			namespace S (B = D)
+			namespace S with (B = D)
 			{
 				E = 'e'
 			}
@@ -205,7 +205,7 @@ public sealed class GrammarBinderTests
 			B = 'b'
 			C = 'c'
 
-			namespace S (A = B, B = C)
+			namespace S with (A = B, B = C)
 			{
 			}
 			""");
@@ -226,9 +226,9 @@ public sealed class GrammarBinderTests
 			D = 'd'
 			E = 'e'
 
-			namespace Outer (B = D)
+			namespace Outer with (B = D)
 			{
-				namespace Inner (B = E)
+				namespace Inner with (B = E)
 				{
 				}
 			}
@@ -275,7 +275,7 @@ public sealed class GrammarBinderTests
 				A = 'a'
 				C = 'c'
 
-				namespace Inner (C = A)
+				namespace Inner with (C = A)
 				{
 					A = 'b'
 				}

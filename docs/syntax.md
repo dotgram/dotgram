@@ -779,17 +779,18 @@ Every namespace becomes a nested static class in the generated code.
 
 ### 5.1 Rebinding
 
-A `namespace` may carry a header, `namespace Name (A = B, ...) { ... }`. This does
+A `namespace` may carry a header, `namespace Name with (A = B, ...) { ... }`. This does
 something different from an ordinary declaration in the block: it rebinds `A` to `B`
 for the *whole call graph reached from what the namespace declares* — not only for
-calls written lexically inside it.
+calls written lexically inside it. `with` is required; a header written without it is
+refused (`GRAM2006`) rather than silently accepted as something else.
 
 ```dotgram
 B = 'c'
 A = B
 F = A
 
-namespace Ns (B = D)
+namespace Ns with (B = D)
 {
     E = A
 }
@@ -815,7 +816,7 @@ namespace Ns
     E = A                   // E -> outer A -> outer B -> 'c'
 }
 
-namespace Ns2 (B = D)
+namespace Ns2 with (B = D)
 {
     E = A                   // E -> A, with B substituted -> D
 }
@@ -826,18 +827,19 @@ D = 'd'
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
-`namespace (B = ...)` instead of redeclaring `B`. Both sides must already resolve to a
-visible, parameterless rule.
+`namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
+to a visible, parameterless rule.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
-is written in: `namespace (A = B, B = C)` sends a call to `A` all the way to `C`
+is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested namespace inherits its enclosing
 one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`namespace (trivia = none)` reuses an already-written rule under different whitespace
-handling — the same substitution as any other binding, and a different mechanism from
-shadowing `trivia` locally (§4.5), which affects only what the block itself declares.
+`namespace with (trivia = none)` reuses an already-written rule under different
+whitespace handling — the same substitution as any other binding, and a different
+mechanism from shadowing `trivia` locally (§4.5), which affects only what the block
+itself declares.
 
 **Which of the two to reach for is a question of what the result needs to be, not a
 style choice between them.** A binding clones the whole call graph reached from inside
@@ -852,9 +854,9 @@ points over one `Number` rule is the shape this exists for. Reach for shadowing 
 ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
 different for the rest of the file or block from that point on, with nothing shared
 reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
-grammar is exactly that, and wrapping the entire file in `namespace (trivia = none)
-{ ... }` for it adds a block with nothing on the other side of the substitution to
-contrast against.
+grammar is exactly that, and wrapping the entire file in `namespace with (trivia =
+none) { ... }` for it adds a block with nothing on the other side of the substitution
+to contrast against.
 
 **The same substitution is also available on a single expression, without declaring a
 block or a name for it:** `Expression with (A = B, ...)`.
@@ -863,11 +865,11 @@ block or a name for it:** `Expression with (A = B, ...)`.
 ParseEuropeanNumber = Number with (Point = Comma)
 ```
 
-is the one-line version of wrapping `Number` in a single-purpose `namespace (Point =
-Comma) { ... }` just to reach the substitution once. `with` binds as tightly as a
-quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X = Y)`,
-not `Number+` of something already rebound — and reaches only the one expression it is
-written on, not the rest of the rule around it:
+is the one-line version of wrapping `Number` in a single-purpose `namespace with
+(Point = Comma) { ... }` just to reach the substitution once. `with` binds as tightly
+as a quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X =
+Y)`, not `Number+` of something already rebound — and reaches only the one expression
+it is written on, not the rest of the rule around it:
 
 ```dotgram
 Row = a: Number & ',' & b: Number & ',' & c: Number with (Point = Comma)
@@ -879,7 +881,7 @@ header once more than one call needs the same rebinding, or the substitution is 
 a name of its own.
 
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
-wrapped in a `namespace (...)` block just to reach it:
+wrapped in a `namespace with (...)` block just to reach it:
 
 ```dotgram
 parse Number with (Point = Comma) as Evaluate
@@ -888,19 +890,20 @@ parse Number with (Point = Comma) as Evaluate
 is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
 block, no name for the substitution beyond the publication's own. A publication's own
 `with` is the more locally written of the two extents, so it composes on top of an
-enclosing `namespace (...)`'s own rebinding of the same rule rather than instead of it.
+enclosing `namespace with (...)`'s own rebinding of the same rule rather than instead
+of it.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
-`namespace (A = B) { ... }` is a substitution, written where a reader expects one; a
-declaration with the same name sitting in the body, with no header entry for it, is an
-error. A declaration always means a new rule; a rebinding is the only way to replace
+`namespace with (A = B) { ... }` is a substitution, written where a reader expects one;
+a declaration with the same name sitting in the body, with no header entry for it, is
+an error. A declaration always means a new rule; a rebinding is the only way to replace
 one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
 an enclosing *grammar* scope, or through that namespace's own `using` import, is
 refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
 shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
-is shadowing at the top level of a file, where there is no `namespace (...)` header
-nearby to have meant instead.
+is shadowing at the top level of a file, where there is no `namespace with (...)`
+header nearby to have meant instead.
 
 ---
 
@@ -1554,7 +1557,7 @@ File        = Using* & Declaration*
 Using       = ("@using" | "using") & QualifiedName & ';'
 
 Declaration = Namespace | Publication | Rule
-Namespace   = "namespace" & Identifier & Rebindings? & '{' & Using* & Declaration* & '}'
+Namespace   = "namespace" & Identifier & With? & '{' & Using* & Declaration* & '}'
 Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 Rebinding   = Identifier & '=' & Identifier
 Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?

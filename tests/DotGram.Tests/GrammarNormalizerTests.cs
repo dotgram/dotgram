@@ -305,7 +305,7 @@ public sealed class GrammarNormalizerTests
 				A = B
 				F = A
 
-				namespace Ctx (B = D)
+				namespace Ctx with (B = D)
 				{
 					E = A
 				}
@@ -338,7 +338,7 @@ public sealed class GrammarNormalizerTests
 				B = C
 				A = B
 
-				namespace Ctx (C = Y)
+				namespace Ctx with (C = Y)
 				{
 					E = A
 				}
@@ -368,9 +368,9 @@ public sealed class GrammarNormalizerTests
 				E = 'e'
 				A = B
 
-				namespace Outer (B = D)
+				namespace Outer with (B = D)
 				{
-					namespace Inner (B = E)
+					namespace Inner with (B = E)
 					{
 						F = A
 					}
@@ -396,7 +396,7 @@ public sealed class GrammarNormalizerTests
 				Atom = 'a'
 				Tree = Atom | '(' & Tree & ')'
 
-				namespace Ctx (Atom = BAtom)
+				namespace Ctx with (Atom = BAtom)
 				{
 					parse Tree as BTree
 				}
@@ -476,7 +476,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				namespace Ctx (Digit = OtherDigit)
+				namespace Ctx with (Digit = OtherDigit)
 				{
 					A = Number with (Point = Comma)
 				}
@@ -613,7 +613,7 @@ public sealed class GrammarNormalizerTests
 				Comma      = ','
 				Number     = Digit & Point & Digit
 
-				namespace Ctx (Digit = OtherDigit)
+				namespace Ctx with (Digit = OtherDigit)
 				{
 					parse Number with (Point = Comma) as Evaluate
 				}
@@ -631,7 +631,7 @@ public sealed class GrammarNormalizerTests
 				Value   : @Expr   = 'v'
 				RawText : @string = 'r'
 
-				namespace Ctx (Value = RawText)
+				namespace Ctx with (Value = RawText)
 				{
 				}
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
@@ -646,7 +646,7 @@ public sealed class GrammarNormalizerTests
 				Value   : @string = 'v'
 				RawText : @string = 'r'
 
-				namespace Ctx (Value = RawText)
+				namespace Ctx with (Value = RawText)
 				{
 				}
 				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));

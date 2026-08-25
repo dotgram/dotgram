@@ -439,7 +439,7 @@ public sealed class SemanticTests
 	[InlineData(GrammarNormalizer.UnbuiltCall,
 		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
 	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
-		"B(item) = item\nD = 'd'\nnamespace Ctx (B = D) { }")]
+		"B(item) = item\nD = 'd'\nnamespace Ctx with (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
 
 	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────
@@ -1786,7 +1786,7 @@ public sealed class SemanticTests
 
 			D = 'd'
 
-			namespace Ns (B = D)
+			namespace Ns with (B = D)
 			{
 				parse A as NamespaceA
 			}
@@ -1825,7 +1825,7 @@ public sealed class SemanticTests
 				parse Pair as LexicalPair
 			}
 
-			namespace Ns (trivia = none)
+			namespace Ns with (trivia = none)
 			{
 				parse Pair as NamespacePair
 			}
