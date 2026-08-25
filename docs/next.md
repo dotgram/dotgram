@@ -1512,16 +1512,72 @@ was worth 7% on the big grammar and nothing on the small one. This is a better r
 blocks do, and neither the generator nor the consumer has any say in it. Smaller methods are
 not merely faster — they are measurable.
 
-### The published table was not refreshed for this, on purpose
+### Built: `--against`, because the ratio needed an instrument of its own
 
-`benchmarks/README.md` and `docs/status.md` still carry the numbers from before this change.
-Two `DefaultJob` runs were attempted for them and both were thrown away: another workload
-had started on this machine, and it showed. In the second, `.Gram` and `.Gram, every part`
-came out 19% to 21% apart on inputs where they do the same work and had agreed to within 1%
-that morning, and the compiled pattern's own standard deviation reached 24 ns.
+The published tables could not be refreshed for this change, and the third attempt is what
+said why rather than how to wait. Three `DefaultJob` runs went in the bin: the benchmark's
+own two rows that must agree — `.Gram` and `.Gram, every part`, which do the same work —
+came out 21% and 28% apart, and in the third only three of the five input blocks were
+usable, because BenchmarkDotNet runs blocks in sequence and interference is local in time.
 
-A table of ratios against a control is only worth what the control is worth. The A/B above
-survives a noisy machine because it interleaves the two variants, so drift lands on both;
-`DefaultJob` measures one binary at a time and cannot. Re-run the comparison on a quiet
-machine and refresh both documents then — the change is committed and the table simply
-predates it.
+That check is worth naming on its own. `UrlBenchmarks` grew a second pair of measurements
+to answer a question about laziness, and the pair turns out to double as a validity gate:
+two timings of the same work, in the same run, that a reader can compare. A benchmark that
+can tell you its own run was no good is worth more than one that cannot.
+
+The cause is in BenchmarkDotNet's design and is the right design for what it is for. It runs
+each case in a process of its own, one after another, which is how an absolute number should
+be taken — and it means `.Gram` is measured at one minute and `Regex` at another. A ratio
+between them assumes nothing about the machine changed in between. On an idle machine
+nothing does. This one was not idle.
+
+So `--against` (`benchmarks/DotGram.Benchmarks/Against.cs`): the same six methods, called
+through `UrlBenchmarks` itself so the work is the same work, measured round-robin — every
+method once per round, rounds repeating, one process. Whatever the machine does to one
+measurement it does to the five beside it. It subtracts the loop and the indirect call
+(1.5 ns here) because a constant added to both sides of a ratio drags the ratio towards one,
+which flatters whichever engine is slower. It warms at full size, twice, because a short
+warmup leaves a method at tier zero and the first round then measures the tiering — the
+first version of this reported an 785% spread and that was what it was.
+
+Through the same conditions that ruined three `DefaultJob` runs: every method's spread
+between 0.3% and 6%, and two independent runs agreeing to within 0.05 on every ratio.
+`benchmarks/README.md` and `docs/status.md` now carry those numbers, and say which
+instrument to reach for when.
+
+## Built: `with` proved end to end, on the question a consumer actually asks
+
+`with` had thorough coverage against the normalizer's own output — that a rebinding clones
+what it reaches, composes with an enclosing one, does not leak into a sibling publication,
+and reports what it should. All of it stops at the model. None of it asked whether the
+generated code works.
+
+The case that matters is one rule published several ways:
+
+```dotgram
+Port       = Digit+
+PortAsInt  : @int = Digit+ => @Number(parserText)
+PortAsSpan : @SourceSpan = Digit+
+HostAsSpan : @SourceSpan = (Letter | Digit | '.' | '-')+
+
+parse Url as UrlWithStrings
+parse Url with (Port = PortAsInt) as UrlWithInt
+parse Url with (Port = PortAsSpan, Host = HostAsSpan) as UrlWithSpans
+```
+
+Three publications of one grammar, where the rebinding changes a member's *type* — so the
+three cannot share a value type, and the generator has to emit three. It does, and they
+parse: `Port` comes back `string`, `int?` and a `SourceSpan`, `Host` is the same string in
+the first two because the binding does not reach it, and an absent port is null in all of
+them. Four tests in `GeneratorDriverTests`, and they went green without a change to the
+generator — which is the result, since the model-level tests could not have told us.
+
+Worth saying what this settles. The open question under deferred materialization was what a
+capture should cost and who decides — a string, an extent, or something lazy. It is already
+decided, and not by the generator: a rule declares its type, `with` republishes the same
+grammar with a different one, and the consumer picks per publication rather than per
+compilation. The one thing missing for a consumer's own lazy type is that nothing supplies
+the input to a construction — `parserText` is a string already cut and `parserSpan` is two
+integers — so a user's lazy struct can hold the extent but must be handed the text to cut
+it. A supplied `parserInput` beside the three §8.2 already has would close that, and is not
+built.
