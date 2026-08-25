@@ -569,16 +569,13 @@ sealed partial class Machine
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
-					file.Line(
-						"failure.Expected = expected is null ? null : " +
-						"new global::System.Collections.Generic.List<string>(expected);");
+					file.Line("failure.Expected = expected;");
+					file.Line("failure.ExpectedMore = null;");
 				}
 				file.Line("else if (lookahead < 0 && p == failure.Position && expected is not null)");
-				using (file.Block(""))
-				{
-					file.Line("failure.Expected ??= new global::System.Collections.Generic.List<string>();");
-					file.Line("failure.Expected.AddRange(expected);");
-				}
+				file.Then(
+					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+					".Add(expected);");
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");

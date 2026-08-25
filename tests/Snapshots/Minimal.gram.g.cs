@@ -31,10 +31,12 @@ namespace DotGram.Snapshots
 			{
 				string message;
 
-				if (failure.Expected is { Count: 1 } one)
-					message = "Expected " + one[0] + ".";
-				else if (failure.Expected is { Count: > 1 } many)
-					message = "Expected " + string.Join(", ", many.GetRange(0, many.Count - 1)) + " or " + many[many.Count - 1] + ".";
+				var expected = failure.Expected;
+
+				if (expected is { Length: 1 })
+					message = "Expected " + expected[0] + ".";
+				else if (expected is { Length: > 1 })
+					message = "Expected " + string.Join(", ", expected, 0, expected.Length - 1) + " or " + expected[expected.Length - 1] + ".";
 				else if (failure.Position >= text.Length)
 					message = "Expected more input.";
 				else
@@ -74,7 +76,7 @@ namespace DotGram.Snapshots
 
 			Fail:
 			failure.Position = p;
-			failure.Expected = expected is null ? null : new global::System.Collections.Generic.List<string>(expected);
+			failure.Expected = expected;
 			return -1;
 		}
 
@@ -142,8 +144,12 @@ namespace DotGram.Snapshots
 			/// </summary>
 			public int Position;
 
-			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
-			public global::System.Collections.Generic.List<string>? Expected;
+			/// <summary>
+			/// What would have fit at the furthest position, or null. Meaningless unless
+			/// the match failed. A reference into one of the generator's own arrays, not
+			/// a copy of it.
+			/// </summary>
+			public string[]? Expected;
 		}
 
 	}

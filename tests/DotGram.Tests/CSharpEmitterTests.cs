@@ -247,10 +247,12 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("ParserEntry.Capture", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 
-		// No longer also `Assert.DoesNotContain("List<string>", source)`: every generated
-		// parser now carries `Failure.Expected`, a `List<string>?` unrelated to how a
-		// capture is stored (§11's first-tier diagnostics) — the claim this test makes is
-		// about captures, not about the file being free of `List<string>` altogether.
+		// No longer also `Assert.DoesNotContain("List<string>", source)`: every
+		// TryParseX wrapper flattens `Failure.Expected`/`ExpectedMore` into a local
+		// `List<string>` once, on an actual overall failure (§11's first-tier
+		// diagnostics), unrelated to how a capture is stored — the claim this test
+		// makes is about captures, not about the file being free of `List<string>`
+		// altogether.
 	}
 
 	[Fact]
@@ -318,10 +320,12 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("var items = new string[count];", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 
-		// No longer also `Assert.DoesNotContain("List<string>", source)`: every generated
-		// parser now carries `Failure.Expected`, a `List<string>?` unrelated to how a
-		// sequence is materialized (§11's first-tier diagnostics) — the array assertion
-		// just above is what actually proves the sequence itself uses no `List<T>`.
+		// No longer also `Assert.DoesNotContain("List<string>", source)`: every
+		// TryParseX wrapper flattens `Failure.Expected`/`ExpectedMore` into a local
+		// `List<string>` once, on an actual overall failure (§11's first-tier
+		// diagnostics), unrelated to how a sequence is materialized — the array
+		// assertion just above is what actually proves the sequence itself uses no
+		// `List<T>`.
 		Assert.True(result.Matched);
 		Assert.Equal(new[] { "a", "a", "a" }, Assert.IsType<string[]>(result.Value));
 	}
@@ -946,11 +950,16 @@ public sealed class CSharpEmitterTests
 		// unlike the flat path's single, unconditional attempt — is the one compiled.
 		var source = Emit("Start = a: 'x'\nparse Start");
 
+		// A new furthest position costs a reference assignment, not an allocation —
+		// the whole point of the split (Support.cs's own ExpectedField remarks).
+		Assert.Contains("failure.Expected = expected;", source);
+		Assert.Contains("failure.ExpectedMore = null;", source);
+
+		// A tie allocates, but only the list of arrays, and only on the tie itself.
 		Assert.Contains(
-			"failure.Expected = expected is null ? null : " +
-			"new global::System.Collections.Generic.List<string>(expected);",
+			"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+			".Add(expected);",
 			source);
-		Assert.Contains("failure.Expected.AddRange(expected);", source);
 	}
 
 	// ── Case-insensitive literals ─────────────────────────────────────────────────

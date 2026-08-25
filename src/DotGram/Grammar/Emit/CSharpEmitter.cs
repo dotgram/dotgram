@@ -96,7 +96,8 @@ public static partial class CSharpEmitter
 				publication,
 				results,
 				graph.Climbing.ContainsKey(publication.Rule),
-				Streams(graph, publication));
+				Streams(graph, publication),
+				flat);
 
 			file.Line();
 		}
@@ -336,7 +337,8 @@ public static partial class CSharpEmitter
 			file.Write(FailureStructWith(
 				reach: graph.Recoveries.Count > 0 && Streaming(graph),
 				starved: Streaming(graph),
-				expected: true));
+				expected: true,
+				expectedMore: !flat));
 			file.Line();
 		}
 
@@ -379,7 +381,7 @@ public static partial class CSharpEmitter
 	/// another parameter on every signature.
 	/// </remarks>
 	static void EmitPublication(
-		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams)
+		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat)
 	{
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
@@ -445,12 +447,60 @@ public static partial class CSharpEmitter
 			{
 				file.Line("string message;");
 				file.Line();
-				file.Line("if (failure.Expected is { Count: 1 } one)");
-				file.Then("message = \"Expected \" + one[0] + \".\";");
-				file.Line("else if (failure.Expected is { Count: > 1 } many)");
+
+				// Merged once, only here, only on a failure that reached the caller — every
+				// other Fail: along the way kept Expected/ExpectedMore as cheap array
+				// references (Support.cs's own comment on the field split). A flat,
+				// arena-free recognizer never reaches a tie at all (Machine.Flat.cs's own
+				// Fail:), so it never declared ExpectedMore and there is nothing to merge
+				// here either — the one array it recorded is the whole answer.
+				file.Line("var expected = failure.Expected;");
+
+				if (!flat)
+				{
+					file.Line();
+
+					// Counted before anything is allocated, so the one array that comes out
+					// of this is exactly the size it needs and never grows into a second.
+					// Expected can be null with ExpectedMore set: a furthest position
+					// reached by something with nothing to say records null, and a later
+					// terminal ties with it.
+					using (file.Block("if (failure.ExpectedMore is { } more)"))
+					{
+						file.Line("var total = expected is null ? 0 : expected.Length;");
+						file.Line();
+						file.Line("foreach (var each in more)");
+						file.Then("total += each.Length;");
+						file.Line();
+						file.Line("var merged = new string[total];");
+						file.Line("var at     = 0;");
+						file.Line();
+						using (file.Block("if (expected is not null)"))
+						{
+							file.Line("expected.CopyTo(merged, 0);");
+							file.Line("at = expected.Length;");
+						}
+						file.Line();
+						using (file.Block("foreach (var each in more)"))
+						{
+							file.Line("each.CopyTo(merged, at);");
+							file.Line("at += each.Length;");
+						}
+						file.Line();
+						file.Line("expected = merged;");
+					}
+				}
+
+				file.Line();
+				file.Line("if (expected is { Length: 1 })");
+				file.Then("message = \"Expected \" + expected[0] + \".\";");
+				file.Line("else if (expected is { Length: > 1 })");
+
+				// The range overload rather than GetRange: the same text, without a second
+				// list allocated on the way to it.
 				file.Then(
-					"message = \"Expected \" + string.Join(\", \", many.GetRange(0, many.Count - 1)) + " +
-					"\" or \" + many[many.Count - 1] + \".\";");
+					"message = \"Expected \" + string.Join(\", \", expected, 0, expected.Length - 1) + " +
+					"\" or \" + expected[expected.Length - 1] + \".\";");
 				file.Line("else if (failure.Position >= text.Length)");
 				file.Then("message = \"Expected more input.\";");
 				file.Line("else");

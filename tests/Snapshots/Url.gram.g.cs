@@ -31,10 +31,37 @@ namespace DotGram.Snapshots
 			{
 				string message;
 
-				if (failure.Expected is { Count: 1 } one)
-					message = "Expected " + one[0] + ".";
-				else if (failure.Expected is { Count: > 1 } many)
-					message = "Expected " + string.Join(", ", many.GetRange(0, many.Count - 1)) + " or " + many[many.Count - 1] + ".";
+				var expected = failure.Expected;
+
+				if (failure.ExpectedMore is { } more)
+				{
+					var total = expected is null ? 0 : expected.Length;
+
+					foreach (var each in more)
+						total += each.Length;
+
+					var merged = new string[total];
+					var at     = 0;
+
+					if (expected is not null)
+					{
+						expected.CopyTo(merged, 0);
+						at = expected.Length;
+					}
+
+					foreach (var each in more)
+					{
+						each.CopyTo(merged, at);
+						at += each.Length;
+					}
+
+					expected = merged;
+				}
+
+				if (expected is { Length: 1 })
+					message = "Expected " + expected[0] + ".";
+				else if (expected is { Length: > 1 })
+					message = "Expected " + string.Join(", ", expected, 0, expected.Length - 1) + " or " + expected[expected.Length - 1] + ".";
 				else if (failure.Position >= text.Length)
 					message = "Expected more input.";
 				else
@@ -18742,13 +18769,11 @@ namespace DotGram.Snapshots
 				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected is null ? null : new global::System.Collections.Generic.List<string>(expected);
+					failure.Expected = expected;
+					failure.ExpectedMore = null;
 				}
 				else if (lookahead < 0 && p == failure.Position && expected is not null)
-				{
-					failure.Expected ??= new global::System.Collections.Generic.List<string>();
-					failure.Expected.AddRange(expected);
-				}
+					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				Trace("fail", state, p, entries.Count);
 
 				while (entries.Count > 0)
@@ -21259,8 +21284,18 @@ namespace DotGram.Snapshots
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 			public bool Starved;
 
-			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
-			public global::System.Collections.Generic.List<string>? Expected;
+			/// <summary>
+			/// What would have fit at the furthest position, or null. Meaningless unless
+			/// the match failed. A reference into one of the generator's own arrays, not
+			/// a copy of it.
+			/// </summary>
+			public string[]? Expected;
+
+			/// <summary>
+			/// A second array and beyond, where more than one terminal tied for the
+			/// furthest position. Null until an actual tie needs one.
+			/// </summary>
+			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>

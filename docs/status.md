@@ -1337,10 +1337,18 @@ for the short URL, 252.8 against 328.2 for the IP-host form, 381.7 against 570.6
 `benchmarks/README.md` already says why — refusal is where a backtracking engine does its
 worst work), and 441.4 against 332.8 ns on the one input that exercises every named part,
 which is the input that materializes the most values and the likeliest place to look next.
-Against interpreted `Regex`, faster on every input, by 1.5× to 3.7×. Allocation is not at
-parity and has not been since the parser began to be kept between parses: the short URL
-costs 400 bytes against the pattern's 1032, and what is left is the result and nothing
-else — the value, the value nested in it, and one string for each part kept.
+Against interpreted `Regex`, faster on every input, by 1.5× to 3.7×. Those timings predate
+the deferred-`Expected` change below and have not been re-measured since.
+
+**Allocation** is not at parity and has not been since the parser began to be kept between
+parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the
+result and nothing else — the value, the value nested in it, and one string for each part
+kept. Measured exactly rather than sampled (`--alloc`), 2026-08-25, after the
+deferred-`Expected` change: 400 → 264 B for the short URL, 480 → 352 for the one with
+every part, 424 → 392 for host-and-path, 440 → 344 for the refusal, and 2016 → 784 for
+twenty struct-valued numbers. An earlier version of this paragraph said a rejected URL
+allocated nothing at all; it never did — it allocated the furthest-failure set, which is
+exactly what that change stopped rebuilding on every step back.
 
 An earlier version of this paragraph claimed the compiled pattern was beaten across the
 board, then that it was uniformly 1.2×–2.6× slower. Both were true once: the first, by the

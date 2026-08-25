@@ -833,13 +833,11 @@ namespace DotGram.Snapshots
 				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected is null ? null : new global::System.Collections.Generic.List<string>(expected);
+					failure.Expected = expected;
+					failure.ExpectedMore = null;
 				}
 				else if (lookahead < 0 && p == failure.Position && expected is not null)
-				{
-					failure.Expected ??= new global::System.Collections.Generic.List<string>();
-					failure.Expected.AddRange(expected);
-				}
+					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				Trace("fail", state, p, entries.Count);
 
 				while (entries.Count > 0)
@@ -994,8 +992,18 @@ namespace DotGram.Snapshots
 			/// </summary>
 			public int Position;
 
-			/// <summary>What would have fit here, or null. Meaningless unless the match failed.</summary>
-			public global::System.Collections.Generic.List<string>? Expected;
+			/// <summary>
+			/// What would have fit at the furthest position, or null. Meaningless unless
+			/// the match failed. A reference into one of the generator's own arrays, not
+			/// a copy of it.
+			/// </summary>
+			public string[]? Expected;
+
+			/// <summary>
+			/// A second array and beyond, where more than one terminal tied for the
+			/// furthest position. Null until an actual tie needs one.
+			/// </summary>
+			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
 
 		private sealed class Parser

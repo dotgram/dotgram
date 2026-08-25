@@ -981,3 +981,32 @@ it asks the same question — does a name this namespace just declared already r
 something else? — once there is something to find. Never runs for the global namespace,
 which has no header syntax to suggest instead, the same exclusion the enclosing-
 namespace check already made.
+
+## Fixed: the furthest-failure set was rebuilt on every step back
+
+Found with a profiler rather than by reading: `HotLoop.cs` runs the URL grammar's own two
+losing cases against `RegexOptions.Compiled` in a tight loop, and dotTrace's CLI
+(`dottrace start`, then `Reporter.exe report` for a readable XML) put
+`List<string>.AddRange` and `List<string>..ctor` together at the top — 9.8M constructions
+against 6.5M parses, more than one per parse, for a diagnostic nothing reads unless the
+whole parse fails. Three profiling modes (Line-by-Line, Tracing, Sampling) disagreed
+wildly about everything else and agreed about this.
+
+`Fail:` is not the end of a parse; it is every local dead end backtracking walks through.
+Each time the furthest position advanced, it copied a static `string[]` — one the
+generator had already declared — into a fresh `List<string>`, and every one of those was
+thrown away by any parse that went on to succeed.
+
+`Failure.Expected` is now the `string[]` itself, assigned by reference, and
+`Failure.ExpectedMore` (a `List<string[]>`) stays null until terminals genuinely tie for
+the furthest position. The merge into one exactly-sized `string[]` happens once, in the
+`TryParseX` wrapper, and only on a failure that actually reached the caller. `GetRange` in
+the message builder went too — `string.Join`'s range overload says the same thing without
+a second list. A flat, arena-free grammar never reaches a tie at all, so it does not
+declare `ExpectedMore` and skips the merge entirely.
+
+Measured exactly (`--alloc`): the short URL 400 → 264 B, every-part 480 → 352, host-and-
+path 424 → 392, the refusal 440 → 344, forty letters 168 → 104, twenty struct-valued
+numbers 2016 → 784. The refusal number also corrected a claim in `benchmarks/README.md`
+and `docs/status.md` that a rejected URL allocated nothing: it allocated 440 B, and this
+is what it was spending them on.

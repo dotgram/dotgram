@@ -66,8 +66,10 @@ Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-hos
 long path — and loses on two: the refusal, expected (refusal is where a backtracking
 engine does its worst work), and the one input exercising every named part, which is also
 the one materializing the most values. Against interpreted `Regex`, faster on every input.
-Allocation: 400–536 B against the pattern's 1032–1128, and what `.Gram` takes is the
-result and nothing else.
+
+**The timings above predate the deferred-`Expected` change** (`docs/next.md`, "Fixed: the
+furthest-failure set was rebuilt on every step back"); the allocation figures below are
+after it. Re-measure the timings before comparing the two columns against each other.
 
 **This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
 below are what it was measured against — but nobody had re-run the benchmark since enough
@@ -115,6 +117,30 @@ in a static field, outside the timed region, which flatters it against a parser 
 no build step at all because the build happened at compile time. A benchmark that included
 first-call cost would say something quite different, and neither number is the whole
 truth on its own.
+
+## What a parse allocates
+
+`--alloc` (`Allocation.cs`) asks the runtime what the thread allocated between two points
+and divides by how many parses happened in between — exact, where `MemoryDiagnoser` gives
+a rounded per-operation figure. 2026-08-25, before and after the deferred-`Expected`
+change (`docs/next.md`):
+
+| parse | before | after |
+| --- | --: | --: |
+| url, whole value | 400 B | 264 B |
+| url, every part | 480 B | 352 B |
+| url, host and path | 424 B | 392 B |
+| url, no match | 440 B | 344 B |
+| forty letters, one string | 168 B | 104 B |
+| a hundred letters, one string | 288 B | 224 B |
+| forty letters, kept as a span | 0 B | 0 B |
+| twenty numbers, each a struct value | 2016 B | 784 B |
+
+**A rejected URL was never free.** This file and `docs/status.md` both used to say it
+allocated nothing; it allocated 440 B, and the furthest-failure set was what it spent them
+on. What is genuinely zero is a recognition whose value is its own extent — the two
+`kept as a span` rows, where nothing is stored because the entry the rule completed into
+already holds where it began and where it reached.
 
 ## What a rule boundary costs
 

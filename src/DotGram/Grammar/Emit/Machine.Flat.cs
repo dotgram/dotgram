@@ -73,11 +73,10 @@ sealed partial class Machine
 			// Deterministic throughout, so there is only ever one attempt: wherever it gave
 			// up is the furthest the input was followed, with nothing to compare it to —
 			// so this is an unconditional assignment, not the max-comparison RenderEngine's
-			// Fail: makes, and there is no tie to accumulate either.
+			// Fail: makes, and there is no tie to accumulate either — a reference straight
+			// into whichever array the generator already declared, nothing to allocate.
 			file.Line("failure.Position = p;");
-			file.Line(
-				"failure.Expected = expected is null ? null : " +
-				"new global::System.Collections.Generic.List<string>(expected);");
+			file.Line("failure.Expected = expected;");
 			file.Line("return -1;");
 		}
 
