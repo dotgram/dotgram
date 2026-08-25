@@ -84,6 +84,20 @@ public sealed class EmbeddedGrammarAnalysisTests
 	}
 
 	[Fact]
+	public void MapsLocalReferencesInsideCSharpExpressions()
+	{
+		var source = Host("\"Start = left: any => @(Use(left, left))\"");
+
+		var analysis = Assert.Single(Analyze(source));
+		var left = analysis.Symbols.Where(symbol => symbol.Name == "left").ToArray();
+
+		Assert.Equal(3, left.Length);
+		Assert.Single(left, symbol => symbol.IsDefinition);
+		Assert.All(left, symbol => Assert.Equal(left[0].DefinitionSpan, symbol.DefinitionSpan));
+		Assert.All(left, symbol => Assert.True(symbol.GrammarSpan.Contains(symbol.Span)));
+	}
+
+	[Fact]
 	public void MapsBracePairsAndFoldingRanges()
 	{
 		var source = Host(""""

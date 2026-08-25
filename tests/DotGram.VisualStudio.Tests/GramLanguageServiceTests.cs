@@ -291,6 +291,25 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void IndexesParametersAndCapturesInsideCSharpExpressions()
+	{
+		const string source =
+			"Product = left: Product & op: ['*' | '/'] & right: Unary " +
+			"=> @(op == \"*\" ? left * right : left / right)";
+
+		var symbols = GramLanguageService.Analyze(source).Symbols;
+		var left = symbols.Where(symbol => symbol.Name == "left").ToArray();
+		var right = symbols.Where(symbol => symbol.Name == "right").ToArray();
+		var op = symbols.Where(symbol => symbol.Name == "op").ToArray();
+
+		Assert.Equal(3, left.Length);
+		Assert.Equal(3, right.Length);
+		Assert.Equal(2, op.Length);
+		Assert.Single(left, symbol => symbol.IsDefinition);
+		Assert.All(left, symbol => Assert.Equal(left[0].DefinitionPosition, symbol.DefinitionPosition));
+	}
+
+	[Fact]
 	public void ReturnsCompilerDiagnosticsWithoutEditorSpecificTypes()
 	{
 		const string source = "Start = Missing\nparse Start";

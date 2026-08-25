@@ -7,6 +7,9 @@ using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Parsing;
 
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace DotGram.Language;
 
 /// <summary>Editor-neutral syntax categories produced for a <c>.gram</c> document.</summary>
@@ -524,6 +527,25 @@ public static class GramLanguageService
 				AddReference(reference.Name, reference.At);
 		}
 
+		void AddCSharpReferences(Expr.CSharp expression)
+		{
+			var syntax = SyntaxFactory.ParseExpression(expression.Text);
+			var offset = expression.At.Position + 2;
+
+			foreach (var identifier in syntax.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+			{
+				if (identifier.Parent is MemberAccessExpressionSyntax member && member.Name == identifier)
+					continue;
+
+				var name = identifier.Identifier.ValueText;
+				var at = new Location(offset + identifier.SpanStart, identifier.Span.Length);
+				if (parameters is not null && parameters.TryGetValue(name, out var parameter))
+					AddOccurrence(name, at, parameter, false, GramSymbolKind.Parameter);
+				else if (captures is not null && captures.TryGetValue(name, out var capture))
+					AddOccurrence(name, at, capture, false, GramSymbolKind.Capture);
+			}
+		}
+
 		void AddRebinding(Rebinding rebinding)
 		{
 			var names = tokens.Where(token =>
@@ -540,6 +562,9 @@ public static class GramLanguageService
 		{
 			switch (item)
 			{
+				case Expr.CSharp csharp:
+					AddCSharpReferences(csharp);
+					break;
 				case Expr.Choice choice:
 					foreach (var alternative in choice.Alternatives) Visit(alternative);
 					break;
