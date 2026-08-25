@@ -1,0 +1,39 @@
+// Manual standalone .gram tooling playground.
+//
+// Keep new standalone editor scenarios in this file. Run the checks below in the
+// experimental Visual Studio instance (RootSuffix DotGram). This file is intentionally
+// not an AdditionalFile: it exercises the editor without generating another parser.
+
+@using System.Globalization;
+
+trivia = [' ' | '\t']*
+
+// Hover Sum or its Product references: classified Quick Info should appear and
+// referenced rules should expand by link. F12/Shift+F12 on Product should navigate
+// to its declaration/show every occurrence. The navigation dropdown should track
+// the current rule and navigate when another rule is selected.
+Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
+                   | value: Product                                   => @(value)
+
+// Shift+F12 on the capture `left` should list its definition and both uses inside
+// @(...). Ctrl+R, Ctrl+R should rename all three occurrences together.
+Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)
+                   | value: Unary                                     => @(value)
+
+// Temporarily type after @ or inside @(...), then press Ctrl+Space. For example:
+// @dec or @(decimal.Pa). Roslyn completion should appear; undo the edit afterward.
+Unary   : @decimal = '-' & operand: Unary                             => @(-operand)
+                   | value: Primary                                   => @(value)
+
+// F12 on decimal or Parse should open Metadata-as-Source; hover should show
+// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this
+// multiline rule/comment to check brace matching and folding.
+Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)
+                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
+
+// Put the caret after `Digits(` or inside its arguments and press Ctrl+Shift+Space.
+// Expected: parameterized-rule signature help shows n and keeps the active argument.
+Digits(n) = ['0'..'9']{n}
+Fixed     = Digits(4)
+
+parse Sum as ToolingEvaluate
