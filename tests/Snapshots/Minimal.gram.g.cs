@@ -79,7 +79,7 @@ namespace DotGram.Snapshots
 			string[]? expected = null;
 
 			{
-				if (p >= text.Length || text[p] != 'a')
+				if ((uint)p >= (uint)text.Length || text[p] != 'a')
 				{
 					expected = Recognize_DotGram_Expected0;
 					goto Fail;

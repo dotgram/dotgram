@@ -2015,3 +2015,67 @@ reads better as a `switch` over list patterns (C# 11), and it was measured — b
 all gone, four narrow compares. It is cold code, so the gain is readability. Not built, and
 now the decision is about whether one grammar producing two parsers is worth a nicer cold
 block, rather than about whether it is allowed.
+
+## Measured and rejected: a list pattern for a bounded character-class run
+
+The place a list pattern was supposed to win. `Octet = Digit{1,3}` compiles to a loop with a
+count check, a room check, a load and a class test per character; the same thing as one
+decision reads better and, going by what the literal case showed, ought to lose the bounds
+checks:
+
+```csharp
+var taken = text.Slice(p) switch
+{
+    [Digit, Digit, Digit, ..] => 3,
+    [Digit, Digit, ..]        => 2,
+    [Digit, ..]               => 1,
+    _                         => 0,
+};
+```
+
+**It is twice the code.** 57 instructions against the loop's 28, 16 compares against 7. The
+element tests themselves are ideal — `movzx; sub 48; cmp 9; jbe`, the unsigned-range trick,
+three instructions a digit — but Roslyn's decision DAG splits on **length first**, so the
+`len < 2` branch and the `len >= 2` branch each test element zero over again. The loop is
+compact precisely because it interleaves the length test and the element test once per
+position instead of enumerating the lengths.
+
+Rejected on the measurement. Which leaves the loop, and looking at *its* disassembly is what
+found the next entry.
+
+## Built: the room check written the way the bounds check is written
+
+The run loop had two identical comparisons back to back:
+
+```asm
+cmp  edx, ecx      ; our `p >= text.Length`
+jge  → break
+cmp  edx, ecx      ; the indexer's own bounds check, same registers
+jae  → throw
+movzx r10, word ptr [rax+2*rdx]
+```
+
+Signed and unsigned are different predicates, and the range-check eliminator will not treat
+one as the other without proving `p >= 0`. So it kept both — one extra compare and branch per
+character, in the hottest loop any grammar has.
+
+Written `(uint)p >= (uint)text.Length`, they are one comparison and the throw path goes with
+them. Every guard before a `text[p]` is written that way now: the element, the predicted
+dispatch, the run loop, recovery's scan. It is the same idiom the BCL's own indexers use —
+one comparison catching `i < 0` and `i >= length` together — and it is unfamiliar mostly
+because ordinary code never needs it: `for (int i = 0; i < a.Length; i++)` is an induction
+variable RyuJIT recognizes and drops the check entirely. `p` is not one: it lives across
+`goto`s and is written in a dozen places.
+
+Nothing is given up. `p` is never negative, and were it ever to be, the unsigned form refuses
+where the signed one would have read out of bounds.
+
+**And it is worth nothing measurable:** −1.5, −0.1, +0.3, −0.8, −0.0 per cent, medians of
+five. The comparison it removes is perfectly predicted and off the dependency path, so an
+out-of-order core absorbs it whole. Instruction count and time are different quantities, and
+this is the second time today they have said different things.
+
+Kept anyway, and the reason is not the compare: it is one fewer cold throw block and a
+smaller method, in a method whose size was measured this same day to matter more through
+profile-guided layout than the work inside it. That argument is not demonstrated by this
+benchmark and is not pretended to be.

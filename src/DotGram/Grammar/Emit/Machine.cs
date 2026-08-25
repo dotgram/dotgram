@@ -979,7 +979,7 @@ sealed partial class Machine
 
 				if (_starves)
 				{
-					writer.Line("if (p >= text.Length)");
+					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
@@ -988,7 +988,7 @@ sealed partial class Machine
 				}
 				else
 				{
-					writer.Line("if (p >= text.Length)");
+					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
@@ -1075,7 +1075,7 @@ sealed partial class Machine
 					{
 						_usesChar = true;
 
-						using (writer.Block("if (p < text.Length)"))
+						using (writer.Block("if ((uint)p < (uint)text.Length)"))
 						{
 							writer.Line("c = text[p];");
 
@@ -1813,7 +1813,7 @@ sealed partial class Machine
 
 		if (_starves)
 		{
-			writer.Line("if (p >= text.Length)");
+			writer.Line("if ((uint)p >= (uint)text.Length)");
 			using (writer.Block(""))
 			{
 				writer.Line("failure.Starved = true;");
@@ -1822,7 +1822,7 @@ sealed partial class Machine
 		}
 		else
 		{
-			writer.Line("if (p >= text.Length)");
+			writer.Line("if ((uint)p >= (uint)text.Length)");
 			using (writer.Block(""))
 				EmitTerminalFailure(writer, _fail, arrayName);
 		}
@@ -1994,7 +1994,7 @@ sealed partial class Machine
 
 			if (_starves)
 			{
-				writer.Line("if (p >= text.Length)");
+				writer.Line("if ((uint)p >= (uint)text.Length)");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
@@ -2002,7 +2002,7 @@ sealed partial class Machine
 				}
 			}
 			else
-				writer.Line("if (p >= text.Length) break;");
+				writer.Line("if ((uint)p >= (uint)text.Length) break;");
 
 			if (test != "true")
 			{
@@ -2256,10 +2256,23 @@ sealed partial class Machine
 	static string At(int offset) => offset == 0 ? "text[p]" : $"text[p + {offset}]";
 
 	/// <summary>Whether the input is too short for <paramref name="count"/> more.</summary>
-	static string Short(int count) => count == 1 ? "p >= text.Length" : $"p + {count} > text.Length";
+	/// <remarks>
+	/// Unsigned at one, which is not a flourish. Every one of these guards is followed by a
+	/// read of <c>text[p]</c>, and that read carries a bounds check of its own — an unsigned
+	/// one, because that is how a bounds check is written. A signed <c>p &gt;= text.Length</c>
+	/// beside it is a different comparison, so the range-check eliminator keeps both, and the
+	/// disassembly of a character run showed exactly that: <c>cmp/jge</c> and then <c>cmp/jae</c>
+	/// on the same two registers, once per character. Written the same way, they are one
+	/// comparison and the throw path disappears with them.
+	///
+	/// Nothing is given up. <c>p</c> is never negative — it starts at a position and moves
+	/// forward or is restored from one — and were it ever to be, the unsigned form refuses
+	/// where the signed one would have read out of bounds.
+	/// </remarks>
+	static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"p + {count} > text.Length";
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
-	static string Room(int count) => count == 1 ? "p < text.Length" : $"p + {count} <= text.Length";
+	static string Room(int count) => count == 1 ? "(uint)p < (uint)text.Length" : $"p + {count} <= text.Length";
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
 	/// <remarks>
