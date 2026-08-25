@@ -37,7 +37,11 @@
 		       d:ProjectName="%CurrentProject%"
 		       Path="|%CurrentProject%;BuiltProjectOutputGroup|" />
 		<Asset Type="Microsoft.VisualStudio.VsPackage"
-		       Path="DotGram.VisualStudio.pkgdef" />
+		       d:Source="Project"
+		       d:ProjectName="%CurrentProject%"
+		       Path="|%CurrentProject%;PkgDefProjectOutputGroup|" />
+		<Asset Type="Microsoft.VisualStudio.VsPackage"
+		       Path="DotGram.VisualStudio.Icon.pkgdef" />
 		<Asset Type="Microsoft.VisualStudio.ImageManifest"
 		       Path="DotGram.VisualStudio.imagemanifest" />
 	</Assets>

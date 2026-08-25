@@ -7,7 +7,7 @@
 		<Description>Visual Studio tooling for .gram documents.</Description>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 		<VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
-		<GeneratePkgDefFile>false</GeneratePkgDefFile>
+		<GeneratePkgDefFile>true</GeneratePkgDefFile>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Enabled Polyfills">
@@ -48,7 +48,7 @@
 		<Content Include="Assets\DotGram.LetterIcon.16.16.png">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
-		<Content Include="DotGram.VisualStudio.pkgdef">
+		<Content Include="DotGram.VisualStudio.Icon.pkgdef">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
 		<Content Include="DotGram.VisualStudio.imagemanifest">
