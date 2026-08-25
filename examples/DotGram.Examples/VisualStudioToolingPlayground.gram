@@ -1,8 +1,8 @@
 // Manual standalone .gram tooling playground.
 //
 // Keep new standalone editor scenarios in this file. Run the checks below in the
-// experimental Visual Studio instance (RootSuffix DotGram). This file is intentionally
-// not an AdditionalFile: it exercises the editor without generating another parser.
+// experimental Visual Studio instance (RootSuffix DotGram). The grammar is an
+// AdditionalFile compiled into the StandaloneVisualStudioToolingPlayground host class.
 
 @using System.Globalization;
 
@@ -23,13 +23,18 @@ Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op ==
 // Temporarily type after @ or inside @(...), then press Ctrl+Space. For example:
 // @dec or @(decimal.Pa). Roslyn completion should appear; undo the edit afterward.
 Unary   : @decimal = '-' & operand: Unary                             => @(-operand)
-                   | value: Primary                                   => @(value)
+                   | value: Power                                     => @(value)
 
 // F12 on decimal or Parse should open Metadata-as-Source; hover should show
 // classified Roslyn Quick Info. Click beside (), [], or {} and collapse this
 // multiline rule/comment to check brace matching and folding.
 Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)
                    | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
+
+// F12 on Raise should navigate from this standalone .gram file to the user method in
+// VisualStudioToolingPlayground.gram.cs. Hover should show Roslyn Quick Info.
+Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise(left, right))
+                   | value: Primary                                   => @(value)
 
 // Put the caret after `Digits(` or inside its arguments and press Ctrl+Shift+Space.
 // Expected: parameterized-rule signature help shows n and keeps the active argument.

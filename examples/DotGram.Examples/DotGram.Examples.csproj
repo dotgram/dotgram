@@ -24,4 +24,9 @@
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Remove="VisualStudioToolingPlayground.gram" />
+		<AdditionalFiles Include="VisualStudioToolingPlayground.gram" />
+	</ItemGroup>
+
 </Project>
