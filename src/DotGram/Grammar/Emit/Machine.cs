@@ -383,7 +383,7 @@ sealed partial class Machine
 		foreach (var rule in _graph.Rules)
 			hasValues |= ValueRule(rule) >= 0;
 
-		if (hasValues && Caches)
+		if (hasValues)
 			EnsureMaterializer();
 
 		using (file.Block(
@@ -529,23 +529,26 @@ sealed partial class Machine
 					{
 						if (hasValues)
 						{
+							// A call rather than the walk written out here, and the same call
+							// either way. What it buys is the size of the method around it:
+							// this one is the whole automaton, and docs/next.md's "Future
+							// optimization gate" measured that its size is the one thing
+							// still worth moving. It also puts a name on the walk, which is
+							// the difference between a profile that can say what
+							// materialization costs and one that cannot.
 							using (file.Block("if (rootRule >= 0)"))
 							{
+								file.Line("var values = parser.Materialization(entries.Count);");
+								DeclareTables(file);
+
 								if (Caches)
 								{
-									file.Line("var values = parser.Materialization(entries.Count);");
-									DeclareTables(file);
 									file.Line("var built  = parser.Materialized();");
 									file.Line("if (!built[0]) values[0] = parser;");
-									file.Line("Materialize_DotGram(text, parser, entries);");
-									RootValue(file);
 								}
-								else
-								{
-									file.Line();
-									Materialize(file, cached: false);
-									RootValue(file);
-								}
+
+								file.Line("Materialize_DotGram(text, parser, entries);");
+								RootValue(file);
 							}
 						}
 						if (_recoveryPlans.Count > 0)

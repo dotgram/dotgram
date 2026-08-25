@@ -624,6 +624,12 @@ method, and splitting the automaton across methods is the change that would move
 `benchmarks/Scanning.cs` and `benchmarks/Membership.cs` hold the numbers and the reasoning
 behind that conclusion, including the explanations that were tried and measured wrong.
 
+**The lever was pulled, and it held** — see "Built: the materializer is a method" below.
+Taking the materialization walk out of the recognizer and calling it instead, the same
+code either way, was worth 7% on a capture-heavy parse of the URL grammar and nothing at
+all on a grammar a fifth the size. Read that as the standing recommendation this section
+was making, now with a number and with the shape of when it applies.
+
 ## First single-machine performance pass
 
 The URL benchmark initially exposed parser-storage allocation rather than automaton
@@ -1133,3 +1139,36 @@ split across `Url` and `Authority` (13.44M parses in five seconds against 14.50M
 of five, ranges barely touching), and 3.7% on the mixed hot loop — the cross-check, since
 half of that loop is a refusal that never materializes anything at all. More members on
 one rule is more walks collapsed, which is the shape of the saving.
+
+## Built: the materializer is a method, and the gate's own lever was real
+
+"Future optimization gate" above says the one thing left worth moving is the size of the
+method the automaton is compiled into, and that splitting it is the change that would move
+it. That had never been tried. The walk that turns an accepted derivation into values was
+written out at `Accept:`, inside the one method that is also the entire recognizer —
+about 160 lines of it for the URL grammar — and was only ever a method of its own for a
+grammar whose `when` guards read a value mid-parse.
+
+It is now always one. `EnsureMaterializer` emits it for any grammar that builds anything,
+with `cached` following what the guards need rather than deciding whether the method
+exists at all, and `Accept:` declares the tables the root value is read from and calls it.
+
+**7.0%** on the capture-heavy URL — 14.80M parses in five seconds against 15.84M, medians
+of five, taken back to back with a rebuild between them and no overlap between the two
+sets. Compared instead against a measurement from earlier in the sitting it looked like
+10.1%, which is the drift this file already has an entry about; the back-to-back number is
+the one to quote.
+
+Not on the flattened grammar of `MaterializationCost.cs`, though: 247.0 ns against 246.3,
+which is nothing. That grammar's recognizer is 3,772 lines of generated C# and the URL
+one's is 21,500 — the saving is in how big the method was, so a small one has nothing to
+give back. Both readings are the same claim, which is why neither is a surprise.
+
+The refusal half of the mixed loop materializes nothing and was unchanged — 228 ns against
+230 by difference — which is the shape to expect: what moved is the method the recognizer
+runs in, and what moved is the input that used to run the walk inline inside it.
+
+So the gate was right, and it was right for a reason that has nothing to do with the
+walk being faster: it is the same code, called rather than pasted. Nothing else about
+this project's generated output has been shown to move for that reason, and it is the
+first thing to try on the next hot method rather than the last.

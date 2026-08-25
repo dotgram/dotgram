@@ -18,6 +18,17 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 sealed partial class Machine
 {
+	/// <summary>
+	/// The walk, as a method of its own rather than written out wherever a parse accepts.
+	/// </summary>
+	/// <remarks>
+	/// Emitted for every grammar that builds anything, not only for one whose guards read a
+	/// value mid-parse. The automaton is one method and the walk is large; leaving it inline
+	/// grew the one method whose size docs/next.md's "Future optimization gate" measured as
+	/// the thing still worth moving. Naming it also lets a profiler say what materialization
+	/// costs, which nothing could while it was part of a method that is also the whole
+	/// recognizer.
+	/// </remarks>
 	void EnsureMaterializer()
 	{
 		if (_materializer)
@@ -30,7 +41,7 @@ sealed partial class Machine
 		using (helper.Block(
 			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
 			"ParserArena entries)"))
-			Materialize(helper, cached: true);
+			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
 	}

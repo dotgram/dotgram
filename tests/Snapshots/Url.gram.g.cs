@@ -18355,171 +18355,10 @@ namespace DotGram.Snapshots
 				{
 					if (rootRule >= 0)
 					{
-
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
 						var values1 = parser.Materialization1();
-						var linkHeads = parser.MaterializationHeads();
-						var linkNexts = parser.MaterializationNexts();
-
-						for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
-						{
-							var derivation = entries[derivationAt];
-							if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
-							{
-								linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
-								linkHeads[derivation.CallIndex] = derivationAt;
-							}
-						}
-						parser.LinkedUpTo = entries.Count;
-
-						values[0] = parser;
-						for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
-						{
-							if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
-							for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-							{
-								var candidate = entries[capturedAt];
-								if (candidate.Kind == ParserEntry.RuleCapture)
-									values[candidate.Position] = parser;
-							}
-						}
-						for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
-						{
-							var completed = entries[completedAt];
-							if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
-							switch (completed.RuleIndex)
-							{
-								case 0:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									var captured1At = -1;
-									var captured2From = -1;
-									var captured2To   = -1;
-									var captured3From = -1;
-									var captured3To   = -1;
-									var captured4From = -1;
-									var captured4To   = -1;
-									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-									{
-										var candidate = entries[capturedAt];
-
-										switch (candidate.State)
-										{
-											case 0:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured0To < 0)
-														captured0To = candidate.Value;
-													captured0From = candidate.Position;
-												}
-												break;
-											case 1:
-												if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
-													captured1At = candidate.Position;
-												break;
-											case 2:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured2To < 0)
-														captured2To = candidate.Value;
-													captured2From = candidate.Position;
-												}
-												break;
-											case 3:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured3To < 0)
-														captured3To = candidate.Value;
-													captured3From = candidate.Position;
-												}
-												break;
-											case 4:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured4To < 0)
-														captured4To = candidate.Value;
-													captured4From = candidate.Position;
-												}
-												break;
-										}
-									}
-
-									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-									var captured1 = values1[captured1At];
-
-									var captured2 = captured2From < 0 ? string.Empty : text.Slice(captured2From, captured2To - captured2From).ToString();
-
-									var captured3 = captured3From < 0 ? null : text.Slice(captured3From, captured3To - captured3From).ToString();
-
-									var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
-
-									values0[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
-										captured0!,
-										captured1!,
-										captured2!,
-										captured3,
-										captured4);
-									break;
-								}
-								case 2:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									var captured1From = -1;
-									var captured1To   = -1;
-									var captured2From = -1;
-									var captured2To   = -1;
-									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-									{
-										var candidate = entries[capturedAt];
-
-										switch (candidate.State)
-										{
-											case 5:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured0To < 0)
-														captured0To = candidate.Value;
-													captured0From = candidate.Position;
-												}
-												break;
-											case 6:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured1To < 0)
-														captured1To = candidate.Value;
-													captured1From = candidate.Position;
-												}
-												break;
-											case 7:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured2To < 0)
-														captured2To = candidate.Value;
-													captured2From = candidate.Position;
-												}
-												break;
-										}
-									}
-
-									var captured0 = captured0From < 0 ? null : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
-
-									var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
-
-									values1[completedAt] = new global::DotGram.Snapshots.Url.Authority(
-										captured0,
-										captured1!,
-										captured2);
-									break;
-								}
-							}
-						}
+						Materialize_DotGram(text, parser, entries);
 						switch (rootRule)
 						{
 							case 0:
@@ -20989,6 +20828,174 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Expected1167 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']" };
 
 		static readonly string[] Recognize_DotGram_Expected1168 = { "['!' | '$' | '&'..',' | ';' | '=']" };
+
+		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
+		{
+			var values = parser.Materialization(entries.Count);
+			var values0 = parser.Materialization0();
+			var values1 = parser.Materialization1();
+			var linkHeads = parser.MaterializationHeads();
+			var linkNexts = parser.MaterializationNexts();
+
+			for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
+			{
+				var derivation = entries[derivationAt];
+				if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
+				{
+					linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
+					linkHeads[derivation.CallIndex] = derivationAt;
+				}
+			}
+			parser.LinkedUpTo = entries.Count;
+
+			values[0] = parser;
+			for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
+			{
+				if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
+				for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+				{
+					var candidate = entries[capturedAt];
+					if (candidate.Kind == ParserEntry.RuleCapture)
+						values[candidate.Position] = parser;
+				}
+			}
+			for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
+			{
+				var completed = entries[completedAt];
+				if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
+				switch (completed.RuleIndex)
+				{
+					case 0:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						var captured1At = -1;
+						var captured2From = -1;
+						var captured2To   = -1;
+						var captured3From = -1;
+						var captured3To   = -1;
+						var captured4From = -1;
+						var captured4To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 0:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+								case 1:
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
+										captured1At = candidate.Position;
+									break;
+								case 2:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured2To < 0)
+											captured2To = candidate.Value;
+										captured2From = candidate.Position;
+									}
+									break;
+								case 3:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured3To < 0)
+											captured3To = candidate.Value;
+										captured3From = candidate.Position;
+									}
+									break;
+								case 4:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured4To < 0)
+											captured4To = candidate.Value;
+										captured4From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						global::System.Diagnostics.Debug.Assert(captured1At >= 0);
+						var captured1 = values1[captured1At];
+
+						var captured2 = captured2From < 0 ? string.Empty : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+						var captured3 = captured3From < 0 ? null : text.Slice(captured3From, captured3To - captured3From).ToString();
+
+						var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
+
+						values0[completedAt] = new global::DotGram.Snapshots.Url.UrlValue(
+							captured0!,
+							captured1!,
+							captured2!,
+							captured3,
+							captured4);
+						break;
+					}
+					case 2:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						var captured1From = -1;
+						var captured1To   = -1;
+						var captured2From = -1;
+						var captured2To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 5:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+								case 6:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured1To < 0)
+											captured1To = candidate.Value;
+										captured1From = candidate.Position;
+									}
+									break;
+								case 7:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured2To < 0)
+											captured2To = candidate.Value;
+										captured2From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? null : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
+
+						var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
+
+						values1[completedAt] = new global::DotGram.Snapshots.Url.Authority(
+							captured0,
+							captured1!,
+							captured2);
+						break;
+					}
+				}
+			}
+		}
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

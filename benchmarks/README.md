@@ -195,14 +195,20 @@ single-walk materializer (`docs/next.md`):
 
 | | before | after | allocated |
 | --- | --: | --: | --: |
-| captured as strings, 7 members | 306.1 ns | 247.0 ns | 328 B |
-| captured as spans, no strings built | 279.8 ns | 266.8 ns | 88 B |
-| nothing captured | 96.1 ns | 97.7 ns | 0 B |
+| captured as strings, 7 members | 306.1 ns | 246.3 ns | 328 B |
+| captured as spans, no strings built | 279.8 ns | 251.4 ns | 88 B |
+| nothing captured | 96.1 ns | 96.3 ns | 0 B |
 
 **Capturing costs a multiple of recognizing the same shape**, and the third row is the
-control that says so: 97.7 ns to recognize this URL against 247.0 to recognize it and
+control that says so: 96.3 ns to recognize this URL against 246.3 to recognize it and
 keep seven parts. That gap is what the single-walk materializer took a fifth out of, and
 what is left of it is the next thing to take apart.
+
+Note what this grammar does *not* show. Making the materializer a method of its own was
+worth 7% on `benchmarks/Urls.cs` and nothing measurable here — the recognizer this
+grammar compiles to is 3,772 lines of generated C# against the URL one's 21,500, and that
+saving is in how large the method was. A benchmark small enough to be readable is
+sometimes small enough to miss what it is measuring.
 
 **The span row does not isolate what strings cost, though it was written to.** After the
 walk stopped dominating, it came out *slower* than the strings it was meant to be cheaper

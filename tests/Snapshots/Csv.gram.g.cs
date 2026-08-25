@@ -590,212 +590,11 @@ namespace DotGram.Snapshots
 				{
 					if (rootRule >= 0)
 					{
-
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
 						var values1 = parser.Materialization1();
 						var values2 = parser.Materialization2();
-						var linkHeads = parser.MaterializationHeads();
-						var linkNexts = parser.MaterializationNexts();
-
-						for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
-						{
-							var derivation = entries[derivationAt];
-							if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
-							{
-								linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
-								linkHeads[derivation.CallIndex] = derivationAt;
-							}
-						}
-						parser.LinkedUpTo = entries.Count;
-
-						values[0] = parser;
-						for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
-						{
-							if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
-							for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-							{
-								var candidate = entries[capturedAt];
-								if (candidate.Kind == ParserEntry.RuleCapture)
-									values[candidate.Position] = parser;
-							}
-						}
-						for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
-						{
-							var completed = entries[completedAt];
-							if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
-							switch (completed.RuleIndex)
-							{
-								case 0:
-								{
-									var captured0Count = 0;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
-									}
-									var captured0 = new string[captured0Count];
-									var captured0Item = captured0Count;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
-										{
-											captured0[--captured0Item] = values1[candidate.Position];
-										}
-									}
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values0[completedAt] = Construct_Csv(captured0!);
-											break;
-									}
-									break;
-								}
-								case 1:
-								{
-									var captured0At = -1;
-									var captured1At = -1;
-									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-									{
-										var candidate = entries[capturedAt];
-
-										switch (candidate.State)
-										{
-											case 1:
-												if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured0At < 0)
-													captured0At = candidate.Position;
-												break;
-											case 2:
-												if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
-													captured1At = candidate.Position;
-												break;
-										}
-									}
-
-									global::System.Diagnostics.Debug.Assert(captured0At >= 0);
-									var captured0 = values1[captured0At];
-
-									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-									var captured1 = values2[captured1At];
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values1[completedAt] = Construct_Row(captured0!, captured1!);
-											break;
-									}
-									break;
-								}
-								case 2:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-									{
-										var candidate = entries[capturedAt];
-
-										switch (candidate.State)
-										{
-											case 3:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured0To < 0)
-														captured0To = candidate.Value;
-													captured0From = candidate.Position;
-												}
-												break;
-										}
-									}
-
-									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values1[completedAt] = Construct_Name(captured0!);
-											break;
-									}
-									break;
-								}
-								case 3:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-									{
-										var candidate = entries[capturedAt];
-
-										switch (candidate.State)
-										{
-											case 4:
-												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-												{
-													if (captured0To < 0)
-														captured0To = candidate.Value;
-													captured0From = candidate.Position;
-												}
-												break;
-										}
-									}
-
-									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values2[completedAt] = Construct_Amount(captured0!);
-											break;
-									}
-									break;
-								}
-							}
-						}
+						Materialize_DotGram(text, parser, entries);
 						switch (rootRule)
 						{
 							case 0:
@@ -967,6 +766,215 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Expected5 = { "[^ ]" };
 
 		static readonly string[] Recognize_DotGram_Expected6 = { "\"\r\n\"", "'\\n'", "'\\r'" };
+
+		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
+		{
+			var values = parser.Materialization(entries.Count);
+			var values0 = parser.Materialization0();
+			var values1 = parser.Materialization1();
+			var values2 = parser.Materialization2();
+			var linkHeads = parser.MaterializationHeads();
+			var linkNexts = parser.MaterializationNexts();
+
+			for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
+			{
+				var derivation = entries[derivationAt];
+				if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
+				{
+					linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
+					linkHeads[derivation.CallIndex] = derivationAt;
+				}
+			}
+			parser.LinkedUpTo = entries.Count;
+
+			values[0] = parser;
+			for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
+			{
+				if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
+				for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+				{
+					var candidate = entries[capturedAt];
+					if (candidate.Kind == ParserEntry.RuleCapture)
+						values[candidate.Position] = parser;
+				}
+			}
+			for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
+			{
+				var completed = entries[completedAt];
+				if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
+				switch (completed.RuleIndex)
+				{
+					case 0:
+					{
+						var captured0Count = 0;
+						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+						{
+							var candidate = entries[capturedAt0];
+							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
+						}
+						var captured0 = new string[captured0Count];
+						var captured0Item = captured0Count;
+						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+						{
+							var candidate = entries[capturedAt0];
+							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
+							{
+								captured0[--captured0Item] = values1[candidate.Position];
+							}
+						}
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values0[completedAt] = Construct_Csv(captured0!);
+								break;
+						}
+						break;
+					}
+					case 1:
+					{
+						var captured0At = -1;
+						var captured1At = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 1:
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured0At < 0)
+										captured0At = candidate.Position;
+									break;
+								case 2:
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
+										captured1At = candidate.Position;
+									break;
+							}
+						}
+
+						global::System.Diagnostics.Debug.Assert(captured0At >= 0);
+						var captured0 = values1[captured0At];
+
+						global::System.Diagnostics.Debug.Assert(captured1At >= 0);
+						var captured1 = values2[captured1At];
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values1[completedAt] = Construct_Row(captured0!, captured1!);
+								break;
+						}
+						break;
+					}
+					case 2:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 3:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values1[completedAt] = Construct_Name(captured0!);
+								break;
+						}
+						break;
+					}
+					case 3:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 4:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values2[completedAt] = Construct_Amount(captured0!);
+								break;
+						}
+						break;
+					}
+				}
+			}
+		}
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
