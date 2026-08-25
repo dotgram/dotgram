@@ -187,24 +187,25 @@ pooling is deliberately turned off.
 
 `MaterializationCost.cs` asks a narrower question than the URL benchmark above: on the
 input that materializes the most values (the 47-character URL with every part), how much
-of the time is recognition and how much is capturing and building the typed result? Two
-copies of the same grammar, same rule boundaries, same character tests, differing only in
-whether anything is captured — `WithCaptures` publishes seven named parts into a record,
-`NoCaptures` publishes the same shape as `@SourceSpan` and captures nothing. `--job short`,
-2026-08-24, first numbers this file has carried:
+of the time is recognition and how much is capturing and building the typed result? Three
+copies of one grammar, same character tests throughout — `WithCaptures` keeps seven named
+parts as strings, `SpanCaptures` keeps the same seven as extents with no string built,
+`NoCaptures` captures nothing at all. `DefaultJob`, 2026-08-25, before and after the
+single-walk materializer (`docs/next.md`):
 
-| | mean | allocated |
-| --- | --: | --: |
-| materialized, 7 captures | 336.7 ns | 456 B |
-| recognized only, nothing captured | 115.8 ns | 64 B |
+| | before | after | allocated |
+| --- | --: | --: | --: |
+| captured as strings, 7 members | 306.1 ns | 247.0 ns | 328 B |
+| captured as spans, no strings built | 279.8 ns | 266.8 ns | 88 B |
+| nothing captured | 96.1 ns | 97.7 ns | 0 B |
 
-**Capturing and materializing costs about 2.9× what bare recognition of the identical
-shape costs** — 221 ns of the 337, against `CallCost.cs`'s ~25% for the arena call
-boundary alone. This does not separate "writing a capture entry to the arena as it
-matches" from "walking the arena at `Accept:` and building the record" from "capturing
-disqualifying a repetition that would otherwise have been possessive and arena-free" —
-all three are real candidates and this benchmark does not tell them apart. What it does
-say plainly: on a capture-heavy input, this is where the time is going, not the
-dispatch overhead `CallCost.cs` measures. That is the more promising place to look next,
-and the reason the URL benchmark's own worst case is the input with every part present
-rather than the longest one.
+**Capturing costs a multiple of recognizing the same shape**, and the third row is the
+control that says so: 97.7 ns to recognize this URL against 247.0 to recognize it and
+keep seven parts. That gap is what the single-walk materializer took a fifth out of, and
+what is left of it is the next thing to take apart.
+
+**The span row does not isolate what strings cost, though it was written to.** After the
+walk stopped dominating, it came out *slower* than the strings it was meant to be cheaper
+than — declaring seven rules `: @SourceSpan` gives each a value, a rule with a value gets
+a boundary, and that grammar pays for seven rule frames the string one does not. Read the
+two capture rows as two grammars, not as one grammar with and without strings.

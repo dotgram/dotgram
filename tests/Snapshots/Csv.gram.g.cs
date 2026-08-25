@@ -667,28 +667,27 @@ namespace DotGram.Snapshots
 								case 1:
 								{
 									var captured0At = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+									var captured1At = -1;
+									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
+										var candidate = entries[capturedAt];
+
+										switch (candidate.State)
 										{
-											captured0At = candidate.Position;
-											break;
+											case 1:
+												if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured0At < 0)
+													captured0At = candidate.Position;
+												break;
+											case 2:
+												if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
+													captured1At = candidate.Position;
+												break;
 										}
 									}
+
 									global::System.Diagnostics.Debug.Assert(captured0At >= 0);
 									var captured0 = values1[captured0At];
 
-									var captured1At = -1;
-									for (var capturedAt1 = linkHeads[completedAt]; capturedAt1 >= 0; capturedAt1 = linkNexts[capturedAt1])
-									{
-										var candidate = entries[capturedAt1];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 2))
-										{
-											captured1At = candidate.Position;
-											break;
-										}
-									}
 									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
 									var captured1 = values2[captured1At];
 
@@ -715,16 +714,23 @@ namespace DotGram.Snapshots
 								{
 									var captured0From = -1;
 									var captured0To   = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
+										var candidate = entries[capturedAt];
+
+										switch (candidate.State)
 										{
-											if (captured0To < 0)
-												captured0To = candidate.Value;
-											captured0From = candidate.Position;
+											case 3:
+												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+												{
+													if (captured0To < 0)
+														captured0To = candidate.Value;
+													captured0From = candidate.Position;
+												}
+												break;
 										}
 									}
+
 									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 									var chosen = -1;
@@ -750,16 +756,23 @@ namespace DotGram.Snapshots
 								{
 									var captured0From = -1;
 									var captured0To   = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+									for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
+										var candidate = entries[capturedAt];
+
+										switch (candidate.State)
 										{
-											if (captured0To < 0)
-												captured0To = candidate.Value;
-											captured0From = candidate.Position;
+											case 4:
+												if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+												{
+													if (captured0To < 0)
+														captured0To = candidate.Value;
+													captured0From = candidate.Position;
+												}
+												break;
 										}
 									}
+
 									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 									var chosen = -1;

@@ -272,18 +272,99 @@ sealed partial class Machine
 				return;
 			}
 
+			// One walk of a call's captures, not one per member. The list is chained through
+			// `linkNexts`, so every step of it is a load from somewhere else in the arena
+			// again — walking it once per member had a rule of five members chase the same
+			// pointers five times. `MaterializationCost.cs` is what said this was worth
+			// finding: of what captures cost, seven eighths is this machinery and one
+			// eighth is the strings it ends in.
+			//
+			// A sequence member keeps two walks of its own. It has to count before it can
+			// fill, which is a different shape from collecting one position, and merging it
+			// in would mean counting for members that are not sequences.
+			var scalars = new List<int>();
+
 			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
 			{
 				var member = members[memberIndex];
-				var slots  = new List<string>(member.Slots.Count);
 
-				foreach (var slot in member.Slots)
-					slots.Add($"candidate.State == {offset + slot}");
+				if (member is { Rule: not null, IsSequence: true })
+					continue;
+
+				scalars.Add(memberIndex);
+
+				if (member.Rule is not null)
+					file.Line($"var captured{memberIndex}At = -1;");
+				else
+				{
+					file.Line($"var captured{memberIndex}From = -1;");
+					file.Line($"var captured{memberIndex}To   = -1;");
+				}
+			}
+
+			if (scalars.Count > 0)
+			{
+				using (file.Block(
+					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line();
+
+					// A slot belongs to one member, so the state that names it is a jump
+					// rather than a run of comparisons. The kind is still tested inside:
+					// a `Recovery` entry's own state numbering is not a capture slot's, and
+					// nothing says the two cannot land on the same number.
+					using (file.Block("switch (candidate.State)"))
+						foreach (var memberIndex in scalars)
+						{
+							var member = members[memberIndex];
+
+							foreach (var slot in member.Slots)
+								file.Line($"case {offset + slot}:");
+
+							using (file.Indent())
+							{
+								if (member.Rule is not null)
+								{
+									// First in list order, which is what breaking out of a
+									// walk of its own used to mean.
+									file.Line(
+										"if (candidate.Kind == ParserEntry.RuleCapture && " +
+										$"candidate.CallIndex == completedAt && captured{memberIndex}At < 0)");
+									file.Then($"captured{memberIndex}At = candidate.Position;");
+								}
+								else
+									using (file.Block(
+										"if (candidate.Kind == ParserEntry.Capture && " +
+										"candidate.CallIndex == completedAt)"))
+									{
+										file.Line($"if (captured{memberIndex}To < 0)");
+										file.Then($"captured{memberIndex}To = candidate.Value;");
+										file.Line($"captured{memberIndex}From = candidate.Position;");
+									}
+
+								file.Line("break;");
+							}
+						}
+				}
+
+				file.Line();
+			}
+
+			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+			{
+				var member = members[memberIndex];
 
 				if (member.Rule is not null)
 				{
 					if (member.IsSequence)
 					{
+						var slots = new List<string>(member.Slots.Count);
+
+						foreach (var slot in member.Slots)
+							slots.Add($"candidate.State == {offset + slot}");
+
 						var element = _results.ValueOf(member.Rule);
 						var recovered = new List<string>();
 
@@ -340,23 +421,6 @@ sealed partial class Machine
 						continue;
 					}
 
-					file.Line($"var captured{memberIndex}At = -1;");
-
-					using (file.Block(
-						$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
-						$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
-					{
-						file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-
-						using (file.Block(
-							$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
-							$"({string.Join(" || ", slots)}))"))
-						{
-							file.Line($"captured{memberIndex}At = candidate.Position;");
-							file.Line("break;");
-						}
-					}
-
 					var capturedType = _results.ValueOf(member.Rule);
 
 					if (!member.IsOptional)
@@ -371,25 +435,6 @@ sealed partial class Machine
 					file.Line();
 
 					continue;
-				}
-
-				file.Line($"var captured{memberIndex}From = -1;");
-				file.Line($"var captured{memberIndex}To   = -1;");
-
-				using (file.Block(
-					$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
-					$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
-				{
-					file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-
-					using (file.Block(
-						$"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
-						$"({string.Join(" || ", slots)}))"))
-					{
-						file.Line($"if (captured{memberIndex}To < 0)");
-						file.Then($"captured{memberIndex}To = candidate.Value;");
-						file.Line($"captured{memberIndex}From = candidate.Position;");
-					}
 				}
 
 				file.Line(

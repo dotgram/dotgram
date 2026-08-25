@@ -1086,3 +1086,50 @@ five repetitions is the aggregate above and the two inputs that were stable all 
 the refusal and the 84-character path. `docs/next.md`'s own "Future optimization gate"
 already said measure in a parser and expect noise; this is what that costs in practice,
 and the answer is repetitions and medians rather than a better single run.
+
+## Built: one walk of a call's captures, not one per member
+
+`MaterializationCost.cs` had said captures cost 2.9× what recognizing the same shape
+does, and left three candidates inside that without telling them apart. A third variant
+was meant to tell them apart: the same seven captures kept as `SourceSpan`, with not one
+string built for them.
+
+```text
+                                    before      after
+nothing captured                    96.1 ns    97.7 ns      0 B
+captured as spans, no strings      279.8 ns   266.8 ns     88 B
+captured as strings                306.1 ns   247.0 ns    328 B
+```
+
+**That variant is not the clean isolation it was meant to be**, and the after column is
+what showed it: the spans are now *slower* than the strings they were supposed to be
+cheaper than. Declaring seven rules `: @SourceSpan` gives each of them a value, and a
+rule with a value gets a boundary of its own — so that grammar pays for seven rule
+frames the string one does not, and reads each captured value back through another arena
+entry. It was never measuring strings alone; the walk simply used to dominate both.
+
+What it did establish, and what the fix then confirmed, is that most of what captures
+cost was not the strings. The 26 ns the before column seemed to attribute to them is a
+floor and not a figure, and nothing here should be quoted as the cost of building a
+capture's text.
+
+What the machinery was doing, in the generated materializer: `Url` has five members and
+walked the same linked list of its call's captures five times, once per member, filtering
+each time by kind and slot. `Authority` has three and walked it three. The list is chained
+through `linkNexts`, so every step is a load from somewhere else in the arena again — five
+walks is five times the pointer-chasing to read what one pass could have collected.
+
+Now one walk, with a `switch` on the capture's slot: a slot belongs to one member, so what
+was a run of comparisons per entry per member is one jump per entry. The kind is still
+tested inside each case — a `Recovery` entry's own state numbering is not a capture slot's,
+and nothing says the two cannot land on the same number. A sequence member keeps its own
+two walks; it has to count before it can fill, and merging that in would mean counting for
+members that are not sequences.
+
+Worth **19.3%** where the members are all on one rule (306.1 ns against 247.0, with the
+no-capture control unmoved at 96.1 against 97.7, so the machine was the same for both),
+**7.9%** on the capture-heavy URL of `benchmarks/Urls.cs`, whose five members and three
+split across `Url` and `Authority` (13.44M parses in five seconds against 14.50M, medians
+of five, ranges barely touching), and 3.7% on the mixed hot loop — the cross-check, since
+half of that loop is a refusal that never materializes anything at all. More members on
+one rule is more walks collapsed, which is the shape of the saving.
