@@ -198,6 +198,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	IReadOnlyList<HostBracePair>       _braces        = [];
 	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
 	IReadOnlyList<HostDocumentSymbol> _documentSymbols = [];
+	IReadOnlyList<HostPublishedApi>    _publishedApis = [];
 
 	EmbeddedGrammarBufferAnalysis(
 		ITextBuffer buffer,
@@ -263,6 +264,24 @@ sealed class EmbeddedGrammarBufferAnalysis
 		Schedule(snapshot);
 		symbols = [];
 
+		return false;
+	}
+
+	public bool TryGetPublishedApis(
+		ITextSnapshot snapshot,
+		out IReadOnlyList<HostPublishedApi> publishedApis)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				publishedApis = _publishedApis;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		publishedApis = [];
 		return false;
 	}
 
@@ -365,6 +384,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
 			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
 			var documentSymbols = analyses.SelectMany(static analysis => analysis.DocumentSymbols).ToArray();
+			var publishedApis   = analyses.SelectMany(static analysis => analysis.PublishedApis).ToArray();
 			var retry           = false;
 
 			lock (_gate)
@@ -381,6 +401,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
 				_documentSymbols = documentSymbols;
+				_publishedApis   = publishedApis;
 
 				if (_retrySnapshot != snapshot)
 				{

@@ -123,6 +123,18 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.True(symbol.GrammarSpan.Contains(symbol.SelectionSpan));
 	}
 
+	[Fact]
+	public void MapsGeneratedApiNamesIntoTheHostString()
+	{
+		var source = Host("\"Start = 'a'\\nparse Start as ReadStart\"");
+
+		var publication = Assert.Single(Assert.Single(Analyze(source)).PublishedApis);
+
+		Assert.Equal("ReadStart", publication.MethodName);
+		Assert.Equal("ReadStart", source.Substring(publication.Span.Start, publication.Span.Length));
+		Assert.True(publication.GrammarSpan.Contains(publication.Span));
+	}
+
 	static string Host(string literal) => $$"""
 		using DG = DotGram;
 

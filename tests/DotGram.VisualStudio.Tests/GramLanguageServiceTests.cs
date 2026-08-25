@@ -169,6 +169,24 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void IndexesExplicitGeneratedApiNames()
+	{
+		const string source =
+			"Start = 'a'\n" +
+			"parse Start as ReadStart\n" +
+			"namespace Nested {\n" +
+			"  find Start as FindStarts\n" +
+			"}\n" +
+			"parse Start";
+
+		var publications = GramLanguageService.Analyze(source).PublishedApis;
+
+		Assert.Equal(new[] { "ReadStart", "FindStarts" }, publications.Select(item => item.MethodName));
+		Assert.All(publications, item =>
+			Assert.Equal(item.MethodName, source.Substring(item.Position, item.Length)));
+	}
+
+	[Fact]
 	public void AttachesCompleteRuleDefinitionToRuleReferences()
 	{
 		const string source = "Start = 'a'\n      | 'b'\nparse Start";

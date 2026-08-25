@@ -29,7 +29,8 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
-		return IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null
+		return PublishedApi(args, snapshot, position) is not null ||
+			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null
 			? CommandState.Available
 			: CommandState.Unavailable;
 	}
@@ -38,6 +39,13 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
+		if (PublishedApi(args, snapshot, position) is { } publishedApi)
+		{
+			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
+			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
+				roslyn.NavigateToDefinitionAsync(publishedApi, 0, CancellationToken.None));
+		}
+
 		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
 		{
 			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
@@ -55,6 +63,19 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		args.TextView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
 
 		return true;
+	}
+
+	string? PublishedApi(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
+	{
+		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name))
+			return GramBufferAnalysis.For(args.SubjectBuffer).Document(snapshot).PublishedApis
+				.FirstOrDefault(item => position >= item.Position && position < item.Position + item.Length)
+				.MethodName;
+
+		var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
+		return analysis.TryGetPublishedApis(snapshot, out var publications)
+			? publications.FirstOrDefault(item => item.Span.Contains(position)).MethodName
+			: null;
 	}
 
 	GramFindReferencesTarget? Target(GoToDefinitionCommandArgs args)

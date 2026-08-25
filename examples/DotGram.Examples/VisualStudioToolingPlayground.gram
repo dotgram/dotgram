@@ -41,4 +41,5 @@ Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise
 Digits(n) = ['0'..'9']{n}
 Fixed     = Digits(4)
 
+// F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate

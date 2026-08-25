@@ -43,6 +43,8 @@ public readonly record struct HostBracePair(TextSpan OpenSpan, TextSpan CloseSpa
 
 public readonly record struct HostFoldingRange(TextSpan Span, TextSpan GrammarSpan, string CollapsedText);
 
+public readonly record struct HostPublishedApi(string MethodName, TextSpan Span, TextSpan GrammarSpan);
+
 public sealed class HostDocumentSymbol(
 	string name,
 	GramDocumentSymbolKind kind,
@@ -86,7 +88,8 @@ public sealed class EmbeddedGrammarAnalysis(
 	IReadOnlyList<HostSymbolOccurrence> symbols,
 	IReadOnlyList<HostBracePair> braces,
 	IReadOnlyList<HostFoldingRange> foldingRanges,
-	IReadOnlyList<HostDocumentSymbol> documentSymbols)
+	IReadOnlyList<HostDocumentSymbol> documentSymbols,
+	IReadOnlyList<HostPublishedApi> publishedApis)
 {
 	public EmbeddedGrammar                   Grammar         { get; } = grammar;
 	public IReadOnlyList<HostClassification> Classifications { get; } = classifications;
@@ -95,6 +98,7 @@ public sealed class EmbeddedGrammarAnalysis(
 	public IReadOnlyList<HostBracePair> Braces { get; } = braces;
 	public IReadOnlyList<HostFoldingRange> FoldingRanges { get; } = foldingRanges;
 	public IReadOnlyList<HostDocumentSymbol> DocumentSymbols { get; } = documentSymbols;
+	public IReadOnlyList<HostPublishedApi> PublishedApis { get; } = publishedApis;
 }
 
 /// <summary>Runs shared grammar intelligence and maps its answers into a C# document.</summary>
@@ -116,6 +120,7 @@ public static class EmbeddedGrammarService
 			var braces          = new List<HostBracePair>(document.Braces.Count);
 			var foldingRanges   = new List<HostFoldingRange>(document.FoldingRanges.Count);
 			var documentSymbols = MapSymbols(document.DocumentSymbols, grammar);
+			var publishedApis   = new List<HostPublishedApi>(document.PublishedApis.Count);
 
 			foreach (var classification in document.Classifications)
 				if (grammar.SourceMap.TryMap(
@@ -176,6 +181,10 @@ public static class EmbeddedGrammarService
 				if (grammar.SourceMap.TryMap(range.Position, range.Length, out var span))
 					foldingRanges.Add(new HostFoldingRange(span, grammar.Token.Span, range.CollapsedText));
 
+			foreach (var publication in document.PublishedApis)
+				if (grammar.SourceMap.TryMap(publication.Position, publication.Length, out var span))
+					publishedApis.Add(new HostPublishedApi(publication.MethodName, span, grammar.Token.Span));
+
 			analyses.Add(new EmbeddedGrammarAnalysis(
 				grammar,
 				classifications,
@@ -183,7 +192,8 @@ public static class EmbeddedGrammarService
 				symbols,
 				braces,
 				foldingRanges,
-				documentSymbols));
+				documentSymbols,
+				publishedApis));
 		}
 
 		return analyses;

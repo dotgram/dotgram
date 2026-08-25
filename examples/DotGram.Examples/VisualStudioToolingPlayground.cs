@@ -45,6 +45,7 @@ namespace DotGram.Examples;
 	Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise(left, right))
 	                   | value: Primary                                   => @(value)
 
+	// F12 on ToolingEvaluate should open the generated C# publication method.
 	parse Sum as ToolingEvaluate
 	""")]
 public static partial class VisualStudioToolingPlayground

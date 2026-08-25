@@ -83,6 +83,9 @@ public readonly record struct GramBracePair(int OpenPosition, int OpenLength, in
 
 public readonly record struct GramFoldingRange(int Position, int Length, string CollapsedText);
 
+/// <summary>An explicitly named generated C# method declared by a publication.</summary>
+public readonly record struct GramPublishedApi(string MethodName, int Position, int Length);
+
 public enum GramDocumentSymbolKind
 {
 	Namespace,
@@ -115,7 +118,8 @@ public sealed class GramDocument(
 	IReadOnlyList<GramSymbolOccurrence> symbols,
 	IReadOnlyList<GramBracePair> braces,
 	IReadOnlyList<GramFoldingRange> foldingRanges,
-	IReadOnlyList<GramDocumentSymbol> documentSymbols)
+	IReadOnlyList<GramDocumentSymbol> documentSymbols,
+	IReadOnlyList<GramPublishedApi> publishedApis)
 {
 	public IReadOnlyList<GramClassifiedSpan> Classifications { get; } = classifications;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
@@ -123,6 +127,7 @@ public sealed class GramDocument(
 	public IReadOnlyList<GramBracePair> Braces { get; } = braces;
 	public IReadOnlyList<GramFoldingRange> FoldingRanges { get; } = foldingRanges;
 	public IReadOnlyList<GramDocumentSymbol> DocumentSymbols { get; } = documentSymbols;
+	public IReadOnlyList<GramPublishedApi> PublishedApis { get; } = publishedApis;
 }
 
 /// <summary>
@@ -199,6 +204,7 @@ public static class GramLanguageService
 
 		var (braces, foldingRanges) = Structure(text, tokens.Tokens, rules, classifications);
 		var documentSymbols = DocumentSymbols(parsed.File.Decls, tokens.Tokens);
+		var publishedApis = PublishedApis(parsed.File.Decls, tokens.Tokens);
 
 		return new GramDocument(
 			classifications,
@@ -206,7 +212,35 @@ public static class GramLanguageService
 			symbols,
 			braces,
 			foldingRanges,
-			documentSymbols);
+			documentSymbols,
+			publishedApis);
+	}
+
+	static IReadOnlyList<GramPublishedApi> PublishedApis(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new List<GramPublishedApi>();
+
+		foreach (var declaration in declarations)
+			switch (declaration)
+			{
+				case Decl.Namespace @namespace:
+					result.AddRange(PublishedApis(@namespace.Decls, tokens));
+					break;
+
+				case Decl.Publish { Alias: not null } publish:
+					var alias = tokens.LastOrDefault(token =>
+						token.Kind == TokenKind.Identifier &&
+						token.Value == publish.Alias &&
+						token.Position >= publish.At.Position &&
+						token.Position < publish.At.End);
+					if (alias.Length > 0)
+						result.Add(new GramPublishedApi(publish.Alias, alias.Position, alias.Length));
+					break;
+			}
+
+		return result;
 	}
 
 	static IReadOnlyList<GramDocumentSymbol> DocumentSymbols(
