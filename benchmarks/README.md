@@ -52,26 +52,34 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `--job medium`. Indicative, not stable CI thresholds:
+Windows, .NET 10, `DefaultJob`, 2026-08-24. Indicative, not stable CI thresholds:
 
-| input | .Gram | allocated |
-| --- | --: | --: |
-| `http://example.com` | 362 ns | 176 B |
-| `https://192.168.0.1/` | 294 ns | 200 B |
-| `https://exa mple.com/` — no match | 274 ns | 0 B |
-| a 47-character URL with every part | 525 ns | 352 B |
-| an 84-character path of eight segments | 599 ns | 328 B |
+| input | .Gram | Regex | Regex, compiled |
+| --- | --: | --: | --: |
+| `http://example.com` | 280.5 ns | 778.5 ns (2.78×) | 365.5 ns (1.30×) |
+| `https://192.168.0.1/` | 252.8 ns | 701.8 ns (2.78×) | 328.2 ns (1.30×) |
+| `https://exa mple.com/` — no match | 190.9 ns | 582.4 ns (3.05×) | 138.9 ns (0.73×) |
+| a 47-character URL with every part | 441.4 ns | 726.5 ns (1.65×) | 332.8 ns (0.75×) |
+| an 84-character path of eight segments | 381.7 ns | 1420.5 ns (3.73×) | 570.6 ns (1.50×) |
 
-Against `RegexOptions.Compiled` on the same inputs that is between 1.2 and 2.6 times
-slower, and against the interpreted pattern between 1.1 and 1.9 times faster. What is not
-close is the allocation: the pattern takes about 1032 bytes for the short URL against
-176, and what `.Gram` takes is the result and nothing else.
+Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
+long path — and loses on two: the refusal, expected (refusal is where a backtracking
+engine does its worst work), and the one input exercising every named part, which is also
+the one materializing the most values. Against interpreted `Regex`, faster on every input.
+Allocation: 400–536 B against the pattern's 1032–1128, and what `.Gram` takes is the
+result and nothing else.
 
-The earlier numbers this table used to carry — 774 ns for the short URL, 1.84 us for the
-long path — were measured before possessive repetitions, predictive choices, the parser
-being kept between parses and the value tables. `docs/next.md` keeps what each of those
-was worth, and `Membership.cs` and `Scanning.cs` beside this file keep the experiments
-that were measured and rejected.
+**This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
+below are what it was measured against — but nobody had re-run the benchmark since enough
+of this project's own accumulated optimizations (possessive repetitions, predictive
+choices, the parser kept between parses, typed value tables) landed to close most of the
+gap. Re-measure before trusting either table; `docs/status.md`, "What has been measured"
+carries whichever numbers were most recently refreshed.
+
+The earlier numbers this table used to carry before that — 774 ns for the short URL,
+1.84 us for the long path — were measured before those same optimizations landed.
+`docs/next.md` keeps what each of those was worth, and `Membership.cs` and `Scanning.cs`
+beside this file keep the experiments that were measured and rejected.
 
 ### Historical per-rule result
 
@@ -107,3 +115,32 @@ in a static field, outside the timed region, which flatters it against a parser 
 no build step at all because the build happened at compile time. A benchmark that included
 first-call cost would say something quite different, and neither number is the whole
 truth on its own.
+
+## What a rule boundary costs
+
+`CallCost.cs` isolates the two things "one automaton instead of methods" (`next.md`) could
+plausibly cost — going through the arena, and not reusing the parser — measured separately
+so neither is blamed for the other's share. `--job short`, 2026-08-24, first numbers this
+file has carried:
+
+| | mean | allocated |
+| --- | --: | --: |
+| compiled in place, no arena | 568.5 ns | 168 B |
+| called as an arena rule, default pooling | 711.2 ns | 168 B |
+| called, an explicit one-slot pool | 698.3 ns | 168 B |
+| called, a fresh `Parser` every call | 1276.8 ns | 11064 B |
+
+**Going through the arena instead of being compiled in place costs about 25%** (568 ns
+against 711 ns), with the parser pooled either way and allocation identical — this is the
+one piece of "one automaton" overhead that shows up on every call regardless of allocation,
+and the reason a silent, arena-free subtree of an otherwise arena-using grammar is worth
+pulling out into its own method rather than leaving as a state in the shared one.
+
+**The parser is pooled by default, without the consumer doing anything.** `Called as an
+arena rule` uses no `RentParser`/`ReturnParser` override at all — the generated code's own
+fallback (`Recycled()`, a thread-static one-slot cache) is what ran, and it already lands
+within 2% of an explicit consumer-supplied pool. What actually costs — 2.25× the time and
+66× the allocation — is a consumer explicitly forcing a fresh `Parser` per call
+(`Called_without_pooling`), which nothing does by default and no reasonable consumer would
+opt into. "Heavy initialization" is not a default-path problem; it is what happens if
+pooling is deliberately turned off.

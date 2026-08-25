@@ -1330,18 +1330,30 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Generated parsing comes out between 1.1× and 1.9× faster than
-interpreted `Regex`, and between 1.2× and 2.6× **slower** than
-`RegexOptions.Compiled` — the same order as the best the BCL does, and on the wrong side of
-it. Allocation is not at parity and has not been since the parser began to be kept between
-parses: a URL costs 176 bytes against the pattern's 1032, and what is left is the result
-and nothing else — the value, the value nested in it, and one string for each part kept.
+every input. Re-measured 2026-08-24, `DefaultJob`, pooled parser: generated parsing beats
+`RegexOptions.Compiled` on three of the five benchmarked inputs — 280.5 ns against 365.5 ns
+for the short URL, 252.8 against 328.2 for the IP-host form, 381.7 against 570.6 for the
+84-character path — and loses on two: 190.9 against 138.9 ns on the refusal (expected;
+`benchmarks/README.md` already says why — refusal is where a backtracking engine does its
+worst work), and 441.4 against 332.8 ns on the one input that exercises every named part,
+which is the input that materializes the most values and the likeliest place to look next.
+Against interpreted `Regex`, faster on every input, by 1.5× to 3.7×. Allocation is not at
+parity and has not been since the parser began to be kept between parses: the short URL
+costs 400 bytes against the pattern's 1032, and what is left is the result and nothing
+else — the value, the value nested in it, and one string for each part kept.
 
-An earlier version of this paragraph claimed the compiled pattern was beaten. It was, by
-the generator that compiled each rule to its own method, and that generator was removed:
-one automaton is what made backtracking across a rule boundary possible, and it costs
-what a method call did not. Between 630 ns and 362 the gap has been closed by more than
-half; it is not closed. `benchmarks/README.md` has the table and what not to read into it.
+An earlier version of this paragraph claimed the compiled pattern was beaten across the
+board, then that it was uniformly 1.2×–2.6× slower. Both were true once: the first, by the
+generator that compiled each rule to its own method, before it was removed because one
+automaton is what made backtracking across a rule boundary possible, and it costs what a
+method call did not; the second, at whatever point between then and 2026-08-24 the numbers
+above were last refreshed — this project's own accumulated optimizations (possessive
+repetitions, predictive choices, the parser kept between parses, typed value tables) closed
+most of the gap without anyone re-running the benchmark to notice. `benchmarks/README.md`
+has the fuller table and what not to read into it; `CallCost.cs` isolates the one piece
+still costing something on every call regardless of allocation — going through the arena
+rather than being compiled in place costs about 25% (568 ns against 711 ns, pooled either
+way) — and never had its own numbers written up before now.
 
 **Throughput on a large feed**, under *What the window costs* above: a million wide
 records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the same
