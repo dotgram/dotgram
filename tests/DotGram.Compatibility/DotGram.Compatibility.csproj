@@ -22,9 +22,18 @@
 		<RootNamespace>DotGram.Compatibility</RootNamespace>
 		<IsPackable>false</IsPackable>
 
-		<!-- The language version a consumer on this framework gets by default, rather than
-		     whatever the newest SDK would give. Emitted code may assume nothing newer. -->
-		<LangVersion>12</LangVersion>
+		<!-- The floor the emitted code declares, not the newest an SDK would give. C# 8,
+		     because every generated file opens with `#nullable enable` and that needs it,
+		     and nothing emitted needs more.
+
+		     Building at the floor is the assertion. A language feature the emitter starts
+		     using fails here rather than in somebody else's build, which is what the
+		     netstandard2.0 target already does for framework surface. -->
+		<LangVersion>8.0</LangVersion>
+
+		<!-- Off: the file it generates is C# 10 and would fail the floor before anything
+		     of ours was judged. A consumer at the floor has no implicit usings either. -->
+		<ImplicitUsings>disable</ImplicitUsings>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

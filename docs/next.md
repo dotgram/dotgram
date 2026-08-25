@@ -1957,3 +1957,50 @@ So for a literal, `SequenceEqual` wins. Where a list pattern would win is the th
 (`[>= '0' and <= '9', …]`) — `Octet`, `H16`, and every `Class{n}` in any grammar, all of
 which pay a bounds check per character today for the same reason the literal chain did. Not
 started, and this is where to start it.
+
+## Built: the emitted language-version floor, which was never checked
+
+`emitted-code.md` said "assume nothing about the consumer's language version or TFM", and
+the TFM half was tested — `DotGram.Compatibility` builds the generated code for
+`netstandard2.0`, and it caught a `string`-to-span conversion an hour before this. The
+language half was tested by nothing: that project pinned `LangVersion 12`, so anything the
+emitter wrote up to C# 12 passed in silence.
+
+What the floor actually is, once looked at: **C# 8**, and not by choice. Every emitted file
+opens with `#nullable enable`, so nothing lower can ever compile. And exactly one construct
+in all of the generated code exceeded it — `expected is not null` in the arena's `Fail:`,
+C# 9 — now written `!= null`. (A grep for `record` also hit, in a comment.)
+
+So the floor is declared C# 8 and the compatibility project's `netstandard2.0` target
+compiles at it. Two things had to move for that to mean anything: `ImplicitUsings` is off
+there, because the file it generates is C# 10 and would fail before ours was judged, and
+`Consumer.cs` is rewritten in C# 8 — block namespace, concatenated strings, an ordinary
+constructor. That last one is the lesson: the first attempt at this measurement reported
+zero errors in the generated file, which looked like a pass and was not. `Consumer.cs`
+failed to *parse* at the floor, so `[Gram]` went unrecognized, the generator produced
+nothing, and the file being grepped was left over from the previous build.
+
+## And the floor is a floor, not a ceiling
+
+Raised while the above was being written, and it reframes it: **a generator runs on every
+compilation.** Nothing generated outlives the compilation that produced it, so there is no
+reason all consumers must get the same C#. `context.ParseOptionsProvider` gives the
+effective `LanguageVersion`, and emitting the better form where it is available costs
+nothing at the floor.
+
+Effective is the word that matters. It is what the consumer's `<LangVersion>` resolves to,
+so an explicit `<LangVersion>8</LangVersion>` on a `net8.0` project reads as 8 — while
+`#if NET8_0_OR_GREATER` would read that same project as new enough and hand it code it
+cannot compile. There is no preprocessor symbol for the language version, and the TFM is
+not one.
+
+Two costs to name before anything is built on this. One grammar would stop producing one
+parser: the same input would compile differently for different consumers, which is true of
+nothing today. And every such site needs both forms written and both kept working — which
+is affordable only because the floor build now exists to check the second.
+
+The case that raised it: the position-sharpening chain inside a failed literal comparison
+reads better as a `switch` over list patterns (C# 11), and it was measured — bounds checks
+all gone, four narrow compares. It is cold code, so the gain is readability. Not built, and
+now the decision is about whether one grammar producing two parsers is worth a nicer cold
+block, rather than about whether it is allowed.

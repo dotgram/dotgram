@@ -17880,7 +17880,7 @@ namespace DotGram.Snapshots
 					failure.Expected = expected;
 					failure.ExpectedMore = null;
 				}
-				else if (lookahead < 0 && p == failure.Position && expected is not null)
+				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				Trace("fail", state, p, entries.Count);
 

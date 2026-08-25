@@ -642,7 +642,7 @@ sealed partial class Machine
 					file.Line("failure.Expected = expected;");
 					file.Line("failure.ExpectedMore = null;");
 				}
-				file.Line("else if (lookahead < 0 && p == failure.Position && expected is not null)");
+				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
 				file.Then(
 					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
 					".Add(expected);");

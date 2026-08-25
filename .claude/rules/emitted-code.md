@@ -17,9 +17,21 @@ target framework, next to the consumer's own code. That changes the rules.
   type unable to see, collide with or disagree about each other's, and it is the whole
   of why no runtime assembly ships. A generated parser's own types are `public` and
   nested in the host class, so their names are the host's and cannot clash either.
-- **Assume nothing about the consumer's language version or TFM.** No file-scoped
-  namespaces, no collection expressions, no `record` unless the emitted code carries
-  what makes it work. Prefer plainly compilable C#.
+- **C# 8 is the floor, and it is tested.** Every emitted file opens with `#nullable
+  enable`, which needs C# 8, and nothing emitted needs more — so that is where the floor
+  sits rather than anywhere chosen. No file-scoped namespaces, no collection expressions,
+  no `record`, no list patterns, no `is not null`. `DotGram.Compatibility` compiles the
+  generated code at `LangVersion 8.0` for `netstandard2.0`, so a feature the emitter
+  starts using fails there rather than in somebody else's build.
+
+  Emitting *above* the floor is allowed where the consumer's own compiler is known to
+  accept it: a generator runs on every compilation, so nothing generated outlives the
+  compilation that produced it, and `context.ParseOptionsProvider` gives the effective
+  `LanguageVersion` — the one the consumer's `<LangVersion>` actually resolves to, not the
+  one their TFM would suggest. Never infer it from a TFM or a preprocessor symbol:
+  `net8.0` with an explicit `<LangVersion>8</LangVersion>` is legal, and `#if
+  NET8_0_OR_GREATER` would be wrong about exactly that project. Anything written this way
+  needs the floor form beside it, which is what the floor build then checks.
 - **Fully qualify with `global::`** — the consumer's usings are unknown and their
   type names may collide with ours.
 - **Public API of a generated parser uses BCL types only** in the default mode:
