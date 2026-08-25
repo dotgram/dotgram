@@ -50,6 +50,18 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Validate installation through VSIXInstaller.
 - [ ] Validate an update when a package with a later version is available.
 
+## Current milestone: generated DSL discovery
+
+- [x] Merge the generated author-facing tooling attributes.
+- [x] Specify the first symbol-discovery and custom-attribute vertical slice.
+- [ ] Implement shape-based Roslyn discovery for parser hosts and attribute carriers.
+- [ ] Bind `GramClassify` rule/capture targets to grammar symbols.
+- [ ] Define a shared recognition trace for classifying arbitrary DSL input.
+- [ ] Classify and diagnose a custom-attribute DSL string in Visual Studio.
+
+The detailed design and explicit deferrals are in
+[`dsl-tooling-design.md`](dsl-tooling-design.md).
+
 ## Later milestones
 
 - Define and emit versioned generated-language discovery metadata.
