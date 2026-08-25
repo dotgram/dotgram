@@ -18,7 +18,7 @@ namespace DotGram.VisualStudio;
 [Name("DotGram Go To Definition command")]
 [ContentType(GramContentType.Name)]
 [ContentType("CSharp")]
-[Order(Before = "default")]
+[Order(Before = "Go To Definition Command Handler")]
 sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCommandArgs>
 {
 	[Import]

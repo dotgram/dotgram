@@ -414,14 +414,36 @@ sealed class RoslynGramCompletion(
 		var documentId = solution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
 		var document = documentId is null ? null : solution.GetDocument(documentId);
 		if (document is null)
+		{
+			var fileName = FileName(textDocument.FilePath);
+			foreach (var project in solution.Projects)
+			{
+				var generated = await project.GetSourceGeneratedDocumentsAsync(cancellationToken).ConfigureAwait(false);
+				document = generated.FirstOrDefault(candidate =>
+					string.Equals(candidate.Name, fileName, StringComparison.OrdinalIgnoreCase) ||
+					candidate.FilePath is not null && string.Equals(
+						FileName(candidate.FilePath), fileName, StringComparison.OrdinalIgnoreCase));
+				if (document is not null)
+					break;
+			}
+		}
+		if (document is null)
 			return null;
 
 		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-		if (model is null)
+		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		if (model is null || root is null)
 			return null;
 
-		var symbol = await SymbolFinder.FindSymbolAtPositionAsync(
-			model, position, workspace, cancellationToken).ConfigureAwait(false);
+		var boundedPosition = Math.Max(0, Math.Min(position, root.FullSpan.End - 1));
+		var token = root.FindToken(boundedPosition);
+		var symbol = token.Parent?.AncestorsAndSelf()
+			.Select(node => model.GetDeclaredSymbol(node, cancellationToken) ??
+				model.GetSymbolInfo(node, cancellationToken).Symbol ??
+				model.GetSymbolInfo(node, cancellationToken).CandidateSymbols.FirstOrDefault())
+			.FirstOrDefault(candidate => candidate is IMethodSymbol) ??
+			await SymbolFinder.FindSymbolAtPositionAsync(
+				model, boundedPosition, workspace, cancellationToken).ConfigureAwait(false);
 		if (symbol is not IMethodSymbol method)
 			return null;
 
