@@ -1994,10 +1994,21 @@ so an explicit `<LangVersion>8</LangVersion>` on a `net8.0` project reads as 8 �
 cannot compile. There is no preprocessor symbol for the language version, and the TFM is
 not one.
 
-Two costs to name before anything is built on this. One grammar would stop producing one
-parser: the same input would compile differently for different consumers, which is true of
-nothing today. And every such site needs both forms written and both kept working — which
-is affordable only because the floor build now exists to check the second.
+The cost is that every such site needs both forms written and both kept working, which is
+affordable only because the floor build now exists to check the second.
+
+**It was first written down here as a second cost — that one grammar would stop producing
+one parser — and that was wrong.** What makes two parsers different is what a consumer can
+observe: which inputs they accept, which values they build, what they say when they refuse.
+A `switch` over list patterns and an `else if` chain computing the same `p` differ in none
+of those. By that reasoning Debug and Release are two parsers, and so is one JIT version and
+the next — and so, measured twice today, is one run and the next, since profile-guided
+layout moved an input by 6.5% with nothing else changed.
+
+The line is real but narrower: **method bodies only.** A body is nobody's business but the
+compiler's. The shape of an emitted type is the consumer's — a `record` and a class differ
+in equality and `ToString` — and so is a signature, and so is the text of a diagnostic. Vary
+one of those by language version and the same grammar does mean two different things.
 
 The case that raised it: the position-sharpening chain inside a failed literal comparison
 reads better as a `switch` over list patterns (C# 11), and it was measured — bounds checks

@@ -32,6 +32,13 @@ target framework, next to the consumer's own code. That changes the rules.
   `net8.0` with an explicit `<LangVersion>8</LangVersion>` is legal, and `#if
   NET8_0_OR_GREATER` would be wrong about exactly that project. Anything written this way
   needs the floor form beside it, which is what the floor build then checks.
+
+  **Method bodies only.** A body is a code-generation choice in the same sense that Debug
+  and Release, or one JIT and the next, are: nothing a consumer can observe changes, so
+  writing it two ways is two spellings and not two parsers. What must not vary is anything
+  they do observe — the shape of an emitted type (a `record` and a class differ in equality
+  and `ToString`), a signature, a diagnostic's text. Vary one of those by language version
+  and the same grammar really does mean two different things.
 - **Fully qualify with `global::`** — the consumer's usings are unknown and their
   type names may collide with ours.
 - **Public API of a generated parser uses BCL types only** in the default mode:
