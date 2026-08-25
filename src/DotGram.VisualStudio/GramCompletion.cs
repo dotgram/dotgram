@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
@@ -291,6 +292,9 @@ sealed class RoslynGramCompletion(
 	VisualStudioWorkspace workspace,
 	ITextDocumentFactoryService documents)
 {
+	const string Before = "using System; class __DotGramCompletion { object __Value() { return ";
+	const string After = "; } }";
+
 	public async Task<ImmutableArray<CompletionItem>> GetItemsAsync(
 		IAsyncCompletionSource source,
 		string prefix,
@@ -300,18 +304,14 @@ sealed class RoslynGramCompletion(
 		if (project is null)
 			return [];
 
-		const string before = "using System; class __DotGramCompletion { object __Value() { return ";
-		const string after = "; } }";
-		var document = project.AddDocument(
-			"__DotGramCompletion.cs",
-			SourceText.From(before + prefix + after));
+		var document = SyntheticDocument(project, prefix);
 		var service = RoslynCompletionService.GetService(document);
 		if (service is null)
 			return [];
 
 		var completions = await service.GetCompletionsAsync(
 			document,
-			before.Length + prefix.Length,
+			Before.Length + prefix.Length,
 			cancellationToken: cancellationToken).ConfigureAwait(false);
 		if (completions is null)
 			return [];
@@ -331,6 +331,36 @@ sealed class RoslynGramCompletion(
 				ImmutableArray<ImageElement>.Empty))
 			.ToImmutableArray();
 	}
+
+	public async Task<RoslynGramQuickInfo?> GetQuickInfoAsync(
+		string expression,
+		int position,
+		CancellationToken cancellationToken)
+	{
+		var project = Project();
+		if (project is null)
+			return null;
+
+		var document = SyntheticDocument(project, expression);
+		var service = QuickInfoService.GetService(document);
+		if (service is null)
+			return null;
+
+		var item = await service.GetQuickInfoAsync(
+			document,
+			Before.Length + position,
+			cancellationToken).ConfigureAwait(false);
+		if (item is null)
+			return null;
+
+		return new RoslynGramQuickInfo(
+			item.Sections.Select(static section => section.TaggedParts).ToImmutableArray());
+	}
+
+	static Document SyntheticDocument(Project project, string expression) =>
+		project.AddDocument(
+			"__DotGramCompletion.cs",
+			SourceText.From(Before + expression + After));
 
 	Project? Project()
 	{
@@ -353,4 +383,9 @@ sealed class RoslynGramCompletion(
 		return workspace.CurrentSolution.Projects.FirstOrDefault(
 			static project => project.Language == LanguageNames.CSharp);
 	}
+}
+
+sealed class RoslynGramQuickInfo(ImmutableArray<ImmutableArray<TaggedText>> Sections)
+{
+	public ImmutableArray<ImmutableArray<TaggedText>> Sections { get; } = Sections;
 }

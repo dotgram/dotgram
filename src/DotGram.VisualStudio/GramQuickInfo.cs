@@ -10,6 +10,8 @@ using System.Windows.Input;
 
 using DotGram.Language;
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Tags;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Language.StandardClassification;
 using Microsoft.VisualStudio.LanguageServices;
@@ -31,13 +33,24 @@ namespace DotGram.VisualStudio;
 sealed class GramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 {
 	[Import]
+	VisualStudioWorkspace Workspace { get; set; } = null!;
+
+	[Import]
+	ITextDocumentFactoryService Documents { get; set; } = null!;
+
+	[Import]
 	IClassificationFormatMapService FormatMaps { get; set; } = null!;
 
 	[Import]
 	IClassificationTypeRegistryService ClassificationTypes { get; set; } = null!;
 
 	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) =>
-		new GramQuickInfoSource(textBuffer, GramBufferAnalysis.For(textBuffer), FormatMaps, ClassificationTypes);
+		new GramQuickInfoSource(
+			textBuffer,
+			GramBufferAnalysis.For(textBuffer),
+			new RoslynGramCompletion(textBuffer, Workspace, Documents),
+			FormatMaps,
+			ClassificationTypes);
 }
 
 [Export(typeof(IAsyncQuickInfoSourceProvider))]
@@ -62,6 +75,7 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 		new EmbeddedGramQuickInfoSource(
 			textBuffer,
 			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents),
+			new RoslynGramCompletion(textBuffer, Workspace, Documents),
 			FormatMaps,
 			ClassificationTypes);
 }
@@ -69,6 +83,7 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 sealed class GramQuickInfoSource(
 	ITextBuffer buffer,
 	GramBufferAnalysis analysis,
+	RoslynGramCompletion roslyn,
 	IClassificationFormatMapService formatMaps,
 	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
@@ -81,6 +96,21 @@ sealed class GramQuickInfoSource(
 
 		if (point is null)
 			return null;
+
+		if (GramCSharpCompletionContext.TryGetExpression(
+			snapshot.GetText(), point.Value.Position,
+			out var expression, out var expressionStart, out var symbolStart, out var symbolLength))
+		{
+			var csharp = await roslyn.GetQuickInfoAsync(
+				expression, point.Value.Position - expressionStart, cancellationToken).ConfigureAwait(false);
+			if (csharp is not null)
+			{
+				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				return CreateCSharp(
+					session.TextView, formatMaps, classificationTypes, snapshot,
+					symbolStart, symbolLength, csharp);
+			}
+		}
 
 		foreach (var item in analysis.Document(snapshot).Classifications)
 			if (Contains(item.Position, item.Length, point.Value.Position))
@@ -129,6 +159,86 @@ sealed class GramQuickInfoSource(
 				kind,
 				quickInfo is not null));
 	}
+
+	internal static QuickInfoItem CreateCSharp(
+		ITextView view,
+		IClassificationFormatMapService formatMaps,
+		IClassificationTypeRegistryService classificationTypes,
+		ITextSnapshot snapshot,
+		int position,
+		int length,
+		RoslynGramQuickInfo quickInfo)
+	{
+		var span = new SnapshotSpan(snapshot, position, length);
+		var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
+		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
+			?? SystemColors.InfoTextBrush;
+		var formatMap = formatMaps.GetClassificationFormatMap(view);
+		var block = new TextBlock { TextWrapping = TextWrapping.Wrap };
+
+		for (var sectionIndex = 0; sectionIndex < quickInfo.Sections.Length; sectionIndex++)
+		{
+			if (sectionIndex > 0)
+				block.Inlines.Add(new LineBreak());
+
+			foreach (var part in quickInfo.Sections[sectionIndex])
+			{
+				var run = new Run(part.Text) { Foreground = foreground };
+				var type = classificationTypes.GetClassificationType(RoslynClassification(part.Tag));
+				if (type is not null)
+				{
+					var properties = formatMap.GetTextProperties(type);
+					if (properties.ForegroundBrush is not null)
+						run.Foreground = properties.ForegroundBrush;
+					if (properties.Typeface is not null)
+					{
+						run.FontFamily = properties.Typeface.FontFamily;
+						run.FontStyle = properties.Typeface.Style;
+						run.FontWeight = properties.Typeface.Weight;
+						run.FontStretch = properties.Typeface.Stretch;
+					}
+				}
+				block.Inlines.Add(run);
+			}
+		}
+
+		var header = new StackPanel { Orientation = Orientation.Horizontal };
+		header.Children.Add(new CrispImage
+		{
+			Moniker = KnownMonikers.IntellisenseLightBulb,
+			Width = 16,
+			Height = 16,
+			Margin = new Thickness(0, 0, 6, 0),
+			VerticalAlignment = VerticalAlignment.Top,
+		});
+		header.Children.Add(block);
+		var panel = new InteractiveQuickInfoPanel(trackingSpan);
+		panel.Children.Add(header);
+		return new QuickInfoItem(trackingSpan, panel);
+	}
+
+	static string RoslynClassification(string tag) => tag switch
+	{
+		TextTags.Keyword => PredefinedClassificationTypeNames.Keyword,
+		TextTags.Class => "class name",
+		TextTags.Struct => "struct name",
+		TextTags.Interface => "interface name",
+		TextTags.Enum => "enum name",
+		TextTags.Delegate => "delegate name",
+		TextTags.Method => "method name",
+		TextTags.ExtensionMethod => "extension method name",
+		TextTags.Property => "property name",
+		TextTags.Field => "field name",
+		TextTags.Event => "event name",
+		TextTags.Namespace => "namespace name",
+		TextTags.Parameter => "parameter name",
+		TextTags.Local => "local name",
+		TextTags.NumericLiteral => PredefinedClassificationTypeNames.Number,
+		TextTags.StringLiteral => PredefinedClassificationTypeNames.String,
+		TextTags.Operator => PredefinedClassificationTypeNames.Operator,
+		TextTags.Punctuation => PredefinedClassificationTypeNames.Punctuation,
+		_ => PredefinedClassificationTypeNames.Text,
+	};
 
 	static object Expandable(
 		ITextView view,
@@ -358,6 +468,7 @@ sealed class GramQuickInfoSource(
 sealed class EmbeddedGramQuickInfoSource(
 	ITextBuffer buffer,
 	EmbeddedGrammarBufferAnalysis analysis,
+	RoslynGramCompletion roslyn,
 	IClassificationFormatMapService formatMaps,
 	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
@@ -370,6 +481,22 @@ sealed class EmbeddedGramQuickInfoSource(
 
 		if (point is null || !analysis.TryGet(snapshot, out var classifications, out _))
 			return null;
+
+		if (classifications.Any(item => item.GrammarSpan.Contains(point.Value.Position)) &&
+			GramCSharpCompletionContext.TryGetExpression(
+				snapshot.GetText(), point.Value.Position,
+				out var expression, out var expressionStart, out var symbolStart, out var symbolLength))
+		{
+			var csharp = await roslyn.GetQuickInfoAsync(
+				expression, point.Value.Position - expressionStart, cancellationToken).ConfigureAwait(false);
+			if (csharp is not null)
+			{
+				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				return GramQuickInfoSource.CreateCSharp(
+					session.TextView, formatMaps, classificationTypes, snapshot,
+					symbolStart, symbolLength, csharp);
+			}
+		}
 
 		foreach (var item in classifications)
 			if (item.Span.Contains(point.Value.Position))

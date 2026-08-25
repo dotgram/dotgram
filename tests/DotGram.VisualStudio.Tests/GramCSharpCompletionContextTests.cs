@@ -25,4 +25,17 @@ public sealed class GramCSharpCompletionContextTests
 	{
 		Assert.False(GramCSharpCompletionContext.TryGetPrefix(text, text.Length, out _));
 	}
+
+	[Fact]
+	public void FindsHoveredSymbolInsideMemberAccess()
+	{
+		const string text = "Rule = value => @decimal.Parse";
+		var position = text.IndexOf("Parse", System.StringComparison.Ordinal) + 2;
+
+		Assert.True(GramCSharpCompletionContext.TryGetExpression(
+			text, position, out var expression, out var expressionStart, out var symbolStart, out var symbolLength));
+		Assert.Equal("decimal.Parse", expression);
+		Assert.Equal(text.IndexOf("decimal", System.StringComparison.Ordinal), expressionStart);
+		Assert.Equal("Parse", text.Substring(symbolStart, symbolLength));
+	}
 }
