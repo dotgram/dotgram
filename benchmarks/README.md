@@ -195,14 +195,15 @@ single-walk materializer (`docs/next.md`):
 
 | | before | after | allocated |
 | --- | --: | --: | --: |
-| captured as strings, 7 members | 306.1 ns | 246.3 ns | 328 B |
-| captured as spans, no strings built | 279.8 ns | 251.4 ns | 88 B |
-| nothing captured | 96.1 ns | 96.3 ns | 0 B |
+| captured as strings, 7 members | 306.1 ns | 219.2 ns | 328 B |
+| captured as spans, no strings built | 279.8 ns | 239.3 ns | 88 B |
+| nothing captured | 96.1 ns | 90.8 ns | 0 B |
 
 **Capturing costs a multiple of recognizing the same shape**, and the third row is the
-control that says so: 96.3 ns to recognize this URL against 246.3 to recognize it and
-keep seven parts. That gap is what the single-walk materializer took a fifth out of, and
-what is left of it is the next thing to take apart.
+control that says so: 90.8 ns to recognize this URL against 219.2 to recognize it and keep
+seven parts. Read it as a ratio rather than a subtraction, since the control moved too:
+the seven parts cost **2.19× recognition before this work and 1.41× after**, over the three
+changes `docs/next.md` records under materialization.
 
 Note what this grammar does *not* show. Making the materializer a method of its own was
 worth 7% on `benchmarks/Urls.cs` and nothing measurable here — the recognizer this

@@ -1215,3 +1215,33 @@ after one walk per call                     20.96M
 after the materializer became a method      22.11M
 after the value tree is reached not scanned 23.62M
 ```
+
+### Where materialization stands, and why to stop here
+
+Over the three changes, seven captures went from costing **2.19× what recognizing the
+same shape costs to 1.41×** — 306.1 ns against 90.8 to 219.2 against 96.1, read as ratios
+because the control moved between runs too. On the real URL grammar the profile agrees:
+`Materialize_DotGram` was 13.9% of samples and is 10.4%, while doing more parses per
+second, and recognition at 16.9% is now the larger of the two.
+
+What is left inside it does not look like more of the same.
+
+- **Building the links is the one pass over every entry still there, and it needs to be.**
+  Doing it while matching instead means unpicking a chain on every step back — which is
+  what `Truncate` already does for the guard path, and what its own comment describes as
+  the delicate part. One clean pass at the end is cheaper than paying on every backtrack.
+- **The strings are what the caller asked for.** Building them lazily would mean holding
+  the input to slice later, which the `ReadOnlySpan<char>` entry point has nothing to hold.
+- **`Reset` clears three arrays per parse**, about 2% of samples. Half of one of them is
+  provably unnecessary — nothing ever reads a `linkNexts` slot that was not written this
+  parse, since every index reachable from a valid head was linked this parse and linking
+  writes it. That is a fraction of a per cent, which is the noise floor this file has an
+  entry about. The `_values` clear is the larger half and cannot go without moving the
+  mark to a generation stamp, which trades an O(n) clear for holding a parse's objects
+  alive in a pooled parser until the next one overwrites them. Worth knowing about; not
+  obviously worth doing.
+
+The mass that is left is recognition, and 59% of samples are in native code the sampler
+cannot attribute at all — most likely the character loops the JIT has inlined flat. That
+is a different kind of problem from the one this section solved, and wants its own
+instrument before anyone starts guessing at it.
