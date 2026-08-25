@@ -3,15 +3,23 @@
 namespace DotGram.Grammar.Emit;
 
 /// <summary>
-/// Everything the generator emits before it has looked at anything, which is now only the
-/// attribute a grammar is attached with.
+/// Everything the generator emits before it has looked at anything: the attribute a
+/// grammar is attached with, and the ones a grammar's author annotates it for tooling
+/// with.
 /// </summary>
 /// <remarks>
 /// <para>
-/// It is <c>internal</c>, which is the whole of why .Gram needs no runtime assembly and no
-/// way of finding one. An internal type is invisible across an assembly boundary, so two
-/// assemblies each emitting <c>DotGram.GramAttribute</c> do not collide, do not have to
-/// agree, and have nothing to version.
+/// All of it is <c>internal</c>, which is the whole of why .Gram needs no runtime assembly
+/// and no way of finding one. An internal type is invisible across an assembly boundary,
+/// so two assemblies each emitting <c>DotGram.GramAttribute</c> do not collide, do not
+/// have to agree, and have nothing to version.
+/// </para>
+/// <para>
+/// The tooling attributes are read rather than executed, and by name rather than by type
+/// identity — an editor asking what language a referenced assembly's parser speaks looks
+/// at metadata through Roslyn, where <c>internal</c> is visible, and never loads the
+/// assembly to ask it (docs/DotGram_Tooling_Agent_Handoff.md §21, §26). That is what lets
+/// each assembly carry its own copy of these and still be understood by one tool.
 /// </para>
 /// <para>
 /// <c>SourceSpan</c> used to be here beside it, and for the same reason — but internal is
@@ -59,6 +67,87 @@ public static class SupportEmitter
 				public GramAttribute(string source) => Source = source;
 
 				public string? Source { get; }
+			}
+
+			/// <summary>
+			/// What a rule or a capture means, as a role rather than a colour: an editor's
+			/// theme decides how an identifier looks, and this says only that something is
+			/// one.
+			/// </summary>
+			internal enum GramClassification
+			{
+				Keyword,
+				Identifier,
+				Type,
+				Variable,
+				Function,
+				Method,
+				Property,
+				Number,
+				String,
+				Comment,
+				Operator,
+				Punctuation,
+				Namespace,
+				Parameter,
+				Label,
+			}
+
+			/// <summary>Names the language a grammar describes, for tooling to discover.</summary>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramLanguageAttribute : global::System.Attribute
+			{
+				/// <param name="id">
+				/// A stable identifier for the language, unique to whoever owns it — a reverse
+				/// domain name is the usual shape.
+				/// </param>
+				public GramLanguageAttribute(string id) => Id = id;
+
+				public string Id { get; }
+
+				/// <summary>File extensions this language claims, with the dot.</summary>
+				public string[]? Extensions { get; set; }
+			}
+
+			/// <summary>
+			/// Gives a rule or one of its captures a semantic role.
+			/// </summary>
+			/// <remarks>
+			/// A rule's own classification is the default for every use of it; a capture's
+			/// overrides that default where the two disagree. `Declaration.type` and
+			/// `Declaration.name` may both be `Identifier` rules and mean different things.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramClassifyAttribute : global::System.Attribute
+			{
+				/// <param name="target">
+				/// A rule name — <c>Keyword</c> — or a capture of one — <c>Declaration.type</c>.
+				/// </param>
+				/// <param name="role">What it means, for an editor to present as it likes.</param>
+				public GramClassifyAttribute(string target, GramClassification role)
+				{
+					Target = target;
+					Role   = role;
+				}
+
+				public string             Target { get; }
+				public GramClassification Role   { get; }
+			}
+
+			/// <summary>
+			/// Marks an attribute whose string argument is written in a generated language,
+			/// so that tooling can treat it as that language rather than as text.
+			/// </summary>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramEmbeddedLanguageAttribute : global::System.Attribute
+			{
+				/// <param name="parser">The host class of the grammar that language comes from.</param>
+				public GramEmbeddedLanguageAttribute(global::System.Type parser) => Parser = parser;
+
+				public global::System.Type Parser { get; }
 			}
 
 		}
