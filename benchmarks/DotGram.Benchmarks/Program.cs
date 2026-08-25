@@ -49,6 +49,19 @@ static class Program
 			return;
 		}
 
+		// `--against [rounds] [iterations]` is not a benchmark either: it measures the URL
+		// comparison round-robin instead of one method at a time, so that the ratios hold
+		// on a machine that is not idle. See Against.cs.
+		if (args.Length >= 1 && args[0] == "--against")
+		{
+			var rounds     = args.Length >= 2 && int.TryParse(args[1], out var many) ? many : 9;
+			var iterations = args.Length >= 3 && int.TryParse(args[2], out var each) ? each : 200_000;
+
+			Against.Run(rounds, iterations);
+
+			return;
+		}
+
 		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 	}
 }

@@ -1330,16 +1330,28 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the materialization
-work and the lazy refusal message: **generated parsing is faster than
-`RegexOptions.Compiled` on all five benchmarked inputs** — 141.7 ns against 263.3 for the
-short URL, 136.3 against 248.2 for the IP-host form, 77.1 against 103.2 on the refusal,
-215.8 against 412.3 for the 84-character path, and 226.6 against 252.7 on the one that
-exercises every named part. Against interpreted `Regex`, 2.4× to 5.6×.
+every input. Re-measured 2026-08-25, pooled parser, after the predicted-dispatch change:
+**generated parsing is faster than `RegexOptions.Compiled` on four of the five benchmarked
+inputs and level with it on the fifth** — 145.0 ns against 301.6 for the short URL, 153.6
+against 287.2 for the IP-host form, 90.6 against 111.6 on the refusal, 212.4 against 456.0
+for the 84-character path, and 282.7 against 280.1 on the one that exercises every named
+part. Against interpreted `Regex`, 2.2× to 5.9×.
 
-Both inputs that used to lose turned round, and neither by a general speed-up: the
-every-part one by the materialization work below, the refusal by not wording the failure
-message until somebody asks for it.
+That fifth was ahead at 1.12× before the predicted-dispatch change, which removed work on
+every input and cost it its lead anyway: on a method of this size the profile-guided block
+layout is worth more than the work removed, and the same change is a gain on that input the
+moment dynamic PGO is off, and a 10% gain on the larger RFC grammar. Reported as it stands
+— the layout is not something this generator chooses. `docs/next.md` has the whole of it.
+
+**Measured with `--against` rather than `DefaultJob`**, and the difference matters for a
+ratio. BenchmarkDotNet runs each case in a process of its own, one after another, so
+`.Gram` is timed at one minute and `Regex` at another; `--against` runs all six round-robin
+in one process, so what the machine does to one measurement it does to the five beside it.
+Three `DefaultJob` runs in a row had to be discarded here — the benchmark's own two rows
+that must agree came out 21% and 28% apart — while `--against` came through the same
+conditions with spreads under 6% and two runs agreeing to within 0.05 on every ratio. The
+absolute nanoseconds are about a tenth higher than the last quiet-machine table, on both
+engines; that is the machine.
 
 **Those five ask each side for one part, which is the pattern's question and not this
 one's.** A group records where a capture was and cuts its string when somebody reads it;

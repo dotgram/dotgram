@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using BenchmarkDotNet.Attributes;
@@ -73,12 +74,20 @@ public class UrlBenchmarks
 	/// backtracking engine does its worst work, and leaving it out of a benchmark is how
 	/// that goes unnoticed.
 	/// </remarks>
-	[Params(
+	/// <remarks>
+	/// A source rather than constants in the attribute so that <see cref="Against"/> can
+	/// measure the same five without a second copy of them to keep in step.
+	/// </remarks>
+	public static IEnumerable<string> Inputs =>
+	[
 		"http://example.com",
 		"https://user@example.com:8080/a/b/c?q=1&r=2#top",
 		"https://192.168.0.1/",
 		"https://example.com/" + "segment/segment/segment/segment/segment/segment/segment/segment/",
-		"https://exa mple.com/")]
+		"https://exa mple.com/",
+	];
+
+	[ParamsSource(nameof(Inputs))]
 	public string Input { get; set; } = "";
 
 	[GlobalSetup]

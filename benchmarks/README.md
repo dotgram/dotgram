@@ -3,6 +3,7 @@
 ```console
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*Url*"
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --against 9 200000
 ```
 
 Not run by CI. A number from a shared runner is a number about the runner, and a test
@@ -56,21 +57,33 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, `DefaultJob`, 2026-08-25, after the materialization work and the lazy
-refusal message (`docs/next.md`). Indicative, not stable CI thresholds:
+Windows, .NET 10, 2026-08-25, after the predicted-dispatch change (`docs/next.md`).
+Measured with `--against` rather than `DefaultJob`, for the reason under
+"Which instrument, and why" below. Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 141.7 ns | 585.4 ns (4.13×) | 263.3 ns (1.86×) |
-| `https://192.168.0.1/` | 136.3 ns | 529.9 ns (3.89×) | 248.2 ns (1.82×) |
-| `https://exa mple.com/` — no match | 77.1 ns | 434.2 ns (5.63×) | 103.2 ns (1.34×) |
-| a 47-character URL with every part | 226.6 ns | 532.1 ns (2.35×) | 252.7 ns (1.12×) |
-| an 84-character path of eight segments | 215.8 ns | 1099.4 ns (5.10×) | 412.3 ns (1.91×) |
+| `http://example.com` | 145.0 ns | 604.1 ns (4.17×) | 301.6 ns (2.08×) |
+| `https://192.168.0.1/` | 153.6 ns | 567.9 ns (3.70×) | 287.2 ns (1.87×) |
+| `https://exa mple.com/` — no match | 90.6 ns | 438.8 ns (4.84×) | 111.6 ns (1.23×) |
+| a 47-character URL with every part | 282.7 ns | 620.4 ns (2.19×) | 280.1 ns (**0.99×**) |
+| an 84-character path of eight segments | 212.4 ns | 1242.5 ns (5.85×) | 456.0 ns (2.15×) |
 
-**Faster than `RegexOptions.Compiled` on all five**, and than the interpreted pattern by
-2.4× to 5.6×. Both inputs that used to lose turned round: the one with every part present,
-by the materialization work, and the refusal, by not wording the failure message until
-somebody asks for it.
+**Faster than `RegexOptions.Compiled` on four of the five, and level with it on the fifth**,
+and faster than the interpreted pattern by 2.2× to 5.9×.
+
+**The fifth used to be ahead, at 1.12×, and this is not a mystery.** The predicted-dispatch
+change removes work on every one of these inputs and made that one slower anyway, because on
+a method this size the profile-guided block layout is worth more than the work — the same
+change turns it into a gain the moment dynamic PGO is switched off, and on the larger RFC
+grammar the same input gains 10% instead. `docs/next.md`, "What that change actually
+measured", has it. Reported as it stands rather than tuned around: the layout is not
+something this generator chooses.
+
+The absolute nanoseconds are higher across the board than the tables this file used to carry
+— every row, both engines, by roughly a tenth. That is the machine, not the code: these were
+taken while another workload was running, which is exactly the condition `--against` exists
+for. Read the ratios.
 
 ### Asked for every part instead of one
 
@@ -85,32 +98,53 @@ The same five inputs, with every part read on both sides:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 139.6 ns | 687.3 ns (4.92×) | 378.3 ns (2.71×) |
-| `https://192.168.0.1/` | 140.8 ns | 638.6 ns (4.54×) | 369.5 ns (2.62×) |
-| `https://exa mple.com/` — no match | 74.5 ns | 428.2 ns (5.75×) | 103.7 ns (1.39×) |
-| a 47-character URL with every part | 228.6 ns | 660.7 ns (2.89×) | 376.1 ns (1.65×) |
-| an 84-character path of eight segments | 216.4 ns | 1228.5 ns (5.68×) | 544.4 ns (2.52×) |
+| `http://example.com` | 146.8 ns | 729.2 ns (4.97×) | 433.7 ns (2.95×) |
+| `https://192.168.0.1/` | 152.4 ns | 710.2 ns (4.66×) | 421.8 ns (2.77×) |
+| `https://exa mple.com/` — no match | 86.5 ns | 441.7 ns (5.11×) | 113.7 ns (1.31×) |
+| a 47-character URL with every part | 284.6 ns | 781.8 ns (2.75×) | 446.1 ns (1.57×) |
+| an 84-character path of eight segments | 207.3 ns | 1389.3 ns (6.70×) | 597.7 ns (2.88×) |
 
-**Asking for all seven costs this nothing.** Every row is within 4% of its own row above,
-in both directions, which is where this machine's noise lives — and the allocation figures
-are identical to the byte. They were built before the call returned; reading them reads
-fields.
+**Asking for all seven costs this nothing.** Every row is within 5% of its own row above,
+in both directions, and the allocation figures are identical to the byte. They were built
+before the call returned; reading them reads fields. It is also the check that says whether
+a run is worth reading at all — two measurements that must agree, and a run where they come
+out 20% apart is a run something else was happening during.
 
-**It costs the compiled pattern 32% to 49%** on the four inputs that match — 263→378,
-248→370, 412→544 and 253→376 ns, and 32 to 208 bytes more each. Only the refusal is
+**It costs the compiled pattern 44% to 60%** on the four inputs that match — 302→434,
+287→422, 456→598 and 280→446 ns, and 32 to 208 bytes more each. Only the refusal is
 unchanged, because a refusal has no parts to cut.
+
+**The input that is level on the first table is 1.57× ahead on this one.** That is the whole
+of what the two tables are for: the question the pattern is built for and the question this
+is.
 
 Neither table is the honest one on its own. The first flatters the pattern by asking for
 the one thing it defers; the second flatters this by asking for everything it built anyway.
 Together they say the deferral is real and worth something to a caller who wants one part,
 and is a cost the moment the caller wants the parse.
 
-**These two tables predate the predicted-dispatch change** that stopped a chosen alternative
-re-testing the character the dispatch had just tested (`docs/next.md`). Two attempts to
-refresh them were thrown away because another workload was running on the machine, and a
-ratio against a control is worth what the control is worth. The change's own effect was
-measured a way that survives a busy machine — two binaries in separate processes,
-alternating, medians of five — and is recorded there.
+### Which instrument, and why
+
+`--against` measures the same six methods `UrlBenchmarks` does — through the benchmark class
+itself, so the work is the same work — but round-robin: every method once per round, rounds
+repeating, all in one process. `DefaultJob` is the better instrument for an absolute number
+and cannot be the better one for a ratio, because it runs each case in a process of its own,
+one after another: `.Gram` is measured at one minute and `Regex` at another, and a ratio
+between them assumes nothing about the machine changed in between.
+
+On an idle machine nothing does, and the two agree. On this one, three `DefaultJob` runs in
+a row had to be thrown away — `.Gram` and `.Gram, every part`, which do the same work, came
+out 21% and 28% apart, and in the third only three of the five input blocks were usable,
+because BenchmarkDotNet runs blocks in sequence and interference is local in time.
+`--against` came through the same conditions with every method's own spread between 0.3% and
+6%, and two independent runs agreeing to within 0.05 on every ratio.
+
+It also subtracts what the loop and the indirect call cost — 1.5 ns here — for a reason
+worth stating: a constant added to both sides of a ratio drags the ratio towards one, so
+leaving it in flatters whichever engine is slower.
+
+Use `DefaultJob` for absolute nanoseconds and allocation on a quiet machine. Use `--against`
+when what is wanted is the comparison, or when the machine is not quiet.
 
 ### Reading these numbers between runs
 
