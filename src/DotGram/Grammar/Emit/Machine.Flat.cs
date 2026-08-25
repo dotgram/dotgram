@@ -97,35 +97,4 @@ sealed partial class Machine
 
 		return file.ToString();
 	}
-
-	/// <summary>
-	/// The thin wrapper <c>CSharpEmitter.EmitPublication</c> calls — same name, same
-	/// signature <see cref="RenderWrapper"/> would have produced, so the caller cannot tell
-	/// which one it got.
-	/// </summary>
-	public string RenderFlatWrapper(RuleSymbol root, string name, string flatName)
-	{
-		var file   = new Writer(0);
-		var type   = _results.QualifiedOf(root);
-		var output = type is null ? "" : $", out {type} value";
-
-		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{output})"))
-		{
-			file.Line($"var end = {flatName}(text, pos, ref failure);");
-
-			if (IsExtent(root))
-				file.Line("value = end < 0 ? default : new SourceSpan(pos, end - pos);");
-			else if (type is not null)
-				// Not reachable: CanLower only admits a rule whose value is its own extent,
-				// since silence already rules out every capture and construction a typed,
-				// non-extent value would need.
-				file.Line("value = default!;");
-
-			file.Line("return end;");
-		}
-
-		return file.ToString();
-	}
 }

@@ -148,26 +148,15 @@ public static partial class CSharpEmitter
 				if (!rendered.Add((publication.Rule, whole)))
 					continue;
 
-				var wrapperName = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
-
-				// The wrapper exists to add the `out` parameter a rule with a value needs,
-				// and to fill it. A rule without one asks the recognizer exactly what the
-				// wrapper would have asked and hands back exactly what it answered — so
-				// the two signatures are the same signature, and what stands between them
-				// is a call and a name. The recognizer takes the name instead.
-				var wrapped  = results.QualifiedOf(publication.Rule) is not null;
-				var flatName = wrapped
-					? MethodOf(publication.Rule) + (whole ? "_Whole" : "") + "_Flat"
-					: wrapperName;
-
-				file.Write(machine!.RenderFlat(publication.Rule, flatName, whole));
+				// Under the name the caller uses, with no wrapper between. A lowered
+				// publication never has a value of its own — a value comes from a
+				// construction and `CanLower` is `Silent`, which has no case for one — so
+				// there is no `out` parameter to add and nothing for a wrapper to do.
+				file.Write(machine!.RenderFlat(
+					publication.Rule,
+					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+					whole));
 				file.Line();
-
-				if (wrapped)
-				{
-					file.Write(machine.RenderFlatWrapper(publication.Rule, wrapperName, flatName));
-					file.Line();
-				}
 			}
 		}
 
@@ -324,7 +313,7 @@ public static partial class CSharpEmitter
 					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
 						? probe.Name
 						: null,
-					machine.UsesInput);
+					machine?.UsesInput ?? false);
 				file.Line();
 			}
 		}

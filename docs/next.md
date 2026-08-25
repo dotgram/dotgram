@@ -1865,9 +1865,13 @@ Checked rather than reasoned at: `A : @SourceSpan = "a"` compiles to the arena e
 `Recognize_A_Whole` coming from `RenderWrapper` and no flat method at all.
 
 The method's own `IsExtent` branch was written for exactly the case that cannot arise, and
-one of its arms is already commented "Not reachable". This repository's practice with an
-analysis that has no reachable target is to remove it rather than leave it (`docs/next.md`,
-mixed lowering, and the eager-construction revert). Left standing for now because removing
-it is a decision about `CanLower`'s future rather than about this change: if lowering is ever
-widened to admit a construction whose value is its own extent — which is the one construction
-that needs no arena — the wrapper is what it would need.
+one of its arms was already commented "Not reachable". Removed, which is this repository's
+practice with an analysis that has no reachable target — mixed lowering and eager construction
+went the same way. The lowered recognizer is emitted under the name the caller uses and there
+is nothing between them.
+
+The argument for keeping it was that widening `CanLower` to admit a construction whose value
+is its own extent — the one construction that needs no arena — would want it back. That is a
+reason to write it then, against whatever that widening turns out to need, rather than to
+keep a method no call reaches in the hope that a future one will. `IsExtent` stays: the arena
+path uses it in four places.
