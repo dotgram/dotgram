@@ -771,7 +771,12 @@ sealed partial class Machine
 	/// state table, one inside the shared automaton and one on its own, and it has to be the
 	/// same writing either way — <see cref="PlanLayout"/> already decided what belongs in it.
 	/// </remarks>
-	void RenderStates(Writer file)
+	/// <param name="unlabelled">
+	/// A state to write without its label, because nothing jumps to it. Only ever the first
+	/// one, and only where the caller dropped the jump in — C# warns on a label nobody
+	/// names, and this file is compiled with warnings as errors in the consumer's build.
+	/// </param>
+	void RenderStates(Writer file, int unlabelled = -1)
 	{
 		for (var written = 0; written < _order.Count; written++)
 		{
@@ -788,7 +793,9 @@ sealed partial class Machine
 			}
 
 			file.Line();
-			file.Line($"S{i + First}:");
+
+			if (i + First != unlabelled)
+				file.Line($"S{i + First}:");
 
 			using (file.Block(""))
 				file.Write(body);
@@ -832,20 +839,23 @@ sealed partial class Machine
 				var state     = Reserve(out var writer);
 				var arrayName = DeclareExpected([node.ToString()]);
 
-				if (_starves)
+				// The room check and the first character's test fail the same way, so they
+				// are one question wherever nothing is written between them — and the only
+				// thing that writes between them is starvation, which marks the failure
+				// before reporting it and belongs to the length alone. Folded rather than
+				// left as two `if`s with the same body, which is what a reader sees.
+				var room = _starves || value.Length == 0 ? null : Short(value.Length);
+
+				if (room is null)
 				{
-					writer.Line($"if (p + {value.Length} > text.Length)");
+					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
 					{
-						writer.Line("failure.Starved = true;");
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
-				}
-				else
-				{
-					writer.Line($"if (p + {value.Length} > text.Length)");
-					using (writer.Block(""))
-						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
 				for (var i = 0; i < value.Length; i++)
@@ -854,11 +864,11 @@ sealed partial class Machine
 					// it unchanged, so one comparison shape covers cased and uncased
 					// characters alike — no per-character branching needed.
 					var test = ignoreCase
-						? $"global::System.Char.ToUpperInvariant(text[p + {i}]) != " +
+						? $"global::System.Char.ToUpperInvariant({At(i)}) != " +
 						  $"{CSharpEmitter.Char(char.ToUpperInvariant(value[i]))}"
-						: $"text[p + {i}] != {CSharpEmitter.Char(value[i])}";
+						: $"{At(i)} != {CSharpEmitter.Char(value[i])}";
 
-					writer.Line($"if ({test})");
+					writer.Line($"if ({(i == 0 && room is not null ? room + " || " : "")}{test})");
 					using (writer.Block(""))
 					{
 						// The position at a terminal failure names where the character that
@@ -1604,25 +1614,25 @@ sealed partial class Machine
 
 		if (shared.Length > 0)
 		{
-			if (_starves)
+			// Folded into the first character's test where nothing separates them, the same
+			// as Node.Literal's own.
+			var room = _starves ? null : Short(shared.Length);
+
+			if (room is null)
 			{
-				writer.Line($"if (p + {shared.Length} > text.Length)");
+				writer.Line($"if ({Short(shared.Length)})");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
 					EmitTerminalFailure(writer, fail, arrayName);
 				}
 			}
-			else
-			{
-				writer.Line($"if (p + {shared.Length} > text.Length)");
-				using (writer.Block(""))
-					EmitTerminalFailure(writer, fail, arrayName);
-			}
 
 			for (var i = 0; i < shared.Length; i++)
 			{
-				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])})");
+				writer.Line(
+					$"if ({(i == 0 && room is not null ? room + " || " : "")}" +
+					$"{At(i)} != {CSharpEmitter.Char(shared[i])})");
 				using (writer.Block(""))
 				{
 					// Same sharpening as Node.Literal's own per-character loop: name the
@@ -1648,10 +1658,10 @@ sealed partial class Machine
 			var tests = new List<string>();
 
 			if (text.Length > shared.Length)
-				tests.Add($"p + {text.Length} <= text.Length");
+				tests.Add(Room(text.Length));
 
 			for (var i = shared.Length; i < text.Length; i++)
-				tests.Add($"text[p + {i}] == {CSharpEmitter.Char(text[i])}");
+				tests.Add($"{At(i)} == {CSharpEmitter.Char(text[i])}");
 
 			settled = tests.Count == 0;
 
@@ -2121,6 +2131,43 @@ sealed partial class Machine
 
 	int ValueRule(RuleSymbol rule) =>
 		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
+
+	/// <summary>Whether any state's body jumps to this one.</summary>
+	/// <remarks>
+	/// Asked of the first state written and of nothing else, so what
+	/// <see cref="RenderStates"/> strips as it goes cannot change the answer: a trailing
+	/// jump is dropped only where it names the state written next, and nothing is written
+	/// before the first.
+	/// </remarks>
+	bool Entered(int state)
+	{
+		var jump = $"goto {Label(state)};";
+
+		foreach (var body in _bodies)
+			if (body is not null && body.Contains(jump))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// The character <paramref name="offset"/> along from the position, said the short way
+	/// at zero.
+	/// </summary>
+	/// <remarks>
+	/// <c>text[p + 0]</c> and <c>text[p]</c> are one instruction either way; the difference
+	/// is that somebody reads this file. The same goes for <see cref="Short"/> and
+	/// <see cref="Room"/> beside it — a literal of one character asks whether there is one
+	/// character left, and <c>p + 1 &gt; text.Length</c> is the general form of that
+	/// question rather than the question.
+	/// </remarks>
+	static string At(int offset) => offset == 0 ? "text[p]" : $"text[p + {offset}]";
+
+	/// <summary>Whether the input is too short for <paramref name="count"/> more.</summary>
+	static string Short(int count) => count == 1 ? "p >= text.Length" : $"p + {count} > text.Length";
+
+	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
+	static string Room(int count) => count == 1 ? "p < text.Length" : $"p + {count} <= text.Length";
 
 	int Reserve(out Writer writer)
 	{

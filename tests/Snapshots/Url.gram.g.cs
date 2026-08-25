@@ -1738,13 +1738,13 @@ namespace DotGram.Snapshots
 
 				S35:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected2;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected2;
 						goto Fail;
@@ -1778,13 +1778,13 @@ namespace DotGram.Snapshots
 
 				S38:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected4;
 						goto Fail;
 					}
-					if (text[p + 0] != '#')
+					if (text[p] != '#')
 					{
 						expected = Recognize_DotGram_Expected4;
 						goto Fail;
@@ -1906,13 +1906,13 @@ namespace DotGram.Snapshots
 
 				S50:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
@@ -1946,13 +1946,13 @@ namespace DotGram.Snapshots
 
 				S53:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
-					if (text[p + 0] != '?')
+					if (text[p] != '?')
 					{
 						expected = Recognize_DotGram_Expected9;
 						goto Fail;
@@ -2062,13 +2062,13 @@ namespace DotGram.Snapshots
 
 				S65:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected12;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected12;
 						goto Fail;
@@ -2096,13 +2096,13 @@ namespace DotGram.Snapshots
 
 				S67:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected14;
 						goto Fail;
 					}
-					if (text[p + 0] != '/')
+					if (text[p] != '/')
 					{
 						expected = Recognize_DotGram_Expected14;
 						goto Fail;
@@ -2144,7 +2144,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected15;
 						goto Fail;
@@ -2174,17 +2174,17 @@ namespace DotGram.Snapshots
 
 				S74:
 				{
-					if (p + 5 <= text.Length && text[p + 0] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
+					if (p + 5 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
 					{
 						p += 5;
 						goto S73;
 					}
-					if (p + 4 <= text.Length && text[p + 0] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
+					if (p + 4 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
 					{
 						p += 4;
 						goto S73;
 					}
-					if (p + 3 <= text.Length && text[p + 0] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
+					if (p + 3 <= text.Length && text[p] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
 					{
 						p += 3;
 						goto S73;
@@ -2201,17 +2201,17 @@ namespace DotGram.Snapshots
 
 				S76:
 				{
-					if (p + 5 <= text.Length && text[p + 0] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
+					if (p + 5 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p' && text[p + 4] == 's')
 					{
 						p += 5;
 						goto Return;
 					}
-					if (p + 4 <= text.Length && text[p + 0] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
+					if (p + 4 <= text.Length && text[p] == 'h' && text[p + 1] == 't' && text[p + 2] == 't' && text[p + 3] == 'p')
 					{
 						p += 4;
 						goto Return;
 					}
-					if (p + 3 <= text.Length && text[p + 0] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
+					if (p + 3 <= text.Length && text[p] == 'f' && text[p + 1] == 't' && text[p + 2] == 'p')
 					{
 						p += 3;
 						goto Return;
@@ -2333,13 +2333,13 @@ namespace DotGram.Snapshots
 
 				S88:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected19;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected19;
 						goto Fail;
@@ -2433,13 +2433,13 @@ namespace DotGram.Snapshots
 
 				S96:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected22;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected22;
 						goto Fail;
@@ -2492,13 +2492,13 @@ namespace DotGram.Snapshots
 
 				S99:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
@@ -2587,13 +2587,13 @@ namespace DotGram.Snapshots
 
 				S107:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
@@ -2682,13 +2682,13 @@ namespace DotGram.Snapshots
 
 				S115:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected33;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected33;
 						goto Fail;
@@ -2790,13 +2790,13 @@ namespace DotGram.Snapshots
 
 				S124:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected37;
 						goto Fail;
 					}
-					if (text[p + 0] != ']')
+					if (text[p] != ']')
 					{
 						expected = Recognize_DotGram_Expected37;
 						goto Fail;
@@ -2813,7 +2813,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected38;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected38;
 						goto Fail;
@@ -2936,13 +2936,13 @@ namespace DotGram.Snapshots
 
 				S135:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected40;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected40;
 						goto Fail;
@@ -3175,7 +3175,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected49;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected49;
 						goto Fail;
@@ -3298,13 +3298,13 @@ namespace DotGram.Snapshots
 
 				S166:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected51;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected51;
 						goto Fail;
@@ -3514,13 +3514,13 @@ namespace DotGram.Snapshots
 
 				S185:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected59;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected59;
 						goto Fail;
@@ -3609,13 +3609,13 @@ namespace DotGram.Snapshots
 
 				S193:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected63;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected63;
 						goto Fail;
@@ -3704,13 +3704,13 @@ namespace DotGram.Snapshots
 
 				S201:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected67;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected67;
 						goto Fail;
@@ -3907,13 +3907,13 @@ namespace DotGram.Snapshots
 
 				S219:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected75;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected75;
 						goto Fail;
@@ -4051,7 +4051,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected80;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected80;
 						goto Fail;
@@ -4174,13 +4174,13 @@ namespace DotGram.Snapshots
 
 				S241:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected82;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected82;
 						goto Fail;
@@ -4390,13 +4390,13 @@ namespace DotGram.Snapshots
 
 				S260:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected90;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected90;
 						goto Fail;
@@ -4485,13 +4485,13 @@ namespace DotGram.Snapshots
 
 				S268:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected94;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected94;
 						goto Fail;
@@ -4580,13 +4580,13 @@ namespace DotGram.Snapshots
 
 				S276:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected98;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected98;
 						goto Fail;
@@ -4783,13 +4783,13 @@ namespace DotGram.Snapshots
 
 				S294:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected106;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected106;
 						goto Fail;
@@ -4921,13 +4921,13 @@ namespace DotGram.Snapshots
 
 				S306:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected111;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected111;
 						goto Fail;
@@ -5052,7 +5052,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected116;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected116;
 						goto Fail;
@@ -5175,13 +5175,13 @@ namespace DotGram.Snapshots
 
 				S327:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected118;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected118;
 						goto Fail;
@@ -5391,13 +5391,13 @@ namespace DotGram.Snapshots
 
 				S346:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected126;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected126;
 						goto Fail;
@@ -5486,13 +5486,13 @@ namespace DotGram.Snapshots
 
 				S354:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected130;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected130;
 						goto Fail;
@@ -5581,13 +5581,13 @@ namespace DotGram.Snapshots
 
 				S362:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected134;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected134;
 						goto Fail;
@@ -5784,13 +5784,13 @@ namespace DotGram.Snapshots
 
 				S380:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected142;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected142;
 						goto Fail;
@@ -5963,13 +5963,13 @@ namespace DotGram.Snapshots
 
 				S396:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected147;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected147;
 						goto Fail;
@@ -6094,7 +6094,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected152;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected152;
 						goto Fail;
@@ -6217,13 +6217,13 @@ namespace DotGram.Snapshots
 
 				S417:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected154;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected154;
 						goto Fail;
@@ -6433,13 +6433,13 @@ namespace DotGram.Snapshots
 
 				S436:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected162;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected162;
 						goto Fail;
@@ -6528,13 +6528,13 @@ namespace DotGram.Snapshots
 
 				S444:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected166;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected166;
 						goto Fail;
@@ -6623,13 +6623,13 @@ namespace DotGram.Snapshots
 
 				S452:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected170;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected170;
 						goto Fail;
@@ -6826,13 +6826,13 @@ namespace DotGram.Snapshots
 
 				S470:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected178;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected178;
 						goto Fail;
@@ -7005,13 +7005,13 @@ namespace DotGram.Snapshots
 
 				S486:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected183;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected183;
 						goto Fail;
@@ -7136,7 +7136,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected188;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected188;
 						goto Fail;
@@ -7259,13 +7259,13 @@ namespace DotGram.Snapshots
 
 				S507:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected190;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected190;
 						goto Fail;
@@ -7475,13 +7475,13 @@ namespace DotGram.Snapshots
 
 				S526:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected198;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected198;
 						goto Fail;
@@ -7570,13 +7570,13 @@ namespace DotGram.Snapshots
 
 				S534:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected202;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected202;
 						goto Fail;
@@ -7665,13 +7665,13 @@ namespace DotGram.Snapshots
 
 				S542:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected206;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected206;
 						goto Fail;
@@ -7868,13 +7868,13 @@ namespace DotGram.Snapshots
 
 				S560:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected214;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected214;
 						goto Fail;
@@ -8047,13 +8047,13 @@ namespace DotGram.Snapshots
 
 				S576:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected219;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected219;
 						goto Fail;
@@ -8178,7 +8178,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected224;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected224;
 						goto Fail;
@@ -8352,13 +8352,13 @@ namespace DotGram.Snapshots
 
 				S601:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected229;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected229;
 						goto Fail;
@@ -8447,13 +8447,13 @@ namespace DotGram.Snapshots
 
 				S609:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected233;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected233;
 						goto Fail;
@@ -8542,13 +8542,13 @@ namespace DotGram.Snapshots
 
 				S617:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected237;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected237;
 						goto Fail;
@@ -8745,13 +8745,13 @@ namespace DotGram.Snapshots
 
 				S635:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected245;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected245;
 						goto Fail;
@@ -8924,13 +8924,13 @@ namespace DotGram.Snapshots
 
 				S651:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected250;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected250;
 						goto Fail;
@@ -9055,7 +9055,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected255;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected255;
 						goto Fail;
@@ -9163,13 +9163,13 @@ namespace DotGram.Snapshots
 
 				S671:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected259;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected259;
 						goto Fail;
@@ -9258,13 +9258,13 @@ namespace DotGram.Snapshots
 
 				S679:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected263;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected263;
 						goto Fail;
@@ -9353,13 +9353,13 @@ namespace DotGram.Snapshots
 
 				S687:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected267;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected267;
 						goto Fail;
@@ -9556,13 +9556,13 @@ namespace DotGram.Snapshots
 
 				S705:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected275;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected275;
 						goto Fail;
@@ -9735,13 +9735,13 @@ namespace DotGram.Snapshots
 
 				S721:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected280;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected280;
 						goto Fail;
@@ -9873,13 +9873,13 @@ namespace DotGram.Snapshots
 
 				S733:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected285;
 						goto Fail;
 					}
-					if (text[p + 0] != '[')
+					if (text[p] != '[')
 					{
 						expected = Recognize_DotGram_Expected285;
 						goto Fail;
@@ -9949,13 +9949,13 @@ namespace DotGram.Snapshots
 
 				S740:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected286;
 						goto Fail;
 					}
-					if (text[p + 0] != '@')
+					if (text[p] != '@')
 					{
 						expected = Recognize_DotGram_Expected286;
 						goto Fail;
@@ -10021,13 +10021,13 @@ namespace DotGram.Snapshots
 
 				S746:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected289;
 						goto S743;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected289;
 						goto S743;
@@ -10038,13 +10038,13 @@ namespace DotGram.Snapshots
 
 				S747:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected290;
 						goto S743;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected290;
 						goto S743;
@@ -10108,13 +10108,13 @@ namespace DotGram.Snapshots
 
 				S751:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected294;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected294;
 						goto Fail;
@@ -10125,13 +10125,13 @@ namespace DotGram.Snapshots
 
 				S752:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected295;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected295;
 						goto Fail;
@@ -10213,13 +10213,13 @@ namespace DotGram.Snapshots
 
 				S759:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected299;
 						goto S756;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected299;
 						goto S756;
@@ -10230,13 +10230,13 @@ namespace DotGram.Snapshots
 
 				S760:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected300;
 						goto S756;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected300;
 						goto S756;
@@ -10300,13 +10300,13 @@ namespace DotGram.Snapshots
 
 				S764:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected304;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected304;
 						goto Fail;
@@ -10317,13 +10317,13 @@ namespace DotGram.Snapshots
 
 				S765:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected305;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected305;
 						goto Fail;
@@ -10427,13 +10427,13 @@ namespace DotGram.Snapshots
 
 				S773:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected309;
 						goto Fail;
 					}
-					if (text[p + 0] != '%')
+					if (text[p] != '%')
 					{
 						expected = Recognize_DotGram_Expected309;
 						goto Fail;
@@ -10486,13 +10486,13 @@ namespace DotGram.Snapshots
 
 				S776:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected312;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected312;
 						goto Fail;
@@ -10581,13 +10581,13 @@ namespace DotGram.Snapshots
 
 				S784:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected316;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected316;
 						goto Fail;
@@ -10676,13 +10676,13 @@ namespace DotGram.Snapshots
 
 				S792:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected320;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected320;
 						goto Fail;
@@ -10784,13 +10784,13 @@ namespace DotGram.Snapshots
 
 				S801:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected324;
 						goto Fail;
 					}
-					if (text[p + 0] != ']')
+					if (text[p] != ']')
 					{
 						expected = Recognize_DotGram_Expected324;
 						goto Fail;
@@ -10807,7 +10807,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected325;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected325;
 						goto Fail;
@@ -10930,13 +10930,13 @@ namespace DotGram.Snapshots
 
 				S812:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected327;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected327;
 						goto Fail;
@@ -11169,7 +11169,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected336;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected336;
 						goto Fail;
@@ -11292,13 +11292,13 @@ namespace DotGram.Snapshots
 
 				S843:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected338;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected338;
 						goto Fail;
@@ -11508,13 +11508,13 @@ namespace DotGram.Snapshots
 
 				S862:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected346;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected346;
 						goto Fail;
@@ -11603,13 +11603,13 @@ namespace DotGram.Snapshots
 
 				S870:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected350;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected350;
 						goto Fail;
@@ -11698,13 +11698,13 @@ namespace DotGram.Snapshots
 
 				S878:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected354;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected354;
 						goto Fail;
@@ -11901,13 +11901,13 @@ namespace DotGram.Snapshots
 
 				S896:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected362;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected362;
 						goto Fail;
@@ -12045,7 +12045,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected367;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected367;
 						goto Fail;
@@ -12168,13 +12168,13 @@ namespace DotGram.Snapshots
 
 				S918:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected369;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected369;
 						goto Fail;
@@ -12384,13 +12384,13 @@ namespace DotGram.Snapshots
 
 				S937:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected377;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected377;
 						goto Fail;
@@ -12479,13 +12479,13 @@ namespace DotGram.Snapshots
 
 				S945:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected381;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected381;
 						goto Fail;
@@ -12574,13 +12574,13 @@ namespace DotGram.Snapshots
 
 				S953:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected385;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected385;
 						goto Fail;
@@ -12777,13 +12777,13 @@ namespace DotGram.Snapshots
 
 				S971:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected393;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected393;
 						goto Fail;
@@ -12915,13 +12915,13 @@ namespace DotGram.Snapshots
 
 				S983:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected398;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected398;
 						goto Fail;
@@ -13046,7 +13046,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected403;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected403;
 						goto Fail;
@@ -13169,13 +13169,13 @@ namespace DotGram.Snapshots
 
 				S1004:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected405;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected405;
 						goto Fail;
@@ -13385,13 +13385,13 @@ namespace DotGram.Snapshots
 
 				S1023:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected413;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected413;
 						goto Fail;
@@ -13480,13 +13480,13 @@ namespace DotGram.Snapshots
 
 				S1031:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected417;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected417;
 						goto Fail;
@@ -13575,13 +13575,13 @@ namespace DotGram.Snapshots
 
 				S1039:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected421;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected421;
 						goto Fail;
@@ -13778,13 +13778,13 @@ namespace DotGram.Snapshots
 
 				S1057:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected429;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected429;
 						goto Fail;
@@ -13957,13 +13957,13 @@ namespace DotGram.Snapshots
 
 				S1073:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected434;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected434;
 						goto Fail;
@@ -14088,7 +14088,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected439;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected439;
 						goto Fail;
@@ -14211,13 +14211,13 @@ namespace DotGram.Snapshots
 
 				S1094:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected441;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected441;
 						goto Fail;
@@ -14427,13 +14427,13 @@ namespace DotGram.Snapshots
 
 				S1113:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected449;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected449;
 						goto Fail;
@@ -14522,13 +14522,13 @@ namespace DotGram.Snapshots
 
 				S1121:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected453;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected453;
 						goto Fail;
@@ -14617,13 +14617,13 @@ namespace DotGram.Snapshots
 
 				S1129:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected457;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected457;
 						goto Fail;
@@ -14820,13 +14820,13 @@ namespace DotGram.Snapshots
 
 				S1147:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected465;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected465;
 						goto Fail;
@@ -14999,13 +14999,13 @@ namespace DotGram.Snapshots
 
 				S1163:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected470;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected470;
 						goto Fail;
@@ -15130,7 +15130,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected475;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected475;
 						goto Fail;
@@ -15253,13 +15253,13 @@ namespace DotGram.Snapshots
 
 				S1184:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected477;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected477;
 						goto Fail;
@@ -15469,13 +15469,13 @@ namespace DotGram.Snapshots
 
 				S1203:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected485;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected485;
 						goto Fail;
@@ -15564,13 +15564,13 @@ namespace DotGram.Snapshots
 
 				S1211:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected489;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected489;
 						goto Fail;
@@ -15659,13 +15659,13 @@ namespace DotGram.Snapshots
 
 				S1219:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected493;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected493;
 						goto Fail;
@@ -15862,13 +15862,13 @@ namespace DotGram.Snapshots
 
 				S1237:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected501;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected501;
 						goto Fail;
@@ -16041,13 +16041,13 @@ namespace DotGram.Snapshots
 
 				S1253:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected506;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected506;
 						goto Fail;
@@ -16172,7 +16172,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected511;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected511;
 						goto Fail;
@@ -16346,13 +16346,13 @@ namespace DotGram.Snapshots
 
 				S1278:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected516;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected516;
 						goto Fail;
@@ -16441,13 +16441,13 @@ namespace DotGram.Snapshots
 
 				S1286:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected520;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected520;
 						goto Fail;
@@ -16536,13 +16536,13 @@ namespace DotGram.Snapshots
 
 				S1294:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected524;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected524;
 						goto Fail;
@@ -16739,13 +16739,13 @@ namespace DotGram.Snapshots
 
 				S1312:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected532;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected532;
 						goto Fail;
@@ -16918,13 +16918,13 @@ namespace DotGram.Snapshots
 
 				S1328:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected537;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected537;
 						goto Fail;
@@ -17049,7 +17049,7 @@ namespace DotGram.Snapshots
 						expected = Recognize_DotGram_Expected542;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected542;
 						goto Fail;
@@ -17157,13 +17157,13 @@ namespace DotGram.Snapshots
 
 				S1348:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected546;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected546;
 						goto Fail;
@@ -17252,13 +17252,13 @@ namespace DotGram.Snapshots
 
 				S1356:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected550;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected550;
 						goto Fail;
@@ -17347,13 +17347,13 @@ namespace DotGram.Snapshots
 
 				S1364:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected554;
 						goto Fail;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected554;
 						goto Fail;
@@ -17550,13 +17550,13 @@ namespace DotGram.Snapshots
 
 				S1382:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected562;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected562;
 						goto Fail;
@@ -17729,13 +17729,13 @@ namespace DotGram.Snapshots
 
 				S1398:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected567;
 						goto Fail;
 					}
-					if (text[p + 0] != ':')
+					if (text[p] != ':')
 					{
 						expected = Recognize_DotGram_Expected567;
 						goto Fail;
@@ -17867,13 +17867,13 @@ namespace DotGram.Snapshots
 
 				S1410:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected572;
 						goto Fail;
 					}
-					if (text[p + 0] != '[')
+					if (text[p] != '[')
 					{
 						expected = Recognize_DotGram_Expected572;
 						goto Fail;

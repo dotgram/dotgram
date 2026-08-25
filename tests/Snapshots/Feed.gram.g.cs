@@ -506,17 +506,17 @@ namespace DotGram.Snapshots
 
 				S31:
 				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
 					{
 						p += 2;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if (p < text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\r')
+					if (p < text.Length && text[p] == '\r')
 					{
 						p += 1;
 						goto Return;
@@ -570,13 +570,13 @@ namespace DotGram.Snapshots
 
 				S35:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected4;
 						goto Fail;
 					}
-					if (text[p + 0] != '-')
+					if (text[p] != '-')
 					{
 						expected = Recognize_DotGram_Expected4;
 						goto Fail;
@@ -623,13 +623,13 @@ namespace DotGram.Snapshots
 
 				S38:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
 					}
-					if (text[p + 0] != '-')
+					if (text[p] != '-')
 					{
 						expected = Recognize_DotGram_Expected7;
 						goto Fail;
@@ -718,13 +718,13 @@ namespace DotGram.Snapshots
 
 				S44:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected12;
 						goto Fail;
 					}
-					if (text[p + 0] != '|')
+					if (text[p] != '|')
 					{
 						expected = Recognize_DotGram_Expected12;
 						goto Fail;
@@ -735,13 +735,13 @@ namespace DotGram.Snapshots
 
 				S45:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected13;
 						goto Fail;
 					}
-					if (text[p + 0] != 'H')
+					if (text[p] != 'H')
 					{
 						expected = Recognize_DotGram_Expected13;
 						goto Fail;
@@ -752,13 +752,13 @@ namespace DotGram.Snapshots
 
 				S46:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected14;
 						goto Fail;
 					}
-					if (text[p + 0] != '\r')
+					if (text[p] != '\r')
 					{
 						expected = Recognize_DotGram_Expected14;
 						goto Fail;
@@ -769,12 +769,12 @@ namespace DotGram.Snapshots
 
 				S47:
 				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
 					{
 						p += 2;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if (p < text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
@@ -834,13 +834,13 @@ namespace DotGram.Snapshots
 
 				S52:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected18;
 						goto S49;
 					}
-					if (text[p + 0] != '.')
+					if (text[p] != '.')
 					{
 						expected = Recognize_DotGram_Expected18;
 						goto S49;
@@ -911,13 +911,13 @@ namespace DotGram.Snapshots
 
 				S59:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected21;
 						goto S58;
 					}
-					if (text[p + 0] != '-')
+					if (text[p] != '-')
 					{
 						expected = Recognize_DotGram_Expected21;
 						goto S58;
@@ -940,13 +940,13 @@ namespace DotGram.Snapshots
 
 				S62:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected22;
 						goto Fail;
 					}
-					if (text[p + 0] != '|')
+					if (text[p] != '|')
 					{
 						expected = Recognize_DotGram_Expected22;
 						goto Fail;
@@ -995,13 +995,13 @@ namespace DotGram.Snapshots
 
 				S66:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected24;
 						goto Fail;
 					}
-					if (text[p + 0] != '|')
+					if (text[p] != '|')
 					{
 						expected = Recognize_DotGram_Expected24;
 						goto Fail;
@@ -1012,13 +1012,13 @@ namespace DotGram.Snapshots
 
 				S67:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
 					}
-					if (text[p + 0] != 'R')
+					if (text[p] != 'R')
 					{
 						expected = Recognize_DotGram_Expected25;
 						goto Fail;
@@ -1029,17 +1029,17 @@ namespace DotGram.Snapshots
 
 				S68:
 				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
 					{
 						p += 2;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if (p < text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\r')
+					if (p < text.Length && text[p] == '\r')
 					{
 						p += 1;
 						goto Return;
@@ -1111,13 +1111,13 @@ namespace DotGram.Snapshots
 
 				S75:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
 					}
-					if (text[p + 0] != '|')
+					if (text[p] != '|')
 					{
 						expected = Recognize_DotGram_Expected29;
 						goto Fail;
@@ -1128,13 +1128,13 @@ namespace DotGram.Snapshots
 
 				S76:
 				{
-					if (p + 1 > text.Length)
+					if (p >= text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;
 					}
-					if (text[p + 0] != 'T')
+					if (text[p] != 'T')
 					{
 						expected = Recognize_DotGram_Expected30;
 						goto Fail;

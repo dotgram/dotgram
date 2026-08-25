@@ -261,17 +261,17 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
 					{
 						p += 2;
 						goto S21;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if (p < text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto S21;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\r')
+					if (p < text.Length && text[p] == '\r')
 					{
 						p += 1;
 						goto S21;
@@ -301,12 +301,7 @@ namespace DotGram.Snapshots
 
 				S26:
 				{
-					if (p + 1 > text.Length)
-					{
-						expected = Recognize_DotGram_Expected2;
-						goto Fail;
-					}
-					if (text[p + 0] != ',')
+					if (p >= text.Length || text[p] != ',')
 					{
 						expected = Recognize_DotGram_Expected2;
 						goto Fail;
@@ -544,17 +539,17 @@ namespace DotGram.Snapshots
 
 				S53:
 				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && text[p] == '\r' && text[p + 1] == '\n')
 					{
 						p += 2;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if (p < text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\r')
+					if (p < text.Length && text[p] == '\r')
 					{
 						p += 1;
 						goto Return;

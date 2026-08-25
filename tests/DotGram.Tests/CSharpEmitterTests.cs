@@ -1049,7 +1049,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Matches(
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""\\""http\\""i"" \};", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 3]) != 'P'", source);
 	}
 
@@ -1064,8 +1064,8 @@ public sealed class CSharpEmitterTests
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = " +
 			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
 			source);
-		Assert.Contains("text[p + 0] != 'h'", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+		Assert.Contains("text[p] != 'h'", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
 	// ── Position sharpening: the character that failed, not the operand's start ──
@@ -1077,8 +1077,10 @@ public sealed class CSharpEmitterTests
 
 		// The first character needs no adjustment — p is already there — so its own
 		// failure branch has no `p +=` line at all; every later one advances p by its
-		// own offset before the jump, never by anyone else's.
-		Assert.Matches(@"if \(text\[p \+ 0\] != 'a'\)\s*\{\s*expected", source);
+		// own offset before the jump, never by anyone else's. The room check rides along
+		// with the first test, having the same branch to jump to.
+		Assert.Matches(
+			@"if \(p \+ 4 > text\.Length \|\| text\[p\] != 'a'\)\s*\{\s*expected", source);
 		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*\{\s*p \+= 1;", source);
 		Assert.Matches(@"if \(text\[p \+ 2\] != 'c'\)\s*\{\s*p \+= 2;", source);
 		Assert.Matches(@"if \(text\[p \+ 3\] != 'd'\)\s*\{\s*p \+= 3;", source);

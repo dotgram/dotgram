@@ -1727,3 +1727,54 @@ of thing §5.1 exists to keep unambiguous.
 
 Not started. Recorded so the next attempt begins at the expression tier and argues about
 scope before syntax.
+
+## Built: reading the minimal snapshot, and taking out what it showed
+
+`tests/Snapshots/Minimal.gram` — `A = "a"`, one publication, nothing to backtrack into —
+exists so that every step up from it shows what that step cost. Read for its own sake it
+shows something else: what the generator writes when there is nothing to write.
+
+Four lines went, all of them in the generated file rather than in what it does.
+
+**The jump into the first state, and its label.** `goto S5;` stood immediately above `S5:`.
+`RenderStates` already strips a trailing jump where its target is the state written next —
+that peephole simply was not applied to the jump in. The label goes with it where nothing
+else names the state, because C# warns on a label nobody jumps to and this file is compiled
+in somebody else's build, possibly with warnings as errors.
+
+**`text[p + 0]`, and `p + 1 > text.Length`.** The general form of an index and of a room
+check, written where the general form is not the question. `At`, `Short` and `Room` say them
+the short way at one.
+
+**Two `if`s with the same body, one after the other.** The room check and the first
+character's test fail identically, so they are one question — `if (p >= text.Length ||
+text[p] != 'a')`. Only where nothing is written between them, which means not under
+`_starves`: starvation marks the failure before reporting it, and belongs to the length
+alone. `Url` and `Feed` are unchanged for exactly that reason.
+
+None of it is faster, and it was not meant to be. The JIT's own output says so.
+
+## Measured: two things the JIT already does, so we do not
+
+Both raised while reading that file, and both answered with `DOTNET_JitDisasm` rather than
+with an opinion. Recorded because the next reader will have the same two thoughts.
+
+**A jump to the label below it costs nothing.** `Recognize_A_Whole_Flat` at FullOpts goes
+from its prologue straight into the bounds check — the body of `S5` — with no `jmp` between.
+That is not a property of this method: folding a jump to the block that follows is what
+basic-block layout is. It came out of the generated file for readability, not for speed.
+
+**`text.Length` needs no local of its own, even in the 21,500-line method.** The obvious
+worry is that a span field read 183 times is 183 dereferences. It is not:
+
+```asm
+mov  r12, bword ptr [rcx]        ; text._pointer  -> r12, callee-saved, kept
+mov  eax, dword ptr [rcx+0x08]   ; text._length, read once
+mov  dword ptr [rbp-0xC4], eax   ; and spilled
+```
+
+One write to that slot, 183 reads of it, and the span's own byref is never read again. A
+hand-written `var length = text.Length;` would compile to the same thing — one load, one
+spill, a stack read per use — because a method this size cannot hold it in a register and
+neither can we. The `[reg+0x08]` reads elsewhere in the listing are `ParserEntry` fields and
+list counts, not the span.

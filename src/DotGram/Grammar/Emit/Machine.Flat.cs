@@ -58,9 +58,24 @@ sealed partial class Machine
 				if (depths.Contains(i))
 					file.Line($"var turn{i} = 0;");
 
-			file.Line($"goto {Label(Resolved(entry))};");
+			// The same peephole RenderStates already applies between one state and the
+			// next, applied to the jump in: falling into the first state written is what
+			// this says, so where that state is the entry the line says nothing. The JIT
+			// removes it either way — a jump to the block that follows is what basic-block
+			// layout exists to fold, and the disassembly of this very method says so — but
+			// the file is read by whoever the parser was generated for, and a line that
+			// does nothing costs them a moment.
+			//
+			// The label goes with it where nothing else names the state, because C# warns
+			// on a label nobody jumps to and this file is compiled in a build that may
+			// treat that as an error.
+			var first = _order.Count > 0 ? _order[0] + First : -1;
+			var falls = first == Resolved(entry);
 
-			RenderStates(file);
+			if (!falls)
+				file.Line($"goto {Label(Resolved(entry))};");
+
+			RenderStates(file, falls && !Entered(first) ? first : -1);
 
 			file.Line();
 			file.Line("Accept:");

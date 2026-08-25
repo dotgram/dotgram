@@ -43,16 +43,9 @@ namespace DotGram.Snapshots
 		{
 			var p = pos;
 			string[]? expected = null;
-			goto S5;
 
-			S5:
 			{
-				if (p + 1 > text.Length)
-				{
-					expected = Recognize_DotGram_Expected1;
-					goto Fail;
-				}
-				if (text[p + 0] != 'a')
+				if (p >= text.Length || text[p] != 'a')
 				{
 					expected = Recognize_DotGram_Expected1;
 					goto Fail;
