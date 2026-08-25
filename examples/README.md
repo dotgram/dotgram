@@ -69,9 +69,8 @@ After a build it is under `obj/GeneratedFiles/DotGram/DotGram.Generation.GramGen
 
 ## What these deliberately do not show
 
-Things the specification describes and the compiler does not do yet — a broken record
-reported out of band instead of in the sequence, a rejection whose `message` names what
-was expected rather than only where, a feed read from a `TextReader` rather than a
-string.
+Things the specification describes and the compiler does not do yet — a rejection
+whose `parserMessage` names the set of what could have appeared, rather than only
+which rule and where.
 [`docs/status.md`](../docs/status.md) is the list; where an example works around a gap,
 it says so at that line.

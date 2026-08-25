@@ -943,7 +943,7 @@ public readonly struct Match<T>
 {
     public T?      Value    { get; }   // null when it did not match
     public string? Error    { get; }
-    public int     Position { get; }   // where it matched, or where it gave up
+    public long    Position { get; }   // where it matched, or where it gave up
     public int     Length   { get; }
 
     public bool IsSuccess { get; }
@@ -1003,7 +1003,7 @@ because it is a property of the data rather than of the grammar.
 | Input | How it runs | Retains |
 | --- | --- | --- |
 | `string`, `ReadOnlySpan<char>` | everything in memory | all of it, and the result may be walked again |
-| `IEnumerable<string>`, `TextReader` | one line at a time, buffer reused | one line, and the result is walked once |
+| `IEnumerable<string>`, `TextReader` | through a reused, growable buffer | whatever the parse cannot yet let go of — one record's worth, for a well-formed feed — and the result is walked once |
 
 The shape of what comes back does not change with the input: `parse` of a sequence
 rule yields a sequence either way, and `find` yields one either way. What changes is
@@ -1014,15 +1014,18 @@ checks that there is exactly one header, that the trailer is there and that noth
 follows — which is precisely what is lost when the caller chops the input into records
 and parses them one by one.
 
-**The streaming overloads are emitted only when the grammar can stream.** What decides
-that is how far back the parser might have to return: a rule whose repeated element
-always ends at a line boundary need never hold more than the current line, and the
-overloads appear. A grammar where an alternative could reach back to the start of the
-input gets no streaming overload, and a message saying which rule is responsible:
+**The reader overload is emitted only where retention analysis can prove it needs
+none of what a window has already let go of.** A rule whose repeated part can begin
+with the same input as what follows it has not settled where it ends until
+backtracking says so, and the overload does not appear; naming a rule's value a
+`SourceSpan` into input a window will have moved past does the same. Where the
+overload is refused, the reason is reported at the publication:
 
 ```text
-'Feed' has no streaming overload — the alternative at Feed:3 may return to the
-start of the input, so retention would be the whole file.
+'ParseFeed' gets no overload taking a reader: in 'Feed', the repetition 'Row' can
+begin with the same input as what follows it, so where it ends is settled by
+backtracking. A streamed parse hands each element to the caller as it reads it and
+cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 ```
 
 Which is the shared responsibility: the author picks an overload, and the compiler
@@ -1053,9 +1056,12 @@ input may be a file larger than an `int` can index. An extent — a span, a leng
 capture — is into a buffer, and a buffer never is. Counts of things, like a line number
 or an ordinal, are `int`: nothing has two billion lines.
 
-Positions inside a line are ordinary `int`. What crosses the publication boundary for
-a streamed parse is a `long`, so an error at offset 8,432,109,553 can be reported as
-such.
+Inside recognition, a position is an ordinary index into whatever currently holds the
+input — a reused window, or the in-memory buffer itself. `Match<T>.Position` (§6.1) is
+a `long` regardless of mode, since even in-memory input could in principle be a string
+an `int` cannot index; it is only ever widened once, at the one place a position
+crosses a publication's own boundary out to the caller, so an error at offset
+8,432,109,553 can be reported as such.
 
 ---
 

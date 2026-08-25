@@ -9,7 +9,7 @@ to an agent — exists to agree with that text, not to replace it. That holds ev
 a hand-written parser turns out faster: what a grammar buys is meaning read
 declaratively rather than reconstructed from someone's control flow, and speed does not
 touch that. When the compiler also gets speed right — predictive dispatch, possessive
-repetition, region-scoped lowering, deferred construction — that is a bonus worth
+repetition, whole-grammar lowering, deferred construction — that is a bonus worth
 having, not the reason to reach for this over a parser written by hand.
 
 ## What it looks like
@@ -328,11 +328,11 @@ written against it, with no test framework anywhere near them.
 | | |
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | the language: the notation and its bond with C# |
-| [`docs/implementation.md`](docs/implementation.md) | the engine: what is being built, and in what order |
+| [`docs/implementation.md`](docs/implementation.md) | the engine: how it executes the language |
 | [`docs/status.md`](docs/status.md) | what actually works, feature by pipeline stage |
 
-Nothing decided in the second is a decision about the first. The third is the only one
-that describes today.
+Nothing decided in the second is a decision about the first. The second describes how
+the current engine works; the third says how much of the language it covers so far.
 
 ## Building
 

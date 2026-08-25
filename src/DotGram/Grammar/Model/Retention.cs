@@ -391,11 +391,11 @@ public static class Retention
 	/// The overload is missing on purpose and the purpose is worth a sentence.
 	/// </para>
 	/// <para>
-	/// Only where the grammar is the reason. A <c>parse</c> has no reader overload today
-	/// because the windowed driver for it is not built, which is a fact about this
-	/// compiler rather than about the grammar in front of it — reporting that on every
-	/// build of every grammar would be noise, and it belongs in docs/status.md where it
-	/// is.
+	/// Only where the grammar is the reason — both <c>find</c> and <c>parse</c> get a
+	/// reader overload wherever the retention analysis can prove it safe; this reports
+	/// the cases it cannot, one <see cref="GramDiagnostic"/> per publication that missed
+	/// it, naming the rule and the reason rather than leaving the author to meet
+	/// <c>cannot convert from TextReader to string</c> with nothing to explain it.
 	/// </para>
 	/// </remarks>
 	public static IReadOnlyList<GramDiagnostic> Check(RecognitionGraph graph)
