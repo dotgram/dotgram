@@ -43,7 +43,7 @@
 		<Content Include="DotGram.VisualStudio.imagemanifest">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
-		<Resource Include="Assets\DotGram.FileIcon.16.16.png" />
+		<Resource Include="Assets\DotGram.LetterIcon.16.16.png" />
 	</ItemGroup>
 
 	<ItemGroup>

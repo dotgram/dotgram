@@ -7,7 +7,7 @@
 	</Symbols>
 	<Images>
 		<Image Guid="$(DotGramImages)" ID="$(GramFile)">
-			<Source Uri="$(Resources)/DotGram.FileIcon.16.16.png">
+			<Source Uri="$(Resources)/DotGram.LetterIcon.16.16.png">
 				<Size Value="16" />
 			</Source>
 		</Image>
