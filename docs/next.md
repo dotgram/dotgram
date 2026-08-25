@@ -2079,3 +2079,35 @@ Kept anyway, and the reason is not the compare: it is one fewer cold throw block
 smaller method, in a method whose size was measured this same day to matter more through
 profile-guided layout than the work inside it. That argument is not demonstrated by this
 benchmark and is not pretended to be.
+
+## How generation under more than one language version would be tested
+
+Asked before anything conditional exists, which is the right time. Four layers, and the
+first was a hole.
+
+**The floor, everywhere.** `EmittedCode.Compile` is what every snapshot and every emitter
+test compiles through, and it parsed with `CSharpParseOptions.Default` — the newest version
+Roslyn offers. So a feature the emitter started using would have passed all of them, and the
+floor was checked by `DotGram.Compatibility` on one framework and by nothing else. It parses
+at C# 8 now. The whole suite still passes, which is the first evidence that the floor claim
+was true rather than merely stated.
+
+**One configuration per emitted form, not per language version.** If emission branches once —
+"C# 11 or later, otherwise this" — that is two forms, and two is the size of the matrix
+however many versions exist between them. A `[Theory]` over the branch points, driving the
+generator with `CSharpParseOptions` at each, is the shape; `GeneratorDriverTests` already
+builds and runs a parser exactly this way and only hardcodes `Preview`.
+
+**The assertion is behaviour, not text.** The rule those forms live under is method bodies
+only — nothing a consumer observes may vary — so the test that matters runs the same inputs
+through both compilations and compares what comes back: accepted or refused, the same value,
+the same message. Asserting the shape of the emitted text would check the wrong thing and
+break on every rewording.
+
+**`DotGram.Compatibility` unchanged.** A real SDK build with a real restore, the floor form
+end to end, on the framework where `System.Memory` has to be added by hand. Unit tests can be
+wrong about what a build does; that project cannot.
+
+**Snapshots stay single**, at the floor. One file per grammar. Doubling them per form would
+double the diff every codegen change produces, to check something the layer above checks
+better.
