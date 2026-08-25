@@ -2143,3 +2143,55 @@ stay rejected.
 Not built. Worth doing when a grammar with several entry points, most of them simple, is a
 shape anyone has — a DSL with `parse Document` beside `parse Identifier` is exactly that,
 and `Minimal.gram` is now a small one.
+
+## Decided: one machine per published rule
+
+`parse A` and `find A` share one — the same rule, two entry states. `parse A` and `parse B`
+do not, even where both call `Shared`: `Shared` is compiled into each. And `parse A with (…)`
+twice is two, which needs no separate rule because `with` clones what it reaches, so what is
+published is `A` and `A_With1` — two rules by the time the emitter sees them.
+
+Today there is one machine per *file*, and no recorded reason for it. The rationale under
+"Shared automaton and recursion" is entirely about sharing — "frequently called rules remain
+shared instead of being expanded at every call site" — and that describes a minority of
+rules: `CanInline`'s own comment says a rule with no value, no capture inside it and no
+recursion is "a rule only in the source text", and it is expanded at every call site
+already. What stays shared is only what keeps an arena frame.
+
+So a calculator published twice, `parse Expr as English` beside `parse Expr with (Point =
+Comma) as European`, compiles to six rule entries — `Expr`, `Term`, `Number` and
+`Expr_With1`, `Term_With1`, `Number_With1` — in **one** 56-state automaton. Two parsers with
+nothing in common, fused because the emitter's unit is the file.
+
+**What it costs, measured on this repository's own grammars.** `Url.gram` does not change:
+`parse Url` and `find Url as AllUrls` are one rule. `Minimal.gram` gains — `A` and `B`
+become flat methods and only `C` needs an engine. `Feed.gram` pays: `parse Feed`, `find
+Name` and `find Row as AllRows` are three rules, and `Row` reaches nearly everything `Feed`
+does, so 64 states become 61 + 2 + 63 = 126. Roughly double, and the largest method barely
+shrinks.
+
+That is consistent with what this project already spends — `CanInline` calls code size "what
+this project spends freely" — but it is real, and the entry below is what would earn it back.
+
+## Later: cutting a large rule out into a machine of its own
+
+Raised against exactly the `Feed` case above. `Feed = Header & Row* & Trailer` splits into
+parts that do not overlap, and each could be its own machine with `Feed`'s reduced to a
+coordinator that calls them.
+
+This is the shape "Mixed lowering: investigated, has no target" rejected, and it was rejected
+for having no case. `Feed` under the split above is a case.
+
+**The condition that makes a seam safe is one this repository already computes.** Backtracking
+cannot cross it: once `Row`'s machine has answered, its arena is gone, so a later failure in
+`Trailer` has nothing to resume into. What has to hold is that nothing handed over would ever
+be given back — which is what `Retention.StreamedParse` decides for a window, and decides by
+construction rather than by promise, since §8.2 makes a `recover`-marked repetition possessive
+and "an element it took was either read or explicitly rejected and there is no shorter reading
+to come back for".
+
+So the same predicate, asked of a seam between machines instead of a seam between the parse
+and a window. A rule that qualifies can be cut out; one that does not stays inside.
+
+Not started. Worth doing after the per-publication split, because it is what makes that split
+pay on a grammar like `Feed` rather than only on one like `Minimal`.
