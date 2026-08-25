@@ -105,6 +105,13 @@ the one thing it defers; the second flatters this by asking for everything it bu
 Together they say the deferral is real and worth something to a caller who wants one part,
 and is a cost the moment the caller wants the parse.
 
+**These two tables predate the predicted-dispatch change** that stopped a chosen alternative
+re-testing the character the dispatch had just tested (`docs/next.md`). Two attempts to
+refresh them were thrown away because another workload was running on the machine, and a
+ratio against a control is worth what the control is worth. The change's own effect was
+measured a way that survives a busy machine — two binaries in separate processes,
+alternating, medians of five — and is recorded there.
+
 ### Reading these numbers between runs
 
 **Two of these five inputs are too short to compare between runs.** Run the identical

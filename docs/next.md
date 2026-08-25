@@ -1396,3 +1396,132 @@ option would be the wrong instrument, and so would a change of default.
 
 Not started. Written down so the next attempt argues about the default rather than about
 whether the two integers are reachable.
+
+## Built: a predicted choice steps over the terminal it just tested
+
+Recognition was the next target and there was no instrument for it — a profiler attributes
+everything to one 21,500-line method, which is a way of saying nothing. So the instrument
+came first, and it cost less than the profiling had: `tests/Snapshots/Url.gram.g.cs` is a
+complete generated parser checked into the repository, so a script can put `Visits[N]++`
+after each of its 1,409 state labels and a run says exactly where the automaton went.
+Exactly, not approximately — the counts are deterministic, so one parse per input is the
+whole measurement and there is nothing to sample.
+
+The first thing it said was that **3% of the automaton runs**: 48 to 79 states of 1,433,
+and four to seven state visits per input character.
+
+The second thing was worth more. Three states carried 55% of the visits on the long path,
+and they were doing this:
+
+```csharp
+S75: c = text[p];
+     if (Unreserved(c)) goto S69;   // the class is tested
+S69: if (p >= text.Length) …        // p has not moved
+     c = text[p];                   // the same character, read again
+     if (!Unreserved(c)) fail;      // the same class, tested again
+     p++;
+```
+
+A predicted dispatch reads the character and tests it against each alternative's first set
+to choose a branch. The alternative it chooses then begins with its own terminal — and asks
+all three questions over again about a character nothing had moved past. Two bounds checks,
+two loads and two class tests per character, in the loops a grammar spends its life in.
+
+It comes out because the dispatch's answer is a fact about the position, and nothing can
+arrive between the two: a predicted choice writes no way back, and of 1,409 states only 105
+are ever stored in an arena entry as somewhere to resume — none of these. The `switch
+(state)` table lists every state, which made it look as though anything could be re-entered,
+but most of those cases are unreachable.
+
+So `CompilePredictedChoice` now emits `if (test) { p++; goto rest; }` and never compiles the
+alternative's leading terminal at all. `BeginsWith` has to look through an inlined call to
+find it: `Unreserved = [Digit | 'a'..'z' | …]` is a character class wearing a name, and an
+alternative that calls it begins with its element as surely as if the class had been written
+in place. Without that the change fired in four places instead of twenty-five. The two tests
+are compared as text, and the one wording difference bridged is the bracket
+`CSharpEmitter.Test` adds and `RangesTest` does not.
+
+The URL grammar's hot loop is now one block, and three of its four alternatives collapse to
+the same two instructions:
+
+```csharp
+if (Unreserved(c))        { p++; goto S60; }
+if (SubDelim(c))          { p++; goto S60; }
+if (c == '%')             goto S65;
+if (c == ':' || c == '@') { p++; goto S60; }
+```
+
+21,574 lines to 21,111, and 1,409 states to 1,388.
+
+## What that change actually measured: dynamic PGO, not work
+
+The first run of it disagreed with itself, and chasing that down is worth more than the
+optimization.
+
+An A/B on the snapshot grammar said every input got faster. `DefaultJob` on the benchmark
+said one input — the 47-character URL with every part — got 11% slower. The first confound
+was mine: **the benchmark's grammar is not the snapshot's.** `benchmarks/Urls.cs` leaves out
+`IPLiteral` and the nine-alternative `IPv6` rule, so the two are different parsers and an
+A/B on one predicts nothing about the other. Measured again on the benchmark's own binaries,
+in separate processes and alternating: the regression was real, −9.5%.
+
+Then the state counter said something that ruled out the obvious explanation: **the visit
+counts are identical, input for input, before and after.** Nothing was added. And 15.5% of
+that input's visits were to states whose redundant test had just been removed. Less work,
+same steps, slower.
+
+`DOTNET_TieredPGO=0` settled it. With dynamic PGO switched off the same pair goes from
+−8.5% to **+5.7%**, and the long path from +14.3% to **+24.3%**. The loss is the
+profile-guided block layout making a different guess about a method this size, and the
+guess it made about the old code happened to be better for that one input.
+
+The clincher is which input loses. On the benchmark's grammar it is the 47-character URL; on
+the snapshot's larger one, the same input **gains 10%** and the refusal loses 5% instead. A
+change that were bad for a kind of input would lose on the same input both times. This one
+does not, because it is not about the input.
+
+What the shipped form measures, medians of five, each variant in its own process and the
+two alternating so that machine drift lands on both:
+
+| input | benchmark grammar | snapshot grammar |
+| --- | --: | --: |
+| `http://example.com` | +10.3% | +15.2% |
+| `https://192.168.0.1/` | +1.6% | +7.0% |
+| `https://exa mple.com/` — no match | +3.6% | −5.1% |
+| a 47-character URL with every part | −12.6% | +10.0% |
+| an 84-character path of eight segments | +17.2% | +17.5% |
+
+With `DOTNET_TieredPGO=0`, the benchmark grammar's two extremes are +5.7% and +24.3%.
+
+Three things follow, and only the first is about this change.
+
+**It ships.** It removes work unconditionally, adds no step, and wins on four of five inputs
+of each grammar and on all of them once the layout lottery is taken out.
+
+**Two instruments were wrong and are now right.** An A/B must be built from the artifact
+under test, not from a similar one; and the URL benchmark's numbers can move by a tenth on
+one input for reasons that have nothing to do with the code under test. `benchmarks/README.md`
+already said the shortest two inputs cannot be compared between runs. This says something
+worse: on a method this size, any input can move that far on any change that shifts a block,
+and the direction means nothing.
+
+**It is the strongest argument yet for splitting the automaton.** The standing plan was to
+split it for instruction-cache locality, on the evidence that extracting the materializer
+was worth 7% on the big grammar and nothing on the small one. This is a better reason: a
+21,500-line method is large enough that where PGO puts the blocks matters more than what the
+blocks do, and neither the generator nor the consumer has any say in it. Smaller methods are
+not merely faster — they are measurable.
+
+### The published table was not refreshed for this, on purpose
+
+`benchmarks/README.md` and `docs/status.md` still carry the numbers from before this change.
+Two `DefaultJob` runs were attempted for them and both were thrown away: another workload
+had started on this machine, and it showed. In the second, `.Gram` and `.Gram, every part`
+came out 19% to 21% apart on inputs where they do the same work and had agreed to within 1%
+that morning, and the compiled pattern's own standard deviation reached 24 ns.
+
+A table of ratios against a control is only worth what the control is worth. The A/B above
+survives a noisy machine because it interleaves the two variants, so drift lands on both;
+`DefaultJob` measures one binary at a time and cannot. Re-run the comparison on a quiet
+machine and refresh both documents then — the change is committed and the table simply
+predates it.

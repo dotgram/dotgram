@@ -1655,8 +1655,13 @@ sealed partial class Machine
 	{
 		var targets = new int[alternatives.Count];
 
+		var advanced = new bool[alternatives.Count];
+
 		for (var i = 0; i < alternatives.Count; i++)
-			targets[i] = Compile(alternatives[i], next, following);
+			if (CompileTested(alternatives[i], tests[i], next, following) is { } entered)
+				(targets[i], advanced[i]) = (entered, true);
+			else
+				targets[i] = Compile(alternatives[i], next, following);
 
 		var state = Reserve(out var writer);
 
@@ -1688,12 +1693,117 @@ sealed partial class Machine
 		writer.Line("c = text[p];");
 
 		for (var i = 0; i < targets.Length; i++)
-			writer.Line($"if ({tests[i]}) goto {Label(targets[i])};");
+			writer.Line(advanced[i]
+				? $"if ({tests[i]}) {{ p++; goto {Label(targets[i])}; }}"
+				: $"if ({tests[i]}) goto {Label(targets[i])};");
 
 		EmitTerminalFailure(writer, _fail, arrayName);
 
 		return state;
 	}
+
+	/// <summary>
+	/// Where an alternative continues once a leading terminal the dispatch has already tested
+	/// is stepped over — or <c>null</c> where it does not begin with exactly that terminal.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A predicted dispatch reads <c>text[p]</c>, proves it in range, and tests it against
+	/// each alternative's first set. An alternative that is a terminal, or begins with one,
+	/// then asked all three questions over again — its own bounds check, its own load, its
+	/// own comparison — about a character nothing had moved past. The loops a grammar spends
+	/// its time in are exactly this shape: <c>(Unreserved | SubDelim | PctEncoded | ':')*</c>
+	/// paid for it once per character of every host and every path segment.
+	/// </para>
+	/// <para>
+	/// So the dispatch advances and jumps past that terminal itself, and what comes back here
+	/// is where to land. Nothing is shared and nothing is rewritten — the untested form is
+	/// simply never compiled, and this is the only edge that would have reached it. A
+	/// predicted choice writes no way back and no arena entry names the state, so there is no
+	/// second way in for a resume to arrive by.
+	/// </para>
+	/// <para>
+	/// The <c>p++</c> goes in the dispatch's own branch rather than into a state of its own,
+	/// which is not a matter of taste. A state is a block the resume switch can jump to, so
+	/// it survives every optimizer as a block, and a two-line one between a test and its
+	/// continuation is a block the profile-guided layout can put anywhere. Measured with one:
+	/// four inputs faster and the fifth 9% slower, and the fifth turned into a 6% gain the
+	/// moment dynamic PGO was switched off — an unmistakeable signature of layout rather than
+	/// of work (docs/next.md).
+	/// </para>
+	/// <para>
+	/// The two tests are compared as text on purpose. Identical text is the whole of what has
+	/// to hold — the same expression over the same <c>c</c> — and where the first-set builder
+	/// and the terminal's own builder word the same set differently, this declines and the
+	/// ordinary form is compiled. Wrong is not among the answers; missed is. The one wording
+	/// difference bridged here is the outer bracket: <see cref="CSharpEmitter.Test"/> wraps
+	/// what it builds and <c>RangesTest</c> does not, and a negated element's <c>!(…)</c>
+	/// cannot collide with the bracketed form whatever it contains.
+	/// </para>
+	/// </remarks>
+	int? CompileTested(Node node, string test, int next, FirstSets.First following)
+	{
+		// Asked before anything is written: a sequence's tail would otherwise be compiled
+		// only to be abandoned when its head turned out not to qualify, and an abandoned
+		// state is still a state in the method.
+		//
+		// "true" and "false" cannot arrive here — Predictive refuses a first set that is
+		// Anything or Nothing — but neither would be a terminal anybody had tested.
+		if (test is "true" or "false" || !BeginsWith(node, test))
+			return null;
+
+		return Entered(node, next, following);
+
+		int Entered(Node at, int to, FirstSets.First after) =>
+			at switch
+			{
+				// The terminal itself contributes no state: the dispatch steps over it.
+				Node.Element => to,
+
+				// The same step <see cref="Compile"/> takes for a call it inlines, so the
+				// body is entered exactly where the ordinary form would have entered it.
+				Node.Call(var rule, _) => Entered(_graph.Bodies[rule], to, after),
+
+				Node.Sequence(var nodes) => Threaded(nodes, to, after),
+
+				// BeginsWith admits these three and nothing else.
+				_ => throw new InvalidOperationException($"{at.GetType().Name} does not begin with a terminal."),
+			};
+
+		int Threaded(IReadOnlyList<Node> nodes, int to, FirstSets.First after)
+		{
+			var target = to;
+			var rest   = after;
+
+			for (var i = nodes.Count - 1; i >= 1; i--)
+			{
+				target = Compile(nodes[i], target, rest);
+				rest   = Precedes(nodes[i], rest);
+			}
+
+			return Entered(nodes[0], target, rest);
+		}
+	}
+
+	/// <summary>
+	/// Whether the node begins with exactly the terminal a dispatch has already tested.
+	/// </summary>
+	/// <remarks>
+	/// Looks through an inlined call, because that is what compiling one does — the rule
+	/// <c>Unreserved = [Digit | 'a'..'z' | 'A'..'Z' | '-' | '.' | '_' | '~']</c> is a
+	/// character class wearing a name, and an alternative that is a call to it begins with
+	/// its element as surely as if the class had been written in place.
+	/// </remarks>
+	bool BeginsWith(Node node, string test) =>
+		node switch
+		{
+			Node.Element element     => CSharpEmitter.Test(element) == $"({test})",
+			Node.Call(var rule, _)   => CanInline(rule) &&
+			                            _graph.Bodies.TryGetValue(rule, out var body) &&
+			                            BeginsWith(body, test),
+			Node.Sequence(var nodes) => nodes.Count > 0 && BeginsWith(nodes[0], test),
+			_                        => false,
+		};
 
 	/// <summary>What a predicted choice's disjoint first sets accept, rendered as one element set.</summary>
 	string PredictedDisplay(IReadOnlyList<Node> alternatives)
