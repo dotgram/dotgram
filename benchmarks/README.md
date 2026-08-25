@@ -46,6 +46,10 @@ Both sides are asked for the parts, not for a yes. "Is this a URL" is a differen
 cheaper question than "what are its scheme, host, port and path", and the second is what a
 parser is for.
 
+Asked twice, because "the parts" turns out to be two questions and the two engines answer
+them differently — one part read, and every part read. Both are timed, and the two tables
+below are what each costs whom.
+
 One of the five inputs does not match. A parser that is quick to say yes and slow to say
 no is quick on the input nobody sends: refusal is where a backtracking engine does its
 worst work.
@@ -57,31 +61,64 @@ refusal message (`docs/next.md`). Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 141.0 ns | 572.6 ns (4.06×) | 262.1 ns (1.86×) |
-| `https://192.168.0.1/` | 135.2 ns | 521.8 ns (3.86×) | 245.4 ns (1.81×) |
-| `https://exa mple.com/` — no match | 75.6 ns | 430.5 ns (5.70×) | 102.5 ns (1.36×) |
-| a 47-character URL with every part | 242.5 ns | 582.2 ns (2.40×) | 248.9 ns (1.03×) |
-| an 84-character path of eight segments | 219.6 ns | 1102.0 ns (5.02×) | 413.5 ns (1.88×) |
+| `http://example.com` | 141.7 ns | 585.4 ns (4.13×) | 263.3 ns (1.86×) |
+| `https://192.168.0.1/` | 136.3 ns | 529.9 ns (3.89×) | 248.2 ns (1.82×) |
+| `https://exa mple.com/` — no match | 77.1 ns | 434.2 ns (5.63×) | 103.2 ns (1.34×) |
+| a 47-character URL with every part | 226.6 ns | 532.1 ns (2.35×) | 252.7 ns (1.12×) |
+| an 84-character path of eight segments | 215.8 ns | 1099.4 ns (5.10×) | 412.3 ns (1.91×) |
 
 **Faster than `RegexOptions.Compiled` on all five**, and than the interpreted pattern by
-2.4× to 5.7×. Both inputs that used to lose turned round: the one with every part present,
+2.4× to 5.6×. Both inputs that used to lose turned round: the one with every part present,
 by the materialization work, and the refusal, by not wording the failure message until
 somebody asks for it.
 
-Read the closest of them, the 47-character URL at 1.03×, knowing what each side was asked
-for: the pattern is asked for one named group and cuts one substring, this is asked for a
-record and builds all seven. Even at parity it is doing seven times the string work, which
-is the asymmetry `docs/next.md` names and leaves standing.
+### Asked for every part instead of one
+
+The table above asks each side for one part, the host, and that is the pattern's shape of
+question rather than this project's. `Group.Value` records where a capture was and cuts the
+string when somebody reads it, so one group asked for is one string built. A publication
+hands back a record with all seven parts already inside it, so one part asked for is seven
+parts built. The table above is a comparison of seven strings against one, and it says so
+in this file only because somebody thought to check.
+
+The same five inputs, with every part read on both sides:
+
+| input | .Gram | Regex | Regex, compiled |
+| --- | --: | --: | --: |
+| `http://example.com` | 139.6 ns | 687.3 ns (4.92×) | 378.3 ns (2.71×) |
+| `https://192.168.0.1/` | 140.8 ns | 638.6 ns (4.54×) | 369.5 ns (2.62×) |
+| `https://exa mple.com/` — no match | 74.5 ns | 428.2 ns (5.75×) | 103.7 ns (1.39×) |
+| a 47-character URL with every part | 228.6 ns | 660.7 ns (2.89×) | 376.1 ns (1.65×) |
+| an 84-character path of eight segments | 216.4 ns | 1228.5 ns (5.68×) | 544.4 ns (2.52×) |
+
+**Asking for all seven costs this nothing.** Every row is within 4% of its own row above,
+in both directions, which is where this machine's noise lives — and the allocation figures
+are identical to the byte. They were built before the call returned; reading them reads
+fields.
+
+**It costs the compiled pattern 32% to 49%** on the four inputs that match — 263→378,
+248→370, 412→544 and 253→376 ns, and 32 to 208 bytes more each. Only the refusal is
+unchanged, because a refusal has no parts to cut.
+
+Neither table is the honest one on its own. The first flatters the pattern by asking for
+the one thing it defers; the second flatters this by asking for everything it built anyway.
+Together they say the deferral is real and worth something to a caller who wants one part,
+and is a cost the moment the caller wants the parse.
+
+### Reading these numbers between runs
 
 **Two of these five inputs are too short to compare between runs.** Run the identical
-binary twice and `http://example.com` and `https://192.168.0.1/` — both around 150 ns —
-move by 9% and 14%; the other three hold to within 2%. A difference smaller than that on
-either of them is not a difference, whatever the compiled pattern beside it did. The one
-time this was ignored, a 17% "regression" on the IP-host form survived a stable control
+binary twice and `http://example.com` and `https://192.168.0.1/` — both around 140 ns —
+move by 9% and 14%. The other three were once described here as holding to within 2%; that
+was optimistic. The 47-character URL moved 6.6% (242.5 → 226.6 ns) between the two runs
+this file has carried, on parsing code neither run changed. Two per cent is the floor for
+the 84-character path and nothing else. A difference smaller than an input's own movement
+is not a difference, whatever the compiled pattern beside it did. The one time this was
+ignored, a 17% "regression" on the IP-host form survived a stable control
 and three repetitions of a second instrument before five repetitions said it had never
 been there (`docs/next.md`, "Three measurements said this was a regression").
 
-**Compare the ratios between runs, not the nanoseconds**, for the three that are stable
+**Compare the ratios between runs, not the nanoseconds**, and only for the inputs stable
 enough to compare at all. Two runs back `Regex, compiled` sat at
 365.5/328.2/138.9/332.8/570.6 ns on these inputs — the BCL got no faster in between, the
 machine was quieter. Against that control the deferred-`Expected` change moved every

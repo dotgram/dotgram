@@ -1332,16 +1332,24 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 as a regular expression, and refuses to time anything until both agree on every part of
 every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the materialization
 work and the lazy refusal message: **generated parsing is faster than
-`RegexOptions.Compiled` on all five benchmarked inputs** — 141.0 ns against 262.1 for the
-short URL, 135.2 against 245.4 for the IP-host form, 75.6 against 102.5 on the refusal,
-219.6 against 413.5 for the 84-character path, and 242.5 against 248.9 on the one that
-exercises every named part. Against interpreted `Regex`, 2.4× to 5.7×.
+`RegexOptions.Compiled` on all five benchmarked inputs** — 141.7 ns against 263.3 for the
+short URL, 136.3 against 248.2 for the IP-host form, 77.1 against 103.2 on the refusal,
+215.8 against 412.3 for the 84-character path, and 226.6 against 252.7 on the one that
+exercises every named part. Against interpreted `Regex`, 2.4× to 5.6×.
 
 Both inputs that used to lose turned round, and neither by a general speed-up: the
 every-part one by the materialization work below, the refusal by not wording the failure
-message until somebody asks for it. The closest of the five, at 1.03×, is also the one
-where the two sides are asked for least alike a thing — the pattern for one named group,
-this for a record of seven parts, all of them built.
+message until somebody asks for it.
+
+**Those five ask each side for one part, which is the pattern's question and not this
+one's.** A group records where a capture was and cuts its string when somebody reads it;
+a publication hands back a record with all seven parts already inside it. Asked instead
+for every part — the honest form of this project's question, and the second pair the
+benchmark now times — the same five come out 2.71×, 2.62×, 1.39×, 2.52× and 1.65× faster
+than the compiled pattern. Reading all seven costs this nothing measurable, because they
+were built before the call returned; it costs the pattern 32% to 49% and 32 to 208 bytes
+more. Neither pair is the honest one on its own, the first flattering the pattern and the
+second flattering this, and `benchmarks/README.md` carries both tables for that reason.
 
 Read the ratios rather than the nanoseconds when comparing against an earlier run, and
 only for the inputs stable enough to compare at all: the shortest ones move by 9% to 14%

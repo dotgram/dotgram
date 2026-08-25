@@ -1289,3 +1289,49 @@ not. Making those lazy needs an input to slice later, and the `ReadOnlySpan<char
 point has nothing to hold — so it would be a split between entry points rather than one
 design, and the typed record with every part filled in is closer to what this project
 sells than a lazy match object is. Left undone deliberately, with the asymmetry stated.
+
+## Measured: what the seven eager strings actually cost, against a pattern's one lazy one
+
+The entry above left an asymmetry standing and named it: seven parts are built whether or
+not the caller wants seven, and `Group.Value` builds one. What it did not say is that
+`UrlBenchmarks` was itself built on the pattern's side of that asymmetry. Its own comment
+claimed both sides were asked for the parts rather than for a yes — and the code read one
+named group from the regex and one property from the record. One string against seven,
+timed as though it were like against like, for every number this project has published.
+
+Not fixed by changing the pair, which would only have moved the thumb to the other side of
+the scale. A second pair was added beside it, reading all seven from both, and the class
+comment now says plainly that "the parts" is two questions: one part read, which is the
+shape of question a lazy match object is designed for, and every part read, which is the
+shape a typed record is. Both are timed. `CheckTheyAgree` gained a total over every part,
+so a run where one side reads six and the other seven is refused rather than measured —
+the same rule the benchmark already applied to the parts themselves.
+
+`DefaultJob`, 2026-08-25, against `RegexOptions.Compiled`:
+
+| input | one part | every part |
+| --- | --: | --: |
+| `http://example.com` | 1.86× | **2.71×** |
+| `https://192.168.0.1/` | 1.82× | **2.62×** |
+| `https://exa mple.com/` — no match | 1.34× | **1.39×** |
+| a 47-character URL with every part | 1.12× | **1.65×** |
+| an 84-character path of eight segments | 1.91× | **2.52×** |
+
+Reading all seven costs this **nothing**: every row moved by less than 4% from its own
+one-part row, in both directions, and allocation is identical to the byte. There is nothing
+for it to cost — the strings existed before the call returned, and a property is a field.
+
+It costs the compiled pattern **32% to 49%** and 32 to 208 bytes: 263→378, 248→370, 412→544
+and 253→376 ns. Only the refusal is flat, having no parts to cut.
+
+So the asymmetry is real in both directions, and neither table is the honest one alone.
+Deferral wins a caller who wants one part out of seven, by roughly the margin the first
+table shows; it loses the caller who wants the parse, by the margin the second does. The
+design question it was raised against — whether to make these lazy — is not settled by
+this and was not meant to be. What is settled is that the instrument no longer answers only
+one of the two questions while claiming to answer both.
+
+One thing to carry forward about the instrument itself: the 47-character URL, which this
+repository's own guidance called stable to within 2%, moved 6.6% (242.5 → 226.6 ns) between
+the two runs `benchmarks/README.md` has carried, on parsing code neither run touched. Only
+the 84-character path has earned that 2%. The guidance in that file is corrected to say so.
