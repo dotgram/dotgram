@@ -61,7 +61,7 @@ architecture and possible VS Code/LSP/metadata work remain in
     backtracking, atomic groups, lookahead, repetition, calls, and whole-parse trivia.
   - [ ] Add guarded/external recognition through a non-executing tooling contract and
     prove parity against generated parsers on the bounded corpus.
-- [ ] Classify and diagnose a custom-attribute DSL string in Visual Studio.
+- [x] Classify and diagnose a custom-attribute DSL string in Visual Studio.
 
 The detailed design and explicit deferrals are in
 [`dsl-tooling-design.md`](dsl-tooling-design.md).

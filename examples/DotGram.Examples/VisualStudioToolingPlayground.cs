@@ -65,3 +65,31 @@ public static partial class VisualStudioToolingPlayground
 	public static decimal EvaluateForTooling(string expression) =>
 		ToolingEvaluate(expression);
 }
+
+// Custom-attribute DSL check. In the ToolingQuery string below, `select` should use the
+// standard keyword color and `customer` the standard local/variable color. Replacing
+// `customer` with `123` should underline the failure position with GRAM5101.
+[Gram("""
+	trivia    = [' ' | '\t']*
+	Keyword   = "select"
+	Identifier = ['a'..'z']+
+	Query     = Keyword & field: (Identifier)
+	parse Query
+	""")]
+[GramLanguage("dotgram.tooling.query")]
+[GramClassify("Keyword", GramClassification.Keyword)]
+[GramClassify("Query.field", GramClassification.Variable)]
+public static partial class ToolingQueryLanguage
+{
+}
+
+[GramEmbeddedLanguage(typeof(ToolingQueryLanguage))]
+public sealed class ToolingQueryAttribute : Attribute
+{
+	public ToolingQueryAttribute(string source) => Source = source;
+
+	public string Source { get; }
+}
+
+[ToolingQuery("select customer")]
+public sealed class ToolingQueryExample;

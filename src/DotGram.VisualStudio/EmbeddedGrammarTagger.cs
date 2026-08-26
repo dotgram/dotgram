@@ -11,6 +11,7 @@ using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.VisualStudio.Language.StandardClassification;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
@@ -45,6 +46,7 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 {
 	readonly EmbeddedGrammarBufferAnalysis       _analysis;
 	readonly Dictionary<GramSyntaxKind, IClassificationType> _types;
+	readonly Dictionary<string, IClassificationType> _dslTypes;
 
 	public EmbeddedGrammarClassifier(
 		EmbeddedGrammarBufferAnalysis analysis,
@@ -67,6 +69,7 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 			[GramSyntaxKind.Operator]       = Type(classifications, GramClassificationTypes.Operator),
 			[GramSyntaxKind.Punctuation]    = Type(classifications, GramClassificationTypes.Punctuation),
 		};
+		_dslTypes = DslTypes(classifications);
 
 		_analysis.Changed += Changed;
 	}
@@ -89,6 +92,17 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 				result.Add(new ClassificationSpan(classified, _types[item.Kind]));
 		}
 
+		if (_analysis.TryGetDslClassifications(snapshot, out var dslClassifications))
+			foreach (var item in dslClassifications)
+			{
+				if (!_dslTypes.TryGetValue(item.Role, out var type))
+					continue;
+
+				var classified = new SnapshotSpan(snapshot, item.Span.Start, item.Span.Length);
+				if (classified.IntersectsWith(span))
+					result.Add(new ClassificationSpan(classified, type));
+			}
+
 		return result;
 	}
 
@@ -100,6 +114,25 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name) =>
 		classifications.GetClassificationType(name) ??
 		throw new InvalidOperationException($"Visual Studio classification '{name}' is unavailable.");
+
+	static Dictionary<string, IClassificationType> DslTypes(IClassificationTypeRegistryService types) => new()
+	{
+		["Keyword"]     = Type(types, PredefinedClassificationTypeNames.Keyword),
+		["Identifier"]  = Type(types, GramClassificationTypes.Identifier),
+		["Type"]        = Type(types, "class name"),
+		["Variable"]    = Type(types, "local name"),
+		["Function"]    = Type(types, "method name"),
+		["Method"]      = Type(types, "method name"),
+		["Property"]    = Type(types, "property name"),
+		["Number"]      = Type(types, PredefinedClassificationTypeNames.Number),
+		["String"]      = Type(types, PredefinedClassificationTypeNames.String),
+		["Comment"]     = Type(types, PredefinedClassificationTypeNames.Comment),
+		["Operator"]    = Type(types, PredefinedClassificationTypeNames.Operator),
+		["Punctuation"] = Type(types, PredefinedClassificationTypeNames.Punctuation),
+		["Namespace"]   = Type(types, "namespace name"),
+		["Parameter"]   = Type(types, "parameter name"),
+		["Label"]       = Type(types, "label name"),
+	};
 }
 
 [Export(typeof(ITaggerProvider))]
@@ -193,6 +226,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	ITextSnapshot?                    _retrySnapshot;
 	int                               _retryCount;
 	IReadOnlyList<HostClassification> _classifications = [];
+	IReadOnlyList<HostDslClassification> _dslClassifications = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
 	IReadOnlyList<HostBracePair>       _braces        = [];
@@ -264,6 +298,24 @@ sealed class EmbeddedGrammarBufferAnalysis
 		Schedule(snapshot);
 		symbols = [];
 
+		return false;
+	}
+
+	public bool TryGetDslClassifications(
+		ITextSnapshot snapshot,
+		out IReadOnlyList<HostDslClassification> classifications)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				classifications = _dslClassifications;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		classifications = [];
 		return false;
 	}
 
@@ -379,6 +431,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
+			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
+				document,
+				root,
+				model,
+				cancellationToken).ConfigureAwait(false);
 			var dslDiagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(
 				document,
 				root,
@@ -386,6 +443,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 				cancellationToken).ConfigureAwait(false);
 			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics)
 				.Concat(dslDiagnostics)
+				.Concat(dslSites.Diagnostics)
 				.ToArray();
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
 			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
@@ -405,12 +463,19 @@ sealed class EmbeddedGrammarBufferAnalysis
 					root.ContainsDiagnostics,
 					analyses.Count,
 					_classifications.Count,
+					_dslClassifications.Count,
 					_documentSymbols.Count);
 
 				if (preserveEmbeddedAnalysis && _snapshot is not null)
+				{
 					_classifications = TranslateClassifications(_classifications, _snapshot, snapshot);
+					_dslClassifications = TranslateDslClassifications(_dslClassifications, _snapshot, snapshot);
+				}
 				else
+				{
 					_classifications = classifications;
+					_dslClassifications = dslSites.Classifications;
+				}
 
 				_snapshot        = snapshot;
 				_diagnostics     = diagnostics;
@@ -451,9 +516,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 		bool hasSyntaxErrors,
 		int analysisCount,
 		int previousClassificationCount,
+		int previousDslClassificationCount,
 		int previousSymbolCount) =>
 		hasSyntaxErrors && analysisCount == 0 &&
-		(previousClassificationCount > 0 || previousSymbolCount > 0);
+		(previousClassificationCount > 0 || previousDslClassificationCount > 0 || previousSymbolCount > 0);
 
 	static IReadOnlyList<HostClassification> TranslateClassifications(
 		IReadOnlyList<HostClassification> classifications,
@@ -468,6 +534,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 			item.RuleSignature,
 			item.RuleParameterCount,
 			item.SymbolKind)).ToArray();
+
+	static IReadOnlyList<HostDslClassification> TranslateDslClassifications(
+		IReadOnlyList<HostDslClassification> classifications,
+		ITextSnapshot source,
+		ITextSnapshot target) =>
+		classifications.Select(item => new HostDslClassification(
+			Translate(item.Span, source, target),
+			item.Role)).ToArray();
 
 	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
 	{
