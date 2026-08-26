@@ -83,7 +83,7 @@ public sealed class ExampleTests
 	[MemberData(nameof(Corpus))]
 	public void The_notation_reads_its_own_corpus(string name, string text)
 	{
-		Assert.NotNull(GramGrammar.ParseFile(text));
+		Assert.True(GramGrammar.ParseFile(text) is not null, $"{name} was not read as a grammar.");
 	}
 
 	/// <summary>The checked-in grammars, found the way <c>SnapshotTests</c> finds them.</summary>

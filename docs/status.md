@@ -755,7 +755,7 @@ one of them false in two ways.
 §4.2, for the arguments that are pieces of grammar:
 
 ```dotgram
-List(item, sep) = item & (trivia & sep & item)*
+List(item, sep) = item & (sep & item)*
 
 Start = List(Word, Comma) & ' ' & List(Word, Semi)
 ```

@@ -481,7 +481,7 @@ same thing: binds a name to something that came from outside.
 
 ```dotgram
 Lex(item)               : item   = trivia & item
-List(item, sep)         : item[] = item & (trivia & sep & item)*
+List(item, sep)         : item[] = item & (sep & item)*
 Padded(item, pad: char) : item   = pad* & value: item & pad* => value
 Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 ```
@@ -652,43 +652,52 @@ trivia = WhitespaceAndComments
 No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
 itself as `any{0}` rather than by a new primitive.
 
-**Between the operands of a sequence, and nowhere else.** The iterations of a repetition
-are not operands of a sequence, so nothing is inserted between them:
+**At every seam between the operands of a sequence.** The turns of a repetition are such a
+seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how one writes
+`A S A S A`, and the join that wraps around is no different from the ones inside. An author
+who wrote `S & A` has already said that a space may stand between `S` and `A`; refusing one
+between `A` and the next `S` would be the same seam answered two ways.
 
 ```dotgram
 trivia = Whitespace
 
 Pair    = Word & Word            // matches "ab cd"
+List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
 ```
 
-That is not an oversight to be worked around but the thing that makes the notation
-usable at all. A repetition is how a lexeme is written — `Digits = ['0'..'9']+`,
-`Name = Letter+` — and inserting trivia between those iterations would make `1 2` one
-number and `a b` one name in every grammar that ignores whitespace. Nothing can tell the
-two apart automatically: `Word*` and `Digit*` have the same shape, and only the author
-knows which is a list and which is a lexeme.
+**A repetition of a single operand gets nothing**, and that is the whole reason the
+insertion is not unconditional. A repetition is how a lexeme is written —
+`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
+number and `a b` one name in every grammar that ignores whitespace. A single operand has no
+seam inside a turn, so it has none between them either, and the two cases are told apart by
+the same rule rather than by an exception to it.
 
-So the author says which. `trivia` is an ordinary rule and may be named:
+An **optional** is left alone for the same reason: it has no second turn, so it has no seam.
+So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape —
+`(Whitespace | LineComment | BlockComment)*` — from being asked to space itself.
+
+What is left over is a spaced run of a single thing, which nothing can infer: `Word*` and
+`Digit*` have the same shape and only the author knows which is a list. So the author says
+which, and `trivia` is an ordinary rule that may be named:
 
 ```dotgram
-Attributes = Attribute & (trivia & Attribute)*     // a list, spaced
+Attributes = Attribute & (trivia & Attribute)*     // a list of one thing, spaced
 Digits     = ['0'..'9']+                           // a lexeme, not
 ```
 
-A run with a separator is a run like any other, and this is where the rule is easiest to
-misread. Inside one turn the separator *is* an operand, so it gets trivia on both sides;
-but the turns are not operands of anything, so the space **before** the second and every
-later separator has nowhere to go. The first turn is spaced by the sequence around the
-repetition and the ones after it are not spaced at all:
+A run with a separator needs none of that, because the thing it repeats is a sequence:
 
 ```dotgram
-List(item, sep) : item[] = item & (trivia & sep & item)*    // "1, 2 , 3"
+List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3"
 ```
 
-Written without that `trivia` the rule reads `1, 2, 3` and refuses `1, 2 , 3`, silently
-and only from the third item on — which is exactly how it went unnoticed here until a
-grammar of this notation was written in it (`examples/DotGram.Examples/GramExample.cs`).
+This rule is narrower than it once was. It used to be "between the operands of a sequence
+and nowhere else", which spaced only a list's first turn — from the sequence around the
+repetition — and refused a space to the left of the second and every later separator:
+silently, and only from the third item on. It went unnoticed in this document, in the
+README, and in two of the examples until a grammar of this notation was written in it
+(`examples/DotGram.Examples/GramExample.cs`).
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 

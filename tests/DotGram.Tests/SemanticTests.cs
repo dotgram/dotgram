@@ -64,6 +64,85 @@ public sealed class SemanticTests
 		Assert.Equal(expected, value);
 	}
 
+	// ── §4.5: where trivia goes ─────────────────────────────────────────────
+
+	/// <summary>
+	/// A separated list is spaced on both sides of its separator, on every turn.
+	/// </summary>
+	/// <remarks>
+	/// The turns of a repetition are a seam between the operands of a sequence wherever the
+	/// thing repeated is one, so <c>item &amp; (sep &amp; item)*</c> needs nothing written
+	/// out. It used to space only its first turn — from the sequence around the repetition
+	/// — which refused a space to the left of the second and every later separator: silently,
+	/// and only from the third item on.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", true)]
+	[InlineData("a,a", true)]
+	[InlineData("a, a", true)]
+	[InlineData("a ,a", true)]
+	[InlineData("a , a", true)]
+	[InlineData("a,a,a", true)]
+	[InlineData("a, a, a", true)]
+	[InlineData("a ,a ,a", true)]
+	[InlineData("a , a , a", true)]
+	[InlineData("a , a , a , a", true)]
+	[InlineData("a a", false)]
+	public void A_separated_list_is_spaced_on_every_turn(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = A & (',' & A)*" + '\n' +
+			"A = ['a'..'z']+", input));
+
+	/// <summary>
+	/// A repetition of one thing is a lexeme, and is not spaced.
+	/// </summary>
+	/// <remarks>
+	/// This is what the insertion was held back for, and it still is: nothing can tell
+	/// <c>Word*</c> from a list by looking, so a repetition with no seam inside a turn gets
+	/// none between them (§4.5).
+	/// </remarks>
+	[Theory]
+	[InlineData("abcd", true)]
+	[InlineData("ab cd", false)]
+	public void A_repetition_of_one_thing_is_a_lexeme(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = W*" + '\n' +
+			"W = ['a'..'z']", input));
+
+	/// <summary>Digits, the example §4.5 gives: <c>1 2</c> is two numbers, not one.</summary>
+	[Theory]
+	[InlineData("123", true)]
+	[InlineData("1 2", false)]
+	public void Digits_are_a_lexeme_too(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = ['0'..'9']+", input));
+
+	/// <summary>An optional has no second turn, so it has no seam to space.</summary>
+	[Theory]
+	[InlineData("ab", true)]
+	[InlineData("a b", true)]
+	[InlineData("a", true)]
+	public void An_optional_is_left_alone(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = 'a' & 'b'?", input));
+
+	/// <summary>
+	/// Spacing a repetition of a single thing is the case that cannot be inferred, and is
+	/// still written out (§4.5).
+	/// </summary>
+	[Theory]
+	[InlineData("a a a", true)]
+	[InlineData("aaa", true)]
+	public void A_spaced_repetition_of_one_thing_still_says_so(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = A & (trivia & A)*" + '\n' +
+			"A = ['a'..'z']", input));
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)

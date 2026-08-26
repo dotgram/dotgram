@@ -25,10 +25,12 @@ namespace DotGram.Examples;
 //     spaced and commented freely (§4.5). One declaration, and no rule below it mentions
 //     whitespace.
 //
-//   * Every repetition here writes `trivia` by hand: `(trivia & '|' & ElemAlt)*`. §4.5
-//     inserts trivia between the operands of a sequence and nowhere else, so the turns of
-//     a repetition get none — deliberately, since that is what keeps `['0'..'9']+` from
-//     reading `1 2` as one number. A spaced list has to say so, and this one is spaced.
+//   * Only two repetitions write `trivia` out, and §4.5 says which two. A repetition of
+//     a sequence is spaced by itself — `('|' & ElemAlt)*`, `(',' & Type)* ` — because
+//     the turns are a seam between operands like any other. A repetition of one thing is
+//     a lexeme and is not, which is what keeps `['0'..'9']+` from reading `1 2` as one
+//     number — and what makes `(trivia & Declaration)*` say so, being a run of single
+//     things that newlines stand between.
 //
 //   * `@(...)` holds C#, and finding its closing parenthesis means knowing C#'s own
 //     strings and comments. No grammar can do that, and this one does not try: `@CSharp`
@@ -108,16 +110,16 @@ namespace DotGram.Examples;
 		= name: Identifier & Parameters? & (':' & type: Type)? & '=' & body: Body
 		=> @(new GramRule(name, type, body))
 
-	Parameters     = '(' & (Parameter & (trivia & ',' & Parameter)*)? & ')'
+	Parameters     = '(' & (Parameter & (',' & Parameter)*)? & ')'
 	Parameter      = Identifier & (':' & Type)?
 	Type : @string = text: (Reference & "[]"?) => @(text)
 
 	With           = "with" & Rebindings
-	Rebindings     = '(' & (Rebinding & (trivia & ',' & Rebinding)*)? & ')'
+	Rebindings     = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 	Rebinding      = Identifier & '=' & Identifier
 
 	Body : @GramExpr
-		= first: Alternative & (trivia & '|' & rest: Alternative)*
+		= first: Alternative & ('|' & rest: Alternative)*
 		=> @(GramGrammar.Choice(first, rest))
 
 	Alternative : @GramExpr
@@ -127,7 +129,7 @@ namespace DotGram.Examples;
 	Binding        = ("<<" | ">>") & Int
 
 	Sequence : @GramExpr
-		= first: Operand & (trivia & '&' & rest: Operand)*
+		= first: Operand & ('&' & rest: Operand)*
 		=> @(GramGrammar.Sequence(first, rest))
 
 	Operand : @GramExpr = o: Guard => @(o) | o: Quantified => @(o)
@@ -141,7 +143,7 @@ namespace DotGram.Examples;
 		=> @(GramGrammar.Quantified(body, quantifier, recovery, rebound))
 
 	Quantifier : @string
-		= text: ('?' | '*' | '+' | '{' & Count & (trivia & ',' & Count?)? & '}')
+		= text: ('?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}')
 		=> @(text)
 
 	Recovery : @GramExpr = "recover" & sync: Prefixed & ("=>" & Value)? => @(sync)
@@ -172,17 +174,17 @@ namespace DotGram.Examples;
 	// Longest first: a call is a reference and then an argument list, so a bare reference
 	// tried first would take the name and leave the parenthesis behind.
 	Call : @GramExpr
-		= target: Reference & '(' & (first: Argument & (trivia & ',' & rest: Argument)*)? & ')'
+		= target: Reference & '(' & (first: Argument & (',' & rest: Argument)*)? & ')'
 		=> @(GramGrammar.Call(target, first, rest))
 
 	Argument : @GramExpr = i: Int => @(new GramRef(i)) | a: Alternative => @(a)
 
 	Reference : @GramExpr = text: ('@'? & Name & TypeArgs?) => @(new GramRef(text))
 
-	TypeArgs       = '<' & Type & (trivia & ',' & Type)* & '>'
+	TypeArgs       = '<' & Type & (',' & Type)* & '>'
 
 	ElementSet : @GramExpr
-		= '[' & negated: '^'? & first: ElemAlt & (trivia & '|' & rest: ElemAlt)* & ']'
+		= '[' & negated: '^'? & first: ElemAlt & ('|' & rest: ElemAlt)* & ']'
 		=> @(GramGrammar.Set(negated, first, rest))
 
 	ElemAlt : @string = text: (Char & (".." & Char)? | Category | Reference) => @(text)
