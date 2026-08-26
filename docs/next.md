@@ -2635,3 +2635,59 @@ they were: their literal choices were already settled runs, which is where
 `CompileLiterals` was already doing this. It shows only where a text begins another, and
 what it saves there is the second reading of the shared characters — which no benchmark in
 this repository has, and which any keyword set does.
+
+## Measured: a trie over a choice of literals is slower, and why
+
+The obvious next step from the previous entry was to stop settling for pairs and build the
+whole run into a trie — read one character, jump to the alternatives that begin with it,
+and never read a character twice. `"http" | "https"` folds to `http{s}`; the operator set
+in `FilterExample`,
+
+```
+Op : @string = text: (">=" | "<=" | "<>" | "!=" | "=" | ">" | "<") => @(text)
+```
+
+folds to one question about the first character and at most one about the second, where
+today it is four two-character comparisons in written order and then a range test for the
+three one-character alternatives.
+
+Measured before writing any of it, against what the generator emits today, 100,000
+operators, medians of nine, alternating:
+
+| input | chain (today) | trie, `switch` | trie, `if`/`else` |
+|---|---|---|---|
+| the seven mixed at random | **5.4 ns** | 9.6 ns (−78%) | 8.7 ns (−59%) |
+| 90% `=` — the chain's *worst* path | **3.1 ns** | 3.9 ns (−26%) | 3.2 ns (−3%) |
+| 90% `>=` — the chain's *best* path | 3.9 ns | **3.2 ns** (+18%) | 3.4 ns (+12%) |
+
+The trie does strictly less work and loses badly. What it does is convert a column of
+independent, almost-always-not-taken comparisons — which the processor predicts perfectly
+and issues in parallel — into a branch that *is* the decision, and therefore cannot be
+predicted at all. One mispredict costs more than the four comparisons it removed. The
+`switch` form is worse again because a sparse jump table (`!` is 33, `<>=` are 60-62) is an
+indirect branch, but the `if`/`else` form loses too, so the jump table is not the cause.
+
+The one row the trie wins is the one where the input is predictable *and* the chain is
+already answering on its first test — which is to say, where nothing was wrong.
+
+Left-factoring a single pair — the narrow version, which is all `PrefixSettled` would need
+to also admit "longer written first" — was measured the same way on `"https" | "http"`:
+
+| input | today | left-factored |
+|---|---|---|
+| the two evenly split | 5.7 ns | 5.8 ns (−2%) |
+| 90% `https` | 2.80 ns | 2.77 ns (+1%) |
+| 90% `http` | 3.14 ns | **2.68 ns** (+15%) |
+
+A wash, except where the shorter reading dominates and today's code pays a failed
+five-character comparison before it. That is a few percent of a construct that fires once
+per input, on grammars that mostly do not have it.
+
+**Neither is worth building.** The measurement is of the recognition shape alone and does
+not include arena traffic, but the arena is a wash between the two shapes as well: both
+push exactly one way back on the branch that has one.
+
+Worth keeping as a general result rather than a fact about literals: **an optimization
+that removes predictable work and adds an unpredictable branch is a loss**, and this
+engine's straight-line chains are full of predictable work. The same caution applies to
+anything else here shaped like a dispatch table.
