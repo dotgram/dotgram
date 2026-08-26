@@ -73,12 +73,12 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
-					case 4: goto S4;
-					case 5: goto S5;
-					case 6: goto S6;
-					case 7: goto S7;
-					case 8: goto S8;
+					case 3: goto S16;
+					case 4: goto S28;
+					case 5: goto S36;
+					case 6: goto S45;
+					case 7: goto S52;
+					case 8: goto S53;
 					case 9: goto S9;
 					case 10: goto S10;
 					case 11: goto S11;
@@ -125,42 +125,6 @@ namespace DotGram.Snapshots
 					case 52: goto S52;
 					case 53: goto S53;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter Csv", 3, p, entries.Count);
-					goto S16;
-				}
-
-				S4:
-				{
-					Trace("enter Row", 4, p, entries.Count);
-					goto S28;
-				}
-
-				S5:
-				{
-					Trace("enter Name", 5, p, entries.Count);
-					goto S36;
-				}
-
-				S6:
-				{
-					Trace("enter Amount", 6, p, entries.Count);
-					goto S45;
-				}
-
-				S7:
-				{
-					Trace("enter eof", 7, p, entries.Count);
-					goto S52;
-				}
-
-				S8:
-				{
-					Trace("enter eol", 8, p, entries.Count);
-					goto S53;
 				}
 
 				S9:
@@ -249,7 +213,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 17, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Row", 4, p, entries.Count);
-					goto S4;
+					goto S28;
 				}
 
 				S21:
@@ -296,7 +260,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 23, p, call, atomic, repeat, lookahead, 0, 3));
 					call = callIndex;
 					Trace("call Amount", 6, p, entries.Count);
-					goto S6;
+					goto S45;
 				}
 
 				S26:
@@ -326,7 +290,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Name", 5, p, entries.Count);
-					goto S5;
+					goto S36;
 				}
 
 				S31:

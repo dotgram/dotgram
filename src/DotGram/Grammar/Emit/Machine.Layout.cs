@@ -223,6 +223,9 @@ sealed partial class Machine
 			$"goto {Label(Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)))};");
 
 		return Resumes.Replace(body, match =>
+			!Resumable.Contains(match.Groups[1].Value)
+				? match.Value
+				:
 			$"new ParserEntry(ParserEntry.{match.Groups[1].Value}, " +
 			Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)) + ",");
 	}
@@ -232,4 +235,18 @@ sealed partial class Machine
 
 	static readonly Regex Gotos   = new(@"goto S(\d+);", RegexOptions.Compiled);
 	static readonly Regex Resumes = new(@"new ParserEntry\(ParserEntry\.(\w+), (\d+),", RegexOptions.Compiled);
+
+	/// <summary>The entry kinds whose second field is a state, and not something else.</summary>
+	/// <remarks>
+	/// It is not a state in four of them, and rewriting it as one is silent corruption:
+	/// <c>Capture</c> and <c>RuleCapture</c> hold a capture slot there, <c>Construct</c> a
+	/// factory's number and <c>Recovery</c> a recovery's. A slot that happened to equal a
+	/// collapsed state's number came back as that state's, so the value it named was never
+	/// built and the construction was handed a null.
+	///
+	/// Latent until something made a rule's entry state collapsible — the collapse is what
+	/// makes a rewrite happen at all — and found by trying to take a `Trace` call out of one.
+	/// </remarks>
+	static readonly HashSet<string> Resumable =
+		["Choice", "Call", "Lookahead", "Completed", "Dead", "Run", "PendingRecovery", "Atomic", "Repeat"];
 }

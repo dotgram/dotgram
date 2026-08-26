@@ -179,7 +179,6 @@ sealed partial class Machine
 			// and a block for the second saying of it. What the trace loses is the root
 			// entry, which is not reached from a call site; that one is written once at the
 			// top of the method instead.
-			entry.Line($"Trace(\"enter {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 			entry.Line($"goto {Label(body)};");
 		}
 	}

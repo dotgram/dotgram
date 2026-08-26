@@ -200,19 +200,13 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
+					case 3: goto S8;
 					case 4: goto S4;
 					case 5: goto S5;
 					case 6: goto S6;
 					case 7: goto S7;
 					case 8: goto S8;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter C", 3, p, entries.Count);
-					goto S8;
 				}
 
 				S4:

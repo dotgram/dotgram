@@ -282,12 +282,10 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
-					case 4: goto S4;
-					case 5: goto S5;
-					case 6: goto S6;
-					case 10: goto S10;
-					case 13: goto S13;
+					case 3: goto S29;
+					case 5: goto S42;
+					case 10: goto S72;
+					case 13: goto S100;
 					case 15: goto S15;
 					case 16: goto S16;
 					case 17: goto S17;
@@ -304,9 +302,6 @@ namespace DotGram.Snapshots
 					case 28: goto S28;
 					case 29: goto S29;
 					case 30: goto S29;
-					case 31: goto S31;
-					case 32: goto S32;
-					case 33: goto S33;
 					case 34: goto S34;
 					case 35: goto S35;
 					case 36: goto S36;
@@ -316,8 +311,6 @@ namespace DotGram.Snapshots
 					case 40: goto S40;
 					case 41: goto S41;
 					case 42: goto S42;
-					case 43: goto S43;
-					case 44: goto S44;
 					case 51: goto S51;
 					case 52: goto S52;
 					case 53: goto S53;
@@ -356,42 +349,6 @@ namespace DotGram.Snapshots
 					case 99: goto S99;
 					case 100: goto S100;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter Feed", 3, p, entries.Count);
-					goto S29;
-				}
-
-				S4:
-				{
-					Trace("enter eof", 4, p, entries.Count);
-					goto S33;
-				}
-
-				S5:
-				{
-					Trace("enter Trailer", 5, p, entries.Count);
-					goto S42;
-				}
-
-				S6:
-				{
-					Trace("enter eol", 6, p, entries.Count);
-					goto S44;
-				}
-
-				S10:
-				{
-					Trace("enter Row", 10, p, entries.Count);
-					goto S72;
-				}
-
-				S13:
-				{
-					Trace("enter Header", 13, p, entries.Count);
-					goto S100;
 				}
 
 				S15:
@@ -446,7 +403,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 18, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Trailer", 5, p, entries.Count);
-					goto S5;
+					goto S42;
 				}
 
 				S21:
@@ -493,7 +450,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 25, p, call, atomic, repeat, lookahead, 0, 7));
 					call = callIndex;
 					Trace("call Row", 10, p, entries.Count);
-					goto S10;
+					goto S72;
 				}
 
 				S28:
@@ -512,43 +469,7 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, 10));
 					call = callIndex;
 					Trace("call Header", 13, p, entries.Count);
-					goto S13;
-				}
-
-				S31:
-				{
-					global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);
-					var looked = entries[lookahead];
-					global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);
-					entries.RemoveRange(lookahead, entries.Count - lookahead);
-					p         = looked.Position;
-					call      = looked.CallIndex;
-					atomic    = looked.AtomicIndex;
-					repeat    = looked.RepeatIndex;
-					lookahead = looked.LookaheadIndex;
-					Trace("lookahead body matched", 0, p, entries.Count);
-					goto Fail;
-				}
-
-				S32:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected0;
-						goto Fail;
-					}
-					p++;
-					goto S31;
-				}
-
-				S33:
-				{
-					var lookaheadIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
-					lookahead = lookaheadIndex;
-					Trace("enter negative lookahead", 32, p, entries.Count);
-					goto S32;
+					goto S100;
 				}
 
 				S34:
@@ -665,39 +586,6 @@ namespace DotGram.Snapshots
 					}
 					p += 1;
 					goto S41;
-				}
-
-				S43:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected5;
-						goto Fail;
-					}
-					if (text[p] != '\r')
-					{
-						expected = Recognize_DotGram_Feed_Expected5;
-						goto Fail;
-					}
-					p += 1;
-					goto Return;
-				}
-
-				S44:
-				{
-					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
-					{
-						p += 2;
-						goto Return;
-					}
-					if ((uint)p < (uint)text.Length && text[p] == '\n')
-					{
-						p += 1;
-						goto Return;
-					}
-					expected = Recognize_DotGram_Feed_Expected6;
-					goto S43;
 				}
 
 				S51:
@@ -1415,14 +1303,9 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
+					case 3: goto S4;
 					case 4: goto S4;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter Name", 3, p, entries.Count);
 				}
 
 				S4:
@@ -1610,7 +1493,7 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
+					case 3: goto S30;
 					case 9: goto S9;
 					case 10: goto S10;
 					case 11: goto S11;
@@ -1634,12 +1517,6 @@ namespace DotGram.Snapshots
 					case 29: goto S29;
 					case 30: goto S30;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter Row", 3, p, entries.Count);
-					goto S30;
 				}
 
 				S9:

@@ -141,7 +141,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit(grammar);
 		var input  = string.Concat(Enumerable.Repeat("abc", depth)) + "abx";
 
-		Assert.Contains("enter B", source);
+		Assert.Contains("call B", source);
 		Assert.True(EmittedCode.Match(EmittedCode.Compile(source), "Grammar", "TryParseA", input).IsSuccess);
 	}
 
@@ -157,7 +157,10 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.Equal(1, source.Split(["enter Name"], StringSplitOptions.None).Length - 1);
+		// Three call sites, and a rule that is called at all is a rule with a block: one
+		// that keeps nothing is compiled where it is called and has no call site to count,
+		// which is the test below.
+		Assert.Equal(3, source.Split(["call Name"], StringSplitOptions.None).Length - 1);
 		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
 		Assert.Contains("Debug.Assert", source);
 	}
@@ -177,7 +180,6 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.DoesNotContain("enter Name", source);
 		Assert.DoesNotContain("call Name", source);
 	}
 

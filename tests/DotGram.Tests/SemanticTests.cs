@@ -332,7 +332,10 @@ public sealed class SemanticTests
 			""")
 			.Sources[0].Text;
 
-		Assert.Equal(1, source.Split(["enter List_Word_Comma"], StringSplitOptions.None).Length - 1);
+		// One rule, not two: a second specialization of the same arguments would be
+		// `List_Word_Comma1`, and both call sites name the first.
+		Assert.Contains("List_Word_Comma", source);
+		Assert.DoesNotContain("List_Word_Comma1", source);
 	}
 
 	[Fact]
