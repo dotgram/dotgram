@@ -841,6 +841,11 @@ public sealed partial class GrammarNormalizer
 		if (max is 0 or 1 || body is not Node.Sequence(var operands) || TriviaFor(ns) is not { } trivia)
 			return new Node.Repeat(body, min, max);
 
+		// The same restraint as the sequence seam: a turn that already leads with the
+		// author's own trivia needs none prepended.
+		if (IsSeam(operands[0], trivia))
+			return new Node.Repeat(body, min, max);
+
 		var spaced = new List<Node>(operands.Count + 1) { trivia };
 
 		spaced.AddRange(operands);
@@ -855,14 +860,29 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var operand in operands)
 		{
-			if (nodes.Count > 0 && trivia is not null)
+			var lowered = Lower(operand, ns);
+
+			// Not next to trivia the author already wrote. §4.5's own argument for
+			// unconditional insertion is that a second application consumes nothing;
+			// withholding ours where theirs already stands is the same statement made
+			// without multiplying readings — `trivia & trivia` is one seam, and every
+			// spelling of it the search would otherwise walk is the same span split two
+			// ways.
+			if (nodes.Count > 0 && trivia is not null &&
+				!IsSeam(nodes[^1], trivia) && !IsSeam(lowered, trivia))
 				nodes.Add(trivia);
 
-			nodes.Add(Lower(operand, ns));
+			nodes.Add(lowered);
 		}
 
 		return Flatten(MergeLiterals(nodes));
 	}
+
+	/// <summary>Whether a node is a bare application of the namespace's own trivia.</summary>
+	static bool IsSeam(Node node, Node trivia) =>
+		node is Node.Call(var called, _) &&
+		trivia is Node.Call(var seam, _) &&
+		ReferenceEquals(called, seam);
 
 	/// <summary>
 	/// §4.6: a literal that is all word characters may not be the start of a longer word.
