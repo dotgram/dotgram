@@ -55,7 +55,7 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Merge the generated author-facing tooling attributes.
 - [x] Specify the first symbol-discovery and custom-attribute vertical slice.
 - [x] Implement shape-based Roslyn discovery for parser hosts and attribute carriers.
-- [ ] Bind `GramClassify` rule/capture targets to grammar symbols.
+- [x] Bind `GramClassify` rule/capture targets to grammar symbols.
 - [ ] Define a shared recognition trace for classifying arbitrary DSL input.
 - [ ] Classify and diagnose a custom-attribute DSL string in Visual Studio.
 
