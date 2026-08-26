@@ -123,7 +123,7 @@ public sealed class FirstSetsTests
 			"Name = [\\p{L}]+";
 		var graph  = Graph(grammar);
 		var name   = graph.Rules.First(rule => rule.Name == "Name");
-		var follow = FollowSets.Of(graph)[name];
+		var follow = FollowSets.Of(graph)[name].Plain;
 
 		Assert.True(follow.IsKnown);
 		Assert.True(follow.Overlaps(FirstSets.First.Chars([new CharRange(';', ';')])));

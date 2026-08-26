@@ -33,21 +33,54 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public static class FollowSets
 {
+	/// <summary>
+	/// What can follow, seen twice: as it stands, and past the seam.
+	/// </summary>
+	/// <param name="Plain">What the continuation can begin with, as ever.</param>
+	/// <param name="AfterSeam">
+	/// What the continuation can begin with once a leading application of the namespace's
+	/// trivia has consumed what it consumes. §4.5 puts that application at the head of
+	/// every spaced seam, so a repetition whose turns lead with the trivia and the
+	/// continuation behind it both start by reading the same run of it — and the question
+	/// that decides whether a turn could instead have been the continuation is asked of
+	/// what each reads <em>next</em>. Compared plainly the two overlap on the trivia itself
+	/// and the comparison says nothing.
+	/// </param>
+	public readonly record struct Continuation(FirstSets.First Plain, FirstSets.First AfterSeam)
+	{
+		public static readonly Continuation All  = new(FirstSets.First.All, FirstSets.First.All);
+		public static readonly Continuation None = new(FirstSets.First.None, FirstSets.First.None);
+		public static readonly Continuation End  = new(FirstSets.First.End, FirstSets.First.End);
+
+		public Continuation Or(Continuation other) =>
+			new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam));
+
+		public bool Covers(Continuation other) =>
+			Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam);
+	}
+
+	/// <summary>The rule a namespace applies at its seams, for the rule being walked.</summary>
+	public static RuleSymbol? SeamOf(RuleSymbol rule, RecognitionGraph graph) =>
+		graph is not null && graph.Trivia.TryGetValue(rule, out var trivia) &&
+		trivia is Node.Call(var seam, _)
+			? seam
+			: null;
+
 	/// <summary>What may follow each rule, as far as the grammar settles it.</summary>
-	public static IReadOnlyDictionary<RuleSymbol, FirstSets.First> Of(RecognitionGraph graph)
+	public static IReadOnlyDictionary<RuleSymbol, Continuation> Of(RecognitionGraph graph)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var follow = new Dictionary<RuleSymbol, FirstSets.First>();
+		var follow = new Dictionary<RuleSymbol, Continuation>();
 
 		foreach (var rule in graph.Rules)
-			follow[rule] = FirstSets.First.None;
+			follow[rule] = Continuation.None;
 
 		foreach (var publication in graph.Publications)
 			if (follow.ContainsKey(publication.Rule))
 				follow[publication.Rule] = follow[publication.Rule].Or(
-					publication.Kind == PublishKind.Parse ? FirstSets.First.End : FirstSets.First.All);
+					publication.Kind == PublishKind.Parse ? Continuation.End : Continuation.All);
 
 		// Round and round until nothing new is said. Each round can only add — the union of
 		// what a rule was told and what this round tells it — so the sets grow towards a
@@ -59,21 +92,28 @@ public static class FollowSets
 
 			foreach (var rule in graph.Rules)
 				if (graph.Bodies.TryGetValue(rule, out var body))
-					Contribute(body, follow[rule]);
+					Contribute(body, follow[rule], SeamOf(rule, graph));
 
 			if (settled)
 				return follow;
 
-			void Contribute(Node node, FirstSets.First after)
+			void Contribute(Node node, Continuation after, RuleSymbol? seam)
 			{
 				switch (node)
 				{
 					case Node.Call(var called, _):
 					{
-						if (!follow.TryGetValue(called, out var told) || told.Covers(after))
+						// A rule lowered under another namespace peels a different seam, so
+						// what this site knows past its own is no use to it. The plain half
+						// travels regardless.
+						var told = ReferenceEquals(SeamOf(called, graph), seam)
+							? after
+							: new Continuation(after.Plain, FirstSets.First.All);
+
+						if (!follow.TryGetValue(called, out var held) || held.Covers(told))
 							return;
 
-						follow[called] = told.Or(after);
+						follow[called] = held.Or(told);
 						settled        = false;
 
 						return;
@@ -87,9 +127,9 @@ public static class FollowSets
 
 						for (var i = parts.Count - 1; i >= 0; i--)
 						{
-							Contribute(parts[i], next);
+							Contribute(parts[i], next, seam);
 
-							next = Precedes(parts[i], next, graph);
+							next = Precedes(parts[i], next, graph, seam);
 						}
 
 						return;
@@ -99,7 +139,7 @@ public static class FollowSets
 					case Node.Choice(var alternatives):
 					{
 						foreach (var alternative in alternatives)
-							Contribute(alternative, after);
+							Contribute(alternative, after, seam);
 
 						return;
 					}
@@ -111,18 +151,21 @@ public static class FollowSets
 					// anything could follow it, and that "anything" walked back through
 					// every rule a value can name.
 					case Node.Repeat(var body, _, var max):
-						Contribute(body, max == 1 ? after : FirstSets.Of(body, graph).Or(after));
+						Contribute(
+							body,
+							max == 1 ? after : Precedes(body, after, graph, seam).Or(after),
+							seam);
 
 						return;
 
-					case Node.Capture(_, var captured): Contribute(captured, after); return;
-					case Node.Construct(var built, _):  Contribute(built,    after); return;
-					case Node.Atomic(var kept):         Contribute(kept,     after); return;
+					case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
+					case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
+					case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
 
 					// What is inside is read and given back, so what follows it is read
 					// again by whatever comes next — which this cannot see from here.
 					case Node.Lookahead(_, var seen):
-						Contribute(seen, FirstSets.First.All);
+						Contribute(seen, Continuation.All, seam);
 
 						return;
 				}
@@ -134,14 +177,49 @@ public static class FollowSets
 
 	/// <summary>
 	/// What must begin the input where a node begins, given what must begin it where the
-	/// node ends.
+	/// node ends — both halves at once.
 	/// </summary>
 	/// <remarks>
 	/// The same walk the compiler makes over a sequence, and it has to be the same: what a
 	/// rule is told about its callers has to agree with what the compiler works out inside
 	/// them, or a repetition would be held to something nobody meant.
 	/// </remarks>
-	public static FirstSets.First Precedes(Node node, FirstSets.First after, RecognitionGraph graph)
+	public static Continuation Precedes(
+		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var plain = Plainly(node, after.Plain, graph);
+
+		// The seam itself, standing first: what follows once it has been read is the old
+		// continuation as it plainly was. That is the definition of the other half.
+		if (seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam))
+			return new Continuation(plain, after.Plain);
+
+		var first = FirstSets.Of(node, graph);
+
+		if (first.Nothing)
+			return after with { Plain = plain };
+
+		// A continuation that does not lead with the seam. A turn's seam may still have
+		// consumed input where this continuation would have to begin, so its first set
+		// counts past the seam only where the seam could not even have begun there — and
+		// whether the seam could have *carried on* over it is <c>Contained</c>'s question,
+		// asked where the peel is used, not here.
+		var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var seamBody)
+			? FirstSets.Of(seamBody, graph)
+			: FirstSets.First.None;
+
+		var past = first.Overlaps(seamFirst) ? FirstSets.First.All : first;
+
+		return new Continuation(
+			plain,
+			FirstSets.Nullable(node, graph) ? past.Or(after.AfterSeam) : past);
+	}
+
+	/// <summary>The plain half alone, as it always was.</summary>
+	public static FirstSets.First Plainly(Node node, FirstSets.First after, RecognitionGraph graph)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));

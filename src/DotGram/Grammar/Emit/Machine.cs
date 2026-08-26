@@ -191,6 +191,8 @@ sealed partial class Machine
 
 		foreach (var rule in _rules)
 		{
+			_seam = FollowSets.SeamOf(rule, graph);
+
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
 
@@ -367,8 +369,10 @@ sealed partial class Machine
 		// After the whole-wrapped body there is the end of the input and nothing else —
 		// that is what `whole` means, and the engine's Accept enforces it. "Anything" here
 		// cost every repetition at the tail of a `parse` its proof.
+		_seam = FollowSets.SeamOf(root, _graph);
+
 		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
-			? Compile(BodyOf(root, whole: true), Return, FirstSets.First.End)
+			? Compile(BodyOf(root, whole: true), Return, FollowSets.Continuation.End)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
@@ -405,7 +409,7 @@ sealed partial class Machine
 
 	public int Register(Node node)
 	{
-		var state = Compile(node, Return, FirstSets.First.All);
+		var state = Compile(node, Return, FollowSets.Continuation.All);
 
 		_roots.Add(state);
 
@@ -415,11 +419,22 @@ sealed partial class Machine
 	/// <summary>The states something outside the table jumps to.</summary>
 	readonly HashSet<int> _roots = [];
 
-	IReadOnlyDictionary<RuleSymbol, FirstSets.First> _follow =
-		new Dictionary<RuleSymbol, FirstSets.First>();
+	IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> _follow =
+		new Dictionary<RuleSymbol, FollowSets.Continuation>();
 
-	FirstSets.First Follows(RuleSymbol rule) =>
-		_follow.TryGetValue(rule, out var after) ? after : FirstSets.First.All;
+	FollowSets.Continuation Follows(RuleSymbol rule) =>
+		_follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All;
+
+	/// <summary>
+	/// The seam of the rule whose body is being compiled — which trivia a leading call
+	/// would have to be for the pair's other half to mean anything here.
+	/// </summary>
+	/// <remarks>
+	/// Saved and restored around an inlined call, because an inlined body composes its
+	/// continuations against its own namespace's seam, exactly as
+	/// <see cref="FollowSets"/>'s walk does at a call it does not inline.
+	/// </remarks>
+	RuleSymbol? _seam;
 
 	/// <summary>
 	/// Whether any construction in this grammar asks for the whole input (§8.2).
@@ -926,7 +941,7 @@ sealed partial class Machine
 	/// tree rather than looked up: a rule compiled into its caller follows that caller's
 	/// text, and the same rule compiled on its own follows whatever any caller has.
 	/// </param>
-	int Compile(Node node, int next, FirstSets.First following)
+	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
 		if (_owners.TryGetValue(node, out var owner) &&
 			_graph.Climbing.TryGetValue(owner, out var levels) &&
@@ -944,7 +959,7 @@ sealed partial class Machine
 		return CompileUnguarded(node, next, following);
 	}
 
-	int CompileUnguarded(Node node, int next, FirstSets.First following)
+	int CompileUnguarded(Node node, int next, FollowSets.Continuation following)
 	{
 		switch (node)
 		{
@@ -1101,7 +1116,7 @@ sealed partial class Machine
 				for (var i = nodes.Count - 1; i >= 0; i--)
 				{
 					target = Compile(nodes[i], target, after);
-					after  = Precedes(nodes[i], after);
+					after  = FollowSets.Precedes(nodes[i], after, _graph, _seam);
 				}
 
 				return target;
@@ -1113,7 +1128,7 @@ sealed partial class Machine
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
 				var last   = alternatives.Count - 1;
-				var run    = LiteralGroup(alternatives, last, following);
+				var run    = LiteralGroup(alternatives, last, following.Plain);
 				var target = run > 0
 					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 					: Compile(alternatives[last], next, following);
@@ -1126,7 +1141,7 @@ sealed partial class Machine
 					// matched, so where they differ is where the next is tried — which is
 					// what a common prefix is worth, and it is worth it whether or not there
 					// is one.
-					if (LiteralGroup(alternatives, i, following) is var here and > 0)
+					if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
 					{
 						var from = i - here + 1;
 
@@ -1329,7 +1344,25 @@ sealed partial class Machine
 			case Node.Call(var rule, _):
 			{
 				if (CanInline(rule))
-					return Compile(_graph.Bodies[rule], next, following);
+				{
+					// The inlined body composes continuations against its own seam. Where
+					// that seam is another namespace's, what this site knows past its own
+					// is no use inside — the same crossing FollowSets makes at a call it
+					// does not inline.
+					var outerSeam = _seam;
+					var handed    = following;
+
+					_seam = FollowSets.SeamOf(rule, _graph);
+
+					if (!ReferenceEquals(_seam, outerSeam))
+						handed = new FollowSets.Continuation(following.Plain, FirstSets.First.All);
+
+					var inlined = Compile(_graph.Bodies[rule], next, handed);
+
+					_seam = outerSeam;
+
+					return inlined;
+				}
 
 				var state = Reserve(out var writer);
 				var calledPower = _graph.Climbing.ContainsKey(rule)
@@ -1644,7 +1677,7 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if (SilentRepeat(repeat, following))
+				if (SilentRepeat(repeat, following.Plain))
 					return CompileSilentRepeat(repeat, next, following);
 
 				return RunTest(repeat.Body) is { } runTest
@@ -1655,7 +1688,7 @@ sealed partial class Machine
 			case Node.Lookahead(var isPositive, var body):
 			{
 				var success = Reserve(out var atSuccess);
-				var inner   = Compile(body, success, FirstSets.First.All);
+				var inner   = Compile(body, success, FollowSets.Continuation.All);
 				var state   = Reserve(out var writer);
 
 				writer.Line("var lookaheadIndex = entries.Count;");
@@ -1714,7 +1747,7 @@ sealed partial class Machine
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
 		var success = Reserve(out var atSuccess);
-		var inner   = Compile(seen, success, FirstSets.First.All);
+		var inner   = Compile(seen, success, FollowSets.Continuation.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -1774,7 +1807,7 @@ sealed partial class Machine
 	int CompileNegativeLookaheadCapture(int slot, Node rejected, int next)
 	{
 		var matched = Reserve(out var atMatched);
-		var inner   = Compile(rejected, matched, FirstSets.First.All);
+		var inner   = Compile(rejected, matched, FollowSets.Continuation.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -2044,7 +2077,7 @@ sealed partial class Machine
 	/// A choice one character decides: read it, jump to the alternative it belongs to.
 	/// </summary>
 	int CompilePredictedChoice(
-		IReadOnlyList<Node> alternatives, string[] tests, int next, FirstSets.First following)
+		IReadOnlyList<Node> alternatives, string[] tests, int next, FollowSets.Continuation following)
 	{
 		var targets = new int[alternatives.Count];
 
@@ -2134,7 +2167,7 @@ sealed partial class Machine
 	/// cannot collide with the bracketed form whatever it contains.
 	/// </para>
 	/// </remarks>
-	int? CompileTested(Node node, string test, int next, FirstSets.First following)
+	int? CompileTested(Node node, string test, int next, FollowSets.Continuation following)
 	{
 		// Asked before anything is written: a sequence's tail would otherwise be compiled
 		// only to be abandoned when its head turned out not to qualify, and an abandoned
@@ -2147,7 +2180,7 @@ sealed partial class Machine
 
 		return Entered(node, next, following);
 
-		int Entered(Node at, int to, FirstSets.First after) =>
+		int Entered(Node at, int to, FollowSets.Continuation after) =>
 			at switch
 			{
 				// The terminal itself contributes no state: the dispatch steps over it.
@@ -2163,7 +2196,7 @@ sealed partial class Machine
 				_ => throw new InvalidOperationException($"{at.GetType().Name} does not begin with a terminal."),
 			};
 
-		int Threaded(IReadOnlyList<Node> nodes, int to, FirstSets.First after)
+		int Threaded(IReadOnlyList<Node> nodes, int to, FollowSets.Continuation after)
 		{
 			var target = to;
 			var rest   = after;
@@ -2171,7 +2204,7 @@ sealed partial class Machine
 			for (var i = nodes.Count - 1; i >= 1; i--)
 			{
 				target = Compile(nodes[i], target, rest);
-				rest   = Precedes(nodes[i], rest);
+				rest   = FollowSets.Precedes(nodes[i], rest, _graph, _seam);
 			}
 
 			return Entered(nodes[0], target, rest);
@@ -2230,7 +2263,7 @@ sealed partial class Machine
 	/// give back leaves no trace.
 	/// </para>
 	/// </remarks>
-	int CompileRun(Node.Repeat repeatNode, string test, int next, FirstSets.First following)
+	int CompileRun(Node.Repeat repeatNode, string test, int next, FollowSets.Continuation following)
 	{
 		var (_, min, max) = repeatNode;
 
@@ -2336,10 +2369,11 @@ sealed partial class Machine
 		return state;
 	}
 
-	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
+	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
-		var inside = FirstSets.Of(body, _graph).Or(following);
+		var inside = new FollowSets.Continuation(
+			FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All);
 		var target = next;
 
 		// One local per depth rather than per repetition. Two of them are live at once only
@@ -2393,7 +2427,7 @@ sealed partial class Machine
 		return target;
 	}
 
-	int CompileRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
+	int CompileRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
 
@@ -2410,7 +2444,11 @@ sealed partial class Machine
 		// reasoning).
 		var inner = Compile(
 			body, after,
-			max == 1 ? following : FirstSets.Of(body, _graph).Or(following));
+			max == 1
+				? following
+				: new FollowSets.Continuation(
+					FirstSets.Of(body, _graph).Or(following.Plain),
+					FirstSets.Of(body, _graph).Or(following.Plain)));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");

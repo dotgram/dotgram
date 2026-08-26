@@ -23,9 +23,10 @@ sealed partial class Machine
 	/// <summary>The recognizer itself: a plain method, no arena, no dispatch.</summary>
 	public string RenderFlat(RuleSymbol rule, string name, bool whole)
 	{
-		var seed = whole ? FirstSets.First.End : FirstSets.First.All;
+		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 
 		_roots.Clear();
+		_seam = FollowSets.SeamOf(rule, _graph);
 
 		var entry = Compile(BodyOf(rule, whole), Accept, seed);
 
