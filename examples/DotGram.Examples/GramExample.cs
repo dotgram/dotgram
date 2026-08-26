@@ -4,18 +4,17 @@ using DotGram;
 
 namespace DotGram.Examples;
 
-// The grammar of `.gram` itself, written in `.gram`.
+// The grammar of `.gram` itself, written in `.gram`, building a tree.
 //
-//     GramGrammar.IsGrammar(File.ReadAllText("Url.gram"))
+//     GramGrammar.ParseFile(File.ReadAllText("Url.gram"))
 //
-// docs/syntax.md §10 carries a sketch of this and calls it "a consistency check". It was
-// never one: as written it names seven things it does not define — `Identifier`,
-// `QualifiedName`, `Int`, `Char`, `String`, `Balanced` and any notion of trivia — leaves
-// comments out entirely, and omits `@(...)` from `Primary` although the hand-written
-// parser accepts it there. This is that sketch made to run, checked against every `.gram`
-// in the repository.
+// docs/syntax.md §10 used to carry a sketch of this and call it "a consistency check". It
+// never was one: as written it named seven things it did not define, left comments out of
+// the language, omitted `@(...)` from `Primary` although the hand-written parser accepts
+// it there, and wrote its separated lists in the form §4.5 now warns about. This is that
+// sketch made to run, checked against every `.gram` in the repository.
 //
-// Three things in it are worth looking at:
+// Four things in it are worth looking at:
 //
 //   * `wordboundary` (§4.6) is what keeps `parse` from matching the start of a rule named
 //     `parseHeader`. Without it every keyword here would need a hand-written check, and
@@ -36,11 +35,15 @@ namespace DotGram.Examples;
 //     is an ordinary external recognizer (§7.1, second row) that reads the input itself
 //     and says how far it got. That seam is why the generator needs no runtime.
 //
-// What this is not: it recognizes, and builds nothing. Comparing a tree it built against
-// the one `GramParser` builds is a larger question — the two would have to agree on a
-// shape neither has a reason to — and is a separate piece of work.
+// What the tree is and is not. It is faithful about structure — what nests inside what,
+// in the order written — and deliberately shallow about leaves: a literal keeps the text
+// between its quotes rather than a decoded value, and the items of an element set are kept
+// as written. Decoding those is `GramLexer`'s job, and repeating it here would say nothing
+// about the notation.
 
 [Gram("""
+	@using DotGram.Examples;
+
 	using Lexical;
 
 	namespace Lexical
@@ -79,63 +82,198 @@ namespace DotGram.Examples;
 
 	trivia = (Space | LineComment | BlockComment)*
 
-	File         = (trivia & Using)* & (trivia & Declaration)*
+	File : @GramFile
+		= (trivia & usings: Using)* & (trivia & declarations: Declaration)*
+		=> @(new GramFile(usings, declarations))
 
 	// `@using` and `using` mean the same thing: one is C#'s vocabulary, the other this
 	// language's own (§2).
-	Using        = '@'? & "using" & Name & ';'
+	Using : @GramUsing = '@'? & "using" & name: Name & ';' => @(new GramUsing(name))
 
-	Declaration  = Namespace | Publication | Rule
+	Declaration : @GramDecl
+		= d: Namespace   => @(d)
+		| d: Publication => @(d)
+		| d: Rule        => @(d)
 
-	Namespace    = "namespace" & Identifier & With? & '{' & (trivia & Using)* & (trivia & Declaration)* & '}'
-	Publication  = ("parse" | "find") & Name & With? & ("as" & Identifier)?
-	Rule         = Identifier & Parameters? & (':' & Type)? & '=' & Body
+	Namespace : @GramDecl
+		= "namespace" & name: Identifier & With?
+		& '{' & (trivia & usings: Using)* & (trivia & declarations: Declaration)* & '}'
+		=> @(new GramNamespace(name, usings, declarations))
 
-	Parameters   = '(' & (Parameter & (trivia & ',' & Parameter)*)? & ')'
-	Parameter    = Identifier & (':' & Type)?
-	Type         = Reference & "[]"?
+	Publication : @GramDecl
+		= kind: ("parse" | "find") & rule: Name & With? & ("as" & alias: Identifier)?
+		=> @(new GramPublication(kind, rule, alias))
 
-	With         = "with" & Rebindings
-	Rebindings   = '(' & (Rebinding & (trivia & ',' & Rebinding)*)? & ')'
-	Rebinding    = Identifier & '=' & Identifier
+	Rule : @GramDecl
+		= name: Identifier & Parameters? & (':' & type: Type)? & '=' & body: Body
+		=> @(new GramRule(name, type, body))
 
-	Body         = Alternative & (trivia & '|' & Alternative)*
-	Alternative  = Sequence & Binding? & ("=>" & Value)?
-	Binding      = ("<<" | ">>") & Int
-	Sequence     = Operand & (trivia & '&' & Operand)*
-	Operand      = Guard | Quantified
-	Guard        = "when" & Value
+	Parameters     = '(' & (Parameter & (trivia & ',' & Parameter)*)? & ')'
+	Parameter      = Identifier & (':' & Type)?
+	Type : @string = text: (Reference & "[]"?) => @(text)
+
+	With           = "with" & Rebindings
+	Rebindings     = '(' & (Rebinding & (trivia & ',' & Rebinding)*)? & ')'
+	Rebinding      = Identifier & '=' & Identifier
+
+	Body : @GramExpr
+		= first: Alternative & (trivia & '|' & rest: Alternative)*
+		=> @(GramGrammar.Choice(first, rest))
+
+	Alternative : @GramExpr
+		= body: Sequence & Binding? & ("=>" & value: Value)?
+		=> @(value is null ? body : new GramConstruct(body, value))
+
+	Binding        = ("<<" | ">>") & Int
+
+	Sequence : @GramExpr
+		= first: Operand & (trivia & '&' & rest: Operand)*
+		=> @(GramGrammar.Sequence(first, rest))
+
+	Operand : @GramExpr = o: Guard => @(o) | o: Quantified => @(o)
+
+	Guard : @GramExpr = "when" & value: Value => @(new GramGuard(value))
 
 	// `with` last, outermost of the three: `Number+ with (X = Y)` is `(Number+) with
 	// (X = Y)`, and the other reading needs parentheses.
-	Quantified   = Prefixed & Quantifier? & Recovery? & With?
-	Quantifier   = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
-	Recovery     = "recover" & Prefixed & ("=>" & Value)?
-	Count        = Int | Identifier
+	Quantified : @GramExpr
+		= body: Prefixed & quantifier: Quantifier? & recovery: Recovery? & rebound: With?
+		=> @(GramGrammar.Quantified(body, quantifier, recovery, rebound))
 
-	Prefixed     = ("?=" | "?!")? & Captured
-	Captured     = (Identifier & ':')? & Primary
+	Quantifier : @string
+		= text: ('?' | '*' | '+' | '{' & Count & (trivia & ',' & Count?)? & '}')
+		=> @(text)
 
-	Primary      = Char | String | ElementSet | CsExpr | Call | Reference
-	             | '(' & Body & ')' | '{' & Body & '}'
+	Recovery : @GramExpr = "recover" & sync: Prefixed & ("=>" & Value)? => @(sync)
 
-	Value        = CsExpr | Call | Reference
-	CsExpr       = @CSharp
+	Count          = Int | Identifier
+
+	Prefixed : @GramExpr
+		= prefix: ("?=" | "?!")? & body: Captured
+		=> @(prefix is null ? body : new GramLookahead(prefix == "?=", body))
+
+	Captured : @GramExpr
+		= (name: Identifier & ':')? & body: Primary
+		=> @(name is null ? body : new GramCapture(name, body))
+
+	Primary : @GramExpr
+		= text: Char             => @(new GramLiteral(text, true))
+		| text: String           => @(new GramLiteral(text, false))
+		| e: ElementSet          => @(e)
+		| cs: CsExpr             => @(new GramCSharp(cs))
+		| e: Call                => @(e)
+		| e: Reference           => @(e)
+		| '(' & body: Body & ')' => @(body)
+		| '{' & body: Body & '}' => @(new GramGroup(body, true))
+
+	Value : @string  = text: (CsExpr | Call | Reference) => @(text)
+	CsExpr : @string = text: @CSharp => @(text)
 
 	// Longest first: a call is a reference and then an argument list, so a bare reference
 	// tried first would take the name and leave the parenthesis behind.
-	Call         = Reference & '(' & (Argument & (trivia & ',' & Argument)*)? & ')'
-	Argument     = Int | Alternative
-	Reference    = '@'? & Name & TypeArgs?
-	TypeArgs     = '<' & Type & (trivia & ',' & Type)* & '>'
+	Call : @GramExpr
+		= target: Reference & '(' & (first: Argument & (trivia & ',' & rest: Argument)*)? & ')'
+		=> @(GramGrammar.Call(target, first, rest))
 
-	ElementSet   = '[' & '^'? & ElemAlt & (trivia & '|' & ElemAlt)* & ']'
-	ElemAlt      = Char & (".." & Char)? | Category | Reference
+	Argument : @GramExpr = i: Int => @(new GramRef(i)) | a: Alternative => @(a)
+
+	Reference : @GramExpr = text: ('@'? & Name & TypeArgs?) => @(new GramRef(text))
+
+	TypeArgs       = '<' & Type & (trivia & ',' & Type)* & '>'
+
+	ElementSet : @GramExpr
+		= '[' & negated: '^'? & first: ElemAlt & (trivia & '|' & rest: ElemAlt)* & ']'
+		=> @(GramGrammar.Set(negated, first, rest))
+
+	ElemAlt : @string = text: (Char & (".." & Char)? | Category | Reference) => @(text)
 
 	parse File
 	""")]
 public partial class GramGrammar
 {
+	// ── What the grammar builds ──────────────────────────────────────────────────
+
+	public sealed record GramFile(GramUsing[] Usings, GramDecl[] Declarations);
+
+	public sealed record GramUsing(string Name);
+
+	public abstract record GramDecl;
+
+	public sealed record GramNamespace(string Name, GramUsing[] Usings, GramDecl[] Declarations) : GramDecl;
+
+	public sealed record GramPublication(string Kind, string Rule, string? Alias) : GramDecl;
+
+	public sealed record GramRule(string Name, string? Type, GramExpr Body) : GramDecl;
+
+	public abstract record GramExpr;
+
+	public sealed record GramChoice(GramExpr[] Alternatives) : GramExpr;
+
+	public sealed record GramSequence(GramExpr[] Operands) : GramExpr;
+
+	/// <summary>A quantifier, a <c>recover</c> or a <c>with</c> wrapped around an operand.</summary>
+	public sealed record GramQuantified(GramExpr Body, string? Quantifier, GramExpr? Recovery, bool Rebound) : GramExpr;
+
+	public sealed record GramCapture(string Name, GramExpr Body) : GramExpr;
+
+	public sealed record GramLookahead(bool Positive, GramExpr Body) : GramExpr;
+
+	/// <summary>The literal as written, quotes and escapes and all — see the note above.</summary>
+	public sealed record GramLiteral(string Text, bool IsCharacter) : GramExpr;
+
+	public sealed record GramSet(bool Negated, string[] Items) : GramExpr;
+
+	public sealed record GramRef(string Name) : GramExpr;
+
+	public sealed record GramCall(GramExpr Target, GramExpr[] Arguments) : GramExpr;
+
+	public sealed record GramCSharp(string Text) : GramExpr;
+
+	public sealed record GramGroup(GramExpr Body, bool Atomic) : GramExpr;
+
+	public sealed record GramConstruct(GramExpr Body, string Value) : GramExpr;
+
+	public sealed record GramGuard(string Value) : GramExpr;
+
+	// ── The factories the grammar calls ──────────────────────────────────────────
+
+	/// <summary>
+	/// A rule with one alternative is that alternative, not a choice of one.
+	/// </summary>
+	/// <remarks>
+	/// The notation has no way to write a choice of one, so building one would put a node
+	/// in the tree that nothing in the text asked for. The same goes for a sequence, a
+	/// quantifier that is not there, and a lookahead that is not there.
+	/// </remarks>
+	public static GramExpr Choice(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramChoice(Joined(first, rest));
+
+	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
+
+	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery, string? rebound) =>
+		quantifier is null && recovery is null && rebound is null
+			? body
+			: new GramQuantified(body, quantifier, recovery, rebound is not null);
+
+	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest) =>
+		new GramCall(target, first is null ? [] : Joined(first, rest));
+
+	public static GramExpr Set(string? negated, string first, string[] rest) =>
+		new GramSet(negated is not null, Joined(first, rest));
+
+	static T[] Joined<T>(T first, T[] rest)
+	{
+		var all = new T[rest.Length + 1];
+
+		all[0] = first;
+		rest.CopyTo(all, 1);
+
+		return all;
+	}
+
+	// ── The one thing no grammar can read ────────────────────────────────────────
+
 	/// <summary>
 	/// <c>@(</c> through the parenthesis that closes it, which means reading past C#'s own
 	/// strings, characters and comments — a <c>)</c> inside <c>")"</c> closes nothing.
@@ -231,9 +369,5 @@ public partial class GramGrammar
 	}
 
 	/// <summary>Whether <paramref name="text"/> is a whole, well-formed grammar.</summary>
-	/// <remarks>
-	/// The value is the text it covered — a rule that captures nothing has no other — so
-	/// the answer is in whether it matched at all, not in what came back.
-	/// </remarks>
 	public static bool IsGrammar(string text) => TryParseFile(text).IsSuccess;
 }

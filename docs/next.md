@@ -2755,3 +2755,67 @@ trailing jump falls into whatever is written next, so two identical bodies with 
 successors do different things. Whether any of them are *actually* the same — same body and
 same successor — was not worked out, and merging those that are would be a size change of
 the same kind as this one. Not started.
+
+## Built: the notation reads itself, and builds a tree doing it
+
+`examples/DotGram.Examples/GramExample.cs` is the grammar of `.gram`, written in `.gram`,
+producing a tree. `ExampleTests.The_notation_reads_its_own_corpus` runs it over every
+grammar in this repository — the four snapshots on disk and the text of every `[Gram]` in
+the examples assembly, 28 of them — and a grammar added anywhere joins that corpus without
+anyone remembering to add it.
+
+It replaces §10's printed sketch, which had never been compiled and showed it: seven names
+it never defined, no comments, `@(...)` missing from `Primary`, and separated lists written
+the way the entry above this one is about.
+
+The tree is faithful about structure — what nests inside what, in the order written — and
+deliberately shallow about leaves. A literal keeps the text between its quotes rather than
+a decoded value and an element set keeps its items as written, because decoding them is
+`GramLexer`'s job and doing it twice would say nothing about the notation.
+
+Two things in it are the notation being asked to carry its own weight rather than
+demonstrations:
+
+- **`wordboundary`** (§4.6) is the only reason `parse` does not match the start of a rule
+  named `parseHeader`, and the only reason the order of `Declaration`'s alternatives does
+  not matter.
+- **`@(...)` is not recognized by the grammar at all.** Finding the parenthesis that closes
+  it means knowing C#'s own strings and comments, which no grammar can do. `@CSharp` is an
+  ordinary external recognizer (§7.1's second row) that reads the input itself — the seam
+  that exists so that nothing ships at run time.
+
+### Found: a text capture can come back inside out
+
+Three of the twenty-eight do not survive being read, and what stops them is not a parse
+failure. `Materialize_DotGram` throws `ArgumentOutOfRangeException`: the span of a text
+capture arrives with its end before its start, and `text.Slice` refuses it.
+
+All three write a binding power. Shrunk against the grammar next door, the whole of it is
+**eleven characters**:
+
+```text
+A=x<<1=>@()
+```
+
+Where it throws is `Machine.Materialization.cs`'s scalar capture walk, which takes the end
+from the first entry in the link list and the start from the last:
+
+```csharp
+if (captured0To < 0)
+    captured0To = candidate.Value;
+captured0From = candidate.Position;
+```
+
+That is right for a capture inside a repetition — oldest start, newest end, one span over
+all the turns — and it assumes the list runs newest to oldest. Something reaches it that
+does not: two live `Capture` entries with the same slot and the same `CallIndex`, whose
+positions are not ordered the way the walk expects. The failing capture is `Reference`'s,
+and `Reference` is reachable from itself through `TypeArgs` → `Type` → `Reference`, so an
+inlined recursive call sharing its caller's `CallIndex` is the first thing to check.
+
+Not minimised to a grammar of its own yet, and not fixed. `x: A << 1` alone does it, so
+whatever it is sits between the binding power and a text capture over a group that can
+reach the rule it is in.
+
+`ExampleTests.A_binding_power_still_breaks_the_materializer` asserts the three still throw,
+so that fixing this turns a test red and says to come back here and delete the list.
