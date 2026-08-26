@@ -104,9 +104,14 @@ public static class FollowSets
 						return;
 					}
 
-					// A turn is followed by another turn or by whatever the repetition is.
-					case Node.Repeat(var body, _, _):
-						Contribute(body, FirstSets.Of(body, graph).Or(after));
+					// A turn is followed by another turn or by whatever the repetition is
+					// followed by — except that an optional has no other turn, and telling
+					// it that one might follow poisons everything upstream of its own first
+					// set. `(Argument & …)?` inside a call was telling `Argument` that
+					// anything could follow it, and that "anything" walked back through
+					// every rule a value can name.
+					case Node.Repeat(var body, _, var max):
+						Contribute(body, max == 1 ? after : FirstSets.Of(body, graph).Or(after));
 
 						return;
 

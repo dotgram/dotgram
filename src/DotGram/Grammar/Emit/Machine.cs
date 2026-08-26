@@ -188,6 +188,7 @@ sealed partial class Machine
 		// and that is only known once every one of them has been looked at.
 		_follow = FollowSets.Of(graph);
 
+
 		foreach (var rule in _rules)
 		{
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
@@ -363,8 +364,11 @@ sealed partial class Machine
 		if (!whole || _wholeEntries.ContainsKey(root))
 			return;
 
+		// After the whole-wrapped body there is the end of the input and nothing else —
+		// that is what `whole` means, and the engine's Accept enforces it. "Anything" here
+		// cost every repetition at the tail of a `parse` its proof.
 		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
-			? Compile(BodyOf(root, whole: true), Return, FirstSets.First.All)
+			? Compile(BodyOf(root, whole: true), Return, FirstSets.First.End)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
@@ -2400,7 +2404,13 @@ sealed partial class Machine
 		var loop  = Reserve(out var atLoop);
 		var after = Reserve(out var atAfter);
 		var entry = Reserve(out var atEntry);
-		var inner = Compile(body, after, FirstSets.Of(body, _graph).Or(following));
+
+		// What a turn is followed by: another turn, or what the repetition is followed
+		// by — unless there is no other turn to be followed by (§FollowSets, the same
+		// reasoning).
+		var inner = Compile(
+			body, after,
+			max == 1 ? following : FirstSets.Of(body, _graph).Or(following));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
