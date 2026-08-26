@@ -79,9 +79,16 @@ sealed partial class Machine
 	/// was kept; that is on the C# it is trusting, same as every other guarantee §7.2 asks
 	/// for and does not check.
 	/// </para>
+	/// <para>
+	/// A rule that climbs precedence is refused wholesale: its states are re-entered with
+	/// binding powers, and the climb's bookkeeping is exactly the arena traffic silence
+	/// claims not to have. The refusal is the owning rule's, not the grammar's — one
+	/// <c>&lt;&lt;</c> anywhere used to cost every rule in the file its proofs, which is how
+	/// an optional two rules away from the climb was found renting a parser.
+	/// </para>
 	/// </remarks>
 	bool Silent(Node node, FirstSets.First following) =>
-		(_graph.Climbing.Count == 0 || !_owners.ContainsKey(node)) &&
+		!(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,

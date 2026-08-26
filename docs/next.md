@@ -3364,3 +3364,46 @@ by the token after the word — ':' is provably not in `Primary`'s follow — an
 shape decides several of the remaining optionals. The fused test is a word-run scan, a
 seam skip, and one character. The generic analysis is the two-token fusion the lexical
 design already names as v2; the shapes are now enumerable from the trace.
+
+## Fixed: three facts asked at the wrong scope, and a capture asked per turn
+
+An outside review of the Minimal catalog — one snapshot holding every shape the
+generator compiles — found flat rules renting parsers: `Recognize_A_Whole`, a method
+whose own comment promises "no engine anywhere near it", opened with `RentParser`.
+Bisecting with minimal grammars found three separate places where a fact about one
+machine was asked of the whole graph:
+
+- **The flat gate in `CSharpEmitter`** required `graph.Recoveries.Count == 0 &&
+  graph.Climbing.Count == 0 && !Streaming(graph)` — graph-wide, so `Sheet`'s
+  `recover` and `Sum`'s `<<` cost `A = "a"` its flat path from three sections away.
+  Now `RecoversWithin`/`ClimbsWithin` ask the group's reachable subgraph, and
+  streaming is asked of the group's own publications.
+- **`Silent` in `Machine.Analysis`** opened with `_graph.Climbing.Count == 0 ||
+  !_owners.ContainsKey(node)` — one `<<` anywhere and every node of every rule lost
+  every proof, which is how `Maybe`'s settled optional two rules from the climb was
+  found compiling as a `Run` loop with a give-back entry. The refusal is now the
+  owning rule's: a climbing rule keeps the general machinery, everything else keeps
+  its proofs.
+- **A capture repeated recorded per turn.** §10 makes `t: ['a'..'z']+` one capture
+  repeated, and the machine compiled it as written: `Capture` + `TurnDone` + two
+  `Repeat` rewrites + a `LoopExit` refresh per character — O(n) arena for a value
+  defined to be the text joined, which for contiguous turns is the extent of the
+  loop. `HoistTextCaptures` in the normalizer now rewrites `(t: X)+` to `t: (X+)`
+  wherever the body is pure text and at least one turn is required (an optional keeps
+  the §10 null-versus-empty distinction and stays distributed; recovering repeats and
+  fold rules keep their node-keyed facts and are skipped). The freed loop then
+  compiles silent: `Text`'s engine body is now a capture local, a char loop with no
+  entries, and one `Capture` record.
+
+Csv arena writes 24 → 18 statically; the catalog's `A`–`F` are flat methods again;
+ratios (medians, same discipline): Csv 2.1, Feed 3.7, Minimal 2.4, Url 4.0.
+
+The review's larger direction stands on its own: the arena as fallback rather than
+default form, with lowering classes (direct / scanner / predicted / checkpoint /
+precedence / general) and captures decoupled from backtracking state — `[start, end)`
+locals unless a proof says backtracking can change the capture's identity. That is
+the valued-flat stage: `CanLower`'s `Silent` has no case for `Capture`/`Construct`,
+so every valued rule still enters the engine only to run a loop the proofs already
+made silent. The next stage teaches the flat writer captures-as-locals and direct
+construction, which by the review's own table takes the arena out of 21 of the
+catalog's 23 rules.

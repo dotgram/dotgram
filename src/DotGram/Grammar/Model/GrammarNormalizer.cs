@@ -102,6 +102,11 @@ public sealed partial class GrammarNormalizer
 		normalizer.ExtentValues();
 		normalizer.PassThrough();
 
+		// Before the results are computed from the captures, so that they are computed
+		// from the hoisted shape: a capture repeated is recorded once, around the loop,
+		// wherever the join of the turns is the extent of the repetition.
+		normalizer.HoistTextCaptures();
+
 		// After the pass-throughs exist and before the results are computed from the
 		// captures: a call to a rule that only forwards becomes the choice it forwarded.
 		normalizer.CollapseTransparent();

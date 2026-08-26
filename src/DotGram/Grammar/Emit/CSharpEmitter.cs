@@ -70,11 +70,13 @@ public static partial class CSharpEmitter
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
 			// machine's own publications now — a sibling that cannot lower no longer costs
-			// this one its flat path (docs/next.md, "Future optimization gate").
+			// this one its flat path (docs/next.md, "Future optimization gate") — and of
+			// the rules this machine actually reaches: a recovery, a climb or a streamed
+			// read elsewhere in the grammar is some other machine's business.
 			var lowered = group.Publications.Count > 0 &&
-				graph.Recoveries.Count == 0 &&
-				graph.Climbing.Count == 0 &&
-				!Streaming(graph) &&
+				!RecoversWithin(graph, only) &&
+				!ClimbsWithin(graph, only) &&
+				!group.Publications.Any(publication => Streams(graph, publication)) &&
 				group.Publications.All(
 					publication => made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse));
 
@@ -1298,6 +1300,40 @@ public static partial class CSharpEmitter
 				yield return trivia;
 		}
 	}
+
+	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
+	/// <remarks>
+	/// Recoveries are keyed by node, so the reachable rules' bodies are walked for one.
+	/// A null <paramref name="only"/> is the single-machine case, where reachable means
+	/// the whole graph.
+	/// </remarks>
+	static bool RecoversWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only)
+	{
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		if (only is null)
+			return true;
+
+		foreach (var rule in only)
+		{
+			if (graph.Bodies.TryGetValue(rule, out var body) &&
+				NodeWalk.Descendants(body).Any(graph.Recoveries.ContainsKey))
+				return true;
+
+			if (graph.Trivia.TryGetValue(rule, out var trivia) &&
+				NodeWalk.Descendants(trivia).Any(graph.Recoveries.ContainsKey))
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>Whether anything <paramref name="only"/> reaches climbs precedence.</summary>
+	static bool ClimbsWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only) =>
+		only is null
+			? graph.Climbing.Count > 0
+			: graph.Climbing.Keys.Any(only.Contains);
 
 	/// <summary>
 	/// A rule's name as one C# identifier, unique across the grammar.
