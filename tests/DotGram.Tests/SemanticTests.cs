@@ -143,6 +143,52 @@ public sealed class SemanticTests
 			"Start = A & (trivia & A)*" + '\n' +
 			"A = ['a'..'z']", input));
 
+	// ── A settled repetition keeps one way back ─────────────────────────────
+
+	/// <summary>
+	/// Thinning removes the repetition's own exits and nothing else: the body's internal
+	/// machinery still finds a reading where a turn has to re-match shorter.
+	/// </summary>
+	/// <remarks>
+	/// `("ab" | "a")*` before `'b'` is settled — a turn starts with 'a', the continuation
+	/// with 'b' — so it keeps a single standing exit. On "aab" the parse still has to give
+	/// the last turn's longer alternative back and re-take it as "a" before the exit can
+	/// stand where 'b' is. That path goes through the body's own choice entries, which is
+	/// exactly what the thinning proof leaves in place.
+	/// </remarks>
+	[Theory]
+	[InlineData("b", true)]
+	[InlineData("ab", true)]
+	[InlineData("aab", true)]
+	[InlineData("abab", true)]
+	[InlineData("aa", false)]
+	public void A_settled_repetition_still_rematches_its_body(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"Start = (\"ab\" | \"a\")* & 'b'", input));
+
+	/// <summary>
+	/// §11 makes a comment's interior reachable by backtracking — and atomic trivia is how
+	/// an author says it is not.
+	/// </summary>
+	/// <remarks>
+	/// With `trivia = (' ' | Comment)*`, "x //y" parses as `'x' & 'y'`: the comment first
+	/// swallows "//y", the parse fails wanting 'y', and ordered choice hands characters
+	/// back until the 'y' inside the comment is syntax again. Legal, and exactly why the
+	/// thinning proof declines comment-bearing trivia. With `trivia = { … }` the author
+	/// commits what trivia swallowed, the reading disappears, and the proof applies.
+	/// </remarks>
+	[Theory]
+	[InlineData(false, "x //y", true)]
+	[InlineData(false, "x y", true)]
+	[InlineData(true, "x //y", false)]
+	[InlineData(true, "x y", true)]
+	public void A_comment_interior_is_syntax_until_the_trivia_is_atomic(
+		bool atomic, string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			(atomic
+				? "trivia = { (' ' | \"//\" & [^ '\\n']*)* }"
+				: "trivia = (' ' | \"//\" & [^ '\\n']*)*") + '\n' + "Start = 'x' & 'y'", input));
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
