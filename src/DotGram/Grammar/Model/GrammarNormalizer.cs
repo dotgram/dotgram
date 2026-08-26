@@ -102,6 +102,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.ExtentValues();
 		normalizer.PassThrough();
 
+		// After the pass-throughs exist and before the results are computed from the
+		// captures: a call to a rule that only forwards becomes the choice it forwarded.
+		normalizer.CollapseTransparent();
+
 		normalizer.ComputeResults();
 
 		// After the results: what a rebinding's replacement must be compatible with is the

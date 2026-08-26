@@ -3304,3 +3304,31 @@ cautionary tale, where a global lexer's greed commits `a ++ ++ + b` and the pars
 never recover the valid `a++ + ++b`. Here the candidate set at each decision point is the
 context, and §11's give-back remains available exactly where word-lexeme rules do not
 apply. Self-hosting ratios held: 2.1/3.0/3.0/3.2.
+
+## Built: a rule that only forwards costs nothing
+
+Stage 2 opened with the trace, and the trace moved the target. The choice points the
+inventory catalogued were not the top of the bill — the top was the pass-through tower:
+`Operand : @T = o: Guard => @(o) | o: Quantified => @(o)`, a floor of the layered grammar
+that does nothing but forward, and cost a call frame, a completion, a rule capture, a
+pass-through construction and a return per operand. Work a hand-written parser does not
+do, which under the standing rule makes it a proof obligation.
+
+The proof is by identity, and the normalizer now discharges it: `CollapseTransparent`
+inlines every call to such a rule as the choice of its sources, distributing the capture
+over the branches — `e: Operand` becomes `(e: Guard | e: Quantified)` — ordered as
+written, values flowing from the producers they always flowed from. The rule stays in the
+graph for whatever reaches it by name; unreachable states are already the layout's to
+drop. One lesson cost an hour: the rewriter must preserve the identity of untouched
+subtrees, because everything before it keys facts by node reference — binding powers,
+sequence captures — and a wholesale clone orphaned the calculator's operators before the
+identity-preserving walk fixed it.
+
+Steps on `Url.gram`: 9,449 → 8,844. Modest — only `Operand` and `Declaration` are fully
+transparent in the notation's grammar; `Quantified` and `Prefixed` carry real factories
+and remain — but the feature is general, and every layered grammar stops paying rent on
+its transparent floors. Ratios: 2.1 / 2.9 / 2.8 / 3.1.
+
+Alongside it, the `a+++++b` pair went in as tests: the guarded grammar dies the death the
+C standard prescribes, the unguarded one reads `a++ + ++b` — both languages three lines
+apart, neither imposed.

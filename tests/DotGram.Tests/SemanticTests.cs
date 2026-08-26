@@ -242,6 +242,31 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches(grammar, input));
 	}
 
+	// ── A rule that only forwards costs nothing ───────────────────────────
+
+	/// <summary>
+	/// A transparent tower still delivers its value, through however many floors.
+	/// </summary>
+	/// <remarks>
+	/// `Middle` and `Outer` only forward; the normalizer inlines the choice of their
+	/// sources at every call site, distributing the capture over the branches, so the
+	/// layers cost nothing at run time. What this test pins is that the collapse is
+	/// invisible: values, ordered choice and refusals are exactly what the written tower
+	/// means.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", 1)]
+	[InlineData("b", 2)]
+	[InlineData("c", 3)]
+	public void A_transparent_tower_still_delivers(string input, int expected) =>
+		Assert.Equal(expected, Parsed(
+			"Start : @int = v: Outer => @(v)" + '\n' +
+			"Outer : @int = o: Middle => @(o) | o: C => @(o)" + '\n' +
+			"Middle : @int = m: A => @(m) | m: B => @(m)" + '\n' +
+			"A : @int = 'a' => @(1)" + '\n' +
+			"B : @int = 'b' => @(2)" + '\n' +
+			"C : @int = 'c' => @(3)", input).Value);
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
