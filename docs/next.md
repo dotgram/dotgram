@@ -3034,3 +3034,37 @@ what un-counts the turn, at the exact moment the parse abandons it.
 and the layout can drop every state that read it; the fuzzer found a grammar where it did,
 and `CS0219` in somebody else's build is a defect here. The declaration now asks the
 written bodies.
+
+## Built: the self-hosting differential, and the honest number it produced
+
+`SelfHostingTests` holds the two implementations of the notation to agreement — the
+hand-written `GramParser` and the generated `GramGrammar`, over every `.gram` in the
+snapshots — and they agree. That is the differential the self-hosting work was started
+for, and it lives in the tests because the benchmarks project deliberately references the
+generator as an analyzer and nothing else: the compiler's own front end is only
+measurable where both sides meet.
+
+The same test carries the cost of each side, as medians of individual parses:
+
+| grammar | hand-written | generated | ratio |
+|---|---|---|---|
+| Minimal.gram | 0.012 ms | 0.068 ms | 5.5 |
+| Csv.gram | 0.021 ms | 0.081 ms | 4.0 |
+| Feed.gram | 0.018 ms | 0.257 ms | 14 |
+| Url.gram | 0.038 ms | 2.18 ms | **57** |
+
+The work differs in kind — the hand parser builds the compiler's tree with positions and
+diagnostics, the generated one the example's records — so the ratio is a scale, not a
+verdict. But fifty-seven is not a scale disagreement; it is the next hunt, on the first
+genuinely realistic input the benchmarks have had: recursive, backtracking, 87 KB
+allocated per parse where the URL machine allocates 264 bytes.
+
+**The instrument itself had to be fixed first, and the lesson is worth the table.** The
+first version averaged fifty parses per round and reported the generated side at 140
+times the hand-written one. Individual parses told another story: 0.08 ms each, with two
+spikes of 79 ms — tiered compilation re-jitting the thirty-thousand-line engine method
+tens of calls in. A mean over a window holding that spike is the layout lottery again,
+relearned against the JIT; medians of individual parses are what survive it. The
+shrinker met the same enemy from the other side: a cost predicate sampled once let the
+shrink walk out through a single lucky-fast measurement, and "slow" had to become "even
+the fastest of three is slow".
