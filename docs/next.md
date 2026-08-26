@@ -2195,3 +2195,60 @@ and a window. A rule that qualifies can be cut out; one that does not stays insi
 
 Not started. Worth doing after the per-publication split, because it is what makes that split
 pay on a grammar like `Feed` rather than only on one like `Minimal`.
+
+## Built: one machine per published rule
+
+`CSharpEmitter` built one `Machine` over the whole file. It builds one per published rule
+now — `parse R` and `find R` share theirs, two publications of different rules get one each,
+and `parse R with (…)` twice needs no case of its own since what is published is two rules
+by then.
+
+What it changes, on this repository's own snapshots:
+
+| grammar | before | after |
+| --- | --- | --- |
+| `Url` | one engine | **unchanged** — `parse Url` and `find Url` are one rule |
+| `Csv` | one engine | unchanged |
+| `Minimal` | one engine, three publications | **`A` and `B` are flat methods; only `C` has an engine** |
+| `Feed` | one engine, 2,175 lines | three engines, 3,014 lines |
+
+`Minimal` is the point: `A = "a"` and `B = "abcd"` are each lowerable and were paying for the
+arena because `C = "http" | "https" | "ftp"` in the same file is not. `Feed` is the price,
+and the entry above about cutting a large rule out into a machine of its own is what would
+earn it back.
+
+**Seven couplings had to come apart, and each was the same shape** — something written for a
+grammar's one machine that is now several. Recorded because the next person to split
+something in this emitter will meet them again.
+
+**The rules a machine compiles** are what its published rule reaches, and reachability has to
+include the rule's `trivia`: a `parse` compiles the body wrapped in it, so what the trivia
+calls belongs to that machine as much as the body does. `Retention`'s own `Reachable` does
+not do this and could not be reused.
+
+**Four names carry a tag** — the engine, the guard methods, the expected arrays and the
+materializer — and the tag is empty where there is only one machine, so a single-publication
+grammar is compiled to exactly the names it always was.
+
+**`_ruleIds` and the state numbering are per machine**, so anything asking a machine about a
+rule it does not have throws. Three loops over `_graph.Rules` inside `Machine` had to become
+loops over its own: `RenderEngine`'s `hasValues`, and two in the materializer.
+
+**The value tables are the file's, not a machine's.** A machine names a type by where it sits
+in a list and the parser holds one table per entry — one parser for the file. So the order is
+the union, computed once every machine exists and handed back to each before a line is
+rendered (`Machine.ShareValueTables`).
+
+**The streamed-rule set is a machine's, not the file's.** Shared, a machine tried to write a
+wrapper for a rule that belongs to another and does not exist in it. The probe dictionaries
+are the opposite: they stay the file's, because the streaming entry points read them later —
+but each machine may only *emit* the probes it added, which is why it keeps its own list
+beside them.
+
+**The failure struct, the recovery factories, the parser runtime and the extras are the
+file's.** Three of those were written `if (machine is not null)`, which silently became "if
+there is exactly one" and emitted nothing at all for a grammar with two.
+
+**`CanLower` is asked per machine**, which is the change that makes `Minimal` lower at all.
+`HasTypedGuards` moved with it: the incremental materializer it turns on is machinery a
+machine whose rules never read a value mid-parse has no use for.

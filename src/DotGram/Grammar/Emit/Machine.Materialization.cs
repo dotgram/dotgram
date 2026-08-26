@@ -206,7 +206,7 @@ sealed partial class Machine
 				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
-				foreach (var rule in _graph.Rules)
+				foreach (var rule in _rules)
 					if (ValueRule(rule) >= 0)
 						MaterializeRule(file, rule);
 
@@ -270,7 +270,7 @@ sealed partial class Machine
 	{
 		using (file.Block("switch (rootRule)"))
 		{
-			foreach (var rule in _graph.Rules)
+			foreach (var rule in _rules)
 			{
 				if (ValueRule(rule) < 0)
 					continue;

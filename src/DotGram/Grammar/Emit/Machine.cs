@@ -269,6 +269,22 @@ sealed partial class Machine
 	/// </remarks>
 	public IReadOnlyList<string> ValueTypes => _valueTypes;
 
+	/// <summary>
+	/// Take the file's table order instead of this machine's own.
+	/// </summary>
+	/// <remarks>
+	/// A machine names a value type by where it sits in this list, and the parser holds one
+	/// table per entry — one parser for the file, however many machines wrote into it. So
+	/// the order has to be the union of theirs, which is only known once they all exist.
+	/// Called before anything is rendered and after every machine is built; nothing read
+	/// during construction depends on it.
+	/// </remarks>
+	public void ShareValueTables(IReadOnlyList<string> tables)
+	{
+		_valueTypes.Clear();
+		_valueTypes.AddRange(tables);
+	}
+
 	readonly List<string> _valueTypes = [];
 
 	/// <summary>
@@ -282,7 +298,7 @@ sealed partial class Machine
 	/// </remarks>
 	void CollectValueTypes()
 	{
-		foreach (var rule in _graph.Rules)
+		foreach (var rule in _rules)
 			if (ValueRule(rule) >= 0 && _results.QualifiedOf(rule) is { } type)
 				Add(type);
 
@@ -474,7 +490,7 @@ sealed partial class Machine
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
-		foreach (var rule in _graph.Rules)
+		foreach (var rule in _rules)
 			hasValues |= ValueRule(rule) >= 0;
 
 		if (hasValues)

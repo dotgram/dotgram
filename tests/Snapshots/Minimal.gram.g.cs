@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'A'.";
 
-				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
@@ -67,7 +67,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'B'.";
 
-				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
@@ -107,7 +107,71 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
-		static int Recognize_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
+		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+			string[]? expected = null;
+
+			{
+				if ((uint)p >= (uint)text.Length || text[p] != 'a')
+				{
+					expected = Recognize_DotGram_A_Expected0;
+					goto Fail;
+				}
+				p += 1;
+				goto Accept;
+			}
+
+			Accept:
+			if (p != text.Length) { expected = null; goto Fail; }
+			return p;
+
+			Fail:
+			failure.Position = p;
+			failure.Expected = expected;
+			return -1;
+		}
+
+		static int Recognize_B_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+			string[]? expected = null;
+
+			{
+				if (p + 4 > text.Length)
+				{
+					expected = Recognize_DotGram_B_Expected0;
+					goto Fail;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("abcd")))
+				{
+					if (text[p] == 'a')
+					{
+						if (text[p + 1] != 'b')
+							p += 1;
+						else if (text[p + 2] != 'c')
+							p += 2;
+						else
+							p += 3;
+					}
+					expected = Recognize_DotGram_B_Expected0;
+					goto Fail;
+				}
+				p += 4;
+				goto Accept;
+			}
+
+			Accept:
+			if (p != text.Length) { expected = null; goto Fail; }
+			return p;
+
+			Fail:
+			failure.Position = p;
+			failure.Expected = expected;
+			return -1;
+		}
+
+		static int Recognize_DotGram_C(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{
 			recognized = null;
 
@@ -142,72 +206,20 @@ namespace DotGram.Snapshots
 					case 6: goto S6;
 					case 7: goto S7;
 					case 8: goto S8;
-					case 9: goto S9;
-					case 10: goto S10;
-					case 11: goto S11;
-					case 12: goto S12;
 					default: expected = null; goto Fail;
 				}
 
 				S3:
 				{
-					Trace("enter A", 3, p, entries.Count);
-					goto S6;
+					Trace("enter C", 3, p, entries.Count);
+					goto S8;
 				}
 
 				S4:
 				{
-					Trace("enter B", 4, p, entries.Count);
-					goto S7;
-				}
-
-				S5:
-				{
-					Trace("enter C", 5, p, entries.Count);
-					goto S12;
-				}
-
-				S6:
-				{
-					if ((uint)p >= (uint)text.Length || text[p] != 'a')
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p += 1;
-					goto Return;
-				}
-
-				S7:
-				{
-					if (p + 4 > text.Length)
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("abcd")))
-					{
-						if (text[p] == 'a')
-						{
-							if (text[p + 1] != 'b')
-								p += 1;
-							else if (text[p + 2] != 'c')
-								p += 2;
-							else
-								p += 3;
-						}
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					p += 4;
-					goto Return;
-				}
-
-				S8:
-				{
 					if (p + 3 > text.Length)
 					{
-						expected = Recognize_DotGram_Expected2;
+						expected = Recognize_DotGram_C_Expected0;
 						goto Fail;
 					}
 					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
@@ -219,18 +231,18 @@ namespace DotGram.Snapshots
 							else
 								p += 2;
 						}
-						expected = Recognize_DotGram_Expected2;
+						expected = Recognize_DotGram_C_Expected0;
 						goto Fail;
 					}
 					p += 3;
 					goto Return;
 				}
 
-				S9:
+				S5:
 				{
 					if (p + 5 > text.Length)
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_C_Expected1;
 						goto Fail;
 					}
 					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
@@ -246,31 +258,31 @@ namespace DotGram.Snapshots
 							else
 								p += 4;
 						}
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_C_Expected1;
 						goto Fail;
 					}
 					p += 5;
 					goto Return;
 				}
 
-				S10:
+				S6:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c == 'h')) goto S8;
-						if (!(c == 'f')) goto S9;
+						if (!(c == 'h')) goto S4;
+						if (!(c == 'f')) goto S5;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 8, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 8, p, entries.Count);
-					goto S9;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 4, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 4, p, entries.Count);
+					goto S5;
 				}
 
-				S11:
+				S7:
 				{
 					if (p + 4 > text.Length)
 					{
-						expected = Recognize_DotGram_Expected4;
+						expected = Recognize_DotGram_C_Expected2;
 						goto Fail;
 					}
 					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
@@ -284,24 +296,24 @@ namespace DotGram.Snapshots
 							else
 								p += 3;
 						}
-						expected = Recognize_DotGram_Expected4;
+						expected = Recognize_DotGram_C_Expected2;
 						goto Fail;
 					}
 					p += 4;
 					goto Return;
 				}
 
-				S12:
+				S8:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c == 'h')) goto S10;
-						if (!(c == 'h' || c == 'f')) goto S11;
+						if (!(c == 'h')) goto S6;
+						if (!(c == 'h' || c == 'f')) goto S7;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 10, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 10, p, entries.Count);
-					goto S11;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 6, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 6, p, entries.Count);
+					goto S7;
 				}
 
 				Return:
@@ -410,36 +422,22 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			object? recognized;
-			var end = Recognize_DotGram(text, pos, 3, -1, true, true, ref failure, out recognized);
-			return end;
-		}
-
-		static int Recognize_B_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			object? recognized;
-			var end = Recognize_DotGram(text, pos, 4, -1, true, true, ref failure, out recognized);
-			return end;
-		}
-
 		static int Recognize_C_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
-			var end = Recognize_DotGram(text, pos, 5, -1, true, true, ref failure, out recognized);
+			var end = Recognize_DotGram_C(text, pos, 3, -1, true, true, ref failure, out recognized);
 			return end;
 		}
 
-		static readonly string[] Recognize_DotGram_Expected0 = { "'a'" };
+		static readonly string[] Recognize_DotGram_A_Expected0 = { "'a'" };
 
-		static readonly string[] Recognize_DotGram_Expected1 = { "\"abcd\"" };
+		static readonly string[] Recognize_DotGram_B_Expected0 = { "\"abcd\"" };
 
-		static readonly string[] Recognize_DotGram_Expected2 = { "\"ftp\"" };
+		static readonly string[] Recognize_DotGram_C_Expected0 = { "\"ftp\"" };
 
-		static readonly string[] Recognize_DotGram_Expected3 = { "\"https\"" };
+		static readonly string[] Recognize_DotGram_C_Expected1 = { "\"https\"" };
 
-		static readonly string[] Recognize_DotGram_Expected4 = { "\"http\"" };
+		static readonly string[] Recognize_DotGram_C_Expected2 = { "\"http\"" };
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
