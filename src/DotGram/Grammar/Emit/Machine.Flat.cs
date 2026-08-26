@@ -75,7 +75,7 @@ sealed partial class Machine
 			if (!falls)
 				file.Line($"goto {Label(Resolved(entry))};");
 
-			RenderStates(file, everyLabel: false);
+			RenderStates(file, dispatched: false);
 
 			file.Line();
 			file.Line("Accept:");

@@ -2691,3 +2691,67 @@ Worth keeping as a general result rather than a fact about literals: **an optimi
 that removes predictable work and adds an unpredictable branch is a loss**, and this
 engine's straight-line chains are full of predictable work. The same caution applies to
 anything else here shaped like a dispatch table.
+
+## Built: the dispatch has a case only where the parse can arrive
+
+Every generated machine was swept for redundancy — a `goto` at the state written next, a
+state whose whole body is one jump, a label nothing names, two states with the same body.
+Across all 42 generated parsers the first three came back **zero**, which is what the
+layout pass was built to do and evidence that it still does it.
+
+The fourth turned up something else. The dispatch was written with a case for every state
+in the table:
+
+```csharp
+for (var i = 0; i < _states.Count; i++)
+    if (Written(Resolved(i + First)))
+        file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
+```
+
+But a state is *arrived at* through the dispatch only when an arena entry names it, and the
+only other way in is from outside the table. Every other state is reached by falling into it
+or by a `goto` written inside the method, and a case for one of those is a slot in the jump
+table and a jump stub that nothing can execute. Measured on the output rather than reasoned
+about: **4,612 of 5,591 cases — 82% — could not be reached by any parse.** `Url` had 735 and
+needed 58.
+
+Two things were needed to say which:
+
+- the reachability walk read the second field of *every* `ParserEntry` as a state, though in
+  `Capture`, `RuleCapture`, `Construct` and `Recovery` it is a slot or a factory. It is the
+  same confusion the `Resumable` whitelist was written for, in the one place that had not
+  been taught it, and it was keeping alive whatever state happened to share a slot's number;
+- the labels. The engine wrote every one of them, excused by "its dispatch has a case for
+  every written state" — which is exactly the premise being removed. It now works out which
+  labels are named the same way a lowered recognizer always has, plus the ones the cases name.
+
+`Repeat` and `Atomic` carry a nesting count in that field rather than a state, always 0, and
+0 is `Return`'s case. A grammar that publishes nothing has no roots at all — the emitter
+writes a recognizer for each of its rules instead — and there the dispatch keeps every state,
+which is what `PlanLayout` already does for the same reason and for the same grammar.
+
+| | before | after |
+|---|---|---|
+| dispatch cases, all 42 parsers | 5,591 | 1,084 |
+| of those, unreachable | 4,612 | 105 |
+| `Url` snapshot | 9,865 lines, 747 cases | 8,838 lines, 70 cases |
+| `Feed` snapshot | 2,824 lines, 118 cases | 2,685 lines, 36 cases |
+
+Checked the other way as well, which is the direction that matters: every state named by an
+arena entry, and every state a wrapper or probe passes in, still has a case — verified over
+the emitted text of all 42, not over the analysis that produced it.
+
+**Not a speed change.** Measured against `HEAD` round-robin, with and without `TieredPGO`,
+the five URL inputs moved both ways and the runs did not agree with each other — the layout
+lottery this repository has already been bitten by. No number is published because none
+held. What it buys is 1,173 lines out of the checked-in snapshots and a smaller method
+handed to the JIT, whose budgets `PlanLayout`'s own remarks are about.
+
+### Still open: states with the same body
+
+The sweep also found 253 groups of states whose bodies are textually identical — 144 of them
+in `Url` alone, every one of them `turn0 = p;`. They are not the same state: a body with no
+trailing jump falls into whatever is written next, so two identical bodies with different
+successors do different things. Whether any of them are *actually* the same — same body and
+same successor — was not worked out, and merging those that are would be a size change of
+the same kind as this one. Not started.

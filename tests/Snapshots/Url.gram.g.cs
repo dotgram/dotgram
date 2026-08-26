@@ -200,737 +200,60 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S75;
-					case 5: goto S739;
 					case 24: goto S24;
-					case 25: goto S25;
-					case 26: goto S26;
-					case 27: goto S27;
-					case 28: goto S28;
 					case 29: goto S29;
-					case 30: goto S30;
-					case 31: goto S30;
-					case 32: goto S32;
-					case 33: goto S33;
-					case 34: goto S34;
-					case 35: goto S35;
-					case 36: goto S36;
-					case 37: goto S37;
-					case 38: goto S38;
 					case 39: goto S39;
-					case 40: goto S40;
-					case 41: goto S41;
-					case 42: goto S42;
-					case 43: goto S43;
 					case 44: goto S44;
-					case 45: goto S45;
-					case 46: goto S45;
-					case 47: goto S47;
-					case 48: goto S48;
-					case 49: goto S49;
-					case 50: goto S50;
-					case 51: goto S51;
-					case 52: goto S52;
-					case 53: goto S53;
-					case 54: goto S54;
 					case 55: goto S55;
-					case 56: goto S56;
-					case 57: goto S56;
-					case 58: goto S58;
 					case 59: goto S59;
-					case 60: goto S60;
-					case 61: goto S60;
-					case 62: goto S62;
-					case 63: goto S63;
-					case 64: goto S64;
-					case 65: goto S65;
-					case 66: goto S66;
-					case 67: goto S67;
-					case 68: goto S68;
 					case 69: goto S69;
-					case 70: goto S70;
-					case 71: goto S70;
-					case 72: goto S72;
-					case 73: goto S73;
-					case 74: goto S74;
-					case 75: goto S75;
 					case 77: goto S77;
-					case 78: goto S78;
-					case 79: goto S79;
-					case 80: goto S80;
 					case 81: goto S81;
-					case 82: goto S82;
-					case 83: goto S83;
-					case 84: goto S84;
-					case 85: goto S85;
-					case 86: goto S86;
-					case 87: goto S87;
-					case 88: goto S88;
 					case 89: goto S89;
 					case 90: goto S90;
-					case 91: goto S91;
-					case 92: goto S92;
 					case 93: goto S93;
-					case 94: goto S94;
-					case 95: goto S95;
-					case 96: goto S96;
-					case 97: goto S97;
-					case 98: goto S98;
-					case 99: goto S99;
-					case 100: goto S100;
-					case 101: goto S101;
-					case 102: goto S102;
-					case 103: goto S103;
-					case 104: goto S104;
-					case 105: goto S105;
-					case 106: goto S106;
-					case 107: goto S107;
-					case 108: goto S108;
-					case 109: goto S109;
-					case 110: goto S110;
-					case 111: goto S111;
-					case 112: goto S112;
-					case 113: goto S113;
-					case 114: goto S114;
-					case 115: goto S115;
-					case 116: goto S116;
-					case 117: goto S117;
-					case 118: goto S118;
-					case 119: goto S119;
-					case 120: goto S120;
-					case 121: goto S121;
-					case 122: goto S122;
 					case 123: goto S123;
-					case 124: goto S124;
-					case 125: goto S125;
 					case 126: goto S126;
-					case 127: goto S127;
 					case 128: goto S128;
 					case 129: goto S129;
-					case 130: goto S130;
 					case 131: goto S131;
-					case 132: goto S132;
-					case 133: goto S133;
-					case 134: goto S134;
-					case 135: goto S135;
-					case 136: goto S136;
-					case 137: goto S137;
-					case 138: goto S138;
-					case 139: goto S139;
-					case 140: goto S140;
-					case 141: goto S141;
-					case 142: goto S142;
-					case 143: goto S143;
-					case 144: goto S144;
-					case 145: goto S145;
-					case 146: goto S146;
-					case 147: goto S147;
-					case 148: goto S148;
-					case 149: goto S149;
-					case 150: goto S150;
-					case 151: goto S151;
-					case 152: goto S152;
-					case 153: goto S153;
-					case 154: goto S154;
-					case 155: goto S155;
-					case 156: goto S156;
 					case 157: goto S157;
-					case 158: goto S158;
 					case 159: goto S159;
-					case 160: goto S160;
-					case 161: goto S161;
 					case 162: goto S162;
-					case 163: goto S163;
-					case 164: goto S164;
-					case 165: goto S165;
-					case 166: goto S166;
-					case 167: goto S167;
-					case 168: goto S168;
-					case 169: goto S169;
-					case 170: goto S170;
-					case 171: goto S171;
-					case 172: goto S172;
-					case 173: goto S173;
-					case 174: goto S174;
-					case 175: goto S175;
-					case 176: goto S176;
 					case 177: goto S177;
-					case 178: goto S178;
-					case 179: goto S179;
-					case 180: goto S180;
-					case 181: goto S181;
-					case 182: goto S182;
-					case 183: goto S183;
-					case 184: goto S184;
-					case 185: goto S185;
-					case 186: goto S186;
-					case 187: goto S187;
-					case 188: goto S188;
-					case 189: goto S189;
-					case 190: goto S190;
-					case 191: goto S191;
-					case 192: goto S192;
-					case 193: goto S193;
-					case 194: goto S194;
-					case 195: goto S195;
-					case 196: goto S196;
-					case 197: goto S197;
-					case 198: goto S198;
-					case 199: goto S199;
-					case 200: goto S200;
-					case 201: goto S201;
-					case 202: goto S202;
-					case 203: goto S203;
-					case 204: goto S204;
-					case 205: goto S205;
-					case 206: goto S206;
-					case 207: goto S207;
 					case 208: goto S208;
-					case 209: goto S209;
-					case 210: goto S210;
-					case 211: goto S211;
-					case 212: goto S212;
-					case 213: goto S213;
-					case 214: goto S214;
-					case 215: goto S215;
-					case 216: goto S216;
-					case 217: goto S217;
-					case 218: goto S218;
-					case 219: goto S219;
-					case 220: goto S220;
-					case 221: goto S221;
-					case 222: goto S222;
-					case 223: goto S223;
-					case 224: goto S224;
-					case 225: goto S225;
-					case 226: goto S226;
-					case 227: goto S227;
-					case 228: goto S228;
-					case 229: goto S229;
-					case 230: goto S230;
-					case 231: goto S231;
 					case 232: goto S232;
-					case 233: goto S233;
 					case 234: goto S234;
-					case 235: goto S235;
-					case 236: goto S236;
 					case 237: goto S237;
-					case 238: goto S238;
-					case 239: goto S239;
-					case 240: goto S240;
-					case 241: goto S241;
-					case 242: goto S242;
-					case 243: goto S243;
-					case 244: goto S244;
-					case 245: goto S245;
-					case 246: goto S246;
-					case 247: goto S247;
-					case 248: goto S248;
-					case 249: goto S249;
-					case 250: goto S250;
-					case 251: goto S251;
 					case 252: goto S252;
-					case 253: goto S253;
-					case 254: goto S254;
-					case 255: goto S255;
-					case 256: goto S256;
-					case 257: goto S257;
-					case 258: goto S258;
-					case 259: goto S259;
-					case 260: goto S260;
-					case 261: goto S261;
-					case 262: goto S262;
-					case 263: goto S263;
-					case 264: goto S264;
-					case 265: goto S265;
-					case 266: goto S266;
-					case 267: goto S267;
-					case 268: goto S268;
-					case 269: goto S269;
-					case 270: goto S270;
-					case 271: goto S271;
-					case 272: goto S272;
-					case 273: goto S273;
-					case 274: goto S274;
-					case 275: goto S275;
-					case 276: goto S276;
-					case 277: goto S277;
-					case 278: goto S278;
-					case 279: goto S279;
-					case 280: goto S280;
-					case 281: goto S281;
-					case 282: goto S282;
 					case 283: goto S283;
-					case 284: goto S284;
-					case 285: goto S285;
-					case 286: goto S286;
-					case 287: goto S287;
-					case 288: goto S288;
-					case 289: goto S289;
-					case 290: goto S290;
-					case 291: goto S291;
-					case 292: goto S292;
-					case 293: goto S293;
-					case 294: goto S294;
-					case 295: goto S295;
-					case 296: goto S296;
-					case 297: goto S297;
-					case 298: goto S298;
-					case 299: goto S299;
-					case 300: goto S300;
-					case 301: goto S301;
-					case 302: goto S302;
-					case 303: goto S303;
-					case 304: goto S304;
-					case 305: goto S305;
-					case 306: goto S306;
-					case 307: goto S307;
-					case 308: goto S308;
-					case 309: goto S309;
-					case 310: goto S310;
-					case 311: goto S311;
-					case 312: goto S312;
-					case 313: goto S313;
-					case 314: goto S314;
-					case 315: goto S315;
-					case 316: goto S316;
-					case 317: goto S317;
 					case 318: goto S318;
-					case 319: goto S319;
 					case 320: goto S320;
-					case 321: goto S321;
-					case 322: goto S322;
 					case 323: goto S323;
-					case 324: goto S324;
-					case 325: goto S325;
-					case 326: goto S326;
-					case 327: goto S327;
-					case 328: goto S328;
-					case 329: goto S329;
-					case 330: goto S330;
-					case 331: goto S331;
-					case 332: goto S332;
-					case 333: goto S333;
-					case 334: goto S334;
-					case 335: goto S335;
-					case 336: goto S336;
-					case 337: goto S337;
 					case 338: goto S338;
-					case 339: goto S339;
-					case 340: goto S340;
-					case 341: goto S341;
-					case 342: goto S342;
-					case 343: goto S343;
-					case 344: goto S344;
-					case 345: goto S345;
-					case 346: goto S346;
-					case 347: goto S347;
-					case 348: goto S348;
-					case 349: goto S349;
-					case 350: goto S350;
-					case 351: goto S351;
-					case 352: goto S352;
-					case 353: goto S353;
-					case 354: goto S354;
-					case 355: goto S355;
-					case 356: goto S356;
-					case 357: goto S357;
-					case 358: goto S358;
-					case 359: goto S359;
-					case 360: goto S360;
-					case 361: goto S361;
-					case 362: goto S362;
-					case 363: goto S363;
-					case 364: goto S364;
-					case 365: goto S365;
-					case 366: goto S366;
-					case 367: goto S367;
-					case 368: goto S368;
 					case 369: goto S369;
-					case 370: goto S370;
-					case 371: goto S371;
-					case 372: goto S372;
-					case 373: goto S373;
-					case 374: goto S374;
-					case 375: goto S375;
-					case 376: goto S376;
-					case 377: goto S377;
-					case 378: goto S378;
-					case 379: goto S379;
-					case 380: goto S380;
-					case 381: goto S381;
-					case 382: goto S382;
-					case 383: goto S383;
-					case 384: goto S384;
-					case 385: goto S385;
-					case 386: goto S386;
-					case 387: goto S387;
-					case 388: goto S388;
-					case 389: goto S389;
-					case 390: goto S390;
-					case 391: goto S391;
 					case 392: goto S392;
-					case 393: goto S393;
-					case 394: goto S394;
-					case 395: goto S395;
-					case 396: goto S396;
-					case 397: goto S397;
-					case 398: goto S398;
-					case 399: goto S399;
-					case 400: goto S400;
-					case 401: goto S401;
-					case 402: goto S402;
-					case 403: goto S403;
-					case 404: goto S404;
-					case 405: goto S405;
-					case 406: goto S406;
-					case 407: goto S407;
 					case 408: goto S408;
-					case 409: goto S409;
 					case 410: goto S410;
-					case 411: goto S411;
-					case 412: goto S412;
 					case 413: goto S413;
-					case 414: goto S414;
-					case 415: goto S415;
-					case 416: goto S416;
-					case 417: goto S417;
-					case 418: goto S418;
-					case 419: goto S419;
-					case 420: goto S420;
-					case 421: goto S421;
-					case 422: goto S422;
-					case 423: goto S423;
-					case 424: goto S424;
-					case 425: goto S425;
-					case 426: goto S426;
-					case 427: goto S427;
 					case 428: goto S428;
-					case 429: goto S429;
-					case 430: goto S430;
-					case 431: goto S431;
-					case 432: goto S432;
-					case 433: goto S433;
-					case 434: goto S434;
-					case 435: goto S435;
-					case 436: goto S436;
-					case 437: goto S437;
-					case 438: goto S438;
-					case 439: goto S439;
-					case 440: goto S440;
-					case 441: goto S441;
-					case 442: goto S442;
-					case 443: goto S443;
-					case 444: goto S444;
-					case 445: goto S445;
-					case 446: goto S446;
-					case 447: goto S447;
-					case 448: goto S448;
-					case 449: goto S449;
-					case 450: goto S450;
-					case 451: goto S451;
-					case 452: goto S452;
-					case 453: goto S453;
-					case 454: goto S454;
-					case 455: goto S455;
-					case 456: goto S456;
-					case 457: goto S457;
-					case 458: goto S458;
 					case 459: goto S459;
-					case 460: goto S460;
-					case 461: goto S461;
-					case 462: goto S462;
-					case 463: goto S463;
-					case 464: goto S464;
-					case 465: goto S465;
-					case 466: goto S466;
-					case 467: goto S467;
-					case 468: goto S468;
-					case 469: goto S469;
-					case 470: goto S470;
-					case 471: goto S471;
-					case 472: goto S472;
-					case 473: goto S473;
-					case 474: goto S474;
-					case 475: goto S475;
-					case 476: goto S476;
-					case 477: goto S477;
-					case 478: goto S478;
-					case 479: goto S479;
-					case 480: goto S480;
-					case 481: goto S481;
 					case 482: goto S482;
-					case 483: goto S483;
-					case 484: goto S484;
-					case 485: goto S485;
-					case 486: goto S486;
-					case 487: goto S487;
-					case 488: goto S488;
-					case 489: goto S489;
-					case 490: goto S490;
-					case 491: goto S491;
-					case 492: goto S492;
-					case 493: goto S493;
-					case 494: goto S494;
-					case 495: goto S495;
-					case 496: goto S496;
-					case 497: goto S497;
 					case 498: goto S498;
-					case 499: goto S499;
 					case 500: goto S500;
-					case 501: goto S501;
-					case 502: goto S502;
 					case 503: goto S503;
-					case 504: goto S504;
-					case 505: goto S505;
-					case 506: goto S506;
-					case 507: goto S507;
-					case 508: goto S508;
-					case 509: goto S509;
-					case 510: goto S510;
-					case 511: goto S511;
-					case 512: goto S512;
-					case 513: goto S513;
-					case 514: goto S514;
-					case 515: goto S515;
-					case 516: goto S516;
-					case 517: goto S517;
 					case 518: goto S518;
-					case 519: goto S519;
-					case 520: goto S520;
-					case 521: goto S521;
-					case 522: goto S522;
-					case 523: goto S523;
-					case 524: goto S524;
-					case 525: goto S525;
-					case 526: goto S526;
-					case 527: goto S527;
-					case 528: goto S528;
-					case 529: goto S529;
-					case 530: goto S530;
-					case 531: goto S531;
-					case 532: goto S532;
-					case 533: goto S533;
-					case 534: goto S534;
-					case 535: goto S535;
-					case 536: goto S536;
-					case 537: goto S537;
-					case 538: goto S538;
-					case 539: goto S539;
-					case 540: goto S540;
-					case 541: goto S541;
-					case 542: goto S542;
-					case 543: goto S543;
-					case 544: goto S544;
-					case 545: goto S545;
-					case 546: goto S546;
-					case 547: goto S547;
-					case 548: goto S548;
 					case 549: goto S549;
-					case 550: goto S550;
-					case 551: goto S551;
-					case 552: goto S552;
-					case 553: goto S553;
-					case 554: goto S554;
-					case 555: goto S555;
-					case 556: goto S556;
-					case 557: goto S557;
-					case 558: goto S558;
-					case 559: goto S559;
-					case 560: goto S560;
-					case 561: goto S561;
-					case 562: goto S562;
-					case 563: goto S563;
-					case 564: goto S564;
-					case 565: goto S565;
-					case 566: goto S566;
-					case 567: goto S567;
-					case 568: goto S568;
-					case 569: goto S569;
-					case 570: goto S570;
-					case 571: goto S571;
 					case 572: goto S572;
-					case 573: goto S573;
-					case 574: goto S574;
-					case 575: goto S575;
-					case 576: goto S576;
-					case 577: goto S577;
-					case 578: goto S578;
-					case 579: goto S579;
-					case 580: goto S580;
-					case 581: goto S581;
-					case 582: goto S582;
-					case 583: goto S583;
-					case 584: goto S584;
-					case 585: goto S585;
-					case 586: goto S586;
-					case 587: goto S587;
 					case 588: goto S588;
-					case 589: goto S589;
 					case 590: goto S590;
-					case 591: goto S591;
-					case 592: goto S592;
 					case 593: goto S593;
-					case 594: goto S594;
-					case 595: goto S595;
-					case 596: goto S596;
-					case 597: goto S597;
-					case 598: goto S598;
-					case 599: goto S599;
-					case 600: goto S600;
-					case 601: goto S601;
-					case 602: goto S602;
-					case 603: goto S603;
-					case 604: goto S604;
-					case 605: goto S605;
-					case 606: goto S606;
-					case 607: goto S607;
-					case 608: goto S608;
-					case 609: goto S609;
-					case 610: goto S610;
-					case 611: goto S611;
-					case 612: goto S612;
-					case 613: goto S613;
-					case 614: goto S614;
-					case 615: goto S615;
-					case 616: goto S616;
-					case 617: goto S617;
-					case 618: goto S618;
-					case 619: goto S619;
-					case 620: goto S620;
-					case 621: goto S621;
-					case 622: goto S622;
-					case 623: goto S623;
 					case 624: goto S624;
-					case 625: goto S625;
-					case 626: goto S626;
-					case 627: goto S627;
-					case 628: goto S628;
-					case 629: goto S629;
-					case 630: goto S630;
-					case 631: goto S631;
-					case 632: goto S632;
-					case 633: goto S633;
-					case 634: goto S634;
-					case 635: goto S635;
-					case 636: goto S636;
-					case 637: goto S637;
-					case 638: goto S638;
-					case 639: goto S639;
-					case 640: goto S640;
-					case 641: goto S641;
-					case 642: goto S642;
-					case 643: goto S643;
-					case 644: goto S644;
-					case 645: goto S645;
-					case 646: goto S646;
 					case 647: goto S647;
-					case 648: goto S648;
-					case 649: goto S649;
-					case 650: goto S650;
-					case 651: goto S651;
-					case 652: goto S652;
-					case 653: goto S653;
-					case 654: goto S654;
-					case 655: goto S655;
-					case 656: goto S656;
-					case 657: goto S657;
-					case 658: goto S658;
-					case 659: goto S659;
-					case 660: goto S660;
-					case 661: goto S661;
-					case 662: goto S662;
 					case 663: goto S663;
-					case 664: goto S664;
-					case 665: goto S665;
-					case 666: goto S666;
-					case 667: goto S667;
-					case 668: goto S668;
-					case 669: goto S669;
-					case 670: goto S670;
-					case 671: goto S671;
-					case 672: goto S672;
-					case 673: goto S673;
-					case 674: goto S674;
-					case 675: goto S675;
-					case 676: goto S676;
-					case 677: goto S677;
-					case 678: goto S678;
-					case 679: goto S679;
-					case 680: goto S680;
-					case 681: goto S681;
-					case 682: goto S682;
-					case 683: goto S683;
-					case 684: goto S684;
-					case 685: goto S685;
-					case 686: goto S686;
-					case 687: goto S687;
-					case 688: goto S688;
-					case 689: goto S689;
-					case 690: goto S690;
-					case 691: goto S691;
-					case 692: goto S692;
-					case 693: goto S693;
 					case 694: goto S694;
-					case 695: goto S695;
-					case 696: goto S696;
-					case 697: goto S697;
-					case 698: goto S698;
-					case 699: goto S699;
-					case 700: goto S700;
-					case 701: goto S701;
-					case 702: goto S702;
-					case 703: goto S703;
-					case 704: goto S704;
-					case 705: goto S705;
-					case 706: goto S706;
-					case 707: goto S707;
-					case 708: goto S708;
-					case 709: goto S709;
-					case 710: goto S710;
-					case 711: goto S711;
-					case 712: goto S712;
-					case 713: goto S713;
-					case 714: goto S714;
-					case 715: goto S715;
-					case 716: goto S716;
 					case 717: goto S717;
-					case 718: goto S718;
-					case 719: goto S719;
-					case 720: goto S720;
-					case 721: goto S721;
-					case 722: goto S722;
-					case 723: goto S723;
-					case 724: goto S724;
-					case 725: goto S725;
-					case 726: goto S726;
-					case 727: goto S727;
-					case 728: goto S728;
-					case 729: goto S729;
-					case 730: goto S730;
-					case 731: goto S731;
-					case 732: goto S732;
-					case 733: goto S733;
-					case 734: goto S734;
-					case 735: goto S735;
 					case 736: goto S736;
-					case 737: goto S737;
-					case 738: goto S738;
-					case 739: goto S739;
-					case 740: goto S740;
-					case 741: goto S741;
-					case 742: goto S742;
-					case 743: goto S743;
-					case 744: goto S744;
-					case 745: goto S745;
-					case 746: goto S746;
-					case 747: goto S747;
-					case 748: goto S748;
-					case 749: goto S749;
-					case 750: goto S750;
-					case 751: goto S751;
-					case 752: goto S752;
-					case 753: goto S753;
-					case 754: goto S754;
 					default: expected = null; goto Fail;
 				}
 
@@ -939,7 +262,6 @@ namespace DotGram.Snapshots
 					capture0 = p;
 				}
 
-				S74:
 				{
 					if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
 					{
@@ -966,7 +288,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 0, p, entries.Count);
 				}
 
-				S72:
 				{
 					if (p + 3 > text.Length)
 					{
@@ -989,7 +310,6 @@ namespace DotGram.Snapshots
 					p += 3;
 				}
 
-				S70:
 				{
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 69, p, call, atomic, repeat, lookahead, 0, 2));
@@ -997,7 +317,6 @@ namespace DotGram.Snapshots
 					Trace("call Authority", 5, p, entries.Count);
 				}
 
-				S739:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -1014,12 +333,10 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 736, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S754:
 				{
 					capture5 = p;
 				}
 
-				S753:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1057,7 +374,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S748:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1078,13 +394,11 @@ namespace DotGram.Snapshots
 					p = turn0;
 				}
 
-				S741:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
 					Trace("capture", 5, p, entries.Count);
 				}
 
-				S740:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1100,7 +414,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S738:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -1141,7 +454,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S745:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1158,7 +470,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S744:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1192,7 +503,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S750:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1209,7 +519,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S749:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1239,12 +548,10 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 735, p, entries.Count);
 				}
 
-				S735:
 				{
 					capture6 = p;
 				}
 
-				S734:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -1272,7 +579,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S732:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -1283,7 +589,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 663, p, entries.Count);
 				}
 
-				S720:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -1301,7 +606,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 717, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S731:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1318,12 +622,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S730:
 				{
 					turn0 = p;
 				}
 
-				S729:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1345,7 +647,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S726:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1367,7 +668,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S723:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1400,7 +700,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S719:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -1438,7 +737,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 716, p, entries.Count);
 				}
 
-				S716:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -1467,12 +765,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S714:
 				{
 					turn0 = p;
 				}
 
-				S713:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1494,7 +790,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S710:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1516,7 +811,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S707:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1549,7 +843,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S704:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1566,12 +859,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S703:
 				{
 					turn0 = p;
 				}
 
-				S702:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1593,7 +884,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S699:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1615,7 +905,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S696:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1654,7 +943,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 6, p, entries.Count);
 				}
 
-				S80:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -1671,7 +959,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 77, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S88:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1687,7 +974,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S84:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -1704,12 +990,10 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 81, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S87:
 				{
 					capture7 = p;
 				}
 
-				S86:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1726,13 +1010,11 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S85:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 7, capture7, call, atomic, repeat, lookahead, p));
 					Trace("capture", 7, p, entries.Count);
 				}
 
-				S83:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -1752,7 +1034,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 79, p, entries.Count);
 				}
 
-				S79:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -1826,12 +1107,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S693:
 				{
 					turn0 = p;
 				}
 
-				S692:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1853,7 +1132,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S689:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1886,7 +1164,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S686:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1903,12 +1180,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S685:
 				{
 					turn0 = p;
 				}
 
-				S684:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1930,7 +1205,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S681:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1963,7 +1237,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S678:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1980,12 +1253,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S677:
 				{
 					turn0 = p;
 				}
 
-				S676:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2007,7 +1278,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S673:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2040,7 +1310,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S670:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2057,12 +1326,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S669:
 				{
 					turn0 = p;
 				}
 
-				S668:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2084,7 +1351,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S665:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2161,7 +1427,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 593, p, entries.Count);
 				}
 
-				S662:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -2179,7 +1444,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S650:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -2197,7 +1461,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 647, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S661:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2214,12 +1477,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S660:
 				{
 					turn0 = p;
 				}
 
-				S659:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2241,7 +1502,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S656:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2263,7 +1523,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S653:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2296,7 +1555,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S649:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -2334,7 +1592,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 646, p, entries.Count);
 				}
 
-				S646:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -2363,12 +1620,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S644:
 				{
 					turn0 = p;
 				}
 
-				S643:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2390,7 +1645,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S640:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2412,7 +1666,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S637:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2445,7 +1698,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S634:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2462,12 +1714,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S633:
 				{
 					turn0 = p;
 				}
 
-				S632:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2489,7 +1739,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S629:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2511,7 +1760,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S626:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2582,12 +1830,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S623:
 				{
 					turn0 = p;
 				}
 
-				S622:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2609,7 +1855,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S619:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2642,7 +1887,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S616:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2659,12 +1903,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S615:
 				{
 					turn0 = p;
 				}
 
-				S614:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2686,7 +1928,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S611:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2719,7 +1960,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S608:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2736,12 +1976,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S607:
 				{
 					turn0 = p;
 				}
 
-				S606:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2763,7 +2001,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S603:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2796,7 +2033,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S600:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2813,12 +2049,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S599:
 				{
 					turn0 = p;
 				}
 
-				S598:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2840,7 +2074,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S595:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2917,7 +2150,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 518, p, entries.Count);
 				}
 
-				S591:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -2934,7 +2166,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 588, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S592:
 				{
 					var runStart = p;
 					while (true)
@@ -2979,7 +2210,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 587, p, entries.Count);
 				}
 
-				S587:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -2997,7 +2227,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S575:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -3015,7 +2244,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 572, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S586:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3032,12 +2260,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S585:
 				{
 					turn0 = p;
 				}
 
-				S584:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3059,7 +2285,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S581:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3081,7 +2306,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S578:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3114,7 +2338,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S574:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -3152,7 +2375,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 571, p, entries.Count);
 				}
 
-				S571:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -3181,12 +2403,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S569:
 				{
 					turn0 = p;
 				}
 
-				S568:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3208,7 +2428,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S565:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3230,7 +2449,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S562:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3263,7 +2481,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S559:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3280,12 +2497,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S558:
 				{
 					turn0 = p;
 				}
 
-				S557:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3307,7 +2522,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S554:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3329,7 +2543,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S551:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3400,12 +2613,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S548:
 				{
 					turn0 = p;
 				}
 
-				S547:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3427,7 +2638,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S544:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3460,7 +2670,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S541:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3477,12 +2686,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S540:
 				{
 					turn0 = p;
 				}
 
-				S539:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3504,7 +2711,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S536:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3537,7 +2743,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S533:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3554,12 +2759,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S532:
 				{
 					turn0 = p;
 				}
 
-				S531:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3581,7 +2784,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S528:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3614,7 +2816,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S525:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3631,12 +2832,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S524:
 				{
 					turn0 = p;
 				}
 
-				S523:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3658,7 +2857,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S520:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3735,7 +2933,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 428, p, entries.Count);
 				}
 
-				S501:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -3752,7 +2949,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 498, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S506:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -3769,7 +2965,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 503, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S517:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3786,12 +2981,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S516:
 				{
 					turn0 = p;
 				}
 
-				S515:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3813,7 +3006,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S512:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3835,7 +3027,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S509:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3868,7 +3059,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S505:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -3906,7 +3096,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 502, p, entries.Count);
 				}
 
-				S502:
 				{
 					var runStart = p;
 					while (true)
@@ -3951,7 +3140,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 497, p, entries.Count);
 				}
 
-				S497:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -3969,7 +3157,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S485:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -3987,7 +3174,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 482, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S496:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4004,12 +3190,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S495:
 				{
 					turn0 = p;
 				}
 
-				S494:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4031,7 +3215,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S491:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4053,7 +3236,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S488:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4086,7 +3268,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S484:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -4124,7 +3305,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 481, p, entries.Count);
 				}
 
-				S481:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -4153,12 +3333,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S479:
 				{
 					turn0 = p;
 				}
 
-				S478:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4180,7 +3358,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S475:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4202,7 +3379,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S472:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4235,7 +3411,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S469:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4252,12 +3427,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S468:
 				{
 					turn0 = p;
 				}
 
-				S467:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4279,7 +3452,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S464:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4301,7 +3473,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S461:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4372,12 +3543,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S458:
 				{
 					turn0 = p;
 				}
 
-				S457:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4399,7 +3568,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S454:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4432,7 +3600,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S451:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4449,12 +3616,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S450:
 				{
 					turn0 = p;
 				}
 
-				S449:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4476,7 +3641,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S446:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4509,7 +3673,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S443:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4526,12 +3689,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S442:
 				{
 					turn0 = p;
 				}
 
-				S441:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4553,7 +3714,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S438:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4586,7 +3746,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S435:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4603,12 +3762,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S434:
 				{
 					turn0 = p;
 				}
 
-				S433:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4630,7 +3787,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S430:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4707,7 +3863,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 338, p, entries.Count);
 				}
 
-				S411:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -4724,7 +3879,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 408, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S416:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -4741,7 +3895,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 413, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S427:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4758,12 +3911,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S426:
 				{
 					turn0 = p;
 				}
 
-				S425:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4785,7 +3936,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S422:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4807,7 +3957,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S419:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4840,7 +3989,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S415:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -4878,7 +4026,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 412, p, entries.Count);
 				}
 
-				S412:
 				{
 					var runStart = p;
 					while (true)
@@ -4923,7 +4070,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 407, p, entries.Count);
 				}
 
-				S407:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -4941,7 +4087,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S395:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -4959,7 +4104,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 392, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S406:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -4976,12 +4120,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S405:
 				{
 					turn0 = p;
 				}
 
-				S404:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5003,7 +4145,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S401:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5025,7 +4166,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S398:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5058,7 +4198,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S394:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -5096,7 +4235,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 391, p, entries.Count);
 				}
 
-				S391:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -5125,12 +4263,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S389:
 				{
 					turn0 = p;
 				}
 
-				S388:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5152,7 +4288,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S385:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5174,7 +4309,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S382:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5207,7 +4341,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S379:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5224,12 +4357,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S378:
 				{
 					turn0 = p;
 				}
 
-				S377:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5251,7 +4382,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S374:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5273,7 +4403,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S371:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5344,12 +4473,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S368:
 				{
 					turn0 = p;
 				}
 
-				S367:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5371,7 +4498,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S364:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5404,7 +4530,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S361:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5421,12 +4546,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S360:
 				{
 					turn0 = p;
 				}
 
-				S359:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5448,7 +4571,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S356:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5481,7 +4603,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S353:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5498,12 +4619,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S352:
 				{
 					turn0 = p;
 				}
 
-				S351:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5525,7 +4644,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S348:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5558,7 +4676,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S345:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5575,12 +4692,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S344:
 				{
 					turn0 = p;
 				}
 
-				S343:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5602,7 +4717,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S340:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5679,7 +4793,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 252, p, entries.Count);
 				}
 
-				S321:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -5696,7 +4809,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 318, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S326:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -5713,7 +4825,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 323, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S337:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5730,12 +4841,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S336:
 				{
 					turn0 = p;
 				}
 
-				S335:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5757,7 +4866,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S332:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5779,7 +4887,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S329:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5812,7 +4919,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S325:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -5850,7 +4956,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 322, p, entries.Count);
 				}
 
-				S322:
 				{
 					var runStart = p;
 					while (true)
@@ -5895,7 +5000,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 317, p, entries.Count);
 				}
 
-				S317:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -5913,7 +5017,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S316:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5930,12 +5033,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S315:
 				{
 					turn0 = p;
 				}
 
-				S314:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5957,7 +5058,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S311:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5979,7 +5079,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S308:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6012,7 +5111,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S305:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -6041,12 +5139,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S303:
 				{
 					turn0 = p;
 				}
 
-				S302:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6068,7 +5164,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S299:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6090,7 +5185,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S296:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6123,7 +5217,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S293:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6140,12 +5233,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S292:
 				{
 					turn0 = p;
 				}
 
-				S291:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6167,7 +5258,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S288:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6189,7 +5279,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S285:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6260,12 +5349,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S282:
 				{
 					turn0 = p;
 				}
 
-				S281:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6287,7 +5374,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S278:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6320,7 +5406,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S275:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6337,12 +5422,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S274:
 				{
 					turn0 = p;
 				}
 
-				S273:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6364,7 +5447,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S270:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6397,7 +5479,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S267:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6414,12 +5495,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S266:
 				{
 					turn0 = p;
 				}
 
-				S265:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6441,7 +5520,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S262:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6474,7 +5552,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S259:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6491,12 +5568,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S258:
 				{
 					turn0 = p;
 				}
 
-				S257:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6518,7 +5593,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S254:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6613,7 +5687,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 177, p, entries.Count);
 				}
 
-				S235:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -6630,7 +5703,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 232, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S240:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -6647,7 +5719,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 237, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S251:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6664,12 +5735,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S250:
 				{
 					turn0 = p;
 				}
 
-				S249:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6691,7 +5760,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S246:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6713,7 +5781,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S243:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6746,7 +5813,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S239:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -6784,7 +5850,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 236, p, entries.Count);
 				}
 
-				S236:
 				{
 					var runStart = p;
 					while (true)
@@ -6829,7 +5894,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 231, p, entries.Count);
 				}
 
-				S231:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -6847,7 +5911,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S230:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -6876,12 +5939,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S228:
 				{
 					turn0 = p;
 				}
 
-				S227:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6903,7 +5964,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S224:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6925,7 +5985,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S221:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6958,7 +6017,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S218:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -6975,12 +6033,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S217:
 				{
 					turn0 = p;
 				}
 
-				S216:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7002,7 +6058,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S213:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7024,7 +6079,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S210:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7095,12 +6149,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S207:
 				{
 					turn0 = p;
 				}
 
-				S206:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7122,7 +6174,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S203:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7155,7 +6206,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S200:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7172,12 +6222,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S199:
 				{
 					turn0 = p;
 				}
 
-				S198:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7199,7 +6247,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S195:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7232,7 +6279,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S192:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7249,12 +6295,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S191:
 				{
 					turn0 = p;
 				}
 
-				S190:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7276,7 +6320,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S187:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7309,7 +6352,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S184:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7326,12 +6368,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S183:
 				{
 					turn0 = p;
 				}
 
-				S182:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7353,7 +6393,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S179:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7430,7 +6469,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 129, p, entries.Count);
 				}
 
-				S160:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -7447,7 +6485,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 157, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S165:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -7464,7 +6501,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 162, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S176:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7481,12 +6517,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S175:
 				{
 					turn0 = p;
 				}
 
-				S174:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7508,7 +6542,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S171:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7530,7 +6563,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S168:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7563,7 +6595,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S164:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -7601,7 +6632,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 161, p, entries.Count);
 				}
 
-				S161:
 				{
 					var runStart = p;
 					while (true)
@@ -7646,7 +6676,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 156, p, entries.Count);
 				}
 
-				S156:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -7664,7 +6693,6 @@ namespace DotGram.Snapshots
 					p += 2;
 				}
 
-				S155:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7681,12 +6709,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S154:
 				{
 					turn0 = p;
 				}
 
-				S153:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7708,7 +6734,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S150:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7730,7 +6755,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S147:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7783,7 +6807,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 126, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S134:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -7800,7 +6823,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 131, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S145:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7817,12 +6839,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S144:
 				{
 					turn0 = p;
 				}
 
-				S143:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7844,7 +6864,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S140:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7866,7 +6885,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S137:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7899,7 +6917,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S133:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -7937,7 +6954,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 130, p, entries.Count);
 				}
 
-				S130:
 				{
 					var runStart = p;
 					while (true)
@@ -7982,7 +6998,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 125, p, entries.Count);
 				}
 
-				S125:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -8012,7 +7027,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 93, p, entries.Count);
 				}
 
-				S122:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8029,12 +7043,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S121:
 				{
 					turn0 = p;
 				}
 
-				S120:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8056,7 +7068,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S117:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8089,7 +7100,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S114:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8106,12 +7116,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S113:
 				{
 					turn0 = p;
 				}
 
-				S112:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8133,7 +7141,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S109:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8166,7 +7173,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S106:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8183,12 +7189,10 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S105:
 				{
 					turn0 = p;
 				}
 
-				S104:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8210,7 +7214,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S101:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8243,7 +7246,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S98:
 				{
 					var runStart = p;
 					while (true)
@@ -8322,7 +7324,6 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Choice, 90, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S97:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8354,7 +7355,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S95:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8371,7 +7371,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S94:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8418,12 +7417,10 @@ namespace DotGram.Snapshots
 					Trace("rule capture", 1, p, entries.Count);
 				}
 
-				S68:
 				{
 					capture2 = p;
 				}
 
-				S58:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8436,7 +7433,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S67:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8452,7 +7448,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S62:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8465,7 +7460,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S66:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8498,7 +7492,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S64:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8515,7 +7508,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S63:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8558,13 +7550,11 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 54, p, entries.Count);
 				}
 
-				S54:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 2, capture2, call, atomic, repeat, lookahead, p));
 					Trace("capture", 2, p, entries.Count);
 				}
 
-				S42:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8581,7 +7571,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 39, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S53:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8597,12 +7586,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S52:
 				{
 					capture3 = p;
 				}
 
-				S47:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8615,7 +7602,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 44, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S51:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8648,7 +7634,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S49:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8665,7 +7650,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S48:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8695,13 +7679,11 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 43, p, entries.Count);
 				}
 
-				S43:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
 					Trace("capture", 3, p, entries.Count);
 				}
 
-				S41:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
@@ -8721,7 +7703,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 27, p, entries.Count);
 				}
 
-				S27:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8738,7 +7719,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S38:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8754,12 +7734,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S37:
 				{
 					capture4 = p;
 				}
 
-				S32:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8772,7 +7750,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 29, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S36:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8805,7 +7782,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S34:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8822,7 +7798,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S33:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -8852,13 +7827,11 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 28, p, entries.Count);
 				}
 
-				S28:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count);
 				}
 
-				S26:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];

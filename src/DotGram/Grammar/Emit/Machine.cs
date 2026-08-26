@@ -583,17 +583,15 @@ sealed partial class Machine
 					file.Line($"case {Accept}: goto Accept;");
 					file.Line($"case {Fail}:   expected = null; goto Fail;");
 
-					// Only where the label is one that was written. A state nothing reaches
-					// cannot be resumed at either, so the case for it would name a label that
-					// is not there.
-					for (var i = 0; i < _states.Count; i++)
-						if (Written(Resolved(i + First)))
-							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
+					// Only the states something can actually arrive at through the dispatch,
+					// which is far from all of them: see `Dispatched`.
+					foreach (var state in Dispatched())
+						file.Line($"case {state}: goto {Label(Resolved(state))};");
 
 					file.Line("default: expected = null; goto Fail;");
 				}
 
-				RenderStates(file);
+				RenderStates(file, dispatched: true);
 
 				file.Line();
 				file.Line("Return:");
@@ -854,19 +852,23 @@ sealed partial class Machine
 	/// state table, one inside the shared automaton and one on its own, and it has to be the
 	/// same writing either way — <see cref="PlanLayout"/> already decided what belongs in it.
 	/// </remarks>
-	/// <param name="everyLabel">
-	/// Whether every written state needs its label. True for the engine, whose dispatch has
-	/// a case for each of them; false for a lowered recognizer, which has no dispatch, so a
-	/// state reached only by falling into it needs no label and may not have one.
+	/// <param name="dispatched">
+	/// Whether a dispatch is written above these states, and so names some of them from
+	/// outside. True for the engine; false for a lowered recognizer, which has none.
 	/// </param>
-	void RenderStates(Writer file, bool everyLabel = true)
+	void RenderStates(Writer file, bool dispatched)
 	{
 		// Which labels anything still names, once the jumps this method is about to drop are
-		// gone. The engine needs none of this — its dispatch has a case for every written
-		// state, so every label is named — but a lowered recognizer has no dispatch, and a
-		// state reached only by falling into it from the one above is a label C# warns about
-		// and a consumer's build may refuse.
-		var named = everyLabel ? null : Named();
+		// gone. A state reached only by falling into it from the one above needs no label,
+		// and writing one is a label C# warns about and a consumer's build may refuse. The
+		// engine used to be exempt because its dispatch had a case for every written state;
+		// now that it has one only for the states that can be resumed at, it needs the same
+		// count as anything else — plus the labels those cases name.
+		var named = Named();
+
+		if (dispatched)
+			foreach (var state in Dispatched())
+				named.Add(Resolved(state));
 
 		for (var written = 0; written < _order.Count; written++)
 		{
@@ -884,7 +886,7 @@ sealed partial class Machine
 
 			file.Line();
 
-			if (named is null || named.Contains(i + First))
+			if (named.Contains(i + First))
 				file.Line($"S{i + First}:");
 
 			using (file.Block(""))

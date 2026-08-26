@@ -61,6 +61,7 @@ sealed partial class Machine
 		var signposts = new int?[_states.Count];
 
 		_bodies = new string[_states.Count];
+		_resumed.Clear();
 
 		for (var i = 0; i < _states.Count; i++)
 		{
@@ -123,7 +124,18 @@ sealed partial class Machine
 				pending.Push(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
 
 			foreach (Match match in Resumes.Matches(_bodies[index]))
-				pending.Push(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture));
+			{
+				// Only a resumable kind names a state there. The others name a capture slot
+				// or a factory, and reading one as a state kept whatever state happened to
+				// share its number alive — text nothing could reach.
+				if (!Resumable.Contains(match.Groups[1].Value))
+					continue;
+
+				var resumed = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+
+				_resumed.Add(resumed);
+				pending.Push(resumed);
+			}
 		}
 
 		// Written in the order the parse runs them, not the order they were compiled in.
@@ -183,6 +195,50 @@ sealed partial class Machine
 
 		_written = reachable;
 	}
+
+	/// <summary>
+	/// The states the dispatch has to be able to land on, in ascending order.
+	/// </summary>
+	/// <remarks>
+	/// A state is arrived at by the dispatch only when an arena entry names it, and the only
+	/// other way into the table is from outside it. Every other state is reached by falling
+	/// into it or by a <c>goto</c> written inside the method, and a case for one of those is
+	/// a slot in the jump table and a jump stub that nothing can execute. Across every
+	/// grammar in this repository that was 82% of the table — 677 cases of 735 in `Url`.
+	/// </remarks>
+	IEnumerable<int> Dispatched()
+	{
+		// Nothing said where the parse begins, so anything could be a beginning. `PlanLayout`
+		// kept every state for that same reason; the dispatch has to be able to land on every
+		// one of them. A grammar that publishes nothing is the case — the emitter writes a
+		// recognizer for each of its rules rather than for what was asked for.
+		if (_roots.Count == 0)
+		{
+			for (var i = 0; i < _states.Count; i++)
+				if (Written(Resolved(i + First)))
+					yield return i + First;
+
+			yield break;
+		}
+
+		// The roots are named from outside and are named unresolved, which is how the
+		// wrapper passes them; everything else was read back out of a body that Redirect
+		// had already been over.
+		var live = new SortedSet<int>(_roots);
+
+		foreach (var state in _resumed)
+			live.Add(state);
+
+		foreach (var state in live)
+			// Below `First` are the three fixed cases, which are written whatever happens —
+			// a rule's own continuation is `Return`, so entries name them — and the two
+			// kinds that carry a nesting count rather than a state, which is always 0.
+			if (state >= First && Written(Resolved(state)))
+				yield return state;
+	}
+
+	/// <summary>Every state an arena entry names, after redirection.</summary>
+	readonly HashSet<int> _resumed = [];
 
 	/// <summary>Which states are written at all.</summary>
 	bool[] _written = [];

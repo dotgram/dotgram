@@ -302,7 +302,6 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S4;
-					case 4: goto S4;
 					case 5: goto S5;
 					default: expected = null; goto Fail;
 				}
@@ -513,8 +512,6 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S5;
-					case 4: goto S4;
-					case 5: goto S5;
 					case 6: goto S6;
 					default: expected = null; goto Fail;
 				}
@@ -713,10 +710,7 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S7;
-					case 4: goto S4;
 					case 5: goto S5;
-					case 6: goto S6;
-					case 7: goto S7;
 					default: expected = null; goto Fail;
 				}
 
@@ -731,7 +725,6 @@ namespace DotGram.Snapshots
 					Trace("push choice", 5, p, entries.Count);
 				}
 
-				S6:
 				{
 					if (p + 5 > text.Length)
 					{

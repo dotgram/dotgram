@@ -283,71 +283,11 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S29;
-					case 5: goto S42;
-					case 10: goto S72;
-					case 13: goto S100;
-					case 15: goto S15;
-					case 16: goto S16;
-					case 17: goto S17;
 					case 18: goto S18;
-					case 19: goto S19;
-					case 20: goto S19;
 					case 21: goto S21;
-					case 22: goto S22;
-					case 23: goto S22;
-					case 24: goto S24;
 					case 25: goto S25;
-					case 26: goto S26;
-					case 27: goto S26;
 					case 28: goto S28;
-					case 29: goto S29;
-					case 30: goto S29;
-					case 34: goto S34;
-					case 35: goto S35;
-					case 36: goto S36;
-					case 37: goto S37;
-					case 38: goto S38;
-					case 39: goto S39;
-					case 40: goto S40;
-					case 41: goto S41;
-					case 42: goto S42;
-					case 51: goto S51;
-					case 52: goto S52;
-					case 53: goto S53;
-					case 54: goto S54;
-					case 55: goto S55;
-					case 56: goto S56;
-					case 57: goto S57;
-					case 58: goto S58;
-					case 59: goto S59;
-					case 60: goto S60;
-					case 61: goto S61;
-					case 62: goto S62;
-					case 63: goto S63;
-					case 64: goto S64;
-					case 65: goto S65;
-					case 66: goto S66;
-					case 67: goto S67;
 					case 68: goto S68;
-					case 69: goto S69;
-					case 70: goto S70;
-					case 71: goto S71;
-					case 72: goto S72;
-					case 86: goto S86;
-					case 87: goto S87;
-					case 88: goto S88;
-					case 89: goto S89;
-					case 90: goto S90;
-					case 91: goto S91;
-					case 92: goto S92;
-					case 93: goto S93;
-					case 94: goto S94;
-					case 95: goto S95;
-					case 96: goto S96;
-					case 97: goto S97;
-					case 98: goto S98;
-					case 99: goto S99;
-					case 100: goto S100;
 					default: expected = null; goto Fail;
 				}
 
@@ -359,7 +299,6 @@ namespace DotGram.Snapshots
 					Trace("call Header", 13, p, entries.Count);
 				}
 
-				S100:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -375,7 +314,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S99:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -391,12 +329,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S98:
 				{
 					capture6 = p;
 				}
 
-				S97:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -413,7 +349,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S96:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -430,7 +365,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S95:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -447,7 +381,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S94:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -464,7 +397,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S93:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -480,7 +412,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S92:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -497,7 +428,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S91:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -514,7 +444,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S90:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -530,7 +459,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S89:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -547,7 +475,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S88:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -564,13 +491,11 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S87:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
 					Trace("capture", 6, p, entries.Count);
 				}
 
-				S86:
 				{
 					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
@@ -600,7 +525,6 @@ namespace DotGram.Snapshots
 					Trace("rule capture", 0, p, entries.Count);
 				}
 
-				S24:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -613,7 +537,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Choice, 21, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S26:
 				{
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 25, p, call, atomic, repeat, lookahead, 0, 7));
@@ -621,7 +544,6 @@ namespace DotGram.Snapshots
 					Trace("call Row", 10, p, entries.Count);
 				}
 
-				S72:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -637,7 +559,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S71:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -653,12 +574,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S70:
 				{
 					capture4 = p;
 				}
 
-				S69:
 				{
 					var runStart = p;
 					while (true)
@@ -688,7 +607,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 4, p, entries.Count);
 				}
 
-				S67:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -704,17 +622,14 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S66:
 				{
 					capture5 = p;
 				}
 
-				S65:
 				{
 					turn0 = p;
 				}
 
-				S64:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -752,7 +667,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S61:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -775,12 +689,10 @@ namespace DotGram.Snapshots
 					p = turn0;
 				}
 
-				S58:
 				{
 					turn0 = p;
 				}
 
-				S57:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -796,7 +708,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S56:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -813,7 +724,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S55:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -836,7 +746,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 5, p, entries.Count);
 				}
 
-				S52:
 				{
 					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
@@ -851,7 +760,6 @@ namespace DotGram.Snapshots
 					expected = Recognize_DotGram_Feed_Expected6;
 				}
 
-				S51:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -902,7 +810,6 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 20, p, entries.Count);
 				}
 
-				S19:
 				{
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 18, p, call, atomic, repeat, lookahead, 0, 2));
@@ -910,7 +817,6 @@ namespace DotGram.Snapshots
 					Trace("call Trailer", 5, p, entries.Count);
 				}
 
-				S42:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -926,7 +832,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S41:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -942,12 +847,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S40:
 				{
 					capture3 = p;
 				}
 
-				S39:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -969,7 +872,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S38:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -992,13 +894,11 @@ namespace DotGram.Snapshots
 					p = turn0;
 				}
 
-				S35:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
 					Trace("capture", 3, p, entries.Count);
 				}
 
-				S34:
 				{
 					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
@@ -1028,7 +928,6 @@ namespace DotGram.Snapshots
 					Trace("rule capture", 2, p, entries.Count);
 				}
 
-				S17:
 				{
 					var lookaheadIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
@@ -1036,7 +935,6 @@ namespace DotGram.Snapshots
 					Trace("enter negative lookahead", 16, p, entries.Count);
 				}
 
-				S16:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1047,7 +945,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S15:
 				{
 					global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);
 					var looked = entries[lookahead];
@@ -1255,7 +1152,6 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S4;
-					case 4: goto S4;
 					default: expected = null; goto Fail;
 				}
 
@@ -1445,28 +1341,7 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S30;
-					case 9: goto S9;
-					case 10: goto S10;
-					case 11: goto S11;
-					case 12: goto S12;
-					case 13: goto S13;
-					case 14: goto S14;
-					case 15: goto S15;
-					case 16: goto S16;
-					case 17: goto S17;
-					case 18: goto S18;
-					case 19: goto S19;
-					case 20: goto S20;
-					case 21: goto S21;
-					case 22: goto S22;
-					case 23: goto S23;
-					case 24: goto S24;
-					case 25: goto S25;
 					case 26: goto S26;
-					case 27: goto S27;
-					case 28: goto S28;
-					case 29: goto S29;
-					case 30: goto S30;
 					default: expected = null; goto Fail;
 				}
 
@@ -1486,7 +1361,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S29:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1502,12 +1376,10 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S28:
 				{
 					capture0 = p;
 				}
 
-				S27:
 				{
 					var runStart = p;
 					while (true)
@@ -1537,7 +1409,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 0, p, entries.Count);
 				}
 
-				S25:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1553,17 +1424,14 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S24:
 				{
 					capture1 = p;
 				}
 
-				S23:
 				{
 					turn0 = p;
 				}
 
-				S22:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1601,7 +1469,6 @@ namespace DotGram.Snapshots
 					turn0 = p;
 				}
 
-				S19:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1624,12 +1491,10 @@ namespace DotGram.Snapshots
 					p = turn0;
 				}
 
-				S16:
 				{
 					turn0 = p;
 				}
 
-				S15:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1645,7 +1510,6 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S14:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1662,7 +1526,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S13:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1685,7 +1548,6 @@ namespace DotGram.Snapshots
 					Trace("capture", 1, p, entries.Count);
 				}
 
-				S10:
 				{
 					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
@@ -1700,7 +1562,6 @@ namespace DotGram.Snapshots
 					expected = Recognize_DotGram_Row_Expected1;
 				}
 
-				S9:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
