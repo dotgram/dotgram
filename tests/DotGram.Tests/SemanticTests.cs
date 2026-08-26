@@ -209,6 +209,39 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches(
 			"Start = ({ ['a'|'c'] } | 'a' | ('b' | 'a' | \"b\")){2}", input));
 
+	// ── Maximal munch is per-symbol, and expressible ───────────────────────
+
+	/// <summary>
+	/// C's `a+++++b`, both ways. The notation imposes no maximal munch on symbols, so
+	/// which language a grammar means is the grammar's to say.
+	/// </summary>
+	/// <remarks>
+	/// C's lexer is greedy: `a+++++b` lexes as `a ++ ++ + b` and no parse exists — the
+	/// standard's own famous corner. A grammar that means that writes the greed as a
+	/// guard, `'+' & ?!'+'`, exactly as published PEG grammars of C do; `a+++b` still
+	/// reads as `a++ + b`, and `a+++++b` dies the death the standard prescribes. A
+	/// grammar that leaves the guard off keeps §11's give-back, and `a+++++b` reads as
+	/// `a++ + ++b` — the reading C programmers wish they had. Both languages are three
+	/// lines apart, and neither is imposed.
+	/// </remarks>
+	[Theory]
+	[InlineData(true, "a+b", true)]
+	[InlineData(true, "a+++b", true)]
+	[InlineData(true, "a+++++b", false)]
+	[InlineData(true, "a++", true)]
+	[InlineData(false, "a+++++b", true)]
+	[InlineData(false, "a+++b", true)]
+	public void A_grammar_says_whether_plus_is_greedy(bool cLike, string input, bool expected)
+	{
+		var plus = cLike ? "Plus = '+' & ?!'+'" : "Plus = '+'";
+		var grammar =
+			"Start    = Operand & (Plus & Operand)*" + '\n' +
+			"Operand  = PlusPlus? & ['a'..'z'] & PlusPlus?" + '\n' +
+			"PlusPlus = \"++\"" + '\n' + plus;
+
+		Assert.Equal(expected, Matches(grammar, input));
+	}
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
