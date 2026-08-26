@@ -2829,3 +2829,64 @@ would be a wrong answer rather than a slower one.
 **What it cost to find.** Nothing in the corpus of hand-written tests had a text capture
 over a group in a rule that reaches itself, because nobody writes one on purpose. A grammar
 of the notation itself does, three times over, without trying.
+
+## Found: the exponential is a repetition giving back turns it need not
+
+`status.md` has said for a long time that "pathological backtracking remains possible".
+Measured, on the grammar of the notation itself reading a `.gram` that does not parse:
+
+| operands in the bad rule | time to say no |
+|---|---|
+| 3 | 22 ms |
+| 4 | 287 ms |
+| 5 | 2.3 s |
+| 6 | 65 s |
+
+About twelve times per operand, and success is instant either way. A parser for a language
+that takes a minute to report a syntax error is not one anybody can use, so this is not an
+academic worst case.
+
+**Where it is.** Counting what the trace reports, the hottest thing in the parse by a
+factor of two is *leaving a repetition* — 70,680 of them at four operands, against 28,272
+for the next thing down. Not calls, not literals: a repetition handing a turn back, the
+suffix being re-read, and the turns of the repetitions above it multiplying that.
+
+**Proved rather than argued.** Three atomic groups written into the grammar by hand —
+`{ ('|' & rest: Alternative)* }` and two like it — and the table above becomes 0.0 ms at
+every size, up to twelve operands. The exponential is *entirely* the give-back.
+
+### What did not work, and why it is worth knowing
+
+Memoizing failed calls — a rule that failed at a position cannot match there, so refuse the
+second arrival without running it — was built and measured: **2.6×**, and the exponential
+untouched. Two reasons, and the second is the one that matters.
+
+- Most of the search never crosses a call. The give-back happens inside one activation.
+- **This is not PEG.** In a PEG `*` is possessive and a rule has one result at a position,
+  which is what makes a memo table equivalent to the parse. Here a repetition gives turns
+  back, so a rule *succeeds in several ways* and is re-entered for the next one. "It failed
+  here" is sound; "it matched here, and this is how" is not a single fact, and a table of
+  failures alone cannot collapse a search over lengths.
+
+It was also not sound as written: a `Call` entry inside an atomic group whose commit has
+put out its ways back is taken off the arena without having completed, and reads as
+exhausted when it was cut short. Reverted rather than gated, because 2.6× on a pathological
+case does not pay for a branch on every call plus a condition nobody would remember.
+
+### The cure, and the one thing in the way
+
+`Possessive` already decides exactly this question — a repetition need never give a turn
+back when the body cannot be empty, its first set is disjoint from what follows, and it
+matches one way only — and it is *right* about these repetitions. It is simply never asked:
+its only two callers are `SilentRepeat`, which decides whether a repetition can be lowered
+to a plain loop, and `Deterministic`. A repetition with a capture in it can never be
+silent, so `('|' & rest: Alternative)*` is never even a candidate, and the general
+machinery writes a way back per turn regardless of what could have been proved.
+
+So `CompileRepeat` should ask, and where the answer is yes write **one** way back instead of
+one per turn: pushed with the `Repeat` entry so its index is always `repeat + 1`, its
+position rewritten at the end of every turn, and put out at the exit. O(1) per turn, no new
+field, no analysis that does not already exist — the same thing the atomic groups did in the
+experiment, except proved instead of asserted.
+
+Not built yet.
