@@ -379,7 +379,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
-			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics).ToArray();
+			var dslDiagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(
+				document,
+				root,
+				model.Compilation,
+				cancellationToken).ConfigureAwait(false);
+			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics)
+				.Concat(dslDiagnostics)
+				.ToArray();
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
 			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
 			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();

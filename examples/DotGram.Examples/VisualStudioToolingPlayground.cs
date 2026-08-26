@@ -48,6 +48,13 @@ namespace DotGram.Examples;
 	// F12 on ToolingEvaluate should open the generated C# publication method.
 	parse Sum as ToolingEvaluate
 	""")]
+[GramLanguage("dotgram.tooling.playground")]
+[GramClassify("Sum", GramClassification.Function)]
+[GramClassify("Product.left", GramClassification.Variable)]
+// Uncomment each line separately: only the target text inside the quotes should be
+// underlined, with GRAM5002 for an unknown rule and GRAM5004 for an unknown capture.
+// [GramClassify("Missing", GramClassification.Keyword)]
+// [GramClassify("Product.missing", GramClassification.Variable)]
 public static partial class VisualStudioToolingPlayground
 {
 	// Target for F12 from the Power rule above.
