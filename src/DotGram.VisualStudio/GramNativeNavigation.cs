@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +11,6 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
@@ -18,99 +18,55 @@ using Microsoft.VisualStudio.TextManager.Interop;
 namespace DotGram.VisualStudio;
 
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+[ProvideService(typeof(DotGramLanguageService), IsAsyncQueryable = true)]
+[ProvideLanguageService(typeof(DotGramLanguageService), "DotGram", 0, ShowDropDownOptions = true)]
+[ProvideLanguageExtension(typeof(DotGramLanguageService), ".gram")]
 [Guid(PackageGuid)]
-public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
+public sealed class DotGramPackage : AsyncPackage
 {
 	public const string PackageGuid = "10462EA6-7017-4214-BD5B-4A8EB9DA54B6";
-	readonly Dictionary<IVsWindowFrame, GramCodeWindowManager> _windows = [];
-	IVsRunningDocumentTable? _documents;
-	uint _documentEvents;
 
-	protected override async Task InitializeAsync(
+	protected override Task InitializeAsync(
 		CancellationToken cancellationToken,
 		IProgress<ServiceProgressData> progress)
 	{
-		await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-		_documents = await GetServiceAsync(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable
-			?? throw new InvalidOperationException("Visual Studio running document table is unavailable.");
-		_documents.AdviseRunningDocTableEvents(this, out _documentEvents);
+		((IServiceContainer)this).AddService(
+			typeof(DotGramLanguageService),
+			static (container, type) => new DotGramLanguageService(),
+			promote: true);
+
+		return Task.CompletedTask;
 	}
+}
 
-	protected override void Dispose(bool disposing)
+[Guid(ServiceGuid)]
+public sealed class DotGramLanguageService : IVsLanguageInfo
+{
+	public const string ServiceGuid = "7617358A-3788-4665-A221-3CBB8B27B4F1";
+
+	public int GetLanguageName(out string name)
 	{
-		ThreadHelper.ThrowIfNotOnUIThread();
-		if (disposing)
-		{
-			foreach (var window in _windows.Values)
-				window.RemoveAdornments();
-			_windows.Clear();
-			if (_documentEvents != 0)
-				_documents?.UnadviseRunningDocTableEvents(_documentEvents);
-		}
-
-		base.Dispose(disposing);
-	}
-
-	public int OnBeforeDocumentWindowShow(uint cookie, int firstShow, IVsWindowFrame frame)
-	{
-		ThreadHelper.ThrowIfNotOnUIThread();
-		if (_documents is null || _windows.ContainsKey(frame) || !IsGramDocument(cookie))
-			return VSConstants.S_OK;
-
-		frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out var docView);
-		if (docView is not IVsCodeWindow codeWindow)
-			return VSConstants.S_OK;
-
-		var manager = new GramCodeWindowManager(codeWindow);
-		if (ErrorHandler.Succeeded(manager.AddAdornments()))
-			_windows.Add(frame, manager);
-
+		name = "DotGram";
 		return VSConstants.S_OK;
 	}
 
-	public int OnAfterDocumentWindowHide(uint cookie, IVsWindowFrame frame)
+	public int GetFileExtensions(out string extensions)
 	{
-		ThreadHelper.ThrowIfNotOnUIThread();
-		if (_windows.TryGetValue(frame, out var manager))
-		{
-			manager.RemoveAdornments();
-			_windows.Remove(frame);
-		}
-
+		extensions = ".gram";
 		return VSConstants.S_OK;
 	}
 
-	bool IsGramDocument(uint cookie)
+	public int GetColorizer(IVsTextLines buffer, out IVsColorizer colorizer)
 	{
-		_documents!.GetDocumentInfo(
-			cookie,
-			out _,
-			out _,
-			out _,
-			out var moniker,
-			out _,
-			out _,
-			out var docData);
-		if (docData != IntPtr.Zero)
-			Marshal.Release(docData);
-		return moniker?.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) == true;
+		colorizer = null!;
+		return VSConstants.E_NOTIMPL;
 	}
 
-	public int OnAfterFirstDocumentLock(uint cookie, uint lockType, uint readLocks, uint editLocks) => VSConstants.S_OK;
-	public int OnBeforeLastDocumentUnlock(uint cookie, uint lockType, uint readLocks, uint editLocks) => VSConstants.S_OK;
-	public int OnAfterSave(uint cookie) => VSConstants.S_OK;
-	public int OnAfterAttributeChange(uint cookie, uint attributes) => VSConstants.S_OK;
-	public int OnAfterAttributeChangeEx(
-		uint cookie,
-		uint attributes,
-		IVsHierarchy oldHierarchy,
-		uint oldItemId,
-		string oldMoniker,
-		IVsHierarchy newHierarchy,
-		uint newItemId,
-		string newMoniker) => VSConstants.S_OK;
-	public int OnBeforeSave(uint cookie) => VSConstants.S_OK;
+	public int GetCodeWindowManager(IVsCodeWindow codeWindow, out IVsCodeWindowManager manager)
+	{
+		manager = new GramCodeWindowManager(codeWindow);
+		return VSConstants.S_OK;
+	}
 }
 
 sealed class GramCodeWindowManager(IVsCodeWindow codeWindow) : IVsCodeWindowManager
