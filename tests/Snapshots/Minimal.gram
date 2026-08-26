@@ -1,13 +1,20 @@
-// The smallest grammar there is, and the smallest step up from it, in one file so that
-// the two are read against each other.
+// A catalog of the smallest grammar for each shape the generator can compile, one per
+// section, so that the generated file reads as a tour of the engine. Each section says
+// what to look for in `Minimal.gram.g.cs`.
+
+// ── Flat: no arena at all ───────────────────────────────────────────────────────────
 //
 // `A` is one character: a room check and a comparison, folded into a single `if` because
 // they fail the same way. `B` is four, which is a different shape entirely — one span
 // comparison the JIT folds into a single 64-bit `cmp`, with the position of the character
 // that did not fit worked out afterwards, on the branch that comparison already failed.
-//
-// Nothing else differs between them, so the diff between those two methods is exactly
-// what the extra three characters cost.
+// Both publications need none of the three things the arena is for, so each compiles as
+// a plain method under its own name, no engine anywhere near it.
+
+A = "a"
+B = "abcd"
+
+// ── A choice of literals, in both orders ────────────────────────────────────────────
 //
 // `C` and `D` are the same three literals in two orders, and the diff between their
 // methods is what the order costs. `D` is written longest-first: each text is decided
@@ -16,26 +23,119 @@
 // so the shorter takes the position wherever the longer would have and the choice
 // needs a way back — which is the arena, and the engine, and everything under it.
 //
-// Both accept the same input under `parse`, which reads to the end and comes back for
-// the other alternative when the first leaves a character over. `find` is where the
-// order changes the answer rather than the price, and is why §11 promises the
-// alternatives are never reordered.
-//
-// `E` and `F` are the two orders again with something after them that can spend the
-// character the longer alternative would have taken, so both need a way back and
-// neither is lowered. They are here for the way back itself, and the two are not the
-// same: in `E` the later alternative continues the earlier one, so the way back is
-// written past what already matched and reads one character. In `F` the earlier is
-// the longer, which is the direction the texts cannot settle on their own, and the
-// general machinery compiles it — one state per alternative, each comparing its own
-// text from the beginning.
+// `E` and `F` add something after that can spend the character the longer alternative
+// would have taken, so both need a way back. In `E` the later alternative continues the
+// earlier one, so the way back is written past what already matched and reads one
+// character. In `F` the earlier is the longer, which is the direction the texts cannot
+// settle on their own, and the general machinery compiles it — one state per
+// alternative, each comparing its own text from the beginning.
 
-A = "a"
-B = "abcd"
 C = "http" | "https" | "ftp"
 D = "https" | "http" | "ftp"
 E = ("http" | "https") & "s"
 F = ("https" | "http") & "s"
+
+// ── Values: capture, construct, materialize ─────────────────────────────────────────
+//
+// A capture keeps the machine honest: nothing below may be lowered flat, so these are
+// the smallest windows onto the arena. `Text` shows a captured span materialized into a
+// string; `Number` shows the capture handed to inline C#; `Alias` is §4.1 case 3 — its
+// value is `Number`'s, via the capture the normalizer writes for it.
+
+Text   : @string = t: ['a'..'z']+ => @(t)
+Number : @int    = d: ['0'..'9']+ => @(int.Parse(d))
+Alias  : Number  = '#' & Number
+
+// ── A predicted choice ──────────────────────────────────────────────────────────────
+//
+// Three alternatives with disjoint first characters: the machine reads `c` once and
+// jumps straight to the alternative it belongs to. No way back is written, because the
+// character that chose the branch already refused the others.
+
+Predicted : @string = t: ("aa" | "bb" | "cc") => @(t)
+
+// ── Repetitions, one per proof ──────────────────────────────────────────────────────
+//
+// `List` is a settled repetition: what follows a turn cannot begin where a turn begins,
+// so it keeps ONE standing exit — a `LoopExit` entry, valid only while it is the loop's
+// latest — instead of a way back per element. `Counted` is bounded, so every completed
+// turn also leaves a `TurnDone`, whose popping un-counts the turn if backtracking
+// abandons it. `Maybe` is a settled optional whose body one character decides: no arena
+// at all, just the comparison.
+
+List    : @string = t: ('a' & (',' & 'a')*) => @(t)
+Counted : @string = t: 'a'{2,4} => @(t)
+Maybe   : @string = t: ('x' & 'q'?) => @(t)
+
+// ── Lookaheads ──────────────────────────────────────────────────────────────────────
+//
+// `Ahead` consumes nothing and rewinds; `Not` succeeds where its body fails. Both write
+// a `Lookahead` entry so failing inside one is contained.
+
+Ahead : @string = ?="ab" & t: ['a'..'z']+ => @(t)
+Not   : @string = ?!"no" & t: ['a'..'z']+ => @(t)
+
+// ── An atomic group that cannot be a scanner ────────────────────────────────────────
+//
+// The alternatives share a prefix, so the group is not `Scannable` and compiles through
+// the general machinery: an `Atomic` entry on the way in, and a commit on the way out
+// that puts out every way back the group created.
+
+Committed : @string = t: ({ "ab" | "a" } & 'b') => @(t)
+
+// ── Precedence climbing ─────────────────────────────────────────────────────────────
+//
+// Left recursion with binding powers: the rewrite turns the rule into a climb, calls
+// carry the power, and a level too weak refuses without consuming.
+
+Sum : @int = l: Sum & '+' & r: Sum << 1 => @(l + r)
+            | d: ['0'..'9']             => @(int.Parse(d))
+
+// ── A transparent rule, collapsed ───────────────────────────────────────────────────
+//
+// `Either` only forwards, so the normalizer inlines the choice of its sources at every
+// call site, distributing the capture: in `Wrapped`'s states there is no call to
+// `Either` at all — look for `v` captured once per branch instead. `Either` itself
+// still compiles, because it is published too.
+
+Left   : @string = 'l' & t: ['a'..'z'] => @(t)
+Right  : @string = 'r' & t: ['0'..'9'] => @(t)
+Either : @string = o: Left => @(o) | o: Right => @(o)
+Wrapped : @string = '<' & v: Either & '>' => @(v)
+
+// ── A collection, with recovery ─────────────────────────────────────────────────────
+//
+// §4.1 case 2: every `Item` joins the array in reading order. The `recover` keeps a bad
+// element from sinking the sheet: the repetition scans to the next ';' and carries on,
+// and the failure is reported, not swallowed.
+
+Item  : @string   = t: ['a'..'z']+ => @(t)
+Row   : Item      = Item & ';'
+Sheet : @string[] = Row* recover ';' & eof
+
+// ── Case folding and categories ─────────────────────────────────────────────────────
+//
+// `Ci` compares each character folded — the one literal shape `SequenceEqual` cannot
+// take. `Upper` tests via `GetUnicodeCategory`, and its first set still knows its exact
+// ranges at compile time.
+
+Ci    : @string = t: "go"i     => @(t)
+Upper : @string = t: [\p{Lu}]+ => @(t)
+
+// ── The seam, scanned ───────────────────────────────────────────────────────────────
+//
+// A namespace with spacing: the atomic, record-free `trivia` compiles once as
+// `Scan_trivia` — a plain method that reads like a hand-written skip loop — and every
+// seam costs one call to it. The word boundary guards `"on"` on both sides, `Behind`
+// and lookahead, so it is a whole word or nothing.
+
+namespace Spaced
+{
+	wordboundary = ['a'..'z']
+	trivia       = { (' ' | "//" & [^ '\n']*)* }
+
+	Pair : @string = "on" & t: ['0'..'9'] & "off" => @(t)
+}
 
 parse A
 parse B
@@ -43,3 +143,24 @@ parse C
 parse D
 parse E
 parse F
+parse Text
+parse Number
+parse Alias
+parse Predicted
+parse List
+parse Counted
+parse Maybe
+parse Ahead
+parse Not
+parse Committed
+parse Sum
+parse Either
+parse Wrapped
+parse Sheet
+parse Ci
+parse Upper
+parse Spaced.Pair
+
+// `find` reads for an occurrence instead of the whole input: the wrapper slides the
+// start instead of demanding the end.
+find Item as AnyItem
