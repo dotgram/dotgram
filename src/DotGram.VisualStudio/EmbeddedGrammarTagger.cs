@@ -407,7 +407,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_symbols         = symbols;
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
-				_documentSymbols = documentSymbols;
+				if (!ShouldPreserveDocumentSymbols(
+					root.ContainsDiagnostics,
+					analyses.Count,
+					_documentSymbols.Count))
+					_documentSymbols = documentSymbols;
 				_publishedApis   = publishedApis;
 
 				if (_retrySnapshot != snapshot)
@@ -435,6 +439,12 @@ sealed class EmbeddedGrammarBufferAnalysis
 			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
 		}
 	}
+
+	internal static bool ShouldPreserveDocumentSymbols(
+		bool hasSyntaxErrors,
+		int analysisCount,
+		int previousSymbolCount) =>
+		hasSyntaxErrors && analysisCount == 0 && previousSymbolCount > 0;
 
 	async Task RetryAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
 	{
