@@ -126,10 +126,59 @@ sealed partial class Machine
 				pending.Push(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture));
 		}
 
+		// Written in the order the parse runs them, not the order they were compiled in.
+		// Compilation is continuation-passing — what a state jumps to is compiled before the
+		// state that jumps to it — so ascending index order is very nearly *reverse*
+		// execution order. It reads backwards, and worse, a state's trailing jump almost
+		// never names the state written next, which is the one case `RenderStates` can drop
+		// the jump for. Following each chain to its end before starting another puts them
+		// side by side and the jumps between them go.
 		_order = new List<int>(_states.Count);
 
+		var placed  = new bool[_states.Count];
+		var waiting = new Stack<int>();
+
+		foreach (var root in _roots.OrderByDescending(static state => state))
+			waiting.Push(Resolved(root));
+
+		if (_roots.Count == 0)
+			for (var i = _states.Count - 1; i >= 0; i--)
+				waiting.Push(i + First);
+
+		while (waiting.Count > 0)
+		{
+			var at = waiting.Pop() - First;
+
+			while (at >= 0 && at < placed.Length && reachable[at] && !placed[at])
+			{
+				placed[at] = true;
+				_order.Add(at);
+
+				// The one it ends by jumping to is where the chain goes on; everything else
+				// it can reach is a chain of its own, started once this one runs out.
+				var tail = Tail(_bodies[at]) is { } ends ? Resolved(ends) : (int?)null;
+
+				foreach (Match match in Gotos.Matches(_bodies[at]))
+				{
+					var target = Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+
+					if (target != tail)
+						waiting.Push(target);
+				}
+
+				foreach (Match match in Resumes.Matches(_bodies[at]))
+					if (Resumable.Contains(match.Groups[1].Value))
+						waiting.Push(
+							Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)));
+
+				at = tail is { } onward ? onward - First : -1;
+			}
+		}
+
+		// Anything reachable the walk did not thread — nothing should be, and a state left
+		// out would be a state with no block for the dispatch to jump to.
 		for (var i = 0; i < _states.Count; i++)
-			if (reachable[i])
+			if (reachable[i] && !placed[i])
 				_order.Add(i);
 
 		_written = reachable;

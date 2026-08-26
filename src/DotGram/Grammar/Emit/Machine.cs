@@ -854,13 +854,20 @@ sealed partial class Machine
 	/// state table, one inside the shared automaton and one on its own, and it has to be the
 	/// same writing either way — <see cref="PlanLayout"/> already decided what belongs in it.
 	/// </remarks>
-	/// <param name="unlabelled">
-	/// A state to write without its label, because nothing jumps to it. Only ever the first
-	/// one, and only where the caller dropped the jump in — C# warns on a label nobody
-	/// names, and this file is compiled with warnings as errors in the consumer's build.
+	/// <param name="everyLabel">
+	/// Whether every written state needs its label. True for the engine, whose dispatch has
+	/// a case for each of them; false for a lowered recognizer, which has no dispatch, so a
+	/// state reached only by falling into it needs no label and may not have one.
 	/// </param>
-	void RenderStates(Writer file, int unlabelled = -1)
+	void RenderStates(Writer file, bool everyLabel = true)
 	{
+		// Which labels anything still names, once the jumps this method is about to drop are
+		// gone. The engine needs none of this — its dispatch has a case for every written
+		// state, so every label is named — but a lowered recognizer has no dispatch, and a
+		// state reached only by falling into it from the one above is a label C# warns about
+		// and a consumer's build may refuse.
+		var named = everyLabel ? null : Named();
+
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var i    = _order[written];
@@ -877,7 +884,7 @@ sealed partial class Machine
 
 			file.Line();
 
-			if (i + First != unlabelled)
+			if (named is null || named.Contains(i + First))
 				file.Line($"S{i + First}:");
 
 			using (file.Block(""))
@@ -2274,6 +2281,40 @@ sealed partial class Machine
 
 	int ValueRule(RuleSymbol rule) =>
 		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
+
+	/// <summary>
+	/// The states something still names once the chained jumps are dropped.
+	/// </summary>
+	/// <remarks>
+	/// A jump is dropped exactly where its target is the state written next, which is what
+	/// laying the states out in execution order made common — so this has to be worked out
+	/// against the same order rather than against the bodies as compiled.
+	/// </remarks>
+	HashSet<int> Named()
+	{
+		var named = new HashSet<int>();
+
+		for (var written = 0; written < _order.Count; written++)
+		{
+			var body = _bodies[_order[written]];
+			var next = written + 1 < _order.Count ? _order[written + 1] + First : -1;
+			var tail = Tail(body);
+
+			foreach (Match match in Gotos.Matches(body))
+			{
+				var target = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+
+				// The one occurrence this method drops is the trailing jump to the next
+				// state, and only when it is that state.
+				if (target == next && target == tail && body.LastIndexOf($"goto {Label(target)};", StringComparison.Ordinal) == match.Index)
+					continue;
+
+				named.Add(target);
+			}
+		}
+
+		return named;
+	}
 
 	/// <summary>Whether any state's body jumps to this one.</summary>
 	/// <remarks>

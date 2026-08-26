@@ -185,26 +185,6 @@ namespace DotGram.Snapshots
 				S14:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Choice, 13, p, call, atomic, repeat, lookahead, 0));
-					goto S18;
-				}
-
-				S16:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 14, p, entries.Count);
-					goto S14;
-				}
-
-				S17:
-				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 1 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 0, p, entries.Count);
-					goto S14;
 				}
 
 				S18:
@@ -213,14 +193,210 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 17, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Row", 4, p, entries.Count);
-					goto S28;
 				}
 
-				S21:
+				S28:
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 2));
+					call = callIndex;
+					Trace("call Name", 5, p, entries.Count);
+				}
+
+				S36:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 34, p, entries.Count);
+				}
+
+				S34:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 33, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				S39:
+				{
+					capture3 = p;
+				}
+
+				S38:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					p++;
+				}
+
+				S37:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
+					Trace("capture", 3, p, entries.Count);
+				}
+
+				S35:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S34;
+				}
+
+				S33:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 32, p, entries.Count);
+				}
+
+				S32:
+				{
+					global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
+					var ruleStart = entries[call].Position;
+					var guardCaptured0At = -1;
+					for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)
+					{
+						var candidate = entries[candidateAt];
+						if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && (candidate.State == 3))
+						{
+							guardCaptured0At = candidateAt;
+							break;
+						}
+					}
+					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
+					if (!Recognize_DotGram_Guard0(guardCaptured0)) { expected = null; goto Fail; }
+				}
+
+				S31:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 0, p, entries.Count);
 					goto Return;
+				}
+
+				S27:
+				{
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 1, p, entries.Count);
+				}
+
+				S26:
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != ',')
+					{
+						expected = Recognize_DotGram_Expected2;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				S24:
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 23, p, call, atomic, repeat, lookahead, 0, 3));
+					call = callIndex;
+					Trace("call Amount", 6, p, entries.Count);
+				}
+
+				S45:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 43, p, entries.Count);
+				}
+
+				S43:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 42, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				S48:
+				{
+					capture4 = p;
+				}
+
+				S47:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					p++;
+				}
+
+				S46:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
+					Trace("capture", 4, p, entries.Count);
+				}
+
+				S44:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S43;
+				}
+
+				S42:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 41, p, entries.Count);
+				}
+
+				S41:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
+					Trace("construct", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S23:
+				{
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 3 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 2, p, entries.Count);
 				}
 
 				S22:
@@ -244,226 +420,30 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 
-				S23:
-				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 3 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 2, p, entries.Count);
-					goto S22;
-				}
-
-				S24:
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 23, p, call, atomic, repeat, lookahead, 0, 3));
-					call = callIndex;
-					Trace("call Amount", 6, p, entries.Count);
-					goto S45;
-				}
-
-				S26:
-				{
-					if ((uint)p >= (uint)text.Length || text[p] != ',')
-					{
-						expected = Recognize_DotGram_Expected2;
-						goto Fail;
-					}
-					p += 1;
-					goto S24;
-				}
-
-				S27:
-				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 1, p, entries.Count);
-					goto S26;
-				}
-
-				S28:
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 2));
-					call = callIndex;
-					Trace("call Name", 5, p, entries.Count);
-					goto S36;
-				}
-
-				S31:
+				S21:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 0, p, entries.Count);
 					goto Return;
 				}
 
-				S32:
+				S17:
 				{
-					global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
-					var ruleStart = entries[call].Position;
-					var guardCaptured0At = -1;
-					for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)
-					{
-						var candidate = entries[candidateAt];
-						if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && (candidate.State == 3))
-						{
-							guardCaptured0At = candidateAt;
-							break;
-						}
-					}
-					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
-					if (!Recognize_DotGram_Guard0(guardCaptured0)) { expected = null; goto Fail; }
-					goto S31;
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 1 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 0, p, entries.Count);
+					goto S14;
 				}
 
-				S33:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 32, p, entries.Count);
-					goto S32;
-				}
-
-				S34:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 33, p, call, atomic, repeat, lookahead, 0));
-					goto S39;
-				}
-
-				S35:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S34;
-				}
-
-				S36:
+				S16:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 34, p, entries.Count);
-					goto S34;
-				}
-
-				S37:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
-					Trace("capture", 3, p, entries.Count);
-					goto S35;
-				}
-
-				S38:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						expected = Recognize_DotGram_Expected3;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
-					{
-						expected = Recognize_DotGram_Expected3;
-						goto Fail;
-					}
-					p++;
-					goto S37;
-				}
-
-				S39:
-				{
-					capture3 = p;
-					goto S38;
-				}
-
-				S41:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
-					Trace("construct", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S42:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 41, p, entries.Count);
-					goto S41;
-				}
-
-				S43:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 42, p, call, atomic, repeat, lookahead, 0));
-					goto S48;
-				}
-
-				S44:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S43;
-				}
-
-				S45:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 43, p, entries.Count);
-					goto S43;
-				}
-
-				S46:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
-					Trace("capture", 4, p, entries.Count);
-					goto S44;
-				}
-
-				S47:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
-					}
-					p++;
-					goto S46;
-				}
-
-				S48:
-				{
-					capture4 = p;
-					goto S47;
+					Trace("enter repeat", 14, p, entries.Count);
+					goto S14;
 				}
 
 				S50:

@@ -2357,3 +2357,42 @@ grammars with binding powers, where `Register` compiles a second body for the wh
 entry after the constructor has run; and the failure is in materialization rather than in
 recognition, so what to look at is what the arena records against a state, not what the
 automaton does with one.
+
+## Built: states written in the order the parse runs them
+
+Raised from reading the generated file: it looks as though rules were added to the front of
+the machine rather than the back, so the rule everything starts at sits at the end and the
+parse jumps to the far end and walks backwards.
+
+The mechanism is not an insertion at the front, but the effect is exactly that.
+`_order` was ascending index order, and indices come from `Reserve` in the order things are
+*compiled* — which is continuation-passing: what a state jumps to is compiled before the
+state that jumps to it. So a sequence's last part is numbered before its first, and ascending
+index order is very nearly reverse execution order.
+
+Two things follow from it, and the second is the one that costs. It reads backwards. And a
+state's trailing jump almost never names the state written next — which is the one case
+`RenderStates` can drop the jump for, so the peephole that has been there all along almost
+never fired.
+
+`_order` is now built by following each chain to its end before starting another: the state a
+body ends by jumping to is where the chain goes on, and everything else it can reach waits.
+**Url loses 526 of its 1,826 jumps** — 1,300 left — and 526 lines with them.
+
+The labels had to follow. The engine names every written state from its dispatch, so nothing
+there can be orphaned; a lowered recognizer has no dispatch, and a state now reached only by
+falling into it from the one above is a label C# warns about and a consumer's build may
+refuse. `RenderStates` works out which labels survive the jumps it is about to drop, and
+writes only those.
+
+**It is not faster.** Two runs of five medians: +1.8/−0.9, +2.2/−0.0, −0.2/−1.1, +1.0/+0.2,
++2.7/+1.5 per cent. Only the long path is positive twice and even that is inside what this
+machine moves by. Kept for the 526 jumps and the 526 lines, and because the file now reads in
+the order it runs — which is the third criterion and would not have been enough on its own,
+except that the first two are untouched.
+
+**The state numbers still count backwards**, since the numbering is the compilation order and
+only the layout changed. Renumbering them by position would make the file read `S1, S2, S3`
+and is a separate change: it has to rewrite the dispatch's cases, every `goto` and every state
+literal inside a `ParserEntry` — which is the field the entry above found being rewritten
+where it should not have been.
