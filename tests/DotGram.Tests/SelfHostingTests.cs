@@ -100,6 +100,30 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 		}
 	}
 
+	/// <summary>
+	/// Where the two implementations are known to part: a keyword inside a word.
+	/// </summary>
+	/// <remarks>
+	/// §11's ordered choice with full backtracking lets `parse Xas y` be read as
+	/// `parse X as y`: the identifier gives two characters back and the keyword matches
+	/// mid-word, since §4.6's boundary guards only what <em>follows</em> a keyword. A
+	/// lexer tokenizes `Xas` maximally and no such reading exists. The two implementations
+	/// therefore accept different languages at this point — found by the stage-1 lexical
+	/// inventory, which refused to route these decisions precisely because the proofs
+	/// cannot equate them. Pinned so that whichever way the specification resolves it,
+	/// a test flips consciously rather than silently.
+	/// </remarks>
+	[Fact]
+	public void The_two_implementations_part_at_a_keyword_inside_a_word()
+	{
+		var text = "X = 'x'" + '\n' + "parse Xas y" + '\n';
+
+		Assert.True(GramGrammar.TryParseFile(text).IsSuccess, "generated: §11 reads Xas as X-as");
+		Assert.True(
+			GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).HasErrors,
+			"hand-written: Xas is one token");
+	}
+
 	/// <summary>The checked-in grammars, the same way the corpus test finds them.</summary>
 	static (string Name, string Text)[] Corpus() =>
 		[.. Directory

@@ -1211,7 +1211,6 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
-
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 

@@ -3238,3 +3238,33 @@ class. The failure path reports over the same inventory the dispatch uses.
 Rejected: the upfront token array with pooling. It allocates proportionally to input,
 complicates `find` and streaming, adds a runtime type — and buys only what bufferless
 already has on the straight-line path.
+
+## Stage 1 of the lexical layer: the inventory, and what it turned up
+
+The probe classified every choice point of the notation's grammar for token dispatch,
+before touching emission. Of twelve spaced choices: three route on exclusive tokens
+already (`"<<" | ">>"`, `"?=" | "?!"`, `"parse" | "find"`); one routes with a shared
+pair (the quantifier's class against `'{'`); four lead through spaced rules and need the
+look-through that stage 2 builds (`Declaration`'s three keywords against `Rule`'s
+identifier among them); four are blocked because a token rule cannot be committed against
+its follow — and the last group is not a weakness of the analysis. It is the finding.
+
+**The two implementations accept different languages, and the inventory found it.**
+`Identifier` refuses to commit because letters sit in its follow sets, and they sit there
+because §11 genuinely permits what a lexer never does: on `parse Xas y`, the identifier
+hands two characters back and the keyword `as` matches mid-word — §4.6's boundary guards
+only what follows a keyword, not what precedes it. Verified live: the generated parser
+accepts `parse Xas y` as `parse X as y`; the hand-written one refuses, because `Xas` is
+one token and always was. Pinned in `SelfHostingTests` so the resolution flips a test
+consciously.
+
+So "the same process" is not reachable by proofs alone — the processes implement
+different languages at exactly the points the proofs refuse. The v2 decision this forces
+is now concrete rather than speculative: whether the notation's semantics at the trivia
+boundary should become token semantics — maximal munch, no mid-word keywords — which is
+almost certainly what every author already believes it is. That is a language decision,
+§11-adjacent, and it is not taken here.
+
+The probe itself was temporary and is gone; what stage 2 needs of it — leading-token
+computation, exclusivity over tokens, scannability against a rule's follow — is specified
+by what the probe measured.
