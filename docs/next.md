@@ -3332,3 +3332,35 @@ its transparent floors. Ratios: 2.1 / 2.9 / 2.8 / 3.1.
 Alongside it, the `a+++++b` pair went in as tests: the guarded grammar dies the death the
 C standard prescribes, the unguarded one reads `a++ + ++b` — both languages three lines
 apart, neither imposed.
+
+## Where the remaining 3x lives, measured to the entry
+
+After the collapse, the trace of `Url.gram` reads 8,844 steps, and the shape is no longer
+scattered: 907 valued-rule completions each pay the call ceremony — a `Call` entry, its
+`Completed` rewrite, a `RuleCapture`, a pass through `Return`, a `Construct` — about five
+arena entries apiece, roughly half of everything. That is the factory tower
+(`Quantified → Prefixed → Captured → Primary → RefOrCall → Reference`, ~six valued calls
+per operand), and its factories are real: they build the tree. The hand-written parser
+makes the same six calls and builds the same tree; what it does not do is write five
+records per call so that backtracking could unwind a construction it almost never
+unwinds. The rest of the residue is honest §11: `recover` against a rule named
+`recover` is ambiguous beyond any fixed lookahead, and the ways back that remain are the
+ones the semantics require.
+
+Two directions are designed, not started, in order:
+
+**Sound eager construction.** The unsound version was removed this week for keying on a
+static fact that did not imply acceptance. The sound key is dynamic and exact: at a
+call's completion, if no resumable entry lives above the call's own — an O(1) question
+for a counter of live ways back — then nothing can ever resume into its span, and the
+value can be built on the spot and the five records collapsed to none. A way back
+*below* the call may still rewind past it wholesale; that discards the built value
+(`Truncate` already knows how) and re-parses, paying only on the path that was already
+losing. The surgery is in the materialization protocol: a caller's capture must be able
+to hold a value directly, not only a completed call's index.
+
+**Two-token settledness.** `name: Identifier & ':'` against a bare reference is decided
+by the token after the word — ':' is provably not in `Primary`'s follow — and the same
+shape decides several of the remaining optionals. The fused test is a word-run scan, a
+seam skip, and one character. The generic analysis is the two-token fusion the lexical
+design already names as v2; the shapes are now enumerable from the trace.
