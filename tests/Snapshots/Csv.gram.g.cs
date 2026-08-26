@@ -66,7 +66,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				goto Dispatch;
+				Trace("enter", state, p, entries.Count);
 				Dispatch:
 				switch (state)
 				{

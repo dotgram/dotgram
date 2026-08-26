@@ -172,6 +172,13 @@ sealed partial class Machine
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
 
+			// Nothing but the jump, so that `JumpOnly` can collapse this state away and the
+			// callers reach the body directly. It used to trace here as well, which said
+			// twice what the call site already says once — `Trace("call R", …)` sits
+			// immediately before the jump in — and cost every rule a state, a dispatch case
+			// and a block for the second saying of it. What the trace loses is the root
+			// entry, which is not reached from a call site; that one is written once at the
+			// top of the method instead.
 			entry.Line($"Trace(\"enter {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
 			entry.Line($"goto {Label(body)};");
 		}
@@ -561,12 +568,14 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
 					"0, rootRule));");
 				file.Line("call = 0;");
-				file.Line("goto Dispatch;");
+				file.Line("Trace(\"enter\", state, p, entries.Count);");
 
 				// The hottest block there is: every return from a rule and every resumption
 				// after a failure comes through it. Written here, before the states, rather
 				// than after all of them — a jump to the far end of a method this size is a
 				// jump out of whatever the processor had ready.
+				//
+				// Fallen into rather than jumped to: the entry above is the line before it.
 				file.Line("Dispatch:");
 
 				using (file.Block("switch (state)"))
