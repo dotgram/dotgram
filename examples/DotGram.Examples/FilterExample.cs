@@ -56,7 +56,7 @@ namespace DotGram.Examples;
 	                  | field: Name & op: Op & value: Value    => @(new Compare(field, op, value))
 	                  | field: Name                            => @(new Truth(field))
 
-	List : @object[] = Value & (',' & Value)*
+	List : @object[] = Value & (trivia & ',' & Value)*
 
 	Op : @string = text: (">=" | "<=" | "<>" | "!=" | "=" | ">" | "<") => @(text)
 

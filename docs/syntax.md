@@ -481,7 +481,7 @@ same thing: binds a name to something that came from outside.
 
 ```dotgram
 Lex(item)               : item   = trivia & item
-List(item, sep)         : item[] = item & (sep & item)*
+List(item, sep)         : item[] = item & (trivia & sep & item)*
 Padded(item, pad: char) : item   = pad* & value: item & pad* => value
 Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 ```
@@ -676,13 +676,19 @@ Attributes = Attribute & (trivia & Attribute)*     // a list, spaced
 Digits     = ['0'..'9']+                           // a lexeme, not
 ```
 
-The same is true of a run with a separator, where the separator is an operand and the
-spacing around it comes for free:
+A run with a separator is a run like any other, and this is where the rule is easiest to
+misread. Inside one turn the separator *is* an operand, so it gets trivia on both sides;
+but the turns are not operands of anything, so the space **before** the second and every
+later separator has nowhere to go. The first turn is spaced by the sequence around the
+repetition and the ones after it are not spaced at all:
 
 ```dotgram
-List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — trivia is inserted
-                                                   // either side of `sep`
+List(item, sep) : item[] = item & (trivia & sep & item)*    // "1, 2 , 3"
 ```
+
+Written without that `trivia` the rule reads `1, 2, 3` and refuses `1, 2 , 3`, silently
+and only from the third item on — which is exactly how it went unnoticed here until a
+grammar of this notation was written in it (`examples/DotGram.Examples/GramExample.cs`).
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
@@ -1584,50 +1590,32 @@ if (!FeedGrammar.TryParseFeed(text, out var value, out var error, out var pos))
 
 ## 10. The grammar of `.gram` itself
 
-A consistency check: all the notation above is parsed by this grammar with no more
-than two tokens of lookahead.
+A consistency check, and a real one: the notation above is parsed by a grammar written
+in itself, with no more than two tokens of lookahead.
 
-```dotgram
-File        = Using* & Declaration*
-Using       = ("@using" | "using") & QualifiedName & ';'
+That grammar is not printed here, because a printed one is not checked.
+`examples/DotGram.Examples/GramExample.cs` holds it, this generator compiles it, and
+`ExampleTests.The_notation_reads_its_own_corpus` runs it over every grammar in this
+repository — the snapshots on disk and the text of every `[Gram]` in the examples
+assembly, which a new grammar joins without anyone remembering to add it.
 
-Declaration = Namespace | Publication | Rule
-Namespace   = "namespace" & Identifier & With? & '{' & Using* & Declaration* & '}'
-Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
-Rebinding   = Identifier & '=' & Identifier
-Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?
+What a printed sketch cost, before there was a running one: it named seven things it
+never defined, left comments out of the language entirely, omitted `@(...)` from
+`Primary` although the parser has always accepted it there, and wrote its separated
+lists in the form §4.5 now warns about. None of that could be seen by reading it.
 
-Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body
-Parameters  = '(' & (Parameter & (',' & Parameter)*)? & ')'
-Parameter   = Identifier & (':' & Type)?
-Type        = Reference & "[]"?
+Two things in the running grammar are worth knowing about, since neither is visible in
+a production list:
 
-Body        = Alternative & ('|' & Alternative)*
-Alternative = Sequence & Binding? & ("=>" & Value)?
-Binding     = ("<<" | ">>") & Int
-Sequence    = Operand & ('&' & Operand)*
-Operand     = Guard | Quantified
-Guard       = "when" & Value
+* **The lexical rules sit in a namespace with `trivia = none`** (§4.5), so an identifier
+  is letters with nothing allowed between them while everything outside is spaced and
+  commented freely.
 
-Quantified  = Prefixed & Quantifier? & Recovery? & With?
-Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
-Recovery    = "recover" & Prefixed & ("=>" & Value)?
-With        = "with" & Rebindings
-Count       = Int | Identifier
-Prefixed    = ("?=" | "?!")? & Captured
-Captured    = (Identifier & ':')? & Primary
-Primary     = Char | String | ElementSet | Call | Reference | '(' & Body & ')' | '{' & Body & '}'
+* **`@(...)` is not recognized by the grammar at all.** Finding the parenthesis that
+  closes it means knowing C#'s own strings and comments, which no grammar can do; the
+  rule is a bare external recognizer (§7.1) that reads the input itself. What follows
+  is about that seam.
 
-Value       = CsExpr | Call | Reference
-CsExpr      = "@(" & Balanced & ')'
-Call        = Reference & '(' & (Argument & (',' & Argument)*)? & ')'
-Argument    = Value | Char | String | ElementSet
-Reference   = '@'? & QualifiedName & TypeArgs?
-TypeArgs    = '<' & Type & (',' & Type)* & '>'
-ElementSet  = '[' & '^'? & ElemAlt & ('|' & ElemAlt)* & ']'
-ElemAlt     = Char & (".." & Char)? | UnicodeCategory | Reference
-UnicodeCategory = "\p{" & Identifier & '}'
-```
 
 `@(` is the only place in the whole language holding raw C# text, and the only one
 needing a foreign lexer. Everything else with `@` (`@Name`, `@Name.Name`, `@Name<T>`,

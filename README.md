@@ -212,7 +212,7 @@ Working end to end — a `.gram` file becomes a parser that runs:
 - **a rule that takes another rule** — written once, used with whatever it is given:
 
   ```dotgram
-  List(item, sep) = item & (sep & item)*
+  List(item, sep) = item & (trivia & sep & item)*
   Digits(n)       = ['0'..'9']{n}
 
   Start = List(Word, Comma) & ' ' & Digits(4)

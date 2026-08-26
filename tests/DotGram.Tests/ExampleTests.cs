@@ -609,6 +609,26 @@ public sealed class ExampleTests
 
 	// ── The JSON parser ──────────────────────────────────────────────────────────
 
+	/// <summary>
+	/// A space on the left of a separator, which is where the `List` idiom used to fail.
+	/// </summary>
+	/// <remarks>
+	/// §4.5 inserts trivia between the operands of a sequence and nowhere else, so the
+	/// turns of `item & (sep & item)*` are unspaced and only the first one gets its leading
+	/// whitespace — from the sequence around the repetition. Written that way the rule reads
+	/// `[1, 2, 3]` and refuses `[1, 2 , 3]`, silently and only from the third item on. Both
+	/// the specification's example and this parser were written that way until a grammar of
+	/// the notation itself was written in it.
+	/// </remarks>
+	[Theory]
+	[InlineData("[1,2,3]")]
+	[InlineData("[1, 2, 3]")]
+	[InlineData("[1, 2 , 3]")]
+	[InlineData("[1 , 2 , 3]")]
+	[InlineData("{\"a\": 1, \"b\": 2 , \"c\": 3}")]
+	public void Json_reads_a_list_however_it_is_spaced(string text) =>
+		Assert.True(JsonParser.TryParseJson(text).IsSuccess, text);
+
 	[Fact]
 	public void Json_reads_a_document_of_every_kind_of_value()
 	{
