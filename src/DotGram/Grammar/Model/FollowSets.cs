@@ -190,32 +190,81 @@ public static class FollowSets
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var plain = Plainly(node, after.Plain, graph);
+		switch (node)
+		{
+			// The seam itself, standing first: what follows once it has been read is the
+			// old continuation as it plainly was. That is the definition of the other half.
+			case Node.Call(var called, _) when seam is not null && ReferenceEquals(called, seam):
+				return new Continuation(Plainly(node, after.Plain, graph), after.Plain);
 
-		// The seam itself, standing first: what follows once it has been read is the old
-		// continuation as it plainly was. That is the definition of the other half.
-		if (seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam))
-			return new Continuation(plain, after.Plain);
+			// Structure is walked rather than summarized, or a sequence that merely leads
+			// with the seam would be taxed for beginning with trivia characters — which is
+			// precisely the shape every spaced continuation has.
+			case Node.Sequence(var parts):
+			{
+				var next = after;
 
-		var first = FirstSets.Of(node, graph);
+				for (var i = parts.Count - 1; i >= 0; i--)
+					next = Precedes(parts[i], next, graph, seam);
 
-		if (first.Nothing)
-			return after with { Plain = plain };
+				return next;
+			}
 
-		// A continuation that does not lead with the seam. A turn's seam may still have
-		// consumed input where this continuation would have to begin, so its first set
-		// counts past the seam only where the seam could not even have begun there — and
-		// whether the seam could have *carried on* over it is <c>Contained</c>'s question,
-		// asked where the peel is used, not here.
-		var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var seamBody)
-			? FirstSets.Of(seamBody, graph)
-			: FirstSets.First.None;
+			case Node.Choice(var alternatives):
+			{
+				var merged = Continuation.None;
 
-		var past = first.Overlaps(seamFirst) ? FirstSets.First.All : first;
+				foreach (var alternative in alternatives)
+					merged = merged.Or(Precedes(alternative, after, graph, seam));
 
-		return new Continuation(
-			plain,
-			FirstSets.Nullable(node, graph) ? past.Or(after.AfterSeam) : past);
+				return merged;
+			}
+
+			case Node.Capture(_, var captured):  return Precedes(captured, after, graph, seam);
+			case Node.Construct(var built, _):   return Precedes(built,    after, graph, seam);
+			case Node.Atomic(var kept):          return Precedes(kept,     after, graph, seam);
+
+			// A turn is either taken — and then it stands before another turn or before the
+			// continuation, with anything past its own seam unknowable from here — or, for
+			// a run that may be empty, not taken at all.
+			case Node.Repeat(var body, var min, _):
+			{
+				var turn = Precedes(
+					body,
+					new Continuation(Plainly(node, after.Plain, graph), FirstSets.First.All),
+					graph, seam);
+
+				var plain = Plainly(node, after.Plain, graph);
+
+				return new Continuation(
+					plain,
+					min == 0 ? turn.AfterSeam.Or(after.AfterSeam) : turn.AfterSeam);
+			}
+
+			default:
+			{
+				var plain = Plainly(node, after.Plain, graph);
+				var first = FirstSets.Of(node, graph);
+
+				if (first.Nothing)
+					return after with { Plain = plain };
+
+				// A leaf that does not lead with the seam. A turn's seam may still have
+				// consumed input where this continuation would have to begin, so its first
+				// set counts past the seam only where the seam could not even have begun
+				// there — and whether the seam could have *carried on* over it is
+				// <c>Contained</c>'s question, asked where the peel is used, not here.
+				var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var seamBody)
+					? FirstSets.Of(seamBody, graph)
+					: FirstSets.First.None;
+
+				var past = first.Overlaps(seamFirst) ? FirstSets.First.All : first;
+
+				return new Continuation(
+					plain,
+					FirstSets.Nullable(node, graph) ? past.Or(after.AfterSeam) : past);
+			}
+		}
 	}
 
 	/// <summary>The plain half alone, as it always was.</summary>

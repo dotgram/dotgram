@@ -1152,6 +1152,7 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
+
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
@@ -2466,7 +2467,12 @@ sealed partial class Machine
 		// what it buys is that a failure behind the repetition resumes one exit and pops
 		// past the stale ones, where it used to resume every one of them and re-read the
 		// suffix per turn — the exponential this engine was measured to have.
-		var settled = max is not 1 && NeverGivesBack(repeatNode, following);
+		// An optional is a repetition of one, and its skip is a way back like any other:
+		// three of them in a row are eight readings of the same failure. The mechanism
+		// already handles a bounded loop — the count-exit marks the standing exit spent —
+		// so nothing excludes them.
+		var settled = NeverGivesBack(repeatNode, following);
+
 
 		if (settled)
 			_usesLoopExits = true;

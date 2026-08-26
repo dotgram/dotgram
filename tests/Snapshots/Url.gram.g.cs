@@ -2154,7 +2154,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S642;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 642, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 642, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 642, p, entries.Count);
+					}
 				}
 
 				{
@@ -2239,7 +2243,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S643;
 				}
 
@@ -2263,6 +2267,9 @@ namespace DotGram.Snapshots
 
 				S642:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -3009,7 +3016,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S543;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 543, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 543, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 543, p, entries.Count);
+					}
 				}
 
 				{
@@ -3241,7 +3252,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S544;
 				}
 
@@ -3265,6 +3276,9 @@ namespace DotGram.Snapshots
 
 				S543:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -4011,7 +4025,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S444;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 444, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 444, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 444, p, entries.Count);
+					}
 				}
 
 				{
@@ -4243,7 +4261,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S445;
 				}
 
@@ -4267,6 +4285,9 @@ namespace DotGram.Snapshots
 
 				S444:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -5013,7 +5034,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S345;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 345, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 345, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 345, p, entries.Count);
+					}
 				}
 
 				{
@@ -5245,7 +5270,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S346;
 				}
 
@@ -5269,6 +5294,9 @@ namespace DotGram.Snapshots
 
 				S345:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -5979,7 +6007,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S250;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 250, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 250, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 250, p, entries.Count);
+					}
 				}
 
 				{
@@ -6211,7 +6243,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S251;
 				}
 
@@ -6235,6 +6267,9 @@ namespace DotGram.Snapshots
 
 				S250:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -6833,7 +6868,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S166;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 166, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 166, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 166, p, entries.Count);
+					}
 				}
 
 				{
@@ -7065,7 +7104,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S167;
 				}
 
@@ -7089,6 +7128,9 @@ namespace DotGram.Snapshots
 
 				S166:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -7227,7 +7269,11 @@ namespace DotGram.Snapshots
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1) goto S126;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 126, p, call, atomic, repeat, lookahead, 0));
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 126, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+						Trace("stand exit", 126, p, entries.Count);
+					}
 				}
 
 				{
@@ -7459,7 +7505,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1, repeated.RuleIndex);
 					goto S127;
 				}
 
@@ -7483,6 +7529,9 @@ namespace DotGram.Snapshots
 
 				S126:
 				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var closing = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, closing.LookaheadIndex, closing.Value, -1);
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
@@ -8420,6 +8469,20 @@ namespace DotGram.Snapshots
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 						Trace("resume", state, p, entries.Count);
+						goto Dispatch;
+					}
+					if (entry.Kind == ParserEntry.LoopExit)
+					{
+						if (entry.RepeatIndex < 0 || entries[entry.RepeatIndex].Kind != ParserEntry.Repeat || entries[entry.RepeatIndex].RuleIndex != entry.Position)
+							continue;
+
+						state  = entry.State;
+						p      = entry.Position;
+						call   = entry.CallIndex;
+						atomic = entry.AtomicIndex;
+						repeat = entry.RepeatIndex;
+						lookahead = entry.LookaheadIndex;
+						Trace("resume exit", state, p, entries.Count);
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Run)
