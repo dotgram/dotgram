@@ -35,7 +35,6 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 		_documents = await GetServiceAsync(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable
 			?? throw new InvalidOperationException("Visual Studio running document table is unavailable.");
 		_documents.AdviseRunningDocTableEvents(this, out _documentEvents);
-		ActivityLog.LogInformation("DotGram.VisualStudio", "Native navigation experiment initialized.");
 	}
 
 	protected override void Dispose(bool disposing)
@@ -61,19 +60,10 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 
 		frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out var docView);
 		if (docView is not IVsCodeWindow codeWindow)
-		{
-			ActivityLog.LogInformation(
-				"DotGram.VisualStudio",
-				$"Native navigation skipped: document view is {docView?.GetType().FullName ?? "null"}.");
 			return VSConstants.S_OK;
-		}
 
 		var manager = new GramCodeWindowManager(codeWindow);
-		var result = manager.AddAdornments();
-		ActivityLog.LogInformation(
-			"DotGram.VisualStudio",
-			$"Native navigation AddAdornments returned 0x{result:X8}.");
-		if (ErrorHandler.Succeeded(result))
+		if (ErrorHandler.Succeeded(manager.AddAdornments()))
 			_windows.Add(frame, manager);
 
 		return VSConstants.S_OK;
