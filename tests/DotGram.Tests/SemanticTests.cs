@@ -23,6 +23,126 @@ namespace DotGram.Tests;
 public sealed class SemanticTests
 {
 	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
+	[Theory]
+	[InlineData("x")]
+	[InlineData("x<y>")]
+	[InlineData("x<<")]
+	[InlineData("x<")]
+	[InlineData("x<<1")]
+	[InlineData("x()")]
+	[InlineData("x<y>()")]
+	public void TEMPORARY_probe(string input)
+	{
+		var grammar =
+			"trivia = none" + '\n' +
+			"Start : @string = p: Primary => @(p)" + '\n' +
+			"Primary : @string = c: Call => @(c) | r: Reference => @(r)" + '\n' +
+			"Call : @string = t: Reference & '(' & ')' => @(t)" + '\n' +
+			"Reference : @string = text: (N & Args?) => @(text)" + '\n' +
+			"Args = '<' & Type & '>'" + '\n' +
+			"Type : @string = text: (Reference & \"[]\"?) => @(text)" + '\n' +
+			"N = ['a'..'z']+";
+
+		var thrown = Record.Exception(() => Parsed(grammar, input));
+
+		Assert.True(thrown is null, $"{input}: {thrown}");
+	}
+
+	/// <summary>
+	/// A text capture reopened by recursion still spans what it matched.
+	/// </summary>
+	[Theory]
+	[InlineData("a", "a")]
+	[InlineData("aa", "aa")]
+	[InlineData("aaa", "aaa")]
+	public void A_capture_reopened_by_recursion_spans_what_it_matched(string input, string expected)
+	{
+		var (success, value, _, _) = Parsed(
+			"Start : @string = text: ('a' & Start?) => @(text)", input);
+
+		Assert.True(success);
+		Assert.Equal(expected, value);
+	}
+
+	// ── §4.5: where trivia goes ─────────────────────────────────────────────
+
+	/// <summary>
+	/// A separated list is spaced on both sides of its separator, on every turn.
+	/// </summary>
+	/// <remarks>
+	/// The turns of a repetition are a seam between the operands of a sequence wherever the
+	/// thing repeated is one, so <c>item &amp; (sep &amp; item)*</c> needs nothing written
+	/// out. It used to space only its first turn — from the sequence around the repetition
+	/// — which refused a space to the left of the second and every later separator: silently,
+	/// and only from the third item on.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", true)]
+	[InlineData("a,a", true)]
+	[InlineData("a, a", true)]
+	[InlineData("a ,a", true)]
+	[InlineData("a , a", true)]
+	[InlineData("a,a,a", true)]
+	[InlineData("a, a, a", true)]
+	[InlineData("a ,a ,a", true)]
+	[InlineData("a , a , a", true)]
+	[InlineData("a , a , a , a", true)]
+	[InlineData("a a", false)]
+	public void A_separated_list_is_spaced_on_every_turn(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = A & (',' & A)*" + '\n' +
+			"A = ['a'..'z']+", input));
+
+	/// <summary>
+	/// A repetition of one thing is a lexeme, and is not spaced.
+	/// </summary>
+	/// <remarks>
+	/// This is what the insertion was held back for, and it still is: nothing can tell
+	/// <c>Word*</c> from a list by looking, so a repetition with no seam inside a turn gets
+	/// none between them (§4.5).
+	/// </remarks>
+	[Theory]
+	[InlineData("abcd", true)]
+	[InlineData("ab cd", false)]
+	public void A_repetition_of_one_thing_is_a_lexeme(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = W*" + '\n' +
+			"W = ['a'..'z']", input));
+
+	/// <summary>Digits, the example §4.5 gives: <c>1 2</c> is two numbers, not one.</summary>
+	[Theory]
+	[InlineData("123", true)]
+	[InlineData("1 2", false)]
+	public void Digits_are_a_lexeme_too(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = ['0'..'9']+", input));
+
+	/// <summary>An optional has no second turn, so it has no seam to space.</summary>
+	[Theory]
+	[InlineData("ab", true)]
+	[InlineData("a b", true)]
+	[InlineData("a", true)]
+	public void An_optional_is_left_alone(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = 'a' & 'b'?", input));
+
+	/// <summary>
+	/// Spacing a repetition of a single thing is the case that cannot be inferred, and is
+	/// still written out (§4.5).
+	/// </summary>
+	[Theory]
+	[InlineData("a a a", true)]
+	[InlineData("aaa", true)]
+	public void A_spaced_repetition_of_one_thing_still_says_so(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"trivia = [' ']*" + '\n' +
+			"Start = A & (trivia & A)*" + '\n' +
+			"A = ['a'..'z']", input));
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
@@ -332,7 +452,10 @@ public sealed class SemanticTests
 			""")
 			.Sources[0].Text;
 
-		Assert.Equal(1, source.Split(["enter List_Word_Comma"], StringSplitOptions.None).Length - 1);
+		// One rule, not two: a second specialization of the same arguments would be
+		// `List_Word_Comma1`, and both call sites name the first.
+		Assert.Contains("List_Word_Comma", source);
+		Assert.DoesNotContain("List_Word_Comma1", source);
 	}
 
 	[Fact]
@@ -546,30 +669,68 @@ public sealed class SemanticTests
 			"ab cd ef"));
 	}
 
-	[Fact]
-	public void An_argument_is_a_grammar_name_unless_it_says_otherwise()
+	[Theory]
+	[InlineData("http",   true)]
+	[InlineData("https",  true)]
+	[InlineData("ftp",    true)]
+	[InlineData("httpx",  false)]
+	public void A_literal_a_later_one_continues_is_tried_first_and_come_back_for(string input, bool matches) =>
+		// Ordered choice: `"http"` is preferred where both fit, and the longer one is
+		// reachable because the parse comes back for it when the shorter leaves the input
+		// unfinished. Both readings of `https` exist; which is answered is §11's business.
+		Assert.Equal(
+			matches,
+			Matches("Start = QhttpQ | QhttpsQ | QftpQ".Replace("Q", "\""), input));
+
+	[Theory]
+	[InlineData("https",  true)]
+	[InlineData("httpss", true)]
+	[InlineData("http",   false)]
+	public void And_comes_back_for_it_past_a_shorter_reading_that_did_not_work_out(string input, bool matches) =>
+		// The case the way back exists for. On `httpss` the shorter alternative matches,
+		// the `"s"` after the choice matches, and a character is left over — so the parse
+		// returns to the choice and spends it on the longer alternative instead. The
+		// entry it resumes at was written past the characters already matched, so what
+		// runs there compares one character and not five.
+		Assert.Equal(
+			matches,
+			Matches("Start = (QhttpQ | QhttpsQ) & QsQ".Replace("Q", "\""), input));
+
+	[Theory]
+	[InlineData("@int.Parse(d, CultureInfo.InvariantCulture)")]
+	[InlineData("@int.Parse(d, @CultureInfo.InvariantCulture)")]
+	[InlineData("@(int.Parse(d, CultureInfo.InvariantCulture))")]
+	public void Everything_under_an_at_sign_is_the_consumer_s_own_C_sharp(string construction)
 	{
-		// §2 with no exception made for argument lists: a bare name is looked up among
-		// rules and captures, and `@` is what reaches into C#. So a capture goes in as it
-		// is written, and anything of C#'s needs the transition — which is why
-		// `@int.Parse(d, CultureInfo.InvariantCulture)` is refused and this is not.
+		// One rule, three spellings of it. Whatever follows an `@` in a `=>` goes across as
+		// text: the grammar does not look inside it, so a name there needs no `@` of its own
+		// and is given none of the grammar's meanings either. `@Hold(x)` and `@(Hold(x))`
+		// are the same construction written two ways, and this is what makes them so.
+		//
+		// This used to be the other way round — a bare name in an argument list was looked
+		// up among rules and captures, so `CultureInfo.InvariantCulture` was refused there
+		// and accepted one bracket away. What that bought was the grammar compiler catching
+		// a mistyped capture in that one position. What it cost is the reason it is gone:
+		// resolving C# means keeping up with C#, and every construct this compiler does not
+		// know becomes a construct the language forbids for no reason of its own.
 		Assert.Empty(Compile(
 			"@using System.Globalization;\n"
-			+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, @CultureInfo.InvariantCulture)\n"
+			+ "Start : @int = d: ['0'..'9']+ => " + construction + "\n"
 			+ "parse Start").Diagnostics);
 	}
 
 	[Fact]
-	public void And_a_C_sharp_name_written_without_it_is_told_what_is_missing() =>
-		// The message named what it looked for and not what to do about it. A dotted name
-		// is a C# one nine times in ten, and the fix is one character.
-		Assert.Contains(
-			"@CultureInfo.InvariantCulture",
-			Compile(
-				"@using System.Globalization;\n"
-				+ "Start : @int = d: ['0'..'9']+ => @int.Parse(d, CultureInfo.InvariantCulture)\n"
-				+ "parse Start").Diagnostics[0].Message,
-			StringComparison.Ordinal);
+	public void And_a_name_in_a_grammar_argument_list_still_is_one()
+	{
+		// The half that stays. Outside an `@` nothing changed: a call to a rule of the
+		// grammar takes grammar names, and one that names nothing is found here rather
+		// than in a file nobody wrote.
+		var told = Assert.Single(Compile(
+			"Pair(a, b) = a & ',' & b\nStart = Pair(Word, Missing)\nWord = ['a'..'z']+\n"
+			+ "parse Start").Diagnostics);
+
+		Assert.Contains("Missing", told.Message, StringComparison.Ordinal);
+	}
 
 	[Fact]
 	public void And_the_scalar_form_of_it_works_the_same_way()

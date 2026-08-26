@@ -58,9 +58,24 @@ sealed partial class Machine
 				if (depths.Contains(i))
 					file.Line($"var turn{i} = 0;");
 
-			file.Line($"goto {Label(Resolved(entry))};");
+			// The same peephole RenderStates already applies between one state and the
+			// next, applied to the jump in: falling into the first state written is what
+			// this says, so where that state is the entry the line says nothing. The JIT
+			// removes it either way — a jump to the block that follows is what basic-block
+			// layout exists to fold, and the disassembly of this very method says so — but
+			// the file is read by whoever the parser was generated for, and a line that
+			// does nothing costs them a moment.
+			//
+			// The label goes with it where nothing else names the state, because C# warns
+			// on a label nobody jumps to and this file is compiled in a build that may
+			// treat that as an error.
+			var first = _order.Count > 0 ? _order[0] + First : -1;
+			var falls = first == Resolved(entry);
 
-			RenderStates(file);
+			if (!falls)
+				file.Line($"goto {Label(Resolved(entry))};");
+
+			RenderStates(file, dispatched: false);
 
 			file.Line();
 			file.Line("Accept:");
@@ -78,37 +93,6 @@ sealed partial class Machine
 			file.Line("failure.Position = p;");
 			file.Line("failure.Expected = expected;");
 			file.Line("return -1;");
-		}
-
-		return file.ToString();
-	}
-
-	/// <summary>
-	/// The thin wrapper <c>CSharpEmitter.EmitPublication</c> calls — same name, same
-	/// signature <see cref="RenderWrapper"/> would have produced, so the caller cannot tell
-	/// which one it got.
-	/// </summary>
-	public string RenderFlatWrapper(RuleSymbol root, string name, string flatName)
-	{
-		var file   = new Writer(0);
-		var type   = _results.QualifiedOf(root);
-		var output = type is null ? "" : $", out {type} value";
-
-		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{output})"))
-		{
-			file.Line($"var end = {flatName}(text, pos, ref failure);");
-
-			if (IsExtent(root))
-				file.Line("value = end < 0 ? default : new SourceSpan(pos, end - pos);");
-			else if (type is not null)
-				// Not reachable: CanLower only admits a rule whose value is its own extent,
-				// since silence already rules out every capture and construction a typed,
-				// non-extent value would need.
-				file.Line("value = default!;");
-
-			file.Line("return end;");
 		}
 
 		return file.ToString();

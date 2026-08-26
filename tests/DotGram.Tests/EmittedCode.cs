@@ -24,6 +24,23 @@ namespace DotGram.Tests;
 /// </remarks>
 static class EmittedCode
 {
+	/// <summary>
+	/// The language version emitted code declares as its floor — <c>.claude/rules/emitted-code.md</c>.
+	/// </summary>
+	/// <remarks>
+	/// Parsed at the floor rather than at whatever the newest Roslyn offers, because
+	/// otherwise nothing here would notice a feature the emitter started using: this helper
+	/// is what every snapshot and every emitter test compiles through, and it used to take
+	/// <c>CSharpParseOptions.Default</c>, which is the latest. The floor was checked by one
+	/// project on one framework and by nothing else.
+	///
+	/// The declaration and the marker attributes are parsed at it too. Neither is a
+	/// consumer's own file — this helper writes the first and the generator writes the
+	/// second — so both are ours to keep at the floor.
+	/// </remarks>
+	static readonly CSharpParseOptions Floor =
+		CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp8);
+
 	/// <summary>The generated source, plus the partial class it is a half of.</summary>
 	public static Assembly Compile(string source, string className = "Grammar", string? @namespace = null)
 	{
@@ -38,9 +55,9 @@ static class EmittedCode
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Emitted",
 			[
-				CSharpSyntaxTree.ParseText(declaration),
-				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text),
-				CSharpSyntaxTree.ParseText(source),
+				CSharpSyntaxTree.ParseText(declaration, Floor),
+				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, Floor),
+				CSharpSyntaxTree.ParseText(source, Floor),
 			],
 			References,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));

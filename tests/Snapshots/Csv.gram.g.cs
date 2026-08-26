@@ -66,19 +66,19 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				goto Dispatch;
+				Trace("enter", state, p, entries.Count);
 				Dispatch:
 				switch (state)
 				{
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S3;
-					case 4: goto S4;
-					case 5: goto S5;
-					case 6: goto S6;
-					case 7: goto S7;
-					case 8: goto S8;
+					case 3: goto S16;
+					case 4: goto S28;
+					case 5: goto S36;
+					case 6: goto S45;
+					case 7: goto S52;
+					case 8: goto S53;
 					case 9: goto S9;
 					case 10: goto S10;
 					case 11: goto S11;
@@ -95,13 +95,13 @@ namespace DotGram.Snapshots
 					case 22: goto S22;
 					case 23: goto S23;
 					case 24: goto S24;
-					case 25: goto S25;
-					case 26: goto S25;
+					case 25: goto S24;
+					case 26: goto S26;
 					case 27: goto S27;
 					case 28: goto S28;
-					case 29: goto S29;
-					case 30: goto S29;
-					case 31: goto S29;
+					case 29: goto S28;
+					case 30: goto S28;
+					case 31: goto S31;
 					case 32: goto S32;
 					case 33: goto S33;
 					case 34: goto S34;
@@ -110,8 +110,8 @@ namespace DotGram.Snapshots
 					case 37: goto S37;
 					case 38: goto S38;
 					case 39: goto S39;
-					case 40: goto S40;
-					case 41: goto S37;
+					case 40: goto S36;
+					case 41: goto S41;
 					case 42: goto S42;
 					case 43: goto S43;
 					case 44: goto S44;
@@ -119,50 +119,12 @@ namespace DotGram.Snapshots
 					case 46: goto S46;
 					case 47: goto S47;
 					case 48: goto S48;
-					case 49: goto S49;
-					case 50: goto S46;
+					case 49: goto S45;
+					case 50: goto S50;
 					case 51: goto S51;
 					case 52: goto S52;
 					case 53: goto S53;
-					case 54: goto S54;
-					case 55: goto S55;
 					default: expected = null; goto Fail;
-				}
-
-				S3:
-				{
-					Trace("enter Csv", 3, p, entries.Count);
-					goto S16;
-				}
-
-				S4:
-				{
-					Trace("enter Row", 4, p, entries.Count);
-					goto S29;
-				}
-
-				S5:
-				{
-					Trace("enter Name", 5, p, entries.Count);
-					goto S37;
-				}
-
-				S6:
-				{
-					Trace("enter Amount", 6, p, entries.Count);
-					goto S46;
-				}
-
-				S7:
-				{
-					Trace("enter eof", 7, p, entries.Count);
-					goto S53;
-				}
-
-				S8:
-				{
-					Trace("enter eol", 8, p, entries.Count);
-					goto S55;
 				}
 
 				S9:
@@ -189,7 +151,7 @@ namespace DotGram.Snapshots
 
 				S11:
 				{
-					if (p >= text.Length)
+					if ((uint)p >= (uint)text.Length)
 					{
 						expected = Recognize_DotGram_Expected0;
 						goto Fail;
@@ -223,26 +185,6 @@ namespace DotGram.Snapshots
 				S14:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Choice, 13, p, call, atomic, repeat, lookahead, 0));
-					goto S18;
-				}
-
-				S16:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 14, p, entries.Count);
-					goto S14;
-				}
-
-				S17:
-				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 1 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 0, p, entries.Count);
-					goto S14;
 				}
 
 				S18:
@@ -251,110 +193,81 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.Call, 17, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Row", 4, p, entries.Count);
-					goto S4;
-				}
-
-				S21:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
-					Trace("construct", 0, p, entries.Count);
-					goto Return;
-				}
-
-				S22:
-				{
-					if (p + 1 > text.Length)
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					if (text[p + 0] != '\r')
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					p += 1;
-					goto S21;
-				}
-
-				S23:
-				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
-					{
-						p += 2;
-						goto S21;
-					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
-					{
-						p += 1;
-						goto S21;
-					}
-					expected = Recognize_DotGram_Expected2;
-					goto S22;
-				}
-
-				S24:
-				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 3 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 2, p, entries.Count);
-					goto S23;
-				}
-
-				S25:
-				{
-					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 24, p, call, atomic, repeat, lookahead, 0, 3));
-					call = callIndex;
-					Trace("call Amount", 6, p, entries.Count);
-					goto S6;
-				}
-
-				S27:
-				{
-					if (p + 1 > text.Length)
-					{
-						expected = Recognize_DotGram_Expected3;
-						goto Fail;
-					}
-					if (text[p + 0] != ',')
-					{
-						expected = Recognize_DotGram_Expected3;
-						goto Fail;
-					}
-					p += 1;
-					goto S25;
 				}
 
 				S28:
 				{
-					var capturedCall = completedCall;
-					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
-					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
-					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 1, p, entries.Count);
-					goto S27;
-				}
-
-				S29:
-				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Name", 5, p, entries.Count);
-					goto S5;
 				}
 
-				S32:
+				S36:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
-					Trace("construct", 0, p, entries.Count);
-					goto Return;
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 34, p, entries.Count);
+				}
+
+				S34:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 33, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				S39:
+				{
+					capture3 = p;
+				}
+
+				S38:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
+					{
+						expected = Recognize_DotGram_Expected3;
+						goto Fail;
+					}
+					p++;
+				}
+
+				S37:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
+					Trace("capture", 3, p, entries.Count);
+				}
+
+				S35:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S34;
 				}
 
 				S33:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 32, p, entries.Count);
+				}
+
+				S32:
 				{
 					global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
 					var ruleStart = entries[call].Position;
@@ -370,87 +283,95 @@ namespace DotGram.Snapshots
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
 					if (!Recognize_DotGram_Guard0(guardCaptured0)) { expected = null; goto Fail; }
-					goto S32;
 				}
 
-				S34:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 33, p, entries.Count);
-					goto S33;
-				}
-
-				S35:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 34, p, call, atomic, repeat, lookahead, 0));
-					goto S40;
-				}
-
-				S36:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S35;
-				}
-
-				S37:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 35, p, entries.Count);
-					goto S35;
-				}
-
-				S38:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
-					Trace("capture", 3, p, entries.Count);
-					goto S36;
-				}
-
-				S39:
-				{
-					if (p >= text.Length)
-					{
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
-					{
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
-					}
-					p++;
-					goto S38;
-				}
-
-				S40:
-				{
-					capture3 = p;
-					goto S39;
-				}
-
-				S42:
+				S31:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 0, p, entries.Count);
 					goto Return;
 				}
 
+				S27:
+				{
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 1, p, entries.Count);
+				}
+
+				S26:
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != ',')
+					{
+						expected = Recognize_DotGram_Expected2;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				S24:
+				{
+					var callIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Call, 23, p, call, atomic, repeat, lookahead, 0, 3));
+					call = callIndex;
+					Trace("call Amount", 6, p, entries.Count);
+				}
+
+				S45:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 43, p, entries.Count);
+				}
+
 				S43:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1)
+						entries.Add(new ParserEntry(ParserEntry.Choice, 42, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				S48:
+				{
+					capture4 = p;
+				}
+
+				S47:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					p++;
+				}
+
+				S46:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
+					Trace("capture", 4, p, entries.Count);
+				}
+
+				S44:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					goto S43;
+				}
+
+				S42:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -459,68 +380,73 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 42, p, entries.Count);
-					goto S42;
+					Trace("leave repeat", 41, p, entries.Count);
 				}
 
-				S44:
+				S41:
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 43, p, call, atomic, repeat, lookahead, 0));
-					goto S49;
+					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
+					Trace("construct", 0, p, entries.Count);
+					goto Return;
 				}
 
-				S45:
+				S23:
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					goto S44;
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 3 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 2, p, entries.Count);
 				}
 
-				S46:
+				S22:
+				{
+					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					{
+						p += 2;
+						goto S21;
+					}
+					if ((uint)p < (uint)text.Length && text[p] == '\n')
+					{
+						p += 1;
+						goto S21;
+					}
+					if ((uint)p < (uint)text.Length && text[p] == '\r')
+					{
+						p += 1;
+						goto S21;
+					}
+					expected = Recognize_DotGram_Expected1;
+					goto Fail;
+				}
+
+				S21:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
+					Trace("construct", 0, p, entries.Count);
+					goto Return;
+				}
+
+				S17:
+				{
+					var capturedCall = completedCall;
+					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
+					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 1 && entries[capturedCall].Value == p);
+					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
+					Trace("rule capture", 0, p, entries.Count);
+					goto S14;
+				}
+
+				S16:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 44, p, entries.Count);
-					goto S44;
+					Trace("enter repeat", 14, p, entries.Count);
+					goto S14;
 				}
 
-				S47:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
-					Trace("capture", 4, p, entries.Count);
-					goto S45;
-				}
-
-				S48:
-				{
-					if (p >= text.Length)
-					{
-						expected = Recognize_DotGram_Expected5;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected5;
-						goto Fail;
-					}
-					p++;
-					goto S47;
-				}
-
-				S49:
-				{
-					capture4 = p;
-					goto S48;
-				}
-
-				S51:
+				S50:
 				{
 					global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);
 					var looked = entries[lookahead];
@@ -535,56 +461,45 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 
-				S52:
+				S51:
 				{
-					if (p >= text.Length)
+					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected6;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
 					p++;
+					goto S50;
+				}
+
+				S52:
+				{
+					var lookaheadIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
+					lookahead = lookaheadIndex;
+					Trace("enter negative lookahead", 51, p, entries.Count);
 					goto S51;
 				}
 
 				S53:
 				{
-					var lookaheadIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
-					lookahead = lookaheadIndex;
-					Trace("enter negative lookahead", 52, p, entries.Count);
-					goto S52;
-				}
-
-				S54:
-				{
-					if (p + 1 > text.Length)
-					{
-						expected = Recognize_DotGram_Expected7;
-						goto Fail;
-					}
-					if (text[p + 0] != '\r')
-					{
-						expected = Recognize_DotGram_Expected7;
-						goto Fail;
-					}
-					p += 1;
-					goto Return;
-				}
-
-				S55:
-				{
-					if (p + 2 <= text.Length && text[p + 0] == '\r' && text[p + 1] == '\n')
+					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;
 					}
-					if (p + 1 <= text.Length && text[p + 0] == '\n')
+					if ((uint)p < (uint)text.Length && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Expected8;
-					goto S54;
+					if ((uint)p < (uint)text.Length && text[p] == '\r')
+					{
+						p += 1;
+						goto Return;
+					}
+					expected = Recognize_DotGram_Expected1;
+					goto Fail;
 				}
 
 				Return:
@@ -614,199 +529,11 @@ namespace DotGram.Snapshots
 				{
 					if (rootRule >= 0)
 					{
-
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
 						var values1 = parser.Materialization1();
 						var values2 = parser.Materialization2();
-						var linkHeads = parser.MaterializationHeads();
-						var linkNexts = parser.MaterializationNexts();
-
-						for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
-						{
-							var derivation = entries[derivationAt];
-							if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
-							{
-								linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
-								linkHeads[derivation.CallIndex] = derivationAt;
-							}
-						}
-						parser.LinkedUpTo = entries.Count;
-
-						values[0] = parser;
-						for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)
-						{
-							if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;
-							for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-							{
-								var candidate = entries[capturedAt];
-								if (candidate.Kind == ParserEntry.RuleCapture)
-									values[candidate.Position] = parser;
-							}
-						}
-						for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)
-						{
-							var completed = entries[completedAt];
-							if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
-							switch (completed.RuleIndex)
-							{
-								case 0:
-								{
-									var captured0Count = 0;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
-									}
-									var captured0 = new string[captured0Count];
-									var captured0Item = captured0Count;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
-										{
-											captured0[--captured0Item] = values1[candidate.Position];
-										}
-									}
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values0[completedAt] = Construct_Csv(captured0!);
-											break;
-									}
-									break;
-								}
-								case 1:
-								{
-									var captured0At = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 1))
-										{
-											captured0At = candidate.Position;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(captured0At >= 0);
-									var captured0 = values1[captured0At];
-
-									var captured1At = -1;
-									for (var capturedAt1 = linkHeads[completedAt]; capturedAt1 >= 0; capturedAt1 = linkNexts[capturedAt1])
-									{
-										var candidate = entries[capturedAt1];
-										if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 2))
-										{
-											captured1At = candidate.Position;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(captured1At >= 0);
-									var captured1 = values2[captured1At];
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values1[completedAt] = Construct_Row(captured0!, captured1!);
-											break;
-									}
-									break;
-								}
-								case 2:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 3))
-										{
-											if (captured0To < 0)
-												captured0To = candidate.Value;
-											captured0From = candidate.Position;
-										}
-									}
-									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values1[completedAt] = Construct_Name(captured0!);
-											break;
-									}
-									break;
-								}
-								case 3:
-								{
-									var captured0From = -1;
-									var captured0To   = -1;
-									for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
-									{
-										var candidate = entries[capturedAt0];
-										if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && (candidate.State == 4))
-										{
-											if (captured0To < 0)
-												captured0To = candidate.Value;
-											captured0From = candidate.Position;
-										}
-									}
-									var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-									var chosen = -1;
-									for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-									{
-										var candidate = entries[chosenAt];
-										if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-										{
-											chosen = candidate.State;
-											break;
-										}
-									}
-									global::System.Diagnostics.Debug.Assert(chosen >= 0);
-									switch (chosen)
-									{
-										case 0:
-											values2[completedAt] = Construct_Amount(captured0!);
-											break;
-									}
-									break;
-								}
-							}
-						}
+						Materialize_DotGram(text, parser, entries);
 						switch (rootRule)
 						{
 							case 0:
@@ -836,7 +563,7 @@ namespace DotGram.Snapshots
 					failure.Expected = expected;
 					failure.ExpectedMore = null;
 				}
-				else if (lookahead < 0 && p == failure.Position && expected is not null)
+				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				Trace("fail", state, p, entries.Count);
 
@@ -960,28 +687,242 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static readonly string[] Recognize_DotGram_Expected0 = { "[^ ]" };
-
-		static readonly string[] Recognize_DotGram_Expected1 = { "'\\r'" };
-
-		static readonly string[] Recognize_DotGram_Expected2 = { "\"\r\n\"", "'\\n'" };
-
-		static readonly string[] Recognize_DotGram_Expected3 = { "','" };
-
 		static bool Recognize_DotGram_Guard0(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
 
-		static readonly string[] Recognize_DotGram_Expected4 = { "['A'..'Z' | 'a'..'z']" };
+		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
+		{
+			var values = parser.Materialization(entries.Count);
+			var values0 = parser.Materialization0();
+			var values1 = parser.Materialization1();
+			var values2 = parser.Materialization2();
+			var linkHeads = parser.MaterializationHeads();
+			var linkNexts = parser.MaterializationNexts();
 
-		static readonly string[] Recognize_DotGram_Expected5 = { "['0'..'9']" };
+			for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
+			{
+				var derivation = entries[derivationAt];
+				if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
+				{
+					linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
+					linkHeads[derivation.CallIndex] = derivationAt;
+				}
+			}
+			parser.LinkedUpTo = entries.Count;
 
-		static readonly string[] Recognize_DotGram_Expected6 = { "[^ ]" };
+			values[0] = parser;
 
-		static readonly string[] Recognize_DotGram_Expected7 = { "'\\r'" };
+			var owners     = parser.MaterializationOwners();
+			var ownerCount = 0;
 
-		static readonly string[] Recognize_DotGram_Expected8 = { "\"\r\n\"", "'\\n'" };
+			owners[ownerCount++] = 0;
+
+			for (var ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++)
+			{
+				var ownerAt = owners[ownerIndex];
+
+				for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+				{
+					var candidate = entries[capturedAt];
+
+					if (candidate.Kind == ParserEntry.RuleCapture && !global::System.Object.ReferenceEquals(values[candidate.Position], parser))
+					{
+						values[candidate.Position] = parser;
+						owners[ownerCount++] = candidate.Position;
+					}
+				}
+			}
+
+			for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)
+			{
+				var completedAt = owners[ownerIndex];
+				var completed = entries[completedAt];
+				if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
+				switch (completed.RuleIndex)
+				{
+					case 0:
+					{
+						var captured0Count = 0;
+						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+						{
+							var candidate = entries[capturedAt0];
+							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
+						}
+						var captured0 = new string[captured0Count];
+						var captured0Item = captured0Count;
+						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
+						{
+							var candidate = entries[capturedAt0];
+							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0))
+							{
+								captured0[--captured0Item] = values1[candidate.Position];
+							}
+						}
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values0[completedAt] = Construct_Csv(captured0!);
+								break;
+						}
+						break;
+					}
+					case 1:
+					{
+						var captured0At = -1;
+						var captured1At = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 1:
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured0At < 0)
+										captured0At = candidate.Position;
+									break;
+								case 2:
+									if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured1At < 0)
+										captured1At = candidate.Position;
+									break;
+							}
+						}
+
+						global::System.Diagnostics.Debug.Assert(captured0At >= 0);
+						var captured0 = values1[captured0At];
+
+						global::System.Diagnostics.Debug.Assert(captured1At >= 0);
+						var captured1 = values2[captured1At];
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values1[completedAt] = Construct_Row(captured0!, captured1!);
+								break;
+						}
+						break;
+					}
+					case 2:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 3:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values1[completedAt] = Construct_Name(captured0!);
+								break;
+						}
+						break;
+					}
+					case 3:
+					{
+						var captured0From = -1;
+						var captured0To   = -1;
+						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+						{
+							var candidate = entries[capturedAt];
+
+							switch (candidate.State)
+							{
+								case 4:
+									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
+									{
+										if (captured0To < 0)
+											captured0To = candidate.Value;
+										captured0From = candidate.Position;
+									}
+									break;
+							}
+						}
+
+						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
+
+						var chosen = -1;
+						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
+						{
+							var candidate = entries[chosenAt];
+							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
+							{
+								chosen = candidate.State;
+								break;
+							}
+						}
+						global::System.Diagnostics.Debug.Assert(chosen >= 0);
+						switch (chosen)
+						{
+							case 0:
+								values2[completedAt] = Construct_Amount(captured0!);
+								break;
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		static readonly string[] Recognize_DotGram_Expected0 = { "[^ ]" };
+
+		static readonly string[] Recognize_DotGram_Expected1 = { "\"\r\n\"", "'\\n'", "'\\r'" };
+
+		static readonly string[] Recognize_DotGram_Expected2 = { "','" };
+
+		static readonly string[] Recognize_DotGram_Expected3 = { "['A'..'Z' | 'a'..'z']" };
+
+		static readonly string[] Recognize_DotGram_Expected4 = { "['0'..'9']" };
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
@@ -1015,6 +956,17 @@ namespace DotGram.Snapshots
 			int[] _values2 = global::System.Array.Empty<int>();
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
+
+			/// <summary>
+			/// The calls whose values the accepted derivation reaches, in the order they were
+			/// reached from the root.
+			/// </summary>
+			/// <remarks>
+			/// Written afresh on every materialization and read back to front, so unlike the
+			/// link tables it needs no initial value — what is past the count written this
+			/// time is never looked at.
+			/// </remarks>
+			int[] _owners = global::System.Array.Empty<int>();
 			internal int LinkedUpTo;
 			int _valuesUsed;
 
@@ -1042,6 +994,11 @@ namespace DotGram.Snapshots
 				Grow(ref _linkHeads, count);
 				Grow(ref _linkNexts, count);
 
+				// No `Grow`: nothing here is carried between calls, so a plain resize is
+				// what it needs and the -1 fill would be work for nobody.
+				if (_owners.Length < count)
+					global::System.Array.Resize(ref _owners, global::System.Math.Max(count, _owners.Length * 2));
+
 				_valuesUsed = count;
 
 				return _values;
@@ -1053,6 +1010,7 @@ namespace DotGram.Snapshots
 			
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
+			internal int[] MaterializationOwners() => _owners;
 
 			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
 			// smaller call is still the answer for that index, and re-zeroing it would erase

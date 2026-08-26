@@ -1882,4 +1882,148 @@ public sealed class GeneratorDriverTests
 			Assert.Contains("IsVowel", error.GetMessage(), StringComparison.Ordinal);
 		});
 	}
+
+	// ── Publishing one rule several ways ─────────────────────────────────────────
+	//
+	// The `with` machinery is tested against the normalizer's own output elsewhere in
+	// this suite — that a rebinding clones what it reaches, composes, and does not leak
+	// into a sibling publication. What none of those ask is the question a consumer
+	// actually has: two publications of one rule, whose rebinding changes a member's
+	// *type*, in one compilation. That is where a shared value type would show up,
+	// because the two publications cannot share one.
+
+	[Fact]
+	public void Two_publications_of_one_rule_give_the_rebound_member_two_types()
+	{
+		var type = Build(Source("Published")).GetType("Published")!;
+
+		var strings = type.GetMethod("UrlWithStrings", [typeof(string)])!;
+		var ints    = type.GetMethod("UrlWithInt",     [typeof(string)])!;
+
+		// Not the same type, which is the whole point: one member's type differs, so the
+		// value carrying it has to differ too.
+		Assert.NotEqual(strings.ReturnType, ints.ReturnType);
+
+		Assert.Equal(typeof(string), strings.ReturnType.GetProperty("Port")!.PropertyType);
+		Assert.Equal(typeof(int?),   ints   .ReturnType.GetProperty("Port")!.PropertyType);
+	}
+
+	[Fact]
+	public void Two_publications_of_one_rule_each_parse_into_their_own_shape()
+	{
+		var type = Build(Source("Parsed")).GetType("Parsed")!;
+
+		var strings = type.GetMethod("UrlWithStrings", [typeof(string)])!.Invoke(null, ["http://a.com:8080"])!;
+		var ints    = type.GetMethod("UrlWithInt",     [typeof(string)])!.Invoke(null, ["http://a.com:8080"])!;
+
+		Assert.Equal("8080", strings.GetType().GetProperty("Port")!.GetValue(strings));
+		Assert.Equal(8080,   ints   .GetType().GetProperty("Port")!.GetValue(ints));
+
+		// What the rebinding does not reach answers the same twice: the clone is of what
+		// the binding reaches, not of the grammar.
+		Assert.Equal("a.com", strings.GetType().GetProperty("Host")!.GetValue(strings));
+		Assert.Equal("a.com", ints   .GetType().GetProperty("Host")!.GetValue(ints));
+	}
+
+	[Fact]
+	public void An_absent_rebound_member_is_absent_in_both_publications()
+	{
+		var type = Build(Source("Absent")).GetType("Absent")!;
+
+		var strings = type.GetMethod("UrlWithStrings", [typeof(string)])!.Invoke(null, ["http://a.com"])!;
+		var ints    = type.GetMethod("UrlWithInt",     [typeof(string)])!.Invoke(null, ["http://a.com"])!;
+
+		Assert.Null(strings.GetType().GetProperty("Port")!.GetValue(strings));
+		Assert.Null(ints   .GetType().GetProperty("Port")!.GetValue(ints));
+	}
+
+	[Fact]
+	public void A_third_publication_keeps_the_same_rule_without_building_a_string()
+	{
+		var type  = Build(Source("Spans")).GetType("Spans")!;
+		var spans = type.GetMethod("UrlWithSpans", [typeof(string)])!.Invoke(null, ["http://a.com:8080"])!;
+
+		// A rule declared `: @SourceSpan` is where it matched, and nothing is cut. Three
+		// publications of one grammar, and the member is a string, an int and an extent —
+		// which is §14's answer to what a capture should cost: the grammar says so, not
+		// the generator.
+		var host = spans.GetType().GetProperty("Host")!.GetValue(spans)!;
+		var port = spans.GetType().GetProperty("Port")!.GetValue(spans)!;
+
+		Assert.Equal("SourceSpan", host.GetType().Name);
+		Assert.Equal("SourceSpan", port.GetType().Name);
+
+		Assert.Equal(7,  Start (host));
+		Assert.Equal(5,  Length(host));
+		Assert.Equal(13, Start (port));
+		Assert.Equal(4,  Length(port));
+
+		static int Start (object span) => (int)span.GetType().GetProperty("Start")!.GetValue(span)!;
+		static int Length(object span) => (int)span.GetType().GetProperty("Length")!.GetValue(span)!;
+	}
+
+	// ── The whole input, handed to a construction ────────────────────────────────
+
+	[Fact]
+	public void A_construction_may_ask_for_the_whole_input_and_cut_it_later()
+	{
+		var type = Build("""
+			[DotGram.Gram("Url  : @Held = \"http://\" & held: Host => @(held)\nHost : @Held = (Letter | Digit | '.')+ => @Hold(parserInput, parserSpan)\nLetter = ['a'..'z']\nDigit  = ['0'..'9']\nparse Url")]
+			public partial class Deferred
+			{
+				public readonly struct Held
+				{
+					public Held(string input, int start, int length)
+					{
+						Input  = input;
+						Start  = start;
+						Length = length;
+					}
+
+					public string Input  { get; }
+					public int    Start  { get; }
+					public int    Length { get; }
+
+					public string Value { get { return Input.Substring(Start, Length); } }
+				}
+
+				static Held Hold(string parserInput, SourceSpan parserSpan)
+				{
+					return new Held(parserInput, parserSpan.Start, parserSpan.Length);
+				}
+
+			}
+			""").GetType("Deferred")!;
+
+		var held = type.GetMethod("ParseUrl", [typeof(string)])!.Invoke(null, ["http://a.com"])!;
+
+		string Read(string name) => (string)held.GetType().GetProperty(name)!.GetValue(held)!;
+		int    Count(string name) => (int)held.GetType().GetProperty(name)!.GetValue(held)!;
+
+		// Written in the call form on purpose: §2 makes a bare name in an argument list a
+		// grammar name, and a supplied name is one of the names a rule has, so this and
+		// `=> @(new Held(parserInput, parserSpan.Start, parserSpan.Length))` are the same
+		// thing said two ways. Only `parserText` used to resolve here.
+		//
+		// The whole of what was read, not the part the rule matched — which is the point of
+		// it. A value built from this cuts its own string whenever somebody asks, and holds
+		// the input alive until then; §14 says that is the grammar author's bargain to make.
+		Assert.Equal("http://a.com", Read("Input"));
+		Assert.Equal(7,              Count("Start"));
+		Assert.Equal(5,              Count("Length"));
+		Assert.Equal("a.com",        Read("Value"));
+	}
+
+	/// <summary>
+	/// One rule published twice, the second rebinding the port to a rule that gives it a
+	/// value of its own — §14's own example, written the way a consumer writes it.
+	/// </summary>
+	static string Source(string name) =>
+		$$"""
+		[DotGram.Gram("Url        = scheme: Scheme & \"://\" & host: Host & (':' & port: Port)?\nScheme     = \"https\" | \"http\"\nHost       = (Letter | Digit | '.' | '-')+\nPort       = Digit+\nPortAsInt  : @int = Digit+ => @Number(parserText)\nPortAsSpan : @SourceSpan = Digit+\nHostAsSpan : @SourceSpan = (Letter | Digit | '.' | '-')+\nLetter     = ['a'..'z']\nDigit      = ['0'..'9']\nparse Url as UrlWithStrings\nparse Url with (Port = PortAsInt) as UrlWithInt\nparse Url with (Port = PortAsSpan, Host = HostAsSpan) as UrlWithSpans")]
+		public partial class {{name}}
+		{
+			static int Number(string text) => int.Parse(text);
+		}
+		""";
 }

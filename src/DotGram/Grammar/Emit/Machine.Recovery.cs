@@ -67,7 +67,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {asked}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(scan)};");
 
-		atScan.Line($"if (p >= text.Length) goto {Label(recovered)};");
+		atScan.Line($"if ((uint)p >= (uint)text.Length) goto {Label(recovered)};");
 		atScan.Line("syncFrom = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {advance}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(sync)};");
@@ -199,6 +199,7 @@ sealed partial class Machine
 		"parserSpan"     => "new SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+		"parserInput"    => "parserInput",
 		_                => "default",
 	};
 

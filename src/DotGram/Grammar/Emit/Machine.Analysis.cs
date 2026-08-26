@@ -86,8 +86,19 @@ sealed partial class Machine
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
+			// Two ways a choice writes nothing. One character telling every alternative
+			// apart is the first, and the second is the whole choice being one run of
+			// literals: `CompileLiterals` decides those where their texts differ and never
+			// comes back, so it writes no way back either — which `LiteralRun` is already
+			// the test for, since it admits a run only where every pair in it is settled.
+			// A choice it refuses, like `"http" | "https"` in that order, does need the
+			// arena and is refused here too.
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllSilent(alternatives, following, sequence: false),
+			                                              AllSilent(alternatives, following, sequence: false) ||
+			                                              LiteralRun(
+			                                                  alternatives,
+			                                                  alternatives.Count - 1,
+			                                                  following) == alternatives.Count,
 			Node.Call(var rule, _)                     => CanInline(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
 			                                              Silent(called, following),
@@ -384,14 +395,53 @@ sealed partial class Machine
 	/// the next.
 	/// </para>
 	/// <para>
-	/// And only where none of them is the beginning of another. Where one is, both match at
-	/// the same place — the shorter is taken, being first or not — and if what follows the
-	/// choice then fails, the longer has to be tried. That is a way back, and a way back is
-	/// what the entry is. <c>"ab" | "abc"</c> is such a pair and is compiled as it always
-	/// was; <c>"abc_x" | "abc_y"</c> is not, and at most one of them can match anywhere.
+	/// A run is decided where its members differ, in the order they were written, and never
+	/// comes back — so it is admitted only where no pair of them needs coming back for. Two
+	/// that begin differently never do; a pair where one begins the other is the case
+	/// <see cref="PrefixSettled"/> decides.
 	/// </para>
 	/// </remarks>
-	static int LiteralRun(IReadOnlyList<Node> alternatives, int at)
+	/// <summary>
+	/// How many alternatives ending at <paramref name="at"/> are plain text and may be
+	/// compiled as one, whether or not any of them needs a way back.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="LiteralRun"/> asks whether the run needs no way back at all, which is what
+	/// decides whether the choice is silent. This asks the wider question the compiler needs:
+	/// whether the texts can be compared together, sharing their prefix and testing only
+	/// their tails. A later alternative that continues an earlier one — `"http" | "https"` —
+	/// is admitted here and refused there, because it is compiled with a way back to the
+	/// continuation rather than without one.
+	///
+	/// The other direction stays with <see cref="PrefixSettled"/>: an earlier alternative
+	/// that is <em>longer</em> may need coming back to the shorter one written after it, and
+	/// whether it does depends on what follows the choice, which is not a fact about the
+	/// texts.
+	/// </remarks>
+	static int LiteralGroup(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
+	{
+		var run = 0;
+
+		while (at - run >= 0 && alternatives[at - run] is Node.Literal { IgnoreCase: false })
+			run++;
+
+		if (run < 2)
+			return 0;
+
+		for (var i = at - run + 1; i <= at; i++)
+			for (var j = i + 1; j <= at; j++)
+				if (alternatives[i] is Node.Literal(var earlier) &&
+					alternatives[j] is Node.Literal(var later) &&
+					!later.StartsWith(earlier, StringComparison.Ordinal) &&
+					!PrefixSettled(earlier, later, following))
+				{
+					return 0;
+				}
+
+		return run;
+	}
+
+	static int LiteralRun(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
 	{
 		var run = 0;
 
@@ -409,13 +459,60 @@ sealed partial class Machine
 			for (var j = i + 1; j <= at; j++)
 				if (alternatives[i] is Node.Literal(var one) &&
 					alternatives[j] is Node.Literal(var other) &&
-					(one.StartsWith(other, StringComparison.Ordinal) ||
-					 other.StartsWith(one, StringComparison.Ordinal)))
+					!PrefixSettled(one, other, following))
 				{
 					return 0;
 				}
 
 		return run;
+	}
+
+	/// <summary>
+	/// Whether two literal alternatives, <paramref name="first"/> written before
+	/// <paramref name="second"/>, can be decided where they differ and never returned to.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only a pair where one begins the other is in question; anything else differs at a
+	/// character, and the character decides it.
+	/// </para>
+	/// <para>
+	/// Written longer-first, the shorter reading is the one that would be come back for,
+	/// and where it stands is known exactly: at the character the longer went on with. If
+	/// what follows the choice cannot begin with that character, the shorter reading fails
+	/// wherever it is tried, and an entry that leads only to a failure is one nothing needs.
+	/// <c>"https" | "http"</c> before <c>"://"</c> is that: taking <c>"http"</c> leaves an
+	/// <c>'s'</c>, and <c>"://"</c> does not begin with one.
+	/// </para>
+	/// <para>
+	/// Written shorter-first it is the reverse, and the entry is the whole of what makes the
+	/// longer reachable: <c>"http" | "https"</c> takes <c>"http"</c> first, and only coming
+	/// back for the second alternative can ever match the extra character. §11 of
+	/// docs/syntax.md promises alternatives are never reordered, so this is a fact about the
+	/// grammar as written and not one to be optimized away.
+	/// </para>
+	/// <para>
+	/// An unknown following — a complement, a category, a predicate — says nothing that can
+	/// be held to, and the general machinery stays. The end of the input is not unknown: no
+	/// character is the end of the text, so nothing that must read a character can begin
+	/// there.
+	/// </para>
+	/// </remarks>
+	static bool PrefixSettled(string first, string second, FirstSets.First following)
+	{
+		if (first.Length == second.Length)
+			return !string.Equals(first, second, StringComparison.Ordinal);
+
+		if (first.Length < second.Length)
+			return !second.StartsWith(first, StringComparison.Ordinal);
+
+		if (!first.StartsWith(second, StringComparison.Ordinal))
+			return true;
+
+		var carriedOn = first[second.Length];
+
+		return following.IsKnown &&
+			!following.Overlaps(new FirstSets.First(false, false, [new CharRange(carriedOn, carriedOn)]));
 	}
 
 	/// <summary>What a run of literal alternatives can begin with.</summary>

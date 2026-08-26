@@ -99,10 +99,11 @@ public sealed partial class GrammarNormalizer
 		// §4.2: a count may be a parameter's name, and inside a specialization it stands
 		// for the number the call passed.
 		Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
-			new Node.Repeat(
+			Repeated(
 				Lower(operand, ns),
 				Bounds(kind, Counted(min, minName, expression)).Min,
-				Bounds(kind, Counted(max, maxName, expression)).Max),
+				Bounds(kind, Counted(max, maxName, expression)).Max,
+				ns),
 
 		Expr.Sequence (var operands)              => LowerSequence(operands, ns),
 		Expr.Choice   (var alternatives)          => LowerChoice(alternatives, ns),
@@ -806,6 +807,45 @@ public sealed partial class GrammarNormalizer
 		}
 
 		return merged;
+	}
+
+	/// <summary>
+	/// A repetition, spaced between its turns where what it repeats has seams of its own.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §4.5 inserts trivia at every seam between the operands of a sequence. The turns of a
+	/// repetition are such a seam wherever the thing repeated is itself a sequence:
+	/// <c>A &amp; (S &amp; A)*</c> is how one writes <c>A S A S A</c>, and in that reading
+	/// every join is between operands — the one that wraps around included. An author who
+	/// wrote <c>S &amp; A</c> has already said that a space may stand between <c>S</c> and
+	/// <c>A</c>; refusing one between <c>A</c> and the next <c>S</c> is the same seam
+	/// answered two ways.
+	/// </para>
+	/// <para>
+	/// What that keeps is the reason the insertion was ever held back. A lexeme is a
+	/// repetition of a *single* operand — <c>['0'..'9']+</c>, <c>Letter+</c>, <c>Word*</c> —
+	/// and a single operand has no seam inside a turn, so it gets none between them either.
+	/// <c>1 2</c> is still two numbers and <c>a b</c> still two names.
+	/// </para>
+	/// <para>
+	/// An optional is left alone: it has no second turn, so it has no seam to space.
+	/// A repetition of a choice is left alone too, which is what keeps <c>trivia</c>'s own
+	/// usual shape — <c>(Space | Comment)*</c> — from being asked to space itself. Spacing a
+	/// repetition of one thing is the case that cannot be inferred, and stays what §4.5 says
+	/// it is: <c>Attribute &amp; (trivia &amp; Attribute)*</c>, written out.
+	/// </para>
+	/// </remarks>
+	Node Repeated(Node body, int min, int? max, GrammarNamespace ns)
+	{
+		if (max is 0 or 1 || body is not Node.Sequence(var operands) || TriviaFor(ns) is not { } trivia)
+			return new Node.Repeat(body, min, max);
+
+		var spaced = new List<Node>(operands.Count + 1) { trivia };
+
+		spaced.AddRange(operands);
+
+		return new Node.Repeat(new Node.Sequence(spaced), min, max);
 	}
 
 	Node LowerSequence(IReadOnlyList<Expr> operands, GrammarNamespace ns)

@@ -35,14 +35,29 @@ static class Program
 			return;
 		}
 
-		// `--hot [seconds]` is not a benchmark either: it runs the URL grammar's two
-		// losing cases in a loop long enough for a profiler to attach to and get a
-		// line-by-line breakdown from. See HotLoop.cs.
+		// `--hot [seconds] [input]` is not a benchmark either: it runs the URL grammar in
+		// a loop long enough for a profiler to attach to and get a line-by-line breakdown
+		// from. Named alone, one input is what a profile about that input has to run. See
+		// HotLoop.cs.
 		if (args.Length >= 1 && args[0] == "--hot")
 		{
-			var seconds = args.Length == 2 && int.TryParse(args[1], out var given) ? given : 10;
+			var seconds = args.Length >= 2 && int.TryParse(args[1], out var given) ? given : 10;
+			var which   = args.Length >= 3 ? args[2] : "both";
 
-			HotLoop.Run(seconds);
+			HotLoop.Run(seconds, which);
+
+			return;
+		}
+
+		// `--against [rounds] [iterations]` is not a benchmark either: it measures the URL
+		// comparison round-robin instead of one method at a time, so that the ratios hold
+		// on a machine that is not idle. See Against.cs.
+		if (args.Length >= 1 && args[0] == "--against")
+		{
+			var rounds     = args.Length >= 2 && int.TryParse(args[1], out var many) ? many : 9;
+			var iterations = args.Length >= 3 && int.TryParse(args[2], out var each) ? each : 200_000;
+
+			Against.Run(rounds, iterations);
 
 			return;
 		}

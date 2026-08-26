@@ -3,6 +3,7 @@
 ```console
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*Url*"
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --against 9 200000
 ```
 
 Not run by CI. A number from a shared runner is a number about the runner, and a test
@@ -46,33 +47,119 @@ Both sides are asked for the parts, not for a yes. "Is this a URL" is a differen
 cheaper question than "what are its scheme, host, port and path", and the second is what a
 parser is for.
 
+Asked twice, because "the parts" turns out to be two questions and the two engines answer
+them differently — one part read, and every part read. Both are timed, and the two tables
+below are what each costs whom.
+
 One of the five inputs does not match. A parser that is quick to say yes and slow to say
 no is quick on the input nobody sends: refusal is where a backtracking engine does its
 worst work.
 
 ### Current result
 
-Windows, .NET 10, `DefaultJob`, 2026-08-25, after the deferred-`Expected` change
-(`docs/next.md`). Indicative, not stable CI thresholds:
+Windows, .NET 10, 2026-08-25, after the literal work (`docs/next.md`). Measured with
+`--against` rather than `DefaultJob`, for the reason under "Which instrument, and why"
+below. Two independent runs agreed to within 0.05 on every ratio. Indicative, not stable CI
+thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 163.7 ns | 568.8 ns (3.48×) | 257.4 ns (1.57×) |
-| `https://192.168.0.1/` | 148.2 ns | 525.5 ns (3.55×) | 243.8 ns (1.64×) |
-| `https://exa mple.com/` — no match | 131.5 ns | 439.8 ns (3.34×) | 103.8 ns (0.79×) |
-| a 47-character URL with every part | 336.8 ns | 559.5 ns (1.66×) | 260.7 ns (0.78×) |
-| an 84-character path of eight segments | 318.9 ns | 1614.4 ns (5.06×) | 553.0 ns (1.73×) |
+| `http://example.com` | 133.8 ns | 608.3 ns (4.55×) | 298.9 ns (2.23×) |
+| `https://192.168.0.1/` | 146.9 ns | 568.7 ns (3.87×) | 285.4 ns (1.94×) |
+| `https://exa mple.com/` — no match | 80.2 ns | 447.4 ns (5.57×) | 113.5 ns (1.41×) |
+| a 47-character URL with every part | 274.4 ns | 609.5 ns (2.22×) | 278.0 ns (1.01×) |
+| an 84-character path of eight segments | 191.0 ns | 1239.9 ns (6.49×) | 453.0 ns (2.37×) |
 
-Beats `RegexOptions.Compiled` on three of the five — the short URL, the IP-host form, the
-long path — and loses on two: the refusal, expected (refusal is where a backtracking
-engine does its worst work), and the one input exercising every named part, which is also
-the one materializing the most values. Against interpreted `Regex`, faster on every input.
+**Faster than `RegexOptions.Compiled` on all five**, and faster than the interpreted pattern
+by 2.2× to 6.5×.
 
-**Compare the ratios between runs, not the nanoseconds.** The run before this one had
-`Regex, compiled` at 365.5/328.2/138.9/332.8/570.6 ns on the same five inputs — the BCL
-got no faster in between, the machine was simply quieter for this one. Against that
-control, the deferred-`Expected` change moved the ratio on every input: 1.30→1.57,
-1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73. Two inputs still lose; both lose by less.
+**The 47-character URL is the one to watch, and it has been both sides of parity.** It was
+1.12× before the predicted-dispatch change, 0.99× after — that change removes work on every
+input and lost this one to profile-guided block layout anyway, which `docs/next.md` records
+under "What that change actually measured". Comparing a literal as one span put it back at
+1.01×. A margin of a few per cent on this input is layout as often as it is work, and is
+worth nothing without the `DOTNET_TieredPGO=0` check beside it.
+
+### Asked for every part instead of one
+
+The table above asks each side for one part, the host, and that is the pattern's shape of
+question rather than this project's. `Group.Value` records where a capture was and cuts the
+string when somebody reads it, so one group asked for is one string built. A publication
+hands back a record with all seven parts already inside it, so one part asked for is seven
+parts built. The table above is a comparison of seven strings against one, and it says so
+in this file only because somebody thought to check.
+
+The same five inputs, with every part read on both sides:
+
+| input | .Gram | Regex | Regex, compiled |
+| --- | --: | --: | --: |
+| `http://example.com` | 134.4 ns | 738.6 ns (5.50×) | 437.0 ns (3.25×) |
+| `https://192.168.0.1/` | 148.6 ns | 717.8 ns (4.83×) | 434.2 ns (2.92×) |
+| `https://exa mple.com/` — no match | 80.3 ns | 450.7 ns (5.61×) | 114.0 ns (1.42×) |
+| a 47-character URL with every part | 276.9 ns | 771.0 ns (2.78×) | 461.2 ns (1.67×) |
+| an 84-character path of eight segments | 191.0 ns | 1385.3 ns (7.25×) | 607.3 ns (3.18×) |
+
+**Asking for all seven costs this nothing.** Every row is within 5% of its own row above,
+in both directions, and the allocation figures are identical to the byte. They were built
+before the call returned; reading them reads fields. It is also the check that says whether
+a run is worth reading at all — two measurements that must agree, and a run where they come
+out 20% apart is a run something else was happening during.
+
+**It costs the compiled pattern 46% to 66%** on the four inputs that match — 299→437,
+285→434, 453→607 and 278→461 ns, and 32 to 208 bytes more each. Only the refusal is
+unchanged, because a refusal has no parts to cut.
+
+**The input that is level on the first table is 1.57× ahead on this one.** That is the whole
+of what the two tables are for: the question the pattern is built for and the question this
+is.
+
+Neither table is the honest one on its own. The first flatters the pattern by asking for
+the one thing it defers; the second flatters this by asking for everything it built anyway.
+Together they say the deferral is real and worth something to a caller who wants one part,
+and is a cost the moment the caller wants the parse.
+
+### Which instrument, and why
+
+`--against` measures the same six methods `UrlBenchmarks` does — through the benchmark class
+itself, so the work is the same work — but round-robin: every method once per round, rounds
+repeating, all in one process. `DefaultJob` is the better instrument for an absolute number
+and cannot be the better one for a ratio, because it runs each case in a process of its own,
+one after another: `.Gram` is measured at one minute and `Regex` at another, and a ratio
+between them assumes nothing about the machine changed in between.
+
+On an idle machine nothing does, and the two agree. On this one, three `DefaultJob` runs in
+a row had to be thrown away — `.Gram` and `.Gram, every part`, which do the same work, came
+out 21% and 28% apart, and in the third only three of the five input blocks were usable,
+because BenchmarkDotNet runs blocks in sequence and interference is local in time.
+`--against` came through the same conditions with every method's own spread between 0.3% and
+6%, and two independent runs agreeing to within 0.05 on every ratio.
+
+It also subtracts what the loop and the indirect call cost — 1.5 ns here — for a reason
+worth stating: a constant added to both sides of a ratio drags the ratio towards one, so
+leaving it in flatters whichever engine is slower.
+
+Use `DefaultJob` for absolute nanoseconds and allocation on a quiet machine. Use `--against`
+when what is wanted is the comparison, or when the machine is not quiet.
+
+### Reading these numbers between runs
+
+**Two of these five inputs are too short to compare between runs.** Run the identical
+binary twice and `http://example.com` and `https://192.168.0.1/` — both around 140 ns —
+move by 9% and 14%. The other three were once described here as holding to within 2%; that
+was optimistic. The 47-character URL moved 6.6% (242.5 → 226.6 ns) between the two runs
+this file has carried, on parsing code neither run changed. Two per cent is the floor for
+the 84-character path and nothing else. A difference smaller than an input's own movement
+is not a difference, whatever the compiled pattern beside it did. The one time this was
+ignored, a 17% "regression" on the IP-host form survived a stable control
+and three repetitions of a second instrument before five repetitions said it had never
+been there (`docs/next.md`, "Three measurements said this was a regression").
+
+**Compare the ratios between runs, not the nanoseconds**, and only for the inputs stable
+enough to compare at all. Two runs back `Regex, compiled` sat at
+365.5/328.2/138.9/332.8/570.6 ns on these inputs — the BCL got no faster in between, the
+machine was quieter. Against that control the deferred-`Expected` change moved every
+ratio (1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73), and the prefix-literal
+change after it moved the refusal 0.79→0.83 and the long path 1.73→1.78.
 
 **This table used to say uniformly 1.2×–2.6× slower.** That was true once — the numbers
 below are what it was measured against — but nobody had re-run the benchmark since enough
@@ -133,7 +220,7 @@ change (`docs/next.md`):
 | url, whole value | 400 B | 264 B |
 | url, every part | 480 B | 352 B |
 | url, host and path | 424 B | 392 B |
-| url, no match | 440 B | 344 B |
+| url, no match | 440 B | 88 B |
 | forty letters, one string | 168 B | 104 B |
 | a hundred letters, one string | 288 B | 224 B |
 | forty letters, kept as a span | 0 B | 0 B |
@@ -141,7 +228,12 @@ change (`docs/next.md`):
 
 **A rejected URL was never free.** This file and `docs/status.md` both used to say it
 allocated nothing; it allocated 440 B, and the furthest-failure set was what it spent them
-on. What is genuinely zero is a recognition whose value is its own extent — the two
+on. Two changes took that to 88: not rebuilding the set on every step back, and then not
+wording the message until somebody asks for it (`docs/next.md`, "a refusal says nothing
+until it is asked"). What is left is the list that accumulates tied terminals during the
+parse itself, which nothing can defer.
+
+What is genuinely zero is a recognition whose value is its own extent — the two
 `kept as a span` rows, where nothing is stored because the entry the rule completed into
 already holds where it began and where it reached.
 
@@ -178,24 +270,39 @@ pooling is deliberately turned off.
 
 `MaterializationCost.cs` asks a narrower question than the URL benchmark above: on the
 input that materializes the most values (the 47-character URL with every part), how much
-of the time is recognition and how much is capturing and building the typed result? Two
-copies of the same grammar, same rule boundaries, same character tests, differing only in
-whether anything is captured — `WithCaptures` publishes seven named parts into a record,
-`NoCaptures` publishes the same shape as `@SourceSpan` and captures nothing. `--job short`,
-2026-08-24, first numbers this file has carried:
+of the time is recognition and how much is capturing and building the typed result? Three
+copies of one grammar, same character tests throughout — `WithCaptures` keeps seven named
+parts as strings, `SpanCaptures` keeps the same seven as extents with no string built,
+`NoCaptures` captures nothing at all. `DefaultJob`, 2026-08-25, before and after the
+single-walk materializer (`docs/next.md`):
 
-| | mean | allocated |
-| --- | --: | --: |
-| materialized, 7 captures | 336.7 ns | 456 B |
-| recognized only, nothing captured | 115.8 ns | 64 B |
+| | before | after | allocated |
+| --- | --: | --: | --: |
+| captured as strings, 7 members | 306.1 ns | 219.2 ns | 328 B |
+| captured as spans, no strings built | 279.8 ns | 239.3 ns | 88 B |
+| nothing captured | 96.1 ns | 90.8 ns | 0 B |
 
-**Capturing and materializing costs about 2.9× what bare recognition of the identical
-shape costs** — 221 ns of the 337, against `CallCost.cs`'s ~25% for the arena call
-boundary alone. This does not separate "writing a capture entry to the arena as it
-matches" from "walking the arena at `Accept:` and building the record" from "capturing
-disqualifying a repetition that would otherwise have been possessive and arena-free" —
-all three are real candidates and this benchmark does not tell them apart. What it does
-say plainly: on a capture-heavy input, this is where the time is going, not the
-dispatch overhead `CallCost.cs` measures. That is the more promising place to look next,
-and the reason the URL benchmark's own worst case is the input with every part present
-rather than the longest one.
+**Capturing costs a multiple of recognizing the same shape**, and the third row is the
+control that says so: 90.8 ns to recognize this URL against 219.2 to recognize it and keep
+seven parts. Read it as a ratio rather than a subtraction, since the control moved too:
+the seven parts cost **2.19× recognition before this work and 1.41× after**, over the three
+changes `docs/next.md` records under materialization.
+
+Note what this grammar does *not* show. Making the materializer a method of its own was
+worth 7% on `benchmarks/Urls.cs` and nothing measurable here — the recognizer this
+grammar compiles to is 3,772 lines of generated C# against the URL one's 21,500, and that
+saving is in how large the method was. A benchmark small enough to be readable is
+sometimes small enough to miss what it is measuring.
+
+`HotLoop.cs` is the other instrument, and for changes to materialization it is the one to
+read: `--hot 5 everypart` runs the real URL grammar on the input that keeps the most, and
+the three materialization changes together took it from 13.44M parses in five seconds to
+17.97M. Medians of five, each measured against its own immediate predecessor rather than
+against a number from earlier in the day — `docs/next.md` has what believing the second
+kind cost.
+
+**The span row does not isolate what strings cost, though it was written to.** After the
+walk stopped dominating, it came out *slower* than the strings it was meant to be cheaper
+than — declaring seven rules `: @SourceSpan` gives each a value, a rule with a value gets
+a boundary, and that grammar pays for seven rule frames the string one does not. Read the
+two capture rows as two grammars, not as one grammar with and without strings.

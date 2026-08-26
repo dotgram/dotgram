@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Linq;
 
 using DotGram.Examples;
@@ -37,6 +38,61 @@ public sealed class ExampleTests
 	[InlineData("HTTPS://example.com",              true)]     // RFC 3986 §3.1: the scheme
 	[InlineData("Http://example.com",               true)]     // is case-insensitive
 	public void Is_url(string text, bool expected) => Assert.Equal(expected, Links.IsUrl(text));
+
+	// ── The grammar of `.gram` itself ─────────────────────────────────────────────
+
+	/// <summary>
+	/// Every grammar this repository has, read by the parser this repository generates
+	/// from a grammar of its own notation.
+	/// </summary>
+	/// <remarks>
+	/// The corpus is taken rather than written: the four snapshots on disk, and the text
+	/// of every <c>[Gram]</c> in the examples assembly. A grammar added anywhere joins it
+	/// without anyone remembering to add it here, which is the point — a notation that
+	/// cannot read its own corpus should say so on the day the corpus grows.
+	/// </remarks>
+	public static TheoryData<string, string> Corpus
+	{
+		get
+		{
+			var corpus = new TheoryData<string, string>();
+
+			foreach (var path in Directory.GetFiles(Snapshots, "*.gram"))
+				corpus.Add(Path.GetFileName(path), File.ReadAllText(path));
+
+			foreach (var type in typeof(Links).Assembly.GetTypes())
+			{
+				var attribute = type
+					.GetCustomAttributesData()
+					.FirstOrDefault(data => data.AttributeType.Name == "GramAttribute");
+
+				if (attribute?.ConstructorArguments is not [{ Value: string source }] ||
+					source.EndsWith(".gram", StringComparison.Ordinal))
+				{
+					continue;
+				}
+
+				corpus.Add(type.Name, source);
+			}
+
+			return corpus;
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(Corpus))]
+	public void The_notation_reads_its_own_corpus(string name, string text)
+	{
+		Assert.True(GramGrammar.ParseFile(text) is not null, $"{name} was not read as a grammar.");
+	}
+
+	/// <summary>The checked-in grammars, found the way <c>SnapshotTests</c> finds them.</summary>
+	static string Snapshots =>
+		Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!, "Snapshots");
+
+	static string ThisFile { get; } = FilePath();
+
+	static string FilePath([CallerFilePath] string path = "") => path;
 
 	[Theory]
 	[InlineData("https://example.com:8080", 8080)]
@@ -552,6 +608,26 @@ public sealed class ExampleTests
 				trade => trade.Symbol));
 
 	// ── The JSON parser ──────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// A space on the left of a separator, which is where the `List` idiom used to fail.
+	/// </summary>
+	/// <remarks>
+	/// §4.5 inserts trivia between the operands of a sequence and nowhere else, so the
+	/// turns of `item & (sep & item)*` are unspaced and only the first one gets its leading
+	/// whitespace — from the sequence around the repetition. Written that way the rule reads
+	/// `[1, 2, 3]` and refuses `[1, 2 , 3]`, silently and only from the third item on. Both
+	/// the specification's example and this parser were written that way until a grammar of
+	/// the notation itself was written in it.
+	/// </remarks>
+	[Theory]
+	[InlineData("[1,2,3]")]
+	[InlineData("[1, 2, 3]")]
+	[InlineData("[1, 2 , 3]")]
+	[InlineData("[1 , 2 , 3]")]
+	[InlineData("{\"a\": 1, \"b\": 2 , \"c\": 3}")]
+	public void Json_reads_a_list_however_it_is_spaced(string text) =>
+		Assert.True(JsonParser.TryParseJson(text).IsSuccess, text);
 
 	[Fact]
 	public void Json_reads_a_document_of_every_kind_of_value()

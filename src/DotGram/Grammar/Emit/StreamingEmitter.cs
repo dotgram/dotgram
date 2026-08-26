@@ -167,7 +167,8 @@ public static partial class CSharpEmitter
 	static void EmitStreamingParse(
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
-		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation)
+		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
+		bool input)
 	{
 		var element = graph.Types[publication.Rule];
 
@@ -242,7 +243,10 @@ public static partial class CSharpEmitter
 			// declares its locals in the method's own scope, and two of them cannot share.
 			void Read(int i, Stage stage, string method, string? built)
 			{
-				var hands = built is null ? "ref failure" + i : $"ref failure{i}, out value{i}";
+				// No whole input from a window, and nothing here can ask for one: a
+				// publication whose rules do is refused a stream (Retention, GRAM5001).
+				var hands = (built is null ? "ref failure" + i : $"ref failure{i}, out value{i}") +
+					(input ? ", null!" : "");
 
 				file.Line($"var failure{i} = new {FailureType}();");
 

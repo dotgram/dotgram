@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using BenchmarkDotNet.Attributes;
@@ -23,6 +24,20 @@ namespace DotGram.Benchmarks;
 /// Both sides are asked for the parts, not merely for a yes. Answering "is this a URL" is
 /// a different and much cheaper question than "what are its scheme, host, port and path",
 /// and the second is what a parser is for.
+/// </para>
+/// <para>
+/// Asked twice, because "the parts" is two questions and the two engines answer them
+/// differently. Reading <b>one</b> part is what the first pair does, and it is the
+/// pattern's shape of question: <c>Group.Value</c> stores where a capture was and cuts the
+/// string on access, so one group asked for is one string built. Reading <b>every</b> part
+/// is the second pair, and it is this project's: a publication hands back a record with all
+/// of them already in it, so one asked for is seven built either way.
+/// </para>
+/// <para>
+/// Neither pair is the honest one on its own. The first flatters the pattern by asking for
+/// the one thing it defers; the second flatters this by asking for everything it built
+/// anyway. Together they say what each design costs where, which is what a comparison is
+/// for.
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
@@ -59,12 +74,20 @@ public class UrlBenchmarks
 	/// backtracking engine does its worst work, and leaving it out of a benchmark is how
 	/// that goes unnoticed.
 	/// </remarks>
-	[Params(
+	/// <remarks>
+	/// A source rather than constants in the attribute so that <see cref="Against"/> can
+	/// measure the same five without a second copy of them to keep in step.
+	/// </remarks>
+	public static IEnumerable<string> Inputs =>
+	[
 		"http://example.com",
 		"https://user@example.com:8080/a/b/c?q=1&r=2#top",
 		"https://192.168.0.1/",
 		"https://example.com/" + "segment/segment/segment/segment/segment/segment/segment/segment/",
-		"https://exa mple.com/")]
+		"https://exa mple.com/",
+	];
+
+	[ParamsSource(nameof(Inputs))]
 	public string Input { get; set; } = "";
 
 	[GlobalSetup]
@@ -90,6 +113,14 @@ public class UrlBenchmarks
 		Same("user",   mine.Value!.Authority.User ?? "", match.Groups["user"].Value);
 		Same("port",   mine.Value!.Authority.Port ?? "", match.Groups["port"].Value);
 		Same("query",  mine.Value!.Query          ?? "", match.Groups["query"].Value);
+
+		// And the every-part pair against each other, which is the same rule applied to
+		// what those two actually return: a total over every part, so a benchmark of one
+		// side reading six of them and the other seven is refused rather than timed.
+		if (GrammarEveryPart() != RegexCompiledEveryPart())
+			throw new InvalidOperationException(
+				$"The grammar and the pattern disagree about the total length of the parts of " +
+				$"'{Input}': {GrammarEveryPart()} against {RegexCompiledEveryPart()}.");
 
 		void Same(string part, string ours, string theirs)
 		{
@@ -122,5 +153,47 @@ public class UrlBenchmarks
 		var match = Compiled.Match(Input);
 
 		return match.Success ? match.Groups["host"].Value : null;
+	}
+
+	// ── And the same three asked for every part ──────────────────────────────────
+	//
+	// Summed rather than collected: what is being measured is building each part, and a
+	// list or a concatenation would put its own allocation in front of that. The lengths
+	// are what force every string into existence without adding anything of their own.
+
+	[Benchmark(Description = ".Gram, every part")]
+	public int GrammarEveryPart()
+	{
+		var match = Urls.TryParseUrl(Input);
+
+		if (!match.IsSuccess)
+			return 0;
+
+		var url = match.Value!;
+
+		return url.Scheme.Length + url.Authority.Host.Length + url.Path.Length +
+			(url.Authority.User?.Length  ?? 0) +
+			(url.Authority.Port?.Length  ?? 0) +
+			(url.Query?.Length           ?? 0) +
+			(url.Fragment?.Length        ?? 0);
+	}
+
+	[Benchmark(Description = "Regex, every part")]
+	public int RegexInterpretedEveryPart() => EveryPart(Interpreted.Match(Input));
+
+	[Benchmark(Description = "Regex compiled, every part")]
+	public int RegexCompiledEveryPart() => EveryPart(Compiled.Match(Input));
+
+	static int EveryPart(Match match)
+	{
+		if (!match.Success)
+			return 0;
+
+		var groups = match.Groups;
+
+		return groups["scheme"].Value.Length + groups["host"].Value.Length +
+			groups["path"].Value.Length + groups["user"].Value.Length +
+			groups["port"].Value.Length + groups["query"].Value.Length +
+			groups["fragment"].Value.Length;
 	}
 }

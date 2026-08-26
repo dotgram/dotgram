@@ -328,7 +328,9 @@ Expr = value: Number           => value
 
 A name, a call or a parenthesized C# expression may stand on the right (§2). Captures
 are visible there as ordinary local variables, along with the names the parser supplies
-itself — `parserText`, `parserSpan` and the rest of §8.2's table:
+itself — `parserText`, `parserSpan`, `parserInput` and the rest of §8.2's table. They are
+names of the rule like a capture is, so either form reaches them: `=> @Hold(parserSpan)`
+and `=> @(Hold(parserSpan))` say the same thing.
 
 ```dotgram
 Number : int    = ['0'..'9']+ => @int.Parse(parserText)
@@ -650,37 +652,52 @@ trivia = WhitespaceAndComments
 No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
 itself as `any{0}` rather than by a new primitive.
 
-**Between the operands of a sequence, and nowhere else.** The iterations of a repetition
-are not operands of a sequence, so nothing is inserted between them:
+**At every seam between the operands of a sequence.** The turns of a repetition are such a
+seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how one writes
+`A S A S A`, and the join that wraps around is no different from the ones inside. An author
+who wrote `S & A` has already said that a space may stand between `S` and `A`; refusing one
+between `A` and the next `S` would be the same seam answered two ways.
 
 ```dotgram
 trivia = Whitespace
 
 Pair    = Word & Word            // matches "ab cd"
+List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
 ```
 
-That is not an oversight to be worked around but the thing that makes the notation
-usable at all. A repetition is how a lexeme is written — `Digits = ['0'..'9']+`,
-`Name = Letter+` — and inserting trivia between those iterations would make `1 2` one
-number and `a b` one name in every grammar that ignores whitespace. Nothing can tell the
-two apart automatically: `Word*` and `Digit*` have the same shape, and only the author
-knows which is a list and which is a lexeme.
+**A repetition of a single operand gets nothing**, and that is the whole reason the
+insertion is not unconditional. A repetition is how a lexeme is written —
+`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
+number and `a b` one name in every grammar that ignores whitespace. A single operand has no
+seam inside a turn, so it has none between them either, and the two cases are told apart by
+the same rule rather than by an exception to it.
 
-So the author says which. `trivia` is an ordinary rule and may be named:
+An **optional** is left alone for the same reason: it has no second turn, so it has no seam.
+So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape —
+`(Whitespace | LineComment | BlockComment)*` — from being asked to space itself.
+
+What is left over is a spaced run of a single thing, which nothing can infer: `Word*` and
+`Digit*` have the same shape and only the author knows which is a list. So the author says
+which, and `trivia` is an ordinary rule that may be named:
 
 ```dotgram
-Attributes = Attribute & (trivia & Attribute)*     // a list, spaced
+Attributes = Attribute & (trivia & Attribute)*     // a list of one thing, spaced
 Digits     = ['0'..'9']+                           // a lexeme, not
 ```
 
-The same is true of a run with a separator, where the separator is an operand and the
-spacing around it comes for free:
+A run with a separator needs none of that, because the thing it repeats is a sequence:
 
 ```dotgram
-List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3" — trivia is inserted
-                                                   // either side of `sep`
+List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3"
 ```
+
+This rule is narrower than it once was. It used to be "between the operands of a sequence
+and nowhere else", which spaced only a list's first turn — from the sequence around the
+repetition — and refused a space to the left of the second and every later separator:
+silently, and only from the third item on. It went unnoticed in this document, in the
+README, and in two of the examples until a grammar of this notation was written in it
+(`examples/DotGram.Examples/GramExample.cs`).
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
@@ -1087,18 +1104,27 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
-**The arguments are read by §2, with no exception made for being in an argument list.**
-A bare name is looked up among the grammar's own — a capture, a rule, a parameter — and
-anything of C#'s is reached with `@`:
+**Everything under the `@` is the consumer's own C#, and the grammar does not look
+inside it.** `=> @M(a, b)` and `=> @(M(a, b))` are one construction written two ways:
+both go across as text, so a name in either needs no `@` of its own, and both see the
+same things — the rule's captures and the names of §8.2, which are what the generated
+method takes as parameters.
 
 ```dotgram
-=> @int.Parse(digits, @CultureInfo.InvariantCulture)     // a capture, then a C# name
-=> @(int.Parse(digits, CultureInfo.InvariantCulture))    // or all of it as one expression
+=> @int.Parse(digits, CultureInfo.InvariantCulture)      // a capture, then a C# name
+=> @(int.Parse(digits, CultureInfo.InvariantCulture))    // the same thing, one bracket out
+=> @Hold(parserInput, parserSpan)                        // and the supplied names, likewise
 ```
 
-Both are written the same way in the generated file; which to use is a matter of how
-much of the line is C#. A dotted name written without the `@` is the ordinary mistake
-here, and the compiler says so by name.
+**This is the one place §2's rule stops.** Outside an `@` a bare name is the grammar's —
+a capture, a rule, a parameter — and that is unchanged, including in the argument list of
+a call to a rule. The line is the `@`, not the bracket.
+
+The reason it stops there is worth stating, because the other way was tried: resolving
+names inside a consumer's C# means keeping up with C#, and every construct this compiler
+has not learnt becomes one the language forbids for no reason of its own. What it bought
+was catching a mistyped capture in that one position a little earlier. What it cost was
+two spellings of the same construction that did not accept the same things.
 
 There is one rule to read this by: **syntactic position determines the call shape.**
 `[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#
@@ -1407,6 +1433,7 @@ names are supplied rather than captured:
 | `parserLine`, `parserColumn` | where it starts, for a person, from 1 |
 | `parserPosition` | absolute offset, `long` — for a machine |
 | `parserSpan`, `parserText` | its extent, and the input it covers |
+| `parserInput` | the whole of what was read, `string` — see below |
 | `parserMessage` | why it was rejected — only here, never in a capture |
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
@@ -1415,6 +1442,29 @@ story: the supplied names become parameters of the generated factory for a `=>` 
 would take a name already spoken for. With the prefix nothing an author would naturally
 write collides, and a capture that takes one of these names anyway is refused by name
 rather than by a C# error in a file nobody wrote (GRAM4012).
+
+`parserInput` is the one name here that hands over something the parse did not itself
+produce, and it is what a value that means to cut its own string later is built from:
+`parserSpan` says where, `parserInput` says what to cut it out of. Nothing else offers
+that, because nothing else has to — every other name is about the one element.
+
+```dotgram
+Host : @Text = (Unreserved | SubDelim)+ => @(new Text(parserInput, parserSpan))
+```
+
+**What that buys and what it costs are both the grammar author's to choose.** A value
+built this way is two integers and a reference where an eager one is a built string, so
+a caller who reads one part of seven pays for one; and it keeps the whole input alive
+for as long as any part of the result lives, which for three names lifted out of a large
+document is the document. `Regex` makes exactly this bargain — a `Match` holds its input
+— and it is invisible until somebody parses something large. The generator does not
+choose a default here: `: @string` is the eager form, `: @SourceSpan` is the extent with
+no string at all, and this is the middle one, said in the grammar rather than settled
+for everybody by a switch.
+
+A rule asking for it gets no overload taking a reader, and is told so (§6.3, GRAM5001).
+A stream is what having no whole input is called: a window holds the part being read,
+and that is not what this name means.
 
 `parserOrdinal` and `parserLine` are not the same number and neither substitutes for
 the other: a header shifts the first record off line one, a record may span lines,
@@ -1549,50 +1599,32 @@ if (!FeedGrammar.TryParseFeed(text, out var value, out var error, out var pos))
 
 ## 10. The grammar of `.gram` itself
 
-A consistency check: all the notation above is parsed by this grammar with no more
-than two tokens of lookahead.
+A consistency check, and a real one: the notation above is parsed by a grammar written
+in itself, with no more than two tokens of lookahead.
 
-```dotgram
-File        = Using* & Declaration*
-Using       = ("@using" | "using") & QualifiedName & ';'
+That grammar is not printed here, because a printed one is not checked.
+`examples/DotGram.Examples/GramExample.cs` holds it, this generator compiles it, and
+`ExampleTests.The_notation_reads_its_own_corpus` runs it over every grammar in this
+repository — the snapshots on disk and the text of every `[Gram]` in the examples
+assembly, which a new grammar joins without anyone remembering to add it.
 
-Declaration = Namespace | Publication | Rule
-Namespace   = "namespace" & Identifier & With? & '{' & Using* & Declaration* & '}'
-Rebindings  = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
-Rebinding   = Identifier & '=' & Identifier
-Publication = ("parse" | "find") & QualifiedName & With? & ("as" & Identifier)?
+What a printed sketch cost, before there was a running one: it named seven things it
+never defined, left comments out of the language entirely, omitted `@(...)` from
+`Primary` although the parser has always accepted it there, and wrote its separated
+lists in the form §4.5 now warns about. None of that could be seen by reading it.
 
-Rule        = Identifier & Parameters? & (':' & Type)? & '=' & Body
-Parameters  = '(' & (Parameter & (',' & Parameter)*)? & ')'
-Parameter   = Identifier & (':' & Type)?
-Type        = Reference & "[]"?
+Two things in the running grammar are worth knowing about, since neither is visible in
+a production list:
 
-Body        = Alternative & ('|' & Alternative)*
-Alternative = Sequence & Binding? & ("=>" & Value)?
-Binding     = ("<<" | ">>") & Int
-Sequence    = Operand & ('&' & Operand)*
-Operand     = Guard | Quantified
-Guard       = "when" & Value
+* **The lexical rules sit in a namespace with `trivia = none`** (§4.5), so an identifier
+  is letters with nothing allowed between them while everything outside is spaced and
+  commented freely.
 
-Quantified  = Prefixed & Quantifier? & Recovery? & With?
-Quantifier  = '?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}'
-Recovery    = "recover" & Prefixed & ("=>" & Value)?
-With        = "with" & Rebindings
-Count       = Int | Identifier
-Prefixed    = ("?=" | "?!")? & Captured
-Captured    = (Identifier & ':')? & Primary
-Primary     = Char | String | ElementSet | Call | Reference | '(' & Body & ')' | '{' & Body & '}'
+* **`@(...)` is not recognized by the grammar at all.** Finding the parenthesis that
+  closes it means knowing C#'s own strings and comments, which no grammar can do; the
+  rule is a bare external recognizer (§7.1) that reads the input itself. What follows
+  is about that seam.
 
-Value       = CsExpr | Call | Reference
-CsExpr      = "@(" & Balanced & ')'
-Call        = Reference & '(' & (Argument & (',' & Argument)*)? & ')'
-Argument    = Value | Char | String | ElementSet
-Reference   = '@'? & QualifiedName & TypeArgs?
-TypeArgs    = '<' & Type & (',' & Type)* & '>'
-ElementSet  = '[' & '^'? & ElemAlt & ('|' & ElemAlt)* & ']'
-ElemAlt     = Char & (".." & Char)? | UnicodeCategory | Reference
-UnicodeCategory = "\p{" & Identifier & '}'
-```
 
 `@(` is the only place in the whole language holding raw C# text, and the only one
 needing a foreign lexer. Everything else with `@` (`@Name`, `@Name.Name`, `@Name<T>`,
@@ -1636,10 +1668,25 @@ None of what follows changes the notation described above.
   them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
-  where one literal alternative is a prefix of another. `"http" | "https"` matches
-  `https` perfectly well: `"http"` is tried, whatever follows the choice fails, and the
-  match returns and tries `"https"`. A prefix does not shadow anything, because
-  backtracking is what ordered choice means here.
+  where one literal alternative is a prefix of another. A prefix does not shadow
+  anything, because backtracking is what ordered choice means here.
+
+  The rule is **the first alternative that succeeds**, and what counts as succeeding is
+  the directive's business rather than the choice's. `parse` needs the whole input, so
+  a shorter alternative that leaves a character over is not a success and the choice is
+  tried again:
+
+  ```dotgram
+  A = "http" | "https"
+
+  parse A as WholeA      // WholeA("https") is "https"
+  find  A as EveryA      // EveryA("https") yields "http"
+  ```
+
+  `find` asks for an occurrence, and `"http"` at that position is one — so it is the
+  answer, and reading goes on from the `s`. Both follow the same rule; they differ in
+  what they are asking for. Where the longer reading is the one wanted, write it first:
+  `"https" | "http"` answers `https` to both.
 
   Reordering by length looks like the obvious fix to a problem that is not there, and
   would not be one anyway: it produces a different grammar rather than a corrected one.

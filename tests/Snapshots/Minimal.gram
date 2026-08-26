@@ -1,9 +1,45 @@
-// The smallest grammar there is — one literal, one publication, no captures, no
-// alternatives, nothing to backtrack into. The baseline for the ongoing work on what a
-// capture costs (benchmarks/README.md, "What captures cost"): every step from here adds
-// exactly one thing, and Minimal.gram.g.cs is where the diff shows what that one thing
-// cost in generated code.
+// The smallest grammar there is, and the smallest step up from it, in one file so that
+// the two are read against each other.
+//
+// `A` is one character: a room check and a comparison, folded into a single `if` because
+// they fail the same way. `B` is four, which is a different shape entirely — one span
+// comparison the JIT folds into a single 64-bit `cmp`, with the position of the character
+// that did not fit worked out afterwards, on the branch that comparison already failed.
+//
+// Nothing else differs between them, so the diff between those two methods is exactly
+// what the extra three characters cost.
+//
+// `C` and `D` are the same three literals in two orders, and the diff between their
+// methods is what the order costs. `D` is written longest-first: each text is decided
+// where it differs from the ones before it, nothing is written down to come back to,
+// and the whole rule is silent and lowered. `C` puts `"http"` in front of `"https"`,
+// so the shorter takes the position wherever the longer would have and the choice
+// needs a way back — which is the arena, and the engine, and everything under it.
+//
+// Both accept the same input under `parse`, which reads to the end and comes back for
+// the other alternative when the first leaves a character over. `find` is where the
+// order changes the answer rather than the price, and is why §11 promises the
+// alternatives are never reordered.
+//
+// `E` and `F` are the two orders again with something after them that can spend the
+// character the longer alternative would have taken, so both need a way back and
+// neither is lowered. They are here for the way back itself, and the two are not the
+// same: in `E` the later alternative continues the earlier one, so the way back is
+// written past what already matched and reads one character. In `F` the earlier is
+// the longer, which is the direction the texts cannot settle on their own, and the
+// general machinery compiles it — one state per alternative, each comparing its own
+// text from the beginning.
 
 A = "a"
+B = "abcd"
+C = "http" | "https" | "ftp"
+D = "https" | "http" | "ftp"
+E = ("http" | "https") & "s"
+F = ("https" | "http") & "s"
 
 parse A
+parse B
+parse C
+parse D
+parse E
+parse F

@@ -141,7 +141,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit(grammar);
 		var input  = string.Concat(Enumerable.Repeat("abc", depth)) + "abx";
 
-		Assert.Contains("enter B", source);
+		Assert.Contains("call B", source);
 		Assert.True(EmittedCode.Match(EmittedCode.Compile(source), "Grammar", "TryParseA", input).IsSuccess);
 	}
 
@@ -157,7 +157,10 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.Equal(1, source.Split(["enter Name"], StringSplitOptions.None).Length - 1);
+		// Three call sites, and a rule that is called at all is a rule with a block: one
+		// that keeps nothing is compiled where it is called and has no call site to count,
+		// which is the test below.
+		Assert.Equal(3, source.Split(["call Name"], StringSplitOptions.None).Length - 1);
 		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
 		Assert.Contains("Debug.Assert", source);
 	}
@@ -177,7 +180,6 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.DoesNotContain("enter Name", source);
 		Assert.DoesNotContain("call Name", source);
 	}
 
@@ -221,6 +223,50 @@ public sealed class CSharpEmitterTests
 		Assert.Contains(
 			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
 		Assert.True(Run(grammar, "abc").Matched);
+	}
+
+	[Fact]
+	public void Unless_the_longer_comes_first_and_nothing_can_follow_where_the_shorter_would_stand()
+	{
+		// Taking "https" and failing later would leave "http" standing at the 's' the longer
+		// went on with — and "://" does not begin with one, so the shorter reading fails
+		// wherever it is tried. An entry that leads only to a failure is one nothing needs.
+		const string grammar = """Start = ("https" | "http" | "ftp") & "://" """;
+
+		Assert.DoesNotContain(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "https://").Matched);
+		Assert.True(Run(grammar, "http://").Matched);
+		Assert.True(Run(grammar, "ftp://").Matched);
+		Assert.False(Run(grammar, "htt://").Matched);
+	}
+
+	[Fact]
+	public void The_shorter_written_first_is_still_a_reading_to_come_back_for()
+	{
+		// The same pair the other way round. "http" is taken first, and coming back for the
+		// second alternative is the only thing that can ever match the extra character —
+		// docs/syntax.md §11 promises alternatives are never reordered, so this is a fact
+		// about the grammar as written and not one to optimize away.
+		const string grammar = """Start = ("http" | "https") & "://" """;
+
+		Assert.Contains(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "https://").Matched);
+		Assert.True(Run(grammar, "http://").Matched);
+	}
+
+	[Fact]
+	public void Nor_where_what_follows_can_begin_where_the_shorter_would_stand()
+	{
+		// Longer first, but 'b' is exactly the character "ab" went on with, so taking it and
+		// failing leaves "a" standing somewhere 'b' can begin: a real second reading, and
+		// the entry is what reaches it.
+		const string grammar = """Start = ("ab" | "a") & 'b' """;
+
+		Assert.Contains(
+			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.True(Run(grammar, "ab").Matched);
 	}
 
 	[Fact]
@@ -719,15 +765,16 @@ public sealed class CSharpEmitterTests
 		// splits on — they arrive indented once and flat after that. The code still
 		// compiles, so nothing but this notices.
 		// In a namespace, so the depth every one of them sits at is two and not "whatever
-		// the class happened to be nested at". Deliberately not silent — "ab" and "a" share
-		// a first character, so this needs the arena and the Parser it asks about below —
-		// or the whole engine, Parser included, is exactly what a fully silent grammar no
-		// longer pays for.
+		// the class happened to be nested at". Deliberately not silent — the shorter literal
+		// is written first, so it takes the position wherever the longer would have and the
+		// choice needs a way back, which is what asks for the arena and the Parser below.
+		// The other order lowers, and the whole engine, Parser included, is what a silent
+		// grammar no longer pays for.
 		var source = Assert.Single(GramCompiler.Compile(
-			"Start = (\"ab\" | \"a\") & 'c'\nparse Start",
+			"Start = (\"a\" | \"ab\") & 'c'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
-		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\tprivate Match(", source);
+		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);
 		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\t/// <summary>",                    source);
 		Assert.Contains("\t\tprivate sealed class Parser\r\n\t\t{\r\n", source);
 	}
@@ -869,6 +916,38 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_construction_asking_for_the_whole_input_gets_no_reader_overload()
+	{
+		// `parserInput` is the input, and a stream is what having no input to hand over is
+		// called: a window holds the part being read, and the part it holds is not what a
+		// construction asking for this means (§6.3, §8.2). Refused rather than handed the
+		// window's own text, which would be one name meaning two different things and the
+		// wrong one silently.
+		var source = Emit(
+			"Start : @Held = 'a'+ => @(new Held(parserInput))\nfind Start");
+
+		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_says_which_rule_asked_for_it()
+	{
+		var result = GramCompiler.Compile(
+			"Start : @Held = 'a'+ => @(new Held(parserInput))\nfind Start",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		var told = Assert.Single(result.Diagnostics);
+
+		Assert.Equal(Retention.NotStreamable, told.Id);
+		Assert.Equal(GramSeverity.Info,       told.Severity);
+		Assert.Contains("parserInput", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void And_is_told_so_where_it_asked()
 	{
 		// The alternative is what the author actually meets: a call that does not bind,
@@ -973,7 +1052,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Matches(
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""\\""http\\""i"" \};", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 3]) != 'P'", source);
 	}
 
@@ -988,8 +1067,64 @@ public sealed class CSharpEmitterTests
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = " +
 			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
 			source);
-		Assert.Contains("text[p + 0] != 'h'", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 0]) != 'H'", source);
+		Assert.Contains("AsSpan(\"http\")", source);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
+	}
+
+	// ── A capture that can open before it closes ─────────────────────────
+
+	/// <summary>
+	/// A text capture in a rule that can reach itself keeps its start in the arena.
+	/// </summary>
+	/// <remarks>
+	/// A variable is right for as long as nothing opens the same capture between the
+	/// opening and the close. A rule that can reach itself does exactly that, and the half
+	/// no variable can get right is the failed inner attempt: backtracking puts the arena
+	/// back and nothing else, so the start left behind is a position the parse has already
+	/// given up. The outer close then reads it and the span comes back inside out — which
+	/// is an exception out of the materializer, not a parse that answers wrongly.
+	/// </remarks>
+	[Fact]
+	public void A_capture_that_can_reopen_keeps_its_start_where_backtracking_can_reach_it()
+	{
+		var source = Emit("Start = text: ('a' & Start?)");
+
+		Assert.Contains("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("var capture0 = 0;", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>The same rule, not recursive: nothing can reopen it, and the variable stays.</summary>
+	[Fact]
+	public void A_capture_that_cannot_reopen_still_keeps_its_start_in_a_variable()
+	{
+		var source = Emit("Start = text: ('a' & 'b')");
+
+		Assert.Contains("capture0 = p;", source);
+		Assert.DoesNotContain("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+	}
+
+	// ── A literal a later alternative continues ─────────────────────────────────
+
+	[Fact]
+	public void The_way_back_to_a_longer_alternative_is_written_past_what_already_matched()
+	{
+		var source = Emit("Start = QhttpQ | QhttpsQNparse Start".Replace("Q", "\"").Replace("N", "\n"));
+
+		// The order of these two lines is the whole optimization. An arena entry records
+		// the position as it stands, so pushing after the advance means what resumes there
+		// resumes past the four characters `"http"` matched — and the state it names
+		// compares the fifth alone. Pushed before, it would resume at the start and compare
+		// `"https"` from its first character.
+		Assert.Matches(
+			@"p \+= 4;\s*entries\.Add\(new ParserEntry\(ParserEntry\.Choice,", source);
+
+		Assert.Matches(@"text\[p\] == 's'\)\s*\{\s*p \+= 1;", source);
+
+		// And the longer text is never compared as a text at all: it is not in the
+		// falling-through chain, because it begins with one tested above it, and where
+		// the way back names it only the one character it adds is read.
+		Assert.DoesNotContain("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
 	}
 
 	// ── Position sharpening: the character that failed, not the operand's start ──
@@ -999,12 +1134,18 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("""Start = "abcd" """);
 
-		// The first character needs no adjustment — p is already there — so its own
-		// failure branch has no `p +=` line at all; every later one advances p by its
-		// own offset before the jump, never by anyone else's.
-		Assert.Matches(@"if \(text\[p \+ 0\] != 'a'\)\s*\{\s*expected", source);
-		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*\{\s*p \+= 1;", source);
-		Assert.Matches(@"if \(text\[p \+ 2\] != 'c'\)\s*\{\s*p \+= 2;", source);
-		Assert.Matches(@"if \(text\[p \+ 3\] != 'd'\)\s*\{\s*p \+= 3;", source);
+		// The literal is one comparison, so where it went wrong is worked out afterwards,
+		// inside the branch that comparison already failed. The first character needs no
+		// adjustment — p is already there — and the last needs no test: if every earlier
+		// one matched and the whole did not, it is the one.
+		Assert.Contains(
+			"if (!global::System.MemoryExtensions.SequenceEqual(" +
+			"text.Slice(p, 4), global::System.MemoryExtensions.AsSpan(\"abcd\")))",
+			source, StringComparison.Ordinal);
+
+		Assert.Matches(@"if \(text\[p\] == 'a'\)", source);
+		Assert.Matches(@"if \(text\[p \+ 1\] != 'b'\)\s*p \+= 1;", source);
+		Assert.Matches(@"else if \(text\[p \+ 2\] != 'c'\)\s*p \+= 2;", source);
+		Assert.Matches(@"else\s*p \+= 3;", source);
 	}
 }

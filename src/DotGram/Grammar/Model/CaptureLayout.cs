@@ -203,11 +203,7 @@ public sealed record Recovery(Node Sync, string? Factory)
 	/// Supplied rather than captured: a broken element captured nothing, so everything the
 	/// factory can be told about it is known here and nowhere else.
 	/// </remarks>
-	public static readonly IReadOnlyList<string> Supplied =
-		[
-			"parserText", "parserPosition", "parserOrdinal",
-			"parserLine", "parserColumn",   "parserSpan", "parserMessage",
-		];
+	public static IReadOnlyList<string> Supplied => SuppliedNames.All;
 
 	/// <summary>
 	/// Which of <see cref="Supplied"/> this factory asked for, in that order.

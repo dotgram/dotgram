@@ -18,6 +18,17 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 sealed partial class Machine
 {
+	/// <summary>
+	/// The walk, as a method of its own rather than written out wherever a parse accepts.
+	/// </summary>
+	/// <remarks>
+	/// Emitted for every grammar that builds anything, not only for one whose guards read a
+	/// value mid-parse. The automaton is one method and the walk is large; leaving it inline
+	/// grew the one method whose size docs/next.md's "Future optimization gate" measured as
+	/// the thing still worth moving. Naming it also lets a profiler say what materialization
+	/// costs, which nothing could while it was part of a method that is also the whole
+	/// recognizer.
+	/// </remarks>
 	void EnsureMaterializer()
 	{
 		if (_materializer)
@@ -28,9 +39,9 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			"static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			"ParserArena entries)"))
-			Materialize(helper, cached: true);
+			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			$"ParserArena entries{InputParameter})"))
+			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
 	}
@@ -74,23 +85,75 @@ sealed partial class Machine
 		// A transparent rule may have completed before a surrounding path backtracked and
 		// selected another derivation. Such completed entries can remain useful as history,
 		// but only calls reached through RuleCapture from the accepted root may run user
-		// construction code. Call entries precede their children, so one forward pass marks
-		// the complete accepted value tree without recursion or another typed collection.
+		// construction code.
+		//
+		// Two shapes, and which one applies is the same question `cached` already answers:
+		// what the marks mean when this is entered.
+		//
+		// Without caching this runs once, at `Accept:`, and the root call is the only thing
+		// marked — so the accepted value tree can be reached from it, and the calls it
+		// reaches kept rather than looked for a second time. A URL scans twenty-odd entries
+		// twice to act on two.
+		//
+		// With caching a `when` guard calls this mid-parse, having marked whichever values
+		// its own condition asks for: the marked set is then not reachable from the root
+		// and not knowable without looking, so the scan is still what finds it. Seeding a
+		// walk from the root there would silently build a different set from the one the
+		// guard asked about, which is the sort of thing the guard tests in
+		// `GeneratorDriverTests` exist to catch, and did.
 		file.Line();
-		if (!cached)
-			file.Line("values[0] = parser;");
-		using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
-		{
-			file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
 
-			using (file.Block(
-				"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
-				"capturedAt = linkNexts[capturedAt])"))
+		if (cached)
+		{
+			using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
 			{
-				file.Line("var candidate = entries[capturedAt];");
-				file.Line("if (candidate.Kind == ParserEntry.RuleCapture" +
-					(cached ? " && !built[candidate.Position]" : "") + ")");
-				file.Then("values[candidate.Position] = parser;");
+				file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
+
+				using (file.Block(
+					"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line("if (candidate.Kind == ParserEntry.RuleCapture && !built[candidate.Position])");
+					file.Then("values[candidate.Position] = parser;");
+				}
+			}
+		}
+		else
+		{
+			file.Line("values[0] = parser;");
+			file.Line();
+			file.Line("var owners     = parser.MaterializationOwners();");
+			file.Line("var ownerCount = 0;");
+			file.Line();
+			file.Line("owners[ownerCount++] = 0;");
+			file.Line();
+
+			// Grows while it is walked, which is the whole of the breadth-first order: a
+			// call appended here is one whose own captures have not been looked at yet.
+			// The mark doubles as the guard against keeping the same call twice — a scan
+			// visits an index once however many ways it was reached, and a list would
+			// otherwise run that call's `=>` once per way.
+			using (file.Block("for (var ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++)"))
+			{
+				file.Line("var ownerAt = owners[ownerIndex];");
+				file.Line();
+
+				using (file.Block(
+					"for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line();
+
+					using (file.Block(
+						"if (candidate.Kind == ParserEntry.RuleCapture && " +
+						"!global::System.Object.ReferenceEquals(values[candidate.Position], parser))"))
+					{
+						file.Line("values[candidate.Position] = parser;");
+						file.Line("owners[ownerCount++] = candidate.Position;");
+					}
+				}
 			}
 		}
 
@@ -116,9 +179,26 @@ sealed partial class Machine
 			}
 		}
 
-		using (file.Block(
-			"for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"))
+		// A value has to be built before the call that reads it is, and both shapes say so
+		// the same way round, by different means.
+		//
+		// The list was built outwards from the root, so back to front is every child before
+		// its parent whatever the arena looks like. Descending index says the same only
+		// because a child's call is written after its parent's — true, and true by an
+		// invariant a walk over a list does not have to depend on.
+		//
+		// The kind and the mark are tested in both: one compare each against something
+		// already in hand, and neither is a fact this walk is the right place to be
+		// certain about.
+		file.Line();
+
+		using (file.Block(cached
+			? "for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"
+			: "for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)"))
 		{
+			if (!cached)
+				file.Line("var completedAt = owners[ownerIndex];");
+
 			file.Line("var completed = entries[completedAt];");
 			file.Line(
 				"if (completed.Kind != ParserEntry.Completed || " +
@@ -126,7 +206,7 @@ sealed partial class Machine
 				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
-				foreach (var rule in _graph.Rules)
+				foreach (var rule in _rules)
 					if (ValueRule(rule) >= 0)
 						MaterializeRule(file, rule);
 
@@ -190,7 +270,7 @@ sealed partial class Machine
 	{
 		using (file.Block("switch (rootRule)"))
 		{
-			foreach (var rule in _graph.Rules)
+			foreach (var rule in _rules)
 			{
 				if (ValueRule(rule) < 0)
 					continue;
@@ -272,18 +352,99 @@ sealed partial class Machine
 				return;
 			}
 
+			// One walk of a call's captures, not one per member. The list is chained through
+			// `linkNexts`, so every step of it is a load from somewhere else in the arena
+			// again — walking it once per member had a rule of five members chase the same
+			// pointers five times. `MaterializationCost.cs` is what said this was worth
+			// finding: of what captures cost, seven eighths is this machinery and one
+			// eighth is the strings it ends in.
+			//
+			// A sequence member keeps two walks of its own. It has to count before it can
+			// fill, which is a different shape from collecting one position, and merging it
+			// in would mean counting for members that are not sequences.
+			var scalars = new List<int>();
+
 			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
 			{
 				var member = members[memberIndex];
-				var slots  = new List<string>(member.Slots.Count);
 
-				foreach (var slot in member.Slots)
-					slots.Add($"candidate.State == {offset + slot}");
+				if (member is { Rule: not null, IsSequence: true })
+					continue;
+
+				scalars.Add(memberIndex);
+
+				if (member.Rule is not null)
+					file.Line($"var captured{memberIndex}At = -1;");
+				else
+				{
+					file.Line($"var captured{memberIndex}From = -1;");
+					file.Line($"var captured{memberIndex}To   = -1;");
+				}
+			}
+
+			if (scalars.Count > 0)
+			{
+				using (file.Block(
+					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])"))
+				{
+					file.Line("var candidate = entries[capturedAt];");
+					file.Line();
+
+					// A slot belongs to one member, so the state that names it is a jump
+					// rather than a run of comparisons. The kind is still tested inside:
+					// a `Recovery` entry's own state numbering is not a capture slot's, and
+					// nothing says the two cannot land on the same number.
+					using (file.Block("switch (candidate.State)"))
+						foreach (var memberIndex in scalars)
+						{
+							var member = members[memberIndex];
+
+							foreach (var slot in member.Slots)
+								file.Line($"case {offset + slot}:");
+
+							using (file.Indent())
+							{
+								if (member.Rule is not null)
+								{
+									// First in list order, which is what breaking out of a
+									// walk of its own used to mean.
+									file.Line(
+										"if (candidate.Kind == ParserEntry.RuleCapture && " +
+										$"candidate.CallIndex == completedAt && captured{memberIndex}At < 0)");
+									file.Then($"captured{memberIndex}At = candidate.Position;");
+								}
+								else
+									using (file.Block(
+										"if (candidate.Kind == ParserEntry.Capture && " +
+										"candidate.CallIndex == completedAt)"))
+									{
+										file.Line($"if (captured{memberIndex}To < 0)");
+										file.Then($"captured{memberIndex}To = candidate.Value;");
+										file.Line($"captured{memberIndex}From = candidate.Position;");
+									}
+
+								file.Line("break;");
+							}
+						}
+				}
+
+				file.Line();
+			}
+
+			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+			{
+				var member = members[memberIndex];
 
 				if (member.Rule is not null)
 				{
 					if (member.IsSequence)
 					{
+						var slots = new List<string>(member.Slots.Count);
+
+						foreach (var slot in member.Slots)
+							slots.Add($"candidate.State == {offset + slot}");
+
 						var element = _results.ValueOf(member.Rule);
 						var recovered = new List<string>();
 
@@ -340,23 +501,6 @@ sealed partial class Machine
 						continue;
 					}
 
-					file.Line($"var captured{memberIndex}At = -1;");
-
-					using (file.Block(
-						$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
-						$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
-					{
-						file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-
-						using (file.Block(
-							$"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
-							$"({string.Join(" || ", slots)}))"))
-						{
-							file.Line($"captured{memberIndex}At = candidate.Position;");
-							file.Line("break;");
-						}
-					}
-
 					var capturedType = _results.ValueOf(member.Rule);
 
 					if (!member.IsOptional)
@@ -371,25 +515,6 @@ sealed partial class Machine
 					file.Line();
 
 					continue;
-				}
-
-				file.Line($"var captured{memberIndex}From = -1;");
-				file.Line($"var captured{memberIndex}To   = -1;");
-
-				using (file.Block(
-					$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
-					$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
-				{
-					file.Line($"var candidate = entries[capturedAt{memberIndex}];");
-
-					using (file.Block(
-						$"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
-						$"({string.Join(" || ", slots)}))"))
-					{
-						file.Line($"if (captured{memberIndex}To < 0)");
-						file.Then($"captured{memberIndex}To = candidate.Value;");
-						file.Line($"captured{memberIndex}From = candidate.Position;");
-					}
 				}
 
 				file.Line(
@@ -448,6 +573,9 @@ sealed partial class Machine
 						arguments.Add(
 							"new SourceSpan(" +
 							"completed.Position, completed.Value - completed.Position)");
+
+					if (CSharpEmitter.Asks(factory, "parserInput"))
+						arguments.Add("parserInput");
 
 					foreach (var member in factory.Members)
 					{

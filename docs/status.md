@@ -1330,21 +1330,44 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Re-measured 2026-08-25, `DefaultJob`, pooled parser, after the
-deferred-`Expected` change: generated parsing beats `RegexOptions.Compiled` on three of
-the five benchmarked inputs — 163.7 ns against 257.4 ns for the short URL, 148.2 against
-243.8 for the IP-host form, 318.9 against 553.0 for the 84-character path — and loses on
-two: 131.5 against 103.8 ns on the refusal (expected; `benchmarks/README.md` says why —
-refusal is where a backtracking engine does its worst work), and 336.8 against 260.7 ns on
-the one input that exercises every named part, which is the input that materializes the
-most values and the likeliest place to look next. Against interpreted `Regex`, faster on
-every input, by 1.7× to 5.1×.
+every input. Re-measured 2026-08-25, pooled parser, after the predicted-dispatch change:
+**generated parsing is faster than `RegexOptions.Compiled` on all five benchmarked inputs**
+— 133.8 ns against 298.9 for the short URL, 146.9 against 285.4 for the IP-host form, 80.2
+against 113.5 on the refusal, 191.0 against 453.0 for the 84-character path, and 274.4
+against 278.0 on the one that exercises every named part. Against interpreted `Regex`,
+2.2× to 6.5×.
 
-Read the ratios rather than the nanoseconds when comparing against an earlier run: the
-BCL's own numbers moved between these two runs by as much as a third, on code neither
-change touched, so the machine and not the compiler is what the absolute figures are
-measuring. Against that control the deferred-`Expected` change improved every one of the
-five — 1.30→1.57, 1.30→1.64, 0.73→0.79, 0.75→0.78, 1.50→1.73.
+That last one has been both sides of parity within a day: 1.12× before the predicted-dispatch
+change, 0.99× after — that change removes work on every input and lost this one to
+profile-guided block layout anyway — and 1.01× once a literal became one span comparison. A
+few per cent on this input is layout as often as it is work, and means nothing without the
+`DOTNET_TieredPGO=0` check beside it. `docs/next.md` has both.
+
+**Measured with `--against` rather than `DefaultJob`**, and the difference matters for a
+ratio. BenchmarkDotNet runs each case in a process of its own, one after another, so
+`.Gram` is timed at one minute and `Regex` at another; `--against` runs all six round-robin
+in one process, so what the machine does to one measurement it does to the five beside it.
+Three `DefaultJob` runs in a row had to be discarded here — the benchmark's own two rows
+that must agree came out 21% and 28% apart — while `--against` came through the same
+conditions with spreads under 6% and two runs agreeing to within 0.05 on every ratio. The
+absolute nanoseconds are about a tenth higher than the last quiet-machine table, on both
+engines; that is the machine.
+
+**Those five ask each side for one part, which is the pattern's question and not this
+one's.** A group records where a capture was and cuts its string when somebody reads it;
+a publication hands back a record with all seven parts already inside it. Asked instead
+for every part — the honest form of this project's question, and the second pair the
+benchmark now times — the same five come out 2.71×, 2.62×, 1.39×, 2.52× and 1.65× faster
+than the compiled pattern. Reading all seven costs this nothing measurable, because they
+were built before the call returned; it costs the pattern 32% to 49% and 32 to 208 bytes
+more. Neither pair is the honest one on its own, the first flattering the pattern and the
+second flattering this, and `benchmarks/README.md` carries both tables for that reason.
+
+Read the ratios rather than the nanoseconds when comparing against an earlier run, and
+only for the inputs stable enough to compare at all: the shortest ones move by 9% to 14%
+between runs of one unchanged binary, and the BCL's own numbers have moved by as much as a
+third between runs, on code no change of ours touched. Three repetitions is not enough on
+this machine, and `docs/next.md` records what believing three of them cost.
 
 **Allocation** is not at parity and has not been since the parser began to be kept between
 parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the

@@ -49,7 +49,8 @@ namespace DotGram.Examples;
 
 	trivia = [' ' | '\t' | '\r' | '\n']*
 
-	// §4.2: written once, specialized per call site.
+	// §4.2: written once, specialized per call site. Spaced on every turn without
+	// saying so, because what it repeats is a sequence (§4.5).
 	List(item, sep) : item[] = item & (sep & item)*
 
 	Json : @JsonValue = value: Value & eof => @(value)

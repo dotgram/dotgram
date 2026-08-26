@@ -29,12 +29,35 @@ sealed partial class Machine
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RuleSymbol> _owners = new(NodeIdentity.Instance);
 	readonly HashSet<int> _textCaptures = [];
+
+	/// <summary>
+	/// The text captures whose start cannot be held in a variable.
+	/// </summary>
+	/// <remarks>
+	/// A capture records where it began at its opening and where it ended at its close, and
+	/// a variable between the two is right for as long as nothing opens the same capture in
+	/// between. A rule that can reach itself does exactly that: the inner opening overwrites
+	/// the outer's start, and — the half that a variable can never get right — a failed
+	/// inner attempt leaves its start behind, because backtracking restores the arena and
+	/// nothing else. The outer then closes with a start from a position the parse has
+	/// already given back, and its span comes back with its end before its beginning.
+	/// </remarks>
+	readonly HashSet<int> _nestedCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
 	readonly List<RecoveryPlan> _recoveryPlans = [];
 	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
 	readonly List<string> _extra = [];
+
+	/// <summary>Every array declared, by name, in the order they were asked for.</summary>
+	readonly List<(string Name, string Declaration)> _expected = [];
+
+	/// <summary>The names something actually wrote into a state.</summary>
+	readonly HashSet<string> _expectedUsed = [];
+
+	/// <summary>One name per distinct set, so the same list is not written out twice.</summary>
+	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
 	int _expectedCount;
 	readonly ILineMap? _lines;
 	readonly bool _starves;
@@ -54,21 +77,41 @@ sealed partial class Machine
 	/// dispatcher is what would otherwise take back what was written. <see cref="Silent"/>
 	/// is the test for that, and it is the only thing that sets this.
 	/// </remarks>
+	/// <summary>The rules this machine is built from — see the constructor's <c>only</c>.</summary>
+	readonly IReadOnlyCollection<RuleSymbol> _rules;
+
+	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
+	readonly string _tag;
+
 	int _fail = Fail;
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
 	int _captures;
 
-	public Machine(RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false)
+	/// <param name="only">
+	/// The rules this machine compiles, or null for all of them. A machine is built for one
+	/// published rule and what that rule reaches, so a grammar with several publications has
+	/// several machines and none of them carries the others' states.
+	/// </param>
+	/// <param name="tag">
+	/// What distinguishes this machine's method and array names from another's in the same
+	/// file. Empty where there is only one, so a grammar with a single publication is
+	/// compiled to exactly the names it always was.
+	/// </param>
+	public Machine(
+		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
+		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "")
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
+		_tag = tag;
+		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
@@ -90,7 +133,14 @@ sealed partial class Machine
 					if (node is not Node.Capture(_, Node.Lookahead) &&
 						(node is not Node.Capture(_, Node.Call(var called, _)) ||
 						graph.Results[called].Count == 0 && !graph.Types.ContainsKey(called)))
+					{
 						_textCaptures.Add(slot);
+
+						// Where the rule can reach itself, this capture can be opened again
+						// before it closes, and one variable cannot hold two starts.
+						if (graph.Recursive.Contains(rule))
+							_nestedCaptures.Add(slot);
+					}
 				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node);
@@ -111,15 +161,25 @@ sealed partial class Machine
 			}
 		}
 
-		for (var i = 0; i < graph.Rules.Count; i++)
-		{
-			var rule = graph.Rules[i];
+		var ruleIndex = 0;
 
-			_ruleIds[rule] = i;
+		foreach (var rule in _rules)
+		{
+
+			_ruleIds[rule] = ruleIndex++;
 			_entries[rule] = Reserve(out _);
 		}
 
 		_plan    = ExecutionPlan.Of(graph);
+
+		foreach (var rule in _rules)
+			if (graph.Bodies.TryGetValue(rule, out var checking))
+				foreach (var node in NodeWalk.Descendants(checking))
+					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
+						built.Contains("parserInput"))
+					{
+						UsesInput = true;
+					}
 
 		CollectValueTypes();
 
@@ -128,19 +188,31 @@ sealed partial class Machine
 		// and that is only known once every one of them has been looked at.
 		_follow = FollowSets.Of(graph);
 
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
 
-			entry.Line($"Trace(\"enter {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
+			// Nothing but the jump, so that `JumpOnly` can collapse this state away and the
+			// callers reach the body directly. It used to trace here as well, which said
+			// twice what the call site already says once — `Trace("call R", …)` sits
+			// immediately before the jump in — and cost every rule a state, a dispatch case
+			// and a block for the second saying of it. What the trace loses is the root
+			// entry, which is not reached from a call site; that one is written once at the
+			// top of the method instead.
 			entry.Line($"goto {Label(body)};");
 		}
 	}
 
-	static bool HasTypedGuards(RecognitionGraph graph)
+	/// <summary>Whether any rule this machine compiles has a guard that reads a value.</summary>
+	/// <remarks>
+	/// Asked of this machine's own rules rather than of the whole grammar: the incremental
+	/// materializer it turns on is machinery a machine whose rules never ask for a value
+	/// mid-parse has no use for, and a sibling machine's guard is not its business.
+	/// </remarks>
+	bool HasTypedGuards(RecognitionGraph graph)
 	{
-		foreach (var rule in graph.Rules)
+		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
@@ -182,7 +254,30 @@ sealed partial class Machine
 		throw new InvalidOperationException("A construction has no factory.");
 	}
 
-	public IReadOnlyList<string> Extra => _extra;
+	/// <summary>
+	/// What the machine needs beside its methods — helper methods, and the arrays a
+	/// terminal failure names.
+	/// </summary>
+	/// <remarks>
+	/// An array is written only where something reached <see cref="EmitTerminalFailure"/>
+	/// with its name. A site may declare one and then not fail that way — a shared-prefix
+	/// run that turns out settled writes neither the later texts nor the catch-all — and
+	/// what it left behind was a static field, allocated when the type is first touched and
+	/// held for the life of the program. In the URL grammar that was 564 of 1,137.
+	/// </remarks>
+	public IReadOnlyList<string> Extra
+	{
+		get
+		{
+			var kept = new List<string>(_extra);
+
+			foreach (var (name, declaration) in _expected)
+				if (_expectedUsed.Contains(name))
+					kept.Add(declaration);
+
+			return kept;
+		}
+	}
 
 	/// <summary>
 	/// Whether the generated <c>Parser</c> needs the value-cache fields at all: a typed
@@ -201,6 +296,22 @@ sealed partial class Machine
 	/// </remarks>
 	public IReadOnlyList<string> ValueTypes => _valueTypes;
 
+	/// <summary>
+	/// Take the file's table order instead of this machine's own.
+	/// </summary>
+	/// <remarks>
+	/// A machine names a value type by where it sits in this list, and the parser holds one
+	/// table per entry — one parser for the file, however many machines wrote into it. So
+	/// the order has to be the union of theirs, which is only known once they all exist.
+	/// Called before anything is rendered and after every machine is built; nothing read
+	/// during construction depends on it.
+	/// </remarks>
+	public void ShareValueTables(IReadOnlyList<string> tables)
+	{
+		_valueTypes.Clear();
+		_valueTypes.AddRange(tables);
+	}
+
 	readonly List<string> _valueTypes = [];
 
 	/// <summary>
@@ -214,7 +325,7 @@ sealed partial class Machine
 	/// </remarks>
 	void CollectValueTypes()
 	{
-		foreach (var rule in _graph.Rules)
+		foreach (var rule in _rules)
 			if (ValueRule(rule) >= 0 && _results.QualifiedOf(rule) is { } type)
 				Add(type);
 
@@ -306,7 +417,33 @@ sealed partial class Machine
 	FirstSets.First Follows(RuleSymbol rule) =>
 		_follow.TryGetValue(rule, out var after) ? after : FirstSets.First.All;
 
-	public static string RenderProbe(string name, string engine, int entry, bool powers)
+	/// <summary>
+	/// Whether any construction in this grammar asks for the whole input (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// Asked once and answered for the whole grammar, because what it decides is a
+	/// parameter on the engine and on the materializer: a grammar that never names it is
+	/// compiled exactly as it was before the name existed. Read out of the C# for the same
+	/// reason every other supplied name is — §8.2 matches by name.
+	/// </remarks>
+	public bool UsesInput { get; private set; }
+
+	string InputParameter => UsesInput ? ", string parserInput" : "";
+
+	string InputArgument  => UsesInput ? ", parserInput" : "";
+
+	/// <summary>
+	/// What a probe hands over instead, and why it may.
+	/// </summary>
+	/// <remarks>
+	/// A probe exists only for a streamed publication, and a publication whose rules ask
+	/// for the input is refused a stream (<c>Retention</c>). So a probe that runs at all
+	/// runs over states that never name it — and it recognizes without materializing
+	/// besides, which is the other half of the same guarantee.
+	/// </remarks>
+	const string NoInput = ", null!";
+
+	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input)
 	{
 		var file = new Writer(0);
 
@@ -317,13 +454,13 @@ sealed partial class Machine
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				"false, false, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
 	}
 
-	public static string RenderSyncProbe(string name, string engine, int entry, bool powers)
+	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input)
 	{
 		var file = new Writer(0);
 
@@ -334,7 +471,7 @@ sealed partial class Machine
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				"false, false, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
@@ -354,12 +491,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -380,16 +517,16 @@ sealed partial class Machine
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
-		foreach (var rule in _graph.Rules)
+		foreach (var rule in _rules)
 			hasValues |= ValueRule(rule) >= 0;
 
-		if (hasValues && Caches)
+		if (hasValues)
 			EnsureMaterializer();
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize, ref {CSharpEmitter.FailureType} failure, " +
-			"out object? recognized)"))
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}, " +
+			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
 			file.Line();
@@ -443,7 +580,7 @@ sealed partial class Machine
 					file.Line("var completedCall = -1;");
 
 				for (var i = 0; i < _captures; i++)
-					if (_textCaptures.Contains(i))
+					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i))
 						file.Line($"var capture{i} = 0;");
 
 				file.Line();
@@ -451,12 +588,14 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
 					"0, rootRule));");
 				file.Line("call = 0;");
-				file.Line("goto Dispatch;");
+				file.Line("Trace(\"enter\", state, p, entries.Count);");
 
 				// The hottest block there is: every return from a rule and every resumption
 				// after a failure comes through it. Written here, before the states, rather
 				// than after all of them — a jump to the far end of a method this size is a
 				// jump out of whatever the processor had ready.
+				//
+				// Fallen into rather than jumped to: the entry above is the line before it.
 				file.Line("Dispatch:");
 
 				using (file.Block("switch (state)"))
@@ -465,17 +604,15 @@ sealed partial class Machine
 					file.Line($"case {Accept}: goto Accept;");
 					file.Line($"case {Fail}:   expected = null; goto Fail;");
 
-					// Only where the label is one that was written. A state nothing reaches
-					// cannot be resumed at either, so the case for it would name a label that
-					// is not there.
-					for (var i = 0; i < _states.Count; i++)
-						if (Written(Resolved(i + First)))
-							file.Line($"case {i + First}: goto {Label(Resolved(i + First))};");
+					// Only the states something can actually arrive at through the dispatch,
+					// which is far from all of them: see `Dispatched`.
+					foreach (var state in Dispatched())
+						file.Line($"case {state}: goto {Label(Resolved(state))};");
 
 					file.Line("default: expected = null; goto Fail;");
 				}
 
-				RenderStates(file);
+				RenderStates(file, dispatched: true);
 
 				file.Line();
 				file.Line("Return:");
@@ -529,23 +666,26 @@ sealed partial class Machine
 					{
 						if (hasValues)
 						{
+							// A call rather than the walk written out here, and the same call
+							// either way. What it buys is the size of the method around it:
+							// this one is the whole automaton, and docs/next.md's "Future
+							// optimization gate" measured that its size is the one thing
+							// still worth moving. It also puts a name on the walk, which is
+							// the difference between a profile that can say what
+							// materialization costs and one that cannot.
 							using (file.Block("if (rootRule >= 0)"))
 							{
+								file.Line("var values = parser.Materialization(entries.Count);");
+								DeclareTables(file);
+
 								if (Caches)
 								{
-									file.Line("var values = parser.Materialization(entries.Count);");
-									DeclareTables(file);
 									file.Line("var built  = parser.Materialized();");
 									file.Line("if (!built[0]) values[0] = parser;");
-									file.Line("Materialize_DotGram(text, parser, entries);");
-									RootValue(file);
 								}
-								else
-								{
-									file.Line();
-									Materialize(file, cached: false);
-									RootValue(file);
-								}
+
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument});");
+								RootValue(file);
 							}
 						}
 						if (_recoveryPlans.Count > 0)
@@ -572,7 +712,7 @@ sealed partial class Machine
 					file.Line("failure.Expected = expected;");
 					file.Line("failure.ExpectedMore = null;");
 				}
-				file.Line("else if (lookahead < 0 && p == failure.Position && expected is not null)");
+				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
 				file.Then(
 					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
 					".Add(expected);");
@@ -733,8 +873,24 @@ sealed partial class Machine
 	/// state table, one inside the shared automaton and one on its own, and it has to be the
 	/// same writing either way — <see cref="PlanLayout"/> already decided what belongs in it.
 	/// </remarks>
-	void RenderStates(Writer file)
+	/// <param name="dispatched">
+	/// Whether a dispatch is written above these states, and so names some of them from
+	/// outside. True for the engine; false for a lowered recognizer, which has none.
+	/// </param>
+	void RenderStates(Writer file, bool dispatched)
 	{
+		// Which labels anything still names, once the jumps this method is about to drop are
+		// gone. A state reached only by falling into it from the one above needs no label,
+		// and writing one is a label C# warns about and a consumer's build may refuse. The
+		// engine used to be exempt because its dispatch had a case for every written state;
+		// now that it has one only for the states that can be resumed at, it needs the same
+		// count as anything else — plus the labels those cases name.
+		var named = Named();
+
+		if (dispatched)
+			foreach (var state in Dispatched())
+				named.Add(Resolved(state));
+
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var i    = _order[written];
@@ -750,7 +906,9 @@ sealed partial class Machine
 			}
 
 			file.Line();
-			file.Line($"S{i + First}:");
+
+			if (named.Contains(i + First))
+				file.Line($"S{i + First}:");
 
 			using (file.Block(""))
 				file.Write(body);
@@ -794,20 +952,69 @@ sealed partial class Machine
 				var state     = Reserve(out var writer);
 				var arrayName = DeclareExpected([node.ToString()]);
 
-				if (_starves)
+				// Two or more characters are one comparison, not one per character.
+				// `SequenceEqual` against a constant string is folded by the JIT into
+				// word-sized compares — "abcd" becomes a single 64-bit `cmp` against
+				// 0x64006300620061 — and it is bounds-checked once. The chain of
+				// `text[p + i]` it replaces was checked once per character despite the
+				// room check above having proved every one of them in range: `p + 4 <=
+				// Length` does not tell the range-check eliminator that `p + 1 < Length`
+				// without also knowing `p` cannot overflow, so it kept all four. Nor could
+				// it widen the chain itself — four short-circuiting comparisons are four
+				// branches with an order that is observable, and only what the JIT
+				// recognizes as one comparison is emitted as one.
+				//
+				// Case-insensitive stays as it was. What it compares is each character
+				// folded, which is not the comparison any span method makes.
+				if (value.Length > 1 && !ignoreCase)
 				{
-					writer.Line($"if (p + {value.Length} > text.Length)");
+					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
 					{
-						writer.Line("failure.Starved = true;");
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
-				}
-				else
-				{
-					writer.Line($"if (p + {value.Length} > text.Length)");
+
+					writer.Line(
+						"if (!global::System.MemoryExtensions.SequenceEqual(" +
+						$"text.Slice(p, {value.Length}), {Spanned(value)}))");
+
 					using (writer.Block(""))
+					{
+						// Where the character that did not fit actually is, worked out on a
+						// branch already taken rather than on the way in. The comparison has
+						// said they differ; this only says where, and nothing reaches it
+						// unless the parse is failing anyway.
+						Sharpen(writer, value);
+
 						EmitTerminalFailure(writer, _fail, arrayName);
+					}
+
+					writer.Line($"p += {value.Length};");
+					writer.Line($"goto {Label(next)};");
+
+					return state;
+				}
+
+				// The room check and the first character's test fail the same way, so they
+				// are one question wherever nothing is written between them — and the only
+				// thing that writes between them is starvation, which marks the failure
+				// before reporting it and belongs to the length alone. Folded rather than
+				// left as two `if`s with the same body, which is what a reader sees.
+				var room = _starves || value.Length == 0 ? null : Short(value.Length);
+
+				if (room is null)
+				{
+					writer.Line($"if ({Short(value.Length)})");
+					using (writer.Block(""))
+					{
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
+						EmitTerminalFailure(writer, _fail, arrayName);
+					}
 				}
 
 				for (var i = 0; i < value.Length; i++)
@@ -816,11 +1023,11 @@ sealed partial class Machine
 					// it unchanged, so one comparison shape covers cased and uncased
 					// characters alike — no per-character branching needed.
 					var test = ignoreCase
-						? $"global::System.Char.ToUpperInvariant(text[p + {i}]) != " +
+						? $"global::System.Char.ToUpperInvariant({At(i)}) != " +
 						  $"{CSharpEmitter.Char(char.ToUpperInvariant(value[i]))}"
-						: $"text[p + {i}] != {CSharpEmitter.Char(value[i])}";
+						: $"{At(i)} != {CSharpEmitter.Char(value[i])}";
 
-					writer.Line($"if ({test})");
+					writer.Line($"if ({(i == 0 && room is not null ? room + " || " : "")}{test})");
 					using (writer.Block(""))
 					{
 						// The position at a terminal failure names where the character that
@@ -853,7 +1060,7 @@ sealed partial class Machine
 
 				if (_starves)
 				{
-					writer.Line("if (p >= text.Length)");
+					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 					{
 						writer.Line("failure.Starved = true;");
@@ -862,7 +1069,7 @@ sealed partial class Machine
 				}
 				else
 				{
-					writer.Line("if (p >= text.Length)");
+					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
@@ -902,7 +1109,7 @@ sealed partial class Machine
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
 				var last   = alternatives.Count - 1;
-				var run    = LiteralRun(alternatives, last);
+				var run    = LiteralGroup(alternatives, last, following);
 				var target = run > 0
 					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 					: Compile(alternatives[last], next, following);
@@ -915,7 +1122,7 @@ sealed partial class Machine
 					// matched, so where they differ is where the next is tried — which is
 					// what a common prefix is worth, and it is worth it whether or not there
 					// is one.
-					if (LiteralRun(alternatives, i) is var here and > 0)
+					if (LiteralGroup(alternatives, i, following) is var here and > 0)
 					{
 						var from = i - here + 1;
 
@@ -949,15 +1156,47 @@ sealed partial class Machine
 					{
 						_usesChar = true;
 
-						using (writer.Block("if (p < text.Length)"))
+						using (writer.Block("if ((uint)p < (uint)text.Length)"))
 						{
 							writer.Line("c = text[p];");
 
+							// Not to the next alternative's own test but past it, wherever
+							// that test is one this jump has already answered. Reaching it
+							// means `c` is outside this alternative's set, so a next one
+							// whose set is inside this one asks a question with a known
+							// answer and jumps straight on — which was two states and two
+							// reads of the same character to arrive where one goes now.
+							//
+							// The way back written below is untouched, and not because
+							// nothing is known there — something is. It is pushed only on
+							// the path this test let through, so whatever resumes at it
+							// resumes with `c` inside this alternative's set, and the link
+							// it names asks a question it could answer. What stops the same
+							// trick there is the other way in: the entry is pushed at the
+							// end of the input too, where no test ran, and that path goes
+							// through the link rather than past it. Skipping it would drop a
+							// failure the parse reports, so `expected` would change even
+							// though what is accepted would not. Left, with the trap named
+							// (docs/next.md).
 							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(target)};");
+								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(Skipped(begins, target))};");
 
+							// The second is read knowing the first did not fire, where there
+							// was a first: `c` is in this alternative's own set by then, so
+							// what is being asked is whether that set holds anything outside
+							// the later ones'. Written as it stood, the two ignored each
+							// other and said things that could not be true — `if (!(c ==
+							// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
+							// second cannot fire at all.
 							if (rest is { } after)
-								writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+							{
+								if (mine is not { } known)
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+								else if (!known.Overlaps(after))
+									writer.Line($"goto {Label(first)};");     // always fires
+								else if (!after.Covers(known))               // never fires: not written
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+							}
 						}
 					}
 
@@ -966,6 +1205,9 @@ sealed partial class Machine
 						"repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
 					writer.Line($"goto {Label(first)};");
+
+					if (mine is not null)
+						_dispatchers[state] = (mine, target);
 
 					target = state;
 					rest   = mine is null || rest is null ? null : mine.Or(rest);
@@ -1009,6 +1251,43 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count);");
+					atClose.Line($"goto {Label(next)};");
+
+					return state;
+				}
+
+				// A capture the parse can open again before it closes keeps its start in the
+				// arena instead of a variable, because the arena is the only thing
+				// backtracking puts back. The opening writes the entry the close will need
+				// and marks it unfinished; the close finds the innermost one still unfinished
+				// and fills its end in. They nest and unwind in the same order, so the
+				// innermost is always this one's.
+				if (_nestedCaptures.Contains(slot))
+				{
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, " +
+						"call, atomic, repeat, lookahead, -1));");
+					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count);");
+					writer.Line($"goto {Label(inner)};");
+
+					using (atClose.Block("for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+					{
+						atClose.Line("var opened = entries[openedAt];");
+						atClose.Line();
+						atClose.Line(
+							$"if (opened.Kind != ParserEntry.Capture || opened.State != {slot} || " +
+							"opened.Value >= 0)");
+						atClose.Then("continue;");
+						atClose.Line();
+						atClose.Line(
+							$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {slot}, " +
+							"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
+							"opened.RepeatIndex, opened.LookaheadIndex, p);");
+						atClose.Line();
+						atClose.Line("break;");
+					}
+
+					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;
@@ -1091,7 +1370,7 @@ sealed partial class Machine
 					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
 					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 				var before = layout.Before(node);
-				var method = "Recognize_DotGram_Guard" + _guards++;
+				var method = $"Recognize_DotGram{_tag}_Guard" + _guards++;
 				var helper = new Writer(0);
 				var parameters = new List<string>();
 				var arguments  = new List<string>();
@@ -1229,7 +1508,7 @@ sealed partial class Machine
 
 				if (hasTyped)
 				{
-					writer.Line("if (guardNeedsMaterialization) Materialize_DotGram(text, parser, entries);");
+					writer.Line($"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, entries);");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{
@@ -1537,6 +1816,44 @@ sealed partial class Machine
 	/// possible, and that holds whether there is a prefix or not.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// What is left of the alternatives that continue one already matched, tried in the order
+	/// they were written.
+	/// </summary>
+	/// <remarks>
+	/// Reached only by resuming the way back <see cref="CompileLiterals"/> pushes once the
+	/// shorter alternative has matched and moved the position, so the characters they share
+	/// are behind it and none of them is compared again.
+	/// </remarks>
+	int CompileCarries(int matched, IReadOnlyList<string> carries, IReadOnlyList<string> displays, int next, int fail)
+	{
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected(displays);
+
+		foreach (var carry in carries)
+		{
+			var rest  = carry.Substring(matched);
+			var tests = new List<string> { Room(rest.Length) };
+
+			if (rest.Length > 1)
+				tests.Add(
+					$"global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {rest.Length}), " +
+					$"{Spanned(rest)})");
+			else
+				tests.Add($"{At(0)} == {CSharpEmitter.Char(rest[0])}");
+
+			using (writer.Block($"if ({string.Join(" && ", tests)})"))
+			{
+				writer.Line($"p += {rest.Length};");
+				writer.Line($"goto {Label(next)};");
+			}
+		}
+
+		EmitTerminalFailure(writer, fail, arrayName);
+
+		return state;
+	}
+
 	int CompileLiterals(IReadOnlyList<Node> alternatives, int from, int to, int next, int fail)
 	{
 		var texts    = new List<string>(to - from + 1);
@@ -1564,57 +1881,144 @@ sealed partial class Machine
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected(displays);
 
-		if (shared.Length > 0)
+		if (shared.Length > 1)
 		{
-			if (_starves)
+			// One comparison rather than one per character, the same trade Node.Literal makes
+			// for a literal of its own and for the same reason: SequenceEqual against a
+			// constant is folded into word-sized compares and bounds-checked once, where the
+			// chain of text[p + i] it replaces was checked once per character despite the room
+			// test above having proved every one of them in range.
+			writer.Line($"if ({Short(shared.Length)})");
+			using (writer.Block(""))
 			{
-				writer.Line($"if (p + {shared.Length} > text.Length)");
+				if (_starves)
+					writer.Line("failure.Starved = true;");
+
+				EmitTerminalFailure(writer, fail, arrayName);
+			}
+
+			writer.Line(
+				"if (!global::System.MemoryExtensions.SequenceEqual(" +
+				$"text.Slice(p, {shared.Length}), {Spanned(shared)}))");
+
+			using (writer.Block(""))
+			{
+				// Name the character that did not fit, not where the shared prefix started —
+				// worked out on a branch the comparison has already failed rather than on the
+				// way in, so what it costs is a cost of failing.
+				Sharpen(writer, shared);
+
+				EmitTerminalFailure(writer, fail, arrayName);
+			}
+		}
+		else if (shared.Length == 1)
+		{
+			// A single character has nothing to widen. Its test and the room check fail the
+			// same way, so they are folded into one question wherever starvation does not
+			// have to be marked between them — the same as Node.Literal's own.
+			var room = _starves ? null : Short(1);
+
+			if (room is null)
+			{
+				writer.Line($"if ({Short(1)})");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
 					EmitTerminalFailure(writer, fail, arrayName);
 				}
 			}
-			else
-			{
-				writer.Line($"if (p + {shared.Length} > text.Length)");
-				using (writer.Block(""))
-					EmitTerminalFailure(writer, fail, arrayName);
-			}
 
-			for (var i = 0; i < shared.Length; i++)
+			writer.Line($"if ({(room is not null ? room + " || " : "")}{At(0)} != {CSharpEmitter.Char(shared[0])})");
+			using (writer.Block(""))
 			{
-				writer.Line($"if (text[p + {i}] != {CSharpEmitter.Char(shared[i])})");
-				using (writer.Block(""))
-				{
-					// Same sharpening as Node.Literal's own per-character loop: name the
-					// character that did not fit, not where the shared prefix started.
-					if (i > 0)
-						writer.Line($"p += {i};");
-
-					EmitTerminalFailure(writer, fail, arrayName);
-				}
+				EmitTerminalFailure(writer, fail, arrayName);
 			}
 		}
 
+		// One of the texts may be the shared prefix itself — a shorter alternative that
+		// begins a longer one, admitted by `PrefixSettled` because nothing can come back
+		// for it. Its own test is then empty, which is to say it matches wherever the
+		// shared prefix did: it takes the position unconditionally, and neither the
+		// alternatives written after it nor the catch-all below can be reached. Writing
+		// them anyway is a CS0162 in somebody else's build.
+		var settled = false;
+
 		foreach (var text in texts)
 		{
+			// Not written at all where something before it is its own beginning: this chain
+			// is reached by falling past the earlier tests, and a text that continues one of
+			// them cannot match where that one did not. It is reached instead by the way
+			// back that one pushes, which is where its remainder is compared.
+			var reached = true;
+
+			foreach (var earlier in texts)
+			{
+				if (ReferenceEquals(earlier, text))
+					break;
+
+				reached &= !text.StartsWith(earlier, StringComparison.Ordinal);
+			}
+
+			if (!reached)
+				continue;
+
 			var tests = new List<string>();
 
 			if (text.Length > shared.Length)
-				tests.Add($"p + {text.Length} <= text.Length");
+				tests.Add(Room(text.Length));
 
-			for (var i = shared.Length; i < text.Length; i++)
-				tests.Add($"text[p + {i}] == {CSharpEmitter.Char(text[i])}");
+			// What is left of this alternative once the shared prefix is behind it, as one
+			// comparison rather than one per character — the same trade `Node.Literal`
+			// makes, and for the same reason: the room test above has proved every one of
+			// these in range and the range-check eliminator will not take its word for it,
+			// while `SequenceEqual` against a constant is checked once and compared a
+			// machine word at a time. Nothing is sharpened here; an alternative that does
+			// not fit is not a failure, it is the next alternative.
+			var rest = text.Substring(shared.Length);
 
-			using (writer.Block(tests.Count == 0 ? "" : $"if ({string.Join(" && ", tests)})"))
+			if (rest.Length > 1)
+				tests.Add(
+					"global::System.MemoryExtensions.SequenceEqual(text.Slice(" +
+					$"{(shared.Length == 0 ? "p" : $"p + {shared.Length}")}, {rest.Length}), " +
+					$"{Spanned(rest)})");
+			else if (rest.Length == 1)
+				tests.Add($"{At(shared.Length)} == {CSharpEmitter.Char(rest[0])}");
+
+			settled = tests.Count == 0;
+
+			// Everything written after this one that continues it. `"http"` matching does
+			// not mean `"https"` cannot: ordered choice prefers the one written first and
+			// comes back for the longer if the parse goes wrong past here.
+			var carries = new List<string>();
+
+			foreach (var later in texts.GetRange(texts.IndexOf(text) + 1, texts.Count - texts.IndexOf(text) - 1))
+				if (later.Length > text.Length && later.StartsWith(text, StringComparison.Ordinal))
+					carries.Add(later);
+
+			using (writer.Block(settled ? "" : $"if ({string.Join(" && ", tests)})"))
 			{
 				if (text.Length > 0)
 					writer.Line($"p += {text.Length};");
 
+				// Pushed after the position has moved, which is the whole point: what
+				// resumes there resumes past the characters this alternative matched, and
+				// the continuation compares only its own remainder. Written the other way
+				// round the parse would compare `"http"` a second time to find `"https"`.
+				if (carries.Count > 0)
+				{
+					var carry = CompileCarries(text.Length, carries, displays, next, fail);
+
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
+						"repeat, lookahead, 0));");
+					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count);");
+				}
+
 				writer.Line($"goto {Label(next)};");
 			}
 
+			if (settled)
+				break;
 		}
 
 		// Every failure site in this run — the shared-prefix guards above and this
@@ -1626,7 +2030,8 @@ sealed partial class Machine
 		// `Fail:` — under-reporting, never mis-attributing or over-reporting. Left as a
 		// documented first-cut gap rather than solved, per docs/implementation.md's own
 		// "the corpus grows by one rule" policy.
-		EmitTerminalFailure(writer, fail, arrayName);
+		if (!settled)
+			EmitTerminalFailure(writer, fail, arrayName);
 
 		return state;
 	}
@@ -1639,8 +2044,13 @@ sealed partial class Machine
 	{
 		var targets = new int[alternatives.Count];
 
+		var advanced = new bool[alternatives.Count];
+
 		for (var i = 0; i < alternatives.Count; i++)
-			targets[i] = Compile(alternatives[i], next, following);
+			if (CompileTested(alternatives[i], tests[i], next, following) is { } entered)
+				(targets[i], advanced[i]) = (entered, true);
+			else
+				targets[i] = Compile(alternatives[i], next, following);
 
 		var state = Reserve(out var writer);
 
@@ -1655,7 +2065,7 @@ sealed partial class Machine
 
 		if (_starves)
 		{
-			writer.Line("if (p >= text.Length)");
+			writer.Line("if ((uint)p >= (uint)text.Length)");
 			using (writer.Block(""))
 			{
 				writer.Line("failure.Starved = true;");
@@ -1664,7 +2074,7 @@ sealed partial class Machine
 		}
 		else
 		{
-			writer.Line("if (p >= text.Length)");
+			writer.Line("if ((uint)p >= (uint)text.Length)");
 			using (writer.Block(""))
 				EmitTerminalFailure(writer, _fail, arrayName);
 		}
@@ -1672,12 +2082,117 @@ sealed partial class Machine
 		writer.Line("c = text[p];");
 
 		for (var i = 0; i < targets.Length; i++)
-			writer.Line($"if ({tests[i]}) goto {Label(targets[i])};");
+			writer.Line(advanced[i]
+				? $"if ({tests[i]}) {{ p++; goto {Label(targets[i])}; }}"
+				: $"if ({tests[i]}) goto {Label(targets[i])};");
 
 		EmitTerminalFailure(writer, _fail, arrayName);
 
 		return state;
 	}
+
+	/// <summary>
+	/// Where an alternative continues once a leading terminal the dispatch has already tested
+	/// is stepped over — or <c>null</c> where it does not begin with exactly that terminal.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A predicted dispatch reads <c>text[p]</c>, proves it in range, and tests it against
+	/// each alternative's first set. An alternative that is a terminal, or begins with one,
+	/// then asked all three questions over again — its own bounds check, its own load, its
+	/// own comparison — about a character nothing had moved past. The loops a grammar spends
+	/// its time in are exactly this shape: <c>(Unreserved | SubDelim | PctEncoded | ':')*</c>
+	/// paid for it once per character of every host and every path segment.
+	/// </para>
+	/// <para>
+	/// So the dispatch advances and jumps past that terminal itself, and what comes back here
+	/// is where to land. Nothing is shared and nothing is rewritten — the untested form is
+	/// simply never compiled, and this is the only edge that would have reached it. A
+	/// predicted choice writes no way back and no arena entry names the state, so there is no
+	/// second way in for a resume to arrive by.
+	/// </para>
+	/// <para>
+	/// The <c>p++</c> goes in the dispatch's own branch rather than into a state of its own,
+	/// which is not a matter of taste. A state is a block the resume switch can jump to, so
+	/// it survives every optimizer as a block, and a two-line one between a test and its
+	/// continuation is a block the profile-guided layout can put anywhere. Measured with one:
+	/// four inputs faster and the fifth 9% slower, and the fifth turned into a 6% gain the
+	/// moment dynamic PGO was switched off — an unmistakeable signature of layout rather than
+	/// of work (docs/next.md).
+	/// </para>
+	/// <para>
+	/// The two tests are compared as text on purpose. Identical text is the whole of what has
+	/// to hold — the same expression over the same <c>c</c> — and where the first-set builder
+	/// and the terminal's own builder word the same set differently, this declines and the
+	/// ordinary form is compiled. Wrong is not among the answers; missed is. The one wording
+	/// difference bridged here is the outer bracket: <see cref="CSharpEmitter.Test"/> wraps
+	/// what it builds and <c>RangesTest</c> does not, and a negated element's <c>!(…)</c>
+	/// cannot collide with the bracketed form whatever it contains.
+	/// </para>
+	/// </remarks>
+	int? CompileTested(Node node, string test, int next, FirstSets.First following)
+	{
+		// Asked before anything is written: a sequence's tail would otherwise be compiled
+		// only to be abandoned when its head turned out not to qualify, and an abandoned
+		// state is still a state in the method.
+		//
+		// "true" and "false" cannot arrive here — Predictive refuses a first set that is
+		// Anything or Nothing — but neither would be a terminal anybody had tested.
+		if (test is "true" or "false" || !BeginsWith(node, test))
+			return null;
+
+		return Entered(node, next, following);
+
+		int Entered(Node at, int to, FirstSets.First after) =>
+			at switch
+			{
+				// The terminal itself contributes no state: the dispatch steps over it.
+				Node.Element => to,
+
+				// The same step <see cref="Compile"/> takes for a call it inlines, so the
+				// body is entered exactly where the ordinary form would have entered it.
+				Node.Call(var rule, _) => Entered(_graph.Bodies[rule], to, after),
+
+				Node.Sequence(var nodes) => Threaded(nodes, to, after),
+
+				// BeginsWith admits these three and nothing else.
+				_ => throw new InvalidOperationException($"{at.GetType().Name} does not begin with a terminal."),
+			};
+
+		int Threaded(IReadOnlyList<Node> nodes, int to, FirstSets.First after)
+		{
+			var target = to;
+			var rest   = after;
+
+			for (var i = nodes.Count - 1; i >= 1; i--)
+			{
+				target = Compile(nodes[i], target, rest);
+				rest   = Precedes(nodes[i], rest);
+			}
+
+			return Entered(nodes[0], target, rest);
+		}
+	}
+
+	/// <summary>
+	/// Whether the node begins with exactly the terminal a dispatch has already tested.
+	/// </summary>
+	/// <remarks>
+	/// Looks through an inlined call, because that is what compiling one does — the rule
+	/// <c>Unreserved = [Digit | 'a'..'z' | 'A'..'Z' | '-' | '.' | '_' | '~']</c> is a
+	/// character class wearing a name, and an alternative that is a call to it begins with
+	/// its element as surely as if the class had been written in place.
+	/// </remarks>
+	bool BeginsWith(Node node, string test) =>
+		node switch
+		{
+			Node.Element element     => CSharpEmitter.Test(element) == $"({test})",
+			Node.Call(var rule, _)   => CanInline(rule) &&
+			                            _graph.Bodies.TryGetValue(rule, out var body) &&
+			                            BeginsWith(body, test),
+			Node.Sequence(var nodes) => nodes.Count > 0 && BeginsWith(nodes[0], test),
+			_                        => false,
+		};
 
 	/// <summary>What a predicted choice's disjoint first sets accept, rendered as one element set.</summary>
 	string PredictedDisplay(IReadOnlyList<Node> alternatives)
@@ -1731,7 +2246,7 @@ sealed partial class Machine
 
 			if (_starves)
 			{
-				writer.Line("if (p >= text.Length)");
+				writer.Line("if ((uint)p >= (uint)text.Length)");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
@@ -1739,7 +2254,7 @@ sealed partial class Machine
 				}
 			}
 			else
-				writer.Line("if (p >= text.Length) break;");
+				writer.Line("if ((uint)p >= (uint)text.Length) break;");
 
 			if (test != "true")
 			{
@@ -1961,6 +2476,184 @@ sealed partial class Machine
 	int ValueRule(RuleSymbol rule) =>
 		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
 
+	/// <summary>
+	/// The states something still names once the chained jumps are dropped.
+	/// </summary>
+	/// <remarks>
+	/// A jump is dropped exactly where its target is the state written next, which is what
+	/// laying the states out in execution order made common — so this has to be worked out
+	/// against the same order rather than against the bodies as compiled.
+	/// </remarks>
+	HashSet<int> Named()
+	{
+		var named = new HashSet<int>();
+
+		for (var written = 0; written < _order.Count; written++)
+		{
+			var body = _bodies[_order[written]];
+			var next = written + 1 < _order.Count ? _order[written + 1] + First : -1;
+			var tail = Tail(body);
+
+			foreach (Match match in Gotos.Matches(body))
+			{
+				var target = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+
+				// The one occurrence this method drops is the trailing jump to the next
+				// state, and only when it is that state.
+				if (target == next && target == tail && body.LastIndexOf($"goto {Label(target)};", StringComparison.Ordinal) == match.Index)
+					continue;
+
+				named.Add(target);
+			}
+		}
+
+		return named;
+	}
+
+	/// <summary>
+	/// Where a jump taken because <c>c</c> is outside <paramref name="known"/> should land.
+	/// </summary>
+	/// <remarks>
+	/// A choice is a chain, and each link begins by asking whether its own alternative can
+	/// start here. Arriving because the link before it said no is arriving with that
+	/// question already answered, wherever this link's set is inside the previous one's —
+	/// the two literals of <c>"http" | "https"</c> both begin with <c>h</c>, so the second
+	/// link asked whether <c>c</c> was <c>h</c> having been reached only when it was not.
+	/// Followed to the first link that could say something new.
+	/// </remarks>
+	int Skipped(FirstSets.First known, int target)
+	{
+		var at    = target;
+		var steps = 0;
+
+		while (_dispatchers.TryGetValue(at, out var link) &&
+			known.Covers(link.Mine) &&
+			steps++ <= _dispatchers.Count)
+		{
+			at = link.Target;
+		}
+
+		return at;
+	}
+
+	/// <summary>Each choice link's own first set, and where it goes when that set says no.</summary>
+	readonly Dictionary<int, (FirstSets.First Mine, int Target)> _dispatchers = [];
+
+	/// <summary>Whether any state's body jumps to this one.</summary>
+	/// <remarks>
+	/// Asked of the first state written and of nothing else, so what
+	/// <see cref="RenderStates"/> strips as it goes cannot change the answer: a trailing
+	/// jump is dropped only where it names the state written next, and nothing is written
+	/// before the first.
+	/// </remarks>
+	bool Entered(int state)
+	{
+		var jump = $"goto {Label(state)};";
+
+		foreach (var body in _bodies)
+			if (body is not null && body.Contains(jump))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// The character <paramref name="offset"/> along from the position, said the short way
+	/// at zero.
+	/// </summary>
+	/// <remarks>
+	/// <c>text[p + 0]</c> and <c>text[p]</c> are one instruction either way; the difference
+	/// is that somebody reads this file. The same goes for <see cref="Short"/> and
+	/// <see cref="Room"/> beside it — a literal of one character asks whether there is one
+	/// character left, and <c>p + 1 &gt; text.Length</c> is the general form of that
+	/// question rather than the question.
+	/// </remarks>
+	static string At(int offset) => offset == 0 ? "text[p]" : $"text[p + {offset}]";
+
+	/// <summary>Whether the input is too short for <paramref name="count"/> more.</summary>
+	/// <remarks>
+	/// Unsigned at one, which is not a flourish. Every one of these guards is followed by a
+	/// read of <c>text[p]</c>, and that read carries a bounds check of its own — an unsigned
+	/// one, because that is how a bounds check is written. A signed <c>p &gt;= text.Length</c>
+	/// beside it is a different comparison, so the range-check eliminator keeps both, and the
+	/// disassembly of a character run showed exactly that: <c>cmp/jge</c> and then <c>cmp/jae</c>
+	/// on the same two registers, once per character. Written the same way, they are one
+	/// comparison and the throw path disappears with them.
+	///
+	/// Nothing is given up. <c>p</c> is never negative — it starts at a position and moves
+	/// forward or is restored from one — and were it ever to be, the unsigned form refuses
+	/// where the signed one would have read out of bounds.
+	/// </remarks>
+	static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"p + {count} > text.Length";
+
+	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
+	static string Room(int count) => count == 1 ? "(uint)p < (uint)text.Length" : $"p + {count} <= text.Length";
+
+	/// <summary>The literal as a span, for a comparison to be made against.</summary>
+	/// <remarks>
+	/// <c>AsSpan</c> written out rather than left to the implicit conversion, which arrived
+	/// with .NET Core 2.1: the emitted file may land in a <c>netstandard2.0</c> compilation,
+	/// where <c>string</c> does not convert to <c>ReadOnlySpan&lt;char&gt;</c> on its own and
+	/// this is a compile error in somebody else's build. <c>DotGram.Compatibility</c> is
+	/// there to catch exactly this, and did.
+	/// </remarks>
+	static string Spanned(string value) =>
+		$"global::System.MemoryExtensions.AsSpan({Quoted(value)})";
+
+	/// <summary>The literal as C# source, with anything unprintable spelled out.</summary>
+	/// <remarks>
+	/// Everything outside printable ASCII goes as an escape rather than as itself. This
+	/// file is written by us and read by a compiler that is not, and a literal newline or a
+	/// U+2028 inside a string is what breaks one build and not another.
+	/// </remarks>
+	static string Quoted(string value)
+	{
+		var text = "";
+
+		foreach (var c in value)
+			text += c switch
+			{
+				'\\' => "\\\\",
+				'"'  => "\\\"",
+				_    => c is >= ' ' and <= '~' ? c.ToString() : $"\\u{(int)c:X4}",
+			};
+
+		return $"\"{text}\"";
+	}
+
+	/// <summary>
+	/// Move <c>p</c> to the character of a literal that did not fit, knowing one of them
+	/// did not.
+	/// </summary>
+	/// <remarks>
+	/// Written only inside a branch the comparison has already failed, so what it costs is
+	/// a cost of failing. The last character needs no test of its own: if every earlier one
+	/// matched and the whole did not, it is the one.
+	/// </remarks>
+	static void Sharpen(Writer writer, string value)
+	{
+		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");
+
+		if (value.Length == 2)
+		{
+			writer.Then("p += 1;");
+
+			return;
+		}
+
+		using (writer.Block(""))
+		{
+			for (var i = 1; i < value.Length - 1; i++)
+			{
+				writer.Line($"{(i == 1 ? "if" : "else if")} ({At(i)} != {CSharpEmitter.Char(value[i])})");
+				writer.Then($"p += {i};");
+			}
+
+			writer.Line("else");
+			writer.Then($"p += {value.Length - 1};");
+		}
+	}
+
 	int Reserve(out Writer writer)
 	{
 		writer = new Writer(0);
@@ -1999,10 +2692,18 @@ sealed partial class Machine
 	/// </remarks>
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
-		var name  = "Recognize_DotGram_Expected" + _expectedCount++;
 		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));
 
-		_extra.Add($"static readonly string[] {name} = {{ {items} }};");
+		// The same set asked for twice is the same array. Two terminals that accept the
+		// same thing are commonplace — a rule called from two places, a character class
+		// written out in two alternatives — and each used to get a field of its own.
+		if (_expectedByItems.TryGetValue(items, out var already))
+			return already;
+
+		var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
+
+		_expectedByItems[items] = name;
+		_expected.Add((name, $"static readonly string[] {name} = {{ {items} }};"));
 
 		return name;
 	}
@@ -2047,8 +2748,10 @@ sealed partial class Machine
 	/// A failure that names what would have fit — a terminal test's own `goto`, with
 	/// `expected` set right before it so <c>Fail:</c> knows what to blame this on.
 	/// </summary>
-	static void EmitTerminalFailure(Writer writer, int fail, string arrayName)
+	void EmitTerminalFailure(Writer writer, int fail, string arrayName)
 	{
+		_expectedUsed.Add(arrayName);
+
 		writer.Line($"expected = {arrayName};");
 		writer.Line($"goto {Label(fail)};");
 	}
