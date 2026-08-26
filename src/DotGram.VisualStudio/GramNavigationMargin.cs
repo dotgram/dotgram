@@ -44,21 +44,50 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 	protected GramNavigationMargin(IWpfTextView view)
 	{
 		_view = view;
-		Height = 26;
-		Background = Application.Current.TryFindResource(EnvironmentColors.ToolWindowBackgroundBrushKey) as System.Windows.Media.Brush;
+		Height = 25;
+		SetResourceReference(BackgroundProperty, EnvironmentColors.ToolWindowBackgroundBrushKey);
 
 		_symbols = new ComboBox
 		{
-			Margin = new Thickness(4, 2, 4, 2),
+			Margin = new Thickness(3, 2, 3, 2),
 			MinWidth = 220,
+			Height = 21,
+			Padding = new Thickness(5, 0, 3, 0),
 			HorizontalAlignment = HorizontalAlignment.Left,
 			DisplayMemberPath = nameof(NavigationItem.Display),
 		};
+		_symbols.SetResourceReference(Control.BackgroundProperty, EnvironmentColors.ComboBoxBackgroundBrushKey);
+		_symbols.SetResourceReference(Control.ForegroundProperty, EnvironmentColors.ComboBoxTextBrushKey);
+		_symbols.SetResourceReference(Control.BorderBrushProperty, EnvironmentColors.ComboBoxBorderBrushKey);
+		_symbols.ItemContainerStyle = CreateItemStyle();
 		_symbols.SelectionChanged += SelectionChanged;
 		Children.Add(_symbols);
 
 		_view.Caret.PositionChanged += CaretChanged;
 		_view.Closed += ViewClosed;
+	}
+
+	static Style CreateItemStyle()
+	{
+		var style = new Style(typeof(ComboBoxItem));
+		style.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(5, 2, 12, 2)));
+		style.Setters.Add(new Setter(Control.ForegroundProperty,
+			Application.Current.TryFindResource(EnvironmentColors.ComboBoxItemTextBrushKey)));
+		style.Setters.Add(new Setter(Control.BackgroundProperty,
+			Application.Current.TryFindResource(EnvironmentColors.ComboBoxPopupBackgroundBeginBrushKey)));
+
+		var highlighted = new Trigger { Property = ComboBoxItem.IsHighlightedProperty, Value = true };
+		highlighted.Setters.Add(new Setter(Control.BackgroundProperty,
+			Application.Current.TryFindResource(EnvironmentColors.ComboBoxItemMouseOverBackgroundBrushKey)));
+		highlighted.Setters.Add(new Setter(Control.ForegroundProperty,
+			Application.Current.TryFindResource(EnvironmentColors.ComboBoxItemMouseOverTextBrushKey)));
+		style.Triggers.Add(highlighted);
+
+		var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
+		selected.Setters.Add(new Setter(Control.BackgroundProperty,
+			Application.Current.TryFindResource(EnvironmentColors.ComboBoxSelectionBrushKey)));
+		style.Triggers.Add(selected);
+		return style;
 	}
 
 	protected abstract IReadOnlyList<NavigationItem> Items(ITextSnapshot snapshot);
