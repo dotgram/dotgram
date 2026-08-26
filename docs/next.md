@@ -3068,3 +3068,51 @@ relearned against the JIT; medians of individual parses are what survive it. The
 shrinker met the same enemy from the other side: a cost predicate sampled once let the
 shrink walk out through a single lucky-fast measurement, and "slow" had to become "even
 the fastest of three is slow".
+
+## Hunted: fifty-seven times became five, and where the rest lives
+
+The 57× on `Url.gram` fell to the instruments in an afternoon, and the kills are worth
+listing in order, because the order is the method.
+
+**What it was not.** Steps said 32,592 for the whole file at 2.5 ms — 76 ns a step against
+33 on a small prefix, so half the time was not in steps at all. Individual parses said
+0.08 ms with two 79 ms spikes — tiered compilation, not parsing — which killed the first
+instrument. And a minified input — comments stripped, 43% of the characters — cost the
+same 2.09 ms as the original, which killed the best hypothesis: the atomic trivia and its
+2,444 arena entries per parse were not the bill.
+
+**What it was: `Call | Reference`.** Every bare reference parsed `Reference` twice — once
+inside the failing `Call`, once as itself — and `Reference` contains `TypeArgs?`, which
+contains `Type`, which contains `Reference`. The double parse compounded through that
+nesting, and references are most of what a grammar is made of: 5,974 of 32,592 steps sat
+in `Reference` alone. Left-factoring one rule —
+
+```dotgram
+RefOrCall = target: Reference & (open: '(' & (Argument & (',' & Argument)*)? & ')')?
+          => @(open is null ? target : Call(target, first, rest))
+```
+
+— took the parse from 2.09 ms to 0.35 ms. Sixfold, from spelling one choice the way the
+hand-written parser always had (`ParseReferenceOrCall`). §11's ordered choice is not
+obliged to be written with the prefix shared, and the self-hosting grammar now teaches
+that too.
+
+A settled optional whose body one character decides also stopped paying the arena — a
+`Repeat` entry, a standing exit, a count and their unwinding became one comparison — which
+is worth a few percent here and applies wherever the proofs reach.
+
+| grammar | hand-written | generated | was | now |
+|---|---|---|---|---|
+| Csv.gram | 0.019 ms | 0.051 ms | 4.0 | **2.6** |
+| Feed.gram | 0.022 ms | 0.105 ms | 14 | **4.7** |
+| Minimal.gram | 0.014 ms | 0.061 ms | 5.5 | **4.3** |
+| Url.gram | 0.062 ms | 0.334 ms | 57 | **5.4** |
+
+**Where the rest lives.** 20,632 steps remain for `Url.gram`, and the shape of the residue
+is arena traffic per construct — enter/leave repeat, atomic enter/commit on every seam —
+where the hand parser pays a method call. Two directions are recorded rather than taken:
+teaching the normalizer to left-factor shared call prefixes itself, which constructions
+make hard in general and the measurement makes tempting; and a no-arena compilation for
+atomic, capture-free bodies — a lexeme-scanner mode, the flat path's little sibling —
+which would take the seam's cost to a hand-written skip loop's. Both are engine work with
+a proved instrument to hold them to.

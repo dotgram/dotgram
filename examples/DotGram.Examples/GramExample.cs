@@ -169,19 +169,21 @@ namespace DotGram.Examples;
 		| text: String           => @(new GramLiteral(text, false))
 		| e: ElementSet          => @(e)
 		| cs: CsExpr             => @(new GramCSharp(cs))
-		| e: Call                => @(e)
-		| e: Reference           => @(e)
+		| e: RefOrCall           => @(e)
 		| '(' & body: Body & ')' => @(body)
 		| '{' & body: Body & '}' => @(new GramGroup(body, true))
 
-	Value : @string  = text: (CsExpr | Call | Reference) => @(text)
+	Value : @string  = text: (CsExpr | RefOrCall) => @(text)
 	CsExpr : @string = text: @CSharp => @(text)
 
-	// Longest first: a call is a reference and then an argument list, so a bare reference
-	// tried first would take the name and leave the parenthesis behind.
-	Call : @GramExpr
-		= target: Reference & '(' & (first: Argument & (',' & rest: Argument)*)? & ')'
-		=> @(GramGrammar.Call(target, first, rest))
+	// One parse of the name, whatever follows it. Written `Call | Reference` this read
+	// every bare reference twice — once inside the failing `Call`, once as itself — and
+	// references are most of what a grammar is made of. The hand-written parser makes the
+	// same move under the name `ParseReferenceOrCall`; §11's ordered choice is not
+	// obliged to be spelled with the prefix shared.
+	RefOrCall : @GramExpr
+		= target: Reference & (open: '(' & (first: Argument & (',' & rest: Argument)*)? & ')')?
+		=> @(open is null ? target : GramGrammar.Call(target, first, rest))
 
 	Argument : @GramExpr = i: Int => @(new GramRef(i)) | a: Alternative => @(a)
 

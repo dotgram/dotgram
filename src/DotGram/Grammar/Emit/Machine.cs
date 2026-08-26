@@ -2532,6 +2532,30 @@ sealed partial class Machine
 		// so nothing excludes them.
 		var settled = NeverGivesBack(repeatNode, following);
 
+		// A settled optional whose body one character decides needs no arena at all. The
+		// character says whether the body is entered; entered, it must finish, because
+		// skipping instead would ask the continuation to begin on the character the test
+		// let through — which is what settled rules out. What was a Repeat entry, a
+		// standing exit, a count and their unwinding per optional becomes one comparison,
+		// and the grammar of the notation carries several optionals per operand.
+		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins)
+		{
+			_usesChar = true;
+
+			var entered = Compile(body, next, following);
+			var state   = Reserve(out var atTest);
+
+			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
+			{
+				atTest.Line("c = text[p];");
+				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(entered)};");
+			}
+
+			atTest.Line($"goto {Label(next)};");
+
+			return state;
+		}
+
 
 		if (settled)
 			_usesLoopExits = true;
