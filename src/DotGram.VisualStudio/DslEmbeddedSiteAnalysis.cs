@@ -11,6 +11,7 @@ using DotGram.Grammar.Parsing;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
 
 namespace DotGram.VisualStudio;
@@ -39,21 +40,31 @@ internal static class DslEmbeddedSiteAnalysis
 		var classifications = new List<HostDslClassification>();
 		var diagnostics = new List<HostDiagnostic>();
 
-		foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>())
+		foreach (var argument in root.DescendantNodes().OfType<ArgumentSyntax>())
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var constructor = Constructor(model, attribute, cancellationToken);
-			if (constructor is null ||
-				constructor.Parameters is not [{ Type.SpecialType: SpecialType.System_String }] ||
-				attribute.ArgumentList?.Arguments is not [{ Expression: LiteralExpressionSyntax literal }] ||
+			if (model.GetOperation(argument, cancellationToken) is not IArgumentOperation
+				{
+					Parameter:
+					{
+						Type.SpecialType: SpecialType.System_String,
+					} parameter,
+				} ||
+				argument.Expression is not LiteralExpressionSyntax literal ||
 				!CSharpStringMap.TryCreate(literal.Token, out var sourceMap))
 				continue;
 
-			var carrier = catalog.AttributeCarriers.FirstOrDefault(candidate =>
-				SymbolEqualityComparer.Default.Equals(candidate.AttributeType, constructor.ContainingType));
-			if (carrier is null)
+			var markerTypes = parameter.GetAttributes()
+				.Select(static attribute => attribute.AttributeClass)
+				.Where(static type => type is not null)
+				.Cast<INamedTypeSymbol>()
+				.ToArray();
+			var carriers = catalog.AttributeCarriers.Where(candidate => markerTypes.Any(marker =>
+				SymbolEqualityComparer.Default.Equals(candidate.AttributeType, marker))).ToArray();
+			if (carriers.Length != 1)
 				continue;
+			var carrier = carriers[0];
 
 			var resolution = await DslGrammarSourceResolver.ResolveAsync(
 				document.Project,
@@ -150,15 +161,6 @@ internal static class DslEmbeddedSiteAnalysis
 		}
 
 		return result;
-	}
-
-	static IMethodSymbol? Constructor(
-		SemanticModel model,
-		AttributeSyntax attribute,
-		CancellationToken cancellationToken)
-	{
-		var info = model.GetSymbolInfo(attribute, cancellationToken);
-		return info.Symbol as IMethodSymbol ?? info.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
 	}
 
 	static string CaptureName(string target) => target.Substring(target.IndexOf('.') + 1);

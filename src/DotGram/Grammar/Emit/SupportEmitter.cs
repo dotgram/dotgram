@@ -137,17 +137,17 @@ public static class SupportEmitter
 			}
 
 			/// <summary>
-			/// Marks an attribute whose string argument is written in a generated language,
-			/// so that tooling can treat it as that language rather than as text.
+			/// Associates this generated language with a user attribute that marks string
+			/// parameters whose arguments are written in the language.
 			/// </summary>
-			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			internal sealed class GramEmbeddedLanguageAttribute : global::System.Attribute
 			{
-				/// <param name="parser">The host class of the grammar that language comes from.</param>
-				public GramEmbeddedLanguageAttribute(global::System.Type parser) => Parser = parser;
+				/// <param name="marker">An attribute type applied to DSL-bearing string parameters.</param>
+				public GramEmbeddedLanguageAttribute(global::System.Type marker) => Marker = marker;
 
-				public global::System.Type Parser { get; }
+				public global::System.Type Marker { get; }
 			}
 
 		}

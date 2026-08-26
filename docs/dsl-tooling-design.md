@@ -12,8 +12,8 @@ The generator emits these internal types into every consumer compilation:
 - `GramLanguageAttribute` identifies a parser-host type and optionally claims file
   extensions.
 - `GramClassifyAttribute` assigns a language-neutral semantic role to a rule or capture.
-- `GramEmbeddedLanguageAttribute` associates a user attribute type with a parser-host
-  type.
+- `GramEmbeddedLanguageAttribute` on a parser host associates the language with a user
+  attribute type that marks DSL-bearing string parameters.
 - `GramClassification` contains semantic roles, never editor colors.
 
 Tooling recognizes these types by namespace, metadata name, constructor shape, and
@@ -30,33 +30,34 @@ The first vertical slice is a DSL parser and a custom attribute in the same solu
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Identifier", GramClassification.Identifier)]
 [GramClassify("Start.name", GramClassification.Variable)]
+[GramEmbeddedLanguage(typeof(FilterAttribute))]
 public static partial class FilterParser;
 
-[GramEmbeddedLanguage(typeof(FilterParser))]
-public sealed class FilterAttribute(string source) : Attribute;
+public sealed class FilterAttribute : Attribute;
 
-[Filter("""
+public sealed class Query([Filter] string source);
+
+var query = new Query("""
     Price > 10 AND Country = 'US'
-    """)]
-sealed class Example;
+    """);
 ```
 
 Visual Studio should discover the language through symbols, decode the string with
 `CSharpStringMap`, classify matched source spans by their rule/capture roles, and report
 recognition diagnostics in C# coordinates.
 
-The initial custom-attribute slice accepts an attribute with exactly one string-valued
-constructor argument. Multiple string arguments and named string properties are left
-unrouted until the author contract can select an argument explicitly; silently treating
-all strings as DSL source would be incorrect.
+The marker attribute is user-owned and carries no language data. Roslyn maps an argument
+to the exact method or constructor parameter; the parameter's marker type then selects
+the language. Ordinary strings and marker attributes used anywhere other than a string
+parameter are not routed.
 
 ## Discovery pipeline
 
 ```text
-C# string literal
-    -> containing AttributeSyntax or ArgumentSyntax
-    -> Roslyn symbol for the attribute type or invoked method
-    -> parser-host type
+C# string argument
+    -> IArgumentOperation.Parameter
+    -> marker attribute type on the exact parameter symbol
+    -> parser host carrying GramEmbeddedLanguage(markerType)
     -> GramLanguage + Gram + GramClassify attributes
     -> grammar source and entry rule
     -> editor-neutral DSL document
@@ -71,10 +72,11 @@ Discovery is solution-scoped and compilation-backed:
 3. Resolve embedded grammar text directly or a standalone grammar through the owning
    project's `AdditionalDocuments`.
 4. Read every shape-valid `DotGram.GramClassifyAttribute` from the host type.
-5. Find attribute types carrying `DotGram.GramEmbeddedLanguageAttribute` and resolve its
-   `System.Type` constructor value to the parser host.
-6. At an attribute use, compare the actual `IMethodSymbol.ContainingType` with the
-   discovered attribute type. Textual attribute names are never sufficient.
+5. Read `DotGram.GramEmbeddedLanguageAttribute` from each parser host and resolve its
+   `System.Type` constructor value to a user marker attribute type.
+6. At a call or object creation, use `IArgumentOperation.Parameter` and compare the
+   parameter's actual attribute symbols with the discovered marker types. Textual
+   attribute names are never sufficient.
 
 The cache key is the Roslyn `Compilation`, with per-document results invalidated when
 the host syntax tree, grammar `AdditionalDocument`, or project references change. No
@@ -187,7 +189,7 @@ versioned generated descriptor. Tooling must not infer it from generated method 
 
 ### DSL-4: Visual Studio integration
 
-- Discover strings in custom attributes.
+- Discover string arguments whose exact parameters carry a registered user marker.
 - Map classification and diagnostics through `CSharpStringMap`.
 - Reuse standard Visual Studio semantic classification categories.
 - Keep classification incremental and cancel stale analyses.
@@ -202,7 +204,7 @@ versioned generated descriptor. Tooling must not infer it from generated method 
 
 - Dynamic registration of arbitrary file extensions.
 - Referenced DSL libraries without source.
-- Multiple DSL-bearing parameters or attribute arguments.
+- Non-literal DSL arguments whose value cannot be mapped to one source span.
 - Nested embedded languages.
 - Symbol declaration/reference semantics, Rename, and Find References inside a user DSL.
 - Running user construction code, guards, or recovery callbacks in the editor.

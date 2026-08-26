@@ -58,13 +58,37 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
-	public async Task IgnoresOrdinaryStringAttributes()
+	public async Task ResolvesNamedMethodArgumentThroughItsMarkedParameter()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total").Replace(
+			"static void Test() => Run(new Query(\"let total\"));",
+			"static void Test() => Execute(text: \"let total\");\n\tstatic void Execute([Filter] string text) { }");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "total") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
+	[Fact]
+	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var source = Source("let total") + """
 
-			[System.Obsolete("let total")]
-			sealed class Ordinary;
+			static class OrdinaryExample
+			{
+				static void Ordinary(string text) { }
+				static void Test() => Ordinary("let total");
+			}
 			""";
 		var document = Document(source);
 		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
@@ -105,15 +129,24 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		[DotGram.GramLanguage("dotgram.test.filter")]
 		[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 		[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
+		[DotGram.GramEmbeddedLanguage(typeof(FilterAttribute))]
 		static class FilterParser;
 
-		[DotGram.GramEmbeddedLanguage(typeof(FilterParser))]
+		[System.AttributeUsage(System.AttributeTargets.Parameter)]
 		sealed class FilterAttribute : System.Attribute
 		{
-			public FilterAttribute(string source) { }
 		}
 
-		[Filter("{{value}}")] 
-		sealed class Example;
+		sealed class Query
+		{
+			public Query([Filter] string text) { }
+		}
+
+		static class Example
+		{
+			static void Test() => Run(new Query("{{value}}"));
+			static void Run(Query query) { }
+			static void Ordinary(string text) { }
+		}
 		"""";
 }

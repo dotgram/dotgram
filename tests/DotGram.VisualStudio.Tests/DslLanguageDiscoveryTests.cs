@@ -26,9 +26,9 @@ public sealed class DslLanguageDiscoveryTests
 				[DG.GramLanguage("com.example.filter", Extensions = new[] { ".filter", ".query" })]
 				[DG.GramClassify("Keyword", DG.GramClassification.Keyword)]
 				[DG.GramClassify("Start.name", DG.GramClassification.Variable)]
+				[DG.GramEmbeddedLanguage(typeof(FilterAttribute))]
 				public static class FilterParser;
 
-				[DG.GramEmbeddedLanguage(typeof(FilterParser))]
 				public sealed class FilterAttribute(string source) : System.Attribute;
 			}
 			""");
@@ -108,17 +108,19 @@ public sealed class DslLanguageDiscoveryTests
 	}
 
 	[Fact]
-	public void IgnoresCarrierWhoseParserIsNotADiscoveredLanguage()
+	public void IgnoresMarkerTypeThatIsNotAnAttribute()
 	{
 		var catalog = Discover(Support + """
 
-			class OrdinaryParser;
+			class NotAnAttribute;
 
-			[DotGram.GramEmbeddedLanguage(typeof(OrdinaryParser))]
-			sealed class FilterAttribute(string source) : System.Attribute;
+			[DotGram.Gram("Start = 'x'")]
+			[DotGram.GramLanguage("filter")]
+			[DotGram.GramEmbeddedLanguage(typeof(NotAnAttribute))]
+			sealed class FilterParser;
 			""");
 
-		Assert.Empty(catalog.Languages);
+		Assert.Single(catalog.Languages);
 		Assert.Empty(catalog.AttributeCarriers);
 	}
 
@@ -131,9 +133,9 @@ public sealed class DslLanguageDiscoveryTests
 			{
 				[DotGram.Gram("Start = 'x'")]
 				[DotGram.GramLanguage("nested")]
+				[DotGram.GramEmbeddedLanguage(typeof(SyntaxAttribute))]
 				public class Parser;
 
-				[DotGram.GramEmbeddedLanguage(typeof(Parser))]
 				public sealed class SyntaxAttribute(string source) : System.Attribute;
 			}
 			""");

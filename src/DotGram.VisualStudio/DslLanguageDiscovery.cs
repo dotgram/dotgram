@@ -114,18 +114,16 @@ public static class DslLanguageDiscovery
 		}
 
 		var carriers = new List<DslAttributeCarrier>();
-		foreach (var type in types.Where(IsAttribute))
-		foreach (var marker in type.GetAttributes().Where(IsEmbeddedLanguageAttribute))
+		foreach (var language in languages)
+		foreach (var marker in language.ParserType.GetAttributes().Where(IsEmbeddedLanguageAttribute))
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			if (marker.ConstructorArguments is not [{ Value: INamedTypeSymbol parser }])
+			if (marker.ConstructorArguments is not [{ Value: INamedTypeSymbol markerType }] ||
+				!IsAttribute(markerType))
 				continue;
 
-			var language = languages.FirstOrDefault(candidate =>
-				SymbolEqualityComparer.Default.Equals(candidate.ParserType, parser));
-			if (language is not null)
-				carriers.Add(new DslAttributeCarrier(type, language));
+			carriers.Add(new DslAttributeCarrier(markerType, language));
 		}
 
 		return new DslLanguageCatalog(languages, carriers);
@@ -201,7 +199,7 @@ public static class DslLanguageDiscovery
 		IsAttributeType(attribute.AttributeClass, EmbeddedLanguageAttribute) &&
 		attribute.AttributeClass is { } type &&
 		HasConstructor(type, "System.Type") &&
-		HasProperty(type, "Parser", "System.Type", writable: false);
+		HasProperty(type, "Marker", "System.Type", writable: false);
 
 	static bool IsClassification(ITypeSymbol type) =>
 		type.TypeKind == TypeKind.Enum &&

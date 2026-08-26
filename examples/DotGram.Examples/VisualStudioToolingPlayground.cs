@@ -79,17 +79,24 @@ public static partial class VisualStudioToolingPlayground
 [GramLanguage("dotgram.tooling.query")]
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Query.field", GramClassification.Variable)]
+[GramEmbeddedLanguage(typeof(ToolingQueryAttribute))]
 public static partial class ToolingQueryLanguage
 {
 }
 
-[GramEmbeddedLanguage(typeof(ToolingQueryLanguage))]
+[AttributeUsage(AttributeTargets.Parameter)]
 public sealed class ToolingQueryAttribute : Attribute
 {
-	public ToolingQueryAttribute(string source) => Source = source;
-
-	public string Source { get; }
 }
 
-[ToolingQuery("select customer")]
-public sealed class ToolingQueryExample;
+public sealed class ToolingQuery
+{
+	public ToolingQuery([ToolingQuery] string text) => Text = text;
+
+	public string Text { get; }
+}
+
+public static class ToolingQueryExample
+{
+	public static readonly ToolingQuery Query = new("select customer");
+}
