@@ -2911,7 +2911,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S518;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S129;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 518, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 518, p, entries.Count);
@@ -3729,7 +3729,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S428;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S129;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 428, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 428, p, entries.Count);
@@ -4701,7 +4701,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S338;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S129;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 338, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 338, p, entries.Count);
@@ -5673,7 +5673,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S252;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S129;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 252, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 252, p, entries.Count);
@@ -6607,7 +6607,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S177;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f') || c == ':')) goto S129;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 177, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 177, p, entries.Count);

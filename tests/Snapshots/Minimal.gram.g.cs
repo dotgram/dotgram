@@ -214,7 +214,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c == 'h')) goto S6;
+						if (!(c == 'h')) goto S4;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 6, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 6, p, entries.Count);

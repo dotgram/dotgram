@@ -2428,3 +2428,50 @@ The URL grammar is where this was costing: `IPv6`'s nine alternatives each had o
 and each was a disjunction of forty-odd ranges that **was evaluated at run time and could
 never be true**. 225,120 characters to 218,727 for nine fewer lines, which is what taking out
 six tests of a thousand characters each looks like.
+
+## Built: a choice's skip lands past the links that cannot say anything new
+
+`S6` repeats `S8` — a double jump, in the smallest grammar that has a choice of literals:
+
+```csharp
+S8: if (!(c == 'h')) goto S6;   // reached S6 only because c is not 'h'
+S6: if (!(c == 'h')) goto S4;   // and asks it again, with the answer already known
+```
+
+A choice is a chain and each link opens by asking whether its own alternative can begin
+here. Arriving because the link before said no is arriving with that question answered,
+wherever this link's set sits inside the previous one's — and `"http"` and `"https"` both
+begin with `h`, so the second link asked about `h` having been reached only when there was
+none. Two states and two reads of the same character to arrive where one jump goes now.
+
+The skip is followed to the first link that could say something new (`Skipped`, walking a
+map of each link's set and where it goes). The way back written beside it is untouched: a
+resume point is reached with nothing known, so the alternative it names has to ask.
+
++1.3, +1.1, +1.7, +0.8 and +0.9 per cent on the RFC grammar — small, and the same sign on
+all five, which at this size is what makes it a number rather than noise.
+
+## Measured: what the whole of this series was worth
+
+The five changes since the emitter's structure was first looked at, against the snapshot
+grammar rather than the benchmark's — the benchmark's is 119 states and has no `IPv6`, so
+most of this could not show there.
+
+| | states | jumps | lines |
+| --- | --: | --: | --: |
+| before | 1,388 | 3,501 | 18,812 |
+| after | **725** | **1,291** | **9,865** |
+
+Two runs, alternating, medians of five: **+10.2/+10.1, +16.6/+14.5, +7.7/+8.6, +11.0/+9.6,
++6.0/+5.6 per cent.** Around a tenth, on every input.
+
+**Where it comes from, isolated.** The layout change alone — same 725 states, 526 fewer jumps
+— is +1.1, +2.2, +4.7, +3.9, −0.1: about a third of the total, and worth naming because the
+same change measured on the benchmark's small grammar was flat. Execution order helps when
+there is enough method for it to matter. The rest is the method being half the size, which is
+the collapse of the rule entry states, and the dead tests that were being evaluated.
+
+**And the benchmark barely moved**, which is the honest other half: 2.23 → 2.26/2.32 against
+the compiled pattern, inside the run-to-run spread. Its grammar has one publication, 119
+states and no nine-alternative rule. A change that halves a large method does nothing
+visible to a small one.

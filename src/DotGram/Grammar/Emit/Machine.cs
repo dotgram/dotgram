@@ -1137,8 +1137,18 @@ sealed partial class Machine
 						{
 							writer.Line("c = text[p];");
 
+							// Not to the next alternative's own test but past it, wherever
+							// that test is one this jump has already answered. Reaching it
+							// means `c` is outside this alternative's set, so a next one
+							// whose set is inside this one asks a question with a known
+							// answer and jumps straight on — which was two states and two
+							// reads of the same character to arrive where one goes now.
+							//
+							// The way back written below is untouched: it is a resume point,
+							// reached with nothing known, and the alternative it names has
+							// to ask.
 							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(target)};");
+								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(Skipped(begins, target))};");
 
 							// The second is read knowing the first did not fire, where there
 							// was a first: `c` is in this alternative's own set by then, so
@@ -1164,6 +1174,9 @@ sealed partial class Machine
 						"repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
 					writer.Line($"goto {Label(first)};");
+
+					if (mine is not null)
+						_dispatchers[state] = (mine, target);
 
 					target = state;
 					rest   = mine is null || rest is null ? null : mine.Or(rest);
@@ -2329,6 +2342,35 @@ sealed partial class Machine
 
 		return named;
 	}
+
+	/// <summary>
+	/// Where a jump taken because <c>c</c> is outside <paramref name="known"/> should land.
+	/// </summary>
+	/// <remarks>
+	/// A choice is a chain, and each link begins by asking whether its own alternative can
+	/// start here. Arriving because the link before it said no is arriving with that
+	/// question already answered, wherever this link's set is inside the previous one's —
+	/// the two literals of <c>"http" | "https"</c> both begin with <c>h</c>, so the second
+	/// link asked whether <c>c</c> was <c>h</c> having been reached only when it was not.
+	/// Followed to the first link that could say something new.
+	/// </remarks>
+	int Skipped(FirstSets.First known, int target)
+	{
+		var at    = target;
+		var steps = 0;
+
+		while (_dispatchers.TryGetValue(at, out var link) &&
+			known.Covers(link.Mine) &&
+			steps++ <= _dispatchers.Count)
+		{
+			at = link.Target;
+		}
+
+		return at;
+	}
+
+	/// <summary>Each choice link's own first set, and where it goes when that set says no.</summary>
+	readonly Dictionary<int, (FirstSets.First Mine, int Target)> _dispatchers = [];
 
 	/// <summary>Whether any state's body jumps to this one.</summary>
 	/// <remarks>
