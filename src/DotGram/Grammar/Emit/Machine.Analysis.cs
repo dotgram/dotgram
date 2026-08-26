@@ -241,6 +241,90 @@ sealed partial class Machine
 	/// and the general machinery stays.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether a repetition need never hand a completed turn back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Weaker than <see cref="Possessive"/>, deliberately. That one licenses compiling a
+	/// repetition as a plain loop with nothing recorded, so the body must match one way
+	/// only. This licenses removing just the repetition's own ways back — everything the
+	/// body records stays recorded — and for that the first sets suffice: an exit at a
+	/// completed turn's start would have the continuation begin where the turn began,
+	/// on a character the turn's first element read, and disjointness says it cannot.
+	/// </para>
+	/// <para>
+	/// A body that leads with the seam is compared past it. Both the turn and the
+	/// continuation begin by reading the same trivia, so the characters that decide are
+	/// the ones after it — <see cref="FollowSets.Continuation.AfterSeam"/>'s half. Two
+	/// more things must then hold: the continuation must not be able to start <em>inside</em>
+	/// what the seam consumed, which <see cref="Contained"/> bounds, and the rest of the
+	/// turn must consume — a turn that is all trivia decides nothing.
+	/// </para>
+	/// </remarks>
+	bool NeverGivesBack(Node.Repeat repeat, FollowSets.Continuation following)
+	{
+		var body = repeat.Body;
+
+		if (FirstSets.Nullable(body, _graph))
+			return false;
+
+		if (_seam is not null &&
+			body is Node.Sequence(var parts) && parts.Count > 1 &&
+			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, _seam))
+		{
+			var contained = Contained(_seam);
+			var rest      = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
+			var decides   = FirstSets.Of(rest, _graph);
+
+			return !FirstSets.Nullable(rest, _graph) &&
+				!decides.Overlaps(following.AfterSeam) &&
+				!following.AfterSeam.Overlaps(contained);
+		}
+
+		return !FirstSets.Of(body, _graph).Overlaps(following.Plain);
+	}
+
+	/// <summary>
+	/// The characters a continuation could meet by starting inside a span the seam
+	/// consumed, rather than after it.
+	/// </summary>
+	/// <remarks>
+	/// A star's shorter readings stop at unit boundaries, so what a boundary can stand
+	/// before is a unit's first character — as long as every unit is rigid. A unit that
+	/// can itself match several lengths, a comment with a body being the one that
+	/// matters, makes a boundary of every position it spans, and everything it can hold
+	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
+	/// the door §3's braces already give an author whose trivia holds comments.
+	/// </remarks>
+	FirstSets.First Contained(RuleSymbol seam)
+	{
+		if (!_graph.Bodies.TryGetValue(seam, out var body))
+			return FirstSets.First.All;
+
+		return body switch
+		{
+			Node.Atomic                 => FirstSets.First.None,
+			Node.Empty                  => FirstSets.First.None,
+			Node.Repeat(var unit, _, _) => Boundaries(unit),
+			_                           => FirstSets.First.All,
+		};
+	}
+
+	FirstSets.First Boundaries(Node unit) => unit switch
+	{
+		Node.Element                => FirstSets.Of(unit, _graph),
+		Node.Literal(var text)      => text.Length == 0
+			? FirstSets.First.None
+			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
+		Node.Choice(var alternatives) => alternatives.Aggregate(
+			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative))),
+		Node.Sequence(var sequenceParts) when sequenceParts.All(
+			static part => part is Node.Literal or Node.Element)
+			=> FirstSets.Of(unit, _graph),
+		_ => FirstSets.First.All,
+	};
+
 	bool Possessive(Node body, FirstSets.First following, HashSet<RuleSymbol>? seen = null) =>
 		following.IsKnown &&
 		!FirstSets.Nullable(body, _graph) &&

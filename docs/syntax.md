@@ -692,6 +692,20 @@ A run with a separator needs none of that, because the thing it repeats is a seq
 List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3"
 ```
 
+**Trivia that can swallow more than one character at a time — comments — is worth making
+atomic:**
+
+```dotgram
+trivia = { (Whitespace | LineComment | BlockComment)* }
+```
+
+The braces say that what a comment swallowed stays swallowed. Without them §11's ordered
+choice means a failing parse may re-read a comment's interior as syntax, one give-back at
+a time — legal, useless, and expensive. With them the engine can also prove that a spaced
+list never needs to hand a completed element back, which is the difference between a
+syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
+needs no braces: single characters leave nothing to re-read.
+
 This rule is narrower than it once was. It used to be "between the operands of a sequence
 and nowhere else", which spaced only a list's first turn — from the sequence around the
 repetition — and refused a space to the left of the second and every later separator:

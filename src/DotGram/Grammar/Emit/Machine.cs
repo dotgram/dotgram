@@ -436,6 +436,9 @@ sealed partial class Machine
 	/// </remarks>
 	RuleSymbol? _seam;
 
+	/// <summary>Whether any repetition compiled with a standing exit.</summary>
+	bool _usesLoopExits;
+
 	/// <summary>
 	/// Whether any construction in this grammar asks for the whole input (§8.2).
 	/// </summary>
@@ -762,6 +765,31 @@ sealed partial class Machine
 						file.Line("lookahead = entry.LookaheadIndex;");
 						file.Line("Trace(\"resume\", state, p, entries.Count);");
 						file.Line("goto Dispatch;");
+					}
+
+					if (_usesLoopExits)
+					{
+						using (file.Block("if (entry.Kind == ParserEntry.LoopExit)"))
+						{
+							// Only the latest exit of its loop is live. Its Repeat entry —
+							// always below it, so always still there — says where the last
+							// completed turn ended; an exit standing anywhere else is a
+							// turn the parse has since gone past.
+							file.Line(
+								"if (entry.RepeatIndex < 0 || " +
+								"entries[entry.RepeatIndex].Kind != ParserEntry.Repeat || " +
+								"entries[entry.RepeatIndex].RuleIndex != entry.Position)");
+							file.Then("continue;");
+							file.Line();
+							file.Line("state  = entry.State;");
+							file.Line("p      = entry.Position;");
+							file.Line("call   = entry.CallIndex;");
+							file.Line("atomic = entry.AtomicIndex;");
+							file.Line("repeat = entry.RepeatIndex;");
+							file.Line("lookahead = entry.LookaheadIndex;");
+							file.Line("Trace(\"resume exit\", state, p, entries.Count);");
+							file.Line("goto Dispatch;");
+						}
 					}
 
 					if (_usesRuns)
@@ -2434,6 +2462,15 @@ sealed partial class Machine
 		if (max == 0)
 			return next;
 
+		// One standing way out instead of one per turn. The proof is NeverGivesBack's;
+		// what it buys is that a failure behind the repetition resumes one exit and pops
+		// past the stale ones, where it used to resume every one of them and re-read the
+		// suffix per turn — the exponential this engine was measured to have.
+		var settled = max is not 1 && NeverGivesBack(repeatNode, following);
+
+		if (settled)
+			_usesLoopExits = true;
+
 		var exit  = Reserve(out var atExit);
 		var loop  = Reserve(out var atLoop);
 		var after = Reserve(out var atAfter);
@@ -2456,7 +2493,7 @@ sealed partial class Machine
 		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
 		atEntry.Line($"goto {Label(loop)};");
 
-		if (min > 0 || max is not null)
+		if (settled || min > 0 || max is not null)
 		{
 			atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 			atLoop.Line("var repeating = entries[repeat];");
@@ -2466,7 +2503,25 @@ sealed partial class Machine
 		if (max is { } limit)
 			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
 
-		if (min == 0)
+		if (settled)
+		{
+			// The standing exit, and the note of where it stands. The Repeat entry's
+			// second field holds where the last completed turn ended, which is what makes
+			// every earlier LoopExit visibly stale; it is not a state and Layout's
+			// Resumable list must not think it is.
+			using (atLoop.Block(min == 0 ? "" : $"if (repeating.Value >= {min})"))
+			{
+				atLoop.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {exit}, p, call, atomic, " +
+					"repeat, lookahead, 0));");
+				atLoop.Line(
+					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
+					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
+					"repeating.LookaheadIndex, repeating.Value, p);");
+				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count);");
+			}
+		}
+		else if (min == 0)
 			PushRepeatExit(atLoop, exit);
 		else
 		{
@@ -2481,7 +2536,8 @@ sealed partial class Machine
 		// The count is only ever read to decide whether a bound has been reached. An
 		// unbounded repetition with nothing to reach has no such decision to make, and
 		// counting for a reader that does not exist costs a read and a write of the entry
-		// on every iteration.
+		// on every iteration. A settled repetition goes through here whatever its bounds:
+		// the standing exit's position is written by the loop head it is about to re-enter.
 		if (min > 0 || max is not null)
 		{
 			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
@@ -2489,10 +2545,23 @@ sealed partial class Machine
 			atAfter.Line(
 				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
 				"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
-				"repeated.LookaheadIndex, repeated.Value + 1);");
+				"repeated.LookaheadIndex, repeated.Value + 1" + (settled ? ", repeated.RuleIndex" : "") + ");");
 		}
 
 		atAfter.Line($"goto {Label(loop)};");
+
+		// Out through the count rather than through the standing exit, which is the one
+		// path that leaves it standing and valid. Marked spent, or a failure after the
+		// repetition would come back and end a run that has already ended.
+		if (settled && max is not null)
+		{
+			atExit.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+			atExit.Line("var closing = entries[repeat];");
+			atExit.Line(
+				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, " +
+				"closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, " +
+				"closing.LookaheadIndex, closing.Value, -1);");
+		}
 
 		LeaveRepeat(atExit, next);
 

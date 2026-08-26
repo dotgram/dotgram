@@ -9254,6 +9254,20 @@ namespace DotGram.Snapshots
 			internal const int PendingRecovery = 12;
 			internal const int Run = 13;
 
+			/// <summary>
+			/// The one way out a settled repetition keeps standing, in place of a
+			/// <see cref="Choice"/> per turn.
+			/// </summary>
+			/// <remarks>
+			/// Valid only while it is the loop's latest: the <see cref="Repeat"/> entry it
+			/// points back to holds, in its rule-index field, where the last completed turn
+			/// ended, and an exit whose own position no longer matches is history — popped
+			/// past, never resumed. That is what turns a failure that used to resume one
+			/// exit per completed turn, re-reading the suffix each time, into one that
+			/// resumes a single exit and skips the rest.
+			/// </remarks>
+			internal const int LoopExit = 14;
+
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
 				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)

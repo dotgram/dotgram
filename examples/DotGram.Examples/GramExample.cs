@@ -82,7 +82,13 @@ namespace DotGram.Examples;
 	// keyword below is a plain string literal because of this line.
 	wordboundary = WordOrDigit
 
-	trivia = (Space | LineComment | BlockComment)*
+	// Atomic, and the braces are doing real work twice over. Semantically they say that
+	// what a comment swallowed stays swallowed: without them §11's ordered choice lets a
+	// failing parse re-read a comment's interior as syntax, one give-back at a time.
+	// Mechanically that same commitment is what lets every spaced list below keep a single
+	// way back instead of one per element, which is the difference between failing in
+	// milliseconds and failing in minutes.
+	trivia = { (Space | LineComment | BlockComment)* }
 
 	File : @GramFile
 		= (trivia & usings: Using)* & (trivia & declarations: Declaration)*

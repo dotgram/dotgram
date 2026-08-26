@@ -2925,3 +2925,41 @@ So the order is: **follow sets first**, then this. Reverted rather than left in,
 mechanism that costs five per cent and fires nowhere is a mechanism that will be measured
 once, wrongly, by whoever comes next. The shape is written down here and is half an hour to
 put back once the analysis can feed it.
+
+## Built: the exponential is dead
+
+Sixty-five seconds to refuse a six-operand rule; now 0.0 ms, flat through fourteen. Not a
+patch — five layers, each of independent worth, each proved before the next was started:
+
+1. **First sets got real characters** — a Unicode category is its ranges, a negation its
+   complement, a folded literal its foldings; ranges normalized so `Covers` is exact and
+   the follow fixed point stops on content rather than spelling.
+2. **Two one-line over-approximations fixed** — an optional told its body another turn
+   might follow (poisoning everything upstream of `@(...)`'s honest "anything"), and a
+   whole parse's body was compiled as though anything could follow it instead of the end
+   of input. After both, 44 of 52 rules in the self-hosting grammar know their follow.
+3. **The seam is withheld where the author's own trivia stands** — `trivia & trivia &
+   trivia` was one seam whose every split the search walked.
+4. **What follows is threaded as a pair** — as it stands, and past the seam. §4.5 heads
+   every spaced seam with the same trivia, so a turn and the continuation behind it are
+   told apart by what each reads *next*; compared plainly they overlap on the trivia
+   itself and the comparison says nothing. One composition (`FollowSets.Precedes`), used
+   by the fixed point and the compiler both, crossing namespaces the same way in both.
+5. **A settled repetition keeps one way back** — a `LoopExit` entry valid only while it is
+   the loop's latest (the `Repeat` entry's rule-index field holds where the last completed
+   turn ended); stale ones are popped past, never resumed. Soundness needs only the first
+   sets: an exit at a completed turn's start would have the continuation begin where the
+   turn began, on a character the turn read, and disjointness says it cannot. No
+   determinism demanded — that is `Possessive`'s stronger licence for silent lowering, and
+   the body's own machinery stays recorded here.
+
+The boundary found on the way matters as much as the mechanism. Trivia that can swallow
+multi-character units — comments — genuinely admits readings where a failing parse re-opens
+a comment's interior as syntax, one give-back at a time; §11 requires them, `Contained`
+detects them, and the proof honestly declines. The author's answer is one brace pair —
+`trivia = { … }` — which says "what a comment swallowed stays swallowed" and hands the
+proof back. §4.5 now recommends it; the self-hosting grammar wears it.
+
+Measured: the failure table flat at 0.0 ms through fourteen operands; the whole corpus
+still reads as trees (Url.gram in 2.8 ms warm); the URL benchmark's ratios to compiled
+Regex unchanged within noise, with the two-row validity gate agreeing. 1,031 tests green.
