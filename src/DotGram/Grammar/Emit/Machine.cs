@@ -1144,9 +1144,17 @@ sealed partial class Machine
 							// answer and jumps straight on — which was two states and two
 							// reads of the same character to arrive where one goes now.
 							//
-							// The way back written below is untouched: it is a resume point,
-							// reached with nothing known, and the alternative it names has
-							// to ask.
+							// The way back written below is untouched, and not because
+							// nothing is known there — something is. It is pushed only on
+							// the path this test let through, so whatever resumes at it
+							// resumes with `c` inside this alternative's set, and the link
+							// it names asks a question it could answer. What stops the same
+							// trick there is the other way in: the entry is pushed at the
+							// end of the input too, where no test ran, and that path goes
+							// through the link rather than past it. Skipping it would drop a
+							// failure the parse reports, so `expected` would change even
+							// though what is accepted would not. Left, with the trap named
+							// (docs/next.md).
 							if (mine is { } begins)
 								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(Skipped(begins, target))};");
 

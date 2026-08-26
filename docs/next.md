@@ -2513,3 +2513,35 @@ alternatives in an order.
 Two tests used `"ab" | "a"` as their example of a choice needing the arena. It no longer is
 one, which is the improvement; they say `"a" | "ab"` now, and their comments say what
 actually makes the difference.
+
+## Later: the resume edge of a choice knows something too, and one thing stops it
+
+The skip edge of a choice link was taught to land past the links whose question it had
+already answered. The comment written beside it said the way back needed no such thing
+because "it is a resume point, reached with nothing known". That is false, and the code says
+so if read:
+
+```csharp
+S8: if (p < len) { c = text[p]; if (!(c == 'h')) goto S4; }   // reached below only when c is 'h'
+    entries.Add(Choice, 6, …);                                 // or when there is no character
+S6: if (p < len) { c = text[p]; if (!(c == 'h')) goto S4;      // which can never fire
+                                goto S5; }
+```
+
+`S6` is reached only by resuming the entry `S8` pushed, and `S8` pushes it only on the path
+its own test let through. So `c` is in `S8`'s set there, and `S6` asks a question with a known
+answer — `goto S4` inside it cannot be taken.
+
+The symmetric fix would be to push the way back at `S5` rather than `S6`, past the test,
+which would leave `S6` unreachable for the layout pass to drop.
+
+**What stops it is the other way in.** The entry is pushed at the end of the input as well,
+where no test ran — and there the link behaves differently: it pushes its own way back and
+falls through to its first alternative, both of which fail on length and both of which name
+what they expected. Skipping the link would take that path out. Nothing about what the parse
+*accepts* would change; what `Match.Error` says would.
+
+So it is a real optimization with a diagnostic cost, and the two have to be weighed rather
+than one assumed. Not built. Whoever picks it up should start by deciding whether the
+end-of-input path through a choice link contributes anything to `expected` that the links it
+skips do not already say.
