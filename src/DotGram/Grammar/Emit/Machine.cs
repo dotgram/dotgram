@@ -461,6 +461,13 @@ sealed partial class Machine
 	/// </remarks>
 	RuleSymbol? _seam;
 
+	/// <summary>
+	/// Whether captures compile to position locals and the construction is left for
+	/// Accept — the flat-value rendering, where nothing ever backtracks over either.
+	/// Off for the engine, whose captures are arena entries backtracking must unwind.
+	/// </summary>
+	bool _valuesInLocals;
+
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
 
@@ -1326,6 +1333,25 @@ sealed partial class Machine
 			{
 				var slot = _captureSlots[node];
 
+				// Two locals and nothing else: where the span began, and where it ended.
+				// Sound because `CanLowerValued` admitted no shape that could backtrack
+				// over a finished capture, and the sentinel start is what tells an
+				// optional capture that never ran (null) from one that matched nothing.
+				if (_valuesInLocals)
+				{
+					var flatClose = Reserve(out var atFlatClose);
+					var flatInner = Compile(body, flatClose, following);
+					var flatState = Reserve(out var atFlatOpen);
+
+					atFlatOpen.Line($"flat{slot}Start = p;");
+					atFlatOpen.Line($"goto {Label(flatInner)};");
+
+					atFlatClose.Line($"flat{slot}End = p;");
+					atFlatClose.Line($"goto {Label(next)};");
+
+					return flatState;
+				}
+
 				if (body is Node.Lookahead(true, var seen))
 					return CompileLookaheadCapture(slot, seen, next);
 				if (body is Node.Lookahead(false, var rejected))
@@ -1413,6 +1439,12 @@ sealed partial class Machine
 
 			case Node.Construct(var body, _):
 			{
+				// The factory runs at Accept, once the whole parse is decided — deferred
+				// construction, kept without an entry. `CanLowerValued` admitted exactly
+				// one construction, so Accept knows which factory it is without a record.
+				if (_valuesInLocals)
+					return Compile(body, next, following);
+
 				var factory = _constructs[node];
 				var close   = Reserve(out var atClose);
 				var inner   = Compile(body, close, following);
@@ -1825,6 +1857,64 @@ sealed partial class Machine
 
 			case Node.Lookahead(var isPositive, var body):
 			{
+				// A silent body needs no entry: entering is a checkpoint local, leaving is
+				// putting the position back — the same door a possessive turn leaves by.
+				// The same test `Silent`'s own Lookahead case asks, so the two agree.
+				if (Silent(body, FirstSets.First.All))
+				{
+					var mine = _depth++;
+
+					if (isPositive)
+					{
+						// Body matched: rewind and carry on. Body failed: rewind first,
+						// then fail outward — a lookahead does not report how far it
+						// looked, and both doors go through the same local.
+						var rewind    = GiveBack(next, mine, out var start);
+						var outward   = _fail;
+						var backOut   = GiveBack(outward, mine, out _);
+
+						_fail = backOut;
+
+						var flatInner = Compile(body, rewind, FollowSets.Continuation.All);
+
+						_fail = outward;
+
+						var flatState = Reserve(out var atFlatEnter);
+
+						atFlatEnter.Line($"{start} = p;");
+						atFlatEnter.Line($"goto {Label(flatInner)};");
+
+						_depth = mine;
+
+						return flatState;
+					}
+
+					// Negative: the body failing is this succeeding, so the body's own
+					// failures rewind and continue; the body matching is this failing.
+					var resume    = GiveBack(next, mine, out var begun);
+					var matched   = Reserve(out var atMatched);
+					var arrayName = DeclareExpected([node.ToString()]);
+					var saved     = _fail;
+
+					_fail = resume;
+
+					var refused = Compile(body, matched, FollowSets.Continuation.All);
+
+					_fail = saved;
+
+					var entered = Reserve(out var atEnter);
+
+					atEnter.Line($"{begun} = p;");
+					atEnter.Line($"goto {Label(refused)};");
+
+					atMatched.Line($"p = {begun};");
+					EmitTerminalFailure(atMatched, _fail, arrayName);
+
+					_depth = mine;
+
+					return entered;
+				}
+
 				var success = Reserve(out var atSuccess);
 				var inner   = Compile(body, success, FollowSets.Continuation.All);
 				var state   = Reserve(out var writer);
@@ -2493,13 +2583,21 @@ sealed partial class Machine
 	/// began is kept in a local of its own and the way out reads it. The repetition ends
 	/// where its last whole turn ended, not where a broken one stopped.
 	/// </remarks>
-	int GiveBack(int next, int depth, out string start)
+	int GiveBack(int next, int depth, out string start, IReadOnlyList<int>? resetSlots = null)
 	{
 		start = "turn" + depth;
 
 		var state = Reserve(out var writer);
 
 		writer.Line($"p = {start};");
+
+		// A capture the given-back turn opened is a record backtracking would have
+		// unwound; kept in locals, the door it leaves by has to unset it (the sentinel
+		// is what tells an optional capture that never happened from one that did).
+		if (resetSlots is not null)
+			foreach (var slot in resetSlots)
+				writer.Line($"flat{slot}Start = -1;");
+
 		writer.Line($"goto {Label(next)};");
 
 		_turns.Add((depth, state));
@@ -2522,13 +2620,22 @@ sealed partial class Machine
 		// is every line of the method, not the loops.
 		var mine = _depth++;
 
+		// The capture locals a given-back turn would leave set (flat-value rendering
+		// only; the engine's captures unwind with the arena).
+		List<int>? resets = null;
+
+		if (_valuesInLocals)
+			foreach (var descendant in NodeWalk.Descendants(body))
+				if (descendant is Node.Capture)
+					(resets ??= []).Add(_captureSlots[descendant]);
+
 		if (max is null)
 		{
 			var loop  = Reserve(out var atLoop);
 			var saved = _fail;
 
 			// Round again, or out — and out is through the door that puts the position back.
-			_fail = GiveBack(next, mine, out var start);
+			_fail = GiveBack(next, mine, out var start, resets);
 
 			var inner = Compile(body, loop, inside);
 
@@ -2545,7 +2652,7 @@ sealed partial class Machine
 				var saved = _fail;
 				var after = target;
 
-				_fail  = GiveBack(after, mine, out var start);
+				_fail  = GiveBack(after, mine, out var start, resets);
 				target = Compile(body, after, inside);
 				_fail  = saved;
 

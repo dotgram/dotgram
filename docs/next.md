@@ -3407,3 +3407,54 @@ so every valued rule still enters the engine only to run a loop the proofs alrea
 made silent. The next stage teaches the flat writer captures-as-locals and direct
 construction, which by the review's own table takes the arena out of 21 of the
 catalog's 23 rules.
+
+## Built: valued flat lowering - captures in locals, construction at Accept
+
+The review's central principle - the arena is a fallback, not the default form of
+parser state - split into two independent questions: does parsing need backtracking
+state, and does the value need persistent derivation state. For most valued rules the
+answer to both is no, and the machinery to prove the first half already existed. What
+was missing was the second half: `CanLower` is `Silent`, and `Silent` had no case for
+a capture or a construction, so every valued rule entered the engine only to run a
+loop the proofs had already made silent, keep one capture, and write four arena
+entries of ceremony around it.
+
+`CanLowerValued` admits a valued publication to the flat path when the value adds
+nothing the arena is for: captures are spans of the input (no rule values, whose
+per-turn records are the point), none sits under a repetition of more than one turn
+(a local would keep only the last), and the construction is single and at the top, so
+Accept knows the factory without a record. The silence question is then `Silent`'s
+own, asked with `_valuesInLocals` on - the same flag the rendering compiles under, so
+analysis and compilation cannot disagree.
+
+Under the flag, a capture is two locals - `flat{slot}Start`/`End`, sentinel start for
+the §10 null-versus-empty distinction - and the construction compiles to nothing: the
+factory runs once, at Accept, after the whole-input check. Deferred construction is
+kept exactly, without an arena to defer into, and a new test pins the factory call
+textually after the length check. A give-back door now unsets the capture locals the
+abandoned turn set - the one thing arena unwinding used to do for them - which the
+optional-capture test caught on its first run ("" where null was meant).
+
+Silence itself grew three honest cases, engine-wide, not flat-specific: `Behind` (one
+comparison, already routed through `_fail`), a scanner call (one method call), and a
+lookahead over a silent body - compiled as a checkpoint local and a rewind through
+the same `GiveBack` door a possessive turn leaves by, in both directions, replacing
+the Lookahead entry and its RemoveRange wherever the body is silent. The rewind on
+the failing side is what keeps "a lookahead does not report how far it looked" true,
+and that test caught the first version leaving `p` mid-body.
+
+On the Minimal catalog this makes 12 valued rules plain methods with zero arena -
+Text, Number, Predicted, List, Counted, Maybe, Ahead, Not, Ci, Upper, Spaced.Pair,
+and the valueless A-F alongside - `Recognize_Text_Whole` now being a char loop, one
+`string` allocation, and a factory call, the review's target form for it verbatim.
+The engine remains for exactly what the review's own table kept it for: C/E/F (a way
+back - the checkpoint class, deferred), Committed (atomic commit), Alias, Either,
+Wrapped (rule values across calls - the next stage), Sum (climbing; direct recursion
+was considered and declined - a hand parser overflows the stack where the engine
+refuses cleanly), Sheet (recovery), AnyItem (a find is a prefix parse, unsettled by
+definition). The catalog file: 10,973 lines before the scoping fixes, 7,155 now.
+
+Not taken up yet, in order: rule values across calls (Alias's direct call of a flat
+callee, Either/Wrapped's predicted dispatch with the factory choice as a local
+tag); the checkpoint class for C/E/F/Committed; Sheet's collection materialization
+(the review's copy-on-return point) and pool retention.

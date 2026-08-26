@@ -304,7 +304,11 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void Construction_is_recorded_and_runs_only_after_acceptance()
 	{
-		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
+		// The choice needs a way back — "a" continues into "ab" — so the rule stays on
+		// the engine, where construction is an arena record resolved at Accept.
+		var source = Emit(
+			"Start : @int = digits: ['0'..'9']+ & (\"a\" | \"ab\") => @int.Parse(digits)\n" +
+			"parse Start");
 
 		Assert.Contains("ParserEntry.Construct", source);
 		Assert.Contains("entries[call] = new ParserEntry(ParserEntry.Completed", source);
@@ -312,6 +316,37 @@ public sealed class CSharpEmitterTests
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
 			 source.LastIndexOf("[completedAt] = Construct_Start(", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// §10's difference between the capture that did not happen and the run of no turns,
+	/// kept by the flat form's sentinel where the engine kept it by a missing entry.
+	/// </summary>
+	[Fact]
+	public void A_lowered_optional_capture_still_tells_null_from_empty()
+	{
+		const string grammar = "Sign : @string = (s: '-')? & 'x' => @(s ?? \"none\")\nparse Sign";
+
+		Assert.DoesNotContain("RentParser", Emit(grammar));
+		Assert.Equal("none", Invoke(grammar, "ParseSign", "x").Value);
+		Assert.Equal("-", Invoke(grammar, "ParseSign", "-x").Value);
+	}
+
+	/// <summary>
+	/// The flat form keeps the same promise without the record: the factory call sits
+	/// after the whole-input check, so nothing the author wrote runs on a parse that
+	/// then fails.
+	/// </summary>
+	[Fact]
+	public void A_lowered_construction_still_runs_only_after_acceptance()
+	{
+		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
+
+		Assert.DoesNotContain("ParserEntry.Construct", source);
+		Assert.DoesNotContain("RentParser", source);
+		Assert.True(
+			source.IndexOf("if (p != text.Length)", StringComparison.Ordinal) <
+			 source.IndexOf("value = Construct_Start(", StringComparison.Ordinal));
 	}
 
 	[Fact]

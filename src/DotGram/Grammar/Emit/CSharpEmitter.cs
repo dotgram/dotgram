@@ -78,7 +78,9 @@ public static partial class CSharpEmitter
 				!ClimbsWithin(graph, only) &&
 				!group.Publications.Any(publication => Streams(graph, publication)) &&
 				group.Publications.All(
-					publication => made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse));
+					publication =>
+						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
+						made.CanLowerValued(publication.Rule, publication.Kind == PublishKind.Parse));
 
 			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered));
 		}
@@ -324,47 +326,33 @@ public static partial class CSharpEmitter
 		var mine = new List<(string Name, int Entry, bool Sync)>();
 
 		if (compiled.Flat)
-
 		{
-
 			var rendered = new HashSet<(RuleSymbol Rule, bool Whole)>();
 
-
-
 			foreach (var publication in compiled.Publications)
-
 			{
-
 				var whole = publication.Kind == PublishKind.Parse;
 
-
-
 				if (!rendered.Add((publication.Rule, whole)))
-
 					continue;
 
+				// Under the name the caller uses, with no wrapper between: the valueless
+				// form has nothing for a wrapper to do, and the valued form carries the
+				// same `out` parameter the wrapper would otherwise have added.
+				var name = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
 
-
-				// Under the name the caller uses, with no wrapper between. A lowered
-
-				// publication never has a value of its own — a value comes from a
-
-				// construction and `CanLower` is `Silent`, which has no case for one — so
-
-				// there is no `out` parameter to add and nothing for a wrapper to do.
-
-				file.Write(machine.RenderFlat(
-
-					publication.Rule,
-
-					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
-
-					whole));
-
+				file.Write(machine.CanLower(publication.Rule, whole)
+					? machine.RenderFlat(publication.Rule, name, whole)
+					: machine.RenderFlatValued(publication.Rule, name, whole));
 				file.Line();
-
 			}
 
+			// The scanners the flat states call are methods of their own, the same as
+			// when the engine calls them.
+			var flatScanners = machine.RenderScanners();
+
+			if (flatScanners.Length > 0)
+				file.Write(flatScanners);
 		}
 
 

@@ -92,6 +92,27 @@ sealed partial class Machine
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,
+
+			// One comparison against the character behind, no entry — its compile already
+			// routes failure through `_fail` like every other silent node.
+			Node.Behind                                => true,
+
+			// A lookahead over a silent body needs no entry either: the body writes
+			// nothing, so entering is a checkpoint local and leaving is putting the
+			// position back — both directions, since a negative lookahead's failure is
+			// its body succeeding. "Anything" for the body's own continuation: what
+			// follows the lookahead does not follow the body, which is rewound.
+			Node.Lookahead(_, var seen)                => Silent(seen, FirstSets.First.All),
+
+			// A capture kept in locals writes nothing — sound only where nothing ever
+			// backtracks over it, which is what every other case here already proves,
+			// and only the flat-value rendering compiles it that way.
+			Node.Capture(_, var captured)              => _valuesInLocals && Silent(captured, following),
+
+			// The single construction a flat-value method runs at Accept, once the
+			// whole parse is decided — deferred construction kept, no entry written.
+			Node.Construct(var built, _)               => _valuesInLocals && Silent(built, following),
+
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
 			// Two ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
@@ -106,7 +127,10 @@ sealed partial class Machine
 			                                                  alternatives,
 			                                                  alternatives.Count - 1,
 			                                                  following) == alternatives.Count,
-			Node.Call(var rule, _)                     => CanInline(rule) &&
+			// A scanner call is one method call that writes nothing; failing one already
+			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
+			Node.Call(var rule, _)                     => ScannerOf(rule) is not null ||
+			                                              CanInline(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
 			                                              Silent(called, following),
 
