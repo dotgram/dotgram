@@ -1821,15 +1821,46 @@ sealed partial class Machine
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected(displays);
 
-		if (shared.Length > 0)
+		if (shared.Length > 1)
 		{
-			// Folded into the first character's test where nothing separates them, the same
-			// as Node.Literal's own.
-			var room = _starves ? null : Short(shared.Length);
+			// One comparison rather than one per character, the same trade Node.Literal makes
+			// for a literal of its own and for the same reason: SequenceEqual against a
+			// constant is folded into word-sized compares and bounds-checked once, where the
+			// chain of text[p + i] it replaces was checked once per character despite the room
+			// test above having proved every one of them in range.
+			writer.Line($"if ({Short(shared.Length)})");
+			using (writer.Block(""))
+			{
+				if (_starves)
+					writer.Line("failure.Starved = true;");
+
+				EmitTerminalFailure(writer, fail, arrayName);
+			}
+
+			writer.Line(
+				"if (!global::System.MemoryExtensions.SequenceEqual(" +
+				$"text.Slice(p, {shared.Length}), {Spanned(shared)}))");
+
+			using (writer.Block(""))
+			{
+				// Name the character that did not fit, not where the shared prefix started —
+				// worked out on a branch the comparison has already failed rather than on the
+				// way in, so what it costs is a cost of failing.
+				Sharpen(writer, shared);
+
+				EmitTerminalFailure(writer, fail, arrayName);
+			}
+		}
+		else if (shared.Length == 1)
+		{
+			// A single character has nothing to widen. Its test and the room check fail the
+			// same way, so they are folded into one question wherever starvation does not
+			// have to be marked between them — the same as Node.Literal's own.
+			var room = _starves ? null : Short(1);
 
 			if (room is null)
 			{
-				writer.Line($"if ({Short(shared.Length)})");
+				writer.Line($"if ({Short(1)})");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
@@ -1837,20 +1868,10 @@ sealed partial class Machine
 				}
 			}
 
-			for (var i = 0; i < shared.Length; i++)
+			writer.Line($"if ({(room is not null ? room + " || " : "")}{At(0)} != {CSharpEmitter.Char(shared[0])})");
+			using (writer.Block(""))
 			{
-				writer.Line(
-					$"if ({(i == 0 && room is not null ? room + " || " : "")}" +
-					$"{At(i)} != {CSharpEmitter.Char(shared[i])})");
-				using (writer.Block(""))
-				{
-					// Same sharpening as Node.Literal's own per-character loop: name the
-					// character that did not fit, not where the shared prefix started.
-					if (i > 0)
-						writer.Line($"p += {i};");
-
-					EmitTerminalFailure(writer, fail, arrayName);
-				}
+				EmitTerminalFailure(writer, fail, arrayName);
 			}
 		}
 

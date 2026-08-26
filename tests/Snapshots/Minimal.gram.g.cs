@@ -521,26 +521,22 @@ namespace DotGram.Snapshots
 
 				S5:
 				{
-					if (p + 4 > text.Length || text[p] != 'h')
+					if (p + 4 > text.Length)
 					{
 						expected = Recognize_DotGram_E_Expected1;
 						goto Fail;
 					}
-					if (text[p + 1] != 't')
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 					{
-						p += 1;
-						expected = Recognize_DotGram_E_Expected1;
-						goto Fail;
-					}
-					if (text[p + 2] != 't')
-					{
-						p += 2;
-						expected = Recognize_DotGram_E_Expected1;
-						goto Fail;
-					}
-					if (text[p + 3] != 'p')
-					{
-						p += 3;
+						if (text[p] == 'h')
+						{
+							if (text[p + 1] != 't')
+								p += 1;
+							else if (text[p + 2] != 't')
+								p += 2;
+							else
+								p += 3;
+						}
 						expected = Recognize_DotGram_E_Expected1;
 						goto Fail;
 					}

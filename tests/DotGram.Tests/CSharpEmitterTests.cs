@@ -1067,7 +1067,7 @@ public sealed class CSharpEmitterTests
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = " +
 			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
 			source);
-		Assert.Contains("text[p] != 'h'", source);
+		Assert.Contains("AsSpan(\"http\")", source);
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
