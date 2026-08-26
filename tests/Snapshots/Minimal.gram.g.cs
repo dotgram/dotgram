@@ -107,6 +107,40 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>D</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The input is not <c>D</c>. <c>TryParseD</c> answers instead.
+		/// </exception>
+		public static string ParseD(string input)
+		{
+			var match = TryParseD(input);
+
+			if (match.IsSuccess)
+				return match.Value;
+
+			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+		}
+
+		/// <summary>Parses the whole input as <c>D</c>, answering rather than throwing.</summary>
+		public static Match<string> TryParseD(string input)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_D_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				var otherwise = failure.Position >= text.Length
+					? "Expected more input."
+					: "Input does not match 'D'.";
+
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
+			}
+
+			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
 		static int Recognize_A_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
@@ -420,6 +454,41 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
+		static int Recognize_D_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+			string[]? expected = null;
+
+			{
+				if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
+				{
+					p += 5;
+					goto Accept;
+				}
+				if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
+				{
+					p += 4;
+					goto Accept;
+				}
+				if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
+				{
+					p += 3;
+					goto Accept;
+				}
+				expected = Recognize_DotGram_D_Expected0;
+				goto Fail;
+			}
+
+			Accept:
+			if (p != text.Length) { expected = null; goto Fail; }
+			return p;
+
+			Fail:
+			failure.Position = p;
+			failure.Expected = expected;
+			return -1;
+		}
+
 		static readonly string[] Recognize_DotGram_A_Expected0 = { "'a'" };
 
 		static readonly string[] Recognize_DotGram_B_Expected0 = { "\"abcd\"" };
@@ -429,6 +498,8 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_C_Expected1 = { "\"https\"" };
 
 		static readonly string[] Recognize_DotGram_C_Expected2 = { "\"http\"" };
+
+		static readonly string[] Recognize_DotGram_D_Expected0 = { "\"https\"", "\"http\"", "\"ftp\"" };
 
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

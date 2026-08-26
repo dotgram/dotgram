@@ -9,15 +9,24 @@
 // Nothing else differs between them, so the diff between those two methods is exactly
 // what the extra three characters cost.
 //
-// `C` is the next thing after that: a choice of literals, compiled as a run rather than
-// as a choice, decided where the texts differ with nothing written down to come back to.
-// Written shortest-prefix-first on purpose, so the snapshot shows what the generator
-// makes of `"http"` standing in front of `"https"` rather than behind it.
+// `C` and `D` are the same three literals in two orders, and the diff between their
+// methods is what the order costs. `D` is written longest-first: each text is decided
+// where it differs from the ones before it, nothing is written down to come back to,
+// and the whole rule is silent and lowered. `C` puts `"http"` in front of `"https"`,
+// so the shorter takes the position wherever the longer would have and the choice
+// needs a way back — which is the arena, and the engine, and everything under it.
+//
+// Both accept the same input under `parse`, which reads to the end and comes back for
+// the other alternative when the first leaves a character over. `find` is where the
+// order changes the answer rather than the price, and is why §11 promises the
+// alternatives are never reordered.
 
 A = "a"
 B = "abcd"
 C = "http" | "https" | "ftp"
+D = "https" | "http" | "ftp"
 
 parse A
 parse B
 parse C
+parse D
