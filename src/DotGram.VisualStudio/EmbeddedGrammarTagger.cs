@@ -401,16 +401,23 @@ sealed class EmbeddedGrammarBufferAnalysis
 				if (_buffer.CurrentSnapshot != snapshot)
 					return;
 
+				var preserveEmbeddedAnalysis = ShouldPreserveEmbeddedAnalysis(
+					root.ContainsDiagnostics,
+					analyses.Count,
+					_classifications.Count,
+					_documentSymbols.Count);
+
+				if (preserveEmbeddedAnalysis && _snapshot is not null)
+					_classifications = TranslateClassifications(_classifications, _snapshot, snapshot);
+				else
+					_classifications = classifications;
+
 				_snapshot        = snapshot;
-				_classifications = classifications;
 				_diagnostics     = diagnostics;
 				_symbols         = symbols;
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
-				if (!ShouldPreserveDocumentSymbols(
-					root.ContainsDiagnostics,
-					analyses.Count,
-					_documentSymbols.Count))
+				if (!preserveEmbeddedAnalysis)
 					_documentSymbols = documentSymbols;
 				_publishedApis   = publishedApis;
 
@@ -440,11 +447,35 @@ sealed class EmbeddedGrammarBufferAnalysis
 		}
 	}
 
-	internal static bool ShouldPreserveDocumentSymbols(
+	internal static bool ShouldPreserveEmbeddedAnalysis(
 		bool hasSyntaxErrors,
 		int analysisCount,
+		int previousClassificationCount,
 		int previousSymbolCount) =>
-		hasSyntaxErrors && analysisCount == 0 && previousSymbolCount > 0;
+		hasSyntaxErrors && analysisCount == 0 &&
+		(previousClassificationCount > 0 || previousSymbolCount > 0);
+
+	static IReadOnlyList<HostClassification> TranslateClassifications(
+		IReadOnlyList<HostClassification> classifications,
+		ITextSnapshot source,
+		ITextSnapshot target) =>
+		classifications.Select(item => new HostClassification(
+			Translate(item.Span, source, target),
+			item.Kind,
+			item.QuickInfo,
+			item.DefinitionSpan is { } definition ? Translate(definition, source, target) : null,
+			Translate(item.GrammarSpan, source, target),
+			item.RuleSignature,
+			item.RuleParameterCount,
+			item.SymbolKind)).ToArray();
+
+	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
+	{
+		var translated = new SnapshotSpan(source, span.Start, span.Length)
+			.TranslateTo(target, SpanTrackingMode.EdgeExclusive);
+
+		return new TextSpan(translated.Start.Position, translated.Length);
+	}
 
 	async Task RetryAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
 	{
