@@ -17,19 +17,6 @@ namespace DotGram.VisualStudio;
 [Export(typeof(IWpfTextViewMarginProvider))]
 [Name(MarginName)]
 [MarginContainer(PredefinedMarginNames.Top)]
-[ContentType(GramContentType.Name)]
-[TextViewRole(PredefinedTextViewRoles.Document)]
-sealed class GramNavigationMarginProvider : IWpfTextViewMarginProvider
-{
-	internal const string MarginName = "DotGram Navigation";
-
-	public IWpfTextViewMargin CreateMargin(IWpfTextViewHost host, IWpfTextViewMargin containerMargin) =>
-		new StandaloneGramNavigationMargin(host.TextView, GramBufferAnalysis.For(host.TextView.TextBuffer));
-}
-
-[Export(typeof(IWpfTextViewMarginProvider))]
-[Name(MarginName)]
-[MarginContainer(PredefinedMarginNames.Top)]
 [ContentType("CSharp")]
 [TextViewRole(PredefinedTextViewRoles.Document)]
 sealed class EmbeddedGramNavigationMarginProvider : IWpfTextViewMarginProvider
@@ -161,47 +148,6 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		int Length,
 		int SelectionPosition,
 		int SelectionLength);
-}
-
-sealed class StandaloneGramNavigationMargin : GramNavigationMargin
-{
-	readonly GramBufferAnalysis _analysis;
-
-	public StandaloneGramNavigationMargin(IWpfTextView view, GramBufferAnalysis analysis) : base(view)
-	{
-		_analysis = analysis;
-		_analysis.Changed += AnalysisChanged;
-		Refresh(view.TextSnapshot);
-	}
-
-	protected override string MarginName => GramNavigationMarginProvider.MarginName;
-
-	protected override IReadOnlyList<NavigationItem> Items(ITextSnapshot snapshot)
-	{
-		var result = new List<NavigationItem>();
-		Append(_analysis.Document(snapshot).DocumentSymbols, 0, result);
-		return result;
-	}
-
-	static void Append(
-		IReadOnlyList<DotGram.Language.GramDocumentSymbol> symbols,
-		int depth,
-		List<NavigationItem> result)
-	{
-		foreach (var symbol in symbols)
-		{
-			result.Add(new NavigationItem(
-				new string(' ', depth * 2) + symbol.Name,
-				symbol.Position,
-				symbol.Length,
-				symbol.SelectionPosition,
-				symbol.SelectionLength));
-			Append(symbol.Children, depth + 1, result);
-		}
-	}
-
-	void AnalysisChanged(ITextSnapshot snapshot) => RequestRefresh(snapshot);
-	protected override void Unsubscribe() => _analysis.Changed -= AnalysisChanged;
 }
 
 sealed class EmbeddedGramNavigationMargin : GramNavigationMargin
