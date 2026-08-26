@@ -2545,3 +2545,41 @@ So it is a real optimization with a diagnostic cost, and the two have to be weig
 than one assumed. Not built. Whoever picks it up should start by deciding whether the
 end-of-input path through a choice link contributes anything to `expected` that the links it
 skips do not already say.
+
+## Later: a written "longest" on a choice of literals
+
+Ordered choice stays, and the reasoning is §11's own: the first alternative that succeeds is
+a decision the author made and wrote down, while the longest is one the machine makes and the
+author learns about from the result. For a language whose posture is that the grammar says
+what it means and the generator does not guess, the longest would be the generator guessing.
+It is also local — what `A | B` means does not depend on how far `B` could have gone — and
+locality is what makes a grammar something anyone can reason about a piece at a time.
+
+But one case is frequent, honest, and expressed today by a convention rather than by
+syntax: a keyword against an identifier, `if` inside `iffy`. The author has to remember to
+write the alternatives longest-first, and forgetting is a parse that silently reads less than
+it should. Making people remember is exactly what a notation should take off them.
+
+So: a marker that says **longest here**, and only on a choice of literals.
+
+That restriction is not a compromise, it is the case. A set of literal alternatives asked for
+the longest is decided by comparing from the longest down — the first that matches is the
+longest, and nothing after it is looked at. No way back, nothing written to the arena, and
+`PrefixSettled` stops being needed at all: pairwise settledness exists to decide whether the
+order the author wrote can be trusted, and under the marker the order is not what is being
+trusted. It is `CompileLiterals` with one condition dropped.
+
+For alternatives in general it is a different feature and a much larger one. The longest
+means running every alternative and comparing, not stopping at the first that works, which
+in the arena is a control shape that does not exist yet: run, remember how far, unwind, run
+the next, come back to the best. And it needs a decision the literal case does not raise —
+whether "longest" means longest here and then committed, which is an atomic group and changes
+what a failure reports, or longest among the readings that let the whole parse succeed, which
+is not expressible without enumerating them. Out of scope, and the marker's documentation
+should say the restriction rather than leave it to be discovered.
+
+**This is also what closes the `http{s}` question.** Folding `X | Xy` into `X y?` is safe
+exactly where the following cannot begin with `y` — which is `PrefixSettled`, so where the
+fold is safe the result is already had, and where it is not the fold changes what the grammar
+means. Under the marker the fold is unnecessary from the other side: order is not significant
+there, and comparing longest-down gives the same answer without rewriting anything.

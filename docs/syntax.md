@@ -1671,10 +1671,25 @@ None of what follows changes the notation described above.
   them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
-  where one literal alternative is a prefix of another. `"http" | "https"` matches
-  `https` perfectly well: `"http"` is tried, whatever follows the choice fails, and the
-  match returns and tries `"https"`. A prefix does not shadow anything, because
-  backtracking is what ordered choice means here.
+  where one literal alternative is a prefix of another. A prefix does not shadow
+  anything, because backtracking is what ordered choice means here.
+
+  The rule is **the first alternative that succeeds**, and what counts as succeeding is
+  the directive's business rather than the choice's. `parse` needs the whole input, so
+  a shorter alternative that leaves a character over is not a success and the choice is
+  tried again:
+
+  ```dotgram
+  A = "http" | "https"
+
+  parse A as WholeA      // WholeA("https") is "https"
+  find  A as EveryA      // EveryA("https") yields "http"
+  ```
+
+  `find` asks for an occurrence, and `"http"` at that position is one — so it is the
+  answer, and reading goes on from the `s`. Both follow the same rule; they differ in
+  what they are asking for. Where the longer reading is the one wanted, write it first:
+  `"https" | "http"` answers `https` to both.
 
   Reordering by length looks like the obvious fix to a problem that is not there, and
   would not be one anyway: it produces a different grammar rather than a corrected one.
