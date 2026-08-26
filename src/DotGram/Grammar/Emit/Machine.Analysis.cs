@@ -401,6 +401,46 @@ sealed partial class Machine
 	/// <see cref="PrefixSettled"/> decides.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// How many alternatives ending at <paramref name="at"/> are plain text and may be
+	/// compiled as one, whether or not any of them needs a way back.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="LiteralRun"/> asks whether the run needs no way back at all, which is what
+	/// decides whether the choice is silent. This asks the wider question the compiler needs:
+	/// whether the texts can be compared together, sharing their prefix and testing only
+	/// their tails. A later alternative that continues an earlier one — `"http" | "https"` —
+	/// is admitted here and refused there, because it is compiled with a way back to the
+	/// continuation rather than without one.
+	///
+	/// The other direction stays with <see cref="PrefixSettled"/>: an earlier alternative
+	/// that is <em>longer</em> may need coming back to the shorter one written after it, and
+	/// whether it does depends on what follows the choice, which is not a fact about the
+	/// texts.
+	/// </remarks>
+	static int LiteralGroup(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
+	{
+		var run = 0;
+
+		while (at - run >= 0 && alternatives[at - run] is Node.Literal { IgnoreCase: false })
+			run++;
+
+		if (run < 2)
+			return 0;
+
+		for (var i = at - run + 1; i <= at; i++)
+			for (var j = i + 1; j <= at; j++)
+				if (alternatives[i] is Node.Literal(var earlier) &&
+					alternatives[j] is Node.Literal(var later) &&
+					!later.StartsWith(earlier, StringComparison.Ordinal) &&
+					!PrefixSettled(earlier, later, following))
+				{
+					return 0;
+				}
+
+		return run;
+	}
+
 	static int LiteralRun(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
 	{
 		var run = 0;

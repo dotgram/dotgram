@@ -1086,7 +1086,7 @@ sealed partial class Machine
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
 				var last   = alternatives.Count - 1;
-				var run    = LiteralRun(alternatives, last, following);
+				var run    = LiteralGroup(alternatives, last, following);
 				var target = run > 0
 					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 					: Compile(alternatives[last], next, following);
@@ -1099,7 +1099,7 @@ sealed partial class Machine
 					// matched, so where they differ is where the next is tried — which is
 					// what a common prefix is worth, and it is worth it whether or not there
 					// is one.
-					if (LiteralRun(alternatives, i, following) is var here and > 0)
+					if (LiteralGroup(alternatives, i, following) is var here and > 0)
 					{
 						var from = i - here + 1;
 
@@ -1756,6 +1756,44 @@ sealed partial class Machine
 	/// possible, and that holds whether there is a prefix or not.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// What is left of the alternatives that continue one already matched, tried in the order
+	/// they were written.
+	/// </summary>
+	/// <remarks>
+	/// Reached only by resuming the way back <see cref="CompileLiterals"/> pushes once the
+	/// shorter alternative has matched and moved the position, so the characters they share
+	/// are behind it and none of them is compared again.
+	/// </remarks>
+	int CompileCarries(int matched, IReadOnlyList<string> carries, IReadOnlyList<string> displays, int next, int fail)
+	{
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected(displays);
+
+		foreach (var carry in carries)
+		{
+			var rest  = carry.Substring(matched);
+			var tests = new List<string> { Room(rest.Length) };
+
+			if (rest.Length > 1)
+				tests.Add(
+					$"global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {rest.Length}), " +
+					$"{Spanned(rest)})");
+			else
+				tests.Add($"{At(0)} == {CSharpEmitter.Char(rest[0])}");
+
+			using (writer.Block($"if ({string.Join(" && ", tests)})"))
+			{
+				writer.Line($"p += {rest.Length};");
+				writer.Line($"goto {Label(next)};");
+			}
+		}
+
+		EmitTerminalFailure(writer, fail, arrayName);
+
+		return state;
+	}
+
 	int CompileLiterals(IReadOnlyList<Node> alternatives, int from, int to, int next, int fail)
 	{
 		var texts    = new List<string>(to - from + 1);
@@ -1826,6 +1864,23 @@ sealed partial class Machine
 
 		foreach (var text in texts)
 		{
+			// Not written at all where something before it is its own beginning: this chain
+			// is reached by falling past the earlier tests, and a text that continues one of
+			// them cannot match where that one did not. It is reached instead by the way
+			// back that one pushes, which is where its remainder is compared.
+			var reached = true;
+
+			foreach (var earlier in texts)
+			{
+				if (ReferenceEquals(earlier, text))
+					break;
+
+				reached &= !text.StartsWith(earlier, StringComparison.Ordinal);
+			}
+
+			if (!reached)
+				continue;
+
 			var tests = new List<string>();
 
 			if (text.Length > shared.Length)
@@ -1850,10 +1905,33 @@ sealed partial class Machine
 
 			settled = tests.Count == 0;
 
+			// Everything written after this one that continues it. `"http"` matching does
+			// not mean `"https"` cannot: ordered choice prefers the one written first and
+			// comes back for the longer if the parse goes wrong past here.
+			var carries = new List<string>();
+
+			foreach (var later in texts.GetRange(texts.IndexOf(text) + 1, texts.Count - texts.IndexOf(text) - 1))
+				if (later.Length > text.Length && later.StartsWith(text, StringComparison.Ordinal))
+					carries.Add(later);
+
 			using (writer.Block(settled ? "" : $"if ({string.Join(" && ", tests)})"))
 			{
 				if (text.Length > 0)
 					writer.Line($"p += {text.Length};");
+
+				// Pushed after the position has moved, which is the whole point: what
+				// resumes there resumes past the characters this alternative matched, and
+				// the continuation compares only its own remainder. Written the other way
+				// round the parse would compare `"http"` a second time to find `"https"`.
+				if (carries.Count > 0)
+				{
+					var carry = CompileCarries(text.Length, carries, displays, next, fail);
+
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
+						"repeat, lookahead, 0));");
+					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count);");
+				}
 
 				writer.Line($"goto {Label(next)};");
 			}

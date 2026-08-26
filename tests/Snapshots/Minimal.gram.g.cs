@@ -222,7 +222,6 @@ namespace DotGram.Snapshots
 				var atomic  = -1;
 				var repeat  = -1;
 				var lookahead = -1;
-				var c       = '\0';
 				string[]? expected = null;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
@@ -234,111 +233,39 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S8;
+					case 3: goto S4;
 					case 4: goto S4;
 					case 5: goto S5;
-					case 6: goto S6;
-					case 7: goto S7;
-					case 8: goto S8;
 					default: expected = null; goto Fail;
-				}
-
-				S8:
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!(c == 'h')) goto S4;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 6, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 6, p, entries.Count);
-				}
-
-				S7:
-				{
-					if (p + 4 > text.Length)
-					{
-						expected = Recognize_DotGram_C_Expected2;
-						goto Fail;
-					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
-					{
-						if (text[p] == 'h')
-						{
-							if (text[p + 1] != 't')
-								p += 1;
-							else if (text[p + 2] != 't')
-								p += 2;
-							else
-								p += 3;
-						}
-						expected = Recognize_DotGram_C_Expected2;
-						goto Fail;
-					}
-					p += 4;
-					goto Return;
-				}
-
-				S6:
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!(c == 'h')) goto S4;
-						goto S5;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 4, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 4, p, entries.Count);
-				}
-
-				S5:
-				{
-					if (p + 5 > text.Length)
-					{
-						expected = Recognize_DotGram_C_Expected1;
-						goto Fail;
-					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
-					{
-						if (text[p] == 'h')
-						{
-							if (text[p + 1] != 't')
-								p += 1;
-							else if (text[p + 2] != 't')
-								p += 2;
-							else if (text[p + 3] != 'p')
-								p += 3;
-							else
-								p += 4;
-						}
-						expected = Recognize_DotGram_C_Expected1;
-						goto Fail;
-					}
-					p += 5;
-					goto Return;
 				}
 
 				S4:
 				{
-					if (p + 3 > text.Length)
+					if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 					{
-						expected = Recognize_DotGram_C_Expected0;
-						goto Fail;
+						p += 4;
+						entries.Add(new ParserEntry(ParserEntry.Choice, 5, p, call, atomic, repeat, lookahead, 0));
+						Trace("push choice", 5, p, entries.Count);
+						goto Return;
 					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
+					if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
 					{
-						if (text[p] == 'f')
-						{
-							if (text[p + 1] != 't')
-								p += 1;
-							else
-								p += 2;
-						}
-						expected = Recognize_DotGram_C_Expected0;
-						goto Fail;
+						p += 3;
+						goto Return;
 					}
-					p += 3;
-					goto Return;
+					expected = Recognize_DotGram_C_Expected0;
+					goto Fail;
+				}
+
+				S5:
+				{
+					if ((uint)p < (uint)text.Length && text[p] == 's')
+					{
+						p += 1;
+						goto Return;
+					}
+					expected = Recognize_DotGram_C_Expected0;
+					goto Fail;
 				}
 
 				Return:
@@ -493,11 +420,7 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_B_Expected0 = { "\"abcd\"" };
 
-		static readonly string[] Recognize_DotGram_C_Expected0 = { "\"ftp\"" };
-
-		static readonly string[] Recognize_DotGram_C_Expected1 = { "\"https\"" };
-
-		static readonly string[] Recognize_DotGram_C_Expected2 = { "\"http\"" };
+		static readonly string[] Recognize_DotGram_C_Expected0 = { "\"http\"", "\"https\"", "\"ftp\"" };
 
 		static readonly string[] Recognize_DotGram_D_Expected0 = { "\"https\"", "\"http\"", "\"ftp\"" };
 

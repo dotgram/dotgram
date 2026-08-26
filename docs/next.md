@@ -2583,3 +2583,55 @@ exactly where the following cannot begin with `y` — which is `PrefixSettled`, 
 fold is safe the result is already had, and where it is not the fold changes what the grammar
 means. Under the marker the fold is unnecessary from the other side: order is not significant
 there, and comparing longest-down gives the same answer without rewriting anything.
+
+## Built: a choice of literals compares each character once, backtracking included
+
+The waste, visible in the smallest grammar that has one: `"http"` matched, the parse went on,
+the input ended before the rule did, and the way back compared `"https"` **from the first
+character** — four characters compared a second time to discover a fifth.
+
+`CompileLiterals` already knew how to avoid that within a run: share the prefix, test only
+the tails. It never reached this case, because `LiteralRun` refuses a run holding a pair
+where one text begins another, and the choice fell to the general machinery where each
+alternative is compared whole and independently. The mechanism existed; the case did not get
+to it.
+
+**Two things were needed and both are small.**
+
+`LiteralGroup` is the wider question the compiler needs — whether the texts can be compared
+together — against `LiteralRun`, which asks whether they need no way back at all and is what
+`Silent` reads. A later alternative continuing an earlier one is admitted by the first and
+refused by the second, which is exactly right: it is compiled *with* a way back. The other
+direction stays with `PrefixSettled`, because whether an earlier, longer alternative needs
+coming back to a shorter one written after it depends on what follows the choice.
+
+And the way back is pushed **after the position has moved**, which is the whole of it. An
+arena entry records `p` as it stands, so what resumes there resumes past the characters the
+shorter alternative matched, and the continuation compares only its own remainder.
+
+`C = "http" | "https" | "ftp"` was five states with two dispatchers re-reading the same
+character; it is two:
+
+```csharp
+S4: if (SequenceEqual(text.Slice(p, 4), "http")) { p += 4; push Choice → S5; take it; }
+    if (SequenceEqual(text.Slice(p, 3), "ftp"))  { p += 3; take it; }
+    fail
+
+S5: if (text[p] == 's') { p += 1; take "https"; }
+    fail
+```
+
+`"https"` no longer appears in the falling-through chain either: it begins with a text tested
+above it, so it cannot match where that one did not, and it is reached by the way back
+instead.
+
+Checked against what it must not change: `parse` of `https` still answers `https`, `find`
+still answers `http` (§11), and `("http" | "https") & "s"` still matches `httpss` — which is
+the case that exercises the way back, since `"http"` and `"s"` leave a character over and the
+parse has to come back for `"https"` to spend it.
+
+**Not a speed change on any grammar here.** `Url`, `Feed` and `Csv` are byte for byte what
+they were: their literal choices were already settled runs, which is where
+`CompileLiterals` was already doing this. It shows only where a text begins another, and
+what it saves there is the second reading of the shared characters — which no benchmark in
+this repository has, and which any keyword set does.
