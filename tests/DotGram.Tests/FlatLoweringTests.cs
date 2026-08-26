@@ -96,9 +96,12 @@ public sealed class FlatLoweringTests
 	[Fact]
 	public void An_ambiguous_choice_falls_back_to_the_shared_engine()
 	{
-		// "ab" and "a" share a first character, so the choice is not predictive and needs
-		// a resume point to come back for the other alternative.
-		const string grammar = "Start = \"ab\" | \"a\"\nparse Start";
+		// Shorter first, so the shorter one takes the position wherever the longer would
+		// have and nothing later can tell which was meant: the choice needs a resume point
+		// to come back for the other. Written the other way round it needs none and is
+		// lowered — `PrefixSettled` is what decides between the two orders, and `Silent`
+		// asks it now rather than refusing every choice that is not predictive.
+		const string grammar = "Start = \"a\" | \"ab\"\nparse Start";
 
 		AssertNotLowered(Emit(grammar));
 	}

@@ -765,12 +765,13 @@ public sealed class CSharpEmitterTests
 		// splits on — they arrive indented once and flat after that. The code still
 		// compiles, so nothing but this notices.
 		// In a namespace, so the depth every one of them sits at is two and not "whatever
-		// the class happened to be nested at". Deliberately not silent — "ab" and "a" share
-		// a first character, so this needs the arena and the Parser it asks about below —
-		// or the whole engine, Parser included, is exactly what a fully silent grammar no
-		// longer pays for.
+		// the class happened to be nested at". Deliberately not silent — the shorter literal
+		// is written first, so it takes the position wherever the longer would have and the
+		// choice needs a way back, which is what asks for the arena and the Parser below.
+		// The other order lowers, and the whole engine, Parser included, is what a silent
+		// grammar no longer pays for.
 		var source = Assert.Single(GramCompiler.Compile(
-			"Start = (\"ab\" | \"a\") & 'c'\nparse Start",
+			"Start = (\"a\" | \"ab\") & 'c'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);

@@ -86,8 +86,19 @@ sealed partial class Machine
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
+			// Two ways a choice writes nothing. One character telling every alternative
+			// apart is the first, and the second is the whole choice being one run of
+			// literals: `CompileLiterals` decides those where their texts differ and never
+			// comes back, so it writes no way back either — which `LiteralRun` is already
+			// the test for, since it admits a run only where every pair in it is settled.
+			// A choice it refuses, like `"http" | "https"` in that order, does need the
+			// arena and is refused here too.
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllSilent(alternatives, following, sequence: false),
+			                                              AllSilent(alternatives, following, sequence: false) ||
+			                                              LiteralRun(
+			                                                  alternatives,
+			                                                  alternatives.Count - 1,
+			                                                  following) == alternatives.Count,
 			Node.Call(var rule, _)                     => CanInline(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
 			                                              Silent(called, following),

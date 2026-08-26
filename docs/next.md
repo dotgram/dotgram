@@ -2475,3 +2475,41 @@ the collapse of the rule entry states, and the dead tests that were being evalua
 the compiled pattern, inside the run-to-run spread. Its grammar has one publication, 119
 states and no nine-alternative rule. A change that halves a large method does nothing
 visible to a small one.
+
+## Built: a choice of literals is silent, and lowers
+
+From reading `P:\OldProjects\Roc` — an earlier attempt at these ideas, whose macro
+(`Macros/BnfMacro.n`, `OptimizeRules`) folded rules before generating: it inlined references,
+flattened groups, concatenated adjacent literals, multiplied quantifiers, and merged the
+character ranges of an alternation into single ranges. Asked whether the folding of
+`http | https` into `http{s}` was ever here.
+
+**Most of that list is here already.** Inlining is `CanInline`; the flattening and quantifier
+work is the normalizer's; and range merging is done — `A = 'a' | 'b' | 'c'` compiles to no
+states at all and one character test. The prefix folding is not in `Roc` either, as far as
+its source shows: what it merges is adjacent literals in a *sequence* and ranges in an
+alternation, not the common prefix of two strings.
+
+**But the question found a real gap.** A shared prefix is handled here, by
+`CompileLiterals` and `PrefixSettled` — which is what `http{s}` would have bought: the
+prefix is tested once and the texts part where they differ. And it writes nothing to the
+arena. `Silent` did not know: its case for a choice asked `Predictive`, and two literals
+beginning with the same character are never predictive, so a construction that needs no
+arena took the whole grammar into one.
+
+`Silent` asks `LiteralRun` now — the same test `CompileChoice` uses to decide whether to
+compile a run at all, which admits one only where every pair in it is `PrefixSettled`. So:
+
+| | |
+| --- | --- |
+| `"https" \| "http" \| "ftp"` | **lowered** — 211 lines where it was 664 |
+| `"ab" \| "ac"` | **lowered** |
+| `"http" \| "https" \| "ftp"` | the arena, and rightly: shorter first, so the shorter takes the position wherever the longer would and there is no telling which was meant |
+
+The order matters and that is not an accident of the implementation — it is the difference
+`PrefixSettled` exists to decide, and the grammar author chooses it by writing the
+alternatives in an order.
+
+Two tests used `"ab" | "a"` as their example of a choice needing the arena. It no longer is
+one, which is the improvement; they say `"a" | "ab"` now, and their comments say what
+actually makes the difference.
