@@ -1140,8 +1140,22 @@ sealed partial class Machine
 							if (mine is { } begins)
 								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(target)};");
 
+							// The second is read knowing the first did not fire, where there
+							// was a first: `c` is in this alternative's own set by then, so
+							// what is being asked is whether that set holds anything outside
+							// the later ones'. Written as it stood, the two ignored each
+							// other and said things that could not be true — `if (!(c ==
+							// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
+							// second cannot fire at all.
 							if (rest is { } after)
-								writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+							{
+								if (mine is not { } known)
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+								else if (!known.Overlaps(after))
+									writer.Line($"goto {Label(first)};");     // always fires
+								else if (!after.Covers(known))               // never fires: not written
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+							}
 						}
 					}
 

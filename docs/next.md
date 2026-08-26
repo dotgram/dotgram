@@ -2396,3 +2396,35 @@ only the layout changed. Renumbering them by position would make the file read `
 and is a separate change: it has to rewrite the dispatch's cases, every `goto` and every state
 literal inside a `ParserEntry` — which is the field the entry above found being rewritten
 where it should not have been.
+
+## Built: the second test of a choice reads what the first one settled
+
+Two states in the smallest grammar that has a choice of literals looked wrong, and were:
+
+```csharp
+S8: if (!(c == 'h')) goto S6;              // past here, c is 'h'
+    if (!(c == 'h' || c == 'f')) goto S7;  // which makes this one unable to fire
+
+S6: if (!(c == 'h')) goto S4;              // past here, c is 'h'
+    if (!(c == 'f')) goto S5;              // which makes this one always fire
+```
+
+A choice writes two tests and they are about different things: the first says this
+alternative cannot begin here, so skip it; the second says none of the ones after it can, so
+no way back is needed. Both were measured and both earn their place. What neither did was
+read the other: the second is evaluated knowing the first did not fire, and its set was not
+narrowed by that.
+
+Narrowed now, with the two operations `FirstSets.First` already had rather than a set
+difference it does not:
+
+- **the later alternatives cover this one** (`after.Covers(mine)`) — the test cannot fire,
+  and is not written;
+- **they share nothing** (`!mine.Overlaps(after)`) — it always fires, so the jump is written
+  flat;
+- **some of each** — asked as it stands, which is not minimal and is correct.
+
+The URL grammar is where this was costing: `IPv6`'s nine alternatives each had one of these,
+and each was a disjunction of forty-odd ranges that **was evaluated at run time and could
+never be true**. 225,120 characters to 218,727 for nine fewer lines, which is what taking out
+six tests of a thousand characters each looks like.

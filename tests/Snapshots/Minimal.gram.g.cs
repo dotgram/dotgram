@@ -215,7 +215,6 @@ namespace DotGram.Snapshots
 					{
 						c = text[p];
 						if (!(c == 'h')) goto S6;
-						if (!(c == 'h' || c == 'f')) goto S7;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 6, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 6, p, entries.Count);
@@ -252,7 +251,7 @@ namespace DotGram.Snapshots
 					{
 						c = text[p];
 						if (!(c == 'h')) goto S4;
-						if (!(c == 'f')) goto S5;
+						goto S5;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 4, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 4, p, entries.Count);
