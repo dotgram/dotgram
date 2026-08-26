@@ -2784,38 +2784,48 @@ demonstrations:
   ordinary external recognizer (§7.1's second row) that reads the input itself — the seam
   that exists so that nothing ships at run time.
 
-### Found: a text capture can come back inside out
+### Fixed: a text capture kept its start where backtracking could not reach it
 
-Three of the twenty-eight do not survive being read, and what stops them is not a parse
-failure. `Materialize_DotGram` throws `ArgumentOutOfRangeException`: the span of a text
-capture arrives with its end before its start, and `text.Slice` refuses it.
+Three of the twenty-eight did not survive being read, and what stopped them was not a
+parse failure. `Materialize_DotGram` threw `ArgumentOutOfRangeException`: the span of a
+text capture arrived with its end before its start, and `text.Slice` refused it. All three
+write a binding power, and shrunk against the grammar next door the whole of it was
+**eleven characters** — `A=x<<1=>@()`.
 
-All three write a binding power. Shrunk against the grammar next door, the whole of it is
-**eleven characters**:
+Three guesses at a small grammar with the same shape all failed to reproduce it, which is
+what it cost to go on guessing. Made to say it instead — a temporary probe in the emitter,
+printing the link list at the point the slice is taken — it said it in one line:
 
 ```text
-A=x<<1=>@()
+slice inside out: member 0 rule Reference from=4 to=3 call=14
+   at=15 kind=Capture state=50 pos=4 value=3
 ```
 
-Where it throws is `Machine.Materialization.cs`'s scalar capture walk, which takes the end
-from the first entry in the link list and the start from the last:
+**One** entry, already inside out. Not two entries mixed up, which is what the walk above it
+had been suspected of: a single capture that began at 4 and ended at 3.
+
+A capture recorded where it began in a **method variable** and where it ended in the arena:
 
 ```csharp
-if (captured0To < 0)
-    captured0To = candidate.Value;
-captured0From = candidate.Position;
+writer.Line($"capture{slot} = p;");                                    // the opening
+atClose.Line($"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, …, p));");
 ```
 
-That is right for a capture inside a repetition — oldest start, newest end, one span over
-all the turns — and it assumes the list runs newest to oldest. Something reaches it that
-does not: two live `Capture` entries with the same slot and the same `CallIndex`, whose
-positions are not ordered the way the walk expects. The failing capture is `Reference`'s,
-and `Reference` is reachable from itself through `TypeArgs` → `Type` → `Reference`, so an
-inlined recursive call sharing its caller's `CallIndex` is the first thing to check.
+A variable is right for exactly as long as nothing opens the same capture between the two.
+A rule that can reach itself does, and the half a variable can never get right is the
+*failed* inner attempt: backtracking restores the arena and nothing else, so the start
+written at position 4 outlives the parse giving 4 back. `Reference` reaches itself through
+`TypeArgs` → `Type` → `Reference`, the inner opening wrote 4, its `Name` failed on `<`, and
+the outer closed at 3 holding the inner's start.
 
-Not minimised to a grammar of its own yet, and not fixed. `x: A << 1` alone does it, so
-whatever it is sits between the binding power and a text capture over a group that can
-reach the rule it is in.
+Now the start goes where backtracking can reach it — the arena — but only where it has to.
+The opening writes the entry the close will need and marks it unfinished with `-1`; the
+close finds the innermost unfinished one for its slot and fills the end in. They nest and
+unwind in the same order, so the innermost is always the close's own. Everything else keeps
+the variable, and `graph.Recursive` is what tells the two apart — an over-approximation, in
+that the recursion need not pass through this particular capture, and the wrong way round
+would be a wrong answer rather than a slower one.
 
-`ExampleTests.A_binding_power_still_breaks_the_materializer` asserts the three still throw,
-so that fixing this turns a test red and says to come back here and delete the list.
+**What it cost to find.** Nothing in the corpus of hand-written tests had a text capture
+over a group in a rule that reaches itself, because nobody writes one on purpose. A grammar
+of the notation itself does, three times over, without trying.

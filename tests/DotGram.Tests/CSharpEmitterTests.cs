@@ -1071,6 +1071,39 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
+	// ── A capture that can open before it closes ─────────────────────────
+
+	/// <summary>
+	/// A text capture in a rule that can reach itself keeps its start in the arena.
+	/// </summary>
+	/// <remarks>
+	/// A variable is right for as long as nothing opens the same capture between the
+	/// opening and the close. A rule that can reach itself does exactly that, and the half
+	/// no variable can get right is the failed inner attempt: backtracking puts the arena
+	/// back and nothing else, so the start left behind is a position the parse has already
+	/// given up. The outer close then reads it and the span comes back inside out — which
+	/// is an exception out of the materializer, not a parse that answers wrongly.
+	/// </remarks>
+	[Fact]
+	public void A_capture_that_can_reopen_keeps_its_start_where_backtracking_can_reach_it()
+	{
+		var source = Emit("Start = text: ('a' & Start?)");
+
+		Assert.Contains("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("var capture0 = 0;", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>The same rule, not recursive: nothing can reopen it, and the variable stays.</summary>
+	[Fact]
+	public void A_capture_that_cannot_reopen_still_keeps_its_start_in_a_variable()
+	{
+		var source = Emit("Start = text: ('a' & 'b')");
+
+		Assert.Contains("capture0 = p;", source);
+		Assert.DoesNotContain("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+	}
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

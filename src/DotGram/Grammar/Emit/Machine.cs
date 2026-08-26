@@ -29,6 +29,20 @@ sealed partial class Machine
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RuleSymbol> _owners = new(NodeIdentity.Instance);
 	readonly HashSet<int> _textCaptures = [];
+
+	/// <summary>
+	/// The text captures whose start cannot be held in a variable.
+	/// </summary>
+	/// <remarks>
+	/// A capture records where it began at its opening and where it ended at its close, and
+	/// a variable between the two is right for as long as nothing opens the same capture in
+	/// between. A rule that can reach itself does exactly that: the inner opening overwrites
+	/// the outer's start, and — the half that a variable can never get right — a failed
+	/// inner attempt leaves its start behind, because backtracking restores the arena and
+	/// nothing else. The outer then closes with a start from a position the parse has
+	/// already given back, and its span comes back with its end before its beginning.
+	/// </remarks>
+	readonly HashSet<int> _nestedCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
@@ -119,7 +133,14 @@ sealed partial class Machine
 					if (node is not Node.Capture(_, Node.Lookahead) &&
 						(node is not Node.Capture(_, Node.Call(var called, _)) ||
 						graph.Results[called].Count == 0 && !graph.Types.ContainsKey(called)))
+					{
 						_textCaptures.Add(slot);
+
+						// Where the rule can reach itself, this capture can be opened again
+						// before it closes, and one variable cannot hold two starts.
+						if (graph.Recursive.Contains(rule))
+							_nestedCaptures.Add(slot);
+					}
 				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node);
@@ -559,7 +580,7 @@ sealed partial class Machine
 					file.Line("var completedCall = -1;");
 
 				for (var i = 0; i < _captures; i++)
-					if (_textCaptures.Contains(i))
+					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i))
 						file.Line($"var capture{i} = 0;");
 
 				file.Line();
@@ -1230,6 +1251,43 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count);");
+					atClose.Line($"goto {Label(next)};");
+
+					return state;
+				}
+
+				// A capture the parse can open again before it closes keeps its start in the
+				// arena instead of a variable, because the arena is the only thing
+				// backtracking puts back. The opening writes the entry the close will need
+				// and marks it unfinished; the close finds the innermost one still unfinished
+				// and fills its end in. They nest and unwind in the same order, so the
+				// innermost is always this one's.
+				if (_nestedCaptures.Contains(slot))
+				{
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, " +
+						"call, atomic, repeat, lookahead, -1));");
+					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count);");
+					writer.Line($"goto {Label(inner)};");
+
+					using (atClose.Block("for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+					{
+						atClose.Line("var opened = entries[openedAt];");
+						atClose.Line();
+						atClose.Line(
+							$"if (opened.Kind != ParserEntry.Capture || opened.State != {slot} || " +
+							"opened.Value >= 0)");
+						atClose.Then("continue;");
+						atClose.Line();
+						atClose.Line(
+							$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {slot}, " +
+							"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
+							"opened.RepeatIndex, opened.LookaheadIndex, p);");
+						atClose.Line();
+						atClose.Line("break;");
+					}
+
+					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;

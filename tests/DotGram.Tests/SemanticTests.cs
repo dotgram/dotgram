@@ -23,6 +23,47 @@ namespace DotGram.Tests;
 public sealed class SemanticTests
 {
 	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
+	[Theory]
+	[InlineData("x")]
+	[InlineData("x<y>")]
+	[InlineData("x<<")]
+	[InlineData("x<")]
+	[InlineData("x<<1")]
+	[InlineData("x()")]
+	[InlineData("x<y>()")]
+	public void TEMPORARY_probe(string input)
+	{
+		var grammar =
+			"trivia = none" + '\n' +
+			"Start : @string = p: Primary => @(p)" + '\n' +
+			"Primary : @string = c: Call => @(c) | r: Reference => @(r)" + '\n' +
+			"Call : @string = t: Reference & '(' & ')' => @(t)" + '\n' +
+			"Reference : @string = text: (N & Args?) => @(text)" + '\n' +
+			"Args = '<' & Type & '>'" + '\n' +
+			"Type : @string = text: (Reference & \"[]\"?) => @(text)" + '\n' +
+			"N = ['a'..'z']+";
+
+		var thrown = Record.Exception(() => Parsed(grammar, input));
+
+		Assert.True(thrown is null, $"{input}: {thrown}");
+	}
+
+	/// <summary>
+	/// A text capture reopened by recursion still spans what it matched.
+	/// </summary>
+	[Theory]
+	[InlineData("a", "a")]
+	[InlineData("aa", "aa")]
+	[InlineData("aaa", "aaa")]
+	public void A_capture_reopened_by_recursion_spans_what_it_matched(string input, string expected)
+	{
+		var (success, value, _, _) = Parsed(
+			"Start : @string = text: ('a' & Start?) => @(text)", input);
+
+		Assert.True(success);
+		Assert.Equal(expected, value);
+	}
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)

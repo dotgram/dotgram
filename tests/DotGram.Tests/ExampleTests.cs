@@ -83,46 +83,8 @@ public sealed class ExampleTests
 	[MemberData(nameof(Corpus))]
 	public void The_notation_reads_its_own_corpus(string name, string text)
 	{
-		if (CrashesTheMaterializer.Contains(name))
-			return;
-
 		Assert.NotNull(GramGrammar.ParseFile(text));
 	}
-
-	/// <summary>
-	/// The three that do not survive being read, and the defect that stops them.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// All three write a binding power — <c>&lt;&lt; 1</c>, <c>&gt;&gt; 3</c> — and reading one
-	/// throws out of the generated materializer, not out of the parse: the span of a text
-	/// capture comes back with its end before its start. Shrunk, the whole of it is eleven
-	/// characters of input, <c>A=x&lt;&lt;1=&gt;@()</c>, against the grammar next door.
-	/// </para>
-	/// <para>
-	/// Asserted rather than skipped, so that fixing it turns this test red and whoever
-	/// fixes it is told to delete the list. See docs/next.md, "Found: a text capture can
-	/// come back inside out".
-	/// </para>
-	/// </remarks>
-	[Theory]
-	[InlineData("Filter")]
-	[InlineData("OneRuleParser")]
-	[InlineData("StrengthCalculator")]
-	public void A_binding_power_still_breaks_the_materializer(string name)
-	{
-		var text = (string)typeof(Links).Assembly
-			.GetTypes()
-			.First(type => type.Name == name)
-			.GetCustomAttributesData()
-			.First(data => data.AttributeType.Name == "GramAttribute")
-			.ConstructorArguments[0]
-			.Value!;
-
-		Assert.Throws<ArgumentOutOfRangeException>(() => GramGrammar.ParseFile(text));
-	}
-
-	static readonly string[] CrashesTheMaterializer = ["Filter", "OneRuleParser", "StrengthCalculator"];
 
 	/// <summary>The checked-in grammars, found the way <c>SnapshotTests</c> finds them.</summary>
 	static string Snapshots =>
