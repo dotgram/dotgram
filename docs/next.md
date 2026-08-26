@@ -2306,3 +2306,54 @@ Worth knowing where this stops. `SequenceEqual` is folded this way only against 
 JIT can see, which is why the emitted call passes the literal directly rather than through
 anything of ours, and why an ignore-case literal — which compares each character folded — has
 to stay a chain.
+
+## Found: `Trace` is load-bearing, and what it is holding up is a bug
+
+`Trace` is a nice-to-have. It may sit beside the generated code; it may not shape it. No jump
+exists for its sake and no logic is complicated for it, and if it ever gets in the way it goes
+rather than the thing it is in the way of. Stating that plainly, because the emitter had
+quietly stopped obeying it.
+
+Every rule's entry state is two lines:
+
+```csharp
+S5: { Trace("enter Trailer", 5, p, entries.Count); goto S42; }
+```
+
+`Machine.Layout`'s `JumpOnly` collapses a state whose body is **one** statement and that
+statement a jump — so this one is not collapsed, and every rule pays a state, a dispatch case
+and a block for it. The trace is the only reason. It is `[Conditional]`, so it costs nothing
+at run time and everything in structure, which is exactly backwards.
+
+It is redundant besides. The call site already says it, one line earlier:
+
+```csharp
+Trace("call Trailer", 5, p, entries.Count);
+goto S5;
+```
+
+The only entry a call site does not announce is the root, which is not reached from one — and
+that is now traced once at the top of the method instead, which the commit before this one
+did while taking out the `goto Dispatch;` that stood above `Dispatch:`.
+
+**So the trace came out, and 191 tests failed.** Four of them were assertions that used
+`"enter R"` as a marker for "this rule kept a shared block", which is fair and would have been
+rewritten to use `"call R"` — that marker is more accurate anyway, since it appears exactly
+when the rule is not inlined.
+
+The other 187 were parses going wrong. `ArgumentNullException` inside a construction, from a
+capture that came back null, in `Materialize` — recognition succeeded and the arena did not
+hold what materialization expected. The generated code reads correctly: the dispatch points
+past the collapsed stubs (`case 3: goto S29;`), call sites jump straight to the bodies, and
+`_roots` is walked through `Resolved` so the layout pass knows about the collapse.
+
+**So collapsing a rule's entry state is unsafe for a reason not yet found, and the trace has
+been hiding it.** Not "the trace is needed" — the collapse is wrong, and until it is right the
+trace is the only thing making the emitter accidentally correct.
+
+Reverted, and left here rather than in a branch because the next step is to find that reason
+and not to try the removal again. Two things worth knowing before starting: it shows up on
+grammars with binding powers, where `Register` compiles a second body for the whole-input
+entry after the constructor has run; and the failure is in materialization rather than in
+recognition, so what to look at is what the arena records against a state, not what the
+automaton does with one.
