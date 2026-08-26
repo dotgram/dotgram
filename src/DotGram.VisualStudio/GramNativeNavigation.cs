@@ -18,6 +18,7 @@ using Microsoft.VisualStudio.TextManager.Interop;
 namespace DotGram.VisualStudio;
 
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
+[ProvideAutoLoad(UIContextGuids80.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]
 [ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
 [Guid(PackageGuid)]
 public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
