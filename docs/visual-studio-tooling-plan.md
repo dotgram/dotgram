@@ -57,6 +57,10 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Implement shape-based Roslyn discovery for parser hosts and attribute carriers.
 - [x] Bind `GramClassify` rule/capture targets to grammar symbols.
 - [ ] Define a shared recognition trace for classifying arbitrary DSL input.
+  - [x] Trace pure normalized recognition nodes with rule/capture extents, ordered
+    backtracking, atomic groups, lookahead, repetition, calls, and whole-parse trivia.
+  - [ ] Add guarded/external recognition through a non-executing tooling contract and
+    prove parity against generated parsers on the bounded corpus.
 - [ ] Classify and diagnose a custom-attribute DSL string in Visual Studio.
 
 The detailed design and explicit deferrals are in
