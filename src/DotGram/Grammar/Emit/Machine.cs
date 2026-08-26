@@ -1493,6 +1493,15 @@ sealed partial class Machine
 					return Compile(body, next, following);
 				}
 
+				// The entry answers one question — which construction ran — and a rule
+				// with one factory was never going to answer anything else. The
+				// materializer calls that factory without looking. A fold keeps its
+				// entries: there, each one is an iteration, not a choice.
+				if (_owners.TryGetValue(node, out var constructed) &&
+					_factories[constructed].Count == 1 &&
+					!_graph.Folds.ContainsKey(constructed))
+					return Compile(body, next, following);
+
 				var factory = _constructs[node];
 				var close   = Reserve(out var atClose);
 				var inner   = Compile(body, close, following);

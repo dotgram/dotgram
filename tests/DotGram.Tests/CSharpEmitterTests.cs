@@ -330,9 +330,12 @@ public sealed class CSharpEmitterTests
 	public void Construction_is_recorded_and_runs_only_after_acceptance()
 	{
 		// The choice needs a way back — "a" continues into "ab" — so the rule stays on
-		// the engine, where construction is an arena record resolved at Accept.
+		// the engine, where construction is an arena record resolved at Accept. Two
+		// alternatives construct, because the record answers which one ran: a rule with
+		// one factory writes no record at all.
 		var source = Emit(
 			"Start : @int = digits: ['0'..'9']+ & (\"a\" | \"ab\") => @int.Parse(digits)\n" +
+			"             | \"z\" => @(0)\n" +
 			"parse Start");
 
 		Assert.Contains("ParserEntry.Construct", source);
@@ -423,7 +426,10 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserArena Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
-		Assert.Contains("var items = new string[count];", source);
+
+		// One repetition and nothing else: the array the materializer built is the
+		// result, handed back without being counted into a copy of itself.
+		Assert.Contains("item0 ?? new string[0];", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 
 		// No longer also `Assert.DoesNotContain("List<string>", source)`: every

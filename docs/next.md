@@ -3519,3 +3519,26 @@ The catalog stands at 5,815 lines; six publications still rent a parser: C, E, F
 way back past the construct's edge - the deferred normalization family), Sum
 (climbing), Sheet (recovery), AnyItem (a find). The catalog's own section comments
 now describe the shapes that are actually emitted.
+
+## Fixed: two answers nobody needed to ask for
+
+Two of the review's P1 points, both of the same kind - work spent answering a
+question with one answer.
+
+A rule with one factory wrote a `Construct` entry per completion, and the
+materializer walked the link chain to find it - to learn which construction ran,
+when only one could have. The entry is now written only where the body is a choice
+of constructions, and the single-factory materializer calls its factory without
+looking. A fold keeps its entries: there each one is an iteration, not a choice.
+This is a quarter of the completion ceremony the factory-tower measurement charged
+half of everything to, and the ratios moved with it: Csv 1.9, Feed 3.3, Minimal
+2.2, Url 3.6 (from 2.0 / 3.6 / 2.4 / 3.9; two runs agreeing).
+
+`Construct_Sheet(string[] item0)` counted its one argument into a copy of itself.
+A §4.1 case 2 factory over exactly one repetition and nothing else now hands the
+array back - it was built fresh by the materializer for this construction and is
+shared with nobody.
+
+The pool retention threshold (the review's third P1 point) stays as it is until
+measured: with captures out of the arena the entry counts no longer scale with the
+input, and 4096 covers far more than it did when the number was picked.

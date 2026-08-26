@@ -550,6 +550,15 @@ sealed partial class Machine
 						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
 						(i + 1 < members.Count ? "," : ");"));
 		}
+		else if (factories.Count == 1)
+		{
+			// One factory means the question the Construct entry answered — which
+			// construction ran — has only one answer, so no entry was written and
+			// there is nothing to walk for.
+			file.Line(
+				$"{ValueInto(type, "completedAt")} = " +
+				$"{factories[0].Method}({string.Join(", ", FactoryArguments(factories[0], members))});");
+		}
 		else
 		{
 			file.Line("var chosen = -1;");
@@ -574,39 +583,6 @@ sealed partial class Machine
 				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
 				{
 					var factory = factories[factoryIndex];
-					var arguments = new List<string>();
-
-					// Materialized only where the expression names it. It is the whole of
-					// what the rule matched, so building it for an expression that never
-					// looks at it doubles what a parse allocates — twice the string, for a
-					// rule whose value is the capture inside it.
-					if (CSharpEmitter.WantsText(factory))
-						arguments.Add(
-							"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
-
-					if (CSharpEmitter.Asks(factory, "parserSpan"))
-						arguments.Add(
-							"new SourceSpan(" +
-							"completed.Position, completed.Value - completed.Position)");
-
-					if (CSharpEmitter.Asks(factory, "parserInput"))
-						arguments.Add("parserInput");
-
-					foreach (var member in factory.Members)
-					{
-						if (member.Name == "parserText" || member.Name == factory.Accumulator)
-							continue;
-
-						for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
-							if (members[memberIndex].Name == member.Name)
-							{
-								arguments.Add(
-									!member.IsOptional && members[memberIndex] is { Rule: not null, IsOptional: true }
-										? $"({_results.ValueOf(members[memberIndex].Rule)})captured{memberIndex}!"
-										: $"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
-								break;
-							}
-					}
 
 					file.Line($"case {factoryIndex}:");
 
@@ -614,7 +590,7 @@ sealed partial class Machine
 					{
 						file.Line(
 							$"{ValueInto(type, "completedAt")} = " +
-							$"{factory.Method}({string.Join(", ", arguments)});");
+							$"{factory.Method}({string.Join(", ", FactoryArguments(factory, members))});");
 						file.Line("break;");
 					}
 				}
@@ -622,6 +598,49 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	/// <summary>
+	/// A factory's arguments from the captures walked above — the same list whichever
+	/// branch asks for it.
+	/// </summary>
+	List<string> FactoryArguments(Factory factory, IReadOnlyList<ResultMember> members)
+	{
+		var arguments = new List<string>();
+
+		// Materialized only where the expression names it. It is the whole of what the
+		// rule matched, so building it for an expression that never looks at it doubles
+		// what a parse allocates — twice the string, for a rule whose value is the
+		// capture inside it.
+		if (CSharpEmitter.WantsText(factory))
+			arguments.Add(
+				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+
+		if (CSharpEmitter.Asks(factory, "parserSpan"))
+			arguments.Add(
+				"new SourceSpan(" +
+				"completed.Position, completed.Value - completed.Position)");
+
+		if (CSharpEmitter.Asks(factory, "parserInput"))
+			arguments.Add("parserInput");
+
+		foreach (var member in factory.Members)
+		{
+			if (member.Name == "parserText" || member.Name == factory.Accumulator)
+				continue;
+
+			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+				if (members[memberIndex].Name == member.Name)
+				{
+					arguments.Add(
+						!member.IsOptional && members[memberIndex] is { Rule: not null, IsOptional: true }
+							? $"({_results.ValueOf(members[memberIndex].Rule)})captured{memberIndex}!"
+							: $"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
+					break;
+				}
+		}
+
+		return arguments;
 	}
 
 	void MaterializeFold(

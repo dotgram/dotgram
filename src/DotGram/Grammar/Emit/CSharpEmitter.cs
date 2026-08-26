@@ -963,6 +963,19 @@ public static partial class CSharpEmitter
 
 				file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
 
+				// One repetition and nothing else means the array handed in already is the
+				// result, fresh from the materializer and shared with nobody: hand it back
+				// rather than counting it into a copy of itself.
+				if (factory.Members.Count == 1 && factory.Members[0].IsSequence)
+				{
+					var only = ResultTypes.ParameterOf(factory.Members[0]);
+
+					file.Line(head + " =>");
+					file.Line($"	{only} ?? new {element}[0];");
+
+					break;
+				}
+
 				using (file.Block(head))
 				{
 					file.Line("var count = 0;");
