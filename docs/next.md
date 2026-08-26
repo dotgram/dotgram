@@ -3542,3 +3542,44 @@ shared with nobody.
 The pool retention threshold (the review's third P1 point) stays as it is until
 measured: with captures out of the arena the entry counts no longer scale with the
 input, and 4096 covers far more than it did when the number was picked.
+
+## Tried and declined: sound eager construction, measured to a net loss
+
+The dynamic version of eager construction - the one the earlier diary entry designed
+- was built in full and worked: a `wayBack` high-water mark over resumable entries
+(Choice, Run, LoopExit, Lookahead), maintained O(1) at every push, repaired
+conservatively at every resume ("the mark stands at the resume point"); at a valued
+completion with `wayBack <= call`, the span above the call was materialized through
+a bounded `Materialize_DotGram_Eager` and truncated to the Completed entry that owns
+the value, with a DEBUG invariant recomputing the precondition by scan. All 1,068
+tests and the differential fuzzer stayed green, the deferred-construction pins were
+flipped to the agreed weaker contract, and correctness of values held by
+construction: nothing from an abandoned derivation can survive a truncation.
+
+Measured Release-to-Release against its own baseline, medians, two runs agreeing:
+
+  Csv  1.93 -> 2.15    Feed 2.69 -> 2.94    Minimal 2.07 -> 2.40    Url 2.94 -> 3.40
+
+A ten-to-fifteen percent net loss, and the reason teaches something the step-count
+measurement hid: the factory tower's cost is the WRITING of Call/Completed/
+RuleCapture and the Return dispatch, not the existence of the records afterwards.
+Runtime collapse erases records that were already paid for, and charges for the
+erasure: a materializer invocation per completion, `Truncate` link bookkeeping on
+every unwind pop (the caches machinery, now on for every valued machine), and the
+cached Accept sweep scanning the whole arena where the owners-list walk had not.
+The only way to remove the ceremony's cost is to never write it - a compile-time
+decision, which is exactly what the flat-value sites already do outside the engine.
+
+Reverted per this project's own discipline (trie, left-factoring, mixed lowering:
+built, measured, declined). The revert keeps nothing dead. What stands after it:
+the deferred-construction contract is UNCHANGED - factories still run only at
+Accept - since the weakening was only ever the price of a win that did not appear.
+
+The direction that replaces it: compile-time inlining of flat-valued callees at
+engine call sites whose site continuation passes the same proofs the flat path
+asks (`FlatValued` callee, silent under the site's continuation) - writing no Call,
+no Completed, no RuleCapture, holding the span in locals and deferring the factory
+to Accept through the value-capture protocol. That needs the engine's capture
+protocol to accept a value that has no Completed entry, which is the same seam the
+eager build touched; the difference is that the decision is made once, at
+generation time, and costs the runtime nothing.
