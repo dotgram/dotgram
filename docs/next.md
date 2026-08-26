@@ -2883,10 +2883,45 @@ to a plain loop, and `Deterministic`. A repetition with a capture in it can neve
 silent, so `('|' & rest: Alternative)*` is never even a candidate, and the general
 machinery writes a way back per turn regardless of what could have been proved.
 
-So `CompileRepeat` should ask, and where the answer is yes write **one** way back instead of
-one per turn: pushed with the `Repeat` entry so its index is always `repeat + 1`, its
-position rewritten at the end of every turn, and put out at the exit. O(1) per turn, no new
-field, no analysis that does not already exist — the same thing the atomic groups did in the
-experiment, except proved instead of asserted.
+So `CompileRepeat` should ask, and where the answer is yes keep **one** way back alive
+instead of one per turn.
 
-Not built yet.
+### Built, measured, and taken out again — and what it ran into
+
+Built twice, because the first shape was wrong in a way worth writing down. One way back
+for the whole run, written straight after the `Repeat` entry so that its place is always
+`repeat + 1`: 104 tests went red and every capture inside a repetition came back empty. A
+way back **below** the turns is a way back that throws them away — coming back to it pops
+everything above it, which is precisely the entries those turns recorded. It has to stand
+where the last turn left off, above them.
+
+So: written per turn as before, and the one the turn before left put out, its place kept in
+the `Repeat` entry's own second field — which means nothing for that kind, and unlike a
+variable survives the backtracking this is about. That is correct: 1,020 tests green, and
+the emitted code does what it says.
+
+**It buys nothing yet, and costs 4-9%.** Measured against `HEAD` on all five URL inputs,
+three rounds, every one slower and all in the same direction — two extra arena writes per
+turn. And the sixty-five seconds are untouched, because the repetitions that matter are not
+found settled.
+
+**The wall is `following.IsKnown`.** Asked of every repetition in the grammar of the
+notation, the verdict is the same for all of the ones that cost anything:
+
+```text
+settled=False known=False nullable=False overlaps=True :: trivia & '|' & trivia & rest: Alternative
+settled=False known=False nullable=False overlaps=True :: trivia & '&' & trivia & rest: Operand
+settled=False known=False nullable=False overlaps=True :: trivia & ',' & trivia & rest: Argument
+```
+
+`overlaps=True` is not a finding there — an unknown continuation is "anything", which
+overlaps by definition. The one fact is `known=False`. A published rule's body is compiled
+with `FirstSets.First.All`, and unknown cascades down every rule it reaches, so the
+structural repetitions — exactly the ones that multiply — are never even candidates. What
+is settled today is the lexical layer, where the follow is known because the rule is
+reached from somewhere that fixed it.
+
+So the order is: **follow sets first**, then this. Reverted rather than left in, because a
+mechanism that costs five per cent and fires nowhere is a mechanism that will be measured
+once, wrongly, by whoever comes next. The shape is written down here and is half an hour to
+put back once the analysis can feed it.
