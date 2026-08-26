@@ -916,8 +916,21 @@ public sealed partial class GrammarNormalizer
 			if (!Continues(boundary, character))
 				return literal;
 
-		return new Node.Sequence([literal, new Node.Lookahead(false, boundary)]);
+		// Both edges, not one. The lookahead alone kept `"as"` from starting a longer
+		// word but not from ending one: backtracking could hand an identifier's tail
+		// back and match the keyword mid-word, reading `Xas` as `X as` — which no
+		// author means and no lexer would do. The lookbehind completes the symmetry:
+		// a word lexeme is delimited by the boundary on both sides.
+		return BoundaryElement(boundary) is { } element
+			? new Node.Sequence([new Node.Behind(element), literal, new Node.Lookahead(false, boundary)])
+			: new Node.Sequence([literal, new Node.Lookahead(false, boundary)]);
 	}
+
+	/// <summary>
+	/// The boundary's own element, where the rule is one — which is the same shape
+	/// <see cref="Continues"/> already requires to decide anything at all.
+	/// </summary>
+	Node.Element? BoundaryElement(Node boundary) => ElementOf(boundary);
 
 	/// <summary>Whether this character is one the boundary rule says continues a word.</summary>
 	/// <remarks>
@@ -926,17 +939,45 @@ public sealed partial class GrammarNormalizer
 	/// side can answer while it still has the grammar in hand.
 	/// </remarks>
 	bool Continues(Node boundary, char character) =>
-		boundary is Node.Call(var rule, _)                             &&
-		_bodies.TryGetValue(rule, out var body)                        &&
-		body is Node.Element(var negated, var ranges, { Count: 0 }, _) &&
-		negated != ranges.Any(range => character >= range.From && character <= range.To);
+		ElementOf(boundary) is { } element &&
+		FirstSets.OfElement(element) is { Anything: false } characters &&
+		characters.Overlaps(FirstSets.First.Chars([new CharRange(character, character)]));
+
+	/// <summary>
+	/// The element a node comes down to, through any chain of plain references.
+	/// </summary>
+	/// <remarks>
+	/// `wordboundary = WordOrDigit` with `WordOrDigit = [\p{L} | '_']` names the element
+	/// through a rule, and requiring the element to stand directly in the boundary's own
+	/// body made §4.6 silently inert for exactly the grammar shape §4.6's own example
+	/// recommends. Found when the symmetric weave did not fire; the asymmetric one had
+	/// not been firing either, and nothing said so.
+	/// </remarks>
+	Node.Element? ElementOf(Node node, HashSet<RuleSymbol>? seen = null) => node switch
+	{
+		Node.Element element => element,
+		Node.Call(var rule, _) when (seen ??= []).Add(rule)
+			=> ElementOf(BodyOf(rule), seen),
+		_ => null,
+	};
 
 	/// <summary>The `wordboundary` this namespace sees, or null while it matches nothing.</summary>
 	Node? BoundaryFor(GrammarNamespace ns)
 	{
 		for (var at = ns; at is not null; at = at.Parent)
+		{
 			if (at.Rules.TryGetValue("wordboundary", out var rule) && !rule.IsBuiltIn)
 				return MatchesNothing(rule, []) ? null : CallTo(rule, []);
+
+			// A lexical namespace shields what stands outside it. Its literals are the
+			// parts of one lexeme, not lexemes standing next to each other, and a word
+			// boundary inherited across `trivia = none` guarded the 'u' of '￿'
+			// against the hex digit that always follows it. A namespace that declares
+			// its own boundary beside its empty trivia keeps it — that is the scannerless
+			// keyword grammar, and the check above has already answered for it.
+			if (_model.Trivia.TryGetValue(at, out var declared) && MatchesNothing(declared, []))
+				return null;
+		}
 
 		return null;
 	}

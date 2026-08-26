@@ -1801,6 +1801,28 @@ sealed partial class Machine
 					: CompileRepeat(repeat, next, following);
 			}
 
+			// One comparison against the character behind, and nothing else: no entry,
+			// no state of its own beyond this one, and failing it is an ordinary failure.
+			case Node.Behind(var boundary):
+			{
+				var state     = Reserve(out var writer);
+				var arrayName = DeclareExpected([node.ToString()]);
+
+				_usesChar = true;
+
+				using (writer.Block("if (p > 0)"))
+				{
+					writer.Line("c = text[p - 1];");
+					writer.Line($"if ({CSharpEmitter.Test(boundary)})");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
+				}
+
+				writer.Line($"goto {Label(next)};");
+
+				return state;
+			}
+
 			case Node.Lookahead(var isPositive, var body):
 			{
 				var success = Reserve(out var atSuccess);

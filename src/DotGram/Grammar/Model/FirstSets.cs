@@ -290,6 +290,33 @@ public static class FirstSets
 	/// <summary>What a node can begin with.</summary>
 	public static First Of(Node node, RecognitionGraph graph) => Of(node, graph, []);
 
+	/// <summary>
+	/// An element's characters, callable before a graph exists.
+	/// </summary>
+	/// <remarks>
+	/// The normalizer asks while it is still building the graph — §4.6 has to decide at
+	/// weave time whether a literal's characters continue a word — and an element needs no
+	/// graph to answer: its ranges, its categories expanded, its negation complemented.
+	/// A reference inside makes the honest answer "anything".
+	/// </remarks>
+	public static First OfElement(Node.Element element)
+	{
+		if (element is null)
+			throw new ArgumentNullException(nameof(element));
+
+		if (element.References.Count > 0)
+			return First.All;
+
+		var all = new List<CharRange>(element.Ranges);
+
+		foreach (var category in element.Categories)
+			all.AddRange(CategoryRanges(category));
+
+		var known = First.Normalized(all);
+
+		return First.Chars(element.IsNegated ? Complement(known) : known);
+	}
+
 	static First Of(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
 		switch (node)
@@ -331,6 +358,7 @@ public static class FirstSets
 			case Node.Empty:
 			case Node.Guard:
 			case Node.Lookahead:
+			case Node.Behind:
 				return First.None;
 
 			case Node.Capture  (_,  var captured): return Of(captured, graph, seen);
@@ -516,7 +544,7 @@ public static class FirstSets
 	/// <summary>Whether a node can match without consuming anything.</summary>
 	public static bool Nullable(Node node, RecognitionGraph graph) => node switch
 	{
-		Node.Empty or Node.Guard or Node.Lookahead => true,
+		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
 		Node.Literal(var text)                     => text.Length == 0,
 		Node.Repeat(_, var min, _)                 => min == 0,
 		Node.Atomic(var body)                      => Nullable(body, graph),

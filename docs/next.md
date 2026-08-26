@@ -3268,3 +3268,39 @@ almost certainly what every author already believes it is. That is a language de
 The probe itself was temporary and is gone; what stage 2 needs of it — leading-token
 computation, exclusivity over tokens, scannability against a rule's follow — is specified
 by what the probe measured.
+
+## Built: §4.6 made symmetric — and made real
+
+The ruling: `Xas` is one lexeme. §11's backtracking could read `parse Xas y` as
+`parse X as y`, because the woven boundary guarded only what follows a keyword; a new
+`Node.Behind` — one comparison against `text[p - 1]`, woven by the normalizer, never
+written by an author — guards what precedes. The pinned divergence test flipped to an
+agreement test: both implementations now refuse, for the same reason a lexer always did.
+
+Two findings on the way, both worth their own lines:
+
+**§4.6 had never fired for the grammar shape its own example recommends.** `Continues`
+required the boundary's element to stand directly in the `wordboundary` body, and
+`wordboundary = WordOrDigit` names it through a rule — so the right-edge guard had been
+silently inert for the self-hosting grammar all along, and nothing said so. The decision
+now looks through reference chains and answers category membership at build time with the
+first-set machinery. The weave also ran eagerly against a body that might not be lowered
+yet; it lowers on demand now.
+
+**Symmetry exposed the scope.** The instant the guards actually fired, they fired inside
+lexical namespaces too, and the `'u'` of `'\uFFFF'` was told it cannot precede a hex
+digit. The rule that survives: a lexical namespace — one whose own trivia is empty —
+shields a `wordboundary` inherited from outside, because its literals are the parts of
+one lexeme; a namespace that declares boundary and empty trivia together keeps both,
+which is the scannerless keyword grammar (`SqlReadOnly`), and its `into_stock` tests are
+what caught the first, too-broad scoping.
+
+And the second ruling: dots are punctuation. `Name` moved from the lexical namespace to
+the spaced layer of the self-hosting grammar, so `using A . B;` reads as the hand-written
+parser always read it. `A.B:C` tokenizes as five things, not three.
+
+Symbols stay per-context — no maximal munch for them, by design: C's `a+++++b` is the
+cautionary tale, where a global lexer's greed commits `a ++ ++ + b` and the parser can
+never recover the valid `a++ + ++b`. Here the candidate set at each decision point is the
+context, and §11's give-back remains available exactly where word-lexeme rules do not
+apply. Self-hosting ratios held: 2.1/3.0/3.0/3.2.

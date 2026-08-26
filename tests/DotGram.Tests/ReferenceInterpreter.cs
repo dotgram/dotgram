@@ -148,6 +148,12 @@ public static class ReferenceInterpreter
 				break;
 			}
 
+			case Node.Behind(var boundary):
+				if (at == 0 || !Ends(boundary, text, at - 1, graph).Any())
+					yield return at;
+
+				break;
+
 			case Node.Capture(_, var captured):
 				foreach (var end in Ends(captured, text, at, graph))
 					yield return end;

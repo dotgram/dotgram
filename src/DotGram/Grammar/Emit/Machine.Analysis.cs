@@ -357,7 +357,7 @@ sealed partial class Machine
 	bool Deterministic(Node node, HashSet<RuleSymbol> seen, FirstSets.First following) =>
 		node switch
 		{
-			Node.Empty or Node.Guard or Node.Lookahead => true,
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
 			Node.Literal or Node.Element or Node.External => true,
 			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
 			Node.Construct(var body, _)                => Deterministic(body, seen, following),

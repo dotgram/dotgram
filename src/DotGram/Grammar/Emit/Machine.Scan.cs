@@ -162,6 +162,9 @@ sealed partial class Machine
 			case Node.Lookahead(_, var inside):
 				return Scannable(inside, FirstSets.First.All, seen);
 
+			case Node.Behind:
+				return true;
+
 			case Node.Atomic(var kept):
 				return Scannable(kept, after, seen);
 
@@ -444,6 +447,18 @@ sealed partial class Machine
 
 					break;
 				}
+
+				case Node.Behind(var boundary):
+					_character = true;
+
+					code.Line($"if (p > 0)");
+					using (code.Block(""))
+					{
+						code.Line("c = text[p - 1];");
+						code.Line($"if ({CSharpEmitter.Test(boundary)}) goto {fail};");
+					}
+
+					break;
 
 				case Node.Atomic(var kept):
 					Emit(code, kept, fail);

@@ -142,6 +142,24 @@ public abstract record Node
 		public override string ToString() => $"{(IsPositive ? "?=" : "?!")}{Body}";
 	}
 
+	/// <summary>
+	/// Matches nothing, and only where the preceding input item, if any, is outside
+	/// <paramref name="Test"/>.
+	/// </summary>
+	/// <remarks>
+	/// §4.6's other half. The boundary lookahead keeps a word literal from being the
+	/// start of a longer word; this keeps it from being the <em>end</em> of one — the
+	/// reading backtracking otherwise finds, where an identifier hands characters back
+	/// and a keyword matches mid-word. Woven by the normalizer beside the lookahead and
+	/// never written by an author, which is why it needs no surface syntax. The test is
+	/// an element rather than a rule: one character of lookbehind is all §4.6 asks, and
+	/// all the engine emits — a single comparison against <c>text[p - 1]</c>.
+	/// </remarks>
+	public sealed record Behind(Element Test) : Node
+	{
+		public override string ToString() => $"?<!{Test}";
+	}
+
 	public sealed record Capture(string Name, Node Body) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];

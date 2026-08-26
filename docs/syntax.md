@@ -761,15 +761,26 @@ wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 ```
 
 Once it is not empty, every string literal **whose characters all fall in that class**
-picks up a `& ?!wordboundary`, so `"if"` no longer matches the start of `iffy`.
-Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
-check, `"("` does not.
+is guarded on **both sides**: it may not be followed by a boundary character, and it may
+not be preceded by one. The first keeps `"if"` from matching the start of `iffy`; the
+second keeps it from matching the end of `stiff` — the reading backtracking would
+otherwise find, where an identifier hands characters back and a keyword matches
+mid-word. A word literal is a lexeme, and a lexeme is whole. Whether a literal qualifies
+is decided when the grammar is built: `"if"` gets the checks, `"("` does not.
 
 Same shape as `trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
 and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
-pays nothing; a language grammar pays one line.
+pays nothing; a language grammar pays one line. The boundary may name its class through
+another rule — `wordboundary = WordOrDigit` — and Unicode categories count as classes.
 
-The boundary check goes **before** the trivia insertion. The other order would ask
+**A lexical namespace shields it.** A namespace whose own `trivia` is empty (§4.5) does
+not inherit a `wordboundary` declared outside: its literals are the parts of one lexeme,
+not lexemes standing next to each other, and the `'u'` of an escape sequence must not be
+told it cannot precede a hex digit. A namespace that declares its own boundary beside its
+empty trivia keeps it — that is the scannerless keyword grammar, `SqlReadOnly` in the
+examples being one.
+
+The boundary checks go **before** the trivia insertion. The other order would ask
 whether a letter follows the whitespace rather than whether it follows the keyword.
 
 ---

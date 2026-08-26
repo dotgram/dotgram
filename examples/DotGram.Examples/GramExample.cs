@@ -58,7 +58,6 @@ namespace DotGram.Examples;
 		WordOrDigit  = [\p{L} | \p{Nd} | '_']
 
 		Identifier   = Word & WordOrDigit*
-		Name         = Identifier & ('.' & Identifier)*
 		Int          = ['0'..'9']+
 
 		Hex          = ['0'..'9' | 'a'..'f' | 'A'..'F']
@@ -89,6 +88,11 @@ namespace DotGram.Examples;
 	// way back instead of one per element, which is the difference between failing in
 	// milliseconds and failing in minutes.
 	trivia = { (Space | LineComment | BlockComment)* }
+
+	// Out here rather than in Lexical, deliberately: a qualified name is syntax made of
+	// identifier tokens, so `A . B` reads the way the hand-written parser has always read
+	// it — dots are punctuation, spaces around them are legal.
+	Name = Identifier & ('.' & Identifier)*
 
 	File : @GramFile
 		= (trivia & usings: Using)* & (trivia & declarations: Declaration)*
