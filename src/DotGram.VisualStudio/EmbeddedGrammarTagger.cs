@@ -117,21 +117,21 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 
 	static Dictionary<string, IClassificationType> DslTypes(IClassificationTypeRegistryService types) => new()
 	{
-		["Keyword"]     = Type(types, PredefinedClassificationTypeNames.Keyword),
+		["Keyword"]     = Type(types, GramClassificationTypes.Keyword),
 		["Identifier"]  = Type(types, GramClassificationTypes.Identifier),
-		["Type"]        = Type(types, "class name"),
-		["Variable"]    = Type(types, "local name"),
-		["Function"]    = Type(types, "method name"),
-		["Method"]      = Type(types, "method name"),
-		["Property"]    = Type(types, "property name"),
-		["Number"]      = Type(types, PredefinedClassificationTypeNames.Number),
-		["String"]      = Type(types, PredefinedClassificationTypeNames.String),
-		["Comment"]     = Type(types, PredefinedClassificationTypeNames.Comment),
-		["Operator"]    = Type(types, PredefinedClassificationTypeNames.Operator),
-		["Punctuation"] = Type(types, PredefinedClassificationTypeNames.Punctuation),
-		["Namespace"]   = Type(types, "namespace name"),
-		["Parameter"]   = Type(types, "parameter name"),
-		["Label"]       = Type(types, "label name"),
+		["Type"]        = Type(types, GramClassificationTypes.DslType),
+		["Variable"]    = Type(types, GramClassificationTypes.DslVariable),
+		["Function"]    = Type(types, GramClassificationTypes.DslFunction),
+		["Method"]      = Type(types, GramClassificationTypes.DslFunction),
+		["Property"]    = Type(types, GramClassificationTypes.DslProperty),
+		["Number"]      = Type(types, GramClassificationTypes.Number),
+		["String"]      = Type(types, GramClassificationTypes.Literal),
+		["Comment"]     = Type(types, GramClassificationTypes.Comment),
+		["Operator"]    = Type(types, GramClassificationTypes.Operator),
+		["Punctuation"] = Type(types, GramClassificationTypes.Punctuation),
+		["Namespace"]   = Type(types, GramClassificationTypes.DslNamespace),
+		["Parameter"]   = Type(types, GramClassificationTypes.DslParameter),
+		["Label"]       = Type(types, GramClassificationTypes.DslLabel),
 	};
 }
 

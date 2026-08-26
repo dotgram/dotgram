@@ -20,6 +20,13 @@ static class GramClassificationTypes
 	public const string SpecialSymbol  = "regex - quantifier";
 	public const string Operator     = "DotGram operator";
 	public const string Punctuation  = "DotGram punctuation";
+	public const string DslType      = "DotGram DSL type";
+	public const string DslVariable  = "DotGram DSL variable";
+	public const string DslFunction  = "DotGram DSL function";
+	public const string DslProperty  = "DotGram DSL property";
+	public const string DslNamespace = "DotGram DSL namespace";
+	public const string DslParameter = "DotGram DSL parameter";
+	public const string DslLabel     = "DotGram DSL label";
 
 	#pragma warning disable CS0414 // MEF discovers and supplies these exported definitions.
 
@@ -52,6 +59,27 @@ static class GramClassificationTypes
 
 	[Export, Name(Punctuation), BaseDefinition(PredefinedClassificationTypeNames.Punctuation)]
 	static readonly ClassificationTypeDefinition PunctuationDefinition = null!;
+
+	[Export, Name(DslType), BaseDefinition("class name")]
+	static readonly ClassificationTypeDefinition DslTypeDefinition = null!;
+
+	[Export, Name(DslVariable), BaseDefinition("local name")]
+	static readonly ClassificationTypeDefinition DslVariableDefinition = null!;
+
+	[Export, Name(DslFunction), BaseDefinition("method name")]
+	static readonly ClassificationTypeDefinition DslFunctionDefinition = null!;
+
+	[Export, Name(DslProperty), BaseDefinition("property name")]
+	static readonly ClassificationTypeDefinition DslPropertyDefinition = null!;
+
+	[Export, Name(DslNamespace), BaseDefinition("namespace name")]
+	static readonly ClassificationTypeDefinition DslNamespaceDefinition = null!;
+
+	[Export, Name(DslParameter), BaseDefinition("parameter name")]
+	static readonly ClassificationTypeDefinition DslParameterDefinition = null!;
+
+	[Export, Name(DslLabel), BaseDefinition("label name")]
+	static readonly ClassificationTypeDefinition DslLabelDefinition = null!;
 
 	#pragma warning restore CS0414
 }
@@ -159,4 +187,53 @@ sealed class GramOperatorFormat : GramFormatDefinition
 sealed class GramPunctuationFormat : GramFormatDefinition
 {
 	public GramPunctuationFormat() : base("DotGram Punctuation") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslType)]
+[Name(GramClassificationTypes.DslType), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslTypeFormat : GramFormatDefinition
+{
+	public GramDslTypeFormat() : base("DotGram DSL Type") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslVariable)]
+[Name(GramClassificationTypes.DslVariable), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslVariableFormat : GramFormatDefinition
+{
+	public GramDslVariableFormat() : base("DotGram DSL Variable") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslFunction)]
+[Name(GramClassificationTypes.DslFunction), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslFunctionFormat : GramFormatDefinition
+{
+	public GramDslFunctionFormat() : base("DotGram DSL Function") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslProperty)]
+[Name(GramClassificationTypes.DslProperty), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslPropertyFormat : GramFormatDefinition
+{
+	public GramDslPropertyFormat() : base("DotGram DSL Property") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslNamespace)]
+[Name(GramClassificationTypes.DslNamespace), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslNamespaceFormat : GramFormatDefinition
+{
+	public GramDslNamespaceFormat() : base("DotGram DSL Namespace") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslParameter)]
+[Name(GramClassificationTypes.DslParameter), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslParameterFormat : GramFormatDefinition
+{
+	public GramDslParameterFormat() : base("DotGram DSL Parameter") { }
+}
+
+[Export(typeof(EditorFormatDefinition)), ClassificationType(ClassificationTypeNames = GramClassificationTypes.DslLabel)]
+[Name(GramClassificationTypes.DslLabel), UserVisible(true), Order(Before = Priority.Default)]
+sealed class GramDslLabelFormat : GramFormatDefinition
+{
+	public GramDslLabelFormat() : base("DotGram DSL Label") { }
 }

@@ -850,22 +850,23 @@ This is much stronger than searching C# source for string patterns.
 
 ---
 
-# 18. User-defined attributes that carry a DSL
+# 18. User-defined attributes that mark DSL parameters
 
-Tooling should also support user attributes whose string arguments contain a generated language.
+Tooling should support user-owned marker attributes on string parameters.
 
 Conceptual API:
 
 ```csharp
 [Gram("Filter.gram")]
 [GramLanguage("filter")]
+[GramLanguageMarker(typeof(FilterAttribute))]
 public partial class FilterParser;
 ```
 
 and:
 
 ```csharp
-[GramEmbeddedLanguage(typeof(FilterParser))]
+[AttributeUsage(AttributeTargets.Parameter)]
 public sealed class FilterAttribute : Attribute
 {
 }
@@ -874,9 +875,11 @@ public sealed class FilterAttribute : Attribute
 Then:
 
 ```csharp
-[Filter("""
+public Query([Filter] string text);
+
+new Query("""
     Price > 100 AND Country = "US"
-""")]
+""");
 ```
 
 can be identified as Filter DSL.
@@ -1130,7 +1133,7 @@ Conceptual attributes discussed so far include:
 ```csharp
 [GramClassify(...)]
 [GramLanguage(...)]
-[GramEmbeddedLanguage(...)]
+[GramLanguageMarker(...)]
 ```
 
 These names are proposals, not frozen public API.
@@ -1141,8 +1144,8 @@ The important semantics are:
 classification:
     grammar symbol/use site → semantic role
 
-embedded language:
-    grammar symbol/use site → language descriptor
+language marker:
+    user parameter attribute type → language descriptor
 
 language identity:
     parser → stable language id / extensions / metadata

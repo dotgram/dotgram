@@ -142,10 +142,10 @@ public static class SupportEmitter
 			/// </summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-			internal sealed class GramEmbeddedLanguageAttribute : global::System.Attribute
+			internal sealed class GramLanguageMarkerAttribute : global::System.Attribute
 			{
 				/// <param name="marker">An attribute type applied to DSL-bearing string parameters.</param>
-				public GramEmbeddedLanguageAttribute(global::System.Type marker) => Marker = marker;
+				public GramLanguageMarkerAttribute(global::System.Type marker) => Marker = marker;
 
 				public global::System.Type Marker { get; }
 			}

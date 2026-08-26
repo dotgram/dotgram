@@ -79,7 +79,7 @@ public static partial class VisualStudioToolingPlayground
 [GramLanguage("dotgram.tooling.query")]
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Query.field", GramClassification.Variable)]
-[GramEmbeddedLanguage(typeof(ToolingQueryAttribute))]
+[GramLanguageMarker(typeof(ToolingQueryAttribute))]
 public static partial class ToolingQueryLanguage
 {
 }

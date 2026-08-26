@@ -26,7 +26,7 @@ public sealed class DslLanguageDiscoveryTests
 				[DG.GramLanguage("com.example.filter", Extensions = new[] { ".filter", ".query" })]
 				[DG.GramClassify("Keyword", DG.GramClassification.Keyword)]
 				[DG.GramClassify("Start.name", DG.GramClassification.Variable)]
-				[DG.GramEmbeddedLanguage(typeof(FilterAttribute))]
+				[DG.GramLanguageMarker(typeof(FilterAttribute))]
 				public static class FilterParser;
 
 				public sealed class FilterAttribute(string source) : System.Attribute;
@@ -116,7 +116,7 @@ public sealed class DslLanguageDiscoveryTests
 
 			[DotGram.Gram("Start = 'x'")]
 			[DotGram.GramLanguage("filter")]
-			[DotGram.GramEmbeddedLanguage(typeof(NotAnAttribute))]
+			[DotGram.GramLanguageMarker(typeof(NotAnAttribute))]
 			sealed class FilterParser;
 			""");
 
@@ -133,7 +133,7 @@ public sealed class DslLanguageDiscoveryTests
 			{
 				[DotGram.Gram("Start = 'x'")]
 				[DotGram.GramLanguage("nested")]
-				[DotGram.GramEmbeddedLanguage(typeof(SyntaxAttribute))]
+				[DotGram.GramLanguageMarker(typeof(SyntaxAttribute))]
 				public class Parser;
 
 				public sealed class SyntaxAttribute(string source) : System.Attribute;

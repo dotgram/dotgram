@@ -12,7 +12,7 @@ The generator emits these internal types into every consumer compilation:
 - `GramLanguageAttribute` identifies a parser-host type and optionally claims file
   extensions.
 - `GramClassifyAttribute` assigns a language-neutral semantic role to a rule or capture.
-- `GramEmbeddedLanguageAttribute` on a parser host associates the language with a user
+- `GramLanguageMarkerAttribute` on a parser host associates the language with a user
   attribute type that marks DSL-bearing string parameters.
 - `GramClassification` contains semantic roles, never editor colors.
 
@@ -30,7 +30,7 @@ The first vertical slice is a DSL parser and a custom attribute in the same solu
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Identifier", GramClassification.Identifier)]
 [GramClassify("Start.name", GramClassification.Variable)]
-[GramEmbeddedLanguage(typeof(FilterAttribute))]
+[GramLanguageMarker(typeof(FilterAttribute))]
 public static partial class FilterParser;
 
 public sealed class FilterAttribute : Attribute;
@@ -57,7 +57,7 @@ parameter are not routed.
 C# string argument
     -> IArgumentOperation.Parameter
     -> marker attribute type on the exact parameter symbol
-    -> parser host carrying GramEmbeddedLanguage(markerType)
+    -> parser host carrying GramLanguageMarker(markerType)
     -> GramLanguage + Gram + GramClassify attributes
     -> grammar source and entry rule
     -> editor-neutral DSL document
@@ -72,7 +72,7 @@ Discovery is solution-scoped and compilation-backed:
 3. Resolve embedded grammar text directly or a standalone grammar through the owning
    project's `AdditionalDocuments`.
 4. Read every shape-valid `DotGram.GramClassifyAttribute` from the host type.
-5. Read `DotGram.GramEmbeddedLanguageAttribute` from each parser host and resolve its
+5. Read `DotGram.GramLanguageMarkerAttribute` from each parser host and resolve its
    `System.Type` constructor value to a user marker attribute type.
 6. At a call or object creation, use `IArgumentOperation.Parameter` and compare the
    parameter's actual attribute symbols with the discovered marker types. Textual

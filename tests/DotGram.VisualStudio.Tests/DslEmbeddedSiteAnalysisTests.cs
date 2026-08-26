@@ -129,7 +129,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		[DotGram.GramLanguage("dotgram.test.filter")]
 		[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 		[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-		[DotGram.GramEmbeddedLanguage(typeof(FilterAttribute))]
+		[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
 		static class FilterParser;
 
 		[System.AttributeUsage(System.AttributeTargets.Parameter)]

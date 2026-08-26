@@ -64,7 +64,7 @@ public static class DslLanguageDiscovery
 	const string LanguageAttribute             = "DotGram.GramLanguageAttribute";
 	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
 	const string Classification                = "DotGram.GramClassification";
-	const string EmbeddedLanguageAttribute     = "DotGram.GramEmbeddedLanguageAttribute";
+	const string LanguageMarkerAttribute       = "DotGram.GramLanguageMarkerAttribute";
 
 	static readonly string[] ClassificationMembers =
 	[
@@ -115,7 +115,7 @@ public static class DslLanguageDiscovery
 
 		var carriers = new List<DslAttributeCarrier>();
 		foreach (var language in languages)
-		foreach (var marker in language.ParserType.GetAttributes().Where(IsEmbeddedLanguageAttribute))
+		foreach (var marker in language.ParserType.GetAttributes().Where(IsLanguageMarkerAttribute))
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
@@ -195,8 +195,8 @@ public static class DslLanguageDiscovery
 		type.GetMembers("Role").OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && IsClassification(property.Type));
 
-	static bool IsEmbeddedLanguageAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, EmbeddedLanguageAttribute) &&
+	static bool IsLanguageMarkerAttribute(AttributeData attribute) =>
+		IsAttributeType(attribute.AttributeClass, LanguageMarkerAttribute) &&
 		attribute.AttributeClass is { } type &&
 		HasConstructor(type, "System.Type") &&
 		HasProperty(type, "Marker", "System.Type", writable: false);
