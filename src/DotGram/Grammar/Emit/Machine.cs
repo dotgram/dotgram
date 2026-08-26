@@ -62,6 +62,29 @@ sealed partial class Machine
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
+
+	/// <summary>
+	/// Whether any state the layout kept reads <c>c</c> — asked of the written bodies
+	/// rather than of the compile-time flag, because compilation sets the flag for states
+	/// the layout may then drop, and a variable declared for dropped states is a compiler
+	/// warning in somebody else's build. Found by the differential fuzzer, as a grammar
+	/// whose generated parser did not compile clean.
+	/// </summary>
+	bool UsesChar
+	{
+		get
+		{
+			if (!_usesChar)
+				return false;
+
+			foreach (var index in _order)
+				if (_bodies[index].Contains("c = text[", StringComparison.Ordinal) ||
+					_bodies[index].Contains("c == ", StringComparison.Ordinal))
+					return true;
+
+			return false;
+		}
+	}
 	bool _usesRuns;
 	bool _usesCompleted;
 	bool _usesDead;
@@ -441,6 +464,9 @@ sealed partial class Machine
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
 
+	/// <summary>Whether any repetition counts its turns, and so has to un-count them.</summary>
+	bool _usesTurns;
+
 	/// <summary>
 	/// The rule whose body is being compiled, for the trace lines its states carry.
 	/// </summary>
@@ -598,7 +624,7 @@ sealed partial class Machine
 					file.Line("var syncFrom = 0;");
 				}
 
-				if (_usesChar)
+				if (UsesChar)
 					file.Line("var c       = '\\0';");
 				file.Line("string[]? expected = null;");
 
@@ -781,6 +807,23 @@ sealed partial class Machine
 						file.Line("lookahead = entry.LookaheadIndex;");
 						file.Line("Trace(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
+					}
+
+					if (_usesTurns)
+					{
+						using (file.Block("if (entry.Kind == ParserEntry.TurnDone)"))
+						{
+							file.Line("var counted = entries[entry.RepeatIndex];");
+							file.Line();
+							file.Line("global::System.Diagnostics.Debug.Assert(counted.Kind == ParserEntry.Repeat);");
+							file.Line(
+								"entries[entry.RepeatIndex] = new ParserEntry(ParserEntry.Repeat, 0, " +
+								"counted.Position, counted.CallIndex, counted.AtomicIndex, " +
+								"counted.RepeatIndex, counted.LookaheadIndex, counted.Value - 1, " +
+								"counted.RuleIndex);");
+							file.Line("Trace(\"give a turn back\", entry.RepeatIndex, entry.Position, entries.Count, text, \"\");");
+							file.Line("continue;");
+						}
 					}
 
 					if (_usesLoopExits)
@@ -2562,12 +2605,21 @@ sealed partial class Machine
 		// the standing exit's position is written by the loop head it is about to re-enter.
 		if (min > 0 || max is not null)
 		{
+			_usesTurns = true;
+
 			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 			atAfter.Line("var repeated = entries[repeat];");
 			atAfter.Line(
 				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
 				"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
 				"repeated.LookaheadIndex, repeated.Value + 1" + (settled ? ", repeated.RuleIndex" : "") + ");");
+
+			// The count rewritten above survives backtracking; this is what does not. A
+			// resume into this turn's own machinery pops it, and popping it takes the
+			// turn back out of the count before the body re-completes and counts again.
+			atAfter.Line(
+				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, " +
+				"lookahead, 0));");
 		}
 
 		atAfter.Line($"goto {Label(loop)};");

@@ -42,7 +42,7 @@ sealed partial class Machine
 		{
 			file.Line("var p = pos;");
 
-			if (_usesChar)
+			if (UsesChar)
 				file.Line("var c = '\\0';");
 			file.Line("string[]? expected = null;");
 

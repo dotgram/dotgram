@@ -189,6 +189,26 @@ public sealed class SemanticTests
 				? "trivia = { (' ' | \"//\" & [^ '\\n']*)* }"
 				: "trivia = (' ' | \"//\" & [^ '\\n']*)*") + '\n' + "Start = 'x' & 'y'", input));
 
+	/// <summary>
+	/// A counted repetition does not count a turn twice when the turn re-matches.
+	/// </summary>
+	/// <remarks>
+	/// The count lives in the Repeat entry and is rewritten in place, and an in-place
+	/// rewrite survives backtracking that the turn it counted does not. Resuming the
+	/// second alternative inside a completed turn re-completed the body, counted the same
+	/// turn again, and `{2}` read two of a thing the input held one of. Found by the
+	/// differential fuzzer against the reference interpreter on its first run, and as old
+	/// as the engine: the commit this repository started this week at accepts it too.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", false)]
+	[InlineData("aa", true)]
+	[InlineData("ab", true)]
+	[InlineData("aaa", false)]
+	public void A_rematched_turn_is_counted_once(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"Start = ({ ['a'|'c'] } | 'a' | ('b' | 'a' | \"b\")){2}", input));
+
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)

@@ -3005,3 +3005,32 @@ order. One gap worth remembering: `Int | Identifier` is disjoint — digits agai
 — but a category's six hundred ranges exceed the rendering budget, so no dispatcher is
 written even though the *other* alternative's test is one range. A dispatcher that tests
 the small set and falls to the large one would cover it; not built.
+
+## Built: an executable §11, and what it caught in its first minute
+
+`ReferenceInterpreter` is the semantics with no optimization at all: thirty lines of
+recursion per construct, every reading enumerated lazily in preference order. Its worth is
+being obviously right where the automaton is subtly right. `ReferenceDifferentialTests`
+compiles random grammars — seeded, guard-free, recursion-free, half of them spaced — and
+holds the automaton to agreement on random inputs; `Shrink` (also new, and kept this time)
+cuts any disagreement to its essence. The shrinker's own test caught the classic predicate
+mistake on its first run — GRAM2005 has five sites, and a predicate that names only the id
+converges on whichever is cheapest to reach — which is now the example its documentation
+teaches with.
+
+The fuzzer paid for itself in its first minute, twice:
+
+**A counted repetition counted a re-matched turn twice.** The count lives in the `Repeat`
+entry and is rewritten in place, and an in-place rewrite survives backtracking that the
+turn it counted does not: resume an alternative inside a completed turn, the body
+re-completes, the same turn counts again, and `X{2}` reads two of a thing the input held
+one of. As old as the engine — the commit this week started from accepts it — and invisible
+to every hand-written test, the regex differential, the corpus, and the mutation fuzzer,
+because none of them pair a bounded count with a body that can re-match. The fix follows
+the arena's own philosophy: a completed turn leaves a `TurnDone` entry, and popping it is
+what un-counts the turn, at the exact moment the parse abandons it.
+
+**A parser that compiles with a warning.** `var c` was declared on the compile-time flag,
+and the layout can drop every state that read it; the fuzzer found a grammar where it did,
+and `CS0219` in somebody else's build is a defect here. The declaration now asks the
+written bodies.

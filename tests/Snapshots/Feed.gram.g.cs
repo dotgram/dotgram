@@ -2703,6 +2703,20 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal const int LoopExit = 14;
 
+			/// <summary>
+			/// A completed turn of a counted repetition, standing where unwinding can see
+			/// it.
+			/// </summary>
+			/// <remarks>
+			/// The count in a <see cref="Repeat"/> entry is rewritten in place, and an
+			/// in-place rewrite survives backtracking that the turn it counted does not:
+			/// resume an alternative inside a completed turn and the body re-completes,
+			/// counting the same turn twice — <c>X{2}</c> read two of a thing the input
+			/// held one of. Popping this entry is what un-counts the turn, at the exact
+			/// moment the parse abandons it.
+			/// </remarks>
+			internal const int TurnDone = 15;
+
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
 				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)
