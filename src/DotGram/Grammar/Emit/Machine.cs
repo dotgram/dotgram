@@ -1339,14 +1339,42 @@ sealed partial class Machine
 				// optional capture that never ran (null) from one that matched nothing.
 				if (_valuesInLocals)
 				{
+					// A capture of a flat-valued call is a site: the callee's body
+					// compiled in place under an instance of its own — the same rule
+					// inlined twice may not share locals — with its factory run at
+					// Accept, guarded by this slot's sentinel saying the site ran.
+					if (SiteCallee(node) is { } called)
+					{
+						var parent = _flatInstance;
+						var site   = _flatInstances++;
+
+						_flatSites.Add(new FlatSite(site, called, parent, slot));
+						_flatLocals.Add((parent, slot, true));
+						_flatRuleOf[site] = called;
+						_flatInstance     = site;
+
+						var siteBody = Compile(_graph.Bodies[called], next, following);
+
+						_flatInstance = parent;
+
+						var siteState = Reserve(out var atSiteOpen);
+
+						atSiteOpen.Line($"flat{parent}_{slot}Start = p;");
+						atSiteOpen.Line($"goto {Label(siteBody)};");
+
+						return siteState;
+					}
+
+					_flatLocals.Add((_flatInstance, slot, false));
+
 					var flatClose = Reserve(out var atFlatClose);
 					var flatInner = Compile(body, flatClose, following);
 					var flatState = Reserve(out var atFlatOpen);
 
-					atFlatOpen.Line($"flat{slot}Start = p;");
+					atFlatOpen.Line($"flat{_flatInstance}_{slot}Start = p;");
 					atFlatOpen.Line($"goto {Label(flatInner)};");
 
-					atFlatClose.Line($"flat{slot}End = p;");
+					atFlatClose.Line($"flat{_flatInstance}_{slot}End = p;");
 					atFlatClose.Line($"goto {Label(next)};");
 
 					return flatState;
@@ -1440,10 +1468,30 @@ sealed partial class Machine
 			case Node.Construct(var body, _):
 			{
 				// The factory runs at Accept, once the whole parse is decided — deferred
-				// construction, kept without an entry. `CanLowerValued` admitted exactly
-				// one construction, so Accept knows which factory it is without a record.
+				// construction, kept without an entry. Where the body is a choice of
+				// constructions, which alternative matched is a tag local written as the
+				// alternative closes, and Accept switches on it.
 				if (_valuesInLocals)
+				{
+					var owner = _owners.TryGetValue(node, out var of) ? of : null;
+
+					if (owner is not null &&
+						_flatRuleOf.TryGetValue(_flatInstance, out var live) &&
+						ReferenceEquals(owner, live) &&
+						_factories[owner].Count > 1)
+					{
+						_flatTags.Add(_flatInstance);
+
+						var tagged = Reserve(out var atTag);
+
+						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node)};");
+						atTag.Line($"goto {Label(next)};");
+
+						return Compile(body, tagged, following);
+					}
+
 					return Compile(body, next, following);
+				}
 
 				var factory = _constructs[node];
 				var close   = Reserve(out var atClose);
@@ -2583,7 +2631,7 @@ sealed partial class Machine
 	/// began is kept in a local of its own and the way out reads it. The repetition ends
 	/// where its last whole turn ended, not where a broken one stopped.
 	/// </remarks>
-	int GiveBack(int next, int depth, out string start, IReadOnlyList<int>? resetSlots = null)
+	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null)
 	{
 		start = "turn" + depth;
 
@@ -2594,9 +2642,9 @@ sealed partial class Machine
 		// A capture the given-back turn opened is a record backtracking would have
 		// unwound; kept in locals, the door it leaves by has to unset it (the sentinel
 		// is what tells an optional capture that never happened from one that did).
-		if (resetSlots is not null)
-			foreach (var slot in resetSlots)
-				writer.Line($"flat{slot}Start = -1;");
+		if (resetLocals is not null)
+			foreach (var local in resetLocals)
+				writer.Line($"{local} = -1;");
 
 		writer.Line($"goto {Label(next)};");
 
@@ -2621,13 +2669,15 @@ sealed partial class Machine
 		var mine = _depth++;
 
 		// The capture locals a given-back turn would leave set (flat-value rendering
-		// only; the engine's captures unwind with the arena).
-		List<int>? resets = null;
+		// only; the engine's captures unwind with the arena). A site's inner locals
+		// need no reset of their own — its parent slot here is the guard they sit
+		// behind at Accept.
+		List<string>? resets = null;
 
 		if (_valuesInLocals)
 			foreach (var descendant in NodeWalk.Descendants(body))
 				if (descendant is Node.Capture)
-					(resets ??= []).Add(_captureSlots[descendant]);
+					(resets ??= []).Add($"flat{_flatInstance}_{_captureSlots[descendant]}Start");
 
 		if (max is null)
 		{

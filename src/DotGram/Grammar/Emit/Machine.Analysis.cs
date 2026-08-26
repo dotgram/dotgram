@@ -106,8 +106,12 @@ sealed partial class Machine
 
 			// A capture kept in locals writes nothing — sound only where nothing ever
 			// backtracks over it, which is what every other case here already proves,
-			// and only the flat-value rendering compiles it that way.
-			Node.Capture(_, var captured)              => _valuesInLocals && Silent(captured, following),
+			// and only the flat-value rendering compiles it that way. A capture of a
+			// flat-valued call is the call's body compiled in place, silent when it is.
+			Node.Capture(_, var captured)              => _valuesInLocals &&
+			                                              (SiteCallee(node) is { } called
+			                                                  ? Silent(_graph.Bodies[called], following)
+			                                                  : Silent(captured, following)),
 
 			// The single construction a flat-value method runs at Accept, once the
 			// whole parse is decided — deferred construction kept, no entry written.

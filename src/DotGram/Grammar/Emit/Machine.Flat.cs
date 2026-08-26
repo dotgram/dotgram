@@ -123,34 +123,7 @@ sealed partial class Machine
 	/// </remarks>
 	public bool CanLowerValued(RuleSymbol rule, bool whole)
 	{
-		if (UsesInput ||
-			!_graph.Types.ContainsKey(rule) ||
-			_results.QualifiedOf(rule) is null ||
-			_graph.Folds.ContainsKey(rule) ||
-			_graph.Climbing.ContainsKey(rule) ||
-			_graph.Recursive.Contains(rule))
-			return false;
-
-		if (_graph.Bodies[rule] is not Node.Construct(var built, _) construct)
-			return false;
-
-		if (_factories[rule] is not { Count: 1 } factories ||
-			!ReferenceEquals(factories[0].Of, construct))
-			return false;
-
-		var factory = factories[0];
-
-		if (CSharpEmitter.WantsText(factory) ||
-			CSharpEmitter.Asks(factory, "parserSpan") ||
-			CSharpEmitter.Asks(factory, "parserInput") ||
-			factory.Accumulator is not null)
-			return false;
-
-		foreach (var member in factory.Members)
-			if (member.Rule is not null || member.IsSequence || member.Slots.Count != 1)
-				return false;
-
-		if (!CapturesAreExtents(built, repeated: false))
+		if (UsesInput || !FlatValued(rule))
 			return false;
 
 		_valuesInLocals = true;
@@ -166,13 +139,103 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// Every capture is a span two locals can hold: pure text below it, and no repetition
-	/// above it that could run the locals over.
+	/// The structural half of <see cref="CanLowerValued"/>, and the whole of what a rule
+	/// must be to have its value built inside another flat method: constructions that are
+	/// the body — one at the top, or one per alternative, told apart at Accept by a tag
+	/// local — over captures that are spans of the input or sites of further such rules.
+	/// </summary>
+	/// <remarks>
+	/// Memoized, and seeded false before computing: rules in a call cycle are already
+	/// refused by <see cref="RecognitionGraph.Recursive"/>, so the seed only ever answers
+	/// a query the exclusion makes unreachable, and it answers it safely.
+	/// </remarks>
+	bool FlatValued(RuleSymbol rule)
+	{
+		if (_flatValued.TryGetValue(rule, out var known))
+			return known;
+
+		_flatValued[rule] = false;
+
+		var answer = ComputeFlatValued(rule);
+
+		_flatValued[rule] = answer;
+
+		return answer;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _flatValued = [];
+
+	bool ComputeFlatValued(RuleSymbol rule)
+	{
+		if (!_graph.Types.ContainsKey(rule) ||
+			_results.QualifiedOf(rule) is null ||
+			_graph.Folds.ContainsKey(rule) ||
+			_graph.Climbing.ContainsKey(rule) ||
+			_graph.Recursive.Contains(rule) ||
+			!_graph.Bodies.TryGetValue(rule, out var body) ||
+			!_factories.TryGetValue(rule, out var factories) ||
+			factories.Count == 0)
+			return false;
+
+		// The constructions must be the whole of the body, in the order the factories
+		// were gathered — which is document order, the same walk.
+		IReadOnlyList<Node> constructs = body is Node.Choice(var alternatives)
+			? alternatives
+			: new[] { body };
+
+		if (constructs.Count != factories.Count)
+			return false;
+
+		for (var i = 0; i < constructs.Count; i++)
+			if (constructs[i] is not Node.Construct || !ReferenceEquals(factories[i].Of, constructs[i]))
+				return false;
+
+		foreach (var factory in factories)
+		{
+			if (CSharpEmitter.WantsText(factory) ||
+				CSharpEmitter.Asks(factory, "parserSpan") ||
+				CSharpEmitter.Asks(factory, "parserInput") ||
+				factory.Accumulator is not null)
+				return false;
+
+			foreach (var member in factory.Members)
+				if (member.IsSequence)
+					return false;
+		}
+
+		foreach (var construct in constructs)
+			if (!CapturesAreExtents(((Node.Construct)construct).Body, repeated: false))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The rule whose value a capture takes from a call, where that call can be built
+	/// flat in place — or null where the capture is not that shape.
+	/// </summary>
+	/// <remarks>
+	/// The seam has to match the capturing rule's: an inlined body composes its
+	/// continuations against its own namespace's trivia, and a crossing would degrade
+	/// them to "anything", which is exactly what the silence proofs cannot survive.
+	/// </remarks>
+	RuleSymbol? SiteCallee(Node node) =>
+		node is Node.Capture(_, Node.Call(var called, { Count: 0 })) &&
+		FlatValued(called) &&
+		_owners.TryGetValue(node, out var owner) &&
+		ReferenceEquals(FollowSets.SeamOf(called, _graph), FollowSets.SeamOf(owner, _graph))
+			? called
+			: null;
+
+	/// <summary>
+	/// Every capture is a span two locals can hold — pure text below it, or a flat-valued
+	/// call — and no repetition above it that could run the locals over.
 	/// </summary>
 	bool CapturesAreExtents(Node node, bool repeated) =>
 		node switch
 		{
-			Node.Capture(_, var captured)     => !repeated && Extent(captured),
+			Node.Capture(_, var captured)     => !repeated &&
+			                                     (Extent(captured) || SiteCallee(node) is not null),
 			Node.Sequence(var parts)          => parts.All(part => CapturesAreExtents(part, repeated)),
 			Node.Choice(var alternatives)     => alternatives.All(part => CapturesAreExtents(part, repeated)),
 			Node.Repeat(var body, _, var max) => CapturesAreExtents(body, repeated || max != 1),
@@ -197,17 +260,38 @@ sealed partial class Machine
 			_                             => false,
 		};
 
+	/// <summary>A capture whose value another flat-valued rule builds, compiled in place.</summary>
+	/// <param name="Id">The instance its own capture locals are named under.</param>
+	/// <param name="Rule">Whose body was compiled there.</param>
+	/// <param name="Parent">The instance the capturing slot belongs to.</param>
+	/// <param name="Slot">The capturing slot — its sentinel says whether the site ran.</param>
+	sealed record FlatSite(int Id, RuleSymbol Rule, int Parent, int Slot);
+
+	readonly List<FlatSite> _flatSites = [];
+	readonly HashSet<(int Instance, int Slot, bool Valued)> _flatLocals = [];
+	readonly HashSet<int> _flatTags = [];
+	readonly Dictionary<int, RuleSymbol> _flatRuleOf = [];
+	int _flatInstance;
+	int _flatInstances;
+
 	/// <summary>
 	/// The valued counterpart of <see cref="RenderFlat"/>: the same rendering, plus the
-	/// capture locals and the one factory call at Accept.
+	/// capture locals and the factory calls at Accept — inner sites before the rules that
+	/// captured them, the root last, each site guarded by its capturing slot's sentinel.
 	/// </summary>
 	public string RenderFlatValued(RuleSymbol rule, string name, bool whole)
 	{
-		var seed    = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
-		var factory = _factories[rule][0];
-		var type    = _results.QualifiedOf(rule);
+		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
+		var type = _results.QualifiedOf(rule);
 
 		_roots.Clear();
+		_flatSites.Clear();
+		_flatLocals.Clear();
+		_flatTags.Clear();
+		_flatRuleOf.Clear();
+		_flatInstance   = 0;
+		_flatInstances  = 1;
+		_flatRuleOf[0]  = rule;
 		_seam           = FollowSets.SeamOf(rule, _graph);
 		_valuesInLocals = true;
 
@@ -218,12 +302,6 @@ sealed partial class Machine
 		_roots.Add(entry);
 
 		PlanLayout();
-
-		var slots = new SortedSet<int>();
-
-		foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
-			if (node is Node.Capture)
-				slots.Add(_captureSlots[node]);
 
 		var file = new Writer(0);
 
@@ -240,11 +318,16 @@ sealed partial class Machine
 			// The sentinel start is what tells an optional capture that never ran from
 			// one that matched nothing — the same convention the arena's materializer
 			// reads out of a missing entry.
-			foreach (var slot in slots)
+			foreach (var (instance, slot, valued) in _flatLocals.OrderBy(static local => (local.Instance, local.Slot)))
 			{
-				file.Line($"var flat{slot}Start = -1;");
-				file.Line($"var flat{slot}End = 0;");
+				file.Line($"var flat{instance}_{slot}Start = -1;");
+
+				if (!valued)
+					file.Line($"var flat{instance}_{slot}End = 0;");
 			}
+
+			foreach (var tagged in _flatTags.OrderBy(static tag => tag))
+				file.Line($"var flatWhich{tagged} = -1;");
 
 			var depths = new HashSet<int>();
 
@@ -269,31 +352,23 @@ sealed partial class Machine
 			if (whole)
 				file.Line("if (p != text.Length) { expected = null; goto Fail; }");
 
-			// The construction, deferred to here: the parse is decided, and only now does
-			// anything the author wrote run. Argument order mirrors the arena
-			// materializer's, which mirrors the factory's own parameters.
-			var offset    = _captureOffsets[rule];
-			var arguments = new List<string>();
-
-			for (var index = 0; index < factory.Members.Count; index++)
+			// The constructions, deferred to here: the parse is decided, and only now
+			// does anything the author wrote run. Inner sites first — a child's id is
+			// always above its parent's, so reverse order is dependency order.
+			for (var at = _flatSites.Count - 1; at >= 0; at--)
 			{
-				var member = factory.Members[index];
+				var site = _flatSites[at];
 
-				if (member.Name == "parserText")
-					continue;
+				file.Line($"{_results.QualifiedOf(site.Rule)} value{site.Id} = default!;");
 
-				var slot  = offset + member.Slots[0];
-				var start = $"flat{slot}Start";
-				var slice = $"text.Slice({start}, flat{slot}End - {start}).ToString()";
-
-				file.Line(
-					$"var captured{index} = {start} < 0 ? " +
-					(member.IsOptional ? "null" : "string.Empty") + $" : {slice};");
-
-				arguments.Add($"captured{index}");
+				using (file.Block($"if (flat{site.Parent}_{site.Slot}Start >= 0)"))
+					EmitFlatConstruction(file, site.Id, site.Rule, $"value{site.Id}");
 			}
 
-			file.Line($"value = {factory.Method}({string.Join(", ", arguments)});");
+			if (_factories[rule].Count > 1)
+				file.Line("value = default!;");
+
+			EmitFlatConstruction(file, 0, rule, "value");
 			file.Line("return p;");
 
 			file.Line();
@@ -305,5 +380,106 @@ sealed partial class Machine
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>One rule's value, from its locals — a switch on the tag where it has one.</summary>
+	void EmitFlatConstruction(Writer file, int instance, RuleSymbol rule, string target)
+	{
+		var factories = _factories[rule];
+
+		if (factories.Count == 1)
+		{
+			EmitFlatFactoryCall(file, instance, rule, factories[0], target);
+
+			return;
+		}
+
+		using (file.Block($"switch (flatWhich{instance})"))
+			for (var index = 0; index < factories.Count; index++)
+			{
+				file.Line($"case {index}:");
+
+				// Braced: the sections of one switch share a declaration scope, and
+				// every case declares its captures under the same names.
+				using (file.Indent())
+				using (file.Block(""))
+				{
+					EmitFlatFactoryCall(file, instance, rule, factories[index], target);
+					file.Line("break;");
+				}
+			}
+	}
+
+	/// <summary>
+	/// One factory call. Argument order mirrors the arena materializer's, which mirrors
+	/// the factory's own parameters; a member captured in more than one alternative reads
+	/// the slot that ran, first written first.
+	/// </summary>
+	void EmitFlatFactoryCall(Writer file, int instance, RuleSymbol rule, Factory factory, string target)
+	{
+		var offset    = _captureOffsets[rule];
+		var arguments = new List<string>();
+
+		for (var index = 0; index < factory.Members.Count; index++)
+		{
+			var member = factory.Members[index];
+
+			if (member.Name == "parserText")
+				continue;
+
+			var local = $"captured{instance}_{index}";
+
+			if (member.Rule is null)
+			{
+				var expression = member.IsOptional ? "null" : "string.Empty";
+
+				for (var at = member.Slots.Count - 1; at >= 0; at--)
+				{
+					var slot  = offset + member.Slots[at];
+					var start = $"flat{instance}_{slot}Start";
+
+					expression =
+						$"{start} < 0 ? {expression} : " +
+						$"text.Slice({start}, flat{instance}_{slot}End - {start}).ToString()";
+				}
+
+				file.Line($"var {local} = {expression};");
+			}
+			else
+			{
+				var valueType  = _results.ValueOf(member.Rule);
+				var expression = member.IsOptional || member.Slots.Count > 1
+					? member.IsOptional ? $"default({valueType}?)" : SiteValue(instance, offset + member.Slots[member.Slots.Count - 1])
+					: SiteValue(instance, offset + member.Slots[0]);
+
+				var from = member.IsOptional ? member.Slots.Count - 1 : member.Slots.Count - 2;
+
+				for (var at = from; at >= 0; at--)
+				{
+					var slot = offset + member.Slots[at];
+
+					expression =
+						$"flat{instance}_{slot}Start < 0 ? {expression} : {SiteValue(instance, slot)}";
+				}
+
+				file.Line(member.IsOptional
+					? $"{valueType}? {local} = {expression};"
+					: $"var {local} = {expression};");
+			}
+
+			arguments.Add(local);
+		}
+
+		file.Line($"{target} = {factory.Method}({string.Join(", ", arguments)});");
+	}
+
+	/// <summary>The value local of the site a capturing slot was compiled as.</summary>
+	string SiteValue(int instance, int slot)
+	{
+		foreach (var site in _flatSites)
+			if (site.Parent == instance && site.Slot == slot)
+				return "value" + site.Id;
+
+		throw new InvalidOperationException("A rule capture has no compiled site.");
 	}
 }

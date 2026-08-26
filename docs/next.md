@@ -3458,3 +3458,44 @@ Not taken up yet, in order: rule values across calls (Alias's direct call of a f
 callee, Either/Wrapped's predicted dispatch with the factory choice as a local
 tag); the checkpoint class for C/E/F/Committed; Sheet's collection materialization
 (the review's copy-on-return point) and pool retention.
+
+## Built: rule values across calls - sites, instances, and a tag for the choice
+
+The second half of valued flat lowering: a capture of another flat-valued rule's
+value. `FlatValued` is the structural predicate, memoized, and it serves root and
+callee alike: constructions that are the whole of the body - one at the top, or one
+per alternative - over captures that are spans of the input or, now, sites of
+further such rules. A site compiles the callee's body in place under an instance of
+its own (`flat{instance}_{slot}` - the same rule inlined twice may not share
+locals), and the capturing slot's sentinel doubles as "did this site run". The
+callee must share the caller's seam: a namespace crossing degrades continuations to
+"anything", which the silence proofs cannot survive, so the predicate refuses it.
+
+At Accept the factories run inner-sites-first - a child's instance id is above its
+parent's, so reverse order is dependency order - each guarded by its parent slot's
+sentinel, the root last. Where a rule is a choice of constructions, which
+alternative matched is a tag local (`flatWhich{instance}`) written as the
+alternative closes, and Accept switches on it; the switch sections are braced,
+because they share one declaration scope and every case names its captures the
+same. A member captured in more than one alternative reads the slot that ran,
+first written first - the chain the arena materializer resolves by entry presence.
+
+Deferred construction holds exactly as before: nothing runs until the whole parse
+is decided, and a site whose branch was not taken never constructs - the engine's
+per-need materialization, kept by a sentinel instead of a link walk.
+
+Alias, Either and Wrapped - the three catalog rules this stage was for - now
+compile to the review's target forms: Alias is '#', a digit loop, and
+`Construct_Number` feeding `Construct_Alias` at Accept; Either is a first-char
+switch, a tag, and a factory switch; Wrapped picks `value1` or `value2` by
+sentinel. The catalog file is 6,096 lines (10,973 three commits ago), and seven
+publications still rent a parser: C/E/F (a way back - the checkpoint class),
+Committed (atomic commit), Sum (climbing), Sheet (recovery), AnyItem (a find). The
+engine test that pinned "a valued rule has one shared block" keeps pinning it, on a
+grammar the flat path refuses; a new sibling pins the inline: three
+`Construct_Name` sites, no call, no parser.
+
+The notation's own grammar is unchanged by this - its machines are recursive and
+stay on the engine. Its path to the same benefit is the recorded direction: an
+engine machine calling a flat-valued rule as a method instead of a state, which is
+the sound remainder of the eager-construction idea.

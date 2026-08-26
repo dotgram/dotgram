@@ -150,9 +150,11 @@ public sealed class CSharpEmitterTests
 	{
 		// Three calls, one block. The value is what needs the block: it is materialized at
 		// the rule's own boundary, so the boundary has to be there to materialize it at.
+		// The trailing choice needs a way back ("q" continues into "qq"), which is what
+		// keeps this grammar on the engine now that a flat-valued rule inlines instead.
 		var source = Emit(
 			"""
-			Start : @string = a: Name & ':' & b: Name & ':' & c: Name => @(a + b + c)
+			Start : @string = a: Name & ':' & b: Name & ':' & c: Name & ("q" | "qq") => @(a + b + c)
 			Name  : @string = t: ('a' | 'b') => @(t)
 			parse Start
 			""");
@@ -163,6 +165,29 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(3, source.Split(["call Name"], StringSplitOptions.None).Length - 1);
 		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
 		Assert.Contains("Debug.Assert", source);
+	}
+
+	/// <summary>
+	/// Where nothing needs a way back, the same shape is not a shared block but three
+	/// inlined sites: each capture builds its value at Accept from locals of its own,
+	/// and no engine is rented for any of it.
+	/// </summary>
+	[Fact]
+	public void A_flat_valued_rule_is_compiled_where_it_is_captured()
+	{
+		const string grammar =
+			"""
+			Start : @string = a: Name & ':' & b: Name & ':' & c: Name => @(a + b + c)
+			Name  : @string = t: ('a' | 'b') => @(t)
+			parse Start
+			""";
+
+		var source = Emit(grammar);
+
+		Assert.DoesNotContain("call Name", source);
+		Assert.DoesNotContain("RentParser", source);
+		Assert.Equal(3, source.Split(["= Construct_Name("], StringSplitOptions.None).Length - 1);
+		Assert.Equal("aba", Invoke(grammar, "ParseStart", "a:b:a").Value);
 	}
 
 	[Fact]
