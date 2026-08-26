@@ -287,7 +287,6 @@ namespace DotGram.Snapshots
 					case 21: goto S21;
 					case 25: goto S25;
 					case 28: goto S28;
-					case 68: goto S68;
 					default: expected = null; goto Fail;
 				}
 
@@ -579,29 +578,48 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var runStart = p;
-					while (true)
+					if ((uint)p >= (uint)text.Length)
 					{
-						if ((uint)p >= (uint)text.Length)
-						{
-							failure.Starved = true;
-							break;
-						}
-						c = text[p];
-						if (!(!(c == '\n' || c == '\r' || c == '|'))) break;
-						p++;
+						failure.Starved = true;
+						expected = Recognize_DotGram_Feed_Expected9;
+						goto Fail;
 					}
-					if (p < runStart + 1)
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
 						expected = Recognize_DotGram_Feed_Expected9;
 						goto Fail;
 					}
-					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 68, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 68, p, entries.Count);
+					p++;
 				}
 
-				S68:
+				S69:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Feed_Expected9;
+						goto S70;
+					}
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
+					{
+						expected = Recognize_DotGram_Feed_Expected9;
+						goto S70;
+					}
+					p++;
+					goto S69;
+				}
+
+				S70:
+				{
+					p = turn0;
+				}
+
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count);
@@ -1340,12 +1358,11 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S30;
-					case 26: goto S26;
+					case 3: goto S33;
 					default: expected = null; goto Fail;
 				}
 
-				S30:
+				S33:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1381,29 +1398,48 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var runStart = p;
-					while (true)
+					if ((uint)p >= (uint)text.Length)
 					{
-						if ((uint)p >= (uint)text.Length)
-						{
-							failure.Starved = true;
-							break;
-						}
-						c = text[p];
-						if (!(!(c == '\n' || c == '\r' || c == '|'))) break;
-						p++;
+						failure.Starved = true;
+						expected = Recognize_DotGram_Row_Expected6;
+						goto Fail;
 					}
-					if (p < runStart + 1)
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
 						expected = Recognize_DotGram_Row_Expected6;
 						goto Fail;
 					}
-					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 26, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 26, p, entries.Count);
+					p++;
 				}
 
-				S26:
+				S27:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Row_Expected6;
+						goto S28;
+					}
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
+					{
+						expected = Recognize_DotGram_Row_Expected6;
+						goto S28;
+					}
+					p++;
+					goto S27;
+				}
+
+				S28:
+				{
+					p = turn0;
+				}
+
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
 					Trace("capture", 0, p, entries.Count);

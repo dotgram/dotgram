@@ -201,7 +201,7 @@ public sealed class ExampleTests
 	public void And_says_where_a_decimal_expression_stops_being_one()
 	{
 		Assert.Equal("1/8 = 0.125", DecimalCalculator.Explain("1/8"));
-		Assert.StartsWith("Expected ['-' | '(' | '0'..'9' | '(' | '0'..'9'].", DecimalCalculator.Explain("1/"));
+		Assert.StartsWith("Expected ['-' | '(' | '0'..'9'].", DecimalCalculator.Explain("1/"));
 	}
 
 	[Fact]

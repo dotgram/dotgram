@@ -368,6 +368,13 @@ sealed partial class Machine
 			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[i], _graph))
 				return null;
 
+			// Knowable is not the same as worth writing down: a Unicode category is a few
+			// hundred ranges, exact and useful to the analyses, and a dispatch spelled out
+			// over them would be a page of comparisons where the alternative's own test is
+			// one call. The set stays precise; only the rendering declines.
+			if (first.Ranges.Count > Emitted)
+				return null;
+
 			firsts[i] = first;
 		}
 
@@ -529,7 +536,7 @@ sealed partial class Machine
 				ranges.Add(new CharRange(text[0], text[0]));
 			}
 
-		return new FirstSets.First(false, false, ranges);
+		return FirstSets.First.Chars(ranges);
 	}
 
 	/// <summary>
@@ -547,8 +554,21 @@ sealed partial class Machine
 	{
 		var first = FirstSets.Of(alternative, _graph);
 
-		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph) ? null : first;
+		return first.Anything || first.Nothing || first.Ranges.Count > Emitted ||
+			FirstSets.Nullable(alternative, _graph)
+				? null
+				: first;
 	}
+
+	/// <summary>
+	/// The widest first set a rendered test may be written from.
+	/// </summary>
+	/// <remarks>
+	/// Guards the two places an analysis result becomes source text — <see cref="Predictive"/>
+	/// and <see cref="Decidable"/> — and nothing else: an analysis that only compares sets is
+	/// better off exact whatever their size.
+	/// </remarks>
+	const int Emitted = 8;
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
 	static string RangesTest(IReadOnlyList<CharRange> ranges)

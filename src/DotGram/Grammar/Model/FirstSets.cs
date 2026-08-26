@@ -58,6 +58,51 @@ public static class FirstSets
 		/// <summary>Nothing follows but the end of the input.</summary>
 		public static readonly First End = new(false, false, [], Ends: true);
 
+		/// <summary>
+		/// A known set, its ranges sorted and merged.
+		/// </summary>
+		/// <remarks>
+		/// Everything below leans on the ranges being in this form: <see cref="Covers"/> is
+		/// exact only over maximal ranges, <see cref="Overlaps"/> walks the two lists once
+		/// each, and the fixed point in <c>FollowSets</c> stops growing only because a union
+		/// of the same sets is the same list rather than a longer spelling of it.
+		/// </remarks>
+		public static First Chars(IEnumerable<CharRange> ranges, bool ends = false)
+		{
+			var merged = Normalized(ranges);
+
+			return merged.Count == 0 && !ends ? None : new First(false, false, merged, ends);
+		}
+
+		internal static IReadOnlyList<CharRange> Normalized(IEnumerable<CharRange> ranges)
+		{
+			var sorted = new List<CharRange>(ranges);
+
+			sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+			var merged = new List<CharRange>(sorted.Count);
+
+			foreach (var range in sorted)
+			{
+				if (range.To < range.From)
+					continue;
+
+				// Overlapping or adjacent: one maximal range. `To + 1` is int arithmetic,
+				// so the top of the character space does not wrap.
+				if (merged.Count > 0 && merged[^1].To + 1 >= range.From)
+				{
+					if (range.To > merged[^1].To)
+						merged[^1] = merged[^1] with { To = range.To };
+
+					continue;
+				}
+
+				merged.Add(range);
+			}
+
+			return merged;
+		}
+
 		/// <summary>Whether it says anything a repetition can be held to.</summary>
 		public bool IsKnown => !Anything && !Nothing;
 
@@ -65,15 +110,20 @@ public static class FirstSets
 		public First Or(First other)
 		{
 			if (Anything || other.Anything) return All;
-			if (Nothing)                    return other;
+			if (Nothing)                    return other.Ends || !Ends ? other : Chars(other.Ranges, true);
 			if (other.Nothing)              return this;
+
+			if (Ends == (Ends || other.Ends) && Covers(other))
+				return this;
+			if (other.Ends == (Ends || other.Ends) && other.Covers(this))
+				return other;
 
 			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
 
 			ranges.AddRange(Ranges);
 			ranges.AddRange(other.Ranges);
 
-			return new First(false, false, ranges, Ends || other.Ends);
+			return Chars(ranges, Ends || other.Ends);
 		}
 
 		/// <summary>Whether this says everything that one does.</summary>
@@ -86,14 +136,16 @@ public static class FirstSets
 			if (other.Anything || other.Ends && !Ends)
 				return false;
 
+			// Both lists sorted and maximal, so containment is one walk: each of theirs must
+			// sit inside a single one of mine, and the candidates only move forward.
+			var mine = 0;
+
 			foreach (var theirs in other.Ranges)
 			{
-				var held = false;
+				while (mine < Ranges.Count && Ranges[mine].To < theirs.From)
+					mine++;
 
-				foreach (var mine in Ranges)
-					held |= mine.From <= theirs.From && theirs.To <= mine.To;
-
-				if (!held)
+				if (mine >= Ranges.Count || Ranges[mine].From > theirs.From || theirs.To > Ranges[mine].To)
 					return false;
 			}
 
@@ -105,10 +157,18 @@ public static class FirstSets
 			if (Nothing  || other.Nothing)  return false;
 			if (Anything || other.Anything) return true;
 
-			foreach (var mine in Ranges)
-				foreach (var theirs in other.Ranges)
-					if (mine.From <= theirs.To && theirs.From <= mine.To)
-						return true;
+			var mine = 0;
+			var theirs = 0;
+
+			while (mine < Ranges.Count && theirs < other.Ranges.Count)
+			{
+				if (Ranges[mine].To < other.Ranges[theirs].From)
+					mine++;
+				else if (other.Ranges[theirs].To < Ranges[mine].From)
+					theirs++;
+				else
+					return true;
+			}
 
 			return false;
 		}
@@ -224,7 +284,7 @@ public static class FirstSets
 				break;
 		}
 
-		return nothing ? First.None : new First(false, false, ranges);
+		return nothing ? First.None : First.Chars(ranges);
 	}
 
 	/// <summary>What a node can begin with.</summary>
@@ -234,22 +294,37 @@ public static class FirstSets
 	{
 		switch (node)
 		{
-			// Case folding could report both ranges instead of giving up entirely, but
-			// that is future work — see docs/status.md's diagnostics section for the
-			// other first-set-driven optimizations an ignore-case literal opts out of
-			// the same way.
-			case Node.Literal { IgnoreCase: true }:
-				return First.All;
+			// Everything the recognizer would fold together: the characters whose
+			// upper-case form is the first character's. Worked out by the same rule the
+			// emitted comparison uses, so the set is exactly the characters that can
+			// begin the match — no wider and no narrower.
+			case Node.Literal { IgnoreCase: true } literal:
+				return literal.Text.Length == 0 ? First.None : Folded(literal.Text[0]);
 
 			case Node.Literal(var text):
 				return text.Length == 0
 					? First.None
 					: new First(false, false, [new CharRange(text[0], text[0])]);
 
+			// A category is a set of characters like any other, and saying "anything"
+			// about it was what poisoned every follow set downstream of an identifier:
+			// `\p{L}` at the head of a rule made everything after that rule unknowable.
+			// A reference is the one honest "anything" left — it is a C# predicate, and
+			// what it accepts is the host's knowledge, not the grammar's.
 			case Node.Element(var negated, var ranges, var categories, var references):
-				return negated || categories.Count > 0 || references.Count > 0
-					? First.All
-					: new First(false, false, ranges);
+			{
+				if (references.Count > 0)
+					return First.All;
+
+				var all = new List<CharRange>(ranges);
+
+				foreach (var category in categories)
+					all.AddRange(CategoryRanges(category));
+
+				var known = First.Normalized(all);
+
+				return First.Chars(negated ? Complement(known) : known);
+			}
 
 			// Consumes nothing, so it begins with nothing — and a lookahead's own first set
 			// is not what the sequence begins with, because the operand after it is.
@@ -300,7 +375,7 @@ public static class FirstSets
 					ranges.AddRange(first.Ranges);
 				}
 
-				return nothing ? First.None : new First(false, false, ranges);
+				return nothing ? First.None : First.Chars(ranges);
 			}
 
 			case Node.Sequence(var parts):
@@ -310,6 +385,133 @@ public static class FirstSets
 				return First.All;
 		}
 	}
+
+	/// <summary>
+	/// The characters a Unicode category holds, as ranges over the UTF-16 code units the
+	/// recognizer reads.
+	/// </summary>
+	/// <remarks>
+	/// Found by asking <see cref="System.Globalization.CharUnicodeInfo"/> once per code
+	/// unit and once per category, and cached: the scan is a compile-time cost paid per
+	/// distinct category a grammar names, and what it buys is that `\p{L}` stops being
+	/// "anything" — which is what let follow sets stay known across an identifier.
+	/// </remarks>
+	static IReadOnlyList<CharRange> CategoryRanges(string name)
+	{
+		lock (_categoryRanges)
+		{
+			if (_categoryRanges.TryGetValue(name, out var cached))
+				return cached;
+		}
+
+		var ranges = new List<CharRange>();
+
+		// The graph carries the abbreviation as written — `L`, `Lu` — and the same table
+		// the emitter renders tests from says which .NET categories that stands for.
+		var members = new List<System.Globalization.UnicodeCategory>();
+
+		foreach (var member in UnicodeCategories.Expand(name))
+			if (Enum.TryParse<System.Globalization.UnicodeCategory>(member, out var category))
+				members.Add(category);
+
+		if (members.Count > 0)
+		{
+			var start = -1;
+
+			for (var c = 0; c <= char.MaxValue; c++)
+			{
+				var inside =
+					members.Contains(System.Globalization.CharUnicodeInfo.GetUnicodeCategory((char)c));
+
+				if (inside && start < 0)
+					start = c;
+				else if (!inside && start >= 0)
+				{
+					ranges.Add(new CharRange((char)start, (char)(c - 1)));
+					start = -1;
+				}
+			}
+
+			if (start >= 0)
+				ranges.Add(new CharRange((char)start, char.MaxValue));
+		}
+		else
+		{
+			// A name this cannot place is not a licence to guess: the whole space is the
+			// honest answer, and it arrives as one known range rather than as "anything"
+			// so that negation still works over it.
+			ranges.Add(new CharRange(char.MinValue, char.MaxValue));
+		}
+
+		lock (_categoryRanges)
+			_categoryRanges[name] = ranges;
+
+		return ranges;
+	}
+
+	static readonly Dictionary<string, IReadOnlyList<CharRange>> _categoryRanges = [];
+
+	/// <summary>Everything outside a normalized set of ranges.</summary>
+	static IReadOnlyList<CharRange> Complement(IReadOnlyList<CharRange> ranges)
+	{
+		var outside = new List<CharRange>(ranges.Count + 1);
+		var next    = 0;
+
+		foreach (var range in ranges)
+		{
+			if (range.From > next)
+				outside.Add(new CharRange((char)next, (char)(range.From - 1)));
+
+			next = range.To + 1;
+		}
+
+		if (next <= char.MaxValue)
+			outside.Add(new CharRange((char)next, char.MaxValue));
+
+		return outside;
+	}
+
+	/// <summary>
+	/// The characters the case-folded comparison would accept where <paramref name="first"/>
+	/// is the literal's first character.
+	/// </summary>
+	static First Folded(char first)
+	{
+		lock (_folded)
+		{
+			if (_folded.TryGetValue(first, out var cached))
+				return cached;
+		}
+
+		var upper  = char.ToUpperInvariant(first);
+		var ranges = new List<CharRange>();
+		var start  = -1;
+
+		for (var c = 0; c <= char.MaxValue; c++)
+		{
+			var inside = char.ToUpperInvariant((char)c) == upper;
+
+			if (inside && start < 0)
+				start = c;
+			else if (!inside && start >= 0)
+			{
+				ranges.Add(new CharRange((char)start, (char)(c - 1)));
+				start = -1;
+			}
+		}
+
+		if (start >= 0)
+			ranges.Add(new CharRange((char)start, char.MaxValue));
+
+		var folded = First.Chars(ranges);
+
+		lock (_folded)
+			_folded[first] = folded;
+
+		return folded;
+	}
+
+	static readonly Dictionary<char, First> _folded = [];
 
 	/// <summary>Whether a node can match without consuming anything.</summary>
 	public static bool Nullable(Node node, RecognitionGraph graph) => node switch
