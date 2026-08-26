@@ -184,7 +184,11 @@ sealed class GramCodeWindowManager(IVsCodeWindow codeWindow) : IVsCodeWindowMana
 
 		dropdowns.GetDropdownBar(out var existing);
 		if (existing is not null)
-			return VSConstants.S_OK;
+		{
+			var removeResult = dropdowns.RemoveDropdownBar();
+			if (ErrorHandler.Failed(removeResult))
+				return removeResult;
+		}
 
 		_codeWindow.GetPrimaryView(out var view);
 		if (view is null)
