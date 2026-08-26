@@ -20,13 +20,26 @@
 // the other alternative when the first leaves a character over. `find` is where the
 // order changes the answer rather than the price, and is why §11 promises the
 // alternatives are never reordered.
+//
+// `E` and `F` are the two orders again with something after them that can spend the
+// character the longer alternative would have taken, so both need a way back and
+// neither is lowered. They are here for the way back itself, and the two are not the
+// same: in `E` the later alternative continues the earlier one, so the way back is
+// written past what already matched and reads one character. In `F` the earlier is
+// the longer, which is the direction the texts cannot settle on their own, and the
+// general machinery compiles it — one state per alternative, each comparing its own
+// text from the beginning.
 
 A = "a"
 B = "abcd"
 C = "http" | "https" | "ftp"
 D = "https" | "http" | "ftp"
+E = ("http" | "https") & "s"
+F = ("https" | "http") & "s"
 
 parse A
 parse B
 parse C
 parse D
+parse E
+parse F

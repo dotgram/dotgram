@@ -1071,6 +1071,29 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
+	// ── A literal a later alternative continues ─────────────────────────────────
+
+	[Fact]
+	public void The_way_back_to_a_longer_alternative_is_written_past_what_already_matched()
+	{
+		var source = Emit("Start = QhttpQ | QhttpsQNparse Start".Replace("Q", "\"").Replace("N", "\n"));
+
+		// The order of these two lines is the whole optimization. An arena entry records
+		// the position as it stands, so pushing after the advance means what resumes there
+		// resumes past the four characters `"http"` matched — and the state it names
+		// compares the fifth alone. Pushed before, it would resume at the start and compare
+		// `"https"` from its first character.
+		Assert.Matches(
+			@"p \+= 4;\s*entries\.Add\(new ParserEntry\(ParserEntry\.Choice,", source);
+
+		Assert.Matches(@"text\[p\] == 's'\)\s*\{\s*p \+= 1;", source);
+
+		// And the longer text is never compared as a text at all: it is not in the
+		// falling-through chain, because it begins with one tested above it, and where
+		// the way back names it only the one character it adds is read.
+		Assert.DoesNotContain("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
+	}
+
 	// ── Position sharpening: the character that failed, not the operand's start ──
 
 	[Fact]

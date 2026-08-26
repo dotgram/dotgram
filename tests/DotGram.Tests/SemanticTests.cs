@@ -550,6 +550,33 @@ public sealed class SemanticTests
 	}
 
 	[Theory]
+	[InlineData("http",   true)]
+	[InlineData("https",  true)]
+	[InlineData("ftp",    true)]
+	[InlineData("httpx",  false)]
+	public void A_literal_a_later_one_continues_is_tried_first_and_come_back_for(string input, bool matches) =>
+		// Ordered choice: `"http"` is preferred where both fit, and the longer one is
+		// reachable because the parse comes back for it when the shorter leaves the input
+		// unfinished. Both readings of `https` exist; which is answered is §11's business.
+		Assert.Equal(
+			matches,
+			Matches("Start = QhttpQ | QhttpsQ | QftpQ".Replace("Q", "\""), input));
+
+	[Theory]
+	[InlineData("https",  true)]
+	[InlineData("httpss", true)]
+	[InlineData("http",   false)]
+	public void And_comes_back_for_it_past_a_shorter_reading_that_did_not_work_out(string input, bool matches) =>
+		// The case the way back exists for. On `httpss` the shorter alternative matches,
+		// the `"s"` after the choice matches, and a character is left over — so the parse
+		// returns to the choice and spends it on the longer alternative instead. The
+		// entry it resumes at was written past the characters already matched, so what
+		// runs there compares one character and not five.
+		Assert.Equal(
+			matches,
+			Matches("Start = (QhttpQ | QhttpsQ) & QsQ".Replace("Q", "\""), input));
+
+	[Theory]
 	[InlineData("@int.Parse(d, CultureInfo.InvariantCulture)")]
 	[InlineData("@int.Parse(d, @CultureInfo.InvariantCulture)")]
 	[InlineData("@(int.Parse(d, CultureInfo.InvariantCulture))")]
