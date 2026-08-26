@@ -2252,3 +2252,57 @@ there is exactly one" and emitted nothing at all for a grammar with two.
 **`CanLower` is asked per machine**, which is the change that makes `Minimal` lower at all.
 `HasTypedGuards` moved with it: the incremental materializer it turns on is machinery a
 machine whose rules never read a value mid-parse has no use for.
+
+## Measured: what a literal of each length actually compiles to
+
+The entry above said `SequenceEqual` against a constant becomes "a single 64-bit `cmp`",
+which is true of `"abcd"` and is not the reason it wins. Four lengths, disassembled at
+FullOpts, say what the reason is.
+
+**Four characters** — eight bytes, one word:
+
+```asm
+mov  rcx, 0x64006300620061       ; "abcd"
+cmp  qword ptr [rax], rcx
+jne  → fail
+```
+
+**Five** — ten bytes, so a word and a half, and the halves are not compared one after the
+other:
+
+```asm
+mov   rcx, 0x70007400740068      ; "http"
+xor   rcx, qword ptr [rax]       ; xor, not cmp — it accumulates the difference
+movzx rax, word ptr [rax+0x08]
+xor   eax, 115                   ; 's'
+or    rax, rcx                   ; both differences in one value
+jne   → fail                     ; one branch for the whole literal
+```
+
+**Three** — the same shape a size down: a 32-bit load for `"ft"`, a 16-bit one for `'p'`,
+`xor`, `or`, one branch.
+
+**Seven** — fourteen bytes, and this is the one worth seeing:
+
+```asm
+mov rcx, 0x64006300620061        ; "abcd", characters 0..3
+xor rcx, qword ptr [rax]
+mov rdx, 0x67006600650064        ; "defg", characters 3..6
+xor rdx, qword ptr [rax+0x06]    ; offset 6 bytes — character 3 again
+or / jne
+```
+
+**Overlapping loads.** `'d'` is compared twice, because two eight-byte reads that overlap are
+cheaper than eight plus four plus two, and cheaper than the branch that choosing between them
+would need.
+
+So the win is not that the comparison is one instruction. It is that **the number of branches
+does not grow with the length**: one, whatever the literal is. The chain this replaced had a
+load, a comparison and a branch per character — every one of them a place the predictor can
+be wrong — and, as the entry above found, a bounds check per character on top, where the span
+form has one for the whole slice.
+
+Worth knowing where this stops. `SequenceEqual` is folded this way only against a constant the
+JIT can see, which is why the emitted call passes the literal directly rather than through
+anything of ours, and why an ignore-case literal — which compares each character folded — has
+to stay a chain.
