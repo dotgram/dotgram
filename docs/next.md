@@ -3152,3 +3152,89 @@ grammars, so the scanner compilation sits under the same oracle as everything el
 snapshots did not change: no grammar in them has an atomic record-free rule, which is
 itself the honest note — this optimization is §4.5's advice paying for itself, and a
 grammar that ignores the advice keeps the machinery it asked for.
+
+## Design: the lexical layer — tokens without a token in sight
+
+Goal, per the standing target: a generated parser's decisions should cost what a
+hand-written parser's cost, or less. The hand-written one owes most of its speed to a
+lexer — the input linearized once, ~5x fewer items to decide over, decisions by a dense
+switch on a token kind. The generated engine re-derives "what stands here" structurally
+at every decision point: 27 recorded steps per token where the hand parser spends 3-5.
+This design closes that gap. It is a design, not work done.
+
+### Where tokens come from: the boundary that is already written
+
+No new syntax. The language already draws the line §4.5 recommends drawing: lexical
+rules live in a namespace with `trivia = none`, syntactic rules live where trivia is
+non-empty. So:
+
+- a **token rule** is a rule in a no-trivia namespace referenced from a spaced one —
+  `Identifier`, `Int`, `Char`, `String` in the grammar of the notation;
+- an **anonymous token** is a literal written directly in a spaced rule — `'&'`, `"=>"`,
+  `"namespace"`;
+- **trivia** is already the skip, and already compiles as a scanner.
+
+A grammar with no such boundary — `Url.gram`, every regex-like grammar, everything with
+`trivia = none` throughout — has no lexical layer, generates exactly what it generates
+today, and pays exactly nothing. That is the answer to the first question asked of this
+design: no memory appears anywhere, because the layer does not exist where it buys
+nothing.
+
+### What a token is at run time: three locals
+
+The hand-written lexer builds a `List<Token>` for the whole input up front. This design
+deliberately does not. A token at run time is a *kind* and an *end position* in locals —
+no array, no buffer, no runtime type, no allocation for any grammar, with or without the
+layer.
+
+Token-at-a-time works because of what this week built. A decision point that qualifies
+compiles as a **fused dispatch**: one call to `Scan_trivia`, one read of the token at
+`p` (a switch on the first character routing to the candidate token scanners), the kind
+into a local, then a switch over dense small integers — the jump table that
+character-level dispatch can never have. On the straight-line path every token is
+scanned exactly once, which is all the hand lexer's array achieves; the array would only
+pay under heavy re-visiting, and the settled-repetition proofs have already made
+re-visiting rare. Where backtracking does revisit, the token is re-scanned — positions
+are the only state, which is the arena's own philosophy. The hand lexer's list is the
+part we skip: «одинаков или лучше» — this is the «лучше».
+
+Bufferless is also what makes degradation graceful. There is no token stream to fall out
+of sync with, so a single grammar may freely mix token dispatch where the proofs hold
+and today's character machinery where they do not — down to individual decision points.
+And it is what keeps `find` and streaming untouched: nothing is tokenized ahead of the
+position.
+
+### Semantics: proof, not mode
+
+Tokenization classically changes a language — maximal munch, priority order. This design
+changes nothing: a decision point compiles as fused dispatch only where the analyses
+prove the dispatch equal to §11, and stays as today everywhere else. The proofs are this
+week's, composed: token rules must be `Scannable`-grade (atomic or deterministic — the
+commit licence), candidates at a decision point must be pairwise `Exclusive`, and
+keyword-versus-identifier exclusivity is exactly what §4.6's `wordboundary` already
+supplies — the boundary lookahead baked into a keyword's scanner is the proof that
+`"using"` and `usingFoo` cannot both match. The unsettled thirteen — `TypeArgs?` against
+`<<`, prefix against quantifier — stay character-level in v1 and become the two-token
+fusion of v2.
+
+### What gets better beyond speed
+
+Expected-sets become token names: "expected an identifier or '('" instead of a character
+class. The failure path reports over the same inventory the dispatch uses.
+
+### Staged, each stage measured
+
+1. **Inventory as a probe**: the boundary-crossing analysis alone, reported as emitted
+   comments — how many decision points of the notation's grammar qualify, before any
+   emission changes.
+2. **Fused dispatch** at qualifying choice points; oracle, corpus, self-hosting table
+   after each.
+3. **Keyword kinds**: anonymous-token literals interned, boundary baked.
+4. Targets for calling it done: Feed and Csv at or under 1.5x the hand-written parser,
+   Url.gram under 2x, URL benchmark and snapshots byte-identical for layerless grammars.
+5. **v2, separately argued**: two-token fusion for the LL(2) residue; the normalizer's
+   auto-left-factoring feeding the same dispatch.
+
+Rejected: the upfront token array with pooling. It allocates proportionally to input,
+complicates `find` and streaming, adds a runtime type — and buys only what bufferless
+already has on the straight-line path.
