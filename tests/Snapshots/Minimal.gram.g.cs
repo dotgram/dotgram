@@ -294,7 +294,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -312,7 +312,7 @@ namespace DotGram.Snapshots
 					{
 						p += 4;
 						entries.Add(new ParserEntry(ParserEntry.Choice, 5, p, call, atomic, repeat, lookahead, 0));
-						Trace("push choice", 5, p, entries.Count);
+						Trace("push choice", 5, p, entries.Count, text, "C");
 						goto Return;
 					}
 					if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
@@ -352,7 +352,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -368,7 +368,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -384,7 +384,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
@@ -424,9 +424,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -504,7 +504,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -540,7 +540,7 @@ namespace DotGram.Snapshots
 					{
 						p += 4;
 						entries.Add(new ParserEntry(ParserEntry.Choice, 6, p, call, atomic, repeat, lookahead, 0));
-						Trace("push choice", 6, p, entries.Count);
+						Trace("push choice", 6, p, entries.Count, text, "E");
 						goto S4;
 					}
 				}
@@ -584,7 +584,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -600,7 +600,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -616,7 +616,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
@@ -656,9 +656,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -702,7 +702,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -722,7 +722,7 @@ namespace DotGram.Snapshots
 						if (!(c == 'h')) goto S5;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 5, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 5, p, entries.Count);
+					Trace("push choice", 5, p, entries.Count, text, "F");
 				}
 
 				{
@@ -803,7 +803,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -819,7 +819,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -835,7 +835,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
@@ -875,9 +875,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -1292,12 +1292,44 @@ namespace DotGram.Snapshots
 				_spareParser = parser;
 		}
 
+		/// <summary>
+		/// One line per step of the automaton, on standard error, when the build defines
+		/// <c>DOTGRAM_TRACE</c> — nothing else to configure, and when it does not, the
+		/// calls are removed at their sites, arguments and all.
+		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
 		static void Trace(string action, int state, int position, int arena)
 		{
-			global::System.Diagnostics.Debug.WriteLine(
+			global::System.Console.Error.WriteLine(
 				".Gram " + action + " state=" + state.ToString() +
-				" position=" + position.ToString() + " arena=" + arena.ToString());
+				" at " + position.ToString() + " arena=" + arena.ToString());
+		}
+
+		/// <summary>
+		/// The same line with the rule it happened in and a window of the input around
+		/// the position, the caret marking the position itself.
+		/// </summary>
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(
+			string action, int state, int position, int arena,
+			global::System.ReadOnlySpan<char> text, string rule)
+		{
+			var from   = position > 16 ? position - 16 : 0;
+			var to     = position + 16 < text.Length ? position + 16 : text.Length;
+			var window =
+				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
+				"^" +
+				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
+
+			window = window
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				.Replace("\t", "\\t");
+
+			global::System.Console.Error.WriteLine(
+				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
+				" state=" + state.ToString() + " at " + position.ToString() +
+				" \"" + window + "\" arena=" + arena.ToString());
 		}
 	}
 }

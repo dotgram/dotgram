@@ -865,12 +865,44 @@ public static partial class CSharpEmitter
 				_spareParser = parser;
 		}
 
+		/// <summary>
+		/// One line per step of the automaton, on standard error, when the build defines
+		/// <c>DOTGRAM_TRACE</c> — nothing else to configure, and when it does not, the
+		/// calls are removed at their sites, arguments and all.
+		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
 		static void Trace(string action, int state, int position, int arena)
 		{
-			global::System.Diagnostics.Debug.WriteLine(
+			global::System.Console.Error.WriteLine(
 				".Gram " + action + " state=" + state.ToString() +
-				" position=" + position.ToString() + " arena=" + arena.ToString());
+				" at " + position.ToString() + " arena=" + arena.ToString());
+		}
+
+		/// <summary>
+		/// The same line with the rule it happened in and a window of the input around
+		/// the position, the caret marking the position itself.
+		/// </summary>
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(
+			string action, int state, int position, int arena,
+			global::System.ReadOnlySpan<char> text, string rule)
+		{
+			var from   = position > 16 ? position - 16 : 0;
+			var to     = position + 16 < text.Length ? position + 16 : text.Length;
+			var window =
+				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
+				"^" +
+				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
+
+			window = window
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				.Replace("\t", "\\t");
+
+			global::System.Console.Error.WriteLine(
+				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
+				" state=" + state.ToString() + " at " + position.ToString() +
+				" \"" + window + "\" arena=" + arena.ToString());
 		}
 		""";
 

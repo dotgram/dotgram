@@ -2963,3 +2963,45 @@ proof back. §4.5 now recommends it; the self-hosting grammar wears it.
 Measured: the failure table flat at 0.0 ms through fourteen operands; the whole corpus
 still reads as trees (Url.gram in 2.8 ms warm); the URL benchmark's ratios to compiled
 Regex unchanged within noise, with the two-row validity gate agreeing. 1,031 tests green.
+
+## Built: a trace worth reading, and an invariant that names its rule
+
+`DOTGRAM_TRACE` now buys lines like these, on standard error, with nothing else to
+configure:
+
+```text
+.Gram call Using in File state=6 at 0 "^A = 'x' | 'y'\npa" arena=4
+.Gram stand exit in Using state=215 at 0 "^A = 'x' | 'y'\npa" arena=7
+.Gram resume exit state=215 at 0 "^A = 'x' | 'y'\npa" arena=6
+```
+
+The rule name is written into each emitted `Trace` call as a literal at generation time —
+knowable there and not at run time, where an engine's state numbers are shared by every
+rule it inlined; an inlined body traces as the rule it lives in. The input window rides
+along as a span, the caret marks the position, and `[Conditional]` removes calls and
+arguments alike when the symbol is off, so the parser's structure and its speed owe the
+trace nothing.
+
+The materializer's one load-bearing assumption — a text capture's span runs forward — is
+now a named check in debug builds: `capture 'text' of rule 'Name' has its end before its
+start (4..3)`, instead of `ArgumentOutOfRangeException` out of generated line 34853, which
+is what finding the reopened-capture bug actually cost.
+
+## Analyzed: the notation's own grammar, by its own analyses
+
+With first sets real and follow sets paired, the self-hosting grammar reads as a decision
+structure. 25 of its 38 repetitions prove settled; each of the 13 that do not is one of
+two honest things. Behind `@(...)`: the one unknowable first set, contained by design.
+Or a genuine ambiguity the language means: `TypeArgs?` against `<<` (`A << 1` must fail
+`<` as type arguments and come back — the hand parser spells the same fact LL(2)); the
+`?=`/`?!` prefix against the `?` quantifier; a capture name against a bare reference;
+keywords not being reserved, so `using` may open a rule as well as an import and only
+ordered choice plus `wordboundary` decides. §10's old "two tokens of lookahead" claim
+survives translation: what the hand parser buys with a second token, the notation buys
+with a way back the analysis correctly refuses to remove.
+
+Of the choices, the dispatchable ones dispatch and the rest are cheap trials in written
+order. One gap worth remembering: `Int | Identifier` is disjoint — digits against letters
+— but a category's six hundred ranges exceed the rendering budget, so no dispatcher is
+written even though the *other* alternative's test is one range. A dispatcher that tests
+the small set and falls to the large one would cover it; not built.

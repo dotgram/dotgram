@@ -275,7 +275,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -295,7 +295,7 @@ namespace DotGram.Snapshots
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 28, p, call, atomic, repeat, lookahead, 0, 10));
 					call = callIndex;
-					Trace("call Header", 13, p, entries.Count);
+					Trace("call Header", 13, p, entries.Count, text, "Feed");
 				}
 
 				{
@@ -492,7 +492,7 @@ namespace DotGram.Snapshots
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
-					Trace("capture", 6, p, entries.Count);
+					Trace("capture", 6, p, entries.Count, text, "Header");
 				}
 
 				{
@@ -521,14 +521,14 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 10 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 0, p, entries.Count);
+					Trace("rule capture", 0, p, entries.Count, text, "Feed");
 				}
 
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 22, p, entries.Count);
+					Trace("enter repeat", 22, p, entries.Count, text, "Feed");
 				}
 
 				S22:
@@ -539,7 +539,7 @@ namespace DotGram.Snapshots
 					{
 						entries.Add(new ParserEntry(ParserEntry.LoopExit, 21, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 21, p, entries.Count);
+						Trace("stand exit", 21, p, entries.Count, text, "Feed");
 					}
 				}
 
@@ -547,7 +547,7 @@ namespace DotGram.Snapshots
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 25, p, call, atomic, repeat, lookahead, 0, 7));
 					call = callIndex;
-					Trace("call Row", 10, p, entries.Count);
+					Trace("call Row", 10, p, entries.Count, text, "Feed");
 				}
 
 				{
@@ -629,7 +629,7 @@ namespace DotGram.Snapshots
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
-					Trace("capture", 4, p, entries.Count);
+					Trace("capture", 4, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -768,7 +768,7 @@ namespace DotGram.Snapshots
 				S53:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
-					Trace("capture", 5, p, entries.Count);
+					Trace("capture", 5, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -819,7 +819,7 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 7 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 1, p, entries.Count);
+					Trace("rule capture", 1, p, entries.Count, text, "Feed");
 					goto S22;
 				}
 
@@ -832,14 +832,14 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 20, p, entries.Count);
+					Trace("leave repeat", 20, p, entries.Count, text, "Feed");
 				}
 
 				{
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 18, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
-					Trace("call Trailer", 5, p, entries.Count);
+					Trace("call Trailer", 5, p, entries.Count, text, "Feed");
 				}
 
 				{
@@ -921,7 +921,7 @@ namespace DotGram.Snapshots
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
-					Trace("capture", 3, p, entries.Count);
+					Trace("capture", 3, p, entries.Count, text, "Trailer");
 				}
 
 				{
@@ -950,14 +950,14 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 2, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 2, p, entries.Count);
+					Trace("rule capture", 2, p, entries.Count, text, "Feed");
 				}
 
 				{
 					var lookaheadIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Lookahead, 0, p, call, atomic, repeat, lookahead, 0));
 					lookahead = lookaheadIndex;
-					Trace("enter negative lookahead", 16, p, entries.Count);
+					Trace("enter negative lookahead", 16, p, entries.Count, text, "Feed");
 				}
 
 				{
@@ -980,7 +980,7 @@ namespace DotGram.Snapshots
 					atomic    = looked.AtomicIndex;
 					repeat    = looked.RepeatIndex;
 					lookahead = looked.LookaheadIndex;
-					Trace("lookahead body matched", 0, p, entries.Count);
+					Trace("lookahead body matched", 0, p, entries.Count, text, "Feed");
 					goto Fail;
 				}
 
@@ -1002,7 +1002,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -1048,7 +1048,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -1064,7 +1064,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.LoopExit)
@@ -1078,7 +1078,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume exit", state, p, entries.Count);
+						Trace("resume exit", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Run)
@@ -1092,7 +1092,7 @@ namespace DotGram.Snapshots
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
-						Trace("shorten run", state, p, entries.Count);
+						Trace("shorten run", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 
@@ -1136,9 +1136,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -1183,7 +1183,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -1215,7 +1215,7 @@ namespace DotGram.Snapshots
 					}
 					if (p > runStart + 1)
 						entries.Add(new ParserEntry(ParserEntry.Run, 0, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 0, p, entries.Count);
+					Trace("run", 0, p, entries.Count, text, "Name");
 					goto Return;
 				}
 
@@ -1236,7 +1236,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -1252,7 +1252,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -1268,7 +1268,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Run)
@@ -1282,7 +1282,7 @@ namespace DotGram.Snapshots
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
-						Trace("shorten run", state, p, entries.Count);
+						Trace("shorten run", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 
@@ -1323,9 +1323,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -1372,7 +1372,7 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count);
+				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -1463,7 +1463,7 @@ namespace DotGram.Snapshots
 
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
-					Trace("capture", 0, p, entries.Count);
+					Trace("capture", 0, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -1602,7 +1602,7 @@ namespace DotGram.Snapshots
 				S11:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 1, capture1, call, atomic, repeat, lookahead, p));
-					Trace("capture", 1, p, entries.Count);
+					Trace("capture", 1, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -1664,7 +1664,7 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count);
+				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -1701,7 +1701,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count);
+				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -1717,7 +1717,7 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count);
+						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Run)
@@ -1731,7 +1731,7 @@ namespace DotGram.Snapshots
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
-						Trace("shorten run", state, p, entries.Count);
+						Trace("shorten run", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 
@@ -1775,9 +1775,9 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count);
+								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count);
+							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -1922,6 +1922,10 @@ namespace DotGram.Snapshots
 							}
 						}
 
+						#if DEBUG
+						if (captured0From >= 0 && captured0To < captured0From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'count' of rule 'Trailer' has its end before its start (" + captured0From.ToString() + ".." + captured0To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 						values1[completedAt] = new global::DotGram.Snapshots.Feed.Trailer(
@@ -1959,8 +1963,16 @@ namespace DotGram.Snapshots
 							}
 						}
 
+						#if DEBUG
+						if (captured0From >= 0 && captured0To < captured0From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'name' of rule 'Row' has its end before its start (" + captured0From.ToString() + ".." + captured0To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
+						#if DEBUG
+						if (captured1From >= 0 && captured1To < captured1From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'amount' of rule 'Row' has its end before its start (" + captured1From.ToString() + ".." + captured1To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
 
 						values2[completedAt] = new global::DotGram.Snapshots.Feed.Row(
@@ -1989,6 +2001,10 @@ namespace DotGram.Snapshots
 							}
 						}
 
+						#if DEBUG
+						if (captured0From >= 0 && captured0To < captured0From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'date' of rule 'Header' has its end before its start (" + captured0From.ToString() + ".." + captured0To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
 						values3[completedAt] = new global::DotGram.Snapshots.Feed.Header(
@@ -2107,8 +2123,16 @@ namespace DotGram.Snapshots
 							}
 						}
 
+						#if DEBUG
+						if (captured0From >= 0 && captured0To < captured0From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'name' of rule 'Row' has its end before its start (" + captured0From.ToString() + ".." + captured0To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
+						#if DEBUG
+						if (captured1From >= 0 && captured1To < captured1From)
+							throw new global::System.InvalidOperationException("DotGram invariant: capture 'amount' of rule 'Row' has its end before its start (" + captured1From.ToString() + ".." + captured1To.ToString() + "). This is a generator defect; please report the grammar.");
+						#endif
 						var captured1 = captured1From < 0 ? string.Empty : text.Slice(captured1From, captured1To - captured1From).ToString();
 
 						values2[completedAt] = new global::DotGram.Snapshots.Feed.Row(
@@ -2745,12 +2769,44 @@ namespace DotGram.Snapshots
 				_spareParser = parser;
 		}
 
+		/// <summary>
+		/// One line per step of the automaton, on standard error, when the build defines
+		/// <c>DOTGRAM_TRACE</c> — nothing else to configure, and when it does not, the
+		/// calls are removed at their sites, arguments and all.
+		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
 		static void Trace(string action, int state, int position, int arena)
 		{
-			global::System.Diagnostics.Debug.WriteLine(
+			global::System.Console.Error.WriteLine(
 				".Gram " + action + " state=" + state.ToString() +
-				" position=" + position.ToString() + " arena=" + arena.ToString());
+				" at " + position.ToString() + " arena=" + arena.ToString());
+		}
+
+		/// <summary>
+		/// The same line with the rule it happened in and a window of the input around
+		/// the position, the caret marking the position itself.
+		/// </summary>
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(
+			string action, int state, int position, int arena,
+			global::System.ReadOnlySpan<char> text, string rule)
+		{
+			var from   = position > 16 ? position - 16 : 0;
+			var to     = position + 16 < text.Length ? position + 16 : text.Length;
+			var window =
+				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
+				"^" +
+				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
+
+			window = window
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				.Replace("\t", "\\t");
+
+			global::System.Console.Error.WriteLine(
+				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
+				" state=" + state.ToString() + " at " + position.ToString() +
+				" \"" + window + "\" arena=" + arena.ToString());
 		}
 	}
 }

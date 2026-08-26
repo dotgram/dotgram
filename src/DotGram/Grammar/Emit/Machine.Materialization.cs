@@ -517,6 +517,21 @@ sealed partial class Machine
 					continue;
 				}
 
+				// A span that arrives inside out is a generator bug, and the debug build
+				// says whose it is instead of throwing an index exception out of a line
+				// number nobody can read. Found the hard way: a reopened capture's start
+				// once survived backtracking in a local, and the report was
+				// ArgumentOutOfRangeException at generated line 34853.
+				file.Line("#if DEBUG");
+				file.Line(
+					$"if (captured{memberIndex}From >= 0 && captured{memberIndex}To < captured{memberIndex}From)");
+				file.Then(
+					"throw new global::System.InvalidOperationException(" +
+					$"\"DotGram invariant: capture '{Escape(member.Name)}' of rule " +
+					$"'{Escape(rule.Name)}' has its end before its start (\" + " +
+					$"captured{memberIndex}From.ToString() + \"..\" + captured{memberIndex}To.ToString() + " +
+					"\"). This is a generator defect; please report the grammar.\");");
+				file.Line("#endif");
 				file.Line(
 					$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
 					(member.IsOptional ? "null" : "string.Empty") + " : " +

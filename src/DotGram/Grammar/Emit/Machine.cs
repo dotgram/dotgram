@@ -191,7 +191,8 @@ sealed partial class Machine
 
 		foreach (var rule in _rules)
 		{
-			_seam = FollowSets.SeamOf(rule, graph);
+			_seam      = FollowSets.SeamOf(rule, graph);
+			_traceRule = rule.Name;
 
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
@@ -369,7 +370,8 @@ sealed partial class Machine
 		// After the whole-wrapped body there is the end of the input and nothing else —
 		// that is what `whole` means, and the engine's Accept enforces it. "Anything" here
 		// cost every repetition at the tail of a `parse` its proof.
-		_seam = FollowSets.SeamOf(root, _graph);
+		_seam      = FollowSets.SeamOf(root, _graph);
+		_traceRule = root.Name;
 
 		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
 			? Compile(BodyOf(root, whole: true), Return, FollowSets.Continuation.End)
@@ -438,6 +440,20 @@ sealed partial class Machine
 
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
+
+	/// <summary>
+	/// The rule whose body is being compiled, for the trace lines its states carry.
+	/// </summary>
+	/// <remarks>
+	/// Written into each emitted <c>Trace</c> call as a literal, because it is knowable
+	/// here and not there: at run time a state is a number, and the engine that owns it
+	/// shares those numbers between every rule it inlined. An inlined body traces as the
+	/// rule it was inlined into, which is where its states actually live.
+	/// </remarks>
+	string _traceRule = "";
+
+	/// <summary>The trailing arguments of an emitted trace call: input and rule.</summary>
+	string Traced => $", text, \"{Escape(_traceRule)}\"";
 
 	/// <summary>
 	/// Whether any construction in this grammar asks for the whole input (§8.2).
@@ -610,7 +626,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
 					"0, rootRule));");
 				file.Line("call = 0;");
-				file.Line("Trace(\"enter\", state, p, entries.Count);");
+				file.Line("Trace(\"enter\", state, p, entries.Count, text, \"\");");
 
 				// The hottest block there is: every return from a rule and every resumption
 				// after a failure comes through it. Written here, before the states, rather
@@ -675,7 +691,7 @@ sealed partial class Machine
 				}
 				file.Line();
 				file.Line("call = previousCall;");
-				file.Line("Trace(\"return\", state, p, entries.Count);");
+				file.Line("Trace(\"return\", state, p, entries.Count, text, \"\");");
 				file.Line("goto Dispatch;");
 
 				file.Line();
@@ -743,7 +759,7 @@ sealed partial class Machine
 					file.Line("if (lookahead < 0 && p > reach)");
 					file.Then("reach = p;");
 				}
-				file.Line("Trace(\"fail\", state, p, entries.Count);");
+				file.Line("Trace(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
 				using (file.Block("while (entries.Count > 0)"))
@@ -763,7 +779,7 @@ sealed partial class Machine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
-						file.Line("Trace(\"resume\", state, p, entries.Count);");
+						file.Line("Trace(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
 					}
 
@@ -787,7 +803,7 @@ sealed partial class Machine
 							file.Line("atomic = entry.AtomicIndex;");
 							file.Line("repeat = entry.RepeatIndex;");
 							file.Line("lookahead = entry.LookaheadIndex;");
-							file.Line("Trace(\"resume exit\", state, p, entries.Count);");
+							file.Line("Trace(\"resume exit\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 					}
@@ -808,7 +824,7 @@ sealed partial class Machine
 								"entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, " +
 								"entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, " +
 								"entry.LookaheadIndex, p));");
-							file.Line("Trace(\"shorten run\", state, p, entries.Count);");
+							file.Line("Trace(\"shorten run\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 
@@ -883,9 +899,9 @@ sealed partial class Machine
 									"entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, " +
 									"call, atomic, repeat, lookahead, p));");
 								file.Line(
-									"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count);");
+									$"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
 							}
-							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count);");
+							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 					}
@@ -1251,7 +1267,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
+					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(first)};");
 
 					if (mine is not null)
@@ -1298,7 +1314,7 @@ sealed partial class Machine
 					atClose.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
-					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count);");
+					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;
@@ -1315,7 +1331,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, " +
 						"call, atomic, repeat, lookahead, -1));");
-					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count);");
+					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(inner)};");
 
 					using (atClose.Block("for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
@@ -1335,7 +1351,7 @@ sealed partial class Machine
 						atClose.Line("break;");
 					}
 
-					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;
@@ -1347,7 +1363,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
-				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(next)};");
 
 				return state;
@@ -1364,7 +1380,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
-				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count);");
+				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(next)};");
 
 				return state;
@@ -1406,7 +1422,7 @@ sealed partial class Machine
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
-				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
+				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(_entries[rule])};");
 
 				return state;
@@ -1648,7 +1664,7 @@ sealed partial class Machine
 				writer.Line("var atomicIndex = entries.Count;");
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count);");
+				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
@@ -1695,7 +1711,7 @@ sealed partial class Machine
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count);");
+				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count{Traced});");
 				atCommit.Line($"goto {Label(next)};");
 
 				return state;
@@ -1725,7 +1741,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
-				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count);");
+				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -1739,7 +1755,7 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
-				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count);");
+				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count{Traced});");
 				atSuccess.Line($"goto {(isPositive ? Label(next) : "Fail")};");
 
 				return state;
@@ -1784,7 +1800,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -1802,7 +1818,7 @@ sealed partial class Machine
 		atSuccess.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
 			"repeat, lookahead, seenTo));");
-		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count);");
+		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
 		atSuccess.Line($"goto {Label(next)};");
 
 		return state;
@@ -1844,7 +1860,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -2077,7 +2093,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count);");
+					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count{Traced});");
 				}
 
 				writer.Line($"goto {Label(next)};");
@@ -2348,7 +2364,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Run, {next}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
 
-		writer.Line($"Trace(\"run\", {next}, p, entries.Count);");
+		writer.Line($"Trace(\"run\", {next}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(next)};");
 
 		return state;
@@ -2496,7 +2512,7 @@ sealed partial class Machine
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
+		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(loop)};");
 
 		if (settled || min > 0 || max is not null)
@@ -2524,7 +2540,7 @@ sealed partial class Machine
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
 					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
 					"repeating.LookaheadIndex, repeating.Value, p);");
-				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count);");
+				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count{Traced});");
 			}
 		}
 		else if (min == 0)
@@ -2592,7 +2608,7 @@ sealed partial class Machine
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
-		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
+		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(next)};");
 	}
 
