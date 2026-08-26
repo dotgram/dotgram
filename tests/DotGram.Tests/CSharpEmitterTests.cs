@@ -1071,6 +1071,25 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
+	// ── A rule that scans ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// An atomic, record-free rule compiles as a plain method, and its calls as calls.
+	/// </summary>
+	[Fact]
+	public void An_atomic_recordless_rule_compiles_as_a_scanner()
+	{
+		var source = Emit(
+			"trivia = { (' ' | \"//\" & [^ '\\n']*)* }" + '\n' +
+			"Start = 'a' & 'b'" + '\n' + "parse Start");
+
+		Assert.Contains("static int Scan_trivia(", source, StringComparison.Ordinal);
+		Assert.Contains("p = Scan_trivia(text, p);", source, StringComparison.Ordinal);
+
+		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
+		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
+	}
+
 	// ── A capture that can open before it closes ─────────────────────────
 
 	/// <summary>

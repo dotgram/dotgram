@@ -1431,6 +1431,35 @@ sealed partial class Machine
 
 			case Node.Call(var rule, _):
 			{
+				// A rule that recognizes and remembers nothing costs a call, the way it
+				// would in a hand-written parser. Nullable scanners cannot say no, and
+				// trivia — the scanner every spaced grammar calls at every seam — is one.
+				if (ScannerOf(rule) is { } scanner)
+				{
+					var scanned = Reserve(out var atScan);
+
+					if (FirstSets.Nullable(_graph.Bodies[rule] is Node.Atomic(var inside)
+							? inside
+							: _graph.Bodies[rule], _graph))
+					{
+						atScan.Line($"p = {scanner}(text, p);");
+					}
+					else
+					{
+						var arrayName = DeclareExpected([rule.Name]);
+
+						atScan.Line($"var scanned = {scanner}(text, p);");
+						atScan.Line("if (scanned < 0)");
+						using (atScan.Block(""))
+							EmitTerminalFailure(atScan, _fail, arrayName);
+						atScan.Line("p = scanned;");
+					}
+
+					atScan.Line($"goto {Label(next)};");
+
+					return scanned;
+				}
+
 				if (CanInline(rule))
 				{
 					// The inlined body composes continuations against its own seam. Where

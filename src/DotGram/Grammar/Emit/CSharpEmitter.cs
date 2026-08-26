@@ -322,69 +322,130 @@ public static partial class CSharpEmitter
 		var mine = new List<(string Name, int Entry, bool Sync)>();
 
 		if (compiled.Flat)
+
 		{
+
 			var rendered = new HashSet<(RuleSymbol Rule, bool Whole)>();
 
+
+
 			foreach (var publication in compiled.Publications)
+
 			{
+
 				var whole = publication.Kind == PublishKind.Parse;
 
+
+
 				if (!rendered.Add((publication.Rule, whole)))
+
 					continue;
+
+
 
 				// Under the name the caller uses, with no wrapper between. A lowered
+
 				// publication never has a value of its own — a value comes from a
+
 				// construction and `CanLower` is `Silent`, which has no case for one — so
+
 				// there is no `out` parameter to add and nothing for a wrapper to do.
+
 				file.Write(machine.RenderFlat(
+
 					publication.Rule,
+
 					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+
 					whole));
+
 				file.Line();
+
 			}
+
 		}
 
+
+
 		if (!compiled.Flat)
+
 		{
+
 			foreach (var publication in compiled.Publications)
+
 			{
+
 				machine.Register(publication.Rule, publication.Kind == PublishKind.Parse);
 
+
+
 				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication) ||
+
 					StagesOf(graph, publication.Rule) is not { } stages)
+
 					continue;
 
+
+
 				for (var stage = 0; stage < stages.Count; stage++)
+
 				{
+
 					if (stages[stage].Rule is { } stagedRule)
+
 					{
+
 						streamedRules.Add(stagedRule);
+
 						machine.Register(stagedRule, whole: false);
+
 					}
+
 					else
+
 					{
+
 						var part = WholeOf(publication.Rule) + "_Part" + stage;
+
 						var at = machine.Register(stages[stage].Node);
 
 						streamedParts[(publication.Rule, stage)] = (part, at);
 						mine.Add((part, at, Sync: false));
 					}
 
+
+
 					if (!stages[stage].Repeated || continuationProbes.ContainsKey((publication.Rule, stage)))
+
 						continue;
+
+
 
 					var suffix = new List<Node>(stages.Count - stage - 1);
 
+
+
 					for (var after = stage + 1; after < stages.Count; after++)
+
 						suffix.Add(stages[after].Node);
 
+
+
 					var continuation = suffix.Count switch
+
 					{
+
 						0 => new Node.Empty(),
+
 						1 => suffix[0],
+
 						_ => new Node.Sequence(suffix),
+
 					};
+
 					var probe = WholeOf(publication.Rule) + "_Continue" + stage;
+
+
 
 					var entry = machine.Register(continuation);
 
@@ -392,50 +453,98 @@ public static partial class CSharpEmitter
 					mine.Add((probe, entry, Sync: false));
 				}
 
+
+
 				if (RecoveryIn(graph, results, publication.Rule) is { } recoveryFound &&
+
 					!streamedSyncs.ContainsKey(publication.Rule))
+
 				{
+
 					var sync = WholeOf(publication.Rule) + "_Sync";
+
 					var at = machine.Register(recoveryFound.Recovery.Sync);
 
 					streamedSyncs[publication.Rule] = (sync, at);
 					mine.Add((sync, at, Sync: true));
 				}
+
 			}
 
+
+
 			file.Write(machine.RenderEngine(engine));
+
 			file.Line();
+
+			var scanners = machine.RenderScanners();
+
+			if (scanners.Length > 0)
+				file.Write(scanners);
+
+
 
 			var wrappers = new HashSet<(RuleSymbol Rule, bool Whole)>();
 
+
+
 			foreach (var publication in compiled.Publications)
+
 			{
+
 				var whole = publication.Kind == PublishKind.Parse;
 
+
+
 				if (!wrappers.Add((publication.Rule, whole)))
+
 					continue;
 
+
+
 				file.Write(machine.RenderWrapper(
+
 					publication.Rule,
+
 					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+
 					engine,
+
 					whole));
+
 				file.Line();
+
 			}
 
+
+
 			if (compiled.Publications.Count == 0)
+
 				foreach (var rule in graph.Rules)
+
 				{
+
 					file.Write(machine.RenderWrapper(rule, MethodOf(rule), engine, whole: false));
+
 					file.Line();
+
 				}
 
+
+
 			foreach (var rule in streamedRules)
+
 				if (wrappers.Add((rule, false)))
+
 				{
+
 					file.Write(machine.RenderWrapper(rule, MethodOf(rule), engine, whole: false));
+
 					file.Line();
+
 				}
+
+
 
 			foreach (var probe in mine)
 			{

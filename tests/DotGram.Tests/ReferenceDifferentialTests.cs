@@ -93,10 +93,22 @@ public sealed class ReferenceDifferentialTests
 		var rules = random.Next(1, 4);
 		var text  = new StringBuilder();
 
-		// Half the grammars are spaced, because the seam machinery is where the newest
-		// proofs live — the standing exits, the peel, the pair.
-		if (random.Next(2) == 0)
-			text.AppendLine("trivia = [' ']*");
+		// Most grammars are spaced, because the seam machinery is where the newest
+		// proofs live — the standing exits, the peel, the pair — and a third of those
+		// wear atomic braces with a comment form, which is what routes their seams
+		// through the scanner compilation.
+		switch (random.Next(4))
+		{
+			case 0:
+				text.AppendLine("trivia = [' ']*");
+
+				break;
+
+			case 1:
+				text.AppendLine("trivia = { (' ' | \"//\" & [^ 'c' | ' ']*)* }");
+
+				break;
+		}
 
 		for (var i = 0; i < rules; i++)
 		{

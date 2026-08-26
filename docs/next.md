@@ -3116,3 +3116,39 @@ make hard in general and the measurement makes tempting; and a no-arena compilat
 atomic, capture-free bodies — a lexeme-scanner mode, the flat path's little sibling —
 which would take the seam's cost to a hand-written skip loop's. Both are engine work with
 a proved instrument to hold them to.
+
+## Built: the scanner — no arena where nothing is remembered
+
+A rule that wears atomic braces and keeps no records now compiles as a plain method —
+checkpoints in locals, greedy loops, one `return` — and every call to it as a call:
+
+```csharp
+static int Scan_trivia(global::System.ReadOnlySpan<char> text, int pos)
+```
+
+The braces are the licence, not a hint. An atomic group commits its first reading, so a
+compilation that finds the first reading and nothing else — each choice committing the
+first alternative that matches, each repetition greedy — is §11 inside the braces, not an
+approximation of it. `Scannable` draws the fence: choices must be mutually exclusive
+(disjoint firsts, or leading literals neither of which begins the other), repetitions must
+sit at the tail where greed is final, or be settled against what follows, or be the
+guarded scan `(?!X & …)* & X`, which stops at the first `X` by construction. Captures
+never pass — a scanner has nowhere to put one.
+
+What it buys is the seam. Atomic trivia — §4.5's own recommendation — was applied 2,444
+times per parse of `Url.gram`, each application an atomic entry, a repeat entry, their
+unwinding and a commit walk. Now each is one call to a method that reads like the
+`SkipWhitespaceAndComments` anyone would write by hand. Steps fell from 20,632 to 9,440.
+
+| grammar | was (start of hunt) | after left-factoring | now |
+|---|---|---|---|
+| Csv.gram | 4.0 | 2.6 | **2.0** |
+| Feed.gram | 14 | 4.7 | **2.9** |
+| Minimal.gram | 5.5 | 4.3 | **2.7** |
+| Url.gram | **57** | 5.4 | **3.1** |
+
+The differential fuzzer now generates atomic comment-bearing trivia in a quarter of its
+grammars, so the scanner compilation sits under the same oracle as everything else. The
+snapshots did not change: no grammar in them has an atomic record-free rule, which is
+itself the honest note — this optimization is §4.5's advice paying for itself, and a
+grammar that ignores the advice keeps the machinery it asked for.
