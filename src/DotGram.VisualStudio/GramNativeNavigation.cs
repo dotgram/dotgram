@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,8 +15,53 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.TextManager.Interop;
+using Microsoft.VisualStudio.Utilities;
 
 namespace DotGram.VisualStudio;
+
+[Export(typeof(IWpfTextViewCreationListener))]
+[ContentType(GramContentType.Name)]
+[TextViewRole(PredefinedTextViewRoles.Document)]
+sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
+{
+	readonly IVsEditorAdaptersFactoryService _adapters;
+
+	[ImportingConstructor]
+	public GramNativeNavigationListener(IVsEditorAdaptersFactoryService adapters) => _adapters = adapters;
+
+	public void TextViewCreated(IWpfTextView textView)
+	{
+		void Attach(object? sender = null, EventArgs? args = null)
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			if (textView.Properties.ContainsProperty(typeof(GramCodeWindowManager)))
+				return;
+
+			var view = _adapters.GetViewAdapter(textView);
+			if (view is not IVsTextViewEx extended ||
+				ErrorHandler.Failed(extended.GetWindowFrame(out var frameObject)) ||
+				frameObject is not IVsWindowFrame frame ||
+				ErrorHandler.Failed(frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out var docView)) ||
+				docView is not IVsCodeWindow codeWindow)
+				return;
+
+			var manager = new GramCodeWindowManager(codeWindow);
+			var result = manager.AddAdornments();
+			ActivityLog.LogInformation(
+				"DotGram.VisualStudio",
+				$"Native navigation listener AddAdornments returned 0x{result:X8}.");
+			if (ErrorHandler.Failed(result))
+				return;
+
+			textView.Properties.AddProperty(typeof(GramCodeWindowManager), manager);
+			textView.VisualElement.Loaded -= Attach;
+			textView.Closed += (_, _) => manager.RemoveAdornments();
+		}
+
+		textView.VisualElement.Loaded += Attach;
+		Attach();
+	}
+}
 
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [ProvideAutoLoad(UIContextGuids80.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]
