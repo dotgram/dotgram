@@ -1808,6 +1808,52 @@ sealed partial class Machine
 
 			case Node.Atomic(var body):
 			{
+				// First-match-commits held in locals: each alternative is tried through
+				// the give-back door, and the first that matches is final. The same test
+				// `Silent`'s own Atomic case asks — recoveries included, whose owned
+				// mark only the engine's commit writes — so the two agree.
+				if (_recoveries.Count == 0 &&
+					(body is Node.Choice(var options)
+						? AllSilent(options, following.Plain, sequence: false)
+						: Silent(body, following.Plain)))
+				{
+					if (body is not Node.Choice(var tried) || tried.Count == 1)
+						return Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
+
+					var mine = _depth++;
+
+					// Built back to front: the last alternative fails outward, and each
+					// earlier one fails into the door that rewinds and tries the next.
+					// A capture a failed alternative opened is unset on the way through.
+					var target = Compile(tried[tried.Count - 1], next, following);
+
+					for (var at = tried.Count - 2; at >= 0; at--)
+					{
+						List<string>? undone = null;
+
+						if (_valuesInLocals)
+							foreach (var descendant in NodeWalk.Descendants(tried[at]))
+								if (descendant is Node.Capture)
+									(undone ??= []).Add(
+										$"flat{_flatInstance}_{_captureSlots[descendant]}Start");
+
+						var saved = _fail;
+
+						_fail  = GiveBack(target, mine, out _, undone);
+						target = Compile(tried[at], next, following);
+						_fail  = saved;
+					}
+
+					var entered = Reserve(out var atEnter);
+
+					atEnter.Line($"turn{mine} = p;");
+					atEnter.Line($"goto {Label(target)};");
+
+					_depth = mine;
+
+					return entered;
+				}
+
 				var commit = Reserve(out var atCommit);
 				var inner  = Compile(body, commit, following);
 				var state  = Reserve(out var writer);

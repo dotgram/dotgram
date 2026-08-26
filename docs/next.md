@@ -3499,3 +3499,23 @@ The notation's own grammar is unchanged by this - its machines are recursive and
 stay on the engine. Its path to the same benefit is the recorded direction: an
 engine machine calling a flat-valued rule as a method instead of a state, which is
 the sound remainder of the eager-construction idea.
+
+## Built: the atomic group joined the silent shapes
+
+`{ "ab" | "a" }` is first-match-commits, and that is a shape locals hold: try each
+alternative in order through the give-back door, and the first that matches is final
+- nothing ever comes back, which is what "atomic" says. No `Atomic` entry, no commit
+sweep putting out ways back, because none were written. The alternatives may share
+prefixes freely - prediction is what this shape never needed - and each one's
+captures are unset on the way through the door, the same discipline as a given-back
+turn. `Committed` compiles to the review's local-checkpoint form for it, verbatim.
+
+One refusal, caught by the semantic suite on first run: a machine that recovers
+keeps the engine's atomic commit, because §8.2's discriminator rests on the commit
+marking the element owned, and that mark is the engine's. The silence test and the
+compile branch ask the same predicate, recoveries included, so they cannot disagree.
+
+The catalog stands at 5,815 lines; six publications still rent a parser: C, E, F (a
+way back past the construct's edge - the deferred normalization family), Sum
+(climbing), Sheet (recovery), AnyItem (a find). The catalog's own section comments
+now describe the shapes that are actually emitted.

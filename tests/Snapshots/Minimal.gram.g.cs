@@ -543,7 +543,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Committed'.";
 
-				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(otherwise, failure.Position, failure.Expected, null);
 			}
 
 			return Match<string>.Success(recognized, 0, end);
@@ -863,13 +863,13 @@ namespace DotGram.Snapshots
 
 		/// <summary>What <c>Text</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Text(string t) =>
-#line 45 "Minimal.gram"
+#line 46 "Minimal.gram"
                                       (t);
 #line default
 
 		/// <summary>What <c>Number</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Number(string d) =>
-#line 46 "Minimal.gram"
+#line 47 "Minimal.gram"
                                       (int.Parse(d));
 #line default
 
@@ -879,91 +879,91 @@ namespace DotGram.Snapshots
 
 		/// <summary>What <c>Predicted</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Predicted(string t) =>
-#line 55 "Minimal.gram"
+#line 56 "Minimal.gram"
                                                   (t);
 #line default
 
 		/// <summary>What <c>List</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_List(string t) =>
-#line 66 "Minimal.gram"
+#line 67 "Minimal.gram"
                                                 (t);
 #line default
 
 		/// <summary>What <c>Counted</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Counted(string t) =>
-#line 67 "Minimal.gram"
+#line 68 "Minimal.gram"
                                     (t);
 #line default
 
 		/// <summary>What <c>Maybe</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Maybe(string t) =>
-#line 68 "Minimal.gram"
+#line 69 "Minimal.gram"
                                         (t);
 #line default
 
 		/// <summary>What <c>Ahead</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Ahead(string t) =>
-#line 75 "Minimal.gram"
+#line 78 "Minimal.gram"
                                               (t);
 #line default
 
 		/// <summary>What <c>Not</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Not(string t) =>
-#line 76 "Minimal.gram"
+#line 79 "Minimal.gram"
                                               (t);
 #line default
 
 		/// <summary>What <c>Committed</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Committed(string t) =>
-#line 84 "Minimal.gram"
+#line 88 "Minimal.gram"
                                                     (t);
 #line default
 
 		/// <summary>What <c>Sum</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Sum(string d) =>
-#line 92 "Minimal.gram"
+#line 96 "Minimal.gram"
                                             (int.Parse(d));
 #line default
 
 		/// <summary>What <c>Sum</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Sum_1(int l, int r) =>
-#line 91 "Minimal.gram"
+#line 95 "Minimal.gram"
                                             (l + r);
 #line default
 
 		/// <summary>What <c>Left</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Left(string t) =>
-#line 101 "Minimal.gram"
+#line 107 "Minimal.gram"
                                            (t);
 #line default
 
 		/// <summary>What <c>Right</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Right(string t) =>
-#line 102 "Minimal.gram"
+#line 108 "Minimal.gram"
                                            (t);
 #line default
 
 		/// <summary>What <c>Either</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Either(string o) =>
-#line 103 "Minimal.gram"
+#line 109 "Minimal.gram"
                                (o);
 #line default
 
 		/// <summary>What <c>Either</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Either_1(string o) =>
-#line 103 "Minimal.gram"
+#line 109 "Minimal.gram"
                                                   (o);
 #line default
 
 		/// <summary>What <c>Wrapped</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Wrapped(string v) =>
-#line 104 "Minimal.gram"
+#line 110 "Minimal.gram"
                                               (v);
 #line default
 
 		/// <summary>What <c>Item</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Item(string t) =>
-#line 112 "Minimal.gram"
+#line 118 "Minimal.gram"
                                        (t);
 #line default
 
@@ -991,19 +991,19 @@ namespace DotGram.Snapshots
 
 		/// <summary>What <c>Ci</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Ci(string t) =>
-#line 122 "Minimal.gram"
+#line 128 "Minimal.gram"
                                    (t);
 #line default
 
 		/// <summary>What <c>Upper</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Upper(string t) =>
-#line 123 "Minimal.gram"
+#line 129 "Minimal.gram"
                                    (t);
 #line default
 
 		/// <summary>What <c>Pair</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Spaced_Pair(string t) =>
-#line 137 "Minimal.gram"
+#line 143 "Minimal.gram"
                                                    (t);
 #line default
 
@@ -2545,273 +2545,92 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
-		static int Recognize_DotGram_Committed(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, int initialPower, bool whole, bool materialize, ref Failure failure, out object? recognized)
-		{
-			recognized = null;
-
-			Parser parser = null!;
-			RentParser(ref parser);
-			var lent = parser != null;
-			parser ??= Recycled();
-
-			try
-			{
-				var entries = parser.Entries;
-				var p       = pos;
-				var call    = -1;
-				var atomic  = -1;
-				var repeat  = -1;
-				var lookahead = -1;
-				var power   = initialPower;
-				var c       = '\0';
-				string[]? expected = null;
-				var capture0 = 0;
-
-				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
-				call = 0;
-				Trace("enter", state, p, entries.Count, text, "");
-				Dispatch:
-				switch (state)
-				{
-					case 0: goto Return;
-					case 1: goto Accept;
-					case 2:   expected = null; goto Fail;
-					case 3: goto S12;
-					case 8: goto S8;
-					default: expected = null; goto Fail;
-				}
-
-				S12:
-				{
-					capture0 = p;
-				}
-
-				{
-					var atomicIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));
-					atomic = atomicIndex;
-					Trace("enter atomic", 10, p, entries.Count, text, "Committed");
-				}
-
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!(c == 'a')) goto S8;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 8, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 8, p, entries.Count, text, "Committed");
-				}
-
-				{
-					if (p + 2 > text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Committed_Expected2;
-						goto Fail;
-					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
-					{
-						if (text[p] == 'a')
-							p += 1;
-						expected = Recognize_DotGram_Committed_Expected2;
-						goto Fail;
-					}
-					p += 2;
-				}
-
-				S7:
-				{
-					global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);
-					var boundary = entries[atomic];
-					global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);
-					entries.RemoveRange(atomic, entries.Count - atomic);
-					atomic = boundary.AtomicIndex;
-					repeat = boundary.RepeatIndex;
-					lookahead = boundary.LookaheadIndex;
-					Trace("commit", 6, p, entries.Count, text, "Committed");
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Committed_Expected0;
-						goto Fail;
-					}
-					if (text[p] != 'b')
-					{
-						expected = Recognize_DotGram_Committed_Expected0;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
-					Trace("capture", 0, p, entries.Count, text, "Committed");
-				}
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Construct, 0, p, call, atomic, repeat, lookahead, 0));
-					Trace("construct", 0, p, entries.Count, text, "Committed");
-					goto Return;
-				}
-
-				S8:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Committed_Expected1;
-						goto Fail;
-					}
-					if (text[p] != 'a')
-					{
-						expected = Recognize_DotGram_Committed_Expected1;
-						goto Fail;
-					}
-					p += 1;
-					goto S7;
-				}
-
-				Return:
-				global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
-				var returned = entries[call];
-				global::System.Diagnostics.Debug.Assert(returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);
-				state = returned.State;
-				power = returned.Power;
-				var previousCall = returned.CallIndex;
-				repeat = returned.RepeatIndex;
-				lookahead = returned.LookaheadIndex;
-
-				if (returned.RuleIndex >= 0)
-				{
-					entries[call] = new ParserEntry(ParserEntry.Completed, returned.State, returned.Position, returned.CallIndex, returned.AtomicIndex, returned.RepeatIndex, returned.LookaheadIndex, p, returned.RuleIndex, returned.Power);
-				}
-				else if (entries.Count == call + 1)
-					entries.RemoveAt(call);
-
-				call = previousCall;
-				Trace("return", state, p, entries.Count, text, "");
-				goto Dispatch;
-
-				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
-				if (materialize)
-				{
-					if (rootRule >= 0)
-					{
-						var values = parser.Materialization(entries.Count);
-						var values0 = parser.Materialization0();
-						var values1 = parser.Materialization1();
-						var values2 = parser.Materialization2();
-						Materialize_DotGram_Committed(text, parser, entries);
-						switch (rootRule)
-						{
-							case 0:
-								recognized = values0[0];
-								break;
-							default:
-								recognized = values[0];
-								break;
-						}
-					}
-				}
-				return p;
-
-				Fail:
-				if (lookahead < 0 && p > failure.Position)
-				{
-					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore = null;
-				}
-				else if (lookahead < 0 && p == failure.Position && expected != null)
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
-				Trace("fail", state, p, entries.Count, text, "");
-
-				while (entries.Count > 0)
-				{
-					var last = entries.Count - 1;
-					var entry = entries[last];
-					entries.RemoveAt(last);
-
-					if (entry.Kind == ParserEntry.Choice)
-					{
-						state  = entry.State;
-						p      = entry.Position;
-						call   = entry.CallIndex;
-						atomic = entry.AtomicIndex;
-						repeat = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count, text, "");
-						goto Dispatch;
-					}
-					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
-						continue;
-
-					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
-					{
-						call   = entry.CallIndex;
-						atomic = entry.AtomicIndex;
-						repeat = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-						power  = entry.Power;
-						p      = entry.Position;
-					}
-					else if (entry.Kind == ParserEntry.Atomic)
-					{
-						atomic = entry.AtomicIndex;
-						repeat = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-					}
-					else if (entry.Kind == ParserEntry.Repeat)
-					{
-						p      = entry.Position;
-						call   = entry.CallIndex;
-						atomic = entry.AtomicIndex;
-						repeat = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-					}
-					else
-					{
-						global::System.Diagnostics.Debug.Assert(entry.Kind == ParserEntry.Lookahead);
-						p         = entry.Position;
-						call      = entry.CallIndex;
-						atomic    = entry.AtomicIndex;
-						repeat    = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-
-						if (entry.Value == 0)
-						{
-							state = entry.State;
-							if (entry.RuleIndex >= 0)
-							{
-								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
-							}
-							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
-							goto Dispatch;
-						}
-					}
-				}
-
-				return -1;
-			}
-			finally
-			{
-				parser.Reset();
-				if (lent) ReturnParser(parser); else Recycle(parser);
-			}
-		}
-
 		static int Recognize_Committed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
-			object? recognized;
-			var end = Recognize_DotGram_Committed(text, pos, 3, 0, 0, true, true, ref failure, out recognized);
-			value = end < 0 ? default! : (string)recognized!;
-			return end;
+			var p = pos;
+			string[]? expected = null;
+			var flat0_0Start = -1;
+			var flat0_0End = 0;
+			var turn0 = 0;
+
+			{
+				flat0_0Start = p;
+			}
+
+			{
+				turn0 = p;
+			}
+
+			{
+				if (p + 2 > text.Length)
+				{
+					failure.Starved = true;
+					expected = Recognize_DotGram_Committed_Expected2;
+					goto S16;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
+				{
+					if (text[p] == 'a')
+						p += 1;
+					expected = Recognize_DotGram_Committed_Expected2;
+					goto S16;
+				}
+				p += 2;
+			}
+
+			S14:
+			{
+				if ((uint)p >= (uint)text.Length)
+				{
+					failure.Starved = true;
+					expected = Recognize_DotGram_Committed_Expected0;
+					goto Fail;
+				}
+				if (text[p] != 'b')
+				{
+					expected = Recognize_DotGram_Committed_Expected0;
+					goto Fail;
+				}
+				p += 1;
+			}
+
+			{
+				flat0_0End = p;
+				goto Accept;
+			}
+
+			S16:
+			{
+				p = turn0;
+			}
+
+			{
+				if ((uint)p >= (uint)text.Length)
+				{
+					failure.Starved = true;
+					expected = Recognize_DotGram_Committed_Expected1;
+					goto Fail;
+				}
+				if (text[p] != 'a')
+				{
+					expected = Recognize_DotGram_Committed_Expected1;
+					goto Fail;
+				}
+				p += 1;
+				goto S14;
+			}
+
+			Accept:
+			if (p != text.Length) { expected = null; goto Fail; }
+			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
+			value = Construct_Committed(captured0_0);
+			return p;
+
+			Fail:
+			value = default!;
+			failure.Position = p;
+			failure.Expected = expected;
+			return -1;
 		}
 
 		static int Recognize_DotGram_Sum(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, int initialPower, bool whole, bool materialize, ref Failure failure, out object? recognized)
@@ -4773,106 +4592,6 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Not_Expected1 = { "?!\"no\"" };
 
 		static readonly string[] Recognize_DotGram_Not_Expected2 = { "\"no\"" };
-
-		static void Materialize_DotGram_Committed(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
-		{
-			var values = parser.Materialization(entries.Count);
-			var values0 = parser.Materialization0();
-			var values1 = parser.Materialization1();
-			var values2 = parser.Materialization2();
-			var linkHeads = parser.MaterializationHeads();
-			var linkNexts = parser.MaterializationNexts();
-
-			for (var derivationAt = parser.LinkedUpTo; derivationAt < entries.Count; derivationAt++)
-			{
-				var derivation = entries[derivationAt];
-				if (derivation.CallIndex >= 0 && (derivation.Kind == ParserEntry.Capture || derivation.Kind == ParserEntry.RuleCapture || derivation.Kind == ParserEntry.Construct))
-				{
-					linkNexts[derivationAt] = linkHeads[derivation.CallIndex];
-					linkHeads[derivation.CallIndex] = derivationAt;
-				}
-			}
-			parser.LinkedUpTo = entries.Count;
-
-			values[0] = parser;
-
-			var owners     = parser.MaterializationOwners();
-			var ownerCount = 0;
-
-			owners[ownerCount++] = 0;
-
-			for (var ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++)
-			{
-				var ownerAt = owners[ownerIndex];
-
-				for (var capturedAt = linkHeads[ownerAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-				{
-					var candidate = entries[capturedAt];
-
-					if (candidate.Kind == ParserEntry.RuleCapture && !global::System.Object.ReferenceEquals(values[candidate.Position], parser))
-					{
-						values[candidate.Position] = parser;
-						owners[ownerCount++] = candidate.Position;
-					}
-				}
-			}
-
-			for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)
-			{
-				var completedAt = owners[ownerIndex];
-				var completed = entries[completedAt];
-				if (completed.Kind != ParserEntry.Completed || !global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;
-				switch (completed.RuleIndex)
-				{
-					case 0:
-					{
-						var captured0From = -1;
-						var captured0To   = -1;
-						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
-						{
-							var candidate = entries[capturedAt];
-
-							switch (candidate.State)
-							{
-								case 0:
-									if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)
-									{
-										if (captured0To < 0)
-											captured0To = candidate.Value;
-										captured0From = candidate.Position;
-									}
-									break;
-							}
-						}
-
-						#if DEBUG
-						if (captured0From >= 0 && captured0To < captured0From)
-							throw new global::System.InvalidOperationException("DotGram invariant: capture 't' of rule 'Committed' has its end before its start (" + captured0From.ToString() + ".." + captured0To.ToString() + "). This is a generator defect; please report the grammar.");
-						#endif
-						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
-
-						var chosen = -1;
-						for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])
-						{
-							var candidate = entries[chosenAt];
-							if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)
-							{
-								chosen = candidate.State;
-								break;
-							}
-						}
-						global::System.Diagnostics.Debug.Assert(chosen >= 0);
-						switch (chosen)
-						{
-							case 0:
-								values0[completedAt] = Construct_Committed(captured0!);
-								break;
-						}
-						break;
-					}
-				}
-			}
-		}
 
 		static readonly string[] Recognize_DotGram_Committed_Expected0 = { "'b'" };
 

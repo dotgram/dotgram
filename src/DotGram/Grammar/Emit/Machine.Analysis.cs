@@ -144,6 +144,17 @@ sealed partial class Machine
 			// the shape most path-like grammars are written in.
 			Node.Repeat repeat                         => SilentRepeat(repeat, following),
 
+			// An atomic group is first-match-commits, and that is a shape locals can hold:
+			// try each alternative in order through the give-back door, and the first that
+			// matches is final — nothing ever comes back, which is what "atomic" says.
+			// The alternatives may share prefixes freely; what each must be is silent.
+			// Not where the machine recovers: §8.2's discriminator rests on the commit
+			// marking the element owned, and that mark is the engine's.
+			Node.Atomic(var kept)                      => _recoveries.Count == 0 &&
+			                                              (kept is Node.Choice(var options)
+			                                              ? AllSilent(options, following, sequence: false)
+			                                              : Silent(kept, following)),
+
 			_                                          => false,
 		};
 
