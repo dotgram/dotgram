@@ -9,7 +9,7 @@ to an agent — exists to agree with that text, not to replace it. That holds ev
 a hand-written parser turns out faster: what a grammar buys is meaning read
 declaratively rather than reconstructed from someone's control flow, and speed does not
 touch that. When the compiler also gets speed right — predictive dispatch, possessive
-repetition, whole-grammar lowering, deferred construction — that is a bonus worth
+repetition, flat lowering, deferred construction — that is a bonus worth
 having, not the reason to reach for this over a parser written by hand.
 
 ## What it looks like
