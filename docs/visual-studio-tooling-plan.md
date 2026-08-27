@@ -72,6 +72,8 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Select the exact entry rule for generated APIs when one language publishes several
   parse methods.
 - [x] Offer exact grammar literals through completion at a routed DSL failure position.
+- [x] Decode character literals and offer punctuation/operator alternatives in DSL
+  completion.
 
 The detailed design and explicit deferrals are in
 [`dsl-tooling-design.md`](dsl-tooling-design.md).

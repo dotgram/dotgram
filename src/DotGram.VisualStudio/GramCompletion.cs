@@ -161,21 +161,20 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
 	protected abstract Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
 		string prefix, CancellationToken cancellationToken);
-	protected virtual IReadOnlyList<string> DslCompletions(SnapshotPoint point) => [];
+	protected virtual IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point) => [];
 
-	CompletionItem DslCompletion(string expected)
+	CompletionItem DslCompletion(DslLiteralCompletion suggestion)
 	{
-		var insertion = expected.Substring(1, expected.Length - 2);
-		_descriptions[insertion] = $"DotGram expected literal: {expected}";
+		_descriptions[suggestion.Insertion] = $"DotGram expected literal: {suggestion.Display}";
 		return new CompletionItem(
-			insertion,
+			suggestion.Insertion,
 			this,
 			ImageElement.Empty,
 			ImmutableArray<CompletionFilter>.Empty,
 			"",
-			insertion,
-			insertion,
-			insertion,
+			suggestion.Insertion,
+			suggestion.Insertion,
+			suggestion.Insertion,
 			ImmutableArray<ImageElement>.Empty);
 	}
 
@@ -278,14 +277,16 @@ sealed class EmbeddedGramCompletionSource(
 			LiteralCompletions(expected).Count > 0;
 	}
 
-	protected override IReadOnlyList<string> DslCompletions(SnapshotPoint point) =>
+	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point) =>
 		analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected)
 			? LiteralCompletions(expected)
 			: [];
 
-	static IReadOnlyList<string> LiteralCompletions(IReadOnlyList<string> expected) => expected
-		.Where(static item => item.Length >= 2 && item[0] == '"' && item[item.Length - 1] == '"')
-		.Distinct(StringComparer.Ordinal)
+	static IReadOnlyList<DslLiteralCompletion> LiteralCompletions(IReadOnlyList<string> expected) => expected
+		.Select(DslLiteralCompletionParser.Parse)
+		.Where(static item => item is not null)
+		.Select(static item => item!.Value)
+		.Distinct()
 		.ToArray();
 
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
@@ -326,6 +327,35 @@ sealed class EmbeddedGramCompletionSource(
 	protected override Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
 		string prefix, CancellationToken cancellationToken) =>
 		roslyn.GetItemsAsync(this, prefix, cancellationToken);
+}
+
+internal readonly record struct DslLiteralCompletion(string Display, string Insertion);
+
+internal static class DslLiteralCompletionParser
+{
+	public static DslLiteralCompletion? Parse(string expected)
+	{
+		var literal = expected.EndsWith("i", StringComparison.Ordinal)
+			? expected.Substring(0, expected.Length - 1)
+			: expected;
+		if (literal.Length >= 2 && literal[0] == '"' && literal[literal.Length - 1] == '"')
+			return new DslLiteralCompletion(expected, literal.Substring(1, literal.Length - 2));
+		if (literal.Length < 3 || literal[0] != '\'' || literal[literal.Length - 1] != '\'')
+			return null;
+
+		var body = literal.Substring(1, literal.Length - 2);
+		var insertion = body switch
+		{
+			"\\n"  => "\n",
+			"\\r"  => "\r",
+			"\\t"  => "\t",
+			"\\'"  => "'",
+			"\\\\" => "\\",
+			_ when body.Length == 1 => body,
+			_ => null,
+		};
+		return insertion is null ? null : new DslLiteralCompletion(expected, insertion);
+	}
 }
 
 sealed class RoslynGramCompletion(

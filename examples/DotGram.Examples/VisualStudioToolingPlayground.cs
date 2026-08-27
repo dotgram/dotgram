@@ -112,14 +112,18 @@ public static class ToolingQueryExample
 	SelectWord   = "select" | "choose"
 	CountWord    = "count"
 	Identifier   = ['a'..'z']+
+	Operator     = '+' | '-'
 	SelectQuery  = SelectWord & field: (Identifier)
 	CountQuery   = CountWord & field: (Identifier)
+	Operation    = left: (Identifier) & Operator & right: (Identifier)
 	parse SelectQuery
 	parse CountQuery
+	parse Operation
 	""")]
 [GramLanguage("dotgram.tooling.multi-query")]
 [GramClassify("SelectWord", GramClassification.Keyword)]
 [GramClassify("CountWord", GramClassification.Keyword)]
+[GramClassify("Operator", GramClassification.Operator)]
 [GramClassify("SelectQuery.field", GramClassification.Variable)]
 [GramClassify("CountQuery.field", GramClassification.Variable)]
 public static partial class MultiQueryLanguage
@@ -131,7 +135,10 @@ public static class MultiQueryExample
 	public static object Select() => MultiQueryLanguage.ParseSelectQuery("select customer");
 	public static object Count() => MultiQueryLanguage.ParseCountQuery("count customer");
 
-	// Put the caret inside the empty string and press Ctrl+Space: `select` and `choose`
-	// should be offered as DotGram literals.
-	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("");
+	// Clear the string, put the caret between the quotes and press Ctrl+Space:
+	// `select` and `choose` should be offered as DotGram literals.
+	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("select");
+
+	// Put the caret after the space and press Ctrl+Space: `+` and `-` should be offered.
+	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer ");
 }
