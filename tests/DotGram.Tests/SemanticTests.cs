@@ -2203,6 +2203,26 @@ public sealed class SemanticTests
 			""");
 
 	[Fact]
+	public void But_a_tail_that_captures_is_refused_until_a_fold_can_share_a_name() =>
+		// The limit, found by writing an example against this feature. Unfolding turns
+		// one alternative into one per source, and the one leading with the rule itself
+		// becomes the fold's step while the others stay bases — so every capture in the
+		// tail now stands both inside the loop and outside it. A capture under a fold
+		// loop is stored as a sequence (a step's `=>` needs that iteration's value, not
+		// the last one's) and a rule has one member per name, so the two spellings of
+		// `tail` disagree about what it holds.
+		//
+		// Pinned so that fixing it changes a test on purpose: this is the postfix chain
+		// every expression language is written as, and it is what the feature is for.
+		Refused(
+			GrammarNormalizer.CaptureTypeMismatch,
+			"""
+			Word  : @string = w: ['a'..'z']+ => @(w)
+			Chain : @string = c: Step => @(c) | c: Word => @(c)
+			Step  : @string = head: Chain & '.' & tail: Word => @(head + "." + tail)
+			""");
+
+	[Fact]
 	public void And_so_is_a_mutual_recursion_where_both_sides_build() =>
 		// The shape the general transform would need: `B`'s own operands and its `=>`
 		// would join `A`'s tail, so the fold would have to apply two constructions in

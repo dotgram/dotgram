@@ -4369,3 +4369,45 @@ character literal as `CharRange.Quote(text[0])`, and the value-parameter work st
 calling it on a call's arguments — where a mutated file can hold `''`. Normalization
 does not stop at the first diagnostic, so a grammar the lexer has already refused still
 reaches here, and an empty character literal threw. Answered rather than thrown on.
+
+## Found by writing an example: three defects, two fixed, one named
+
+Sitting down to write `SelectorExample` — postfix chains, `orders[2].lines.total(net)`,
+the shape indirect left recursion through a forwarder exists for — turned up three
+things in a row, which is what examples are for and why the repository keeps them.
+
+**The question collector never asked about a parameter's type.** `Bracketed(item,
+open: char, close: char)` failed the build with "the question collector did not foresee
+the type question for 'char'" — an internal defect reaching a consumer as CS8785. The
+collector walks a rule's declared type and its body and had never walked its
+parameters, because until today a value parameter could only be given a number and
+nothing asked the host about `int`. Every test that passes a value uses a resolver that
+answers everything, so nothing asked until a real build did. One line, and a reminder
+that the permissive resolver hides exactly this class.
+
+**Distributing an alternative shared its tail's nodes.** Unfolding builds one
+alternative per source and I kept the tail by reference, deliberately, so that
+identity-keyed facts — a `recover`, a binding power — would survive. That is the wrong
+half of §19's rule: a node standing in two alternatives has two owners, and whichever
+capture layout is computed second clobbers the first. The tail is copied now, node for
+node, through the same `CloneAndRewrite` a namespace clone uses, which carries those
+facts onto the copies rather than leaving them behind. No test caught it because every
+existing case has a tail that captures nothing.
+
+**And the one that is a design question, not a defect.** After unfolding, a capture
+written in the tail stands both inside the fold's loop and outside it — the alternative
+leading with the rule itself becomes the step, the others stay bases, and they are
+copies of one another. A capture under a fold loop is collected, because a step's `=>`
+needs that iteration's value rather than the last one's; a rule has one member per
+name; so the two spellings of `name` disagree about what it holds and GRAM4007 fires.
+
+That means the feature works for `Call = target: Primary & "()"` and not for `Member =
+target: Primary & '.' & name: Name` — which is the postfix chain it was built for. §4.3
+says so now, the status table has the row, and a test pins it so that fixing it changes
+a test on purpose. The example is parked rather than committed: an example whose
+grammar cannot be written is not an example.
+
+What a fix would have to decide: whether a name may be one member with two storages
+(scalar outside the loop, collected inside), or whether the unfolding should rename the
+step's captures and rewrite the `=>` that reads them — which is the author's own C#,
+and this project does not rewrite that.

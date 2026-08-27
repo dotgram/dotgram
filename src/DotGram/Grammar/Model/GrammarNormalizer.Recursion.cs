@@ -125,11 +125,15 @@ public sealed partial class GrammarNormalizer
 				name is null ? CallTo(source, []) : new Node.Capture(name, CallTo(source, [])),
 			};
 
-			// The rest of the alternative keeps its own nodes, by reference: everything
-			// upstream keys facts by node identity — a `recover`, a binding power, a
-			// sequence capture — and only the head is being replaced.
+			// The rest of the alternative is copied, node for node, and not shared: one
+			// alternative becomes several, and everything downstream keys facts by node
+			// identity — a capture's slot, a `recover`, a binding power — so a node
+			// standing in two alternatives would have whichever was laid out second
+			// clobber the first. The same reason §19 gives for cloning a whole rule
+			// rather than the path to a call, and the same copy: identity-keyed entries
+			// travel onto the copies.
 			for (var i = 1; i < operands.Count; i++)
-				replaced.Add(operands[i]);
+				replaced.Add(CloneAndRewrite(operands[i], NoTargets, [], "Unfolded"));
 
 			Node made1 = new Node.Sequence(replaced);
 
@@ -142,6 +146,10 @@ public sealed partial class GrammarNormalizer
 
 		return made;
 	}
+
+	/// <summary>A rewrite that replaces nothing, so the copy is only a copy.</summary>
+	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> NoTargets =
+		new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>The identity-keyed facts an alternative carries into the ones it becomes.</summary>
 	void Carry(Node from, Node to)

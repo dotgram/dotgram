@@ -57,6 +57,7 @@ then quietly mean nothing.
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | indirect left recursion, through rules that only forward §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same where the tail captures | ✓ | ✓ | refused | ✗ | ✗ |
 | the same, through a rule that does something of its own | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -602,6 +602,17 @@ Three things are rejected when the grammar is built:
   own `=>` would join the tail of the fold, so a step would have to apply two
   constructions in order against an accumulator that is itself the result of one —
   arbitrarily many shapes, which is what this rejection has always been about.
+
+  **And the tail may not capture yet.** Making the recursion direct turns one
+  alternative into one per thing the forwarder forwards, and the one leading with the
+  rule itself becomes the fold's step while the others stay bases — so a capture
+  written in the tail ends up both inside the loop and outside it. A capture under a
+  fold loop is collected, because a step's `=>` needs that iteration's value rather
+  than the last one's, and a rule has one member per name; the two then disagree about
+  what the name holds (`GRAM4007`). So `Call = target: Primary & "()"` works and
+  `Member = target: Primary & '.' & name: Name` does not, which is the postfix chain
+  this is for. Write that one with a repetition — `Root & Step*` — until the fold can
+  hold one name on both sides.
 - **a rule whose every alternative is left-recursive.** There is nothing to start from.
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one
