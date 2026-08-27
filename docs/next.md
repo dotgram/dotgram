@@ -4271,3 +4271,48 @@ is for constructs, and a construct that is not a construct does not belong in it
 is the whole change - and it is the honest end of the walk through that table, because
 every other row it carried is now either ✓ across the pipeline or a refusal with a
 message that explains itself.
+
+## Built: a directive names an expression, because a reference position takes one
+
+The ruling that opened this: an inline rule on the right of a rebinding would be
+another patch, and the question to ask instead is whether the language means "an
+expression may stand wherever a rule is referred to". Walking the parser answered how
+big that is. Of the eight places the notation requires a name, seven are *declarations*
+— a namespace, a rule, a parameter, an `as` — where the name is the point. The
+reference positions, where a rule is used rather than named, are exactly two: the right
+side of a rebinding, and the target of a publication. Everything else that could want an
+expression already takes one: call arguments, `recover`'s synchronization expression, a
+rule's body.
+
+So the rule is finite: **wherever the notation refers to a rule, one operand may
+stand.** One operand, the bound §8.2 already gives `recover`'s sync — so a choice needs
+brackets, and the `with` that may follow a directive is the directive's own rather than
+the operand's, which is what keeps §5.1's two extents apart (an expression's `with` is
+applied before a namespace's, a publication's composes on top of one, and only the
+parentheses say which was meant).
+
+The mechanism is a lift, in the parser: anything but a bare name becomes an ordinary
+rule declared right there, and the directive publishes it by name. Nothing after the
+front end changes — the binder, §5.1's specialization, the normalizer and the emitter
+all read a publication of a rule exactly as before, and the scope question the diary
+asked to settle first settles itself: the rule is declared where the directive is
+written, so it reads that namespace's trivia, imports and bindings, because that is
+what a rule written there would do. The name is the `as`, which a compound target now
+has to carry: an expression has no name to derive one from, and `parse ('a' | 'b')`
+alone is refused (GRAM2007) rather than given a name nobody wrote.
+
+Two things the parser had to learn. `parse` and `find` stay contextual keywords, so
+`AtPublication` had to admit every token an operand may open with rather than only an
+identifier. And `StartsRule` decided that an identifier followed by `(` is a rule with
+parameters — which `parse ('a' | 'b')` is not: the two are the same until the
+parenthesis closes, and what tells them apart is the `=` or the `: Type` a declaration
+has after its parameters. Scanned to the matching parenthesis, which is bounded and is
+the only look this decision needs.
+
+**And a limit worth stating rather than discovering.** The lifted rule is a rule, so
+§4.1 case 4 says what its value is — the extent it matched. `parse Padded(Word, '#')`
+answers with the text, not with what `Padded` builds, because a rule written that way
+would answer with the text too. That is the language being uniform rather than the
+feature being unfinished: an expression is published for what it recognizes. Reaching a
+*value* from a directive would need the lifted rule to declare a type, which is the next
+question and a separate one (`=>` without a declared type is GRAM4008, deliberately).

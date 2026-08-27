@@ -1020,6 +1020,28 @@ Anything else is a consequence rather than a directive. Where a match may sit is
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
 
+**What a directive names is an expression, not only a rule.** Wherever the notation
+refers to a rule, any operand may stand — the same bound `recover`'s synchronization
+expression has (§8.2), so a choice needs brackets and the `with` that may follow is the
+directive's own:
+
+```dotgram
+parse Padded(Word, ' ') as Spaced       // a parameterized rule, reachable at last
+parse ('a' | 'b')       as Ab
+find  ['0'..'9']+       as Numbers
+```
+
+An expression has no name to make a method name from, so `as` is required for anything
+but a bare name — `parse ('a' | 'b')` on its own is refused (`GRAM2007`) rather than
+given a name nobody wrote. What the expression becomes is an ordinary rule of that
+name, declared where the directive is written: it reads the `trivia`, the imports and
+the rebindings that surround it, exactly as a rule written in its place would, and
+everything after the front end sees a publication of a rule.
+
+Being an ordinary rule also settles its value: §4.1 case 4, the extent it matched. A
+directive publishes an expression for what it *recognizes*; a value comes from a rule
+that declares a type and builds one, and is published by name as it always was.
+
 ### 6.1 The result
 
 ```csharp

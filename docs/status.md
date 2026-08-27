@@ -30,6 +30,7 @@ then quietly mean nothing.
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a directive naming an expression rather than a rule §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | what a refusal says was expected, first tier §0/§11 | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |

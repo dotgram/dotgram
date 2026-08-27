@@ -976,6 +976,67 @@ public sealed class SemanticTests
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 
+	// ── Publishing an expression (§6) ───────────────────────────────────────────
+
+	[Fact]
+	public void A_directive_publishes_whatever_expression_it_names()
+	{
+		// Where the notation refers to a rule, an expression may stand — a call, a
+		// choice, a repetition, anything an operand can be. A parameterized rule could
+		// not be reached from a directive at all before this.
+		var result = Compile("""
+			Word : @string = w: ['a'..'z']+ => @(w)
+			Padded(item, pad) = pad & item & pad
+
+			parse Padded(Word, '#') as Hashed
+			parse ('a' | 'b') as Ab
+			parse Word
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		// The lifted rule is a rule, so §4.1 case 4 says what its value is: the extent it
+		// matched. An expression is published for what it recognizes; a value still comes
+		// from a rule that declares a type and builds one.
+		Assert.Equal("#ab#", EmittedCode.Match(assembly, "Grammar", "TryHashed", "#ab#").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryHashed", "ab").IsSuccess);
+		Assert.Equal("b",    EmittedCode.Match(assembly, "Grammar", "TryAb", "b").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryAb", "c").IsSuccess);
+		Assert.Equal("ab",   EmittedCode.Match(assembly, "Grammar", "TryParseWord", "ab").Value);
+	}
+
+	[Fact]
+	public void And_the_rule_it_lifts_is_bound_where_the_directive_is_written()
+	{
+		// The expression is written inside the namespace, so it reads what that
+		// namespace reads — its own `trivia` here, not the outer one. Which is what a
+		// rule declared there would do, because that is what it becomes.
+		var result = Compile("""
+			trivia = ' '*
+			A = 'a'
+			B = 'b'
+
+			namespace Tight
+			{
+				trivia = none
+
+				parse (A & B) as Joined
+			}
+
+			parse (A & B) as Spaced
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryJoined", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryJoined", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySpaced", "a b").IsSuccess);
+	}
+
 	// ── What a publication answers with (§7.5) ──────────────────────────────────
 
 	[Theory]
