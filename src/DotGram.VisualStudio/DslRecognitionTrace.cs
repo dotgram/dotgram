@@ -89,11 +89,31 @@ internal static class DslRecognitionTrace
 		readonly HashSet<RuleSymbol> _trivia = graph.Rules
 			.Where(static rule => rule.Name == "trivia")
 			.ToHashSet();
+		int _bestMeaningfulEnd;
+		int _bestMeaningfulCount;
 
 		public int Furthest { get; private set; }
 		public bool Unsupported { get; private set; }
 		public Match Best { get; private set; } = Match.Empty(0);
 		public IReadOnlyList<string> Expected => _expected.OrderBy(static item => item, StringComparer.Ordinal).ToArray();
+
+		void Consider(Match match, RuleSymbol owner)
+		{
+			if (_trivia.Contains(owner))
+				return;
+
+			var meaningful = match.Extents.Where(extent => !_trivia.Contains(extent.Rule)).ToArray();
+			var end = meaningful.Length == 0
+				? match.End
+				: meaningful.Max(static extent => extent.Position + extent.Length);
+			if (end > _bestMeaningfulEnd ||
+				end == _bestMeaningfulEnd && meaningful.Length > _bestMeaningfulCount)
+			{
+				Best = match;
+				_bestMeaningfulEnd = end;
+				_bestMeaningfulCount = meaningful.Length;
+			}
+		}
 
 		public void Expect(int position, string expected, RuleSymbol? owner = null)
 		{
@@ -136,10 +156,7 @@ internal static class DslRecognitionTrace
 					extents.AddRange(match.Extents);
 
 					var complete = new Match(match.End, extents);
-					if (!_trivia.Contains(rule) &&
-						(complete.End > Best.End ||
-						 complete.End == Best.End && complete.Extents.Count > Best.Extents.Count))
-						Best = complete;
+					Consider(complete, rule);
 
 					yield return complete;
 				}
@@ -221,7 +238,9 @@ internal static class DslRecognitionTrace
 							new(owner, capture.Name, position, match.End - position),
 						};
 						extents.AddRange(match.Extents);
-						yield return new Match(match.End, extents);
+						var complete = new Match(match.End, extents);
+						Consider(complete, owner);
+						yield return complete;
 					}
 					yield break;
 
@@ -247,6 +266,8 @@ internal static class DslRecognitionTrace
 			Match current,
 			RuleSymbol owner)
 		{
+			Consider(current, owner);
+
 			if (index == nodes.Count)
 			{
 				yield return current;

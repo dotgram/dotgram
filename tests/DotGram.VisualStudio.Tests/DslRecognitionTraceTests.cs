@@ -103,7 +103,7 @@ public sealed class DslRecognitionTraceTests
 			trivia    = [' ' | '\t']*
 			Identifier = ['a'..'z']+
 			Operator   = '+' | '-'
-			Operation  = Identifier & Operator & Identifier
+			Operation  = left: Identifier & Operator & right: Identifier
 			parse Operation
 			""");
 
@@ -112,6 +112,12 @@ public sealed class DslRecognitionTraceTests
 		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
 		Assert.Equal("customer ".Length, result.FailurePosition);
 		Assert.Contains("['+' | '-']", result.Expected);
+		var successful = DslRecognitionTrace.Recognize(graph, publication, "customer + value");
+		Assert.Contains(successful.Extents, extent =>
+			extent.Rule.Name == "Operation" && extent.Capture == "left");
+		Assert.Contains(result.Extents, extent =>
+			extent.Rule.Name == "Operation" && extent.Capture == "left" &&
+			extent.Position == 0 && extent.Length == "customer".Length);
 	}
 
 	[Fact]

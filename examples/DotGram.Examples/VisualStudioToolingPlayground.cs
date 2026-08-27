@@ -115,7 +115,7 @@ public static class ToolingQueryExample
 	Operator     = '+' | '-'
 	SelectQuery  = SelectWord & field: (Identifier)
 	CountQuery   = CountWord & field: (Identifier)
-	Operation    = left: (Identifier) & Operator & right: (Identifier)
+	Operation    = left: Identifier & Operator & right: Identifier
 	parse SelectQuery
 	parse CountQuery
 	parse Operation
@@ -142,5 +142,5 @@ public static class MultiQueryExample
 	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("select");
 
 	// Put the caret after the space and press Ctrl+Space: `+` and `-` should be offered.
-	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer ");
+	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer");
 }
