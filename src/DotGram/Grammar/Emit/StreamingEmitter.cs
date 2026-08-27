@@ -204,6 +204,39 @@ public static partial class CSharpEmitter
 
 				var loop = stage.Repeated ? file.Block("while (true)") : null;
 
+				// The seam of a spaced collection, skipped before anything else is asked
+				// at this turn — the continuation probe and the element both begin past
+				// it — growing the window while the trivia may continue beyond it.
+				if (stage.Repeated && stage.Seam is { } seamRule)
+				{
+					file.Line($"var seamFailure{i} = new {FailureType}();");
+					file.Line($"int seamEnd{i};");
+					file.Line();
+
+					using (file.Block("while (true)"))
+					{
+						file.Line($"seamFailure{i} = new {FailureType}();");
+						file.Line($"seamEnd{i}     = {MethodOf(seamRule)}(window.Span(), start, ref seamFailure{i});");
+						file.Line();
+
+						using (file.Block(
+							$"if (((seamEnd{i} < 0 ? seamFailure{i}.Position : seamEnd{i}) >= window.Length || " +
+							$"seamFailure{i}.Starved) && !window.Ended)"))
+						{
+							file.Line("window.Extend(ref start);");
+							file.Line("continue;");
+						}
+
+						file.Line();
+						file.Line("break;");
+					}
+
+					file.Line();
+					file.Line($"if (seamEnd{i} >= 0)");
+					file.Then($"start = seamEnd{i};");
+					file.Line();
+				}
+
 				if (stage.Repeated && continuation(i) is { } probe)
 				{
 					file.Line($"var continuationFailure{i} = new {FailureType}();");
@@ -443,7 +476,11 @@ public static partial class CSharpEmitter
 	/// <param name="Rule">The rule to call, or null for a part that yields nothing.</param>
 	/// <param name="Repeated">Whether it is read until it stops matching.</param>
 	/// <param name="Node">What it came from, for the comment above it.</param>
-	sealed record Stage(RuleSymbol? Rule, bool Repeated, Node Node);
+	/// <param name="Seam">
+	/// For a repeated stage of a spaced collection: the trivia rule the driver skips
+	/// before each element, §4.5's seam between the turns.
+	/// </param>
+	sealed record Stage(RuleSymbol? Rule, bool Repeated, Node Node, RuleSymbol? Seam = null);
 
 	/// <summary>
 	/// A published rule broken into the parts a streamed parse reads one at a time.
@@ -462,6 +499,12 @@ public static partial class CSharpEmitter
 	/// a driver that quietly reads something else.
 	/// </para>
 	/// </remarks>
+	/// <summary>Whether a call is the rule's own seam — the trivia §4.5 weaves.</summary>
+	static bool IsSeamOf(RecognitionGraph graph, RuleSymbol rule, RuleSymbol called) =>
+		graph.Trivia.TryGetValue(rule, out var seam) &&
+		seam is Node.Call(var trivia, _) &&
+		ReferenceEquals(trivia, called);
+
 	static IReadOnlyList<Stage>? StagesOf(RecognitionGraph graph, RuleSymbol rule)
 	{
 		var parts  = graph.PartsOf(rule);
@@ -476,6 +519,14 @@ public static partial class CSharpEmitter
 
 				case Node.Repeat(Node.Capture(_, Node.Call(var called, _)), _, _):
 					stages.Add(new Stage(called, Repeated: true, part));
+					break;
+
+				// A spaced collection: the turn §4.5 seamed. The driver reads the seam
+				// and the element in turn, the same two reads the in-memory engine makes.
+				case Node.Repeat(
+					Node.Sequence([Node.Call(var seam, _), Node.Capture(_, Node.Call(var spaced, _))]),
+					_, _) when IsSeamOf(graph, rule, seam):
+					stages.Add(new Stage(spaced, Repeated: true, part, seam));
 					break;
 
 				// Consumes and yields nothing. A capture of something that is not a call

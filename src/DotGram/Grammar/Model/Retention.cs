@@ -330,9 +330,34 @@ public static class Retention
 	/// </para>
 	/// </remarks>
 	/// <summary>Whether this part is a repetition the driver could hand elements over from.</summary>
-	static bool Yields(Node part) => part is
-		Node.Repeat(Node.Capture(_, Node.Call), _, _) or
-		Node.Repeat(Node.Call, _, _);
+	/// <remarks>
+	/// The seamed turn of a spaced collection yields too: the driver reads the seam and
+	/// the element in turn, the same two reads the in-memory engine makes.
+	/// </remarks>
+	static bool Yields(Node part, RuleSymbol? seam)
+	{
+		if (part is
+			Node.Repeat(Node.Capture(_, Node.Call), _, _) or
+			Node.Repeat(Node.Call, _, _))
+			return true;
+
+		return seam is not null &&
+			part is Node.Repeat(
+				Node.Sequence([Node.Call(var lead, _), Node.Capture(_, Node.Call)]), _, _) &&
+			ReferenceEquals(lead, seam);
+	}
+
+	/// <summary>The seamed turn with the seam taken off — the element the window holds.</summary>
+	/// <remarks>
+	/// The seam is not part of what has to be held: the driver skips it before the
+	/// element, moving the window as it goes, so only the element bounds retention.
+	/// </remarks>
+	static Node PastSeam(Node element, RuleSymbol? seam) =>
+		seam is not null &&
+		element is Node.Sequence([Node.Call(var lead, _), var inner]) &&
+		ReferenceEquals(lead, seam)
+			? inner
+			: element;
 
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
 	{
@@ -364,27 +389,13 @@ public static class Retention
 				? seamRule
 				: null;
 
-		// A spaced collection — its turns seamed with trivia (§4.5) — is a real
-		// collection the in-memory parse reads fine; what does not exist yet is a driver
-		// that skips trivia between the elements it hands over. Said accurately, so the
-		// author is not told to extract a rule they already have.
-		foreach (var part in parts)
-			if (part is Node.Repeat(Node.Sequence([var lead, ..]), _, _) &&
-				seam is not null && lead is Node.Call(var leading, _) &&
-				ReferenceEquals(leading, seam))
-			{
-				return $"'{rule.Name}' collects a spaced list, and a streamed parse does not yet " +
-					"skip the trivia between the elements it hands over. The in-memory overloads " +
-					"read it as usual.";
-			}
-
 		// What the driver hands over is the elements of a repetition of a rule, because a
 		// rule is what has a recognizer of its own to call one element at a time. A
 		// repetition of something else — a choice, a group — is read whole by one machine,
 		// and there is nothing to yield between iterations. Said here rather than left to
 		// the emitter, which would otherwise write an iterator with no `yield` in it and
 		// leave the consumer's compiler to complain about a file they did not write.
-		if (!parts.Any(Yields))
+		if (!parts.Any(part => Yields(part, seam)))
 			return $"'{rule.Name}' has no repetition of a rule to hand over, so a streamed parse " +
 				"would have nothing to give the caller between reads. Give the repeated part its " +
 				"own rule (docs/syntax.md §6.3).";
@@ -415,7 +426,7 @@ public static class Retention
 		foreach (var part in parts)
 		{
 			var measured = part is Node.Repeat(var element, _, _)
-				? Extent(element, extents, consuming)
+				? Extent(PastSeam(element, seam), extents, consuming)
 				: Extent(part, extents, consuming);
 
 			if (measured == LineExtent.Beyond)

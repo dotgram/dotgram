@@ -3799,3 +3799,21 @@ streaming emitter knows - is recorded as the follow-up.
 §4.5 in docs/syntax.md now states the rule as the language means it. The Documents
 benchmark reads the natural spelling and its numbers stand: dense 20.0 us, spaced
 19.8, commented 20.7, 46 KB - within the run-to-run spread of the hand-seamed form.
+
+## Built: a spaced collection streams, seams and all
+
+The follow-up the last entry recorded, closed. `Yields` and `StagesOf` now recognize
+the seamed turn `(trivia & item: Entry)*` that SpaceLists weaves - guarded by the
+rule's own trivia symbol, so a sequence turn that merely starts with some call is not
+mistaken for one - and the stage carries the seam rule. The driver skips it at the
+top of every turn, before the continuation probe and the element alike, with the
+same grow-the-window loop every other read uses; retention is measured past the
+seam, since the skip moves the window as it goes and only the element is ever held.
+The seam rule is registered like any staged rule and gets a recognizer under its own
+name - `Recognize_trivia` - whether or not it is scanner-shaped.
+
+The interim GRAM5001 text ("does not yet skip the trivia") lasted one commit, which
+is the good kind of diagnostic debt. A driver test pins the three claims that
+matter: the string and reader overloads agree on a spaced list, a broken element is
+stepped over across a seam, and four thousand seamed records read through a window
+that holds none of them for long.

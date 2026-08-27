@@ -381,6 +381,14 @@ public static partial class CSharpEmitter
 
 				{
 
+					// The seam of a spaced collection is read by the driver between the
+					// elements it hands over, so it needs a recognizer under its own name.
+					if (stages[stage].Seam is { } seamRule)
+					{
+						streamedRules.Add(seamRule);
+						machine.Register(seamRule, whole: false);
+					}
+
 					if (stages[stage].Rule is { } stagedRule)
 
 					{

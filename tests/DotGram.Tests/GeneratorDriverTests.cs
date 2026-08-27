@@ -894,6 +894,46 @@ public sealed class GeneratorDriverTests
 			Read(assembly, "Streamed", "ParseFeed", new StringReader(text)));
 	}
 
+	/// <summary>
+	/// A spaced collection streams too: the driver skips the seam §4.5 weaves between
+	/// the elements it hands over, the same two reads the in-memory engine makes.
+	/// </summary>
+	[Fact]
+	public void A_spaced_collection_streams_with_its_seams()
+	{
+		const string spaced = """
+			[DotGram.Gram("trivia = ' '*\nEntry : @Item = name: ['a'..'z']+ & ';' => @(new Line(name))\nFeed : @Item[] = Entry* recover ';' & eof\nparse Feed")]
+			public partial class SpacedStream { }
+			""" + Shapes;
+
+		var assembly = Build(spaced);
+		var text     = " aa; bb;  cc; ";
+
+		var whole = ((Array)assembly
+			.GetType("SpacedStream")!
+			.GetMethod("ParseFeed", [typeof(string)])!
+			.Invoke(null, [text])!)
+			.Cast<object>()
+			.Select(static item => item.GetType().Name + Named(item));
+
+		Assert.Equal(["Line:aa", "Line:bb", "Line:cc"], whole);
+		Assert.Equal(whole, Read(assembly, "SpacedStream", "ParseFeed", new StringReader(text)));
+
+		// A broken element is stepped over across a seam the same way.
+		var torn = "aa; b1b; cc;";
+
+		Assert.Equal(
+			["Line:aa", "Line:cc"],
+			Read(assembly, "SpacedStream", "ParseFeed", new StringReader(torn)));
+
+		// And far more elements than the window holds, their seams skipped as it moves.
+		var records = string.Concat(Enumerable.Repeat("aa; ", 4000));
+
+		Assert.Equal(
+			4000,
+			Read(assembly, "SpacedStream", "ParseFeed", new StringReader(records)).Length);
+	}
+
 	[Fact]
 	public void And_reads_more_records_than_the_window_holds()
 	{
