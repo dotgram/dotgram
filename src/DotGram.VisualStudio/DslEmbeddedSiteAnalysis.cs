@@ -26,6 +26,44 @@ internal sealed class DslEmbeddedSiteResult(
 	public IReadOnlyList<HostDiagnostic> Diagnostics { get; } = diagnostics;
 }
 
+internal sealed class DslPreparedLanguage(
+	string fingerprint,
+	RecognitionGraph graph,
+	Publication publication,
+	DslClassificationBinding binding)
+{
+	public string Fingerprint { get; } = fingerprint;
+	public RecognitionGraph Graph { get; } = graph;
+	public Publication Publication { get; } = publication;
+	public DslClassificationBinding Binding { get; } = binding;
+}
+
+internal sealed class DslEmbeddedSiteCache
+{
+	readonly object _gate = new();
+	readonly Dictionary<string, DslPreparedLanguage> _languages = new(StringComparer.Ordinal);
+
+	public DslPreparedLanguage? Prepare(DslLanguageDefinition language, string grammarSource)
+	{
+		var key = language.ParserType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+		var fingerprint = grammarSource + "\u001e" + string.Join(
+			"\u001f",
+			language.Classifications.Select(static item => item.Target + "\u001d" + item.Role));
+
+		lock (_gate)
+			if (_languages.TryGetValue(key, out var cached) && cached.Fingerprint == fingerprint)
+				return cached;
+
+		var prepared = DslEmbeddedSiteAnalysis.Prepare(language, grammarSource, fingerprint);
+
+		if (prepared is not null)
+			lock (_gate)
+				_languages[key] = prepared;
+
+		return prepared;
+	}
+}
+
 internal static class DslEmbeddedSiteAnalysis
 {
 	const string RecognitionDiagnostic = "GRAM5101";
@@ -34,7 +72,8 @@ internal static class DslEmbeddedSiteAnalysis
 		Document document,
 		SyntaxNode root,
 		SemanticModel model,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default,
+		DslEmbeddedSiteCache? cache = null)
 	{
 		var catalog = DslLanguageDiscovery.Discover(model.Compilation, cancellationToken);
 		var classifications = new List<HostDslClassification>();
@@ -73,26 +112,18 @@ internal static class DslEmbeddedSiteAnalysis
 			if (resolution.Kind != DslGrammarResolutionKind.Resolved || resolution.Text is null)
 				continue;
 
-			var parsed = GramParser.Parse(GramLexer.Tokenize(resolution.Text));
-			var grammarModel = GrammarBinder.Bind(parsed.File);
-			var graph = GrammarNormalizer.Normalize(grammarModel);
-			if (parsed.Diagnostics.Any(IsError) || grammarModel.Diagnostics.Any(IsError) || graph.Diagnostics.Any(IsError))
+			var prepared = cache?.Prepare(carrier.Language, resolution.Text) ??
+				Prepare(carrier.Language, resolution.Text, fingerprint: "");
+			if (prepared is null)
 				continue;
 
-			var publication = graph.Publications
-				.Where(static item => item.Kind == PublishKind.Parse)
-				.ToArray();
-			if (publication.Length != 1)
-				continue;
-
-			var binding = DslClassificationBinder.Bind(carrier.Language, resolution.Text);
-			if (binding.Diagnostics.Count > 0)
-				continue;
-
-			var trace = DslRecognitionTrace.Recognize(graph, publication[0], literal.Token.ValueText);
+			var trace = DslRecognitionTrace.Recognize(
+				prepared.Graph,
+				prepared.Publication,
+				literal.Token.ValueText);
 			if (trace.Status == DslRecognitionStatus.Success)
 			{
-				foreach (var classified in Classify(trace.Extents, binding.Classifications))
+				foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
 					if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
 						classifications.Add(new HostDslClassification(mapped, classified.Role));
 			}
@@ -112,6 +143,27 @@ internal static class DslEmbeddedSiteAnalysis
 		}
 
 		return new DslEmbeddedSiteResult(classifications, diagnostics);
+	}
+
+	internal static DslPreparedLanguage? Prepare(
+		DslLanguageDefinition language,
+		string grammarSource,
+		string fingerprint)
+	{
+		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarSource));
+		var grammarModel = GrammarBinder.Bind(parsed.File);
+		var graph = GrammarNormalizer.Normalize(grammarModel);
+		if (parsed.Diagnostics.Any(IsError) || grammarModel.Diagnostics.Any(IsError) || graph.Diagnostics.Any(IsError))
+			return null;
+
+		var publications = graph.Publications.Where(static item => item.Kind == PublishKind.Parse).ToArray();
+		if (publications.Length != 1)
+			return null;
+
+		var binding = DslClassificationBinder.Bind(language, grammarSource);
+		return binding.Diagnostics.Count == 0
+			? new DslPreparedLanguage(fingerprint, graph, publications[0], binding)
+			: null;
 	}
 
 	internal static IReadOnlyList<(int Position, int Length, string Role)> Classify(

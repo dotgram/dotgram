@@ -99,6 +99,25 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		Assert.Equal(2, result.Classifications.Count);
 	}
 
+	[Fact]
+	public async Task ReusesPreparedGrammarUntilLanguageDeclarationChanges()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(Source("let total"));
+		var compilation = await document.Project.GetCompilationAsync(cancellationToken) ??
+			throw new InvalidOperationException();
+		var language = Assert.Single(DslLanguageDiscovery.Discover(compilation, cancellationToken).Languages);
+		var cache = new DslEmbeddedSiteCache();
+
+		var first  = cache.Prepare(language, language.GrammarSource);
+		var second = cache.Prepare(language, language.GrammarSource);
+		var changed = cache.Prepare(language, language.GrammarSource + "\n");
+
+		Assert.NotNull(first);
+		Assert.Same(first, second);
+		Assert.NotSame(first, changed);
+	}
+
 	static Document Document(string source)
 	{
 		var workspace = new AdhocWorkspace();

@@ -220,6 +220,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	readonly VisualStudioWorkspace      _workspace;
 	readonly ITextDocumentFactoryService _documents;
 	readonly object                     _gate = new();
+	readonly DslEmbeddedSiteCache       _dslCache = new();
 
 	CancellationTokenSource?          _cancellation;
 	ITextSnapshot?                    _snapshot;
@@ -435,7 +436,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 				document,
 				root,
 				model,
-				cancellationToken).ConfigureAwait(false);
+				cancellationToken,
+				_dslCache).ConfigureAwait(false);
 			var dslDiagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(
 				document,
 				root,

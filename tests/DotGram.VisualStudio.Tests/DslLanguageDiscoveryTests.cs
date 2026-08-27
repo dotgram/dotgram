@@ -157,5 +157,23 @@ public sealed class DslLanguageDiscoveryTests
 		return DslLanguageDiscovery.Discover(compilation);
 	}
 
+	[Fact]
+	public void ReusesCatalogForTheSameCompilation()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var tree = CSharpSyntaxTree.ParseText(
+			Support,
+			CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+			cancellationToken: cancellationToken);
+		var compilation = CSharpCompilation.Create(
+			"Host",
+			[tree],
+			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]);
+
+		Assert.Same(
+			DslLanguageDiscovery.Discover(compilation, cancellationToken),
+			DslLanguageDiscovery.Discover(compilation, cancellationToken));
+	}
+
 	static string Support => SupportEmitter.Attributes;
 }

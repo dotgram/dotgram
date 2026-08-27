@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using Microsoft.CodeAnalysis;
@@ -60,6 +61,9 @@ public sealed class DslLanguageCatalog(
 /// </summary>
 public static class DslLanguageDiscovery
 {
+	static readonly ConditionalWeakTable<Compilation, DslLanguageCatalog> Cache = new();
+	static readonly object CacheGate = new();
+
 	const string GramAttribute                 = "DotGram.GramAttribute";
 	const string LanguageAttribute             = "DotGram.GramLanguageAttribute";
 	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
@@ -78,6 +82,27 @@ public static class DslLanguageDiscovery
 	{
 		if (compilation is null)
 			throw new ArgumentNullException(nameof(compilation));
+
+		lock (CacheGate)
+			if (Cache.TryGetValue(compilation, out var cached))
+				return cached;
+
+		var discovered = DiscoverCore(compilation, cancellationToken);
+
+		lock (CacheGate)
+		{
+			if (Cache.TryGetValue(compilation, out var cached))
+				return cached;
+
+			Cache.Add(compilation, discovered);
+			return discovered;
+		}
+	}
+
+	static DslLanguageCatalog DiscoverCore(
+		Compilation compilation,
+		CancellationToken cancellationToken)
+	{
 
 		var types = Types(compilation.Assembly.GlobalNamespace, cancellationToken).ToArray();
 		var languages = new List<DslLanguageDefinition>();
