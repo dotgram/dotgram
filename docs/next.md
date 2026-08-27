@@ -4194,3 +4194,53 @@ it gets no reader overload (GRAM5001, Info) and parses whole exactly as it reads
 Pinned by a parse that recovers twice in one rule and proves each rejection came
 through its own `=>` - `a,!b1b|c,?d2d` - and by the streamed publication being told
 why it has no reader.
+
+## Built: a match says which kind of answer it is, and §7.5 says what is built
+
+Fifth red row, and reading it found the row was arguing with two other sections.
+§7.5 sketched a `RecognitionResult<T>` that is `internal`, carries a `SourceSpan` and
+allocates a `Diagnostic`. Three of those four cannot be: an `internal` type cannot
+appear in the `public` signature a publication hands it back through (§6.1, CS0051,
+which is why `Match<T>` is public); a `SourceSpan` is int-based while an offset into
+the input is a `long` (§6.3), and it is emitted only for grammars that ask for one;
+and an allocated diagnostic per failure is what `Error`-built-on-demand exists not to
+be. The row was a sketch the implementation had outgrown in three places and not
+reached in one.
+
+The one it had not reached is real and is the whole point of the section: a failure
+that ran out of input is not a failure that met input which did not fit. A caller
+reading from a stream wants a longer read; one reading a document wants a message.
+`Match<T>` now carries `Outcome` — `Success | NoMatch | Starved` — with `IsSuccess`
+kept and derived from it, so the two can never disagree. §7.5 is rewritten to
+describe what exists, with the reasons, rather than what was drawn.
+
+Getting it exact and free took three attempts, and the two that were dropped are
+worth the lines. The first marked a local at every room check and adopted it in
+`Fail:` beside `Expected` — correct, and it cost Minimal 1.34 to 1.45 (measured
+against a stashed baseline, four runs each): two statements in the automaton's
+unwinding path, which every backtrack passes. The second made the local a position to
+drop the per-failure clear, and cost the same — so it was never the clear.
+
+The third asks the question the boundary actually asks. What the boundary wants is
+whether the *furthest* failure ran out, so nothing has to be threaded: a room check
+writes its own position straight into the failure record, and the boundary compares
+that with the furthest position. A room check somewhere the parse later got past does
+not match and says nothing. Nothing is adopted, nothing is cleared, `Fail:` is
+untouched — and only a test wanting more than one character writes at all, because a
+test wanting one can fail for want of room exactly at the end of the input, which the
+boundary reads off the position it already has. Minimal 1.28-1.32 against the
+baseline's 1.34-1.36; the other three inside their spread.
+
+`Error` — §7.5's fourth outcome, a failure past a commit point — is not there, and
+the row says so. It would need "the furthest failure stands past a commit that still
+holds", which the arena does not keep; a flag set where a commit happens would call
+an abandoned alternative's commit an error. An outcome that is sometimes wrong is
+worse than one a caller has to ask about another way.
+
+And a fourth thing the benchmarks caught after the tests were green: a grammar whose
+every test wants one character never writes the field at all, and a field nothing
+assigns is CS0649 — a warning, which in a build that treats warnings as errors is a
+broken compilation of a file the consumer did not write. `DotGram.Benchmarks` has four
+such grammars and said so. Suppressed at the field, with the reason on it, rather than
+gated: the gate would have to be decided before the machines render and the wrapper
+that reads it is written before them.

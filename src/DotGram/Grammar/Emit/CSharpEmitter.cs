@@ -243,6 +243,8 @@ public static partial class CSharpEmitter
 
 		if (graph.Publications.Count > 0)
 		{
+			file.Write(OutcomeEnum);
+			file.Line();
 			file.Write(MatchStruct);
 			file.Line();
 		}
@@ -652,13 +654,18 @@ public static partial class CSharpEmitter
 				// The one thing chosen here rather than there is which literal stands in
 				// when nothing named what would have fit: only this end knows how far the
 				// input went, and both answers are literals, so choosing costs a branch
-				// and no allocation at all.
-				file.Line("var otherwise = failure.Position >= text.Length");
+				// and no allocation at all. The same test says which outcome this is
+				// (§7.5), which is why the two are read off one comparison.
+				file.Line("var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
+				file.Line();
+				file.Line("var otherwise = starved");
 				file.Then("? \"Expected more input.\"");
 				file.Then($": \"Input does not match '{name}'.\";");
 				file.Line();
 				file.Line(
-					$"return {match}.Failed(otherwise, failure.Position, failure.Expected, " +
+					$"return {match}.Failed(" +
+					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
+					"otherwise, failure.Position, failure.Expected, " +
 					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();

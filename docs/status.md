@@ -80,7 +80,8 @@ then quietly mean nothing.
 | a declared type found under the grammar's `@using` §7.3 | — | — | ✓ | ✓ | ✓ |
 | C# in `=>` and `when` emitted without generator resolution §7.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
-| `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
+| `Match<T>` and its `Outcome` §7.5 | — | — | — | ✓ | ✓ |
+| an outcome for a failure past a commit point §8.2 | — | — | — | ✗ | ✗ |
 | document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `trivia` §4.5 | — | — | — | ✓ | ✓ |
 | `trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |

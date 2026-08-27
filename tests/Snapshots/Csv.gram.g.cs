@@ -515,7 +515,9 @@ namespace DotGram.Snapshots
 					failure.ExpectedMore = null;
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
+				{
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				}
 				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
@@ -848,6 +850,36 @@ namespace DotGram.Snapshots
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>
+			/// Where something wanted more input than remained, one past the position, or
+			/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
+			/// not fit" by (§7.5).
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// A position rather than a flag, and written straight here rather than
+			/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
+			/// is whether the <em>furthest</em> failure ran out, so a room check that
+			/// failed somewhere the parse later got past answers by not matching
+			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
+			/// the automaton's own unwinding is untouched — which is why this costs a
+			/// store on a failure path and nothing anywhere else.
+			/// </para>
+			/// <para>
+			/// One past, because a zeroed struct has to mean "nowhere" and zero is a
+			/// position. Only a test wanting more than one character writes it: one
+			/// wanting a single character can only fail for want of room at the very end
+			/// of the input, which the boundary reads off <c>Position</c> itself.
+			/// </para>
+			/// </remarks>
+			// A grammar whose every test wants one character never writes this — and a
+			// field nothing assigns is a warning in somebody else's build, which for a
+			// build that treats warnings as errors is a broken compilation of a file
+			// they did not write.
+			#pragma warning disable 0649
+			public int OutOfInput;
+			#pragma warning restore 0649
 
 			/// <summary>
 			/// What would have fit at the furthest position, or null. Meaningless unless

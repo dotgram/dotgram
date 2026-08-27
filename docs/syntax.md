@@ -1340,18 +1340,33 @@ The generator does not turn an unknown name into a partial-method contract.
 ### 7.5 Recognition outcomes
 
 Inside the language an outcome is an ordinary value, never an exception. The type is
-emitted by the generator into the assembly itself, `internal` like everything else
-(§6.2):
+emitted by the generator into the assembly itself:
 
 ```csharp
-readonly struct RecognitionResult<T>
+public readonly struct Match<T>
 {
-    public Outcome     Outcome    { get; }   // Success | NoMatch | Error
-    public T?          Value      { get; }
-    public SourceSpan  Span       { get; }
-    public Diagnostic? Diagnostic { get; }
+    public bool    IsSuccess { get; }   // Outcome == Outcome.Success
+    public Outcome Outcome   { get; }   // Success | NoMatch | Starved
+    public T       Value     { get; }
+    public long    Position  { get; }
+    public int     Length    { get; }
+    public string? Error     { get; }
 }
 ```
+
+`public`, unlike the support types of §6.2, because a published method hands it back
+and an `internal` type cannot appear in a `public` signature (§6.1). `Position` is a
+`long` because an input may be larger than an `int` can index (§6.3), and `Length` an
+`int` because an extent is into a buffer. `Error` is built where it is asked for
+rather than where the match failed, so a caller who only wants to know whether the
+input matched pays nothing for the words.
+
+**`Outcome` says which kind of answer this is, and the two failures differ.**
+`NoMatch` is input that was there and did not fit; `Starved` is input that ran out
+where more was needed — the answer a caller reading from a stream acts on differently
+from the one reading a finished document. Both are exact: the furthest position the
+parse reached is either the end of the input, or a place where something wanted more
+characters than remained.
 
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is

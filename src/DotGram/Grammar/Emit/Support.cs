@@ -391,6 +391,45 @@ public static partial class CSharpEmitter
 		}
 		""";
 
+	/// <summary>The name a rule may not take, like <see cref="MatchType"/>.</summary>
+	internal const string OutcomeType = "Outcome";
+
+	/// <summary>
+	/// What kind of answer a publication gave (§7.5).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>IsSuccess</c> answers the question most callers ask and stays what it was; this
+	/// answers the one the two failures differ on. Both are exact: a match either
+	/// happened or did not, and a failure either ran out of input or met input that did
+	/// not fit — the same test the wrapper already chooses its message by, which is the
+	/// point. A windowed read asks the window instead, where the input may go on past
+	/// what is held.
+	/// </para>
+	/// <para>
+	/// §7.5 also names <c>Error</c> — a failure past a commit point (§8.2). It is not
+	/// here, and deliberately: the arena does not keep "the furthest failure stands past
+	/// a commit that still holds", and a flag set where a commit happens would call an
+	/// abandoned alternative's commit an error. An outcome that is sometimes wrong is
+	/// worse than one the caller has to ask about, so this says only what it knows (see
+	/// docs/next.md).
+	/// </para>
+	/// </remarks>
+	internal const string OutcomeEnum = """
+		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
+		public enum Outcome
+		{
+			/// <summary>The input matched, and <c>Value</c> holds what it built.</summary>
+			Success,
+
+			/// <summary>The input was there and did not fit.</summary>
+			NoMatch,
+
+			/// <summary>The input ran out where more was needed.</summary>
+			Starved,
+		}
+		""";
+
 	internal const string MatchStruct = """
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
@@ -408,11 +447,11 @@ public static partial class CSharpEmitter
 			private readonly string? _otherwise;
 
 			private Match(
-				bool isSuccess, T value, long position, int length,
+				Outcome outcome, T value, long position, int length,
 				string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
 				string? otherwise)
 			{
-				IsSuccess  = isSuccess;
+				Outcome    = outcome;
 				Value      = value;
 				Position   = position;
 				Length     = length;
@@ -422,7 +461,13 @@ public static partial class CSharpEmitter
 			}
 
 			/// <summary>Whether there is a value.</summary>
-			public bool IsSuccess { get; }
+			public bool IsSuccess { get { return Outcome == Outcome.Success; } }
+
+			/// <summary>
+			/// Which kind of answer this is: the value, input that did not fit, or input
+			/// that ran out (docs/syntax.md §7.5).
+			/// </summary>
+			public Outcome Outcome { get; }
 
 			/// <summary>What was recognized. Meaningless unless <c>IsSuccess</c>.</summary>
 			public T Value { get; }
@@ -497,14 +542,14 @@ public static partial class CSharpEmitter
 
 			internal static Match<T> Success(T value, long position, int length)
 			{
-				return new Match<T>(true, value, position, length, null, null, null);
+				return new Match<T>(Outcome.Success, value, position, length, null, null, null);
 			}
 
 			internal static Match<T> Failed(
-				string otherwise, long position, string[]? expected,
+				Outcome outcome, string otherwise, long position, string[]? expected,
 				global::System.Collections.Generic.List<string[]>? tied)
 			{
-				return new Match<T>(false, default!, position, 0, expected, tied, otherwise);
+				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
 		}
 		""";
@@ -552,6 +597,36 @@ public static partial class CSharpEmitter
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>
+			/// Where something wanted more input than remained, one past the position, or
+			/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
+			/// not fit" by (§7.5).
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// A position rather than a flag, and written straight here rather than
+			/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
+			/// is whether the <em>furthest</em> failure ran out, so a room check that
+			/// failed somewhere the parse later got past answers by not matching
+			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
+			/// the automaton's own unwinding is untouched — which is why this costs a
+			/// store on a failure path and nothing anywhere else.
+			/// </para>
+			/// <para>
+			/// One past, because a zeroed struct has to mean "nowhere" and zero is a
+			/// position. Only a test wanting more than one character writes it: one
+			/// wanting a single character can only fail for want of room at the very end
+			/// of the input, which the boundary reads off <c>Position</c> itself.
+			/// </para>
+			/// </remarks>
+			// A grammar whose every test wants one character never writes this — and a
+			// field nothing assigns is a warning in somebody else's build, which for a
+			// build that treats warnings as errors is a broken compilation of a file
+			// they did not write.
+			#pragma warning disable 0649
+			public int OutOfInput;
+			#pragma warning restore 0649
 			{{reach}}
 			{{starved}}
 			{{expected}}

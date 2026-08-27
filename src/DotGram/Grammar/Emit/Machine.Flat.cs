@@ -53,6 +53,8 @@ sealed partial class Machine
 			if (UsesChar)
 				file.Line("var c = '\\0';");
 			file.Line("string[]? expected = null;");
+			// Set where a room check fails and read where a failure is recorded, so
+			// what it says is of the furthest failure and not of any (§7.5).
 
 			// Three locals per checkpoint site, and the one that says which site is
 			// innermost — the stack of open ways back, flattened into locals because a
@@ -123,7 +125,7 @@ sealed partial class Machine
 				// nothing to allocate.
 				file.Line("failure.Position = p;");
 				file.Line("failure.Expected = expected;");
-				file.Line("return -1;");
+					file.Line("return -1;");
 			}
 			else
 			{
@@ -139,11 +141,13 @@ sealed partial class Machine
 					file.Line("failure.Expected = expected;");
 					file.Line("failure.ExpectedMore = null;");
 				}
-				file.Line("else if (p == failure.Position && expected != null)");
-				file.Then(
-					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-					".Add(expected);");
-				file.Line();
+				using (file.Block("else if (p == failure.Position && expected != null)"))
+				{
+					file.Line(
+						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+						".Add(expected);");
+				}
+								file.Line();
 				file.Line("Resume:");
 				using (file.Block("switch (pending)"))
 					foreach (var site in _checkpoints.OrderBy(static site => site.Id))
@@ -389,6 +393,8 @@ sealed partial class Machine
 			if (UsesChar)
 				file.Line("var c = '\\0';");
 			file.Line("string[]? expected = null;");
+			// Set where a room check fails and read where a failure is recorded, so
+			// what it says is of the furthest failure and not of any (§7.5).
 
 			// The sentinel start is what tells an optional capture that never ran from
 			// one that matched nothing — the same convention the arena's materializer

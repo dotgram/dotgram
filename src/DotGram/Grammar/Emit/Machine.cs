@@ -686,6 +686,8 @@ sealed partial class Machine
 				if (UsesChar)
 					file.Line("var c       = '\\0';");
 				file.Line("string[]? expected = null;");
+				// Set where a room check fails and read where a failure is recorded, so
+				// what it says is of the furthest failure and not of any (§7.5).
 
 				// One per repetition written as a loop, and only where the way out that reads
 				// it was kept: a turn that cannot fail after consuming has no way back to
@@ -839,9 +841,12 @@ sealed partial class Machine
 					file.Line("failure.ExpectedMore = null;");
 				}
 				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
-				file.Then(
-					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-					".Add(expected);");
+				using (file.Block(""))
+				{
+					file.Line(
+						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+						".Add(expected);");
+				}
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
@@ -1148,6 +1153,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
+						writer.Line("failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
@@ -1187,6 +1193,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
+						writer.Line("failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
@@ -1208,6 +1215,15 @@ sealed partial class Machine
 						// did not fit actually is, not where the whole literal started.
 						if (i > 0)
 							writer.Line($"p += {i};");
+
+						// Which half of the folded test fired, asked where it is already
+						// failing: the room check stays folded into the first character's,
+						// so nothing is added to the path that matches. Only where more
+						// than one character was wanted — a test of one fails for want of
+						// room exactly at the end of the input, and the boundary reads
+						// that off the position itself (§7.5).
+						if (i == 0 && room is not null && value.Length > 1)
+							writer.Line($"if ({room}) failure.OutOfInput = p + 1;");
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -1232,20 +1248,15 @@ sealed partial class Machine
 					return state;
 				}
 
-				if (_starves)
 				{
 					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 					{
-						writer.Line("failure.Starved = true;");
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
-				}
-				else
-				{
-					writer.Line("if ((uint)p >= (uint)text.Length)");
-					using (writer.Block(""))
-						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
 				if (test != "true")
@@ -2407,6 +2418,7 @@ sealed partial class Machine
 				if (_starves)
 					writer.Line("failure.Starved = true;");
 
+				writer.Line("failure.OutOfInput = p + 1;");
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 
@@ -2637,20 +2649,13 @@ sealed partial class Machine
 		// below.
 		var arrayName = DeclareExpected([PredictedDisplay(alternatives)]);
 
-		if (_starves)
+		writer.Line("if ((uint)p >= (uint)text.Length)");
+		using (writer.Block(""))
 		{
-			writer.Line("if ((uint)p >= (uint)text.Length)");
-			using (writer.Block(""))
-			{
+			if (_starves)
 				writer.Line("failure.Starved = true;");
-				EmitTerminalFailure(writer, _fail, arrayName);
-			}
-		}
-		else
-		{
-			writer.Line("if ((uint)p >= (uint)text.Length)");
-			using (writer.Block(""))
-				EmitTerminalFailure(writer, _fail, arrayName);
+
+			EmitTerminalFailure(writer, _fail, arrayName);
 		}
 
 		writer.Line("c = text[p];");

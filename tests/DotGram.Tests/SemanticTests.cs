@@ -976,6 +976,45 @@ public sealed class SemanticTests
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 
+	// ── What a publication answers with (§7.5) ──────────────────────────────────
+
+	[Theory]
+	[InlineData("ab",  "Success")]
+	[InlineData("ax",  "NoMatch")]
+	[InlineData("a",   "Starved")]
+	[InlineData("",    "Starved")]
+	[InlineData("abc", "NoMatch")]
+	public void A_match_says_which_kind_of_answer_it_is(string input, string expected)
+	{
+		// §7.5: `IsSuccess` answers the question most callers ask; `Outcome` answers the
+		// one the two failures differ on. Input that ran out is not input that did not
+		// fit — a caller reading a stream wants a longer read, one reading a document
+		// wants a message — and both are exact: the furthest the parse followed is
+		// either the end of the input or a character that did not belong there.
+		var result = Compile("""
+			Start = "ab"
+			parse Start
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(expected, EmittedCode.Outcome(assembly, "Grammar", "TryParseStart", input));
+	}
+
+	[Fact]
+	public void And_IsSuccess_still_answers_what_it_always_did()
+	{
+		// Kept as it was, and now derived: one property is what the other says about
+		// success, so the two can never disagree.
+		var result = Compile("Start = \"ab\"\nparse Start");
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ax").IsSuccess);
+	}
+
 	[Fact]
 	public void A_parameter_declared_as_a_C_sharp_type_takes_a_literal_of_that_type()
 	{
