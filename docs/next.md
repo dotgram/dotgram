@@ -3947,3 +3947,23 @@ Url 2.48-2.57 vs 2.40-2.58). If a fifth more traffic per entry is invisible, a
 third less cannot be visible either: at these arena sizes the entries live in cache
 and the stores forward. Packing is declined without being built - the padding proxy
 is the measurement - and the fields stay whole ints a debugger can read.
+
+## Built: a lookahead's demand is a first set, and it settled the tower
+
+The trace of Url.gram put 23% of all steps into fail/resume pairs, 128 of them - one
+per operand - resuming the exit of `Prefixed`'s optional `("?=" | "?!")?`. The
+optional's body begins with '?', nothing after it can, and it still compiled as the
+general machinery. The chain led to one line: `CsExpr = ?="@(" & text: @CSharp` has
+first set "anything", because `Following` skipped the lookahead as consuming nothing
+and then met the external, whose honest answer is All - and that one answer poisoned
+every first set the C# expression is reachable from, which is every operand of the
+notation. The `?="@("` guard had been added to spare the runtime the speculative
+scanner call; the analyses never heard about it.
+
+Now they do. `First.And` is intersection - the one asymmetry to `Or` is that
+"anything" is its identity, not its absorber - and `Following` holds a positive
+lookahead met before anything could consume as a constraint on what the rest begins
+with, dropped as soon as a part may have moved the position. `?="@(" & @CSharp`
+begins with '@', whatever the external would say for itself. No emission changed for
+any snapshot grammar; the notation's own optionals began to settle: 7,995 trace steps
+became 7,011.

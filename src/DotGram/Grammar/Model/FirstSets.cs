@@ -126,6 +126,42 @@ public static class FirstSets
 			return Chars(ranges, Ends || other.Ends);
 		}
 
+		/// <summary>
+		/// What both admit — how a lookahead's demand narrows what a sequence begins with.
+		/// </summary>
+		/// <remarks>
+		/// The one asymmetry to <see cref="Or"/>: "anything" is the identity here rather
+		/// than the absorber, which is exactly what makes a known constraint survive an
+		/// unknown operand — <c>?="@(" &amp; text: @CSharp</c> begins with <c>'@'</c>,
+		/// whatever the external would say for itself.
+		/// </remarks>
+		public First And(First other)
+		{
+			if (other.Anything)           return this;
+			if (Anything)                 return other;
+			if (Nothing || other.Nothing) return None;
+
+			var shared = new List<CharRange>();
+			var mine   = 0;
+			var theirs = 0;
+
+			while (mine < Ranges.Count && theirs < other.Ranges.Count)
+			{
+				var from = (char)Math.Max(Ranges[mine].From, other.Ranges[theirs].From);
+				var to   = (char)Math.Min(Ranges[mine].To,   other.Ranges[theirs].To);
+
+				if (from <= to)
+					shared.Add(new CharRange(from, to));
+
+				if (Ranges[mine].To < other.Ranges[theirs].To)
+					mine++;
+				else
+					theirs++;
+			}
+
+			return Chars(shared, Ends && other.Ends);
+		}
+
 		/// <summary>Whether this says everything that one does.</summary>
 		/// <remarks>What a fixed point is reached by: nothing new was said this time round.</remarks>
 		public bool Covers(First other)
@@ -292,12 +328,33 @@ public static class FirstSets
 		var ranges  = new List<CharRange>();
 		var nothing = true;
 
+		// A positive lookahead met before anything could consume is a constraint on
+		// everything after it: whatever the rest begins with must also be what the
+		// lookahead's body begins with, here. It is what lets `?="@(" & text: @CSharp`
+		// begin with '@' — the external alone can only answer "anything", and that one
+		// answer used to poison every first set the C# expression was reachable from,
+		// which is every operand of the notation.
+		First? expects = null;
+
 		for (var i = from; i < parts.Count; i++)
 		{
 			if (IsSeamCall(parts[i], seam))
 				continue;
 
+			if (nothing &&
+				parts[i] is Node.Lookahead(true, var expected) &&
+				!Nullable(expected, graph) &&
+				Of(expected, graph, seen) is { IsKnown: true } ahead)
+			{
+				expects = expects is { } held ? held.And(ahead) : ahead;
+
+				continue;
+			}
+
 			var first = Of(parts[i], graph, seen);
+
+			if (expects is { } bound)
+				first = first.And(bound);
 
 			if (first.Anything)
 				return First.All;
@@ -312,6 +369,10 @@ public static class FirstSets
 			// it could be what actually follows.
 			if (!Nullable(parts[i], graph))
 				break;
+
+			// Past a part that may have consumed, the position is no longer where the
+			// lookahead looked, and the constraint may not be carried further.
+			expects = null;
 		}
 
 		return nothing ? First.None : First.Chars(ranges);
