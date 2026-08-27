@@ -17,7 +17,12 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.VisualStudio;
 
 internal readonly record struct HostDslClassification(TextSpan Span, string Role);
-internal readonly record struct HostDslSite(TextSpan Span, string LanguageId, string EntryRule);
+internal readonly record struct HostDslSite(
+	TextSpan Span,
+	string LanguageId,
+	string EntryRule,
+	int CompletionPosition,
+	IReadOnlyList<string> Expected);
 
 internal sealed class DslEmbeddedSiteResult(
 	IReadOnlyList<HostDslClassification> classifications,
@@ -153,16 +158,18 @@ internal static class DslEmbeddedSiteAnalysis
 			var prepared = route.Prepared;
 			var publication = route.Publication;
 
-			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan))
-				sites.Add(new HostDslSite(
-					siteSpan,
-					carrier.Id,
-					publication.Rule.Name));
-
 			var trace = DslRecognitionTrace.Recognize(
 				prepared.Graph,
 				publication,
 				literal.Token.ValueText);
+			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan) &&
+				sourceMap.TryMap(trace.FailurePosition, 0, out var completionSpan))
+				sites.Add(new HostDslSite(
+					siteSpan,
+					carrier.Id,
+					publication.Rule.Name,
+					completionSpan.Start,
+					trace.Expected));
 			foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
 				if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
 					classifications.Add(new HostDslClassification(mapped, classified.Role));

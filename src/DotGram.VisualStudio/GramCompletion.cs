@@ -96,6 +96,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		SnapshotSpan applicableToSpan,
 		CancellationToken token)
 	{
+		var dslItems = DslCompletions(triggerLocation);
+		if (dslItems.Count > 0)
+		{
+			_descriptions.Clear();
+			_csharpItems.Clear();
+			return new CompletionContext(dslItems.Select(DslCompletion).ToImmutableArray());
+		}
+
 		if (GramCSharpCompletionContext.TryGetPrefix(
 			triggerLocation.Snapshot.GetText(), triggerLocation.Position, out var prefix))
 		{
@@ -153,6 +161,23 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
 	protected abstract Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
 		string prefix, CancellationToken cancellationToken);
+	protected virtual IReadOnlyList<string> DslCompletions(SnapshotPoint point) => [];
+
+	CompletionItem DslCompletion(string expected)
+	{
+		var insertion = expected.Substring(1, expected.Length - 2);
+		_descriptions[insertion] = $"DotGram expected literal: {expected}";
+		return new CompletionItem(
+			insertion,
+			this,
+			ImageElement.Empty,
+			ImmutableArray<CompletionFilter>.Empty,
+			"",
+			insertion,
+			insertion,
+			insertion,
+			ImmutableArray<ImageElement>.Empty);
+	}
 
 	protected readonly struct RuleCompletion(string description, string signature, int parameterCount)
 	{
@@ -244,12 +269,24 @@ sealed class EmbeddedGramCompletionSource(
 {
 	protected override bool IsApplicable(SnapshotPoint point)
 	{
-		if (point.Snapshot.TextBuffer != buffer ||
-			!analysis.TryGet(point.Snapshot, out var classifications, out _))
+		if (point.Snapshot.TextBuffer != buffer)
 			return false;
 
-		return classifications.Any(item => item.GrammarSpan.Contains(point.Position));
+		return analysis.TryGet(point.Snapshot, out var classifications, out _) &&
+			classifications.Any(item => item.GrammarSpan.Contains(point.Position)) ||
+			analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected) &&
+			LiteralCompletions(expected).Count > 0;
 	}
+
+	protected override IReadOnlyList<string> DslCompletions(SnapshotPoint point) =>
+		analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected)
+			? LiteralCompletions(expected)
+			: [];
+
+	static IReadOnlyList<string> LiteralCompletions(IReadOnlyList<string> expected) => expected
+		.Where(static item => item.Length >= 2 && item[0] == '"' && item[item.Length - 1] == '"')
+		.Distinct(StringComparer.Ordinal)
+		.ToArray();
 
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
 	{

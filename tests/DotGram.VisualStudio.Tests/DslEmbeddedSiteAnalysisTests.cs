@@ -46,6 +46,22 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
+	public async Task ExposesLiteralCompletionsAtTheRecognitionFailurePosition()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(Source(""));
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		var site = Assert.Single(result.Sites);
+		Assert.Contains("\"let\"", site.Expected);
+		Assert.Equal(text.ToString().IndexOf("new Query(\"\")", StringComparison.Ordinal) + "new Query(\"".Length, site.CompletionPosition);
+	}
+
+	[Fact]
 	public async Task ReportsRecognitionFailureInsideCustomAttributeString()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;

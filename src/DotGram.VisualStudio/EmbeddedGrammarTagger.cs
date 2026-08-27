@@ -337,6 +337,22 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
+	public bool TryGetDslCompletions(
+		ITextSnapshot snapshot,
+		int position,
+		out IReadOnlyList<string> expected)
+	{
+		if (TryGetDslSites(snapshot, out var sites) &&
+			sites.FirstOrDefault(site => site.CompletionPosition == position) is { Expected.Count: > 0 } site)
+		{
+			expected = site.Expected;
+			return true;
+		}
+
+		expected = [];
+		return false;
+	}
+
 	public bool TryGetPublishedApis(
 		ITextSnapshot snapshot,
 		out IReadOnlyList<HostPublishedApi> publishedApis)
@@ -574,7 +590,9 @@ sealed class EmbeddedGrammarBufferAnalysis
 		sites.Select(item => new HostDslSite(
 			Translate(item.Span, source, target),
 			item.LanguageId,
-			item.EntryRule)).ToArray();
+			item.EntryRule,
+			Translate(new TextSpan(item.CompletionPosition, 0), source, target).Start,
+			item.Expected)).ToArray();
 
 	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
 	{

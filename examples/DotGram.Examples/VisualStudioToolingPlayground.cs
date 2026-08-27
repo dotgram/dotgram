@@ -109,7 +109,7 @@ public static class ToolingQueryExample
 // Multiple-publication DSL check. Each generated method must select its own entry rule.
 [Gram("""
 	trivia       = [' ' | '\t']*
-	SelectWord   = "select"
+	SelectWord   = "select" | "choose"
 	CountWord    = "count"
 	Identifier   = ['a'..'z']+
 	SelectQuery  = SelectWord & field: (Identifier)
@@ -130,4 +130,8 @@ public static class MultiQueryExample
 {
 	public static object Select() => MultiQueryLanguage.ParseSelectQuery("select customer");
 	public static object Count() => MultiQueryLanguage.ParseCountQuery("count customer");
+
+	// Put the caret inside the empty string and press Ctrl+Space: `select` and `choose`
+	// should be offered as DotGram literals.
+	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("");
 }
