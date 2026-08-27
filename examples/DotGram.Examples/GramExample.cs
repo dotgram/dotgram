@@ -179,7 +179,11 @@ namespace DotGram.Examples;
 		| '{' & body: Body & '}' => @(new GramGroup(body, true))
 
 	Value : @string  = text: (CsExpr | RefOrCall) => @(text)
-	CsExpr : @string = text: @CSharp => @(text)
+	// The lookahead is the recognizer's first set, said in the grammar: §7.1 gives an
+	// external no first set of its own, so without it every reference paid a
+	// speculative call into the C# scanner just to hear "no". The hand-written lexer
+	// makes the same two-character check before reading an expression.
+	CsExpr : @string = ?="@(" & text: @CSharp => @(text)
 
 	// One parse of the name, whatever follows it. Written `Call | Reference` this read
 	// every bare reference twice — once inside the failing `Call`, once as itself — and
