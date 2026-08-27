@@ -124,6 +124,8 @@ public static class ToolingQueryExample
 [GramClassify("SelectWord", GramClassification.Keyword)]
 [GramClassify("CountWord", GramClassification.Keyword)]
 [GramClassify("Operator", GramClassification.Operator)]
+[GramClassify("Operation.left", GramClassification.Variable)]
+[GramClassify("Operation.right", GramClassification.Variable)]
 [GramClassify("SelectQuery.field", GramClassification.Variable)]
 [GramClassify("CountQuery.field", GramClassification.Variable)]
 public static partial class MultiQueryLanguage

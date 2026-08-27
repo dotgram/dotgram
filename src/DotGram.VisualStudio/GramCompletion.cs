@@ -283,9 +283,7 @@ sealed class EmbeddedGramCompletionSource(
 			: [];
 
 	static IReadOnlyList<DslLiteralCompletion> LiteralCompletions(IReadOnlyList<string> expected) => expected
-		.Select(DslLiteralCompletionParser.Parse)
-		.Where(static item => item is not null)
-		.Select(static item => item!.Value)
+		.SelectMany(DslLiteralCompletionParser.ParseAll)
 		.Distinct()
 		.ToArray();
 
@@ -333,6 +331,22 @@ internal readonly record struct DslLiteralCompletion(string Display, string Inse
 
 internal static class DslLiteralCompletionParser
 {
+	public static IReadOnlyList<DslLiteralCompletion> ParseAll(string expected)
+	{
+		if (Parse(expected) is { } literal)
+			return [literal];
+		if (expected.Length < 2 || expected[0] != '[' || expected[expected.Length - 1] != ']')
+			return [];
+
+		var parts = expected.Substring(1, expected.Length - 2).Split(
+			new[] { " | " },
+			StringSplitOptions.None);
+		var result = parts.Select(Parse).ToArray();
+		return result.All(static item => item is not null)
+			? result.Select(static item => item!.Value).ToArray()
+			: [];
+	}
+
 	public static DslLiteralCompletion? Parse(string expected)
 	{
 		var literal = expected.EndsWith("i", StringComparison.Ordinal)

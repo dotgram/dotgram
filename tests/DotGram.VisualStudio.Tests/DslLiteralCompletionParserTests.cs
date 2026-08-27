@@ -1,3 +1,5 @@
+using System.Linq;
+
 using DotGram.VisualStudio;
 
 using Xunit;
@@ -26,4 +28,13 @@ public sealed class DslLiteralCompletionParserTests
 	[InlineData("end of input")]
 	public void RejectsNonLiteralExpectations(string expected) =>
 		Assert.Null(DslLiteralCompletionParser.Parse(expected));
+
+	[Fact]
+	public void ExpandsFiniteCharacterSetButNotRange()
+	{
+		Assert.Equal(
+			new[] { "+", "-" },
+			DslLiteralCompletionParser.ParseAll("['+' | '-']").Select(static item => item.Insertion));
+		Assert.Empty(DslLiteralCompletionParser.ParseAll("['a'..'z']"));
+	}
 }

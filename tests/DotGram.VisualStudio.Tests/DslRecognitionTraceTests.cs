@@ -97,6 +97,24 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	[Fact]
+	public void ReportsOperatorAlternativesAfterTrailingTrivia()
+	{
+		var (graph, publication) = Compile("""
+			trivia    = [' ' | '\t']*
+			Identifier = ['a'..'z']+
+			Operator   = '+' | '-'
+			Operation  = Identifier & Operator & Identifier
+			parse Operation
+			""");
+
+		var result = DslRecognitionTrace.Recognize(graph, publication, "customer ");
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.Equal("customer ".Length, result.FailurePosition);
+		Assert.Contains("['+' | '-']", result.Expected);
+	}
+
+	[Fact]
 	public void DoesNotGuessWhenRecognitionRequiresUserCode()
 	{
 		var rule = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);
