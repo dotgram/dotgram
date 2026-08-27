@@ -3159,6 +3159,29 @@ sealed partial class Machine
 
 		LeaveRepeat(atExit, next);
 
+		// A repetition that may take nothing, met where its body cannot begin, takes
+		// nothing — and one character says so before the machinery is built, where the
+		// machinery is a Repeat entry, a way out, a failed probe and their unwinding.
+		// The same test a choice link makes before going into an alternative, kept for
+		// the same measured reason; unlike the settled form above, entering commits to
+		// nothing — every way back the general machinery keeps is still kept.
+		if (min == 0 && Decidable(body) is { } could)
+		{
+			_usesChar = true;
+
+			var probed = Reserve(out var atProbe);
+
+			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
+			{
+				atProbe.Line("c = text[p];");
+				atProbe.Line($"if ({RangesTest(could.Ranges)}) goto {Label(entry)};");
+			}
+
+			atProbe.Line($"goto {Label(next)};");
+
+			return probed;
+		}
+
 		return entry;
 	}
 

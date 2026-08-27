@@ -3967,3 +3967,26 @@ with, dropped as soon as a part may have moved the position. `?="@(" & @CSharp`
 begins with '@', whatever the external would say for itself. No emission changed for
 any snapshot grammar; the notation's own optionals began to settle: 7,995 trace steps
 became 7,011.
+
+## Built: one character before the machinery, on every repetition that may take nothing
+
+What remained after the tower settled was honest ambiguity paying dishonest rent:
+`recovery: Recovery?` and `rebound: With?` stay unsettled because `recover` and
+`with` collide with an identifier at a rule boundary - the diary's own "`recover`
+against a rule named `recover`" - but the machinery ran at every operand, where even
+the first character did not match: a Repeat entry, a pushed way out, a failed probe,
+its dispatch, and the leave, to learn that '&' is not 'r'.
+
+The fix is the test a choice link has made since it was measured worth making: a
+repetition with `min == 0` whose body's first set is known is entered through one
+character. Outside the set, the body cannot begin, so the repetition takes nothing
+and the machinery is never built; inside it, everything is exactly as before - every
+way back the general form keeps is kept, because entering commits to nothing. The
+settled optional's char-test form stays what it was; this is its unsettled sibling.
+
+Url.gram's trace: 7,995 steps at the day's start, 7,011 after the first sets, 4,523
+now - fail/resume pairs 921 to 201 - and what remains is 62% completion ceremony,
+the measured floor. Corpus, Release, three runs: Csv 1.33, Feed 1.71, Minimal 1.38,
+Url 1.75, from 1.74 / 2.35 / 1.83 / 2.53 - the largest single step of the series,
+and the lexical design's own targets (Csv at or under 1.5, Url under 2) reached
+without a token in sight.

@@ -199,51 +199,51 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S75;
+					case 3: goto S81;
 					case 24: goto S24;
 					case 29: goto S29;
-					case 39: goto S39;
-					case 44: goto S44;
-					case 55: goto S55;
+					case 41: goto S41;
+					case 46: goto S46;
 					case 59: goto S59;
-					case 69: goto S69;
-					case 77: goto S77;
-					case 81: goto S81;
-					case 89: goto S89;
-					case 90: goto S90;
-					case 93: goto S93;
-					case 123: goto S123;
-					case 136: goto S136;
-					case 151: goto S151;
-					case 173: goto S173;
-					case 189: goto S189;
-					case 220: goto S220;
-					case 254: goto S254;
-					case 270: goto S270;
-					case 301: goto S301;
-					case 346: goto S346;
-					case 362: goto S362;
-					case 393: goto S393;
-					case 416: goto S416;
-					case 442: goto S442;
-					case 458: goto S458;
-					case 489: goto S489;
-					case 512: goto S512;
-					case 538: goto S538;
-					case 554: goto S554;
-					case 585: goto S585;
-					case 608: goto S608;
-					case 635: goto S635;
-					case 666: goto S666;
-					case 689: goto S689;
-					case 705: goto S705;
-					case 736: goto S736;
-					case 759: goto S759;
-					case 778: goto S778;
+					case 63: goto S63;
+					case 75: goto S75;
+					case 83: goto S83;
+					case 87: goto S87;
+					case 96: goto S96;
+					case 97: goto S97;
+					case 100: goto S100;
+					case 130: goto S130;
+					case 143: goto S143;
+					case 159: goto S159;
+					case 181: goto S181;
+					case 198: goto S198;
+					case 229: goto S229;
+					case 263: goto S263;
+					case 280: goto S280;
+					case 311: goto S311;
+					case 356: goto S356;
+					case 373: goto S373;
+					case 404: goto S404;
+					case 427: goto S427;
+					case 453: goto S453;
+					case 470: goto S470;
+					case 501: goto S501;
+					case 524: goto S524;
+					case 550: goto S550;
+					case 567: goto S567;
+					case 598: goto S598;
+					case 621: goto S621;
+					case 648: goto S648;
+					case 679: goto S679;
+					case 702: goto S702;
+					case 718: goto S718;
+					case 749: goto S749;
+					case 772: goto S772;
+					case 791: goto S791;
 					default: expected = null; goto Fail;
 				}
 
-				S75:
+				S81:
 				{
 					capture0 = p;
 				}
@@ -252,23 +252,23 @@ namespace DotGram.Snapshots
 					if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
 					{
 						p += 5;
-						goto S73;
+						goto S79;
 					}
 					if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 					{
 						p += 4;
-						goto S73;
+						goto S79;
 					}
 					if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
 					{
 						p += 3;
-						goto S73;
+						goto S79;
 					}
 					expected = Recognize_DotGram_Expected8;
 					goto Fail;
 				}
 
-				S73:
+				S79:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
 					Trace("capture", 0, p, entries.Count, text, "Url");
@@ -298,243 +298,20 @@ namespace DotGram.Snapshots
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 69, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 75, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Authority", 5, p, entries.Count, text, "Url");
 				}
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 779, p, entries.Count, text, "Authority");
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '!' || (c >= '$' && c <= '.') || (c >= '0' && c <= ';') || c == '=' || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S794;
+					}
 				}
 
-				S779:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S778;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 778, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					capture5 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected18;
-						goto Fail;
-					}
-					c = text[p];
-					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S784; }
-					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S784; }
-					if (c == '%') goto S793;
-					if (c == ':') goto S794;
-					expected = Recognize_DotGram_Expected18;
-					goto Fail;
-				}
-
-				S794:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				S784:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected18;
-						goto S785;
-					}
-					c = text[p];
-					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S784; }
-					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S784; }
-					if (c == '%') goto S788;
-					if (c == ':') goto S789;
-					expected = Recognize_DotGram_Expected18;
-				}
-
-				S785:
-				{
-					p = turn0;
-				}
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
-					Trace("capture", 5, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected17;
-						goto Fail;
-					}
-					if (text[p] != '@')
-					{
-						expected = Recognize_DotGram_Expected17;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S779;
-				}
-
-				S789:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto S785;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto S785;
-					}
-					p += 1;
-					goto S784;
-				}
-
-				S788:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected1;
-						goto S785;
-					}
-					if (text[p] != '%')
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto S785;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S785;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S785;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S785;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S785;
-					}
-					p++;
-					goto S784;
-				}
-
-				S793:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					if (text[p] != '%')
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-					goto S784;
-				}
-
-				S778:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 777, p, entries.Count, text, "Authority");
-				}
-
+				S790:
 				{
 					capture6 = p;
 				}
@@ -543,10 +320,10 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c == '[')) goto S123;
+						if (!(c == '[')) goto S130;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 123, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 123, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 130, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 130, p, entries.Count, text, "Authority");
 				}
 
 				{
@@ -568,27 +345,27 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S705;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S718;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 705, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 705, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 718, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 718, p, entries.Count, text, "Authority");
 				}
 
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 760, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 773, p, entries.Count, text, "Authority");
 				}
 
-				S760:
+				S773:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 6) goto S759;
+					if (repeating.Value >= 6) goto S772;
 					if (repeating.Value >= 6)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 759, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 772, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -616,18 +393,141 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S770;
+						goto S783;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S770;
+						goto S783;
 					}
 					p++;
 				}
 
-				S769:
+				S782:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S780;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S780;
+					}
+					p++;
+				}
+
+				S779:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S777;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S777;
+					}
+					p++;
+				}
+
+				S776:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S773;
+				}
+
+				S777:
+				{
+					p = turn0;
+					goto S776;
+				}
+
+				S780:
+				{
+					p = turn0;
+					goto S779;
+				}
+
+				S783:
+				{
+					p = turn0;
+					goto S782;
+				}
+
+				S772:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 771, p, entries.Count, text, "Authority");
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S749;
+						if (!((c >= '0' && c <= '9'))) goto S770;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 749, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 749, p, entries.Count, text, "Authority");
+				}
+
+				S770:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -671,87 +571,6 @@ namespace DotGram.Snapshots
 
 				S763:
 				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S760;
-				}
-
-				S764:
-				{
-					p = turn0;
-					goto S763;
-				}
-
-				S767:
-				{
-					p = turn0;
-					goto S766;
-				}
-
-				S770:
-				{
-					p = turn0;
-					goto S769;
-				}
-
-				S759:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 758, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S736;
-						if (!((c >= '0' && c <= '9'))) goto S757;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 736, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 736, p, entries.Count, text, "Authority");
-				}
-
-				S757:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -760,60 +579,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S754;
+						goto S761;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S754;
+						goto S761;
 					}
 					p++;
 				}
 
-				S753:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S751;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S751;
-					}
-					p++;
-				}
-
-				S750:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S748;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S748;
-					}
-					p++;
-				}
-
-				S747:
+				S760:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -854,18 +631,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S743;
+						goto S756;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S743;
+						goto S756;
 					}
 					p++;
 				}
 
-				S742:
+				S755:
 				{
 					turn0 = p;
 				}
@@ -875,18 +652,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S740;
+						goto S753;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S740;
+						goto S753;
 					}
 					p++;
 				}
 
-				S739:
+				S752:
 				{
 					turn0 = p;
 				}
@@ -896,18 +673,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S737;
+						goto S750;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S737;
+						goto S750;
 					}
 					p++;
 				}
 
-				S124:
+				S131:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -923,26 +700,36 @@ namespace DotGram.Snapshots
 					p += 1;
 				}
 
-				S89:
+				S96:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
 					Trace("capture", 6, p, entries.Count, text, "Authority");
 				}
 
 				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == ':') goto S86;
+					}
+					goto Return;
+				}
+
+				S86:
+				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 78, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 84, p, entries.Count, text, "Authority");
 				}
 
-				S78:
+				S84:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S77;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 77, p, call, atomic, repeat, lookahead, 0));
+					if (repeating.Value >= 1) goto S83;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 83, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -964,16 +751,16 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 82, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 88, p, entries.Count, text, "Authority");
 				}
 
-				S82:
+				S88:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 81, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 87, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -1006,10 +793,10 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S82;
+					goto S88;
 				}
 
-				S81:
+				S87:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1018,7 +805,7 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 79, p, entries.Count, text, "Authority");
+					Trace("leave repeat", 85, p, entries.Count, text, "Authority");
 				}
 
 				{
@@ -1026,10 +813,10 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S78;
+					goto S84;
 				}
 
-				S77:
+				S83:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1042,43 +829,43 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S737:
+				S750:
 				{
 					p = turn0;
-					goto S124;
+					goto S131;
 				}
 
-				S740:
+				S753:
 				{
 					p = turn0;
-					goto S739;
+					goto S752;
 				}
 
-				S743:
+				S756:
 				{
 					p = turn0;
-					goto S742;
+					goto S755;
 				}
 
-				S748:
+				S761:
 				{
 					p = turn0;
-					goto S747;
+					goto S760;
 				}
 
-				S751:
+				S764:
 				{
 					p = turn0;
-					goto S750;
+					goto S763;
 				}
 
-				S754:
+				S767:
 				{
 					p = turn0;
-					goto S753;
+					goto S766;
 				}
 
-				S736:
+				S749:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -1104,18 +891,143 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S733;
+						goto S746;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S733;
+						goto S746;
 					}
 					p++;
 				}
 
-				S732:
+				S745:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S743;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S743;
+					}
+					p++;
+				}
+
+				S742:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S738;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S738;
+					}
+					p++;
+				}
+
+				S737:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S735;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S735;
+					}
+					p++;
+				}
+
+				S734:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -1138,6 +1050,27 @@ namespace DotGram.Snapshots
 
 				S729:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S727;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S727;
+					}
+					p++;
+				}
+
+				S726:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -1168,27 +1101,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S725;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S725;
-					}
-					p++;
-				}
-
-				S724:
 				{
 					turn0 = p;
 				}
@@ -1211,37 +1123,6 @@ namespace DotGram.Snapshots
 
 				S721:
 				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -1250,134 +1131,22 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S717;
+						goto S719;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S717;
+						goto S719;
 					}
 					p++;
+					goto S131;
 				}
 
-				S716:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S714;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S714;
-					}
-					p++;
-				}
-
-				S713:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S709;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S709;
-					}
-					p++;
-				}
-
-				S708:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S706;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S706;
-					}
-					p++;
-					goto S124;
-				}
-
-				S706:
+				S719:
 				{
 					p = turn0;
-					goto S124;
-				}
-
-				S709:
-				{
-					p = turn0;
-					goto S708;
-				}
-
-				S714:
-				{
-					p = turn0;
-					goto S713;
-				}
-
-				S717:
-				{
-					p = turn0;
-					goto S716;
+					goto S131;
 				}
 
 				S722:
@@ -1386,10 +1155,10 @@ namespace DotGram.Snapshots
 					goto S721;
 				}
 
-				S725:
+				S727:
 				{
 					p = turn0;
-					goto S724;
+					goto S726;
 				}
 
 				S730:
@@ -1398,21 +1167,39 @@ namespace DotGram.Snapshots
 					goto S729;
 				}
 
-				S733:
+				S735:
 				{
 					p = turn0;
-					goto S732;
+					goto S734;
 				}
 
-				S705:
+				S738:
+				{
+					p = turn0;
+					goto S737;
+				}
+
+				S743:
+				{
+					p = turn0;
+					goto S742;
+				}
+
+				S746:
+				{
+					p = turn0;
+					goto S745;
+				}
+
+				S718:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c == ':')) goto S635;
+						if (!(c == ':')) goto S648;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 635, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 635, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 648, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 648, p, entries.Count, text, "Authority");
 				}
 
 				{
@@ -1436,17 +1223,17 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 690, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 703, p, entries.Count, text, "Authority");
 				}
 
-				S690:
+				S703:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 5) goto S689;
+					if (repeating.Value >= 5) goto S702;
 					if (repeating.Value >= 5)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 689, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 702, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -1474,18 +1261,141 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S700;
+						goto S713;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S700;
+						goto S713;
 					}
 					p++;
 				}
 
-				S699:
+				S712:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S710;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S710;
+					}
+					p++;
+				}
+
+				S709:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S707;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S707;
+					}
+					p++;
+				}
+
+				S706:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S703;
+				}
+
+				S707:
+				{
+					p = turn0;
+					goto S706;
+				}
+
+				S710:
+				{
+					p = turn0;
+					goto S709;
+				}
+
+				S713:
+				{
+					p = turn0;
+					goto S712;
+				}
+
+				S702:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 701, p, entries.Count, text, "Authority");
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S679;
+						if (!((c >= '0' && c <= '9'))) goto S700;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 679, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 679, p, entries.Count, text, "Authority");
+				}
+
+				S700:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -1529,6 +1439,27 @@ namespace DotGram.Snapshots
 
 				S693:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S691;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S691;
+					}
+					p++;
+				}
+
+				S690:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -1544,10 +1475,105 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S686;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S686;
+					}
+					p++;
+				}
+
+				S685:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S683;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S683;
+					}
+					p++;
+				}
+
+				S682:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S680;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S680;
+					}
+					p++;
+					goto S131;
+				}
+
+				S680:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S683:
+				{
+					p = turn0;
+					goto S682;
+				}
+
+				S686:
+				{
+					p = turn0;
+					goto S685;
+				}
+
+				S691:
+				{
+					p = turn0;
 					goto S690;
 				}
 
@@ -1563,47 +1589,18 @@ namespace DotGram.Snapshots
 					goto S696;
 				}
 
-				S700:
-				{
-					p = turn0;
-					goto S699;
-				}
-
-				S689:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 688, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S666;
-						if (!((c >= '0' && c <= '9'))) goto S687;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 666, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 666, p, entries.Count, text, "Authority");
-				}
-
-				S687:
+				S679:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					p++;
@@ -1617,19 +1614,19 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S684;
+						expected = Recognize_DotGram_Expected9;
+						goto S676;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S684;
+						expected = Recognize_DotGram_Expected9;
+						goto S676;
 					}
 					p++;
 				}
 
-				S683:
+				S675:
 				{
 					turn0 = p;
 				}
@@ -1638,50 +1635,29 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S681;
+						expected = Recognize_DotGram_Expected9;
+						goto S673;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S681;
+						expected = Recognize_DotGram_Expected9;
+						goto S673;
 					}
 					p++;
 				}
 
-				S680:
-				{
-					turn0 = p;
-				}
-
+				S672:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S678;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S678;
-					}
-					p++;
-				}
-
-				S677:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
+						expected = Recognize_DotGram_Expected13;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (text[p] != '.')
 					{
-						expected = Recognize_DotGram_Expected10;
+						expected = Recognize_DotGram_Expected13;
 						goto Fail;
 					}
 					p += 1;
@@ -1691,13 +1667,13 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					p++;
@@ -1711,115 +1687,20 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S673;
+						expected = Recognize_DotGram_Expected9;
+						goto S668;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S673;
+						expected = Recognize_DotGram_Expected9;
+						goto S668;
 					}
 					p++;
-				}
-
-				S672:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S670;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S670;
-					}
-					p++;
-				}
-
-				S669:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S667;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S667;
-					}
-					p++;
-					goto S124;
 				}
 
 				S667:
 				{
-					p = turn0;
-					goto S124;
-				}
-
-				S670:
-				{
-					p = turn0;
-					goto S669;
-				}
-
-				S673:
-				{
-					p = turn0;
-					goto S672;
-				}
-
-				S678:
-				{
-					p = turn0;
-					goto S677;
-				}
-
-				S681:
-				{
-					p = turn0;
-					goto S680;
-				}
-
-				S684:
-				{
-					p = turn0;
-					goto S683;
-				}
-
-				S666:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -1828,18 +1709,49 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S663;
+						goto S665;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S663;
+						goto S665;
 					}
 					p++;
 				}
 
-				S662:
+				S664:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -1862,6 +1774,27 @@ namespace DotGram.Snapshots
 
 				S659:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S657;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S657;
+					}
+					p++;
+				}
+
+				S656:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -1892,27 +1825,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S655;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S655;
-					}
-					p++;
-				}
-
-				S654:
 				{
 					turn0 = p;
 				}
@@ -1935,37 +1847,6 @@ namespace DotGram.Snapshots
 
 				S651:
 				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -1974,134 +1855,22 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S647;
+						goto S649;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S647;
+						goto S649;
 					}
 					p++;
+					goto S131;
 				}
 
-				S646:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S644;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S644;
-					}
-					p++;
-				}
-
-				S643:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S639;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S639;
-					}
-					p++;
-				}
-
-				S638:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S636;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S636;
-					}
-					p++;
-					goto S124;
-				}
-
-				S636:
+				S649:
 				{
 					p = turn0;
-					goto S124;
-				}
-
-				S639:
-				{
-					p = turn0;
-					goto S638;
-				}
-
-				S644:
-				{
-					p = turn0;
-					goto S643;
-				}
-
-				S647:
-				{
-					p = turn0;
-					goto S646;
+					goto S131;
 				}
 
 				S652:
@@ -2110,10 +1879,10 @@ namespace DotGram.Snapshots
 					goto S651;
 				}
 
-				S655:
+				S657:
 				{
 					p = turn0;
-					goto S654;
+					goto S656;
 				}
 
 				S660:
@@ -2122,32 +1891,50 @@ namespace DotGram.Snapshots
 					goto S659;
 				}
 
-				S663:
+				S665:
 				{
 					p = turn0;
-					goto S662;
+					goto S664;
 				}
 
-				S635:
+				S668:
+				{
+					p = turn0;
+					goto S667;
+				}
+
+				S673:
+				{
+					p = turn0;
+					goto S672;
+				}
+
+				S676:
+				{
+					p = turn0;
+					goto S675;
+				}
+
+				S648:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 554, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 554, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 567, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 567, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S633;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S646;
 					}
 				}
 
-				S623:
+				S636:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -2169,17 +1956,17 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 609, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 622, p, entries.Count, text, "Authority");
 				}
 
-				S609:
+				S622:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 4) goto S608;
+					if (repeating.Value >= 4) goto S621;
 					if (repeating.Value >= 4)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 608, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 621, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -2207,18 +1994,141 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S619;
+						goto S632;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S619;
+						goto S632;
 					}
 					p++;
 				}
 
-				S618:
+				S631:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S629;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S629;
+					}
+					p++;
+				}
+
+				S628:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S626;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S626;
+					}
+					p++;
+				}
+
+				S625:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S622;
+				}
+
+				S626:
+				{
+					p = turn0;
+					goto S625;
+				}
+
+				S629:
+				{
+					p = turn0;
+					goto S628;
+				}
+
+				S632:
+				{
+					p = turn0;
+					goto S631;
+				}
+
+				S621:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 620, p, entries.Count, text, "Authority");
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S598;
+						if (!((c >= '0' && c <= '9'))) goto S619;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 598, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 598, p, entries.Count, text, "Authority");
+				}
+
+				S619:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -2262,6 +2172,27 @@ namespace DotGram.Snapshots
 
 				S612:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S610;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S610;
+					}
+					p++;
+				}
+
+				S609:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -2277,10 +2208,105 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S605;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S605;
+					}
+					p++;
+				}
+
+				S604:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S602;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S602;
+					}
+					p++;
+				}
+
+				S601:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S599;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S599;
+					}
+					p++;
+					goto S131;
+				}
+
+				S599:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S602:
+				{
+					p = turn0;
+					goto S601;
+				}
+
+				S605:
+				{
+					p = turn0;
+					goto S604;
+				}
+
+				S610:
+				{
+					p = turn0;
 					goto S609;
 				}
 
@@ -2296,47 +2322,18 @@ namespace DotGram.Snapshots
 					goto S615;
 				}
 
-				S619:
-				{
-					p = turn0;
-					goto S618;
-				}
-
-				S608:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 607, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S585;
-						if (!((c >= '0' && c <= '9'))) goto S606;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 585, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 585, p, entries.Count, text, "Authority");
-				}
-
-				S606:
+				S598:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					p++;
@@ -2350,19 +2347,19 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S603;
+						expected = Recognize_DotGram_Expected9;
+						goto S595;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S603;
+						expected = Recognize_DotGram_Expected9;
+						goto S595;
 					}
 					p++;
 				}
 
-				S602:
+				S594:
 				{
 					turn0 = p;
 				}
@@ -2371,50 +2368,29 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S600;
+						expected = Recognize_DotGram_Expected9;
+						goto S592;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S600;
+						expected = Recognize_DotGram_Expected9;
+						goto S592;
 					}
 					p++;
 				}
 
-				S599:
-				{
-					turn0 = p;
-				}
-
+				S591:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S597;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S597;
-					}
-					p++;
-				}
-
-				S596:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
+						expected = Recognize_DotGram_Expected13;
 						goto Fail;
 					}
-					if (text[p] != ':')
+					if (text[p] != '.')
 					{
-						expected = Recognize_DotGram_Expected10;
+						expected = Recognize_DotGram_Expected13;
 						goto Fail;
 					}
 					p += 1;
@@ -2424,13 +2400,13 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto Fail;
 					}
 					p++;
@@ -2444,115 +2420,20 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S592;
+						expected = Recognize_DotGram_Expected9;
+						goto S587;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S592;
+						expected = Recognize_DotGram_Expected9;
+						goto S587;
 					}
 					p++;
-				}
-
-				S591:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S589;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S589;
-					}
-					p++;
-				}
-
-				S588:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S586;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S586;
-					}
-					p++;
-					goto S124;
 				}
 
 				S586:
 				{
-					p = turn0;
-					goto S124;
-				}
-
-				S589:
-				{
-					p = turn0;
-					goto S588;
-				}
-
-				S592:
-				{
-					p = turn0;
-					goto S591;
-				}
-
-				S597:
-				{
-					p = turn0;
-					goto S596;
-				}
-
-				S600:
-				{
-					p = turn0;
-					goto S599;
-				}
-
-				S603:
-				{
-					p = turn0;
-					goto S602;
-				}
-
-				S585:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -2561,18 +2442,49 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S582;
+						goto S584;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S582;
+						goto S584;
 					}
 					p++;
 				}
 
-				S581:
+				S583:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -2595,6 +2507,27 @@ namespace DotGram.Snapshots
 
 				S578:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S576;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S576;
+					}
+					p++;
+				}
+
+				S575:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -2625,27 +2558,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S574;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S574;
-					}
-					p++;
-				}
-
-				S573:
 				{
 					turn0 = p;
 				}
@@ -2668,37 +2580,6 @@ namespace DotGram.Snapshots
 
 				S570:
 				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
 					turn0 = p;
 				}
 
@@ -2707,134 +2588,22 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S566;
+						goto S568;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S566;
+						goto S568;
 					}
 					p++;
+					goto S131;
 				}
 
-				S565:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S563;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S563;
-					}
-					p++;
-				}
-
-				S562:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S558;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S558;
-					}
-					p++;
-				}
-
-				S557:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S555;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S555;
-					}
-					p++;
-					goto S124;
-				}
-
-				S555:
+				S568:
 				{
 					p = turn0;
-					goto S124;
-				}
-
-				S558:
-				{
-					p = turn0;
-					goto S557;
-				}
-
-				S563:
-				{
-					p = turn0;
-					goto S562;
-				}
-
-				S566:
-				{
-					p = turn0;
-					goto S565;
+					goto S131;
 				}
 
 				S571:
@@ -2843,10 +2612,10 @@ namespace DotGram.Snapshots
 					goto S570;
 				}
 
-				S574:
+				S576:
 				{
 					p = turn0;
-					goto S573;
+					goto S575;
 				}
 
 				S579:
@@ -2855,13 +2624,31 @@ namespace DotGram.Snapshots
 					goto S578;
 				}
 
-				S582:
+				S584:
 				{
 					p = turn0;
-					goto S581;
+					goto S583;
 				}
 
-				S633:
+				S587:
+				{
+					p = turn0;
+					goto S586;
+				}
+
+				S592:
+				{
+					p = turn0;
+					goto S591;
+				}
+
+				S595:
+				{
+					p = turn0;
+					goto S594;
+				}
+
+				S646:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -2887,18 +2674,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S630;
+						goto S643;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S630;
+						goto S643;
 					}
 					p++;
 				}
 
-				S629:
+				S642:
 				{
 					turn0 = p;
 				}
@@ -2908,18 +2695,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S627;
+						goto S640;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S627;
+						goto S640;
 					}
 					p++;
 				}
 
-				S626:
+				S639:
 				{
 					turn0 = p;
 				}
@@ -2929,56 +2716,56 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S624;
+						goto S637;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S624;
+						goto S637;
 					}
 					p++;
-					goto S623;
+					goto S636;
 				}
 
-				S624:
+				S637:
 				{
 					p = turn0;
-					goto S623;
+					goto S636;
 				}
 
-				S627:
+				S640:
 				{
 					p = turn0;
-					goto S626;
+					goto S639;
 				}
 
-				S630:
+				S643:
 				{
 					p = turn0;
-					goto S629;
+					goto S642;
 				}
 
-				S554:
+				S567:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 458, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 458, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 470, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 470, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S541;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S565;
 					}
 				}
 
-				S527:
+				S539:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -3000,17 +2787,17 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 513, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 525, p, entries.Count, text, "Authority");
 				}
 
-				S513:
+				S525:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 3) goto S512;
+					if (repeating.Value >= 3) goto S524;
 					if (repeating.Value >= 3)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 512, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 524, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -3038,18 +2825,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S523;
+						goto S535;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S523;
+						goto S535;
 					}
 					p++;
 				}
 
-				S522:
+				S534:
 				{
 					turn0 = p;
 				}
@@ -3059,18 +2846,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S520;
+						goto S532;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S520;
+						goto S532;
 					}
 					p++;
 				}
 
-				S519:
+				S531:
 				{
 					turn0 = p;
 				}
@@ -3080,18 +2867,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S517;
+						goto S529;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S517;
+						goto S529;
 					}
 					p++;
 				}
 
-				S516:
+				S528:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3112,28 +2899,28 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S513;
+					goto S525;
 				}
 
-				S517:
+				S529:
 				{
 					p = turn0;
-					goto S516;
+					goto S528;
 				}
 
-				S520:
+				S532:
 				{
 					p = turn0;
-					goto S519;
+					goto S531;
 				}
 
-				S523:
+				S535:
 				{
 					p = turn0;
-					goto S522;
+					goto S534;
 				}
 
-				S512:
+				S524:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -3142,21 +2929,21 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 511, p, entries.Count, text, "Authority");
+					Trace("leave repeat", 523, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S489;
-						if (!((c >= '0' && c <= '9'))) goto S510;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S501;
+						if (!((c >= '0' && c <= '9'))) goto S522;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 489, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 489, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 501, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 501, p, entries.Count, text, "Authority");
 				}
 
-				S510:
+				S522:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3182,18 +2969,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S507;
+						goto S519;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S507;
+						goto S519;
 					}
 					p++;
 				}
 
-				S506:
+				S518:
 				{
 					turn0 = p;
 				}
@@ -3203,18 +2990,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S504;
+						goto S516;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S504;
+						goto S516;
 					}
 					p++;
 				}
 
-				S503:
+				S515:
 				{
 					turn0 = p;
 				}
@@ -3224,18 +3011,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S501;
+						goto S513;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S501;
+						goto S513;
 					}
 					p++;
 				}
 
-				S500:
+				S512:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3276,18 +3063,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S496;
+						goto S508;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S496;
+						goto S508;
 					}
 					p++;
 				}
 
-				S495:
+				S507:
 				{
 					turn0 = p;
 				}
@@ -3297,18 +3084,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S493;
+						goto S505;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S493;
+						goto S505;
 					}
 					p++;
 				}
 
-				S492:
+				S504:
 				{
 					turn0 = p;
 				}
@@ -3318,397 +3105,390 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S490;
+						goto S502;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
+						goto S502;
+					}
+					p++;
+					goto S131;
+				}
+
+				S502:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S505:
+				{
+					p = turn0;
+					goto S504;
+				}
+
+				S508:
+				{
+					p = turn0;
+					goto S507;
+				}
+
+				S513:
+				{
+					p = turn0;
+					goto S512;
+				}
+
+				S516:
+				{
+					p = turn0;
+					goto S515;
+				}
+
+				S519:
+				{
+					p = turn0;
+					goto S518;
+				}
+
+				S501:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S498;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S498;
+					}
+					p++;
+				}
+
+				S497:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S495;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S495;
+					}
+					p++;
+				}
+
+				S494:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S490;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
 						goto S490;
 					}
 					p++;
-					goto S124;
+				}
+
+				S489:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S487;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S487;
+					}
+					p++;
+				}
+
+				S486:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S482;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S482;
+					}
+					p++;
+				}
+
+				S481:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S479;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S479;
+					}
+					p++;
+				}
+
+				S478:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S474;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S474;
+					}
+					p++;
+				}
+
+				S473:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S471;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S471;
+					}
+					p++;
+					goto S131;
+				}
+
+				S471:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S474:
+				{
+					p = turn0;
+					goto S473;
+				}
+
+				S479:
+				{
+					p = turn0;
+					goto S478;
+				}
+
+				S482:
+				{
+					p = turn0;
+					goto S481;
+				}
+
+				S487:
+				{
+					p = turn0;
+					goto S486;
 				}
 
 				S490:
 				{
 					p = turn0;
-					goto S124;
+					goto S489;
 				}
 
-				S493:
+				S495:
 				{
 					p = turn0;
-					goto S492;
+					goto S494;
 				}
 
-				S496:
+				S498:
 				{
 					p = turn0;
-					goto S495;
+					goto S497;
 				}
 
-				S501:
+				S565:
 				{
-					p = turn0;
-					goto S500;
-				}
-
-				S504:
-				{
-					p = turn0;
-					goto S503;
-				}
-
-				S507:
-				{
-					p = turn0;
-					goto S506;
-				}
-
-				S489:
-				{
-					if ((uint)p >= (uint)text.Length)
+					if ((uint)p < (uint)text.Length)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
+						c = text[p];
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S553;
 					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S486;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S486;
-					}
-					p++;
-				}
-
-				S485:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S483;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S483;
-					}
-					p++;
-				}
-
-				S482:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S478;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S478;
-					}
-					p++;
-				}
-
-				S477:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S475;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S475;
-					}
-					p++;
-				}
-
-				S474:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S470;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S470;
-					}
-					p++;
-				}
-
-				S469:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S467;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S467;
-					}
-					p++;
-				}
-
-				S466:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S462;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S462;
-					}
-					p++;
-				}
-
-				S461:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S459;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S459;
-					}
-					p++;
-					goto S124;
-				}
-
-				S459:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S462:
-				{
-					p = turn0;
-					goto S461;
-				}
-
-				S467:
-				{
-					p = turn0;
-					goto S466;
-				}
-
-				S470:
-				{
-					p = turn0;
-					goto S469;
-				}
-
-				S475:
-				{
-					p = turn0;
-					goto S474;
-				}
-
-				S478:
-				{
-					p = turn0;
-					goto S477;
-				}
-
-				S483:
-				{
-					p = turn0;
-					goto S482;
-				}
-
-				S486:
-				{
-					p = turn0;
-					goto S485;
-				}
-
-				S541:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 539, p, entries.Count, text, "Authority");
-				}
-
-				S539:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S538;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 538, p, call, atomic, repeat, lookahead, 0));
-				}
-
+				S549:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3725,27 +3505,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S549;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S549;
-					}
-					p++;
-				}
-
-				S548:
 				{
 					turn0 = p;
 				}
@@ -3789,6 +3548,141 @@ namespace DotGram.Snapshots
 
 				S542:
 				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S540;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S540;
+					}
+					p++;
+					goto S539;
+				}
+
+				S540:
+				{
+					p = turn0;
+					goto S539;
+				}
+
+				S543:
+				{
+					p = turn0;
+					goto S542;
+				}
+
+				S546:
+				{
+					p = turn0;
+					goto S545;
+				}
+
+				S553:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 551, p, entries.Count, text, "Authority");
+				}
+
+				S551:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S550;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 550, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S561;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S561;
+					}
+					p++;
+				}
+
+				S560:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S558;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S558;
+					}
+					p++;
+				}
+
+				S557:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S555;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S555;
+					}
+					p++;
+				}
+
+				S554:
+				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
@@ -3808,28 +3702,28 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S539;
+					goto S551;
 				}
 
-				S543:
+				S555:
 				{
 					p = turn0;
-					goto S542;
+					goto S554;
 				}
 
-				S546:
+				S558:
 				{
 					p = turn0;
-					goto S545;
+					goto S557;
 				}
 
-				S549:
+				S561:
 				{
 					p = turn0;
-					goto S548;
+					goto S560;
 				}
 
-				S538:
+				S550:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -3838,126 +3732,30 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 537, p, entries.Count, text, "Authority");
+					Trace("leave repeat", 549, p, entries.Count, text, "Authority");
+					goto S549;
 				}
 
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S534;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S534;
-					}
-					p++;
-				}
-
-				S533:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S531;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S531;
-					}
-					p++;
-				}
-
-				S530:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S528;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S528;
-					}
-					p++;
-					goto S527;
-				}
-
-				S528:
-				{
-					p = turn0;
-					goto S527;
-				}
-
-				S531:
-				{
-					p = turn0;
-					goto S530;
-				}
-
-				S534:
-				{
-					p = turn0;
-					goto S533;
-				}
-
-				S458:
+				S470:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 362, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 362, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 373, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 373, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S445;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S468;
 					}
 				}
 
-				S431:
+				S442:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -3979,845 +3777,17 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 417, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 428, p, entries.Count, text, "Authority");
 				}
 
-				S417:
+				S428:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 2) goto S416;
+					if (repeating.Value >= 2) goto S427;
 					if (repeating.Value >= 2)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 416, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S427;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S427;
-					}
-					p++;
-				}
-
-				S426:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S424;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S424;
-					}
-					p++;
-				}
-
-				S423:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S421;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S421;
-					}
-					p++;
-				}
-
-				S420:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S417;
-				}
-
-				S421:
-				{
-					p = turn0;
-					goto S420;
-				}
-
-				S424:
-				{
-					p = turn0;
-					goto S423;
-				}
-
-				S427:
-				{
-					p = turn0;
-					goto S426;
-				}
-
-				S416:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 415, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S393;
-						if (!((c >= '0' && c <= '9'))) goto S414;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 393, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 393, p, entries.Count, text, "Authority");
-				}
-
-				S414:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S411;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S411;
-					}
-					p++;
-				}
-
-				S410:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S408;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S408;
-					}
-					p++;
-				}
-
-				S407:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S405;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S405;
-					}
-					p++;
-				}
-
-				S404:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S400;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S400;
-					}
-					p++;
-				}
-
-				S399:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S397;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S397;
-					}
-					p++;
-				}
-
-				S396:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S394;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S394;
-					}
-					p++;
-					goto S124;
-				}
-
-				S394:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S397:
-				{
-					p = turn0;
-					goto S396;
-				}
-
-				S400:
-				{
-					p = turn0;
-					goto S399;
-				}
-
-				S405:
-				{
-					p = turn0;
-					goto S404;
-				}
-
-				S408:
-				{
-					p = turn0;
-					goto S407;
-				}
-
-				S411:
-				{
-					p = turn0;
-					goto S410;
-				}
-
-				S393:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S390;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S390;
-					}
-					p++;
-				}
-
-				S389:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S387;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S387;
-					}
-					p++;
-				}
-
-				S386:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S382;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S382;
-					}
-					p++;
-				}
-
-				S381:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S379;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S379;
-					}
-					p++;
-				}
-
-				S378:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S374;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S374;
-					}
-					p++;
-				}
-
-				S373:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S371;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S371;
-					}
-					p++;
-				}
-
-				S370:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S366;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S366;
-					}
-					p++;
-				}
-
-				S365:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S363;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S363;
-					}
-					p++;
-					goto S124;
-				}
-
-				S363:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S366:
-				{
-					p = turn0;
-					goto S365;
-				}
-
-				S371:
-				{
-					p = turn0;
-					goto S370;
-				}
-
-				S374:
-				{
-					p = turn0;
-					goto S373;
-				}
-
-				S379:
-				{
-					p = turn0;
-					goto S378;
-				}
-
-				S382:
-				{
-					p = turn0;
-					goto S381;
-				}
-
-				S387:
-				{
-					p = turn0;
-					goto S386;
-				}
-
-				S390:
-				{
-					p = turn0;
-					goto S389;
-				}
-
-				S445:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 443, p, entries.Count, text, "Authority");
-				}
-
-				S443:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 2) goto S442;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 442, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S453;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S453;
-					}
-					p++;
-				}
-
-				S452:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S450;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S450;
-					}
-					p++;
-				}
-
-				S449:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S447;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S447;
-					}
-					p++;
-				}
-
-				S446:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S443;
-				}
-
-				S447:
-				{
-					p = turn0;
-					goto S446;
-				}
-
-				S450:
-				{
-					p = turn0;
-					goto S449;
-				}
-
-				S453:
-				{
-					p = turn0;
-					goto S452;
-				}
-
-				S442:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 441, p, entries.Count, text, "Authority");
+						entries.Add(new ParserEntry(ParserEntry.Choice, 427, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -4896,7 +3866,30 @@ namespace DotGram.Snapshots
 						goto S432;
 					}
 					p++;
-					goto S431;
+				}
+
+				S431:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S428;
 				}
 
 				S432:
@@ -4917,26 +3910,842 @@ namespace DotGram.Snapshots
 					goto S437;
 				}
 
-				S362:
+				S427:
 				{
-					if ((uint)p < (uint)text.Length)
-					{
-						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
-					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 270, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 270, p, entries.Count, text, "Authority");
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 426, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S349;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S404;
+						if (!((c >= '0' && c <= '9'))) goto S425;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 404, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 404, p, entries.Count, text, "Authority");
+				}
+
+				S425:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S422;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S422;
+					}
+					p++;
+				}
+
+				S421:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S419;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S419;
+					}
+					p++;
+				}
+
+				S418:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S416;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S416;
+					}
+					p++;
+				}
+
+				S415:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S411;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S411;
+					}
+					p++;
+				}
+
+				S410:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S408;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S408;
+					}
+					p++;
+				}
+
+				S407:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S405;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S405;
+					}
+					p++;
+					goto S131;
+				}
+
+				S405:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S408:
+				{
+					p = turn0;
+					goto S407;
+				}
+
+				S411:
+				{
+					p = turn0;
+					goto S410;
+				}
+
+				S416:
+				{
+					p = turn0;
+					goto S415;
+				}
+
+				S419:
+				{
+					p = turn0;
+					goto S418;
+				}
+
+				S422:
+				{
+					p = turn0;
+					goto S421;
+				}
+
+				S404:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S401;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S401;
+					}
+					p++;
+				}
+
+				S400:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S398;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S398;
+					}
+					p++;
+				}
+
+				S397:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S393;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S393;
+					}
+					p++;
+				}
+
+				S392:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S390;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S390;
+					}
+					p++;
+				}
+
+				S389:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S385;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S385;
+					}
+					p++;
+				}
+
+				S384:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S382;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S382;
+					}
+					p++;
+				}
+
+				S381:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S377;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S377;
+					}
+					p++;
+				}
+
+				S376:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S374;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S374;
+					}
+					p++;
+					goto S131;
+				}
+
+				S374:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S377:
+				{
+					p = turn0;
+					goto S376;
+				}
+
+				S382:
+				{
+					p = turn0;
+					goto S381;
+				}
+
+				S385:
+				{
+					p = turn0;
+					goto S384;
+				}
+
+				S390:
+				{
+					p = turn0;
+					goto S389;
+				}
+
+				S393:
+				{
+					p = turn0;
+					goto S392;
+				}
+
+				S398:
+				{
+					p = turn0;
+					goto S397;
+				}
+
+				S401:
+				{
+					p = turn0;
+					goto S400;
+				}
+
+				S468:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S456;
 					}
 				}
 
-				S335:
+				S452:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S449;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S449;
+					}
+					p++;
+				}
+
+				S448:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S446;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S446;
+					}
+					p++;
+				}
+
+				S445:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S443;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S443;
+					}
+					p++;
+					goto S442;
+				}
+
+				S443:
+				{
+					p = turn0;
+					goto S442;
+				}
+
+				S446:
+				{
+					p = turn0;
+					goto S445;
+				}
+
+				S449:
+				{
+					p = turn0;
+					goto S448;
+				}
+
+				S456:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 454, p, entries.Count, text, "Authority");
+				}
+
+				S454:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 2) goto S453;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 453, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S464;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S464;
+					}
+					p++;
+				}
+
+				S463:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S461;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S461;
+					}
+					p++;
+				}
+
+				S460:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S458;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S458;
+					}
+					p++;
+				}
+
+				S457:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S454;
+				}
+
+				S458:
+				{
+					p = turn0;
+					goto S457;
+				}
+
+				S461:
+				{
+					p = turn0;
+					goto S460;
+				}
+
+				S464:
+				{
+					p = turn0;
+					goto S463;
+				}
+
+				S453:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 452, p, entries.Count, text, "Authority");
+					goto S452;
+				}
+
+				S373:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 280, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 280, p, entries.Count, text, "Authority");
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S371;
+					}
+				}
+
+				S345:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -4979,18 +4788,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S331;
+						goto S341;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S331;
+						goto S341;
 					}
 					p++;
 				}
 
-				S330:
+				S340:
 				{
 					turn0 = p;
 				}
@@ -5000,18 +4809,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S328;
+						goto S338;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S328;
+						goto S338;
 					}
 					p++;
 				}
 
-				S327:
+				S337:
 				{
 					turn0 = p;
 				}
@@ -5021,18 +4830,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S325;
+						goto S335;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S325;
+						goto S335;
 					}
 					p++;
 				}
 
-				S324:
+				S334:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5052,93 +4861,93 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S301;
-						if (!((c >= '0' && c <= '9'))) goto S322;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S311;
+						if (!((c >= '0' && c <= '9'))) goto S332;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 301, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 301, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 311, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 311, p, entries.Count, text, "Authority");
+				}
+
+				S332:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S329;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S329;
+					}
+					p++;
+				}
+
+				S328:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S326;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S326;
+					}
+					p++;
+				}
+
+				S325:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S323;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S323;
+					}
+					p++;
 				}
 
 				S322:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S319;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S319;
-					}
-					p++;
-				}
-
-				S318:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S316;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S316;
-					}
-					p++;
-				}
-
-				S315:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S313;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S313;
-					}
-					p++;
-				}
-
-				S312:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5179,12 +4988,128 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S308;
+						goto S318;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
+						goto S318;
+					}
+					p++;
+				}
+
+				S317:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S315;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S315;
+					}
+					p++;
+				}
+
+				S314:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S312;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S312;
+					}
+					p++;
+					goto S131;
+				}
+
+				S312:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S315:
+				{
+					p = turn0;
+					goto S314;
+				}
+
+				S318:
+				{
+					p = turn0;
+					goto S317;
+				}
+
+				S323:
+				{
+					p = turn0;
+					goto S322;
+				}
+
+				S326:
+				{
+					p = turn0;
+					goto S325;
+				}
+
+				S329:
+				{
+					p = turn0;
+					goto S328;
+				}
+
+				S311:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S308;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
 						goto S308;
 					}
 					p++;
@@ -5199,19 +5124,50 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto S305;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
+						expected = Recognize_DotGram_Expected9;
 						goto S305;
 					}
 					p++;
 				}
 
 				S304:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
 				{
 					turn0 = p;
 				}
@@ -5220,23 +5176,220 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S302;
+						expected = Recognize_DotGram_Expected9;
+						goto S300;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected0;
-						goto S302;
+						expected = Recognize_DotGram_Expected9;
+						goto S300;
 					}
 					p++;
-					goto S124;
 				}
 
-				S302:
+				S299:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S297;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S297;
+					}
+					p++;
+				}
+
+				S296:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S292;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S292;
+					}
+					p++;
+				}
+
+				S291:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S289;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S289;
+					}
+					p++;
+				}
+
+				S288:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S284;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S284;
+					}
+					p++;
+				}
+
+				S283:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S281;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S281;
+					}
+					p++;
+					goto S131;
+				}
+
+				S281:
 				{
 					p = turn0;
-					goto S124;
+					goto S131;
+				}
+
+				S284:
+				{
+					p = turn0;
+					goto S283;
+				}
+
+				S289:
+				{
+					p = turn0;
+					goto S288;
+				}
+
+				S292:
+				{
+					p = turn0;
+					goto S291;
+				}
+
+				S297:
+				{
+					p = turn0;
+					goto S296;
+				}
+
+				S300:
+				{
+					p = turn0;
+					goto S299;
 				}
 
 				S305:
@@ -5251,36 +5404,45 @@ namespace DotGram.Snapshots
 					goto S307;
 				}
 
-				S313:
+				S335:
 				{
 					p = turn0;
-					goto S312;
+					goto S334;
 				}
 
-				S316:
+				S338:
 				{
 					p = turn0;
-					goto S315;
+					goto S337;
 				}
 
-				S319:
+				S341:
 				{
 					p = turn0;
-					goto S318;
+					goto S340;
 				}
 
-				S301:
+				S371:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S359;
+					}
+				}
+
+				S355:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
-						expected = Recognize_DotGram_Expected9;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
 					p++;
@@ -5294,19 +5456,19 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S298;
+						expected = Recognize_DotGram_Expected0;
+						goto S352;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
-						expected = Recognize_DotGram_Expected9;
-						goto S298;
+						expected = Recognize_DotGram_Expected0;
+						goto S352;
 					}
 					p++;
 				}
 
-				S297:
+				S351:
 				{
 					turn0 = p;
 				}
@@ -5315,50 +5477,19 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S295;
+						expected = Recognize_DotGram_Expected0;
+						goto S349;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
-						expected = Recognize_DotGram_Expected9;
-						goto S295;
+						expected = Recognize_DotGram_Expected0;
+						goto S349;
 					}
 					p++;
 				}
 
-				S294:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
+				S348:
 				{
 					turn0 = p;
 				}
@@ -5367,267 +5498,52 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S290;
+						expected = Recognize_DotGram_Expected0;
+						goto S346;
 					}
 					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
-						expected = Recognize_DotGram_Expected9;
-						goto S290;
+						expected = Recognize_DotGram_Expected0;
+						goto S346;
 					}
 					p++;
+					goto S345;
 				}
 
-				S289:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S287;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S287;
-					}
-					p++;
-				}
-
-				S286:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S282;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S282;
-					}
-					p++;
-				}
-
-				S281:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S279;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S279;
-					}
-					p++;
-				}
-
-				S278:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S274;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S274;
-					}
-					p++;
-				}
-
-				S273:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S271;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S271;
-					}
-					p++;
-					goto S124;
-				}
-
-				S271:
+				S346:
 				{
 					p = turn0;
-					goto S124;
-				}
-
-				S274:
-				{
-					p = turn0;
-					goto S273;
-				}
-
-				S279:
-				{
-					p = turn0;
-					goto S278;
-				}
-
-				S282:
-				{
-					p = turn0;
-					goto S281;
-				}
-
-				S287:
-				{
-					p = turn0;
-					goto S286;
-				}
-
-				S290:
-				{
-					p = turn0;
-					goto S289;
-				}
-
-				S295:
-				{
-					p = turn0;
-					goto S294;
-				}
-
-				S298:
-				{
-					p = turn0;
-					goto S297;
-				}
-
-				S325:
-				{
-					p = turn0;
-					goto S324;
-				}
-
-				S328:
-				{
-					p = turn0;
-					goto S327;
-				}
-
-				S331:
-				{
-					p = turn0;
-					goto S330;
+					goto S345;
 				}
 
 				S349:
 				{
+					p = turn0;
+					goto S348;
+				}
+
+				S352:
+				{
+					p = turn0;
+					goto S351;
+				}
+
+				S359:
+				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 347, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 357, p, entries.Count, text, "Authority");
 				}
 
-				S347:
+				S357:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 3) goto S346;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 346, p, call, atomic, repeat, lookahead, 0));
+					if (repeating.Value >= 3) goto S356;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 356, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -5655,18 +5571,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S357;
+						goto S367;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S357;
+						goto S367;
 					}
 					p++;
 				}
 
-				S356:
+				S366:
 				{
 					turn0 = p;
 				}
@@ -5676,18 +5592,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S354;
+						goto S364;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S354;
+						goto S364;
 					}
 					p++;
 				}
 
-				S353:
+				S363:
 				{
 					turn0 = p;
 				}
@@ -5697,18 +5613,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S351;
+						goto S361;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S351;
+						goto S361;
 					}
 					p++;
 				}
 
-				S350:
+				S360:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5729,28 +5645,28 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S347;
+					goto S357;
 				}
 
-				S351:
+				S361:
 				{
 					p = turn0;
-					goto S350;
+					goto S360;
 				}
 
-				S354:
+				S364:
 				{
 					p = turn0;
-					goto S353;
+					goto S363;
 				}
 
-				S357:
+				S367:
 				{
 					p = turn0;
-					goto S356;
+					goto S366;
 				}
 
-				S346:
+				S356:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -5759,126 +5675,30 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 345, p, entries.Count, text, "Authority");
+					Trace("leave repeat", 355, p, entries.Count, text, "Authority");
+					goto S355;
 				}
 
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S342;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S342;
-					}
-					p++;
-				}
-
-				S341:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S339;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S339;
-					}
-					p++;
-				}
-
-				S338:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S336;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S336;
-					}
-					p++;
-					goto S335;
-				}
-
-				S336:
-				{
-					p = turn0;
-					goto S335;
-				}
-
-				S339:
-				{
-					p = turn0;
-					goto S338;
-				}
-
-				S342:
-				{
-					p = turn0;
-					goto S341;
-				}
-
-				S270:
+				S280:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 189, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 189, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 198, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 198, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S257;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S278;
 					}
 				}
 
-				S243:
+				S252:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -5900,14 +5720,14 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S220;
-						if (!((c >= '0' && c <= '9'))) goto S241;
+						if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S229;
+						if (!((c >= '0' && c <= '9'))) goto S250;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 220, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 220, p, entries.Count, text, "Authority");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 229, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 229, p, entries.Count, text, "Authority");
 				}
 
-				S241:
+				S250:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -5924,711 +5744,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S238;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S238;
-					}
-					p++;
-				}
-
-				S237:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S235;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S235;
-					}
-					p++;
-				}
-
-				S234:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S232;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S232;
-					}
-					p++;
-				}
-
-				S231:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S227;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S227;
-					}
-					p++;
-				}
-
-				S226:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S224;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S224;
-					}
-					p++;
-				}
-
-				S223:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S221;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S221;
-					}
-					p++;
-					goto S124;
-				}
-
-				S221:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S224:
-				{
-					p = turn0;
-					goto S223;
-				}
-
-				S227:
-				{
-					p = turn0;
-					goto S226;
-				}
-
-				S232:
-				{
-					p = turn0;
-					goto S231;
-				}
-
-				S235:
-				{
-					p = turn0;
-					goto S234;
-				}
-
-				S238:
-				{
-					p = turn0;
-					goto S237;
-				}
-
-				S220:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S217;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S217;
-					}
-					p++;
-				}
-
-				S216:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S214;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S214;
-					}
-					p++;
-				}
-
-				S213:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S209;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S209;
-					}
-					p++;
-				}
-
-				S208:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S206;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S206;
-					}
-					p++;
-				}
-
-				S205:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S201;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S201;
-					}
-					p++;
-				}
-
-				S200:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S198;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S198;
-					}
-					p++;
-				}
-
-				S197:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Expected13;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S193;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S193;
-					}
-					p++;
-				}
-
-				S192:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected9;
-						goto S190;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Expected9;
-						goto S190;
-					}
-					p++;
-					goto S124;
-				}
-
-				S190:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S193:
-				{
-					p = turn0;
-					goto S192;
-				}
-
-				S198:
-				{
-					p = turn0;
-					goto S197;
-				}
-
-				S201:
-				{
-					p = turn0;
-					goto S200;
-				}
-
-				S206:
-				{
-					p = turn0;
-					goto S205;
-				}
-
-				S209:
-				{
-					p = turn0;
-					goto S208;
-				}
-
-				S214:
-				{
-					p = turn0;
-					goto S213;
-				}
-
-				S217:
-				{
-					p = turn0;
-					goto S216;
-				}
-
-				S257:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 255, p, entries.Count, text, "Authority");
-				}
-
-				S255:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 4) goto S254;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 254, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S265;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S265;
-					}
-					p++;
-				}
-
-				S264:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S262;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S262;
-					}
-					p++;
-				}
-
-				S261:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S259;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S259;
-					}
-					p++;
-				}
-
-				S258:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S255;
-				}
-
-				S259:
-				{
-					p = turn0;
-					goto S258;
-				}
-
-				S262:
-				{
-					p = turn0;
-					goto S261;
-				}
-
-				S265:
-				{
-					p = turn0;
-					goto S264;
-				}
-
-				S254:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 253, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S250;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S250;
-					}
-					p++;
-				}
-
-				S249:
 				{
 					turn0 = p;
 				}
@@ -6668,7 +5783,146 @@ namespace DotGram.Snapshots
 						goto S244;
 					}
 					p++;
-					goto S243;
+				}
+
+				S243:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S241;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S241;
+					}
+					p++;
+				}
+
+				S240:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S236;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S236;
+					}
+					p++;
+				}
+
+				S235:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S233;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S233;
+					}
+					p++;
+				}
+
+				S232:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S230;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S230;
+					}
+					p++;
+					goto S131;
+				}
+
+				S230:
+				{
+					p = turn0;
+					goto S131;
+				}
+
+				S233:
+				{
+					p = turn0;
+					goto S232;
+				}
+
+				S236:
+				{
+					p = turn0;
+					goto S235;
+				}
+
+				S241:
+				{
+					p = turn0;
+					goto S240;
 				}
 
 				S244:
@@ -6683,32 +5937,609 @@ namespace DotGram.Snapshots
 					goto S246;
 				}
 
-				S250:
+				S229:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S226;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S226;
+					}
+					p++;
+				}
+
+				S225:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S223;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S223;
+					}
+					p++;
+				}
+
+				S222:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S218;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S218;
+					}
+					p++;
+				}
+
+				S217:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S215;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S215;
+					}
+					p++;
+				}
+
+				S214:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S210;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S210;
+					}
+					p++;
+				}
+
+				S209:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S207;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S207;
+					}
+					p++;
+				}
+
+				S206:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					if (text[p] != '.')
+					{
+						expected = Recognize_DotGram_Expected13;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S202;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S202;
+					}
+					p++;
+				}
+
+				S201:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected9;
+						goto S199;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9'))))
+					{
+						expected = Recognize_DotGram_Expected9;
+						goto S199;
+					}
+					p++;
+					goto S131;
+				}
+
+				S199:
 				{
 					p = turn0;
-					goto S249;
+					goto S131;
 				}
 
-				S189:
+				S202:
+				{
+					p = turn0;
+					goto S201;
+				}
+
+				S207:
+				{
+					p = turn0;
+					goto S206;
+				}
+
+				S210:
+				{
+					p = turn0;
+					goto S209;
+				}
+
+				S215:
+				{
+					p = turn0;
+					goto S214;
+				}
+
+				S218:
+				{
+					p = turn0;
+					goto S217;
+				}
+
+				S223:
+				{
+					p = turn0;
+					goto S222;
+				}
+
+				S226:
+				{
+					p = turn0;
+					goto S225;
+				}
+
+				S278:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S151;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S266;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 151, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 151, p, entries.Count, text, "Authority");
+				}
+
+				S262:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S259;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S259;
+					}
+					p++;
+				}
+
+				S258:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S256;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S256;
+					}
+					p++;
+				}
+
+				S255:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S253;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S253;
+					}
+					p++;
+					goto S252;
+				}
+
+				S253:
+				{
+					p = turn0;
+					goto S252;
+				}
+
+				S256:
+				{
+					p = turn0;
+					goto S255;
+				}
+
+				S259:
+				{
+					p = turn0;
+					goto S258;
+				}
+
+				S266:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 264, p, entries.Count, text, "Authority");
+				}
+
+				S264:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 4) goto S263;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 263, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S274;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S274;
+					}
+					p++;
+				}
+
+				S273:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S271;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S271;
+					}
+					p++;
+				}
+
+				S270:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S268;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S268;
+					}
+					p++;
+				}
+
+				S267:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S264;
+				}
+
+				S268:
+				{
+					p = turn0;
+					goto S267;
+				}
+
+				S271:
+				{
+					p = turn0;
+					goto S270;
+				}
+
+				S274:
+				{
+					p = turn0;
+					goto S273;
+				}
+
+				S263:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 262, p, entries.Count, text, "Authority");
+					goto S262;
+				}
+
+				S198:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= ':') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) goto S159;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 159, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 159, p, entries.Count, text, "Authority");
 				}
 
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S176;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S196;
 					}
 				}
 
-				S162:
+				S170:
 				{
 					if (p + 2 > text.Length)
 					{
@@ -6742,273 +6573,6 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S158;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S158;
-					}
-					p++;
-				}
-
-				S157:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S155;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S155;
-					}
-					p++;
-				}
-
-				S154:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S152;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S152;
-					}
-					p++;
-					goto S124;
-				}
-
-				S152:
-				{
-					p = turn0;
-					goto S124;
-				}
-
-				S155:
-				{
-					p = turn0;
-					goto S154;
-				}
-
-				S158:
-				{
-					p = turn0;
-					goto S157;
-				}
-
-				S176:
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 174, p, entries.Count, text, "Authority");
-				}
-
-				S174:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 5) goto S173;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 173, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S184;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S184;
-					}
-					p++;
-				}
-
-				S183:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S181;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S181;
-					}
-					p++;
-				}
-
-				S180:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S178;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S178;
-					}
-					p++;
-				}
-
-				S177:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					if (text[p] != ':')
-					{
-						expected = Recognize_DotGram_Expected10;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S174;
-				}
-
-				S178:
-				{
-					p = turn0;
-					goto S177;
-				}
-
-				S181:
-				{
-					p = turn0;
-					goto S180;
-				}
-
-				S184:
-				{
-					p = turn0;
-					goto S183;
-				}
-
-				S173:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 172, p, entries.Count, text, "Authority");
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S169;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S169;
-					}
-					p++;
-				}
-
-				S168:
 				{
 					turn0 = p;
 				}
@@ -7048,7 +6612,34 @@ namespace DotGram.Snapshots
 						goto S163;
 					}
 					p++;
-					goto S162;
+				}
+
+				S162:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S160;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S160;
+					}
+					p++;
+					goto S131;
+				}
+
+				S160:
+				{
+					p = turn0;
+					goto S131;
 				}
 
 				S163:
@@ -7063,55 +6654,128 @@ namespace DotGram.Snapshots
 					goto S165;
 				}
 
-				S169:
-				{
-					p = turn0;
-					goto S168;
-				}
-
-				S151:
+				S196:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S139;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S184;
 					}
 				}
 
-				S125:
+				S180:
 				{
-					if (p + 2 > text.Length)
+					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Expected15;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
-					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
-						if (text[p] == ':')
-							p += 1;
-						expected = Recognize_DotGram_Expected15;
+						expected = Recognize_DotGram_Expected0;
 						goto Fail;
 					}
-					p += 2;
-					goto S124;
+					p++;
 				}
 
-				S139:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S177;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S177;
+					}
+					p++;
+				}
+
+				S176:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S174;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S174;
+					}
+					p++;
+				}
+
+				S173:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S171;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S171;
+					}
+					p++;
+					goto S170;
+				}
+
+				S171:
+				{
+					p = turn0;
+					goto S170;
+				}
+
+				S174:
+				{
+					p = turn0;
+					goto S173;
+				}
+
+				S177:
+				{
+					p = turn0;
+					goto S176;
+				}
+
+				S184:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 137, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 182, p, entries.Count, text, "Authority");
 				}
 
-				S137:
+				S182:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 6) goto S136;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 136, p, call, atomic, repeat, lookahead, 0));
+					if (repeating.Value >= 5) goto S181;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 181, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -7139,18 +6803,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S147;
+						goto S192;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S147;
+						goto S192;
 					}
 					p++;
 				}
 
-				S146:
+				S191:
 				{
 					turn0 = p;
 				}
@@ -7160,18 +6824,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S144;
+						goto S189;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S144;
+						goto S189;
 					}
 					p++;
 				}
 
-				S143:
+				S188:
 				{
 					turn0 = p;
 				}
@@ -7181,18 +6845,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected0;
-						goto S141;
+						goto S186;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
 					{
 						expected = Recognize_DotGram_Expected0;
-						goto S141;
+						goto S186;
 					}
 					p++;
 				}
 
-				S140:
+				S185:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7213,28 +6877,28 @@ namespace DotGram.Snapshots
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S137;
+					goto S182;
 				}
 
-				S141:
+				S186:
 				{
 					p = turn0;
-					goto S140;
+					goto S185;
 				}
 
-				S144:
+				S189:
 				{
 					p = turn0;
-					goto S143;
+					goto S188;
 				}
 
-				S147:
+				S192:
 				{
 					p = turn0;
-					goto S146;
+					goto S191;
 				}
 
-				S136:
+				S181:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -7243,115 +6907,304 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 135, p, entries.Count, text, "Authority");
+					Trace("leave repeat", 180, p, entries.Count, text, "Authority");
+					goto S180;
 				}
 
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S132;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S132;
-					}
-					p++;
-				}
-
-				S131:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S129;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S129;
-					}
-					p++;
-				}
-
-				S128:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto S126;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto S126;
-					}
-					p++;
-					goto S125;
-				}
-
-				S126:
-				{
-					p = turn0;
-					goto S125;
-				}
-
-				S129:
-				{
-					p = turn0;
-					goto S128;
-				}
-
-				S132:
-				{
-					p = turn0;
-					goto S131;
-				}
-
-				S123:
+				S159:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9'))) goto S93;
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S158;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 93, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 93, p, entries.Count, text, "Authority");
+				}
+
+				S132:
+				{
+					if (p + 2 > text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected15;
+						goto Fail;
+					}
+					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
+					{
+						if (text[p] == ':')
+							p += 1;
+						expected = Recognize_DotGram_Expected15;
+						goto Fail;
+					}
+					p += 2;
+					goto S131;
+				}
+
+				S158:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) goto S146;
+					}
+				}
+
+				S142:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S139;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S139;
+					}
+					p++;
+				}
+
+				S138:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S136;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S136;
+					}
+					p++;
+				}
+
+				S135:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S133;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S133;
+					}
+					p++;
+					goto S132;
+				}
+
+				S133:
+				{
+					p = turn0;
+					goto S132;
+				}
+
+				S136:
+				{
+					p = turn0;
+					goto S135;
+				}
+
+				S139:
+				{
+					p = turn0;
+					goto S138;
+				}
+
+				S146:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 144, p, entries.Count, text, "Authority");
+				}
+
+				S144:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 6) goto S143;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 143, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S154;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S154;
+					}
+					p++;
+				}
+
+				S153:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S151;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S151;
+					}
+					p++;
+				}
+
+				S150:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S148;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S148;
+					}
+					p++;
+				}
+
+				S147:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S144;
+				}
+
+				S148:
+				{
+					p = turn0;
+					goto S147;
+				}
+
+				S151:
+				{
+					p = turn0;
+					goto S150;
+				}
+
+				S154:
+				{
+					p = turn0;
+					goto S153;
+				}
+
+				S143:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 142, p, entries.Count, text, "Authority");
+					goto S142;
+				}
+
+				S130:
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!((c >= '0' && c <= '9'))) goto S100;
+					}
+					entries.Add(new ParserEntry(ParserEntry.Choice, 100, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 100, p, entries.Count, text, "Authority");
 				}
 
 				{
@@ -7379,18 +7232,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S119;
+						goto S126;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S119;
+						goto S126;
 					}
 					p++;
 				}
 
-				S118:
+				S125:
 				{
 					turn0 = p;
 				}
@@ -7400,18 +7253,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S116;
+						goto S123;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S116;
+						goto S123;
 					}
 					p++;
 				}
 
-				S115:
+				S122:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7452,18 +7305,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S111;
+						goto S118;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S111;
+						goto S118;
 					}
 					p++;
 				}
 
-				S110:
+				S117:
 				{
 					turn0 = p;
 				}
@@ -7473,18 +7326,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S108;
+						goto S115;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S108;
+						goto S115;
 					}
 					p++;
 				}
 
-				S107:
+				S114:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7525,18 +7378,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S103;
+						goto S110;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S103;
+						goto S110;
 					}
 					p++;
 				}
 
-				S102:
+				S109:
 				{
 					turn0 = p;
 				}
@@ -7546,18 +7399,18 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Expected9;
-						goto S100;
+						goto S107;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Expected9;
-						goto S100;
+						goto S107;
 					}
 					p++;
 				}
 
-				S99:
+				S106:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7593,62 +7446,62 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 89, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 89, p, entries.Count, text, "Authority");
-					goto S89;
+						entries.Add(new ParserEntry(ParserEntry.Run, 96, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 96, p, entries.Count, text, "Authority");
+					goto S96;
+				}
+
+				S107:
+				{
+					p = turn0;
+					goto S106;
+				}
+
+				S110:
+				{
+					p = turn0;
+					goto S109;
+				}
+
+				S115:
+				{
+					p = turn0;
+					goto S114;
+				}
+
+				S118:
+				{
+					p = turn0;
+					goto S117;
+				}
+
+				S123:
+				{
+					p = turn0;
+					goto S122;
+				}
+
+				S126:
+				{
+					p = turn0;
+					goto S125;
 				}
 
 				S100:
 				{
-					p = turn0;
-					goto S99;
-				}
-
-				S103:
-				{
-					p = turn0;
-					goto S102;
-				}
-
-				S108:
-				{
-					p = turn0;
-					goto S107;
-				}
-
-				S111:
-				{
-					p = turn0;
-					goto S110;
-				}
-
-				S116:
-				{
-					p = turn0;
-					goto S115;
-				}
-
-				S119:
-				{
-					p = turn0;
-					goto S118;
-				}
-
-				S93:
-				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 91, p, entries.Count, text, "Authority");
+					Trace("enter repeat", 98, p, entries.Count, text, "Authority");
 				}
 
-				S91:
+				S98:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					if (repeating.Value >= 1)
-						entries.Add(new ParserEntry(ParserEntry.Choice, 90, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.Choice, 97, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -7659,14 +7512,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S92; }
-					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S92; }
-					if (c == '%') goto S96;
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S99; }
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S99; }
+					if (c == '%') goto S103;
 					expected = Recognize_DotGram_Expected11;
 					goto Fail;
 				}
 
-				S96:
+				S103:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -7714,16 +7567,16 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S92:
+				S99:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeated = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S91;
+					goto S98;
 				}
 
-				S90:
+				S97:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -7732,11 +7585,245 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 89, p, entries.Count, text, "Authority");
-					goto S89;
+					Trace("leave repeat", 96, p, entries.Count, text, "Authority");
+					goto S96;
 				}
 
-				S69:
+				S794:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 792, p, entries.Count, text, "Authority");
+				}
+
+				S792:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S791;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 791, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					capture5 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected18;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S797; }
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S797; }
+					if (c == '%') goto S806;
+					if (c == ':') goto S807;
+					expected = Recognize_DotGram_Expected18;
+					goto Fail;
+				}
+
+				S807:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				S797:
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected18;
+						goto S798;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S797; }
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S797; }
+					if (c == '%') goto S801;
+					if (c == ':') goto S802;
+					expected = Recognize_DotGram_Expected18;
+				}
+
+				S798:
+				{
+					p = turn0;
+				}
+
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
+					Trace("capture", 5, p, entries.Count, text, "Authority");
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected17;
+						goto Fail;
+					}
+					if (text[p] != '@')
+					{
+						expected = Recognize_DotGram_Expected17;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S792;
+				}
+
+				S802:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected10;
+						goto S798;
+					}
+					if (text[p] != ':')
+					{
+						expected = Recognize_DotGram_Expected10;
+						goto S798;
+					}
+					p += 1;
+					goto S797;
+				}
+
+				S801:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected1;
+						goto S798;
+					}
+					if (text[p] != '%')
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto S798;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S798;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S798;
+					}
+					p++;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto S798;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto S798;
+					}
+					p++;
+					goto S797;
+				}
+
+				S806:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					if (text[p] != '%')
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+					goto S797;
+				}
+
+				S791:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 790, p, entries.Count, text, "Authority");
+					goto S790;
+				}
+
+				S75:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
@@ -7750,288 +7837,38 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 56, p, entries.Count, text, "Url");
-				}
-
-				S56:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
+					if ((uint)p < (uint)text.Length)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected6;
-						goto Fail;
+						c = text[p];
+						if (c == '/') goto S62;
 					}
-					if (text[p] != '/')
-					{
-						expected = Recognize_DotGram_Expected6;
-						goto Fail;
-					}
-					p += 1;
 				}
 
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 60, p, entries.Count, text, "Url");
-				}
-
-				S60:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected5;
-						goto Fail;
-					}
-					c = text[p];
-					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S60; }
-					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S60; }
-					if (c == '%') goto S65;
-					if (c == ':' || c == '@') { p++; goto S60; }
-					expected = Recognize_DotGram_Expected5;
-					goto Fail;
-				}
-
-				S65:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					if (text[p] != '%')
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-					goto S60;
-				}
-
-				S59:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 57, p, entries.Count, text, "Url");
-					goto S56;
-				}
-
-				S55:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 54, p, entries.Count, text, "Url");
-				}
-
+				S58:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 2, capture2, call, atomic, repeat, lookahead, p));
 					Trace("capture", 2, p, entries.Count, text, "Url");
 				}
 
 				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 40, p, entries.Count, text, "Url");
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '?') goto S44;
+					}
 				}
 
 				S40:
 				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeating = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-					if (repeating.Value >= 1) goto S39;
-					entries.Add(new ParserEntry(ParserEntry.Choice, 39, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
+					if ((uint)p < (uint)text.Length)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
+						c = text[p];
+						if (c == '#') goto S27;
 					}
-					if (text[p] != '?')
-					{
-						expected = Recognize_DotGram_Expected4;
-						goto Fail;
-					}
-					p += 1;
+					goto Return;
 				}
 
-				{
-					capture3 = p;
-				}
-
-				{
-					var repeatIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
-					repeat = repeatIndex;
-					Trace("enter repeat", 45, p, entries.Count, text, "Url");
-				}
-
-				S45:
-				{
-					entries.Add(new ParserEntry(ParserEntry.Choice, 44, p, call, atomic, repeat, lookahead, 0));
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected2;
-						goto Fail;
-					}
-					c = text[p];
-					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S45; }
-					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S45; }
-					if (c == '%') goto S50;
-					if (c == '/' || c == ':' || (c >= '?' && c <= '@')) { p++; goto S45; }
-					expected = Recognize_DotGram_Expected2;
-					goto Fail;
-				}
-
-				S50:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					if (text[p] != '%')
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
-					{
-						expected = Recognize_DotGram_Expected0;
-						goto Fail;
-					}
-					p++;
-					goto S45;
-				}
-
-				S44:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 43, p, entries.Count, text, "Url");
-				}
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
-					Trace("capture", 3, p, entries.Count, text, "Url");
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S40;
-				}
-
-				S39:
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var finished = entries[repeat];
-					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
-					var previousRepeat = finished.RepeatIndex;
-					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
-					repeat = previousRepeat;
-					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 27, p, entries.Count, text, "Url");
-				}
-
+				S27:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8067,6 +7904,29 @@ namespace DotGram.Snapshots
 					capture4 = p;
 				}
 
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '!' || (c >= '$' && c <= ';') || c == '=' || (c >= '?' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S32;
+					}
+				}
+
+				S28:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
+					Trace("capture", 4, p, entries.Count, text, "Url");
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S25;
+				}
+
+				S32:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
@@ -8154,19 +8014,7 @@ namespace DotGram.Snapshots
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
 					Trace("leave repeat", 28, p, entries.Count, text, "Url");
-				}
-
-				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
-					Trace("capture", 4, p, entries.Count, text, "Url");
-				}
-
-				{
-					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					var repeated = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
-					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-					goto S25;
+					goto S28;
 				}
 
 				S24:
@@ -8180,6 +8028,309 @@ namespace DotGram.Snapshots
 					lookahead = finished.LookaheadIndex;
 					Trace("leave repeat", 0, p, entries.Count, text, "Url");
 					goto Return;
+				}
+
+				S44:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 42, p, entries.Count, text, "Url");
+				}
+
+				S42:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					if (repeating.Value >= 1) goto S41;
+					entries.Add(new ParserEntry(ParserEntry.Choice, 41, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					if (text[p] != '?')
+					{
+						expected = Recognize_DotGram_Expected4;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					capture3 = p;
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '!' || (c >= '$' && c <= ';') || c == '=' || (c >= '?' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S49;
+					}
+				}
+
+				S45:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
+					Trace("capture", 3, p, entries.Count, text, "Url");
+				}
+
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeated = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
+					entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
+					goto S42;
+				}
+
+				S49:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 47, p, entries.Count, text, "Url");
+				}
+
+				S47:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 46, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected2;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S47; }
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S47; }
+					if (c == '%') goto S52;
+					if (c == '/' || c == ':' || (c >= '?' && c <= '@')) { p++; goto S47; }
+					expected = Recognize_DotGram_Expected2;
+					goto Fail;
+				}
+
+				S52:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					if (text[p] != '%')
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+					goto S47;
+				}
+
+				S46:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 45, p, entries.Count, text, "Url");
+					goto S45;
+				}
+
+				S41:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 40, p, entries.Count, text, "Url");
+					goto S40;
+				}
+
+				S62:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 60, p, entries.Count, text, "Url");
+				}
+
+				S60:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 59, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected6;
+						goto Fail;
+					}
+					if (text[p] != '/')
+					{
+						expected = Recognize_DotGram_Expected6;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '!' || (c >= '$' && c <= '.') || (c >= '0' && c <= ';') || c == '=' || (c >= '@' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') goto S66;
+					}
+					goto S60;
+				}
+
+				S66:
+				{
+					var repeatIndex = entries.Count;
+					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
+					repeat = repeatIndex;
+					Trace("enter repeat", 64, p, entries.Count, text, "Url");
+				}
+
+				S64:
+				{
+					entries.Add(new ParserEntry(ParserEntry.Choice, 63, p, call, atomic, repeat, lookahead, 0));
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected5;
+						goto Fail;
+					}
+					c = text[p];
+					if ((c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c == '~') { p++; goto S64; }
+					if (c == '!' || c == '$' || (c >= '&' && c <= ',') || c == ';' || c == '=') { p++; goto S64; }
+					if (c == '%') goto S69;
+					if (c == ':' || c == '@') { p++; goto S64; }
+					expected = Recognize_DotGram_Expected5;
+					goto Fail;
+				}
+
+				S69:
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					if (text[p] != '%')
+					{
+						expected = Recognize_DotGram_Expected1;
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					c = text[p];
+					if (!(((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))))
+					{
+						expected = Recognize_DotGram_Expected0;
+						goto Fail;
+					}
+					p++;
+					goto S64;
+				}
+
+				S63:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 61, p, entries.Count, text, "Url");
+					goto S60;
+				}
+
+				S59:
+				{
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var finished = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);
+					var previousRepeat = finished.RepeatIndex;
+					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
+					repeat = previousRepeat;
+					lookahead = finished.LookaheadIndex;
+					Trace("leave repeat", 58, p, entries.Count, text, "Url");
+					goto S58;
 				}
 
 				Return:

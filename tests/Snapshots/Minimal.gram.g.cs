@@ -2325,13 +2325,13 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S18;
+					case 3: goto S19;
 					case 4: goto S4;
 					case 9: goto S9;
 					default: expected = null; goto Fail;
 				}
 
-				S18:
+				S19:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1));
 					Trace("open capture", 0, p, entries.Count, text, "Sum");
@@ -2374,6 +2374,16 @@ namespace DotGram.Snapshots
 				}
 
 				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (c == '+') goto S7;
+					}
+					goto Return;
+				}
+
+				S7:
+				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
@@ -2410,7 +2420,7 @@ namespace DotGram.Snapshots
 					call = callIndex;
 					power = 2;
 					Trace("call Sum", 3, p, entries.Count, text, "Sum");
-					goto S18;
+					goto S19;
 				}
 
 				S9:
