@@ -3750,8 +3750,7 @@ namespace DotGram.Snapshots
 			if ((uint)p >= (uint)text.Length) goto L1_done;
 			c = text[p];
 			if (!(c == ' ' || c == '/')) goto L1_done;
-			if (p + 1 > text.Length) goto L3_or;
-			if (text[p + 0] != ' ') goto L3_or;
+			if (c != ' ') goto L3_or;
 			p += 1;
 			goto L0_turn;
 			L3_or: ;

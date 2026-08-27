@@ -309,7 +309,13 @@ sealed partial class Machine
 			return head.ToString();
 		}
 
-		void Emit(Writer code, Node node, string fail)
+		/// <param name="loaded">
+		/// Whether <c>c</c> already holds <c>text[p]</c> and the position is proven in
+		/// bounds — true right after a choice's front test, and carried only as far as
+		/// nothing has consumed. What it saves is the first thing every alternative used
+		/// to do over again: its own bounds check and its own read of the same character.
+		/// </param>
+		void Emit(Writer code, Node node, string fail, bool loaded = false)
 		{
 			switch (node)
 			{
@@ -320,6 +326,14 @@ sealed partial class Machine
 				{
 					if (text.Length == 0)
 						break;
+
+					if (loaded && !folded && text.Length == 1)
+					{
+						code.Line($"if (c != {CSharpEmitter.Char(text[0])}) goto {fail};");
+						code.Line("p += 1;");
+
+						break;
+					}
 
 					if (!folded && text.Length > 1)
 					{
@@ -353,7 +367,8 @@ sealed partial class Machine
 				{
 					var test = CSharpEmitter.Test(element);
 
-					code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
+					if (!loaded)
+						code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
 
 					// `any` tests nothing; reading the character just to discard it would
 					// be an unreachable branch in somebody's build.
@@ -361,7 +376,8 @@ sealed partial class Machine
 					{
 						_character = true;
 
-						code.Line("c = text[p];");
+						if (!loaded)
+							code.Line("c = text[p];");
 						code.Line($"if (!({test})) goto {fail};");
 					}
 
@@ -378,7 +394,7 @@ sealed partial class Machine
 					// a buffer and the undo machinery is added exactly when referenced.
 					if (parts.Count == 1)
 					{
-						Emit(code, parts[0], fail);
+						Emit(code, parts[0], fail, loaded);
 
 						break;
 					}
@@ -387,11 +403,14 @@ sealed partial class Machine
 					var restore = $"L{_labels++}_undo";
 					var over    = $"L{_labels++}_on";
 					var buffer  = new Writer(0);
+					var carry   = loaded;
 
 					for (var i = 0; i < parts.Count; i++)
 					{
 						if (parts[i] is Node.Repeat scan && GuardOf(scan) is { } guard)
 						{
+							carry = false;
+
 							// Scannable admitted this repetition only as the pair, so the
 							// literal it stops at is the part after it and the two are
 							// emitted together — as one search where the body is a bare
@@ -409,7 +428,10 @@ sealed partial class Machine
 							continue;
 						}
 
-						Emit(buffer, parts[i], i == 0 ? fail : restore);
+						Emit(buffer, parts[i], i == 0 ? fail : restore, carry);
+
+						// The invariant survives only what consumes nothing.
+						carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind;
 					}
 
 					var written = buffer.ToString();
@@ -447,23 +469,31 @@ sealed partial class Machine
 					{
 						_character = true;
 
-						code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
-						code.Line("c = text[p];");
+						if (!loaded)
+						{
+							code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
+							code.Line("c = text[p];");
+						}
 						code.Line($"if (!({front})) goto {fail};");
+
+						// The front test just proved both halves of the invariant for
+						// every alternative: the position is in bounds and `c` is the
+						// character standing there.
+						loaded = true;
 					}
 
 					for (var i = 0; i < alternatives.Count; i++)
 					{
 						if (i == alternatives.Count - 1)
 						{
-							Emit(code, alternatives[i], fail);
+							Emit(code, alternatives[i], fail, loaded);
 
 							break;
 						}
 
 						var next = $"L{_labels++}_or";
 
-						Emit(code, alternatives[i], next);
+						Emit(code, alternatives[i], next, loaded);
 						code.Line($"goto {took};");
 						code.Line($"{next}: ;");
 					}
@@ -489,7 +519,7 @@ sealed partial class Machine
 						var over = $"L{_labels++}_past";
 						var seen = $"L{_labels++}_seen";
 
-						Emit(code, inside, seen);
+						Emit(code, inside, seen, loaded);
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {over};");
 						code.Line($"{seen}:");
@@ -500,7 +530,7 @@ sealed partial class Machine
 					{
 						var absent = $"L{_labels++}_absent";
 
-						Emit(code, inside, absent);
+						Emit(code, inside, absent, loaded);
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {fail};");
 						code.Line($"{absent}: ;");
@@ -524,12 +554,12 @@ sealed partial class Machine
 					break;
 
 				case Node.Atomic(var kept):
-					Emit(code, kept, fail);
+					Emit(code, kept, fail, loaded);
 
 					break;
 
 				case Node.Call(var called, _):
-					Emit(code, graph.Bodies[called], fail);
+					Emit(code, graph.Bodies[called], fail, loaded);
 
 					break;
 

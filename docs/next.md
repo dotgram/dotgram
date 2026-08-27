@@ -3892,3 +3892,19 @@ was invented for without touching expected-sets or failure positions.
 The catalog: 6,055 lines to 5,359, and the only publications still renting a parser
 are Sum (climbing), Sheet (recovery) and AnyItem (a find). All 1,076 tests green,
 the reference differential and the fuzzer included.
+
+## Built: the scanner's front test hands its character on
+
+The one redundancy the scanner review left open: after a choice's front test proved
+the position in bounds and read `c`, the first alternative asked both questions over
+again - its own bounds check, its own read of the same character. The emission now
+carries the invariant as a flag: true right after a front test, passed into every
+alternative (each begins where the test read), through what consumes nothing -
+`Behind`, a lookahead, `none` - and dropped at the first thing that moves. An element
+head and a one-character literal head become the bare comparison.
+
+Corpus, Release, two runs: 1.74/2.38/1.82/2.58 and 1.76/2.33/1.83/2.49 against
+1.72/2.30/1.87/2.50 before - noise, and recorded as such. The seam's answer was
+already one test; what this removes is two instructions per alternative behind it,
+which the corpus cannot see. Kept for the same reason the CFG cleanups were: the
+generated text stops re-deriving what the line above it just proved.
