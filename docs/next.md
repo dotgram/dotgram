@@ -3738,3 +3738,34 @@ first alternative after the front test (the emission would have to carry "c hold
 text[p]" across the seam); partial FIRST dispatch for choices that are not fully
 disjoint - Primary's `'@'` deciding CsExpr against RefOrCall one character early;
 and the Return/Dispatch architecture itself, deliberately last.
+
+## Measured: the whole series, on the shape it was for
+
+The corpus's flat ratios kept saying the same thing: the notation grammar is a tower
+of recursive valued rules, and most of the series - hoisted captures, valued flat,
+sited calls, scanner work - lives elsewhere. So the benchmark that was missing got
+written: `Documents.cs`, four hundred key-value records with trivia at every seam,
+values that are spans, a collection collected in order. Three inputs of one length -
+dense, spaced, commented - tell the seam's cost from the record's.
+
+Against the state before the series (one worktree per side, same machine, same run):
+
+  dense      287.5 us -> 19.3 us      allocated  3.14 MB -> 46 KB
+  spaced     279.8 us -> 20.5 us
+  commented  276.9 us -> 21.2 us
+
+Fifteenfold in time, sixty-eight-fold in allocation, and the remaining 46 KB is the
+result itself. The seam now costs seven percent over dense and comments ten. The
+numbers went into benchmarks/README.md next to the URL ones, which measure the dense
+regex-shaped case this benchmark deliberately is not.
+
+Writing it also walked into a sharp edge worth remembering: `entries: Entry*` in a
+spaced grammar parses `a;b;` and silently refuses `a; b;` - §4.5 puts trivia between
+the operands of a sequence and not between the turns of a repetition, because
+`Word*` cannot be told from a list by looking, and the semantic tests pin exactly
+that. An attempt to widen the turn seam to called turns broke those pins and was
+reverted the same hour; the list spells its seam itself - `(trivia & entries:
+Entry)*` - the way the notation grammar always has. Whether the language should say
+something louder at that edge (a diagnostic for a called repetition in a spaced
+namespace with no seam in the turn?) is a language question, noted here and not
+decided.

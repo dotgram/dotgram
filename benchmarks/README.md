@@ -208,6 +208,42 @@ no build step at all because the build happened at compile time. A benchmark tha
 first-call cost would say something quite different, and neither number is the whole
 truth on its own.
 
+## The Documents benchmark
+
+`Documents.cs`: the other everyday shape, and the one most grammars actually are — a
+file of records with spacing and comments between every operand, values that are spans
+of the input, a collection collected in reading order. The URL grammar cannot see any
+of this: it has no trivia, so the seam machinery never runs, and its values were on the
+engine before any of the value work landed.
+
+Three inputs of the same four hundred entries tell the costs apart: dense (no seam
+finds anything — the commonest call, and the fastest to get wrong), spaced (a seam at
+every operand), and commented (line and block comments between records, exercising the
+scanner's `IndexOf` path).
+
+### Current result
+
+Measured across the 2026-08 generator series (flat lowering scoped per machine, capture
+hoisting, valued-flat and sited calls, scanner front tests and delimiter search, CFG
+threading), against the state before it:
+
+| | before | after |
+|---|---:|---:|
+| dense | 287.5 us | 19.3 us |
+| spaced | 279.8 us | 20.5 us |
+| commented | 276.9 us | 21.2 us |
+| allocated per parse | 3.14 MB | 46 KB |
+
+Fifteenfold in time and sixty-eightfold in allocation, and the 46 KB that remain are
+the result itself: four hundred `Setting` objects and their strings. The before-column
+allocation is what the review that started the series predicted — the arena wrote per
+character, and the value tables grew with it.
+
+The seam costs what it should: spaced is seven percent over dense, comments ten. The
+grammar writes its list the way §4.5 means it — `(trivia & entries: Entry)*`, the seam
+named by the author — because a bare `Entry*` is a lexeme-shaped repetition and gets no
+seam between turns; that distinction has its own semantic tests.
+
 ## What a parse allocates
 
 `--alloc` (`Allocation.cs`) asks the runtime what the thread allocated between two points
