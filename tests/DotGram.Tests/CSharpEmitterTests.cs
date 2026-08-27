@@ -1188,6 +1188,43 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// The scanner's two shapes that are not the grammar written out literally: one
+	/// character deciding the whole choice, and a guarded scan as the search it is.
+	/// </summary>
+	[Fact]
+	public void A_scanner_asks_one_character_first_and_searches_for_its_delimiter()
+	{
+		const string grammar =
+			"""
+			namespace S
+			{
+				trivia = { (' ' | "/*" & (?!"*/" & any)* & "*/")* }
+
+				X : @string = t: ['a'..'z']+ => @(t)
+			}
+			parse S.X
+			""";
+
+		var source = Emit(grammar);
+
+		// Every alternative must begin with a character, so one test refuses them all —
+		// the commonest answer at a seam, where there is no trivia to skip.
+		Assert.Contains("if (!(c == ' ' || c == '/')) goto", source, StringComparison.Ordinal);
+
+		// `(?!"*/" & any)* & "*/"` is a search: no per-character loop, no rewind, and
+		// the delimiter read once instead of twice.
+		Assert.Contains("MemoryExtensions.IndexOf(text.Slice(p)", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("_scan:", source, StringComparison.Ordinal);
+
+		Assert.Equal("ab", Invoke(grammar, "ParseX", " /* c */ ab /**/ ").Value);
+		Assert.Equal("ab", Invoke(grammar, "ParseX", "ab").Value);
+
+		// An unterminated comment is not trivia: the scan gives the position back, and
+		// what is left does not parse.
+		Assert.False(Invoke(grammar, "ParseX", "ab /* ").Matched);
+	}
+
 	// ── A capture that can open before it closes ─────────────────────────
 
 	/// <summary>

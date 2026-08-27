@@ -187,6 +187,37 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>
+	/// Whether a guarded scan's turn is a bare character, so the pair it belongs to is a
+	/// search for its delimiter and nothing else.
+	/// </summary>
+	/// <remarks>
+	/// A turn that consumes anything at all — <c>?!"*&#47;" &amp; any</c> — stops exactly
+	/// where the delimiter first occurs. A turn narrower than that — <c>?!X &amp;
+	/// [^ '\n']</c> — can also stop because its own character test refused, which a
+	/// search for the delimiter would run straight past, so that shape keeps the loop.
+	/// </remarks>
+	static bool ScansUntil(Node.Repeat repeat, RecognitionGraph graph) =>
+		repeat.Body is Node.Sequence({ Count: 2 } parts) && Anything(parts[1], graph, []);
+
+	/// <summary>Whether a node is one character, whichever character it is.</summary>
+	/// <remarks>
+	/// <c>any</c> is a rule of the standard library rather than an element written in
+	/// place, so the call is followed — the same unwrapping every other analysis here
+	/// does, with a ring of calls refused rather than walked forever.
+	/// </remarks>
+	static bool Anything(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen) =>
+		node switch
+		{
+			Node.Element element     => string.Equals(
+			                                CSharpEmitter.Test(element), "true", StringComparison.Ordinal),
+			Node.Atomic(var kept)    => Anything(kept, graph, seen),
+			Node.Call(var called, _) => seen.Add(called) &&
+			                            graph.Bodies.TryGetValue(called, out var body) &&
+			                            Anything(body, graph, seen),
+			_                        => false,
+		};
+
 	/// <summary>The literal a guarded scan stops at, where the repetition is one.</summary>
 	static string? GuardOf(Node.Repeat repeat) =>
 		repeat.Body is Node.Sequence(var parts) &&
@@ -359,10 +390,26 @@ sealed partial class Machine
 
 					for (var i = 0; i < parts.Count; i++)
 					{
-						if (parts[i] is Node.Repeat scan && GuardOf(scan) is not null)
+						if (parts[i] is Node.Repeat scan && GuardOf(scan) is { } guard)
+						{
+							// Scannable admitted this repetition only as the pair, so the
+							// literal it stops at is the part after it and the two are
+							// emitted together — as one search where the body is a bare
+							// character, and as loop plus literal where it is more.
+							if (ScansUntil(scan, graph))
+							{
+								EmitScanUntil(buffer, guard, i == 0 ? fail : restore);
+								i++;
+
+								continue;
+							}
+
 							EmitGuardedScan(buffer, scan);
-						else
-							Emit(buffer, parts[i], i == 0 ? fail : restore);
+
+							continue;
+						}
+
+						Emit(buffer, parts[i], i == 0 ? fail : restore);
 					}
 
 					var written = buffer.ToString();
@@ -388,6 +435,22 @@ sealed partial class Machine
 				case Node.Choice(var alternatives):
 				{
 					var took = $"L{_labels++}_took";
+
+					// One test for the whole chain, where every alternative must begin
+					// with a character and the union of what they begin with is small
+					// enough to write. The scanner's commonest answer is "no trivia
+					// here", and without this that answer costs one test per alternative
+					// — a bounds check and a span compare apiece for the two comment
+					// forms, where the character says no to both at once. At the end of
+					// the input it is the same test: nothing that must consume can.
+					if (alternatives.Count > 1 && FrontTest(alternatives) is { } front)
+					{
+						_character = true;
+
+						code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
+						code.Line("c = text[p];");
+						code.Line($"if (!({front})) goto {fail};");
+					}
 
 					for (var i = 0; i < alternatives.Count; i++)
 					{
@@ -520,6 +583,63 @@ sealed partial class Machine
 			code.Line($"goto {loop};");
 			code.Line($"{done}: ;");
 		}
+
+		/// <summary>
+		/// <c>(?!L &amp; any)* &amp; L</c> — the two parts together, as the search they
+		/// are: find the first <c>L</c>, and take it.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Written out, the pair reads the delimiter twice at every position: once as the
+		/// guard, refusing the turn, and once more as the literal after the loop, where
+		/// the turn that refused already proved it. Between them the machinery of a turn
+		/// — a mark taken, a rewind, a character consumed — runs per character of the
+		/// comment, string, or section this is scanning through.
+		/// </para>
+		/// <para>
+		/// What the pair means is one search, and the runtime's own is vectorized where
+		/// this loop could not be. The semantics carried over exactly: found is the first
+		/// occurrence, which is where the guard would first have held; not found is the
+		/// literal failing after a scan to the end, which is the pair failing.
+		/// </para>
+		/// </remarks>
+		void EmitScanUntil(Writer code, string delimiter, string fail)
+		{
+			var found = $"found{_founds++}";
+
+			code.Line(
+				$"var {found} = global::System.MemoryExtensions.IndexOf(text.Slice(p), " +
+				$"{Spanned(delimiter)});");
+			code.Line($"if ({found} < 0) goto {fail};");
+			code.Line($"p += {found} + {delimiter.Length};");
+		}
+
+		int _founds;
+
+		/// <summary>
+		/// The one character test that stands for a whole choice, or null where the
+		/// alternatives do not all have to begin with one.
+		/// </summary>
+		FirstSets.First? Front(IReadOnlyList<Node> alternatives)
+		{
+			var union = FirstSets.First.None;
+
+			foreach (var alternative in alternatives)
+			{
+				if (FirstSets.Nullable(alternative, graph))
+					return null;
+
+				union = union.Or(FirstSets.Of(alternative, graph));
+			}
+
+			return union;
+		}
+
+		string? FrontTest(IReadOnlyList<Node> alternatives) =>
+			Front(alternatives) is { Anything: false, Nothing: false, Ends: false } union &&
+			union.Ranges.Count is > 0 and <= Emitted
+				? RangesTest(union.Ranges)
+				: null;
 
 		int Mark()
 		{

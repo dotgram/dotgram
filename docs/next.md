@@ -3649,3 +3649,43 @@ Measured Release-to-Release, two runs agreeing: Csv 1.93 -> 1.88, Feed 2.69 ->
 sited collections are `usings` and `parts`, which the sample texts have few of. The
 shape it is for is a document of many small records - Markdown's blocks, a feed's
 rows - where the ceremony was three entries per record.
+
+## Built: the scanner stopped being the grammar written out
+
+A review of `Scan_trivia` named two things in it that were the automaton showing
+through rather than anything the shape required, and both had general answers.
+
+**One character for the whole choice.** Every alternative of a scan choice that must
+begin with a character is refused by one test over the union of their first sets,
+written before the chain. The scanner's commonest answer is "no trivia here" - it is
+called at every seam - and that answer used to cost a test per alternative: for the
+notation, a bounds check and a two-character span compare for `//`, then the same
+again for `/*`, after the whitespace class had already said no. Now the character
+says no to all of them at once, and the end of the input is the same test rather
+than a cascade through every alternative's own EOF check.
+
+**A guarded scan is a search.** `(?!L & any)* & L` was compiled as written: a turn
+that tests the delimiter, refuses, rewinds and consumes one character, and then, on
+the way out, the trailing literal testing the same delimiter the guard just proved.
+Two marks, a rewind and a double read per character of every comment. It is one
+search - `IndexOf` - and the runtime's is vectorized where that loop could not be.
+The pair was already judged as a pair by `Scannable`, so the fusion is the same
+judgement carried into emission: found is where the guard would first have held, not
+found is the literal failing after a scan to the end, which is the pair failing.
+
+Narrower than the general shape on purpose: only where the turn consumes `any`. A
+turn like `?!X & [^ '
+']` can also stop because its own test refused, which a search
+for X would run straight past, so that shape keeps the loop. `any` is a rule of the
+standard library rather than an element written in place, so the predicate follows
+calls - which is what made the first attempt silently not fire.
+
+Ratios, Release, two runs agreeing: Csv 1.88 -> 1.76, Feed 2.62 -> 2.40, Minimal
+2.08 -> 1.86, Url 2.88 -> 2.62. The largest single step since the exponential fix,
+and it is all in the seam: Url has no trivia at all and still moved, because the
+notation grammar that parses these files is what the corpus measures.
+
+Not taken: prefix dispatch merging `//` and `/*` under one `'/'` test. The front
+test already removed the negative path both were on, and what is left is one span
+compare per comment start. Same reason the trie was declined: measure a shape that
+exists first.
