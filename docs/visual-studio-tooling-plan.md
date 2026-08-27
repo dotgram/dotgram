@@ -69,6 +69,8 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Show the language id and published entry rule in Quick Info for routed DSL strings.
 - [x] Route string inputs of generated parse and try-parse publication methods in source
   projects without requiring a marker attribute.
+- [x] Select the exact entry rule for generated APIs when one language publishes several
+  parse methods.
 
 The detailed design and explicit deferrals are in
 [`dsl-tooling-design.md`](dsl-tooling-design.md).

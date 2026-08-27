@@ -32,12 +32,12 @@ internal sealed class DslEmbeddedSiteResult(
 internal sealed class DslPreparedLanguage(
 	string fingerprint,
 	RecognitionGraph graph,
-	Publication publication,
+	IReadOnlyList<Publication> publications,
 	DslClassificationBinding binding)
 {
 	public string Fingerprint { get; } = fingerprint;
 	public RecognitionGraph Graph { get; } = graph;
-	public Publication Publication { get; } = publication;
+	public IReadOnlyList<Publication> Publications { get; } = publications;
 	public DslClassificationBinding Binding { get; } = binding;
 }
 
@@ -103,19 +103,20 @@ internal static class DslEmbeddedSiteAnalysis
 				.Where(static type => type is not null)
 				.Cast<INamedTypeSymbol>()
 				.ToArray();
-			var languages = catalog.AttributeCarriers
+			var markedLanguages = catalog.AttributeCarriers
 				.Where(candidate => markerTypes.Any(marker => SymbolEqualityComparer.Default.Equals(
 					candidate.AttributeType,
 					marker)))
 				.Select(static candidate => candidate.Language)
 				.ToList();
 			var method = parameter.ContainingSymbol as IMethodSymbol;
+			var languages = markedLanguages.ToList();
 			if (method is not null && parameter.Name == "input")
 				languages.AddRange(catalog.Languages.Where(language => SymbolEqualityComparer.Default.Equals(
 					language.ParserType,
 					method.ContainingType)));
 
-			var routes = new List<(DslLanguageDefinition Language, DslPreparedLanguage Prepared)>();
+			var routes = new List<(DslLanguageDefinition Language, DslPreparedLanguage Prepared, Publication Publication)>();
 			foreach (var language in languages.Distinct())
 			{
 				var resolution = await DslGrammarSourceResolver.ResolveAsync(
@@ -127,11 +128,19 @@ internal static class DslEmbeddedSiteAnalysis
 
 				var candidate = cache?.Prepare(language, resolution.Text) ??
 					Prepare(language, resolution.Text, fingerprint: "");
-				if (candidate is not null &&
-					(method is null || !SymbolEqualityComparer.Default.Equals(language.ParserType, method.ContainingType) ||
-					 method.Name == candidate.Publication.MethodName ||
-					 method.Name == "Try" + candidate.Publication.MethodName))
-					routes.Add((language, candidate));
+				if (candidate is null)
+					continue;
+
+				var generatedApi = method is not null && parameter.Name == "input" &&
+					SymbolEqualityComparer.Default.Equals(language.ParserType, method.ContainingType);
+				var publications = generatedApi
+					? candidate.Publications.Where(publication =>
+						method!.Name == publication.MethodName || method.Name == "Try" + publication.MethodName).ToArray()
+					: markedLanguages.Contains(language) && candidate.Publications.Count == 1
+						? candidate.Publications
+						: [];
+				if (publications is [{ } selectedPublication])
+					routes.Add((language, candidate, selectedPublication));
 			}
 
 			var distinctRoutes = routes
@@ -142,16 +151,17 @@ internal static class DslEmbeddedSiteAnalysis
 				continue;
 			var carrier  = route.Language;
 			var prepared = route.Prepared;
+			var publication = route.Publication;
 
 			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan))
 				sites.Add(new HostDslSite(
 					siteSpan,
 					carrier.Id,
-					prepared.Publication.Rule.Name));
+					publication.Rule.Name));
 
 			var trace = DslRecognitionTrace.Recognize(
 				prepared.Graph,
-				prepared.Publication,
+				publication,
 				literal.Token.ValueText);
 			foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
 				if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
@@ -187,12 +197,12 @@ internal static class DslEmbeddedSiteAnalysis
 			return null;
 
 		var publications = graph.Publications.Where(static item => item.Kind == PublishKind.Parse).ToArray();
-		if (publications.Length != 1)
+		if (publications.Length == 0)
 			return null;
 
 		var binding = DslClassificationBinder.Bind(language, grammarSource);
 		return binding.Diagnostics.Count == 0
-			? new DslPreparedLanguage(fingerprint, graph, publications[0], binding)
+			? new DslPreparedLanguage(fingerprint, graph, publications, binding)
 			: null;
 	}
 

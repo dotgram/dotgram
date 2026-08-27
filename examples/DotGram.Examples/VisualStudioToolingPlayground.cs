@@ -105,3 +105,29 @@ public static class ToolingQueryExample
 	public static object ParseDirect() => ToolingQueryLanguage.ParseQuery("select customer");
 	public static object TryParseDirect() => ToolingQueryLanguage.TryParseQuery("select customer");
 }
+
+// Multiple-publication DSL check. Each generated method must select its own entry rule.
+[Gram("""
+	trivia       = [' ' | '\t']*
+	SelectWord   = "select"
+	CountWord    = "count"
+	Identifier   = ['a'..'z']+
+	SelectQuery  = SelectWord & field: (Identifier)
+	CountQuery   = CountWord & field: (Identifier)
+	parse SelectQuery
+	parse CountQuery
+	""")]
+[GramLanguage("dotgram.tooling.multi-query")]
+[GramClassify("SelectWord", GramClassification.Keyword)]
+[GramClassify("CountWord", GramClassification.Keyword)]
+[GramClassify("SelectQuery.field", GramClassification.Variable)]
+[GramClassify("CountQuery.field", GramClassification.Variable)]
+public static partial class MultiQueryLanguage
+{
+}
+
+public static class MultiQueryExample
+{
+	public static object Select() => MultiQueryLanguage.ParseSelectQuery("select customer");
+	public static object Count() => MultiQueryLanguage.ParseCountQuery("count customer");
+}

@@ -132,6 +132,33 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
+	public async Task SelectsPublicationFromGeneratedMethodWhenLanguageHasSeveralEntries()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total")
+			.Replace(
+				"parse Start",
+				"Other      = \"show\" & ' ' & name: (Identifier)\n\t\tparse Start\n\t\tparse Other")
+			.Replace(
+				"[DotGram.GramClassify(\"Start.name\", DotGram.GramClassification.Variable)]",
+				"[DotGram.GramClassify(\"Start.name\", DotGram.GramClassification.Variable)]\n\t[DotGram.GramClassify(\"Other.name\", DotGram.GramClassification.Variable)]")
+			.Replace(
+				"static void Test() => Run(new Query(\"let total\"));",
+				"static void Test() => FilterParser.ParseOther(\"show total\");");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal("Other", Assert.Single(result.Sites).EntryRule);
+		Assert.Contains(result.Classifications, item =>
+			item.Role == "Variable" && text.ToString(item.Span) == "total");
+	}
+
+	[Fact]
 	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
@@ -207,6 +234,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		{
 			public static string ParseStart(string input) => input;
 			public static string TryParseStart(string input) => input;
+			public static string ParseOther(string input) => input;
 		}
 
 		[System.AttributeUsage(System.AttributeTargets.Parameter)]
