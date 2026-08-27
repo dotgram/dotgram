@@ -4094,3 +4094,40 @@ parameterized call in a shared rule, a value argument carried, an argument obser
 its sibling bindings, `: item` handing its value through, and §14 firing on declared
 types. All 1,087 green; the old GRAM3009 pins survive as what they now are -
 signature mismatches.
+
+## Built: indirect left recursion, where the rules between only forward
+
+Next red row, and it splits in two. §4.3 refuses a rule that reaches itself through
+another because indirect recursion has arbitrarily many shapes - but one of those
+shapes is not arbitrary at all, and it is the one every expression grammar is
+written in:
+
+    Primary : @Expr = p: Call => @(p) | n: Number => @(n)
+    Call    : @Expr = target: Primary & '(' & args: Args & ')' => @Invoke(...)
+
+`Primary` only forwards, which is the identity `CollapseTransparent` already proves
+for the same shape: an alternative that is a captured call handed back unchanged
+means nothing the call does not mean. So the leading `Primary` is the choice of what
+it forwards, the alternative distributes over that choice - sound because calls are
+transparent to backtracking, so `(X | Y) & rest` and `X & rest | Y & rest` try the
+same readings in the same order - and what is left is `Call` calling itself leftmost.
+§4.3's own rewrite folds it from there. Nothing new happens at run time; this
+rewrites the grammar into a shape the language already had, and `7()()` folds left
+as it reads.
+
+The pass runs inside `RewriteLeftRecursion`, per rule, immediately before its
+alternatives are classified, and only where the forwarder's sources actually include
+the rule - so a layered grammar with no recursion in it is left node for node as it
+was. Types are not computed yet, so the declared ones stand in and must match
+exactly: a forwarder that widens is doing something after all. And a valueless alias
+under a capture is left alone - its own value is the text it matched (§4.1 case 4),
+and a source with a value of its own would put that value there instead.
+
+What stays refused, now with its reason written down rather than discovered: an
+intermediary that does anything of its own. Its operands and its `=>` would join the
+tail of the fold, so a step would have to apply two constructions in order against an
+accumulator that is itself the result of one - a staged fold, which neither the value
+machinery nor the arena has a shape for. Both halves are pinned: the postfix chain
+runs, the mutual `A = B - N | N` / `B = A + N | N` is refused, and the old
+`Other = Start | 'y'` pin survives unchanged as what it now is - an intermediary that
+is not only a name.

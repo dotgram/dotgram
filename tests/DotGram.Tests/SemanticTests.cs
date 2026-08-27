@@ -1972,13 +1972,99 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
 
 	[Fact]
-	public void Indirect_left_recursion_is_still_refused() =>
+	public void Indirect_left_recursion_through_a_rule_that_does_something_is_still_refused() =>
+		// `Other` is not only a name for what it forwards — one of its alternatives is a
+		// literal of its own — so unfolding it would put that literal, and whatever else
+		// an intermediary might carry, into the fold's tail. Refused, as §4.3 says.
 		Refused(
 			GrammarNormalizer.LeftRecursion,
 			"""
 			Start = Other & 'x'
 			Other = Start | 'y'
 			""");
+
+	[Fact]
+	public void And_so_is_a_mutual_recursion_where_both_sides_build() =>
+		// The shape the general transform would need: `B`'s own operands and its `=>`
+		// would join `A`'s tail, so the fold would have to apply two constructions in
+		// order against an accumulator that is itself the result of one.
+		Refused(
+			GrammarNormalizer.LeftRecursion,
+			"""
+			N : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			A : @int = l: B & '-' & r: N => @(l - r) | v: N => @(v)
+			B : @int = l: A & '+' & r: N => @(l + r) | v: N => @(v)
+			""");
+
+	[Fact]
+	public void But_one_through_a_rule_that_only_forwards_is_made_direct()
+	{
+		// §4.3 over the layered shape every expression grammar is written in: `Call`
+		// reaches itself through `Primary`, and `Primary` only forwards — so the leading
+		// `Primary` is the choice of what it forwards, the alternative distributes over
+		// it, and what is left is the direct recursion §4.3 already folds. Left-
+		// associative, because that is where the recursion is: `7()()` is `(7())()`.
+		var result = Compile("""
+			Number  : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			Primary : @int = p: Call => @(p) | n: Number => @(n)
+			Call    : @int = target: Primary & "()" => @(target * 10)
+
+			parse Primary
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(7,   EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7").Value);
+		Assert.Equal(70,  EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7()").Value);
+		Assert.Equal(700, EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7()()").Value);
+	}
+
+	[Fact]
+	public void The_forwarder_itself_still_parses_on_its_own()
+	{
+		// Unfolding rewrites the recursive rule's own alternatives; the forwarder stays
+		// in the grammar and means what it always did, publication included.
+		var result = Compile("""
+			Number  : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			Primary : @int = p: Call => @(p) | n: Number => @(n)
+			Call    : @int = target: Primary & "()" => @(target * 10)
+
+			parse Primary as Any
+			parse Call as Applied
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(70, EmittedCode.Match(assembly, "Grammar", "TryApplied", "7()").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryApplied", "7").IsSuccess);
+		Assert.Equal(7,  EmittedCode.Match(assembly, "Grammar", "TryAny", "7").Value);
+	}
+
+	[Fact]
+	public void A_valueless_alias_makes_a_valueless_recursion_direct()
+	{
+		// The same unfolding where nothing builds: `Term` is a name for `List` and
+		// `Word`, and `List` reaching itself through it is the loop it reads as.
+		var result = Compile("""
+			Word  = ['a'..'z']+
+			Term  = List | Word
+			List  = Term & ',' & Word
+
+			parse List
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a,b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a,b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a").IsSuccess);
+	}
 
 	// ── `when` guards (§8.1) ───────────────────────────────────────────────────
 

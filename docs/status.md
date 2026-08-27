@@ -53,7 +53,8 @@ then quietly mean nothing.
 | the same handing back a value of its own §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
+| indirect left recursion, through rules that only forward §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same, through a rule that does something of its own | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |

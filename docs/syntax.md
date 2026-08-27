@@ -574,9 +574,24 @@ tried and given back never ran at all.
 
 Three things are rejected when the grammar is built:
 
-- **indirect left recursion** — `A` reaching itself through `B` without consuming.
-  Direct recursion has one shape to rewrite and indirect has arbitrarily many, so it
-  is a diagnostic rather than a half-working transform.
+- **indirect left recursion** — `A` reaching itself through `B` without consuming —
+  **unless every rule between is only a name for what it forwards.** That case is made
+  direct and then rewritten like any other: a rule whose every alternative hands another
+  rule's value straight back (`Primary : @Expr = p: Call => @(p) | n: Number => @(n)`, or
+  a valueless `Term = List | Word`) means nothing those rules do not already mean, so a
+  leading call to it is the choice of what it forwards and the alternative distributes
+  over that choice. The layered shape every expression grammar is written in therefore
+  works as it reads, left-associatively:
+
+  ```dotgram
+  Primary : @Expr = p: Call => @(p) | n: Number => @(n)
+  Call    : @Expr = target: Primary & '(' & args: Args & ')' => @Invoke(target, args)
+  ```
+
+  An intermediary that does anything of its own is still refused. Its operands and its
+  own `=>` would join the tail of the fold, so a step would have to apply two
+  constructions in order against an accumulator that is itself the result of one —
+  arbitrarily many shapes, which is what this rejection has always been about.
 - **a rule whose every alternative is left-recursive.** There is nothing to start from.
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one

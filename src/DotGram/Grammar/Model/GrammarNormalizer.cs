@@ -241,7 +241,10 @@ public sealed partial class GrammarNormalizer
 	{
 		foreach (var rule in _rules)
 		{
-			var alternatives = Alternatives(_bodies[rule]);
+			// An indirect recursion whose intermediaries only forward is made direct
+			// first, so the one rewrite below is the one rewrite it always was
+			// (GrammarNormalizer.Recursion.cs).
+			var alternatives = Unfolded(rule, Alternatives(_bodies[rule]));
 			var bases        = new List<Node>();
 			var tails        = new List<Node>();
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
