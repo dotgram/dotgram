@@ -273,12 +273,15 @@ public sealed class CSharpEmitterTests
 	public void But_one_that_begins_another_still_needs_it()
 	{
 		// Both match at the same place, the shorter is taken, and if what follows the choice
-		// then fails the longer has to be tried. That is a way back, and a way back is what
-		// the entry is.
+		// then fails the longer has to be tried. That is a way back — held in three locals
+		// now, not an arena entry: the checkpoint class keeps the position, the next
+		// alternative and the site that was pending before, and `Fail:` resumes it.
 		const string grammar = """Start = ("ab" | "abc") & 'c' """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
+		Assert.Contains("pending = 1;", source);
 		Assert.True(Run(grammar, "abc").Matched);
 	}
 
@@ -304,11 +307,13 @@ public sealed class CSharpEmitterTests
 		// The same pair the other way round. "http" is taken first, and coming back for the
 		// second alternative is the only thing that can ever match the extra character —
 		// docs/syntax.md §11 promises alternatives are never reordered, so this is a fact
-		// about the grammar as written and not one to optimize away.
+		// about the grammar as written and not one to optimize away. The way back is the
+		// checkpoint class's: locals and the dispatcher below `Fail:`, no arena.
 		const string grammar = """Start = ("http" | "https") & "://" """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
 		Assert.True(Run(grammar, "https://").Matched);
 		Assert.True(Run(grammar, "http://").Matched);
 	}
@@ -318,11 +323,12 @@ public sealed class CSharpEmitterTests
 	{
 		// Longer first, but 'b' is exactly the character "ab" went on with, so taking it and
 		// failing leaves "a" standing somewhere 'b' can begin: a real second reading, and
-		// the entry is what reaches it.
+		// the checkpoint site is what reaches it.
 		const string grammar = """Start = ("ab" | "a") & 'b' """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
 		Assert.True(Run(grammar, "ab").Matched);
 	}
 
@@ -863,13 +869,12 @@ public sealed class CSharpEmitterTests
 		// splits on — they arrive indented once and flat after that. The code still
 		// compiles, so nothing but this notices.
 		// In a namespace, so the depth every one of them sits at is two and not "whatever
-		// the class happened to be nested at". Deliberately not silent — the shorter literal
-		// is written first, so it takes the position wherever the longer would have and the
-		// choice needs a way back, which is what asks for the arena and the Parser below.
-		// The other order lowers, and the whole engine, Parser included, is what a silent
-		// grammar no longer pays for.
+		// the class happened to be nested at". Deliberately not silent — the repetition
+		// over an ambiguous choice keeps a way back per turn, which no checkpoint site
+		// can hold, so this grammar still asks for the arena and the Parser below. A
+		// silent grammar no longer pays for either.
 		var source = Assert.Single(GramCompiler.Compile(
-			"Start = (\"a\" | \"ab\") & 'c'\nparse Start",
+			"Start = ((\"a\" | \"ab\") & 'c')* & 'd'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);
@@ -1261,24 +1266,21 @@ public sealed class CSharpEmitterTests
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]
-	public void The_way_back_to_a_longer_alternative_is_written_past_what_already_matched()
+	public void The_way_back_to_a_longer_alternative_re_reads_it_from_its_start()
 	{
 		var source = Emit("Start = QhttpQ | QhttpsQNparse Start".Replace("Q", "\"").Replace("N", "\n"));
 
-		// The order of these two lines is the whole optimization. An arena entry records
-		// the position as it stands, so pushing after the advance means what resumes there
-		// resumes past the four characters `"http"` matched — and the state it names
-		// compares the fifth alone. Pushed before, it would resume at the start and compare
-		// `"https"` from its first character.
-		Assert.Matches(
-			@"p \+= 4;\s*entries\.Add\(new ParserEntry\(ParserEntry\.Choice,", source);
-
-		Assert.Matches(@"text\[p\] == 's'\)\s*\{\s*p \+= 1;", source);
-
-		// And the longer text is never compared as a text at all: it is not in the
-		// falling-through chain, because it begins with one tested above it, and where
-		// the way back names it only the one character it adds is read.
-		Assert.DoesNotContain("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
+		// The checkpoint class took this shape off the engine entirely: no arena entry,
+		// no dispatch, a plain method. What the engine's form had here and this one does
+		// not is the past-the-prefix resume — its way back was pushed after `"http"`
+		// advanced and compared the fifth character alone, where the retry rewinds to
+		// the site's start and compares `"https"` whole. That is a retry-path read of
+		// four extra characters against a straight-line path that no longer rents a
+		// parser; teaching `CompileLiterals` to chain into a retry label instead of an
+		// arena entry would restore it, and is recorded as the follow-up.
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Matches(@"p = way1;\s*alt1 = 2;", source);
+		Assert.Contains("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
 	}
 
 	// ── Position sharpening: the character that failed, not the operand's start ──

@@ -115,7 +115,12 @@ end-of-input condition is satisfied.
 recursion, no backtracking its proofs cannot discharge, no record a local cannot hold — a
 qualifying publication compiles to a plain method: captures as position locals, the one
 construction run after the whole-input check, a captured call to another such rule
-compiled as that rule's body in place. The question is asked per machine, of the rules it
+compiled as that rule's body in place. A choice that genuinely needs coming back to —
+`("http" | "https") & "s"` — is no longer disqualifying: its way back is three locals
+(the position, the next alternative, the site pending before it), and the method's
+failure path resumes the innermost open site before giving up — the engine's unwinding,
+without the engine. A repetition over such a choice would need one pending record per
+turn, which locals cannot hold, and keeps the arena. The question is asked per machine, of the rules it
 actually reaches — a recovery or a climb elsewhere in the grammar is some other machine's
 business — and where every publication of a machine qualifies, neither the arena nor the
 pooled parser is emitted for it. Inside the engine the same proofs shrink what is written:

@@ -112,6 +112,38 @@ sealed partial class Machine
 	int _guards;
 	int _captures;
 
+	/// <summary>
+	/// Whether a choice here may keep its way back in locals — the checkpoint class.
+	/// </summary>
+	/// <remarks>
+	/// True only while a flat method is being asked about or written, and only outside
+	/// the constructs that route failure somewhere other than <c>Fail:</c> — a silent
+	/// repetition's door, an atomic group's chain, a lookahead's rewind. Inside those a
+	/// pending way back would be jumped past, so the flag is put down on the way in.
+	/// <see cref="Silent"/> and <see cref="Compile"/> both read it, which is what keeps
+	/// the two from answering differently about the same choice.
+	/// </remarks>
+	bool _checkpointsAllowed;
+
+	/// <summary>A choice compiled with its way back in locals — one per static site.</summary>
+	/// <param name="Id">The site's number, which its locals are named under.</param>
+	/// <param name="Count">How many alternatives it has.</param>
+	/// <param name="Retries">The state that re-enters each alternative after the first.</param>
+	sealed record CheckpointSite(int Id, int Count, IReadOnlyList<int> Retries);
+
+	readonly List<CheckpointSite> _checkpoints = [];
+	int _checkpointIds;
+
+	/// <summary>The states something outside the state bodies jumps to by label.</summary>
+	readonly HashSet<int> _namedOutside = [];
+
+	/// <summary>
+	/// Whether any flat method of this machine can reach the same failure position twice —
+	/// which is what decides whether the emitted <c>Failure</c> struct needs
+	/// <c>ExpectedMore</c> and whether the wrapper hands it over.
+	/// </summary>
+	public bool Ties { get; private set; }
+
 	/// <param name="only">
 	/// The rules this machine compiles, or null for all of them. A machine is built for one
 	/// published rule and what that rule reaches, so a grammar with several publications has
@@ -434,8 +466,19 @@ sealed partial class Machine
 	/// recognizer, a lookahead, an atomic group — defaults to not silent. Asking it once at
 	/// the root asks it of everything reachable.
 	/// </remarks>
-	public bool CanLower(RuleSymbol rule, bool whole) =>
-		Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+	public bool CanLower(RuleSymbol rule, bool whole)
+	{
+		_checkpointsAllowed = true;
+
+		try
+		{
+			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+		}
+		finally
+		{
+			_checkpointsAllowed = false;
+		}
+	}
 
 	public int Register(Node node)
 	{
@@ -1012,6 +1055,12 @@ sealed partial class Machine
 			foreach (var state in Dispatched())
 				named.Add(Resolved(state));
 
+		// Named from outside the state bodies — a checkpoint site's retries, which only
+		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
+		// layout did not put it first.
+		foreach (var state in _namedOutside)
+			named.Add(Resolved(state));
+
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var i    = _order[written];
@@ -1228,6 +1277,15 @@ sealed partial class Machine
 			{
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
+
+				// The checkpoint class: a way back the locals hold. Admitted by the same
+				// three questions `Silent`'s own Choice case asks, in the same order, so
+				// the two cannot disagree — a run of literals that never comes back is
+				// compiled below as it always was, and only a choice that does need
+				// coming back to is given its doors.
+				if (LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
+					CheckpointSilent(alternatives, following.Plain))
+					return CompileCheckpointChoice(alternatives, next, following);
 
 				var last   = alternatives.Count - 1;
 				var run    = LiteralGroup(alternatives, last, following.Plain);
@@ -1841,8 +1899,21 @@ sealed partial class Machine
 						? AllSilent(options, following.Plain, sequence: false)
 						: Silent(body, following.Plain)))
 				{
+					// No pending site may open inside: the chain's doors are where a
+					// failure goes here, and a way back they jumped past would stand
+					// armed for ever. The same flag `Silent`'s Atomic case put down.
+					var checkpoints = _checkpointsAllowed;
+
+					_checkpointsAllowed = false;
+
 					if (body is not Node.Choice(var tried) || tried.Count == 1)
-						return Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
+					{
+						var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
+
+						_checkpointsAllowed = checkpoints;
+
+						return kept;
+					}
 
 					var mine  = _depth++;
 					var doors = false;
@@ -1882,6 +1953,7 @@ sealed partial class Machine
 					atEnter.Line($"goto {Label(target)};");
 
 					_depth = mine;
+					_checkpointsAllowed = checkpoints;
 
 					return entered;
 				}
@@ -2027,6 +2099,13 @@ sealed partial class Machine
 
 					var mine = _depth++;
 
+					// The rewind doors are where the body's outcomes go, and a pending
+					// site opened inside would be jumped past — the flag `Silent`'s own
+					// Lookahead case put down.
+					var checkpoints = _checkpointsAllowed;
+
+					_checkpointsAllowed = false;
+
 					if (isPositive)
 					{
 						// Body matched: rewind and carry on. Body failed: rewind first,
@@ -2048,6 +2127,7 @@ sealed partial class Machine
 						atFlatEnter.Line($"goto {Label(flatInner)};");
 
 						_depth = mine;
+						_checkpointsAllowed = checkpoints;
 
 						return flatState;
 					}
@@ -2064,6 +2144,7 @@ sealed partial class Machine
 					var refused = Compile(body, matched, FollowSets.Continuation.All);
 
 					_fail = saved;
+					_checkpointsAllowed = checkpoints;
 
 					var entered = Reserve(out var atEnter);
 
@@ -2465,6 +2546,67 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// A choice whose way back lives in three locals instead of an arena entry — the
+	/// checkpoint class. C, E and F of the Minimal catalog are the shapes it exists for.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What an arena entry holds for a choice is where to resume, from where, and which
+	/// ways back were pending before it — and for a choice no repetition sits over, each
+	/// is one local: <c>way</c> is the position, <c>alt</c> the next alternative to try,
+	/// <c>over</c> the site that was pending before this one opened. <c>pending</c> is
+	/// the dispatcher's stack pointer: any later failure, the continuation's included,
+	/// goes to <c>Fail:</c>, which records it and resumes the innermost open site — the
+	/// engine's pop, without the engine.
+	/// </para>
+	/// <para>
+	/// No repetition may stand over a site, because one set of locals holds one
+	/// activation; <see cref="Deterministic"/> already refuses the choice, so a silent
+	/// repetition never contains one, and <see cref="_checkpointsAllowed"/> is put down
+	/// inside every construct that routes failure around <c>Fail:</c>. Re-entering the
+	/// site from an outer resume runs its entry again, which re-arms all three locals.
+	/// </para>
+	/// </remarks>
+	int CompileCheckpointChoice(
+		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following)
+	{
+		var id      = ++_checkpointIds;
+		var entries = new int[alternatives.Count];
+		var retries = new int[alternatives.Count - 1];
+
+		for (var at = alternatives.Count - 1; at >= 0; at--)
+			entries[at] = Compile(alternatives[at], next, following);
+
+		// One state per alternative after the first: rewind, say which comes after it,
+		// and go in. Reached only from the dispatcher below `Fail:`, which no state
+		// names — so each is a root of its own, or the layout would drop it.
+		for (var at = 1; at < alternatives.Count; at++)
+		{
+			var retry = Reserve(out var atRetry);
+
+			atRetry.Line($"p = way{id};");
+			atRetry.Line($"alt{id} = {at + 1};");
+			atRetry.Line($"goto {Label(entries[at])};");
+
+			retries[at - 1] = retry;
+			_roots.Add(retry);
+			_namedOutside.Add(retry);
+		}
+
+		_checkpoints.Add(new CheckpointSite(id, alternatives.Count, retries));
+
+		var state = Reserve(out var writer);
+
+		writer.Line($"way{id} = p;");
+		writer.Line($"alt{id} = 1;");
+		writer.Line($"over{id} = pending;");
+		writer.Line($"pending = {id};");
+		writer.Line($"goto {Label(entries[0])};");
+
+		return state;
+	}
+
+	/// <summary>
 	/// A choice one character decides: read it, jump to the alternative it belongs to.
 	/// </summary>
 	int CompilePredictedChoice(
@@ -2794,6 +2936,12 @@ sealed partial class Machine
 			FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All);
 		var target = next;
 
+		// A turn's failure leaves by the loop's door, and one set of site locals holds
+		// one activation — the flag `SilentRepeat`'s own body question put down.
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
+
 		// One local per depth rather than per repetition. Two of them are live at once only
 		// where one of these is written inside another, and that nests two or three deep in
 		// the grammars there are — where the count of them was sixteen, all live at once in a
@@ -2858,6 +3006,7 @@ sealed partial class Machine
 			target = Compile(body, target, inside);
 
 		_depth = mine;
+		_checkpointsAllowed = checkpoints;
 
 		return target;
 	}

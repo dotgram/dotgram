@@ -3847,3 +3847,48 @@ State is the continuation for however many times the call completes. The same
 lesson eager construction taught about records and backtracking, met at the next
 record over. Reverted clean; the linked-at-birth insight goes with it, since only
 the fusion needed it.
+
+## Built: the checkpoint class - a way back in three locals
+
+The last valueless shapes renting a parser - C, E and F of the catalog - were choices
+that genuinely need coming back to: a shorter literal written first, or a continuation
+that can spend the character the longer alternative would have taken. What the arena
+held for such a choice is three facts, and for a choice no repetition stands over,
+three locals hold them: `way` is the position, `alt` the next alternative to try,
+`over` the site that was pending before this one opened. `pending` names the innermost
+open site, and the flat method's `Fail:` becomes the engine's unwinding without the
+engine: record the failure against the furthest seen - ties added, the same
+max-comparison RenderEngine makes - then resume the innermost site's next alternative,
+or close it and hand the failure to the site it opened over, until none is open and
+the method returns. Re-entry from an outer resume runs the site's entry again, which
+re-arms all three locals; the runtime nesting is a stack, flattened into per-site
+locals because one site activates at most once.
+
+Admission is `Silent`'s choice case grown a third clause, and the compile arm asks the
+same helper, so the two cannot disagree. The refusals are the flag `_checkpointsAllowed`
+going down inside every construct that routes failure around `Fail:` - a silent
+repetition's door, an atomic chain, a lookahead's rewind - and `Deterministic` already
+refuses the choice, so no silent repetition ever contains a site. The valued rendering
+refuses too, for now: a retry would have to unset the capture locals the abandoned
+attempt set, and no valued shape in the corpus asks for it yet.
+
+Two things came out better than planned. E compiles to the review's target form
+verbatim: try `"http"`, one shared `'s'` state, and the failing tail resumes `"https"`
+through the dispatcher. And GRAM's one documented diagnostic gap - a prefix-conflicted
+run under-reporting what it covers - closed itself: `"p" | "q" | "pr"` against `x` now
+says all three, because every alternative's failure is recorded the way the engine
+records it. The test that pinned the gap asked to be changed on purpose; it was.
+
+One thing is honestly worse, and recorded: the engine's form of `"http" | "https"`
+pushed its way back past the four matched characters and compared the fifth alone,
+where the checkpoint retry rewinds and compares `"https"` whole - a retry-path cost
+against a straight-line path that no longer rents a parser. Teaching `CompileLiterals`
+to chain into a retry label instead of an arena entry would restore it; follow-up.
+
+And the deferred "concatenation" - distributing E's tail into its alternatives,
+`"https" | "httpss"` - closes as subsumed: the checkpoint class covers the shapes it
+was invented for without touching expected-sets or failure positions.
+
+The catalog: 6,055 lines to 5,359, and the only publications still renting a parser
+are Sum (climbing), Sheet (recovery) and AnyItem (a find). All 1,076 tests green,
+the reference differential and the fuzzer included.

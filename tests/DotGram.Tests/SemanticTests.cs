@@ -1266,15 +1266,16 @@ public sealed class SemanticTests
 			Refusal("Start = 'a' & when @(false)", "a").Error);
 
 	[Fact]
-	public void A_prefix_conflicted_run_can_under_report_what_it_covers()
+	public void A_prefix_conflicted_run_reports_everything_it_covers()
 	{
-		// A known, accepted first-cut gap (Machine.cs's CompileLiterals doc comment):
-		// "p"/"pr" cannot share a merged run (one prefixes the other), so LiteralRun
-		// splits this into a "p"/"q" run chained into "pr" compiled on its own. Both
-		// fail at the same position, but the second overwrites the first's `expected`
-		// before either reaches the real Fail: — losing "p" and "q", keeping "pr". If
-		// this is ever fixed, this test should change on purpose, not by surprise.
-		Assert.Equal("Expected \"pr\".", Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
+		// This used to under-report — an accepted first-cut gap, whose test said it
+		// should change on purpose if ever fixed. The checkpoint class fixed it as a
+		// side effect: the choice now records every alternative's failure the way the
+		// engine's Fail: does, ties added rather than overwritten, so the "p"/"q" run
+		// and "pr" are both named.
+		Assert.Equal(
+			"Expected ['p'..'q'] or \"pr\".",
+			Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
 	}
 
 	[Fact]

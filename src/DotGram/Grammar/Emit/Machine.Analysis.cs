@@ -102,7 +102,7 @@ sealed partial class Machine
 			// position back — both directions, since a negative lookahead's failure is
 			// its body succeeding. "Anything" for the body's own continuation: what
 			// follows the lookahead does not follow the body, which is rewound.
-			Node.Lookahead(_, var seen)                => Silent(seen, FirstSets.First.All),
+			Node.Lookahead(_, var seen)                => SilentWithin(seen, FirstSets.First.All),
 
 			// A capture kept in locals writes nothing — sound only where nothing ever
 			// backtracks over it, which is what every other case here already proves,
@@ -118,19 +118,22 @@ sealed partial class Machine
 			Node.Construct(var built, _)               => _valuesInLocals && Silent(built, following),
 
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
-			// Two ways a choice writes nothing. One character telling every alternative
+			// Three ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
 			// literals: `CompileLiterals` decides those where their texts differ and never
 			// comes back, so it writes no way back either — which `LiteralRun` is already
 			// the test for, since it admits a run only where every pair in it is settled.
-			// A choice it refuses, like `"http" | "https"` in that order, does need the
-			// arena and is refused here too.
+			// The third is the checkpoint class: a choice that does need coming back to,
+			// whose way back three locals hold — sound only where failure routes through
+			// `Fail:`, which is what <see cref="_checkpointsAllowed"/> stands for, and
+			// only in the valueless rendering, whose retries have no captures to unset.
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllSilent(alternatives, following, sequence: false) ||
 			                                              LiteralRun(
 			                                                  alternatives,
 			                                                  alternatives.Count - 1,
-			                                                  following) == alternatives.Count,
+			                                                  following) == alternatives.Count ||
+			                                              CheckpointSilent(alternatives, following),
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
 			Node.Call(var rule, _)                     => ScannerOf(rule) is not null ||
@@ -152,11 +155,68 @@ sealed partial class Machine
 			// marking the element owned, and that mark is the engine's.
 			Node.Atomic(var kept)                      => _recoveries.Count == 0 &&
 			                                              (kept is Node.Choice(var options)
-			                                              ? AllSilent(options, following, sequence: false)
-			                                              : Silent(kept, following)),
+			                                              ? AllSilentWithin(options, following)
+			                                              : SilentWithin(kept, following)),
 
 			_                                          => false,
 		};
+
+	/// <summary>
+	/// Whether a choice neither of the first two ways admitted may still keep its way
+	/// back in locals — the checkpoint class. Asked last, so a run of literals or a
+	/// predicted choice keeps the form it always had. Answering yes marks the machine
+	/// as one whose failures can tie (<see cref="Ties"/>), which the emitted
+	/// <c>Failure</c> struct and the wrapper both need to know before a line of the
+	/// method is rendered.
+	/// </summary>
+	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	{
+		if (!_checkpointsAllowed || _valuesInLocals ||
+			!AllSilent(alternatives, following, sequence: false))
+			return false;
+
+		Ties = true;
+
+		return true;
+	}
+
+	/// <summary>
+	/// <see cref="Silent"/>, inside a construct whose failures leave by a door rather
+	/// than through <c>Fail:</c> — where a pending checkpoint site would be jumped past,
+	/// so none may open. The compile of each such construct puts the same flag down.
+	/// </summary>
+	bool SilentWithin(Node node, FirstSets.First following)
+	{
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
+
+		try
+		{
+			return Silent(node, following);
+		}
+		finally
+		{
+			_checkpointsAllowed = checkpoints;
+		}
+	}
+
+	/// <summary>The alternatives' half of <see cref="SilentWithin"/>.</summary>
+	bool AllSilentWithin(IReadOnlyList<Node> nodes, FirstSets.First following)
+	{
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
+
+		try
+		{
+			return AllSilent(nodes, following, sequence: false);
+		}
+		finally
+		{
+			_checkpointsAllowed = checkpoints;
+		}
+	}
 
 	/// <summary>
 	/// Whether a repetition is a loop and nothing else — no entry, no count, no way back.
@@ -169,7 +229,7 @@ sealed partial class Machine
 	bool SilentRepeat(Node.Repeat repeat, FirstSets.First following) =>
 		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
 		Possessive(repeat.Body, following) &&
-		Silent(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
+		SilentWithin(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
 
 	/// <summary>
 	/// Every one of them, each followed by what follows it.

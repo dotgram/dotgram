@@ -28,9 +28,15 @@ sealed partial class Machine
 		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 
 		_roots.Clear();
-		_seam = FollowSets.SeamOf(rule, _graph);
+		_checkpoints.Clear();
+		_namedOutside.Clear();
+		_checkpointIds      = 0;
+		_seam               = FollowSets.SeamOf(rule, _graph);
+		_checkpointsAllowed = true;
 
 		var entry = Compile(BodyOf(rule, whole), Accept, seed);
+
+		_checkpointsAllowed = false;
 
 		_roots.Add(entry);
 
@@ -47,6 +53,21 @@ sealed partial class Machine
 			if (UsesChar)
 				file.Line("var c = '\\0';");
 			file.Line("string[]? expected = null;");
+
+			// Three locals per checkpoint site, and the one that says which site is
+			// innermost — the stack of open ways back, flattened into locals because a
+			// site with no repetition over it holds at most one activation.
+			if (_checkpoints.Count > 0)
+			{
+				file.Line("var pending = 0;");
+
+				foreach (var site in _checkpoints.OrderBy(static site => site.Id))
+				{
+					file.Line($"var way{site.Id} = 0;");
+					file.Line($"var alt{site.Id} = 0;");
+					file.Line($"var over{site.Id} = 0;");
+				}
+			}
 
 			// One per possessive repetition written as a loop — the same locals
 			// RenderEngine declares, for the same reason: settled only once the states that
@@ -76,7 +97,10 @@ sealed partial class Machine
 			var falls = first == Resolved(entry);
 
 			if (!falls)
+			{
 				file.Line($"goto {Label(Resolved(entry))};");
+				_namedOutside.Add(entry);
+			}
 
 			RenderStates(file, dispatched: false);
 
@@ -88,14 +112,55 @@ sealed partial class Machine
 
 			file.Line();
 			file.Line("Fail:");
-			// Deterministic throughout, so there is only ever one attempt: wherever it gave
-			// up is the furthest the input was followed, with nothing to compare it to —
-			// so this is an unconditional assignment, not the max-comparison RenderEngine's
-			// Fail: makes, and there is no tie to accumulate either — a reference straight
-			// into whichever array the generator already declared, nothing to allocate.
-			file.Line("failure.Position = p;");
-			file.Line("failure.Expected = expected;");
-			file.Line("return -1;");
+
+			if (_checkpoints.Count == 0)
+			{
+				// Deterministic throughout, so there is only ever one attempt: wherever it
+				// gave up is the furthest the input was followed, with nothing to compare
+				// it to — so this is an unconditional assignment, not the max-comparison
+				// RenderEngine's Fail: makes, and there is no tie to accumulate either — a
+				// reference straight into whichever array the generator already declared,
+				// nothing to allocate.
+				file.Line("failure.Position = p;");
+				file.Line("failure.Expected = expected;");
+				file.Line("return -1;");
+			}
+			else
+			{
+				// Checkpoint sites make this the engine's Fail: without the engine. Every
+				// failure is recorded against the furthest one seen — the max-comparison
+				// RenderEngine makes, ties added rather than replaced — and then the
+				// innermost open site resumes its next alternative, or closes and hands
+				// the failure to the site it opened over, until none is open.
+				file.Line("if (p > failure.Position)");
+				using (file.Block(""))
+				{
+					file.Line("failure.Position = p;");
+					file.Line("failure.Expected = expected;");
+					file.Line("failure.ExpectedMore = null;");
+				}
+				file.Line("else if (p == failure.Position && expected != null)");
+				file.Then(
+					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+					".Add(expected);");
+				file.Line();
+				file.Line("Resume:");
+				using (file.Block("switch (pending)"))
+					foreach (var site in _checkpoints.OrderBy(static site => site.Id))
+					{
+						file.Line($"case {site.Id}:");
+						using (file.Indent())
+						{
+							for (var at = 0; at < site.Retries.Count; at++)
+								file.Line(
+									$"if (alt{site.Id} == {at + 1}) " +
+									$"goto {Label(Resolved(site.Retries[at]))};");
+							file.Line($"pending = over{site.Id};");
+							file.Line("goto Resume;");
+						}
+					}
+				file.Line("return -1;");
+			}
 		}
 
 		return file.ToString();
@@ -293,6 +358,8 @@ sealed partial class Machine
 		var type = _results.QualifiedOf(rule);
 
 		_roots.Clear();
+		_checkpoints.Clear();
+		_namedOutside.Clear();
 		_flatSites.Clear();
 		_flatLocals.Clear();
 		_flatTags.Clear();
@@ -351,7 +418,10 @@ sealed partial class Machine
 			var falls = first == Resolved(entry);
 
 			if (!falls)
+			{
 				file.Line($"goto {Label(Resolved(entry))};");
+				_namedOutside.Add(entry);
+			}
 
 			RenderStates(file, dispatched: false);
 

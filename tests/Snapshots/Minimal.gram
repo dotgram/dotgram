@@ -21,14 +21,14 @@ B = "abcd"
 // where it differs from the ones before it, nothing is written down to come back to,
 // and the whole rule is silent and lowered. `C` puts `"http"` in front of `"https"`,
 // so the shorter takes the position wherever the longer would have and the choice
-// needs a way back — which is the arena, and the engine, and everything under it.
+// needs a way back — the checkpoint class: three locals hold where the choice stands,
+// which alternative comes next and what was pending before it, and `Fail:` resumes
+// the innermost open site. Still a plain method, no engine anywhere near it.
 //
 // `E` and `F` add something after that can spend the character the longer alternative
-// would have taken, so both need a way back. In `E` the later alternative continues the
-// earlier one, so the way back is written past what already matched and reads one
-// character. In `F` the earlier is the longer, which is the direction the texts cannot
-// settle on their own, and the general machinery compiles it — one state per
-// alternative, each comparing its own text from the beginning.
+// would have taken, so both need a way back that outlives the choice's own success —
+// the same three locals, resumed when the trailing `"s"` fails. The two orders now
+// compile alike; what `D` keeps over `C` is deciding without ever rewinding.
 
 C = "http" | "https" | "ftp"
 D = "https" | "http" | "ftp"

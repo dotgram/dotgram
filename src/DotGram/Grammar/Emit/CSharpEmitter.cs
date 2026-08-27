@@ -126,6 +126,7 @@ public static partial class CSharpEmitter
 					graph.Climbing.ContainsKey(publication.Rule),
 					Streams(graph, publication),
 					compiled.Flat,
+					compiled.Machine.Ties,
 					compiled.Machine.UsesInput);
 
 				file.Line();
@@ -244,7 +245,8 @@ public static partial class CSharpEmitter
 				reach: graph.Recoveries.Count > 0 && Streaming(graph),
 				starved: Streaming(graph),
 				expected: true,
-				expectedMore: machines.Exists(static compiled => !compiled.Flat)));
+				expectedMore: machines.Exists(static compiled =>
+					!compiled.Flat || compiled.Machine.Ties)));
 			file.Line();
 		}
 
@@ -558,7 +560,7 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool input)
+		bool ties, bool input)
 	{
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
@@ -635,8 +637,9 @@ public static partial class CSharpEmitter
 				// a caller that only wants to know whether the input matched pays for
 				// none of it. `.NET`'s own `Group.Value` is the same bargain from the
 				// other side: it stores where a capture was and cuts the string on
-				// access. A flat, arena-free recognizer never reaches a tie at all
-				// (Machine.Flat.cs's own Fail:), so it has no second array to hand over.
+				// access. A flat recognizer without checkpoint sites never reaches a
+				// tie at all (Machine.Flat.cs's own Fail:), so it has no second array
+				// to hand over; one with them accumulates ties the way the engine does.
 				//
 				// The one thing chosen here rather than there is which literal stands in
 				// when nothing named what would have fit: only this end knows how far the
@@ -648,7 +651,7 @@ public static partial class CSharpEmitter
 				file.Line();
 				file.Line(
 					$"return {match}.Failed(otherwise, failure.Position, failure.Expected, " +
-					(flat ? "null);" : "failure.ExpectedMore);"));
+					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
 			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
