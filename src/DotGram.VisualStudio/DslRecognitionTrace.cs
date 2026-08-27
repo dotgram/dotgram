@@ -73,7 +73,7 @@ internal static class DslRecognitionTrace
 		return new DslRecognitionResult(
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
-			[],
+			matcher.Best.Extents,
 			matcher.Expected);
 	}
 
@@ -84,6 +84,7 @@ internal static class DslRecognitionTrace
 
 		public int Furthest { get; private set; }
 		public bool Unsupported { get; private set; }
+		public Match Best { get; private set; } = Match.Empty(0);
 		public IReadOnlyList<string> Expected => _expected.OrderBy(static item => item, StringComparer.Ordinal).ToArray();
 
 		public void Expect(int position, string expected)
@@ -123,7 +124,12 @@ internal static class DslRecognitionTrace
 					};
 					extents.AddRange(match.Extents);
 
-					yield return new Match(match.End, extents);
+					var complete = new Match(match.End, extents);
+					if (complete.End > Best.End ||
+						complete.End == Best.End && complete.Extents.Count > Best.Extents.Count)
+						Best = complete;
+
+					yield return complete;
 				}
 			}
 			finally

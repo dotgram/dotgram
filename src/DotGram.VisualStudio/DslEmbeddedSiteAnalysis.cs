@@ -131,13 +131,11 @@ internal static class DslEmbeddedSiteAnalysis
 				prepared.Graph,
 				prepared.Publication,
 				literal.Token.ValueText);
-			if (trace.Status == DslRecognitionStatus.Success)
-			{
-				foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
-					if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
-						classifications.Add(new HostDslClassification(mapped, classified.Role));
-			}
-			else if (trace.Status == DslRecognitionStatus.Failure &&
+			foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
+				if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
+					classifications.Add(new HostDslClassification(mapped, classified.Role));
+
+			if (trace.Status == DslRecognitionStatus.Failure &&
 				sourceMap!.TryMap(trace.FailurePosition, 0, out var failure))
 			{
 				diagnostics.Add(new HostDiagnostic(

@@ -55,7 +55,8 @@ public sealed class DslEmbeddedSiteAnalysisTests
 
 		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
 
-		Assert.Empty(result.Classifications);
+		var classification = Assert.Single(result.Classifications);
+		Assert.Equal("Keyword", classification.Role);
 		var diagnostic = Assert.Single(result.Diagnostics);
 		Assert.Equal("GRAM5101", diagnostic.Diagnostic.Id);
 		Assert.Equal(

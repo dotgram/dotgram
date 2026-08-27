@@ -82,8 +82,9 @@ public sealed class DslRecognitionTraceTests
 	public void ReportsExpectedElementsAtFurthestFailure()
 	{
 		var (graph, publication) = Compile("""
+			Keyword = "select"
 			parse Start
-			Start = "select" & ' ' & ("name" | "count")
+			Start = Keyword & ' ' & ("name" | "count")
 			""");
 
 		var result = DslRecognitionTrace.Recognize(graph, publication, "select value");
@@ -91,6 +92,8 @@ public sealed class DslRecognitionTraceTests
 		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
 		Assert.Equal(7, result.FailurePosition);
 		Assert.Equal(new[] { "\"count\"", "\"name\"" }, result.Expected);
+		Assert.Contains(result.Extents, extent =>
+			extent.Rule.Name == "Keyword" && extent.Position == 0 && extent.Length == 6);
 	}
 
 	[Fact]
