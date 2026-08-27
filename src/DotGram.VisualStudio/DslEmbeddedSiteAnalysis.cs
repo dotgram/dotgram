@@ -103,28 +103,50 @@ internal static class DslEmbeddedSiteAnalysis
 				.Where(static type => type is not null)
 				.Cast<INamedTypeSymbol>()
 				.ToArray();
-			var carriers = catalog.AttributeCarriers.Where(candidate => markerTypes.Any(marker =>
-				SymbolEqualityComparer.Default.Equals(candidate.AttributeType, marker))).ToArray();
-			if (carriers.Length != 1)
-				continue;
-			var carrier = carriers[0];
+			var languages = catalog.AttributeCarriers
+				.Where(candidate => markerTypes.Any(marker => SymbolEqualityComparer.Default.Equals(
+					candidate.AttributeType,
+					marker)))
+				.Select(static candidate => candidate.Language)
+				.ToList();
+			var method = parameter.ContainingSymbol as IMethodSymbol;
+			if (method is not null && parameter.Name == "input")
+				languages.AddRange(catalog.Languages.Where(language => SymbolEqualityComparer.Default.Equals(
+					language.ParserType,
+					method.ContainingType)));
 
-			var resolution = await DslGrammarSourceResolver.ResolveAsync(
-				document.Project,
-				carrier.Language,
-				cancellationToken).ConfigureAwait(false);
-			if (resolution.Kind != DslGrammarResolutionKind.Resolved || resolution.Text is null)
-				continue;
+			var routes = new List<(DslLanguageDefinition Language, DslPreparedLanguage Prepared)>();
+			foreach (var language in languages.Distinct())
+			{
+				var resolution = await DslGrammarSourceResolver.ResolveAsync(
+					document.Project,
+					language,
+					cancellationToken).ConfigureAwait(false);
+				if (resolution.Kind != DslGrammarResolutionKind.Resolved || resolution.Text is null)
+					continue;
 
-			var prepared = cache?.Prepare(carrier.Language, resolution.Text) ??
-				Prepare(carrier.Language, resolution.Text, fingerprint: "");
-			if (prepared is null)
+				var candidate = cache?.Prepare(language, resolution.Text) ??
+					Prepare(language, resolution.Text, fingerprint: "");
+				if (candidate is not null &&
+					(method is null || !SymbolEqualityComparer.Default.Equals(language.ParserType, method.ContainingType) ||
+					 method.Name == candidate.Publication.MethodName ||
+					 method.Name == "Try" + candidate.Publication.MethodName))
+					routes.Add((language, candidate));
+			}
+
+			var distinctRoutes = routes
+				.GroupBy(static route => route.Language.Id, StringComparer.Ordinal)
+				.Select(static group => group.First())
+				.ToArray();
+			if (distinctRoutes is not [{ } route])
 				continue;
+			var carrier  = route.Language;
+			var prepared = route.Prepared;
 
 			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan))
 				sites.Add(new HostDslSite(
 					siteSpan,
-					carrier.Language.Id,
+					carrier.Id,
 					prepared.Publication.Rule.Name));
 
 			var trace = DslRecognitionTrace.Recognize(
@@ -141,7 +163,7 @@ internal static class DslEmbeddedSiteAnalysis
 				diagnostics.Add(new HostDiagnostic(
 					new GramDiagnostic(
 						RecognitionDiagnostic,
-						FailureMessage(carrier.Language.Id, trace.Expected),
+						FailureMessage(carrier.Id, trace.Expected),
 						0,
 						0,
 						GramSeverity.Error),

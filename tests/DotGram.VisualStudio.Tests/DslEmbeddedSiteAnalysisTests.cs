@@ -108,6 +108,29 @@ public sealed class DslEmbeddedSiteAnalysisTests
 				.Select(item => (item.Role, text.ToString(item.Span))));
 	}
 
+	[Theory]
+	[InlineData("ParseStart")]
+	[InlineData("TryParseStart")]
+	public async Task RoutesGeneratedPublicationMethodInputWithoutMarkerAttribute(string method)
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total").Replace(
+			"static void Test() => Run(new Query(\"let total\"));",
+			$"static void Test() => FilterParser.{method}(\"let total\");");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "total") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
 	[Fact]
 	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
@@ -180,7 +203,11 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 		[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
 		[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
-		static class FilterParser;
+		static class FilterParser
+		{
+			public static string ParseStart(string input) => input;
+			public static string TryParseStart(string input) => input;
+		}
 
 		[System.AttributeUsage(System.AttributeTargets.Parameter)]
 		sealed class FilterAttribute : System.Attribute

@@ -99,4 +99,9 @@ public sealed class ToolingQuery
 public static class ToolingQueryExample
 {
 	public static readonly ToolingQuery Query = new("select customer");
+
+	// Generated publication calls route their input without a marker attribute.
+	// Both strings should have the same DSL colors and diagnostics as Query above.
+	public static object ParseDirect() => ToolingQueryLanguage.ParseQuery("select customer");
+	public static object TryParseDirect() => ToolingQueryLanguage.TryParseQuery("select customer");
 }

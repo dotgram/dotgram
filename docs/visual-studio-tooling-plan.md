@@ -67,6 +67,8 @@ architecture and possible VS Code/LSP/metadata work remain in
   per editor buffer.
 - [x] Report expected grammar elements at the furthest DSL recognition failure.
 - [x] Show the language id and published entry rule in Quick Info for routed DSL strings.
+- [x] Route string inputs of generated parse and try-parse publication methods in source
+  projects without requiring a marker attribute.
 
 The detailed design and explicit deferrals are in
 [`dsl-tooling-design.md`](dsl-tooling-design.md).
