@@ -664,21 +664,28 @@ trivia = Whitespace
 Pair    = Word & Word            // matches "ab cd"
 List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
+Entries = Entry*                 // Entry builds a value, so this is a list: "a; b;"
 ```
 
-**A repetition of a single operand gets nothing**, and that is the whole reason the
-insertion is not unconditional. A repetition is how a lexeme is written —
-`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
-number and `a b` one name in every grammar that ignores whitespace. A single operand has no
-seam inside a turn, so it has none between them either, and the two cases are told apart by
-the same rule rather than by an exception to it.
+**A repetition of a valued rule is a list, and lists are spaced.** `Entry*` in a rule
+declared `: @T[]` is the collection §4.1 case 2 gathers, and a grammar that separates its
+operands with trivia separates its collections the same way: `entries: Entry*` reads
+`a; b;` as readily as `a;b;`. Valuedness is what draws the line, and it is the author's
+own declaration doing the drawing: a rule that builds a value is a thing being collected,
+and things stand apart.
 
-An **optional** is left alone for the same reason: it has no second turn, so it has no seam.
+**A repetition of anything valueless gets nothing**, and that is what keeps lexemes
+whole. A repetition is how a lexeme is written —
+`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
+number and `a b` one name in every grammar that ignores whitespace. A valueless operand is
+a fragment of text rather than a thing, so its turns have no seam between them.
+
+An **optional** is left alone for a reason of its own: it has no second turn, so it has no seam.
 So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape —
 `(Whitespace | LineComment | BlockComment)*` — from being asked to space itself.
 
-What is left over is a spaced run of a single thing, which nothing can infer: `Word*` and
-`Digit*` have the same shape and only the author knows which is a list. So the author says
+What is left over is a spaced run of a single valueless thing, which nothing can infer:
+`Word*` and `Digit*` have the same shape and only the author knows which is a list. So the author says
 which, and `trivia` is an ordinary rule that may be named:
 
 ```dotgram

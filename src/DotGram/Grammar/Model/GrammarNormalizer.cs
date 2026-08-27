@@ -102,6 +102,11 @@ public sealed partial class GrammarNormalizer
 		normalizer.ExtentValues();
 		normalizer.PassThrough();
 
+		// After the types — valuedness is what tells a collected thing from the inside
+		// of a lexeme — and after the sequence captures exist, so the implicit capture
+		// of a collection is inside the seam it gets here.
+		normalizer.SpaceLists();
+
 		// Before the results are computed from the captures, so that they are computed
 		// from the hoisted shape: a capture repeated is recorded once, around the loop,
 		// wherever the join of the turns is the extent of the repetition.

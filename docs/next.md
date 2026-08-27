@@ -3769,3 +3769,33 @@ Entry)*` - the way the notation grammar always has. Whether the language should 
 something louder at that edge (a diagnostic for a called repetition in a spaced
 namespace with no seam in the turn?) is a language question, noted here and not
 decided.
+
+## Fixed: a collection of a valued rule is spaced
+
+The benchmark's natural grammar - `entries: Entry*` in a spaced namespace - parsed
+`a;b;` and silently refused `a; b;`, and the ruling was that a grammar must work the
+way it reads. The line that makes both halves keep their meaning is valuedness: a
+repetition of a rule that builds a value is the collection §4.1 case 2 gathers, and a
+grammar that separates its operands separates its collections the same way; a
+valueless operand is a fragment of text - `Digits = ['0'..'9']+`, `Name = Letter+` -
+and spacing its turns would make `1 2` one number. The first attempt drew the line at
+"any called turn" and broke exactly that: §4.5's own `Name = Letter+` example.
+
+Valuedness needs the types, so the seam is not woven in lowering but by `SpaceLists`,
+a normalizer pass after `ComputeTypes` and after `CollectSequences` (whose implicit
+capture must sit inside the seam, not around it), re-keying `recover` like every
+rewrite that replaces a repetition node. The old pins survive untouched - `Word*` and
+`W*` are valueless and stay lexeme-shaped - and a new pin runs the same four inputs
+through the captured, bare and hand-seamed spellings of one list.
+
+Two analyses had to learn what a seam is. `Undecided` (GRAM5002) saw the woven turn
+overlap the woven continuation on every space - one seam split two ways, not a choice
+the input decides - and now discounts the seam on both sides. And `StreamedParse`
+told the author to "give the repeated part its own rule" about a part that had one;
+it now says the true thing: a streamed parse does not yet skip trivia between the
+elements it hands over. Building that driver - the seam is already a stage shape the
+streaming emitter knows - is recorded as the follow-up.
+
+§4.5 in docs/syntax.md now states the rule as the language means it. The Documents
+benchmark reads the natural spelling and its numbers stand: dense 20.0 us, spaced
+19.8, commented 20.7, 46 KB - within the run-to-run spread of the hand-seamed form.

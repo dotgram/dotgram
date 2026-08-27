@@ -842,7 +842,9 @@ public sealed partial class GrammarNormalizer
 			return new Node.Repeat(body, min, max);
 
 		// The same restraint as the sequence seam: a turn that already leads with the
-		// author's own trivia needs none prepended.
+		// author's own trivia needs none prepended. A repetition whose turn is a valued
+		// rule is a list too, and is spaced by SpaceLists — after the types exist,
+		// because valuedness is what tells a collected thing from a lexeme's inside.
 		if (IsSeam(operands[0], trivia))
 			return new Node.Repeat(body, min, max);
 

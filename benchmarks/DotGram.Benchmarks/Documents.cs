@@ -114,7 +114,7 @@ public class Documents
 	Value : @string = t: ['a'..'z' | 'A'..'Z' | '0'..'9']+  => @(t)
 
 	Entry : @Setting  = key: Name & '=' & value: Value & ';' => @(new Setting(key, value))
-	File  : @Setting[] = (trivia & entries: Entry)* & eof    => @(entries)
+	File  : @Setting[] = entries: Entry* & eof               => @(entries)
 
 	parse File
 	""")]

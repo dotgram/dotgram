@@ -200,7 +200,12 @@ public static class FirstSets
 				continue;
 			}
 
-			Walk(graph.Bodies[rule], rule, declaration, reported, graph);
+			var seam = graph.Trivia.TryGetValue(rule, out var seamNode) &&
+				seamNode is Node.Call(var seamRule, _)
+					? seamRule
+					: null;
+
+			Walk(graph.Bodies[rule], rule, declaration, reported, graph, seam);
 		}
 
 		return reported;
@@ -208,13 +213,13 @@ public static class FirstSets
 
 	static void Walk(
 		Node node, RuleSymbol rule, Decl.Rule declaration,
-		List<GramDiagnostic> reported, RecognitionGraph graph)
+		List<GramDiagnostic> reported, RecognitionGraph graph, RuleSymbol? seam)
 	{
 		if (node is Node.Sequence(var parts))
 		{
 			for (var i = 0; i < parts.Count - 1; i++)
 			{
-				if (!Undecided(parts, i, graph))
+				if (!Undecided(parts, i, graph, seam))
 					continue;
 
 				reported.Add(new GramDiagnostic(
@@ -231,7 +236,7 @@ public static class FirstSets
 		}
 
 		foreach (var child in Children(node))
-			Walk(child, rule, declaration, reported, graph);
+			Walk(child, rule, declaration, reported, graph, seam);
 	}
 
 	/// <summary>
@@ -245,28 +250,53 @@ public static class FirstSets
 	/// </remarks>
 	/// <param name="parts">The sequence it is one of.</param>
 	/// <param name="at">Where in that sequence it is.</param>
-	public static bool Undecided(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
+	public static bool Undecided(
+		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, RuleSymbol? seam = null)
 	{
 		if (parts is null) throw new ArgumentNullException(nameof(parts));
 		if (graph is null) throw new ArgumentNullException(nameof(graph));
 
-		return at < parts.Count - 1 &&
-			parts[at] is Node.Repeat(var body, _, null) &&
-			Of(body, graph).Overlaps(Following(parts, at + 1, graph));
+		if (at >= parts.Count - 1 || parts[at] is not Node.Repeat(var body, _, null))
+			return false;
+
+		// The seam is discounted on both sides. A turn that begins with the namespace's
+		// trivia overlaps a continuation that begins with the same trivia on every space
+		// — but the two readings of that space are one seam split two ways, not a choice
+		// the input decides, so the question is asked of what stands past the seams.
+		return Of(PastSeam(body, seam), graph)
+			.Overlaps(Following(parts, at + 1, graph, seam));
 	}
 
+	/// <summary>The node with a leading application of the seam taken off, for First.</summary>
+	static Node PastSeam(Node node, RuleSymbol? seam) =>
+		seam is not null &&
+		node is Node.Sequence(var parts) &&
+		parts.Count > 1 &&
+		parts[0] is Node.Call(var called, _) &&
+		ReferenceEquals(called, seam)
+			? parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)])
+			: node;
+
+	static bool IsSeamCall(Node node, RuleSymbol? seam) =>
+		seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam);
+
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
-	public static First Following(IReadOnlyList<Node> parts, int from, RecognitionGraph graph) =>
-		Following(parts, from, graph, []);
+	public static First Following(
+		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam = null) =>
+		Following(parts, from, graph, seam, []);
 
 	static First Following(
-		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam,
+		HashSet<RuleSymbol> seen)
 	{
 		var ranges  = new List<CharRange>();
 		var nothing = true;
 
 		for (var i = from; i < parts.Count; i++)
 		{
+			if (IsSeamCall(parts[i], seam))
+				continue;
+
 			var first = Of(parts[i], graph, seen);
 
 			if (first.Anything)
@@ -407,7 +437,7 @@ public static class FirstSets
 			}
 
 			case Node.Sequence(var parts):
-				return Following(parts, 0, graph, seen);
+				return Following(parts, 0, graph, null, seen);
 
 			default:
 				return First.All;

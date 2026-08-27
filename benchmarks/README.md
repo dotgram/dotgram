@@ -239,10 +239,11 @@ the result itself: four hundred `Setting` objects and their strings. The before-
 allocation is what the review that started the series predicted — the arena wrote per
 character, and the value tables grew with it.
 
-The seam costs what it should: spaced is seven percent over dense, comments ten. The
-grammar writes its list the way §4.5 means it — `(trivia & entries: Entry)*`, the seam
-named by the author — because a bare `Entry*` is a lexeme-shaped repetition and gets no
-seam between turns; that distinction has its own semantic tests.
+The seam costs what it should: spaced runs within a few percent of dense, comments a
+few more. The grammar writes its list the natural way — `entries: Entry*` — and §4.5
+spaces it, because a repetition of a valued rule is a collection and collections are
+separated the way operands are. A valueless repetition (`['0'..'9']+`, `Letter+`) stays
+a lexeme; that line has its own semantic tests.
 
 ## What a parse allocates
 

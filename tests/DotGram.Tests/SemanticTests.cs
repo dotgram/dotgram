@@ -793,6 +793,61 @@ public sealed class SemanticTests
 			"ab cd ef"));
 	}
 
+	/// <summary>
+	/// A repetition of a valued rule is a collection, and a grammar that separates its
+	/// operands separates its collections the same way (§4.5). Valuedness is the line:
+	/// `Word*` above stays a lexeme-shaped run because `Word` builds nothing, while
+	/// `Entry` here is the thing §4.1 case 2 gathers — and things are spaced.
+	/// </summary>
+	[Theory]
+	[InlineData("a;b;",     true)]
+	[InlineData("a; b;",    true)]
+	[InlineData(" a; b; ",  true)]
+	[InlineData("a ; b ;",  true)]
+	public void A_collection_of_a_valued_rule_is_spaced(string input, bool expected)
+	{
+		const string collected =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = (e: Entry)* & eof => @(e)";
+
+		Assert.Equal(expected, Spaced(collected, input));
+
+		// The bare form collects through §4.1 case 2's implicit capture and is the same
+		// list; the hand-written seam is the same list once more, not seamed twice.
+		const string bare =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = Entry* & eof";
+
+		Assert.Equal(expected, Spaced(bare, input));
+
+		const string manual =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = (trivia & e: Entry)* & eof => @(e)";
+
+		Assert.Equal(expected, Spaced(manual, input));
+	}
+
+	/// <summary>
+	/// Like <see cref="Matches"/>, but a spaced collection is told — accurately — that a
+	/// streamed parse does not yet skip trivia between elements, and that information is
+	/// not a defect of the grammar.
+	/// </summary>
+	static bool Spaced(string grammar, string input)
+	{
+		var result = Compile(grammar + "\nparse Start");
+
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			static diagnostic => diagnostic.Severity != GramSeverity.Info);
+
+		return EmittedCode.Match(
+			EmittedCode.Compile(Assert.Single(result.Sources).Text),
+			"Grammar", "TryParseStart", input).IsSuccess;
+	}
+
 	[Theory]
 	[InlineData("http",   true)]
 	[InlineData("https",  true)]

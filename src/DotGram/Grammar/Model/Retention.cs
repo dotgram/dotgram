@@ -359,6 +359,24 @@ public static class Retention
 			return reader;
 
 		var parts = graph.PartsOf(rule);
+		var seam  = graph.Trivia.TryGetValue(rule, out var seamNode) &&
+			seamNode is Node.Call(var seamRule, _)
+				? seamRule
+				: null;
+
+		// A spaced collection — its turns seamed with trivia (§4.5) — is a real
+		// collection the in-memory parse reads fine; what does not exist yet is a driver
+		// that skips trivia between the elements it hands over. Said accurately, so the
+		// author is not told to extract a rule they already have.
+		foreach (var part in parts)
+			if (part is Node.Repeat(Node.Sequence([var lead, ..]), _, _) &&
+				seam is not null && lead is Node.Call(var leading, _) &&
+				ReferenceEquals(leading, seam))
+			{
+				return $"'{rule.Name}' collects a spaced list, and a streamed parse does not yet " +
+					"skip the trivia between the elements it hands over. The in-memory overloads " +
+					"read it as usual.";
+			}
 
 		// What the driver hands over is the elements of a repetition of a rule, because a
 		// rule is what has a recognizer of its own to call one element at a time. A
@@ -378,7 +396,7 @@ public static class Retention
 			if (graph.Recoveries.ContainsKey(parts[i]))
 				continue;
 
-			if (!FirstSets.Undecided(parts, i, graph))
+			if (!FirstSets.Undecided(parts, i, graph, seam))
 				continue;
 
 			return $"in '{rule.Name}', the repetition '{parts[i]}' can begin with the same input as " +
