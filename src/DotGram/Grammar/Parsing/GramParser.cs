@@ -30,6 +30,7 @@ public sealed class GramParser
 	public const string InvalidCount        = "GRAM2005";
 	public const string NamespaceNeedsWith  = "GRAM2006";
 	public const string PublicationNeedsName = "GRAM2007";
+	public const string PublicationTypeOnRule = "GRAM2008";
 
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
@@ -352,7 +353,12 @@ public sealed class GramParser
 
 			Expect(TokenKind.Equals);
 
-			var right = ExpectName();
+			// The other reference position (§5.1): what replaces a rule may be any
+			// operand, not only another rule's name. Lifted the same way a directive's
+			// target is — into a rule declared where the `with` is written, so it reads
+			// the trivia, the imports and the bindings that surround it.
+			var rightAt = Current.Position;
+			var right   = Substitute(left, ParseQuantifiedCore(rightAt), rightAt);
 
 			rebindings.Add(new Rebinding(left, right, From(start)));
 
@@ -393,12 +399,27 @@ public sealed class GramParser
 		var target     = ParseQuantifiedCore(targetAt);
 		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
 		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
+		var typeAt     = Current.Position;
+
+		// The third part a rule has, in the place it reads as the method's own: `parse
+		// … as Name : @T`. It belongs to the expression being lifted, so a directive
+		// that lifts nothing has nowhere to put it.
+		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
 
 		// A bare name is what this directive has always taken, and it still names the
 		// rule it publishes — including the method name derived from it where no `as`
 		// says otherwise.
 		if (target is Expr.Reference(false, var named, { Count: 0 }))
+		{
+			if (type is not null)
+				Report(
+					PublicationTypeOnRule,
+					$"'{named}' declares its own type where it is written; a type here belongs to " +
+					"an expression this directive would have to make a rule of.",
+					new Location(typeAt, Current.Position - typeAt));
+
 			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start) };
+		}
 
 		if (alias is null)
 		{
@@ -411,7 +432,7 @@ public sealed class GramParser
 			return new Decl.Publish(kind, "", rebindings, null) { At = From(start) };
 		}
 
-		_lifted.Add(new Decl.Rule(alias, [], null, target) { At = From(targetAt) });
+		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
 		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start) };
 	}
@@ -421,6 +442,31 @@ public sealed class GramParser
 	/// in the block being read — which only that block's own loop can do.
 	/// </summary>
 	readonly List<Decl> _lifted = [];
+
+	int _substitutions;
+
+	/// <summary>
+	/// The name a rebinding's replacement is known by: its own, where it is one, and
+	/// otherwise the name of a rule made for it here.
+	/// </summary>
+	/// <remarks>
+	/// Named after what it replaces, the way a specialization is named after what it
+	/// specializes — <c>Sep_With1</c> reads as "the Sep this <c>with</c> means". An
+	/// author who happens to have written that name gets the ordinary duplicate-rule
+	/// diagnostic, which is the same bargain every generated name in this compiler
+	/// makes.
+	/// </remarks>
+	string Substitute(string left, Expr replacement, int at)
+	{
+		if (replacement is Expr.Reference(false, var named, { Count: 0 }))
+			return named;
+
+		var name = left + "_With" + (++_substitutions).ToString(CultureInfo.InvariantCulture);
+
+		_lifted.Add(new Decl.Rule(name, [], null, replacement) { At = From(at) });
+
+		return name;
+	}
 
 	Decl ParseRule()
 	{

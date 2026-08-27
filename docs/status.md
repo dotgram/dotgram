@@ -31,6 +31,8 @@ then quietly mean nothing.
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a directive naming an expression rather than a rule §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same declaring its type, `as Name : @T` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| an expression on the right of a rebinding §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | what a refusal says was expected, first tier §0/§11 | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |

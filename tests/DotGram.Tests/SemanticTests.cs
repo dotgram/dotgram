@@ -1037,6 +1037,63 @@ public sealed class SemanticTests
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySpaced", "a b").IsSuccess);
 	}
 
+	[Fact]
+	public void A_directive_may_declare_the_type_of_what_it_lifts()
+	{
+		// The third part a rule has, in the place that reads as the method's own. It
+		// belongs to the expression being lifted, which is what makes a `=>` legal there
+		// — without a declared type a construction is refused (GRAM4008), and with one
+		// the directive reaches everything §4.1 offers, a value included.
+		var result = Compile("""
+			Word : @string = w: ['a'..'z']+ => @(w)
+			Padded(item, pad: char) : @string = t: item => @(t + pad)
+
+			parse (v: Padded(Word, '#') => @(v)) as Marked : @string
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab#", EmittedCode.Match(assembly, "Grammar", "TryMarked", "ab").Value);
+	}
+
+	[Fact]
+	public void But_not_of_a_rule_that_declares_its_own()
+	{
+		// Nothing is lifted when the target is a name, so a type here would have nowhere
+		// to go — and the rule it names has already said what it produces.
+		Assert.Contains(
+			GramParser.PublicationTypeOnRule,
+			Compile("Word : @string = w: ['a'..'z']+ => @(w)\nparse Word as W : @string")
+				.Diagnostics.Select(diagnostic => diagnostic.Id));
+	}
+
+	[Fact]
+	public void A_rebinding_replaces_a_rule_with_an_expression()
+	{
+		// §5.1's other reference position. What replaces a rule may be any operand, and
+		// it becomes a rule declared where the `with` is written — so the substitution
+		// reads what surrounds it, exactly as a rule written there would.
+		var result = Compile("""
+			Comma = ','
+			Item  = ['a'..'z']+
+			List  = Item & (Comma & Item)*
+
+			parse List with (Comma = (',' | ';')) as Loose
+			parse List as Tight
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a,b;c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a,b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b;c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b,c").IsSuccess);
+	}
+
 	// ── What a publication answers with (§7.5) ──────────────────────────────────
 
 	[Theory]

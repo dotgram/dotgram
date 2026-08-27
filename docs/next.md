@@ -4316,3 +4316,24 @@ would answer with the text too. That is the language being uniform rather than t
 feature being unfinished: an expression is published for what it recognizes. Reaching a
 *value* from a directive would need the lifted rule to declare a type, which is the next
 question and a separate one (`=>` without a declared type is GRAM4008, deliberately).
+
+## Built: the other half — a type on the directive, and an expression on the right of `with`
+
+The limit the first half ran into was that a lifted rule can only be what §4.1 makes of
+a rule with no declared type: its extent. So the directive got the third part a rule has,
+in the place that reads as the method's own — `parse … as Marked : @string`. With a type
+declared, a `=>` inside the expression is legal where it always is, and everything §4.1
+offers is reachable from a directive; without one it is refused where it always is
+(GRAM4008). A directive that names a rule has nowhere to put a type and says so
+(GRAM2008): that rule declared its own where it was written.
+
+And the second reference position, which is where this began: `with (Comma = (',' | ';'))`.
+The same lift, the same scope answer — a rule declared where the `with` is written, named
+after what it replaces (`Comma_With1`), so the substitution reads the trivia, the imports
+and the bindings that surround it. The left side stays a name: it identifies what is
+replaced, and identifying is what a name is for.
+
+Both reference positions now take an operand, which is the whole of what "an expression
+may stand wherever a rule is referred to" comes to in this notation — and the two
+diagnostics it needed are about naming, not about the rule. Nothing downstream of the
+parser knows any of it happened.

@@ -898,6 +898,18 @@ namespace Ns2 with (B = D)
 D = 'd'
 ```
 
+**What replaces a rule may be any operand, not only another rule's name.** One operand,
+the same bound a directive's target has — so a choice needs brackets:
+
+```dotgram
+parse List with (Comma = (',' | ';')) as Loose
+```
+
+An expression here becomes a rule of its own, declared where the `with` is written and
+named after what it replaces, so the substitution reads the `trivia`, the imports and
+the bindings that surround it. The left side stays a name: it identifies what is being
+replaced, and identifying is what a name is for.
+
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
@@ -1038,9 +1050,18 @@ name, declared where the directive is written: it reads the `trivia`, the import
 the rebindings that surround it, exactly as a rule written in its place would, and
 everything after the front end sees a publication of a rule.
 
-Being an ordinary rule also settles its value: §4.1 case 4, the extent it matched. A
-directive publishes an expression for what it *recognizes*; a value comes from a rule
-that declares a type and builds one, and is published by name as it always was.
+Being an ordinary rule also settles its value — §4.1 case 4, the extent it matched — and
+lets it be given the third part a rule has, in the place that reads as the method's own:
+
+```dotgram
+parse (v: Padded(Word, '#') => @(v)) as Marked : @string
+```
+
+With a type declared, everything §4.1 offers is reachable from the directive, a `=>`
+included; without one a construction is refused where it always is (`GRAM4008`). The
+type belongs to the expression being lifted, so a directive that names a rule has
+nowhere to put one and says so (`GRAM2008`) — that rule declared its own type where it
+was written.
 
 ### 6.1 The result
 
