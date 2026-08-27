@@ -3928,3 +3928,22 @@ So the policy stays what it was - keep unless outsized - and the bound moves to 
 "outsized" actually is: 65,536 entries, a few retained megabytes for a thread whose
 documents are that size, with the drop kept for genuine pathology. The trim variant
 is recorded here so nobody builds it again hoping.
+
+## Measured: two more forms the machine does not need to change
+
+**The range comparison is already the subtracted form.** `c >= 'a' && c <= 'z'` as
+the emitter writes it compiles to `sub eax, 97; cmp eax, 25; jbe` - the exact code
+`(uint)(c - 'a') <= 'z' - 'a'` would ask for, because folding a double comparison
+into an unsigned subtract is a peephole RyuJIT has. A second range in the same test
+comes out branch-free (`setle`/`cmovl`). The generated file keeps the form a person
+reads; the disassembly is the same either way. Third entry in the "the JIT already
+does it" series, same method: `DOTNET_JitDisasm`, not an opinion.
+
+**ParserEntry's size is not on the critical path.** The packing question - nine int
+fields, forty bytes, would fewer be faster - answered by the cheap experiment first:
+two dummy fields *added*, +20% per entry, corpus measured three runs against three
+baseline runs. The ranges overlap completely (Csv 1.76-1.82 padded vs 1.74-1.77;
+Url 2.48-2.57 vs 2.40-2.58). If a fifth more traffic per entry is invisible, a
+third less cannot be visible either: at these arena sizes the entries live in cache
+and the stores forward. Packing is declined without being built - the padding proxy
+is the measurement - and the fields stay whole ints a debugger can read.
