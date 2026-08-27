@@ -25,12 +25,13 @@ namespace DotGram.Examples;
 //     spaced and commented freely (§4.5). One declaration, and no rule below it mentions
 //     whitespace.
 //
-//   * Only two repetitions write `trivia` out, and §4.5 says which two. A repetition of
-//     a sequence is spaced by itself — `('|' & ElemAlt)*`, `(',' & Type)* ` — because
-//     the turns are a seam between operands like any other. A repetition of one thing is
-//     a lexeme and is not, which is what keeps `['0'..'9']+` from reading `1 2` as one
-//     number — and what makes `(trivia & Declaration)*` say so, being a run of single
-//     things that newlines stand between.
+//   * No repetition writes `trivia` out, and §4.5 says why not. A repetition of a
+//     sequence is spaced by itself — `('|' & ElemAlt)*`, `(',' & Type)* ` — because
+//     the turns are a seam between operands like any other; a repetition of a valued
+//     rule is a collection, and collections are spaced the way operands are —
+//     `declarations: Declaration*` reads the newlines between declarations without
+//     naming them. What stays unspaced is the valueless run — the inside of a lexeme —
+//     which is what keeps `['0'..'9']+` from reading `1 2` as one number.
 //
 //   * `@(...)` holds C#, and finding its closing parenthesis means knowing C#'s own
 //     strings and comments. No grammar can do that, and this one does not try: `@CSharp`
@@ -95,7 +96,7 @@ namespace DotGram.Examples;
 	Name = Identifier & ('.' & Identifier)*
 
 	File : @GramFile
-		= (trivia & usings: Using)* & (trivia & declarations: Declaration)*
+		= usings: Using* & declarations: Declaration*
 		=> @(new GramFile(usings, declarations))
 
 	// `@using` and `using` mean the same thing: one is C#'s vocabulary, the other this
@@ -109,7 +110,7 @@ namespace DotGram.Examples;
 
 	Namespace : @GramDecl
 		= "namespace" & name: Identifier & With?
-		& '{' & (trivia & usings: Using)* & (trivia & declarations: Declaration)* & '}'
+		& '{' & usings: Using* & declarations: Declaration* & '}'
 		=> @(new GramNamespace(name, usings, declarations))
 
 	Publication : @GramDecl
