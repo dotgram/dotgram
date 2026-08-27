@@ -4010,3 +4010,41 @@ Release, three runs: Csv 1.33, Feed 1.70, Minimal 1.34, Url 1.70. Two thirds of
 what remains is the completion ceremony; the enumerable residue is now exactly one
 shape - the `name:` probe reading a word that the reference after it reads again,
 which is the two-token fusion the lexical design names as v2.
+
+## Closed: the performance program, at the numbers it reached
+
+Opened by one sentence - the generated parser must do the same work a hand-written
+one does, or less - and closed here with the backlog empty, every item either built
+and measured in, or measured and declined with the number written down.
+
+Where it ended, corpus medians, Release, hand-written front end against the
+generated notation grammar: Csv 1.33, Feed 1.70, Minimal 1.34, Url 1.70 - from a
+flat ~3.1 at the series' start and 1.7-2.5 at this morning's. The document shape:
+19.3 us and 46 KB from 287.5 us and 3.14 MB. Url.gram's step trace: 7,995 this
+morning, 4,203 tonight, two thirds of it the completion ceremony whose floor two
+recorded experiments drew. The lexical design's own finish line - Feed and Csv at
+or under ~1.5, Url under 2 - crossed without building the token layer it thought
+that would take.
+
+The last day's ledger, for the record. Built: the checkpoint class (C/E/F flat,
+ways back in locals, the under-reporting gap closed as a side effect); the scanner's
+front test handing its character on; the pool keeping what it was built to keep
+(65,536-entry bound, a quarter of the parse and megabytes per call returned);
+lookahead-constrained first sets (one line of analysis un-poisoning every operand of
+the notation); the entry guard on may-take-nothing repetitions, with `EntryTest`
+reading the body where ranges are unwritable. Declined with measurement: trimming
+the pool instead of keeping it; ParserEntry packing (the padding proxy); the
+subtracted range form (the JIT's already); per-binding-power climbing entries (the
+guard it removes is one predictable compare of the class both proxies just measured
+invisible; Nitra needed it because its dispatch was dynamic - ours is an inline
+constant against a register). Closed by count: multi-slot sited members, with zero
+admitting shapes in the repository; partial FIRST dispatch, its target mass - 921
+fail/resume pairs - reduced to 137 by the two analysis fixes, below anything a
+dispatch could repay.
+
+One enumerable shape remains and is named in docs/status.md: the optional `name:`
+probe reads a word the reference after it reads again - the two-token fusion the
+lexical design calls v2, also reachable as the same hand-factoring `RefOrCall`
+already demonstrates. It is a direction with a design, not a debt: the program
+closes with the floor measured, the residue enumerated, and every claim in this
+file carrying the number that earned it.
