@@ -124,8 +124,18 @@ public sealed partial class GrammarNormalizer
 				CollectSpan(nested, span);
 	}
 
+	/// <summary>
+	/// Forward reachability from the seed, walked as the bindings will rewrite it: a
+	/// call to a bound rule reaches its replacement, not the rule as written. Without
+	/// that hop the replacement itself — reached only through the binding — never
+	/// entered the set, so a replacement whose own body observes a sibling binding of
+	/// the same header was left uncloned, and `with (A = B, Sep = Semi)` handed out a
+	/// `B` still reading the unbound `Sep`.
+	/// </summary>
 	static HashSet<RuleSymbol> ReachableFromSeed(
-		HashSet<RuleSymbol> seed, Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+		HashSet<RuleSymbol> seed,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets)
 	{
 		var reachable = new HashSet<RuleSymbol>(seed);
 		var pending   = new Queue<RuleSymbol>(seed);
@@ -138,8 +148,12 @@ public sealed partial class GrammarNormalizer
 				continue;
 
 			foreach (var called in calls)
-				if (reachable.Add(called))
-					pending.Enqueue(called);
+			{
+				var reached = targets.TryGetValue(called, out var replacement) ? replacement : called;
+
+				if (reachable.Add(reached))
+					pending.Enqueue(reached);
+			}
 		}
 
 		return reachable;
@@ -189,7 +203,7 @@ public sealed partial class GrammarNormalizer
 		if (targets.Count == 0)
 			return EmptyClones;
 
-		var reachable = ReachableFromSeed(Seed(site), forward);
+		var reachable = ReachableFromSeed(Seed(site), forward, targets);
 		var affected  = AffectedSet(targets, calledBy, reachable);
 
 		return affected.Count == 0 ? EmptyClones : CloneAffected(affected, targets, site.Name);
@@ -320,8 +334,12 @@ public sealed partial class GrammarNormalizer
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> cloneMap)
 	{
+		// A bound call goes to its replacement — and to the replacement's clone where
+		// one was made, because a replacement whose own body observes another binding
+		// of the same header is itself in the affected set, and the plain rule would
+		// hand back the unbound view §5.1's simultaneity promises away.
 		if (targets.TryGetValue(called, out var replacement))
-			return replacement;
+			return cloneMap.TryGetValue(replacement, out var rebound) ? rebound : replacement;
 
 		return cloneMap.TryGetValue(called, out var clone) ? clone : called;
 	}

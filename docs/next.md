@@ -4048,3 +4048,16 @@ lexical design calls v2, also reachable as the same hand-factoring `RefOrCall`
 already demonstrates. It is a direction with a design, not a debt: the program
 closes with the floor measured, the residue enumerated, and every claim in this
 file carrying the number that earned it.
+
+## Fixed: a replacement reached through a binding did not observe its siblings
+
+`parse Start with (A = B, Sep = Semi)` handed out a `B` still reading the unbound
+`Sep`. Two holes of one shape: the affected-set's forward reachability walked the
+graph as written, so `B` - reachable only through the binding - never entered the
+set and was never cloned; and a bound call landed on the plain replacement even
+where a clone of it existed. The walk now follows the binding edge, and a bound
+call lands on the replacement's clone. §5.1's own words decide the semantics -
+bindings resolve simultaneously over the whole call graph reached, and the
+replacement is part of that graph the moment the binding reaches it. Found by
+reading the machinery toward the parameterized-rebinding work, pinned by a
+semantic test, and every existing pin held - a bug, not a decision.

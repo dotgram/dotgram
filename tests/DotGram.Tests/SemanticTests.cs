@@ -2145,6 +2145,35 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void A_replacement_reached_through_a_binding_observes_its_sibling_bindings()
+	{
+		// §5.1: bindings in one header resolve simultaneously over the whole call graph
+		// reached — and the replacement itself, reached only through the binding, is part
+		// of that graph. `B` substituted for `A` must read `Sep` through the same header's
+		// `Sep = Semi`, not as written. It did not, until the reachability walk learned to
+		// follow the binding edge and a bound call learned to land on the replacement's
+		// clone.
+		var result = Compile("""
+			Semi  = ';'
+			Sep   = ','
+			B     = 'b' & Sep
+			A     = 'a'
+			Start = A & Sep
+
+			parse Start with (A = B, Sep = Semi) as Rebound
+			parse Start as Plain
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryRebound", "b;;").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryRebound", "b,;").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "a,").IsSuccess);
+	}
+
+	[Fact]
 	public void Lexical_Trivia_shadowing_does_not_reach_a_reused_outer_rule_but_a_namespace_binding_does()
 	{
 		// §22 test 12: `namespace { trivia = none }` is lexical and has no effect on `Pair`,

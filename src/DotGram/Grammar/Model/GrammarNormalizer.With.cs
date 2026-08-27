@@ -85,7 +85,7 @@ public sealed partial class GrammarNormalizer
 					name = site.Name;
 				}
 
-				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward);
+				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
 				var affected  = AffectedSet(merged, calledBy, reachable);
 
 				rewrites[atRoot.Key] = (merged,
@@ -128,7 +128,7 @@ public sealed partial class GrammarNormalizer
 				return;
 
 			foreach (var site in group)
-				foreach (var called in ReachableFromSeed(DirectCalls(site.Root), forward))
+				foreach (var called in ReachableFromSeed(DirectCalls(site.Root), forward, site.Targets))
 					if (called != rule)
 						Visit(called);
 
@@ -236,7 +236,7 @@ public sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward);
+			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward, publication.Rebindings);
 			var affected  = AffectedSet(publication.Rebindings, calledBy, reachable);
 
 			var cloneMap = affected.Count == 0
