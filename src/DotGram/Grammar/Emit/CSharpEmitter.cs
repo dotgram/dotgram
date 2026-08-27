@@ -1380,14 +1380,32 @@ public static partial class CSharpEmitter
 				? $"c == {Char(range.From)}"
 				: $"(c >= {Char(range.From)} && c <= {Char(range.To)})");
 
+		// `\p{Lu}` is the regular-expression spelling; the enum member is
+		// UppercaseLetter. `\p{L}` is not one category but five — and five categories
+		// used to be five classifications of the same character. The enum's values fit
+		// an int, so several categories are one classification and one mask test.
+		var categories = new List<string>();
+
 		foreach (var category in element.Categories)
-			// `\p{Lu}` is the regular-expression spelling; the enum member is
-			// UppercaseLetter. `\p{L}` is not one category but five, so a group expands
-			// into a test for each.
 			foreach (var name in UnicodeCategories.Expand(category))
-				tests.Add(
-					"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
-					$"global::System.Globalization.UnicodeCategory.{name}");
+				if (!categories.Contains(name))
+					categories.Add(name);
+
+		if (categories.Count == 1)
+			tests.Add(
+				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
+				$"global::System.Globalization.UnicodeCategory.{categories[0]}");
+		else if (categories.Count > 1)
+		{
+			var mask = 0;
+
+			foreach (var name in categories)
+				mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
+
+			tests.Add(
+				"((1 << (int)global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)) & " +
+				$"0x{mask:X}) != 0");
+		}
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
 		// that a range does, so it joins the set as one more test. Written as the grammar

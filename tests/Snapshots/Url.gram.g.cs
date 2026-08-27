@@ -9042,6 +9042,8 @@ namespace DotGram.Snapshots
 			{
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
+				global::System.Array.Clear(_values0, 0, global::System.Math.Min(_valuesUsed, _values0.Length));
+				global::System.Array.Clear(_values1, 0, global::System.Math.Min(_valuesUsed, _values1.Length));
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be

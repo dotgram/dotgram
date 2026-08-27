@@ -275,7 +275,7 @@ sealed partial class Machine
 
 			Emit(code, body, "Refuse");
 
-			var written = code.ToString();
+			var written = Threaded(code.ToString());
 			var head    = new Writer(0);
 
 			head.Line("var p = pos;");
@@ -651,5 +651,222 @@ sealed partial class Machine
 		}
 
 		void Unmark() => _marks--;
+
+		/// <summary>
+		/// The jump threading the emission cannot do for itself: a jump to a label whose
+		/// whole block is another jump goes where that jump goes, a jump to the label it
+		/// falls into anyway disappears, and a label nothing jumps to any more goes with
+		/// it. Emission is compositional — a choice does not know its taken-exit falls
+		/// straight into the loop's own back-edge — so the seams it leaves are threaded
+		/// here, over the finished text, where following a chain is following lines.
+		/// </summary>
+		static string Threaded(string written)
+		{
+			var lines = new List<string>(written.Split('\n'));
+
+			for (var i = 0; i < lines.Count; i++)
+				lines[i] = lines[i].TrimEnd('\r');
+
+			// Where each label resolves: past empty statements and other labels, and
+			// through an unconditional jump, to the label whose block does something.
+			string Resolve(string label, HashSet<string> walked)
+			{
+				if (!walked.Add(label))
+					return label;
+
+				for (var i = 0; i < lines.Count; i++)
+				{
+					if (!IsLabel(lines[i], out var name, out var rest) || name != label)
+						continue;
+
+					var first = rest.Trim();
+
+					for (var j = i + 1; first.Length == 0 || first == ";"; j++)
+					{
+						if (j >= lines.Count)
+							return label;
+
+						first = IsLabel(lines[j], out _, out var beyond)
+							? beyond.Trim()
+							: lines[j].Trim();
+					}
+
+					return first.StartsWith("goto ", StringComparison.Ordinal) &&
+						first.EndsWith(";", StringComparison.Ordinal)
+							? Resolve(first["goto ".Length..^1].Trim(), walked)
+							: label;
+				}
+
+				return label;
+			}
+
+			// Thread every jump to where its target resolves.
+			for (var i = 0; i < lines.Count; i++)
+			{
+				var trimmed = lines[i].Trim();
+
+				if (!trimmed.StartsWith("goto ", StringComparison.Ordinal) ||
+					!trimmed.EndsWith(";", StringComparison.Ordinal))
+					continue;
+
+				var target   = trimmed["goto ".Length..^1].Trim();
+				var resolved = Resolve(target, []);
+
+				if (resolved != target)
+					lines[i] = lines[i].Replace($"goto {target};", $"goto {resolved};");
+			}
+
+			for (var pass = 0; pass < 2; pass++)
+			{
+			// A jump to the label it falls into anyway says nothing.
+			for (var i = 0; i < lines.Count; i++)
+			{
+				var trimmed = lines[i].Trim();
+
+				if (!trimmed.StartsWith("goto ", StringComparison.Ordinal) ||
+					!trimmed.EndsWith(";", StringComparison.Ordinal))
+					continue;
+
+				var target = trimmed["goto ".Length..^1].Trim();
+
+				for (var j = i + 1; j < lines.Count; j++)
+				{
+					var next = lines[j].Trim();
+
+					if (next.Length == 0 || next == ";")
+						continue;
+
+					if (IsLabel(lines[j], out var name, out var rest))
+					{
+						if (name == target)
+						{
+							lines[i] = "";
+
+							break;
+						}
+
+						if (string.IsNullOrWhiteSpace(rest) || rest.Trim() == ";")
+							continue;
+					}
+
+					break;
+				}
+			}
+
+			// A label nothing jumps to goes, and takes its empty statement with it.
+			var referenced = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var line in lines)
+			{
+				var at = 0;
+
+				while ((at = line.IndexOf("goto ", at, StringComparison.Ordinal)) >= 0)
+				{
+					var end = line.IndexOf(';', at);
+
+					if (end < 0)
+						break;
+
+					referenced.Add(line[(at + "goto ".Length)..end].Trim());
+					at = end + 1;
+				}
+			}
+
+			for (var i = 0; i < lines.Count; i++)
+				if (IsLabel(lines[i], out var name, out var rest) &&
+					name != "Refuse" &&
+					!referenced.Contains(name))
+					lines[i] = string.IsNullOrWhiteSpace(rest) || rest.Trim() == ";" ? "" : rest;
+
+			// A jump right after an unconditional jump, with no label between, is dead —
+			// the seam a removed label leaves behind — and unreachable code is a warning
+			// in somebody else's build. A jump that is the branch of a two-line `if` is
+			// conditional, whatever its own line says.
+			var falling   = true;
+			var dependent = false;
+
+			for (var i = 0; i < lines.Count; i++)
+			{
+				var trimmed = lines[i].Trim();
+
+				if (trimmed.Length == 0 || trimmed == ";")
+					continue;
+
+				if (IsLabel(lines[i], out _, out var rest) &&
+					(string.IsNullOrWhiteSpace(rest) || rest.Trim() == ";"))
+				{
+					falling = true;
+
+					continue;
+				}
+
+				if (dependent)
+				{
+					dependent = false;
+					falling   = true;
+
+					continue;
+				}
+
+				if (trimmed.StartsWith("if ", StringComparison.Ordinal) &&
+					!trimmed.EndsWith(";", StringComparison.Ordinal))
+				{
+					dependent = true;
+					falling   = true;
+
+					continue;
+				}
+
+				if (!falling && trimmed.StartsWith("goto ", StringComparison.Ordinal) &&
+					trimmed.EndsWith(";", StringComparison.Ordinal))
+				{
+					lines[i] = "";
+
+					continue;
+				}
+
+				falling = !trimmed.StartsWith("goto ", StringComparison.Ordinal) &&
+					!trimmed.StartsWith("return ", StringComparison.Ordinal);
+			}
+
+			}
+
+			var kept = new List<string>(lines.Count);
+
+			foreach (var line in lines)
+				if (line.Length > 0)
+					kept.Add(line);
+
+			return string.Join("\r\n", kept) + "\r\n";
+		}
+
+		static bool IsLabel(string line, out string name, out string rest)
+		{
+			name = "";
+			rest = "";
+
+			var trimmed = line.TrimStart('\t', ' ');
+			var colon   = trimmed.IndexOf(':');
+
+			if (colon <= 0 || trimmed.Contains("goto ", StringComparison.Ordinal) &&
+				trimmed.IndexOf("goto ", StringComparison.Ordinal) < colon)
+				return false;
+
+			var candidate = trimmed[..colon];
+
+			foreach (var symbol in candidate)
+				if (!char.IsLetterOrDigit(symbol) && symbol != '_')
+					return false;
+
+			// `case 3:` is a label to C# but not to this pass; nothing here emits
+			// switches, and a name that is a keyword or starts with a digit is not ours.
+			if (candidate.Length == 0 || char.IsDigit(candidate[0]) || candidate == "default")
+				return false;
+
+			name = candidate;
+			rest = trimmed[(colon + 1)..];
+
+			return true;
+		}
 	}
 }

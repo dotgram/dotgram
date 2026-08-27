@@ -698,6 +698,7 @@ public static partial class CSharpEmitter
 			{
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
+				/*TYPED_RESET*/
 				/*CACHE_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
@@ -943,6 +944,7 @@ public static partial class CSharpEmitter
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
 		var access = new StringBuilder();
+		var reset  = new StringBuilder();
 
 		for (var i = 0; i < valueTypes.Count; i++)
 		{
@@ -953,11 +955,18 @@ public static partial class CSharpEmitter
 			access.Append("internal ").Append(valueTypes[i]).Append("[] Materialization").Append(i)
 				.Append("() { return _values").Append(i).Append("; }\n");
 
+			// Cleared with the parser, not merely overwritten by the next parse: a pooled
+			// parser that kept a typed table full of the previous document's values was
+			// holding that document's whole tree alive from a thread-static field.
+			reset.Append("global::System.Array.Clear(_values").Append(i)
+				.Append(", 0, global::System.Math.Min(_valuesUsed, _values").Append(i).Append(".Length));");
+
 			if (i + 1 >= valueTypes.Count)
 				continue;
 
 			fields.Append('\n');
 			resize.Append('\n');
+			reset.Append('\n');
 		}
 
 		var runtime = ParserRuntimeTemplate
@@ -970,6 +979,7 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "TYPED_FIELDS", fields.ToString(), valueTypes.Count > 0);
 		runtime = CacheRuntime(runtime, "TYPED_RESIZE", resize.ToString(), valueTypes.Count > 0);
 		runtime = CacheRuntime(runtime, "TYPED_ACCESS", access.ToString(), valueTypes.Count > 0);
+		runtime = CacheRuntime(runtime, "TYPED_RESET", reset.ToString(), valueTypes.Count > 0);
 
 		runtime = CacheRuntime(runtime, "CACHE_FIELD",
 			"bool[] _built = global::System.Array.Empty<bool>();", caches);

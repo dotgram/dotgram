@@ -1844,11 +1844,14 @@ sealed partial class Machine
 					if (body is not Node.Choice(var tried) || tried.Count == 1)
 						return Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
 
-					var mine = _depth++;
+					var mine  = _depth++;
+					var doors = false;
 
 					// Built back to front: the last alternative fails outward, and each
-					// earlier one fails into the door that rewinds and tries the next.
-					// A capture a failed alternative opened is unset on the way through.
+					// earlier one fails into the door that rewinds and tries the next —
+					// unless it fails where it began, in which case the next alternative
+					// is the failure target directly. A capture a failed alternative
+					// opened is unset on the way through.
 					var target = Compile(tried[tried.Count - 1], next, following);
 
 					for (var at = tried.Count - 2; at >= 0; at--)
@@ -1861,16 +1864,21 @@ sealed partial class Machine
 									(undone ??= []).Add(
 										$"flat{_flatInstance}_{_captureSlots[descendant]}Start");
 
-						var saved = _fail;
+						var saved  = _fail;
+						var direct = undone is null && FailsWhereItBegan(tried[at]);
 
-						_fail  = GiveBack(target, mine, out _, undone);
+						if (!direct)
+							doors = true;
+
+						_fail  = direct ? target : GiveBack(target, mine, out _, undone);
 						target = Compile(tried[at], next, following);
 						_fail  = saved;
 					}
 
 					var entered = Reserve(out var atEnter);
 
-					atEnter.Line($"turn{mine} = p;");
+					if (doors)
+						atEnter.Line($"turn{mine} = p;");
 					atEnter.Line($"goto {Label(target)};");
 
 					_depth = mine;
@@ -1980,6 +1988,43 @@ sealed partial class Machine
 				// The same test `Silent`'s own Lookahead case asks, so the two agree.
 				if (Silent(body, FirstSets.First.All))
 				{
+					// A body one character decides needs no checkpoint either: the
+					// lookahead is its test and nothing else — no local, no consuming,
+					// no rewinding. §4.6 weaves one of these around every word literal,
+					// so the boundary of a keyword is one comparison each side.
+					if (RunTest(body) is { } asked && asked != "true")
+					{
+						_usesChar = true;
+
+						var predicate = Reserve(out var atAsk);
+						var askedName = DeclareExpected([node.ToString()]);
+
+						if (isPositive)
+						{
+							atAsk.Line("if ((uint)p >= (uint)text.Length)");
+							using (atAsk.Block(""))
+								EmitTerminalFailure(atAsk, _fail, askedName);
+							atAsk.Line("c = text[p];");
+							atAsk.Line($"if (!({asked}))");
+							using (atAsk.Block(""))
+								EmitTerminalFailure(atAsk, _fail, askedName);
+						}
+						else
+						{
+							using (atAsk.Block("if ((uint)p < (uint)text.Length)"))
+							{
+								atAsk.Line("c = text[p];");
+								atAsk.Line($"if ({asked})");
+								using (atAsk.Block(""))
+									EmitTerminalFailure(atAsk, _fail, askedName);
+							}
+						}
+
+						atAsk.Line($"goto {Label(next)};");
+
+						return predicate;
+					}
+
 					var mine = _depth++;
 
 					if (isPositive)
@@ -2701,6 +2746,25 @@ sealed partial class Machine
 	/// began is kept in a local of its own and the way out reads it. The repetition ends
 	/// where its last whole turn ended, not where a broken one stopped.
 	/// </remarks>
+	/// <summary>
+	/// Whether every failure of this node happens before it has moved the position — so
+	/// the door that puts the position back would put back what never changed.
+	/// </summary>
+	/// <remarks>
+	/// One character is the shape: the test refuses before <c>p++</c>. A literal longer
+	/// than one is not, and not only for the obvious reason — its failure branch moves
+	/// <c>p</c> to the character that did not fit, for the diagnostic.
+	/// </remarks>
+	static bool FailsWhereItBegan(Node node) =>
+		node switch
+		{
+			Node.Empty or Node.Behind => true,
+			Node.Element              => true,
+			Node.Literal(var text)    => text.Length == 1,
+			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
+			_                         => false,
+		};
+
 	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null)
 	{
 		start = "turn" + depth;
@@ -2749,19 +2813,24 @@ sealed partial class Machine
 				if (descendant is Node.Capture)
 					(resets ??= []).Add($"flat{_flatInstance}_{_captureSlots[descendant]}Start");
 
+		// A body whose every failure happens where its turn began needs no door at all:
+		// there is nothing to put back, and the way out is a plain jump.
+		var direct = resets is null && FailsWhereItBegan(body);
+
 		if (max is null)
 		{
 			var loop  = Reserve(out var atLoop);
 			var saved = _fail;
 
 			// Round again, or out — and out is through the door that puts the position back.
-			_fail = GiveBack(next, mine, out var start, resets);
+			_fail = direct ? next : GiveBack(next, mine, out _, resets);
 
 			var inner = Compile(body, loop, inside);
 
 			_fail = saved;
 
-			atLoop.Line($"{start} = p;");
+			if (!direct)
+				atLoop.Line($"turn{mine} = p;");
 			atLoop.Line($"goto {Label(inner)};");
 
 			target = loop;
@@ -2772,13 +2841,14 @@ sealed partial class Machine
 				var saved = _fail;
 				var after = target;
 
-				_fail  = GiveBack(after, mine, out var start, resets);
+				_fail  = direct ? after : GiveBack(after, mine, out _, resets);
 				target = Compile(body, after, inside);
 				_fail  = saved;
 
 				var began = Reserve(out var atBegan);
 
-				atBegan.Line($"{start} = p;");
+				if (!direct)
+					atBegan.Line($"turn{mine} = p;");
 				atBegan.Line($"goto {Label(target)};");
 
 				target = began;

@@ -3689,3 +3689,52 @@ Not taken: prefix dispatch merging `//` and `/*` under one `'/'` test. The front
 test already removed the negative path both were on, and what is left is one span
 compare per comment start. Same reason the trie was declined: measure a shape that
 exists first.
+
+## Built: the CFG stopped photographing the automaton
+
+The review's diagnosis - the generator optimizes the parsing operation but not the
+control-flow graph it leaves behind - taken in five pieces, each general.
+
+**A door for nothing.** The give-back door restores a position the failing body
+never moved: a repetition or optional whose body is one character (an element, a
+one-character literal, `Behind`) fails before `p++`, so `FailsWhereItBegan` routes
+its failure straight to the continuation - no `turn` local, no restore state, no
+trampoline. The identifier tail, the optional marker, and the silent atomic's
+alternatives all lose their `p = turn0; goto` blocks. A literal longer than one
+keeps the door, and not only for the obvious reason: its failure branch moves `p`
+to the character that did not fit, for the diagnostic.
+
+**A lookahead one character decides is its test and nothing else.** No local, no
+consuming, no rewinding: `?!W` is `if (p < length && W(text[p])) fail`, and `?=` the
+mirror image. §4.6 weaves one of these around every word literal, so every keyword
+boundary in every grammar was paying the checkpoint ceremony for one comparison.
+
+**Jump threading over the scanner.** Emission is compositional - a choice cannot
+know its taken-exit falls into the loop's back-edge - so the seams are threaded over
+the finished text: a jump to a label whose block is another jump goes where that one
+goes, a jump to the label it falls into disappears, an unreferenced label goes, and
+a jump left unreachable by a removed label goes with it (a branch of a two-line `if`
+recognized as conditional, whatever its own line says). Two passes to a fixpoint.
+`Scan_trivia`'s whitespace turn is one back-edge instead of two jumps; the block
+comment's success path is one jump; the EOF cascade is shorter by every label that
+did nothing.
+
+**One classification instead of five.** A multi-category element test called
+`GetUnicodeCategory(c)` once per category; the enum fits an int, so it is one call
+and one mask: `((1 << (int)GetUnicodeCategory(c)) & 0x...) != 0`. The notation's
+generated file holds 90 textual calls where it held about five hundred.
+
+**The pool held the previous document alive.** `Reset()` cleared the object table
+but not the typed ones, so a pooled parser kept references into the last parse's
+tree from a thread-static field until the next parse happened to overwrite them.
+The typed tables are now cleared with the rest, in the same `finally`.
+
+Ratios, Release, two runs agreeing: Csv 1.78, Feed ~2.3, Minimal 1.86, Url 2.52
+(from 1.76 / 2.40 / 1.86 / 2.62) - the gain is Url's, the rest is hygiene the
+corpus cannot see: fewer states, fewer jumps, no retention.
+
+Left open from the review, in order: the redundant bounds-and-reload at a choice's
+first alternative after the front test (the emission would have to carry "c holds
+text[p]" across the seam); partial FIRST dispatch for choices that are not fully
+disjoint - Primary's `'@'` deciding CsExpr against RefOrCall one character early;
+and the Return/Dispatch architecture itself, deliberately last.
