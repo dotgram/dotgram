@@ -4167,3 +4167,30 @@ is a value whatever the declaration says, because `Digits(n) = ['0'..'9']{n}` is
 cannot work and now says so: a specialization is made before anything runs, and a
 captured value exists only while it does. Refused with that reason, and the spec
 corrected rather than left promising it.
+
+## Built: a rule may recover in more than one place
+
+Fourth red row, and the machinery was already there. `_recoveryPlans` has been a list
+since there was one plan, every plan carries an id, and the arena has dispatched a
+recovery by that id all along - what was single was the *lookup*: `RecoveryIn` returned
+the first marked repetition in a rule and the emitter asked once. So the refusal said
+"the machine keeps one and would ignore a second", which was true of the lookup and not
+of the machine.
+
+`RecoveriesIn` returns them all, in the order the rule reads; the machine makes a plan
+per marked repetition; and the one thing that had to differ - the name of the factory a
+`recover`'s `=>` becomes - is settled by `RecoveryMethod(rule, index)` for both halves
+of the emitter at once. The first keeps the name it always had, so every grammar that
+had one recovery generates exactly the text it did.
+
+The stream is the exception, and it stays one - for a reason, not for want of
+machinery. The driver steps over a bad element as it hands the good ones back, reading
+one repetition at a time, so a second `recover` in a streamed rule would be one that
+quietly does not happen. That is not a refusal of the grammar, though, and it moved to
+where it belongs: `StreamedParse` now names it as a reason, so the publication is told
+it gets no reader overload (GRAM5001, Info) and parses whole exactly as it reads. The
+§8.2 check in the normalizer is gone; a §6.3 constraint belongs in §6.3's own analysis.
+
+Pinned by a parse that recovers twice in one rule and proves each rejection came
+through its own `=>` - `a,!b1b|c,?d2d` - and by the streamed publication being told
+why it has no reader.

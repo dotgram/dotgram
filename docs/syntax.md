@@ -1402,7 +1402,7 @@ Feed : FeedItem[] = Header
                   & Trailer & eof
 ```
 
-`recover` marks one repetition and says three things about it:
+`recover` marks a repetition and says three things about it:
 
 1. **Inside it, consuming and then failing is an error, not a non-match.** That is the
    commit point, and it is what makes "this record is malformed" expressible at all:
@@ -1446,6 +1446,20 @@ An iteration matches `H16` and fails on `':'` having consumed four characters. T
 a healthy backtrack, not a broken address. Marking the repetition is how an author says
 which reading applies, and it changes nothing outside the repetition it is written on —
 a rule still means one thing everywhere it is called.
+
+**A rule may mark as many repetitions as it has**, each with its own synchronization
+expression, its own `=>` and its own sequence for a rejection to arrive in:
+
+```dotgram
+Sheet = "H" & eol & head: Row* recover eol => @(Bad("head", parserText))
+      & "B" & eol & body: Row* recover eol => @(Bad("body", parserText))
+      & eof
+```
+
+The one exception is a parse read from a `TextReader` (§6.3): the driver steps over a
+bad element as it hands the good ones back, one repetition at a time, so a rule that
+marks two is told it gets no reader overload (`GRAM5001`) rather than silently
+recovering in one place only. Read whole, it recovers in both.
 
 **The synchronization expression is one operand, so a choice needs brackets.**
 

@@ -69,7 +69,8 @@ then quietly mean nothing.
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | offsets are `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
+| a second `recover` in one rule, a plan each §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same in a rule read from a `TextReader` §6.3 | ✓ | ✓ | reported | — | — |
 | a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
 | C# recognizer calls emitted without generator resolution §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |

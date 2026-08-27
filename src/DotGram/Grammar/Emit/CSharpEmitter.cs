@@ -152,13 +152,18 @@ public static partial class CSharpEmitter
 
 		if (machines.Count > 0)
 			foreach (var rule in graph.Rules)
-				if (RecoveryIn(graph, results, rule) is { } recoveryFound)
+			{
+				var recoveries = RecoveriesIn(graph, results, rule);
+
+				for (var found = 0; found < recoveries.Count; found++)
 				{
-					var (_, recovery, slot) = recoveryFound;
+					var (_, recovery, slot) = recoveries[found];
 
 					if (recovery.Factory is not null && slot >= 0)
-						EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
+						EmitRecoveryFactory(
+							file, results, rule, RecoveryMethod(rule, found), recovery, graph, slot);
 				}
+			}
 
 		var continuationProbes = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
 		var streamedParts = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
@@ -201,9 +206,12 @@ public static partial class CSharpEmitter
 				// What the repetition was told to do about a bad element, and where the
 				// parse may pick up again — compiled here rather than inside a machine,
 				// because in a stream it is the driver that steps over one.
+				// One, and one is all a streamed rule may mark: the driver steps over a
+				// bad element as it hands the good ones back, and it is reading one
+				// repetition at a time (GRAM4010, GrammarNormalizer.Checks.cs).
 				var found   = RecoveryIn(graph, results, publication.Rule);
 				var sync    = (string?)null;
-				var factory = MethodOf(publication.Rule) + "_Recover";
+				var factory = RecoveryMethod(publication.Rule, 0);
 
 				if (found is not null)
 					sync = streamedSyncs[publication.Rule].Name;
@@ -1104,31 +1112,69 @@ public static partial class CSharpEmitter
 	internal static (Node Repetition, Recovery Recovery, int Slot)? RecoveryIn(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		if (graph.Recoveries.Count == 0)
-			return null;
+		var found = RecoveriesIn(graph, results, rule);
+
+		return found.Count == 0 ? null : found[0];
+	}
+
+	/// <summary>
+	/// Every repetition of a rule that was marked <c>recover</c>, in the order the rule
+	/// reads, each with the slot its elements collect into and what it was told (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// A rule may mark more than one: each is its own repetition with its own sync, its
+	/// own <c>=&gt;</c> and its own sequence to put a rejection in, and the arena has
+	/// dispatched a recovery by plan since there was one plan. What has to differ per
+	/// recovery is the name of the factory the grammar's <c>=&gt;</c> becomes, which
+	/// <see cref="RecoveryMethod"/> settles for both halves of the emitter at once.
+	/// </remarks>
+	internal static IReadOnlyList<(Node Repetition, Recovery Recovery, int Slot)> RecoveriesIn(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		if (graph.Recoveries.Count == 0 || !graph.Bodies.ContainsKey(rule))
+			return [];
 
 		var layout = LayoutOf(graph, results, rule);
+		var found  = new List<(Node, Recovery, int)>();
 
-		return Find(graph.Bodies[rule], -1);
+		Find(graph.Bodies[rule], -1);
+
+		return found;
 
 		// The capture is where a recovered element goes: the same sequence its successful
 		// siblings collect into. It may be either side of the quantifier — `rows: Row*` is
 		// `(rows: Row)*`, because a capture binds tighter (§10) — so both are looked at.
-		(Node, Recovery, int)? Find(Node node, int slot)
+		void Find(Node node, int slot)
 		{
 			if (node is Node.Repeat(var repeated, _, _) && graph.Recoveries.TryGetValue(node, out var recovery))
-				return (node, recovery, slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1);
+			{
+				found.Add((
+					node, recovery,
+					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1));
+
+				return;
+			}
 
 			if (node is Node.Capture(_, var captured))
-				return Find(captured, layout.SlotOf(node));
+			{
+				Find(captured, layout.SlotOf(node));
+
+				return;
+			}
 
 			foreach (var child in Children(node))
-				if (Find(child, -1) is { } found)
-					return found;
-
-			return null;
+				Find(child, -1);
 		}
 	}
+
+	/// <summary>
+	/// What the factory a <c>recover</c>'s <c>=&gt;</c> becomes is called. The first keeps
+	/// the name it always had, so a rule with one recovery — every rule that had one until
+	/// now — generates exactly the text it did.
+	/// </summary>
+	internal static string RecoveryMethod(RuleSymbol rule, int index) =>
+		MethodOf(rule) + "_Recover" +
+		(index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
 
 	static IEnumerable<Node> Children(Node node) => node switch
 	{
@@ -1144,8 +1190,12 @@ public static partial class CSharpEmitter
 	/// What a broken element becomes: the C# the <c>recover</c> named, with the extent it
 	/// covered and where in the sequence it was.
 	/// </summary>
+	/// <param name="method">
+	/// The whole name, from <see cref="RecoveryMethod"/> — a rule may mark more than one
+	/// repetition, and two factories cannot share a name.
+	/// </param>
 	internal static void EmitRecoveryFactory(
-		Writer file, ResultTypes results, RuleSymbol rule, string owner, Recovery recovery,
+		Writer file, ResultTypes results, RuleSymbol rule, string method, Recovery recovery,
 		RecognitionGraph graph, int slot)
 	{
 		var element    = LayoutOf(graph, results, rule).Slots[slot].Rule;
@@ -1156,7 +1206,7 @@ public static partial class CSharpEmitter
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> makes of an element it could not read.</summary>");
 		file.Line(
-			$"static {results.ValueOf(element)} {owner}_Recover({string.Join(", ", parameters)}) =>");
+			$"static {results.ValueOf(element)} {method}({string.Join(", ", parameters)}) =>");
 		file.Line("\t" + recovery.Factory + ";");
 		file.Line();
 	}

@@ -1051,6 +1051,37 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_second_recover_costs_a_parse_its_reader_overload()
+	{
+		// A whole parse runs every `recover` a rule marks (§8.2); a stream does not, and
+		// not for want of machinery — the driver steps over a bad element one repetition
+		// at a time, so a second one would be a `recover` that quietly does not happen.
+		// Said where the publication asked for the overload, rather than refusing the
+		// grammar: without a reader it parses exactly as it reads.
+		var result = GramCompiler.Compile(
+			"""
+			Row   : @string   = t: ['a'..'z']+ & eol => @(t)
+			Sheet : @string[] = "H" & eol & head: Row* recover eol => @("!" + parserText)
+			                  & "B" & eol & body: Row* recover eol => @("?" + parserText)
+			                  & eof
+			                  => @(head)
+
+			parse Sheet
+			""",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		var told = Assert.Single(result.Diagnostics);
+
+		Assert.Equal(Retention.NotStreamable, told.Id);
+		Assert.Equal(GramSeverity.Info,       told.Severity);
+		Assert.Contains("more than one repetition", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void And_is_told_so_where_it_asked()
 	{
 		// The alternative is what the author actually meets: a call that does not bind,

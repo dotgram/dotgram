@@ -203,12 +203,16 @@ sealed partial class Machine
 
 			_captures += layout.Slots.Count;
 
-			if (CSharpEmitter.RecoveryIn(graph, results, rule) is { } recoveryFound)
+			// One plan per marked repetition: each has its own sync, its own `=>` and its
+			// own sequence, and the arena has always dispatched a recovery by plan.
+			var recoveries = CSharpEmitter.RecoveriesIn(graph, results, rule);
+
+			for (var found = 0; found < recoveries.Count; found++)
 			{
-				var (repetition, recovery, recoverySlot) = recoveryFound;
+				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
 					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
-					_recoveryPlans.Count, CSharpEmitter.MethodOf(rule) + "_Recover",
+					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
 				_recoveries[repetition] = plan;

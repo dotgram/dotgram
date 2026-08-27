@@ -680,9 +680,6 @@ public sealed class SemanticTests
 	/// </remarks>
 	[Theory]
 	[InlineData(GrammarNormalizer.LeftRecursion,   "A = B & 'x' | 'a'\nB = A & 'y' | 'b'\nStart = A")]
-	[InlineData(GrammarNormalizer.UnbuiltRecovery,
-		"Start = a: Row* recover eol => @(1) & b: Row* recover eol => @(2)\n"
-		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
 	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
 		"B(item) = item\nD = 'd'\nnamespace Ctx with (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
@@ -1975,16 +1972,39 @@ public sealed class SemanticTests
 				RoslynCSharpScanner.Instance)).File.ToString());
 
 	[Fact]
-	public void Only_one_repetition_of_a_rule_recovers() =>
-		// The second would be ignored, and a `recover` that is quietly not there is the
-		// failure recovery exists to prevent.
-		Refused(
-			GrammarNormalizer.UnbuiltRecovery,
-			"""
-			Row   = name: ['a'..'z']+ & eol
-			Start = rows: Row* recover eol => @(new Row("!" + parserText))
-			      & more: Row* recover eol => @(new Row("?" + text))
+	public void Every_repetition_of_a_rule_may_recover()
+	{
+		// Each marked repetition is its own: its own sync, its own `=>`, its own sequence
+		// for a rejection to arrive in, and its own plan in the arena — which has
+		// dispatched a recovery by plan since there was one plan. The two factories differ
+		// by name and by nothing else.
+		var result = Compile("""
+			Row   : @string = t: ['a'..'z']+ & eol => @(t)
+			Sheet : @string = "H" & eol & head: Row* recover eol => @("!" + parserText)
+			                & "B" & eol & body: Row* recover eol => @("?" + parserText)
+			                & eof
+			                => @(string.Join(",", head) + "|" + string.Join(",", body))
+
+			parse Sheet
 			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var source = result.Sources[0].Text;
+
+		Assert.Contains("Recognize_Sheet_Recover(",  source);
+		Assert.Contains("Recognize_Sheet_Recover2(", source);
+
+		var assembly = EmittedCode.Compile(source);
+
+		// A line that begins a Row and breaks in the middle of one is stepped over by the
+		// `recover` that owns that repetition, and each rejection is built by that
+		// repetition's own `=>` — which is the whole of what having two of them means.
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseSheet", "H\na\nb1b\nB\nc\nd2d\n");
+
+		Assert.True(match.IsSuccess, match.Error + " at " + match.Position);
+		Assert.Equal("a,!b1b|c,?d2d", match.Value);
+	}
 
 	[Fact]
 	public void A_recovery_that_builds_needs_a_sequence_to_build_into() =>

@@ -123,12 +123,16 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// One <c>recover</c> per rule, for now.
+	/// As many <c>recover</c>s per rule as it marks repetitions — except in a stream.
 	/// </summary>
 	/// <remarks>
-	/// The machine keeps one recovering repetition and would ignore a second — and a
-	/// <c>recover</c> that is quietly not there is exactly the failure recovery exists to
-	/// prevent. Two of them is a rule that wants splitting in two anyway.
+	/// Each marked repetition is its own: its own sync, its own <c>=&gt;</c>, its own
+	/// sequence for a rejection to arrive in, and its own plan in the arena, which has
+	/// dispatched a recovery by plan since there was one plan. A streamed parse is the
+	/// exception, and not for want of machinery: the driver steps over a bad element as
+	/// it hands the good ones back, reading one repetition at a time, so a second
+	/// <c>recover</c> in the rule it streams would be one that quietly does not happen —
+	/// exactly the failure recovery exists to prevent.
 	/// </remarks>
 	void CheckRecovery(RuleSymbol rule)
 	{
@@ -137,13 +141,6 @@ public sealed partial class GrammarNormalizer
 		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
 			if (_recoveries.ContainsKey(node))
 				found++;
-
-		if (found > 1)
-			Report(
-				UnbuiltRecovery,
-				$"'{rule.Name}' marks {found} repetitions with 'recover' and only one may be marked. " +
-				"Give the other its own rule.",
-				rule.Declaration!.At);
 
 		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
 			if (_recoveries.TryGetValue(node, out var recovery) && recovery.Factory is not null)

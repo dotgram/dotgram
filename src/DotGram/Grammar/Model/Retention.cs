@@ -359,6 +359,18 @@ public static class Retention
 			? inner
 			: element;
 
+	/// <summary>How many repetitions under a node were marked <c>recover</c>.</summary>
+	static int Marked(Node node, RecognitionGraph graph)
+	{
+		var marked = 0;
+
+		foreach (var descendant in NodeWalk.Descendants(node))
+			if (graph.Recoveries.ContainsKey(descendant))
+				marked++;
+
+		return marked;
+	}
+
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
 	{
 		if (graph is null)
@@ -375,6 +387,14 @@ public static class Retention
 
 		if (body is Node.Construct(var built, _))
 			body = built;
+
+		// A rule may mark more than one repetition `recover` (§8.2), and a whole parse
+		// runs every one of them. A stream does not: the driver steps over a bad element
+		// as it hands the good ones back, and it is reading one repetition at a time, so
+		// the second `recover` would be one that quietly does not happen.
+		if (Marked(body, graph) > 1)
+			return $"'{rule.Name}' marks more than one repetition with 'recover', and a stream " +
+				"steps over a bad element one repetition at a time. Give the other its own rule.";
 
 		if (body is Node.Choice)
 			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
