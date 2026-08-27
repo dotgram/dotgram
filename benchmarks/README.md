@@ -57,28 +57,28 @@ worst work.
 
 ### Current result
 
-Windows, .NET 10, 2026-08-25, after the literal work (`docs/next.md`). Measured with
-`--against` rather than `DefaultJob`, for the reason under "Which instrument, and why"
-below. Two independent runs agreed to within 0.05 on every ratio. Indicative, not stable CI
-thresholds:
+Windows, .NET 10, 2026-08-27, after the analysis work that closed the performance program
+(`docs/next.md`). Measured with `--against` rather than `DefaultJob`, for the reason under
+"Which instrument, and why" below. Two independent runs agreed to within 0.1 on every
+ratio. Indicative, not stable CI thresholds:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 133.8 ns | 608.3 ns (4.55×) | 298.9 ns (2.23×) |
-| `https://192.168.0.1/` | 146.9 ns | 568.7 ns (3.87×) | 285.4 ns (1.94×) |
-| `https://exa mple.com/` — no match | 80.2 ns | 447.4 ns (5.57×) | 113.5 ns (1.41×) |
-| a 47-character URL with every part | 274.4 ns | 609.5 ns (2.22×) | 278.0 ns (1.01×) |
-| an 84-character path of eight segments | 191.0 ns | 1239.9 ns (6.49×) | 453.0 ns (2.37×) |
+| `http://example.com` | 104.4 ns | 636.7 ns (6.10×) | 315.0 ns (3.02×) |
+| `https://192.168.0.1/` | 110.1 ns | 613.3 ns (5.57×) | 304.0 ns (2.76×) |
+| `https://exa mple.com/` — no match | 54.1 ns | 469.2 ns (8.67×) | 121.1 ns (2.24×) |
+| a 47-character URL with every part | 277.9 ns | 653.0 ns (2.35×) | 306.0 ns (1.10×) |
+| an 84-character path of eight segments | 170.9 ns | 1312.7 ns (7.68×) | 479.9 ns (2.81×) |
 
 **Faster than `RegexOptions.Compiled` on all five**, and faster than the interpreted pattern
-by 2.2× to 6.5×.
+by 2.4× to 8.7×.
 
 **The 47-character URL is the one to watch, and it has been both sides of parity.** It was
 1.12× before the predicted-dispatch change, 0.99× after — that change removes work on every
 input and lost this one to profile-guided block layout anyway, which `docs/next.md` records
 under "What that change actually measured". Comparing a literal as one span put it back at
-1.01×. A margin of a few per cent on this input is layout as often as it is work, and is
-worth nothing without the `DOTNET_TieredPGO=0` check beside it.
+1.01×, and it stands at 1.10× today. A margin of a few per cent on this input is layout as
+often as it is work, and is worth nothing without the `DOTNET_TieredPGO=0` check beside it.
 
 ### Asked for every part instead of one
 
@@ -93,11 +93,11 @@ The same five inputs, with every part read on both sides:
 
 | input | .Gram | Regex | Regex, compiled |
 | --- | --: | --: | --: |
-| `http://example.com` | 134.4 ns | 738.6 ns (5.50×) | 437.0 ns (3.25×) |
-| `https://192.168.0.1/` | 148.6 ns | 717.8 ns (4.83×) | 434.2 ns (2.92×) |
-| `https://exa mple.com/` — no match | 80.3 ns | 450.7 ns (5.61×) | 114.0 ns (1.42×) |
-| a 47-character URL with every part | 276.9 ns | 771.0 ns (2.78×) | 461.2 ns (1.67×) |
-| an 84-character path of eight segments | 191.0 ns | 1385.3 ns (7.25×) | 607.3 ns (3.18×) |
+| `http://example.com` | 105.6 ns | 757.4 ns (7.25×) | 445.1 ns (4.26×) |
+| `https://192.168.0.1/` | 106.8 ns | 725.7 ns (6.59×) | 443.9 ns (4.03×) |
+| `https://exa mple.com/` — no match | 49.0 ns | 471.9 ns (8.72×) | 121.6 ns (2.25×) |
+| a 47-character URL with every part | 286.0 ns | 800.4 ns (2.88×) | 463.5 ns (1.67×) |
+| an 84-character path of eight segments | 168.2 ns | 1438.6 ns (8.42×) | 634.4 ns (3.71×) |
 
 **Asking for all seven costs this nothing.** Every row is within 5% of its own row above,
 in both directions, and the allocation figures are identical to the byte. They were built
@@ -105,11 +105,11 @@ before the call returned; reading them reads fields. It is also the check that s
 a run is worth reading at all — two measurements that must agree, and a run where they come
 out 20% apart is a run something else was happening during.
 
-**It costs the compiled pattern 46% to 66%** on the four inputs that match — 299→437,
-285→434, 453→607 and 278→461 ns, and 32 to 208 bytes more each. Only the refusal is
+**It costs the compiled pattern 32% to 52%** on the four inputs that match — 315→445,
+304→444, 480→634 and 306→464 ns, and 32 to 208 bytes more each. Only the refusal is
 unchanged, because a refusal has no parts to cut.
 
-**The input that is level on the first table is 1.57× ahead on this one.** That is the whole
+**The input that is level on the first table is 1.62× ahead on this one.** That is the whole
 of what the two tables are for: the question the pattern is built for and the question this
 is.
 
@@ -229,10 +229,13 @@ threading), against the state before it:
 
 | | before | after |
 |---|---:|---:|
-| dense | 287.5 us | 19.3 us |
-| spaced | 279.8 us | 20.5 us |
-| commented | 276.9 us | 21.2 us |
+| dense | 287.5 us | 18.9 us |
+| spaced | 279.8 us | 19.7 us |
+| commented | 276.9 us | 19.9 us |
 | allocated per parse | 3.14 MB | 46 KB |
+
+Re-measured 2026-08-27, after the analysis work that closed the series; the numbers
+above are that run (BenchmarkDotNet, `--filter *Documents*`).
 
 Fifteenfold in time and sixty-eightfold in allocation, and the 46 KB that remain are
 the result itself: four hundred `Setting` objects and their strings. The before-column
