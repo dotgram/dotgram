@@ -60,8 +60,31 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var diagnostic = Assert.Single(result.Diagnostics);
 		Assert.Equal("GRAM5101", diagnostic.Diagnostic.Id);
 		Assert.Equal(
-			"Expected ['a'..'z'] in DotGram language 'dotgram.test.filter'.",
+			"Expected one of ' ', ['a'..'z'] in DotGram language 'dotgram.test.filter'.",
 			diagnostic.Diagnostic.Message);
+	}
+
+	[Theory]
+	[InlineData("let total1", "let", "total")]
+	[InlineData("let total 1", "let", "total")]
+	public async Task PreservesRecognizedClassificationsBeforeInvalidSuffix(
+		string value,
+		string keyword,
+		string variable)
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(Source(value));
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Single(result.Diagnostics);
+		Assert.Equal(
+			new[] { ("Keyword", keyword), ("Variable", variable) },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
 	}
 
 	[Fact]
@@ -147,6 +170,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	static string Source(string value) => SupportEmitter.Attributes + $$""""
 
 		[DotGram.Gram("""
+			trivia     = [' ' | '\t']*
 			Keyword    = "let"
 			Identifier = ['a'..'z']+
 			Start      = Keyword & ' ' & name: (Identifier)

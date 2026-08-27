@@ -70,10 +70,15 @@ internal static class DslRecognitionTrace
 				successful.Extents,
 				[]);
 
+		var partial = candidates
+			.OrderByDescending(static match => match.End)
+			.ThenByDescending(static match => match.Extents.Count)
+			.FirstOrDefault() ?? matcher.Best;
+
 		return new DslRecognitionResult(
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
-			matcher.Best.Extents,
+			partial.Extents,
 			matcher.Expected);
 	}
 
@@ -81,14 +86,20 @@ internal static class DslRecognitionTrace
 	{
 		readonly HashSet<(RuleSymbol Rule, int Position)> _active = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
+		readonly HashSet<RuleSymbol> _trivia = graph.Rules
+			.Where(static rule => rule.Name == "trivia")
+			.ToHashSet();
 
 		public int Furthest { get; private set; }
 		public bool Unsupported { get; private set; }
 		public Match Best { get; private set; } = Match.Empty(0);
 		public IReadOnlyList<string> Expected => _expected.OrderBy(static item => item, StringComparer.Ordinal).ToArray();
 
-		public void Expect(int position, string expected)
+		public void Expect(int position, string expected, RuleSymbol? owner = null)
 		{
+			if (owner is not null && _trivia.Contains(owner))
+				return;
+
 			if (position < Furthest)
 				return;
 
@@ -125,8 +136,9 @@ internal static class DslRecognitionTrace
 					extents.AddRange(match.Extents);
 
 					var complete = new Match(match.End, extents);
-					if (complete.End > Best.End ||
-						complete.End == Best.End && complete.Extents.Count > Best.Extents.Count)
+					if (!_trivia.Contains(rule) &&
+						(complete.End > Best.End ||
+						 complete.End == Best.End && complete.Extents.Count > Best.Extents.Count))
 						Best = complete;
 
 					yield return complete;
@@ -160,7 +172,7 @@ internal static class DslRecognitionTrace
 							 literal.IgnoreCase && char.ToUpperInvariant(input[position + matched]) ==
 							 char.ToUpperInvariant(literal.Text[matched])))
 							matched++;
-						Expect(position + matched, literal.ToString());
+						Expect(position + matched, literal.ToString(), owner);
 					}
 					yield break;
 
@@ -168,7 +180,7 @@ internal static class DslRecognitionTrace
 					if (position < input.Length && Element(element, input[position]))
 						yield return Match.Empty(position + 1);
 					else if (element.References.Count == 0)
-						Expect(position, element.ToString());
+						Expect(position, element.ToString(), owner);
 					yield break;
 
 				case Node.Sequence sequence:
