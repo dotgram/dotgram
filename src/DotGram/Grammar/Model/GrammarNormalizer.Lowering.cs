@@ -485,6 +485,19 @@ public sealed partial class GrammarNormalizer
 				return Node.Empty.Instance;
 			}
 
+		return Instantiate(rule, passed, counts);
+	}
+
+	/// <summary>
+	/// The specialization itself, from arguments already lowered — split from
+	/// <see cref="Specialize"/> so a parameterized rebinding can build the replacement's
+	/// specialization for the same arguments a call already carried (§5.1), long after
+	/// <c>LowerAll</c> has run.
+	/// </summary>
+	Node Instantiate(RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts)
+	{
+		var declaration = rule.Declaration!;
+
 		var key = rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
 			node is null
 				? counts[i]!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -498,6 +511,11 @@ public sealed partial class GrammarNormalizer
 		_specialized[key] = specialized;
 		_rules.Add(specialized);
 
+		// What this specialization is an instance of, and of what arguments — the one
+		// fact a parameterized rebinding needs later: a call to it is a call to the rule
+		// with these arguments, and the binding replaces the rule, not the instance.
+		_origins[specialized] = (rule, passed, counts);
+
 		// Before lowering, for the same reason an ordinary rule is: a specialization that
 		// reaches itself would otherwise recurse here rather than be reported.
 		_bodies[specialized] = Node.Empty.Instance;
@@ -508,7 +526,7 @@ public sealed partial class GrammarNormalizer
 		_arguments = new Dictionary<string, Node>(StringComparer.Ordinal);
 		_counts    = new Dictionary<string, int>(StringComparer.Ordinal);
 
-		for (var i = 0; i < arguments.Count; i++)
+		for (var i = 0; i < passed.Count; i++)
 			if (passed[i] is { } node)
 				_arguments[declaration.Params[i].Name] = node;
 			else
@@ -559,6 +577,14 @@ public sealed partial class GrammarNormalizer
 	/// (§4.2). Resolved once every rule's own type is known.
 	/// </summary>
 	readonly Dictionary<RuleSymbol, (RuleSymbol Produces, bool IsSequence)> _produces = [];
+
+	/// <summary>
+	/// What each specialization is an instance of, and of what arguments — read by a
+	/// parameterized rebinding (§5.1), which replaces the rule a call named and keeps
+	/// the call's arguments, so it must be able to say "the same arguments, of the
+	/// replacement" long after the call itself was lowered away.
+	/// </summary>
+	readonly Dictionary<RuleSymbol, (RuleSymbol Origin, IReadOnlyList<Node?> Passed, IReadOnlyList<int?> Counts)> _origins = [];
 
 	/// <summary>A repetition count: written, or the name of a parameter that carries one.</summary>
 	int? Counted(int? written, string? name, Expr at)

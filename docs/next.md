@@ -4061,3 +4061,36 @@ bindings resolve simultaneously over the whole call graph reached, and the
 replacement is part of that graph the moment the binding reaches it. Found by
 reading the machinery toward the parameterized-rebinding work, pinned by a
 semantic test, and every existing pin held - a bug, not a decision.
+
+## Built: a parameterized rule on either side of a rebinding
+
+The status table's one red row, closed. `with (A = B)` where `A` takes parameters
+used to be refused at Bind with "not supported yet", and the reason lived two passes
+later: by the time a binding is realized, §4.2 has already instantiated every call -
+`A('a')` is a call to a parameterless specialization, and a substitution keyed on
+`A` would find no call to touch.
+
+The meaning was never in question - a rebinding substitutes the rule and keeps every
+call's arguments - so the machinery now says exactly that. The binder admits a pair
+of the same signature (same parameter count, each parameter the same kind) and
+refuses a mismatch with a message that explains itself; every instantiation records
+what it is an instance of and of what arguments; and the specialization pass, on
+meeting a call to an instance of a bound rule, builds the replacement's
+instantiation for those same arguments and clones it under the site - so the
+replacement's body and the spliced arguments alike observe the same header's other
+bindings. The clone registers before its body is rewritten, which is what lets a
+recursive specialization resolve to itself instead of cloning for ever. §14's type
+check reads a parameterized rule's declared type where it is concrete C#, and skips
+`: item` deliberately: both sides receive the same argument, so they produce the
+same rule's value by construction.
+
+On the way in, a §5.1 bug that predates the feature: a replacement reached only
+through a binding was never in the forward-reachable set, so it was never cloned and
+`with (A = B, Sep = Semi)` handed out a `B` still reading the unbound `Sep` - fixed
+first, pinned separately.
+
+Ten new tests: signatures accepted and refused at Bind, the header reaching a
+parameterized call in a shared rule, a value argument carried, an argument observing
+its sibling bindings, `: item` handing its value through, and §14 firing on declared
+types. All 1,087 green; the old GRAM3009 pins survive as what they now are -
+signature mismatches.

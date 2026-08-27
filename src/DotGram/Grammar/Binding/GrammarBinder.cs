@@ -354,28 +354,54 @@ public sealed class GrammarBinder
 			return null;
 		}
 
-		if (left.Declaration is { Params.Count: > 0 })
+		// A rebinding substitutes the rule and keeps every call's arguments, so the two
+		// sides must take the same arguments: the same count, each parameter the same
+		// kind — a value where a value was, a recognizer where a recognizer was. Names
+		// need not match; a call passes positionally (§4.2).
+		var leftParams  = left.Declaration?.Params ?? [];
+		var rightParams = right.Declaration?.Params ?? [];
+
+		if (leftParams.Count != rightParams.Count)
 		{
 			Report(
 				ParameterizedRebinding,
-				$"'{rebinding.Left}' cannot be bound: parameterized rules are not supported in a rebinding yet.",
+				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': it takes " +
+				$"{rightParams.Count} {(rightParams.Count == 1 ? "parameter" : "parameters")} " +
+				$"where '{rebinding.Left}' takes {leftParams.Count} — a rebinding substitutes " +
+				"the rule and keeps every call's arguments.",
 				rebinding.At);
 
 			return null;
 		}
 
-		if (right.Declaration is { Params.Count: > 0 })
-		{
-			Report(
-				ParameterizedRebinding,
-				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a rebinding yet.",
-				rebinding.At);
+		for (var i = 0; i < leftParams.Count; i++)
+			if (IsValueParam(leftParams[i]) != IsValueParam(rightParams[i]))
+			{
+				Report(
+					ParameterizedRebinding,
+					$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameter " +
+					$"'{rightParams[i].Name}' is a " +
+					$"{(IsValueParam(rightParams[i]) ? "value" : "recognizer")} where " +
+					$"'{leftParams[i].Name}' is a " +
+					$"{(IsValueParam(leftParams[i]) ? "value" : "recognizer")} (§4.2).",
+					rebinding.At);
 
-			return null;
-		}
+				return null;
+			}
 
 		return new ResolvedRebinding(left, right, rebinding.At);
 	}
+
+	/// <summary>
+	/// §4.2's kind line: a parameter declared with a C# type is a value, anything else a
+	/// recognizer. The same reading <c>GrammarNormalizer</c> makes when a call passes one.
+	/// </summary>
+	static bool IsValueParam(Param parameter) =>
+		parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name));
+
+	static bool IsCSharpKeyword(string name) => name is
+		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
+		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
 
 	/// <summary>
 	/// Layers <paramref name="ownRebindings"/> over <paramref name="inherited"/>, chain-

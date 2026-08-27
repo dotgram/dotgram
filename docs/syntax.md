@@ -877,7 +877,14 @@ A binding is not a declaration — it does not introduce a rule named `B` — so
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
 `namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
-to a visible, parameterless rule.
+to a visible rule. A parameterized rule (§4.2) may replace and be replaced by one of
+the same signature — the same parameter count, each parameter the same kind, a value
+where a value was and a recognizer where a recognizer was — because a rebinding
+substitutes the rule and keeps every call's arguments: `A('a')` under `with (A = B)`
+is `B('a')`, and an argument the call carried resolves through the same header's
+other bindings, like everything else the binding reaches. Mismatched signatures are
+refused (`GRAM3009`): a call's arguments have to fit the replacement for the
+substitution to mean anything.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
 is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`

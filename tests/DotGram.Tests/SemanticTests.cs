@@ -2145,6 +2145,129 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void A_parameterized_rule_may_be_rebound_to_one_of_the_same_signature()
+	{
+		// §5.1 over §4.2: the binding replaces the rule a call named and keeps the
+		// call's arguments — `A('a')` under `with (A = B)` is `B('a')`, and the plain
+		// publication still reads the unrebound instantiation beside it.
+		var result = Compile("""
+			A(x) = '<' & x & '>'
+			B(x) = '[' & x & ']'
+			Start = A('a')
+
+			parse Start with (A = B) as Swapped
+			parse Start as Plain
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[a]").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "<a>").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "<a>").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryPlain", "[a]").IsSuccess);
+	}
+
+	[Fact]
+	public void A_rebound_parameterized_call_keeps_its_value_argument()
+	{
+		// A value parameter (§4.2) travels the same way a recognizer one does: the
+		// replacement's specialization is built for the number the call already carried.
+		var result = Compile("""
+			D(n: int) = 'x'{n}
+			E(n: int) = 'y'{n}
+			Start = D(3)
+
+			parse Start with (D = E) as Swapped
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "yyy").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "xxx").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "yy").IsSuccess);
+	}
+
+	[Fact]
+	public void A_rebound_parameterized_argument_observes_its_sibling_bindings()
+	{
+		// The argument a call carried is spliced into the replacement's specialization,
+		// and the same header's other bindings reach it there — the simultaneity §5.1
+		// promises, through the instantiation.
+		var result = Compile("""
+			A(x)  = '<' & x & '>'
+			B(x)  = '[' & x & ']'
+			Inner = 'i'
+			Other = 'o'
+			Start = A(Inner)
+
+			parse Start with (A = B, Inner = Other) as Swapped
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[o]").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[i]").IsSuccess);
+	}
+
+	[Fact]
+	public void A_namespace_header_reaches_a_parameterized_call_in_a_shared_rule()
+	{
+		// The same reach §5.1's own example shows for plain rules: `Mid` is declared
+		// outside the namespace and never mentions `Spaced`, and the call graph reached
+		// from inside still resolves its `List` through the binding.
+		var result = Compile("""
+			List(item, sep)   = item & (sep & item)*
+			Spaced(item, sep) = item & ((sep | ' ') & item)*
+			W   = ['a'..'z']+
+			Mid = List(W, ',')
+
+			namespace Ns with (List = Spaced)
+			{
+				parse Mid as Loose
+			}
+
+			parse Mid as Tight
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTight", "a b,c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b,c").IsSuccess);
+	}
+
+	[Fact]
+	public void An_item_typed_parameterized_rule_carries_its_value_through_a_rebinding()
+	{
+		// `: item` (§4.2): both sides produce whatever the argument produces, and the
+		// rebound instantiation hands the value back the same way the original did.
+		var result = Compile("""
+			Num : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			WrapA(item) : item = '<' & item & '>'
+			WrapB(item) : item = '[' & item & ']'
+			Start : @int = v: WrapA(Num) => @(v)
+
+			parse Start with (WrapA = WrapB) as Bracketed
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+		var match    = EmittedCode.Match(assembly, "Grammar", "TryBracketed", "[7]");
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(7, match.Value);
+	}
+
+	[Fact]
 	public void A_replacement_reached_through_a_binding_observes_its_sibling_bindings()
 	{
 		// §5.1: bindings in one header resolve simultaneously over the whole call graph

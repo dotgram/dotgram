@@ -638,6 +638,43 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void An_incompatible_parameterized_replacement_is_reported()
+	{
+		// §14 over §4.2: a parameterized rule has no lowered body of its own, so its
+		// declared type stands in for the `_types` entry a parameterless rule would have.
+		Assert.Contains(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Value(x)   : @Expr   = x & 'v'
+				RawText(x) : @string = t: x => @(t)
+				Start = Value('a')
+
+				namespace Ctx with (Value = RawText)
+				{
+					parse Start as Rebound
+				}
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
+	public void A_parameter_dependent_type_is_not_checked()
+	{
+		// `: item` on both sides needs no check at all: the binding keeps the call's
+		// arguments, so both sides receive the same one and produce the same rule's
+		// value by construction.
+		Assert.DoesNotContain(
+			GrammarNormalizer.IncompatibleRebinding,
+			Normalize("""
+				Num : @int = d: ['0'..'9']+ => @(int.Parse(d))
+				WrapA(item) : item = '<' & item & '>'
+				WrapB(item) : item = '[' & item & ']'
+				Start : @int = v: WrapA(Num) => @(v)
+
+				parse Start with (WrapA = WrapB) as Rebound
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
 	public void A_compatible_replacement_is_not_reported()
 	{
 		Assert.DoesNotContain(

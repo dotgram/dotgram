@@ -130,9 +130,12 @@ public sealed partial class GrammarNormalizer
 	/// that hop the replacement itself — reached only through the binding — never
 	/// entered the set, so a replacement whose own body observes a sibling binding of
 	/// the same header was left uncloned, and `with (A = B, Sep = Semi)` handed out a
-	/// `B` still reading the unbound `Sep`.
+	/// `B` still reading the unbound `Sep`. A call to a specialization of a bound
+	/// parameterized rule reaches the replacement's specialization for the same
+	/// arguments, built here on demand — its body is what the parse will actually run,
+	/// and what the affected set must therefore see through.
 	/// </summary>
-	static HashSet<RuleSymbol> ReachableFromSeed(
+	HashSet<RuleSymbol> ReachableFromSeed(
 		HashSet<RuleSymbol> seed,
 		Dictionary<RuleSymbol, List<RuleSymbol>> forward,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets)
@@ -144,12 +147,9 @@ public sealed partial class GrammarNormalizer
 		{
 			var rule = pending.Dequeue();
 
-			if (!forward.TryGetValue(rule, out var calls))
-				continue;
-
-			foreach (var called in calls)
+			foreach (var called in CallsOf(rule, forward))
 			{
-				var reached = targets.TryGetValue(called, out var replacement) ? replacement : called;
+				var reached = Rebound(called, targets) ?? called;
 
 				if (reachable.Add(reached))
 					pending.Enqueue(reached);
@@ -160,19 +160,76 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// A rule's direct calls — off the prebuilt graph where it has an entry, off its
+	/// body where it does not, which is every specialization instantiated during this
+	/// very pass.
+	/// </summary>
+	IEnumerable<RuleSymbol> CallsOf(RuleSymbol rule, Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		if (forward.TryGetValue(rule, out var calls))
+			return calls;
+
+		if (!_bodies.TryGetValue(rule, out var body))
+			return [];
+
+		var fresh = new List<RuleSymbol>();
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Call(var called, _))
+				fresh.Add(called);
+
+		return fresh;
+	}
+
+	/// <summary>
+	/// What a call to <paramref name="called"/> resolves to under <paramref name="targets"/>,
+	/// or null where the binding does not touch it: the replacement itself, or — for a
+	/// specialization of a bound parameterized rule — the replacement's specialization
+	/// for the same arguments (§5.1: the binding replaces the rule a call named; the
+	/// call keeps its arguments).
+	/// </summary>
+	RuleSymbol? Rebound(RuleSymbol called, IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets)
+	{
+		if (targets.TryGetValue(called, out var replacement))
+			return replacement;
+
+		if (_origins.TryGetValue(called, out var origin) &&
+			targets.TryGetValue(origin.Origin, out var bound))
+			return ((Node.Call)Instantiate(bound, origin.Passed, origin.Counts)).Rule;
+
+		return null;
+	}
+
+	/// <summary>
+	/// The rules whose calls a binding rewrites — the bound rules themselves, plus
+	/// every specialization of a bound parameterized one, since that is what a call in
+	/// the graph actually names once §4.2 has instantiated it.
+	/// </summary>
+	HashSet<RuleSymbol> BoundCalls(IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets)
+	{
+		var bound = new HashSet<RuleSymbol>(targets.Keys);
+
+		foreach (var pair in _origins)
+			if (targets.ContainsKey(pair.Value.Origin))
+				bound.Add(pair.Key);
+
+		return bound;
+	}
+
+	/// <summary>
 	/// Backward BFS from the direct callers of every bound target, through
 	/// <paramref name="calledBy"/>, intersected with <paramref name="reachable"/> at every
 	/// step — the set that can both reach a binding and be reached from where it applies.
 	/// </summary>
 	static HashSet<RuleSymbol> AffectedSet(
-		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
-		Dictionary<RuleSymbol, List<RuleSymbol>>     calledBy,
-		HashSet<RuleSymbol>                          reachable)
+		IReadOnlyCollection<RuleSymbol>          bound,
+		Dictionary<RuleSymbol, List<RuleSymbol>> calledBy,
+		HashSet<RuleSymbol>                      reachable)
 	{
 		var affected = new HashSet<RuleSymbol>();
 		var pending  = new Queue<RuleSymbol>();
 
-		foreach (var target in targets.Keys)
+		foreach (var target in bound)
 			if (calledBy.TryGetValue(target, out var callers))
 				foreach (var caller in callers)
 					if (reachable.Contains(caller) && affected.Add(caller))
@@ -204,7 +261,7 @@ public sealed partial class GrammarNormalizer
 			return EmptyClones;
 
 		var reachable = ReachableFromSeed(Seed(site), forward, targets);
-		var affected  = AffectedSet(targets, calledBy, reachable);
+		var affected  = AffectedSet(BoundCalls(targets), calledBy, reachable);
 
 		return affected.Count == 0 ? EmptyClones : CloneAffected(affected, targets, site.Name);
 	}
@@ -216,7 +273,7 @@ public sealed partial class GrammarNormalizer
 	/// the same reason. Shared by both extents §5.1 now has: a `namespace (...)` block's
 	/// own site, and a `with (...)` expression's (§18/§20).
 	/// </summary>
-	IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneAffected(
+	Dictionary<RuleSymbol, RuleSymbol> CloneAffected(
 		HashSet<RuleSymbol> affected,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
 		string siteName)
@@ -230,14 +287,14 @@ public sealed partial class GrammarNormalizer
 		{
 			var clone = cloneMap[rule];
 
-			_bodies[clone] = CloneAndRewrite(_bodies[rule], targets, cloneMap);
+			_bodies[clone] = CloneAndRewrite(_bodies[rule], targets, cloneMap, siteName);
 			_rules.Add(clone);
 
 			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
 			// rewritten the same way as any other node, so a `namespace (trivia = none)`
 			// binding reaches it exactly like any other call.
 			if (_trivia.TryGetValue(rule, out var trivia))
-				_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap);
+				_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap, siteName);
 
 			// A rule that was itself an on-demand parameterized-rule specialization
 			// (§4.2) carries its `_produces`/`_types` entry across too — the only place
@@ -292,7 +349,8 @@ public sealed partial class GrammarNormalizer
 	Node CloneAndRewrite(
 		Node node,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
-		IReadOnlyDictionary<RuleSymbol, RuleSymbol> cloneMap)
+		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
+		string siteName)
 	{
 		var clone = node switch
 		{
@@ -301,13 +359,13 @@ public sealed partial class GrammarNormalizer
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
-			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
-			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap)),
-			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap), min, max),
-			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap)),
-			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap)),
-			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap), how),
+			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
+			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
+			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
+			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
 			// built-in nothing in the grammar happened to call yet (`with (trivia =
 			// none)` when `none` is otherwise unused) — built-ins are registered on
@@ -315,8 +373,8 @@ public sealed partial class GrammarNormalizer
 			// call onto one bypasses that place unless this does it too.
 			Node.Call     (var called, var arguments)                               =>
 				CallTo(
-					RewriteTarget(called, targets, cloneMap),
-					[.. arguments.Select(child => CloneAndRewrite(child, targets, cloneMap))]),
+					RewriteCall(called, targets, cloneMap, siteName),
+					[.. arguments.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
 			_ => throw new InvalidOperationException($"Unhandled node kind: {node.GetType().Name}"),
 		};
 
@@ -329,11 +387,18 @@ public sealed partial class GrammarNormalizer
 		return clone;
 	}
 
-	static RuleSymbol RewriteTarget(
+	RuleSymbol RewriteCall(
 		RuleSymbol called,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
-		IReadOnlyDictionary<RuleSymbol, RuleSymbol> cloneMap)
+		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
+		string siteName)
 	{
+		// A call to a specialization of a bound parameterized rule becomes the
+		// replacement's specialization for the same arguments — the binding replaces
+		// the rule a call named, and the call keeps its arguments (§5.1/§4.2).
+		if (_origins.TryGetValue(called, out var origin) && targets.ContainsKey(origin.Origin))
+			return RewrittenInstantiation(called, targets, cloneMap, siteName);
+
 		// A bound call goes to its replacement — and to the replacement's clone where
 		// one was made, because a replacement whose own body observes another binding
 		// of the same header is itself in the affected set, and the plain rule would
@@ -342,6 +407,48 @@ public sealed partial class GrammarNormalizer
 			return cloneMap.TryGetValue(replacement, out var rebound) ? rebound : replacement;
 
 		return cloneMap.TryGetValue(called, out var clone) ? clone : called;
+	}
+
+	/// <summary>
+	/// The replacement's specialization for a bound instance's own arguments, cloned
+	/// under this site so that its body — the replacement's and the spliced arguments'
+	/// alike — observes the same bindings as everything else the site reaches. The
+	/// clone is registered before its body is rewritten, so a specialization that
+	/// reaches itself resolves to its own clone instead of cloning for ever.
+	/// </summary>
+	RuleSymbol RewrittenInstantiation(
+		RuleSymbol instance,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
+		string siteName)
+	{
+		var origin      = _origins[instance];
+		var replacement = ((Node.Call)Instantiate(
+			targets[origin.Origin], origin.Passed, origin.Counts)).Rule;
+
+		if (cloneMap.TryGetValue(replacement, out var existing))
+			return existing;
+
+		var clone = new RuleSymbol(
+			NameFor(replacement, siteName), replacement.Namespace, replacement.Declaration);
+
+		cloneMap[replacement] = clone;
+
+		_bodies[clone] = CloneAndRewrite(_bodies[replacement], targets, cloneMap, siteName);
+		_rules.Add(clone);
+
+		if (_trivia.TryGetValue(replacement, out var trivia))
+			_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap, siteName);
+
+		if (_produces.TryGetValue(replacement, out var produces))
+			_produces[clone] = produces;
+
+		if (_types.TryGetValue(replacement, out var type))
+			_types[clone] = type;
+
+		_origins[clone] = _origins[replacement];
+
+		return clone;
 	}
 
 	/// <summary>
@@ -413,16 +520,38 @@ public sealed partial class GrammarNormalizer
 
 	void CheckReplacement(ResolvedRebinding binding)
 	{
-		if (_types.TryGetValue(binding.Left, out var expected))
-		{
-			var actual = _types.TryGetValue(binding.Right, out var declared) ? declared : "string";
+		// A parameterized rule has no lowered body of its own, so `_types` never carries
+		// the base symbol — its declared type stands in where that type is a concrete C#
+		// one. A parameter-dependent type (`: item`) needs no check at all: both sides
+		// receive the same argument, so they produce the same rule's value by
+		// construction.
+		var expected = _types.TryGetValue(binding.Left, out var known)
+			? known
+			: DeclaredConcrete(binding.Left);
 
-			if (!_resolver.IsAssignable(actual, expected))
-				Report(
-					IncompatibleRebinding,
-					$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
-					$"compatible with '{expected}', found '{actual}'.",
-					binding.At);
-		}
+		if (expected is null)
+			return;
+
+		var actual = _types.TryGetValue(binding.Right, out var declared)
+			? declared
+			: DeclaredConcrete(binding.Right)
+				?? (binding.Right.Declaration is { Params.Count: > 0 } ? null : "string");
+
+		if (actual is null)
+			return;
+
+		if (!_resolver.IsAssignable(actual, expected))
+			Report(
+				IncompatibleRebinding,
+				$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
+				$"compatible with '{expected}', found '{actual}'.",
+				binding.At);
 	}
+
+	/// <summary>A parameterized rule's declared type, where it is concrete C#.</summary>
+	string? DeclaredConcrete(RuleSymbol rule) =>
+		rule.Declaration is { Params.Count: > 0, Type: { } declared } &&
+		(declared.IsCSharp || IsCSharpKeyword(declared.Name))
+			? TypeName(declared)
+			: null;
 }

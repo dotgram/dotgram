@@ -26,7 +26,7 @@ then quietly mean nothing.
 | rebinding `namespace (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, expression-scoped, `Expr with (A = B)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
+| the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |

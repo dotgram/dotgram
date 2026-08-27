@@ -60,7 +60,8 @@ public sealed partial class GrammarNormalizer
 
 			var rewrites = new Dictionary<Node, (
 				IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
-				IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneMap)>(NodeIdentity.Instance);
+				Dictionary<RuleSymbol, RuleSymbol> CloneMap,
+				string Name)>(NodeIdentity.Instance);
 
 			// Two or more sites sharing the same root only arise from direct stacking —
 			// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
@@ -86,10 +87,11 @@ public sealed partial class GrammarNormalizer
 				}
 
 				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
-				var affected  = AffectedSet(merged, calledBy, reachable);
+				var affected  = AffectedSet(BoundCalls(merged), calledBy, reachable);
 
 				rewrites[atRoot.Key] = (merged,
-					affected.Count == 0 ? EmptyClones : CloneAffected(affected, merged, name));
+					affected.Count == 0 ? [] : CloneAffected(affected, merged, name),
+					name);
 			}
 
 			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
@@ -114,7 +116,7 @@ public sealed partial class GrammarNormalizer
 	/// and does not need to: either way a repeat visit is one side of the cycle simply
 	/// giving up on seeing the other's splice, rather than looping forever.
 	/// </remarks>
-	static List<IGrouping<RuleSymbol, WithSite>> OrderByDependency(
+	List<IGrouping<RuleSymbol, WithSite>> OrderByDependency(
 		List<IGrouping<RuleSymbol, WithSite>> groups,
 		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
 	{
@@ -168,7 +170,8 @@ public sealed partial class GrammarNormalizer
 		Node node,
 		Dictionary<Node, (
 			IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
-			IReadOnlyDictionary<RuleSymbol, RuleSymbol> CloneMap)> rewrites)
+			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
+			string Name)> rewrites)
 	{
 		Node rebuilt = node switch
 		{
@@ -198,7 +201,7 @@ public sealed partial class GrammarNormalizer
 			_recoveries[rebuilt] = recovery;
 
 		if (rewrites.TryGetValue(node, out var site))
-			rebuilt = CloneAndRewrite(rebuilt, site.Targets, site.CloneMap);
+			rebuilt = CloneAndRewrite(rebuilt, site.Targets, site.CloneMap, site.Name);
 
 		return rebuilt;
 	}
@@ -237,7 +240,7 @@ public sealed partial class GrammarNormalizer
 			}
 
 			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward, publication.Rebindings);
-			var affected  = AffectedSet(publication.Rebindings, calledBy, reachable);
+			var affected  = AffectedSet(BoundCalls(publication.Rebindings), calledBy, reachable);
 
 			var cloneMap = affected.Count == 0
 				? EmptyClones

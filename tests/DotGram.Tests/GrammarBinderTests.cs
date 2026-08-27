@@ -168,6 +168,10 @@ public sealed class GrammarBinderTests
 		GrammarBinder.DuplicateRebinding)]
 	[InlineData("B(item) = item\nD = 'd'\nnamespace S with (B = D) { }",
 		GrammarBinder.ParameterizedRebinding)]
+	[InlineData("B(item) = item\nD(n: int) = 'x'{n}\nnamespace S with (B = D) { }",
+		GrammarBinder.ParameterizedRebinding)]
+	[InlineData("B(item, sep) = item & sep\nD(item) = item\nnamespace S with (B = D) { }",
+		GrammarBinder.ParameterizedRebinding)]
 	[InlineData("B = 'b'\nD = 'd'\nnamespace S with (B = D) { B = 'e' }",
 		GrammarBinder.NamespaceBoundNameRedeclared)]
 	[InlineData("B = 'b'\nD = 'd'\nnamespace S with (B = D) { namespace T { B = 'e' } }",
@@ -177,6 +181,22 @@ public sealed class GrammarBinderTests
 	public void Reports(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void A_rebinding_of_matching_parameterized_signatures_is_accepted()
+	{
+		// §5.1 over §4.2: the two sides take the same arguments — one recognizer each —
+		// so the binding substitutes the rule and every call's arguments still fit.
+		Assert.Empty(Diagnostics("""
+			B(item) = item
+			D(item) = '<' & item & '>'
+
+			namespace S with (B = D)
+			{
+				E = B('e')
+			}
+			"""));
 	}
 
 	[Fact]
