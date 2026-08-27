@@ -38,9 +38,14 @@ sealed partial class Machine
 	/// <param name="Base">Where the site's run of slots begins.</param>
 	/// <param name="Members">The callee's one factory's members, in argument order.</param>
 	/// <param name="Slots">The callee's capture nodes, renumbered into the site's run.</param>
+	/// <param name="Boundary">
+	/// For a site repeated into a collection: the slot of the synthetic capture written
+	/// around each element, whose entries are what tells one element's spans from the
+	/// next's. −1 for a scalar site, which needs no boundary.
+	/// </param>
 	sealed record SitePlan(
 		RuleSymbol Callee, int Base, IReadOnlyList<ResultMember> Members,
-		IReadOnlyDictionary<Node, int> Slots);
+		IReadOnlyDictionary<Node, int> Slots, int Boundary);
 
 	// By identity, not record equality: `t: Line` written in two rules is two sites,
 	// and their nodes compare equal as records (CaptureLayout.cs's NodeIdentity).
@@ -71,9 +76,9 @@ sealed partial class Machine
 		return false;
 	}
 
-	/// <summary>The site a scalar member's one slot was compiled as, or null.</summary>
+	/// <summary>The site a member's one slot was compiled as, or null.</summary>
 	SitePlan? SiteFor(int offset, ResultMember member) =>
-		member is { Rule: not null, IsSequence: false, Slots.Count: 1 } &&
+		member is { Rule: not null, Slots.Count: 1 } &&
 		_siteOfSlot.TryGetValue(offset + member.Slots[0], out var plan)
 			? plan
 			: null;
@@ -111,27 +116,31 @@ sealed partial class Machine
 					!SitedValued(called))
 					continue;
 
-				// The capturing member must be a scalar with this one slot: a sequence
-				// member counts per-turn records, and a member filled from two branches
-				// would need two sites told apart — both stay on the ceremony.
-				var slot   = _captureSlots[node];
-				var scalar = false;
+				// The capturing member must own this one slot alone: a member filled from
+				// two branches would need two sites told apart, and that stays on the
+				// ceremony. A sequence member sites too — its elements' spans are told
+				// apart by a boundary capture written around each.
+				var slot     = _captureSlots[node];
+				var found    = false;
+				var repeated = false;
 
 				foreach (var member in members)
 					if (member.Slots.Count == 1 && offset + member.Slots[0] == slot)
 					{
-						scalar = member.Rule is not null && !member.IsSequence;
+						found    = member.Rule is not null;
+						repeated = member.IsSequence;
 
 						break;
 					}
 
-				if (!scalar)
+				if (!found)
 					continue;
 
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[called],
 					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other));
-				var slots = new Dictionary<Node, int>(NodeIdentity.Instance);
+				var slots  = new Dictionary<Node, int>(NodeIdentity.Instance);
+				var nested = _graph.Recursive.Contains(rule);
 
 				foreach (var captured in NodeWalk.Descendants(_graph.Bodies[called]))
 					if (captured is Node.Capture)
@@ -141,15 +150,27 @@ sealed partial class Machine
 						slots[captured] = sited;
 						_textCaptures.Add(sited);
 
-						if (_graph.Recursive.Contains(rule))
+						if (nested)
 							_nestedCaptures.Add(sited);
 					}
 
-				var plan = new SitePlan(called, _captures, _factories[called][0].Members, slots);
+				var boundary = -1;
+
+				if (repeated)
+				{
+					boundary = _captures + layout.Slots.Count;
+
+					_textCaptures.Add(boundary);
+
+					if (nested)
+						_nestedCaptures.Add(boundary);
+				}
+
+				var plan = new SitePlan(called, _captures, _factories[called][0].Members, slots, boundary);
 
 				_sites[node]      = plan;
 				_siteOfSlot[slot] = plan;
-				_captures        += layout.Slots.Count;
+				_captures        += layout.Slots.Count + (repeated ? 1 : 0);
 			}
 		}
 	}
@@ -213,7 +234,7 @@ sealed partial class Machine
 	/// Every capture is a span of the input under no repetition that could multiply it —
 	/// pure text below, nothing valued, nothing sited further down.
 	/// </summary>
-	static bool SpanCaptures(Node node, bool repeated) =>
+	bool SpanCaptures(Node node, bool repeated) =>
 		node switch
 		{
 			Node.Capture(_, var captured)     => !repeated && Extent(captured),
@@ -230,6 +251,11 @@ sealed partial class Machine
 		};
 
 	/// <summary>The callee's body compiled where its captured call stood.</summary>
+	/// <remarks>
+	/// A collection site wraps each element in its boundary capture — the ordinary text
+	/// capture forms, around the whole inlined body — so the materializer can tell where
+	/// one element's spans end and the next's begin.
+	/// </remarks>
 	int CompileSite(Node.Capture capture, SitePlan site, int next, FollowSets.Continuation following)
 	{
 		// The inlined body composes continuations against its own namespace's seam,
@@ -246,11 +272,57 @@ sealed partial class Machine
 
 		_siteSlots = site.Slots;
 
-		var inlined = Compile(_graph.Bodies[site.Callee], next, handed);
+		Writer? atClose = null;
+
+		var after   = site.Boundary >= 0 ? Reserve(out atClose) : next;
+		var inlined = Compile(_graph.Bodies[site.Callee], after, handed);
 
 		_siteSlots = saved;
 		_seam      = outerSeam;
 
-		return inlined;
+		if (site.Boundary < 0 || atClose is null)
+			return inlined;
+
+		var entered = Reserve(out var atOpen);
+
+		if (_nestedCaptures.Contains(site.Boundary))
+		{
+			atOpen.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, p, " +
+				"call, atomic, repeat, lookahead, -1));");
+			atOpen.Line($"goto {Label(inlined)};");
+
+			using (atClose.Block(
+				"for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+			{
+				atClose.Line("var opened = entries[openedAt];");
+				atClose.Line();
+				atClose.Line(
+					$"if (opened.Kind != ParserEntry.Capture || opened.State != {site.Boundary} || " +
+					"opened.Value >= 0)");
+				atClose.Then("continue;");
+				atClose.Line();
+				atClose.Line(
+					$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
+					"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
+					"opened.RepeatIndex, opened.LookaheadIndex, p);");
+				atClose.Line();
+				atClose.Line("break;");
+			}
+
+			atClose.Line($"goto {Label(next)};");
+		}
+		else
+		{
+			atOpen.Line($"capture{site.Boundary} = p;");
+			atOpen.Line($"goto {Label(inlined)};");
+
+			atClose.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
+				$"capture{site.Boundary}, call, atomic, repeat, lookahead, p));");
+			atClose.Line($"goto {Label(next)};");
+		}
+
+		return entered;
 	}
 }

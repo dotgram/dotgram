@@ -169,6 +169,37 @@ public sealed class CSharpEmitterTests
 	}
 
 	/// <summary>
+	/// A collection of a sited rule: each element is the callee's body compiled in
+	/// place, wrapped in one boundary capture, and the array is built at Accept by
+	/// walking the boundaries — no call, no completion, no rule capture per element.
+	/// </summary>
+	[Fact]
+	public void A_sited_collection_builds_its_elements_from_boundaries()
+	{
+		// Wrap's recursion keeps the grammar on the engine; Item's optional suffix
+		// exercises a part that some elements have and others do not.
+		const string grammar =
+			"""
+			Item : @string = '@' & t: ['a'..'z']+ & (s: '!')? => @(t + (s ?? ""))
+			List : @string[] = (i: Item)* => @(i)
+			Wrap : @int = '(' & e: Wrap & ')' => @(e + 1)
+			             | l: List => @(l.Length)
+			parse Wrap
+			""";
+
+		var source = Emit(grammar);
+
+		// No call to Item anywhere, and its factory is reached from the boundary walk
+		// rather than from a completed call. `l: List` is still an ordinary rule
+		// capture: List collects values, which is the shape a site does not take.
+		Assert.DoesNotContain("call Item", source);
+		Assert.Contains("Open = --captured", source);
+		// Two elements inside, and one added per bracket pair around them.
+		Assert.Equal(4, Invoke(grammar, "ParseWrap", "((@ab@cd!))").Value);
+		Assert.Equal(1, Invoke(grammar, "ParseWrap", "()").Value);
+	}
+
+	/// <summary>
 	/// Where nothing needs a way back, the same shape is not a shared block but three
 	/// inlined sites: each capture builds its value at Accept from locals of its own,
 	/// and no engine is rented for any of it.

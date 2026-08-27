@@ -3623,3 +3623,29 @@ Next, in order: sited sequence members - wrap each element in one synthetic exte
 capture as the boundary (net minus two entries per element and no dispatch, against
 the three-plus-dispatch it replaces), walk the chain grouping parts between
 boundaries; then transparent-collapsed multi-slot members if the counts say so.
+
+## Built: sited collections - one boundary capture per element
+
+The sequence half of sited calls. A collection member whose element rule is the
+sited shape now sites too: each element is the callee's body compiled in place,
+wrapped in one synthetic boundary capture whose entries are what tell one element's
+spans from the next's. The materializer counts boundaries for the array's length,
+then walks the chain once - reverse write order, so a boundary arrives after the
+spans of its own element - closing each element as the next boundary appears and
+the last one after the walk.
+
+`Extent` also learned that a call to a valueless rule is text: `name: Name` in the
+notation is that shape, and refusing it kept several rules off the sited path for
+no reason. The flat renderer still gates such captures through `Silent`, which is
+what refuses the calls it cannot compile without an arena; a sited capture needs no
+such gate, since its records unwind like any other.
+
+Per element this trades three entries and two dispatcher passes (Call, its
+Completed rewrite, RuleCapture, the jump in and the return) for one - the boundary
+capture - plus whatever spans the element itself records, which it recorded before.
+
+Measured Release-to-Release, two runs agreeing: Csv 1.93 -> 1.88, Feed 2.69 ->
+2.62, Minimal 2.07 -> 2.08, Url 2.94 -> 2.88. Small, and honestly so: the corpus's
+sited collections are `usings` and `parts`, which the sample texts have few of. The
+shape it is for is a document of many small records - Markdown's blocks, a feed's
+rows - where the ceremony was three entries per record.

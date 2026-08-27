@@ -475,15 +475,11 @@ sealed partial class Machine
 				{
 					// A sited member is the callee's one factory over the spans the site
 					// recorded — called here, deferred to Accept exactly as a completed
-					// call's would have been, with the first required span as the witness
-					// that the site ran at all.
+					// call's would have been. A scalar site's witness is its first
+					// required span; a collection site's elements are counted and told
+					// apart by the boundary capture each one was wrapped in.
 					if (SiteFor(offset, member) is { } sited)
 					{
-						var witness = 0;
-
-						while (sited.Members[witness].IsOptional)
-							witness++;
-
 						var arguments = new List<string>(sited.Members.Count);
 
 						for (var part = 0; part < sited.Members.Count; part++)
@@ -494,6 +490,18 @@ sealed partial class Machine
 								$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From).ToString()");
 
 						var built = $"{_factories[sited.Callee][0].Method}({string.Join(", ", arguments)})";
+
+						if (member.IsSequence)
+						{
+							MaterializeSitedSequence(file, memberIndex, member, sited, built);
+
+							continue;
+						}
+
+						var witness = 0;
+
+						while (sited.Members[witness].IsOptional)
+							witness++;
 
 						if (member.IsOptional)
 							file.Line(
@@ -673,6 +681,90 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	/// <summary>
+	/// A collection built from sited elements: count the boundary captures, then walk the
+	/// chain once more — reverse write order, so each boundary arrives before the spans of
+	/// its own element and after the spans of the one that followed it in the input.
+	/// </summary>
+	void MaterializeSitedSequence(
+		Writer file, int memberIndex, ResultMember member, SitePlan sited, string built)
+	{
+		var element = _results.ValueOf(member.Rule);
+
+		for (var part = 0; part < sited.Members.Count; part++)
+		{
+			file.Line($"var captured{memberIndex}_{part}From = -1;");
+			file.Line($"var captured{memberIndex}_{part}To   = -1;");
+		}
+
+		file.Line($"var captured{memberIndex}Count = 0;");
+
+		using (file.Block(
+			$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+			$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
+		{
+			file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+			file.Line(
+				"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
+				$"candidate.State == {sited.Boundary}) captured{memberIndex}Count++;");
+		}
+
+		file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
+		file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
+		file.Line($"var captured{memberIndex}Open = -1;");
+
+		using (file.Block(
+			$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+			$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
+		{
+			file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+			file.Line();
+			file.Line("if (candidate.Kind != ParserEntry.Capture || candidate.CallIndex != completedAt)");
+			file.Then("continue;");
+			file.Line();
+
+			using (file.Block("switch (candidate.State)"))
+			{
+				file.Line($"case {sited.Boundary}:");
+
+				using (file.Indent())
+				using (file.Block(""))
+				{
+					using (file.Block($"if (captured{memberIndex}Open >= 0)"))
+					{
+						file.Line($"captured{memberIndex}[captured{memberIndex}Open] = {built};");
+
+						for (var part = 0; part < sited.Members.Count; part++)
+						{
+							file.Line($"captured{memberIndex}_{part}From = -1;");
+							file.Line($"captured{memberIndex}_{part}To   = -1;");
+						}
+					}
+
+					file.Line($"captured{memberIndex}Open = --captured{memberIndex}Item;");
+					file.Line("break;");
+				}
+
+				for (var part = 0; part < sited.Members.Count; part++)
+				{
+					file.Line($"case {sited.Base + sited.Members[part].Slots[0]}:");
+
+					using (file.Indent())
+					{
+						file.Line($"captured{memberIndex}_{part}From = candidate.Position;");
+						file.Line($"captured{memberIndex}_{part}To   = candidate.Value;");
+						file.Line("break;");
+					}
+				}
+			}
+		}
+
+		file.Line($"if (captured{memberIndex}Open >= 0)");
+		file.Then($"captured{memberIndex}[captured{memberIndex}Open] = {built};");
+		file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}Item == 0);");
+		file.Line();
 	}
 
 	/// <summary>

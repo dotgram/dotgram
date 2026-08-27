@@ -249,7 +249,13 @@ sealed partial class Machine
 		};
 
 	/// <summary>Matches text and could mean nothing else — the value is the extent.</summary>
-	static bool Extent(Node node) =>
+	/// <remarks>
+	/// A call to a valueless rule belongs: what it matched is text, and text is the whole
+	/// of what capturing it can mean (§4.1 case 4). The flat path still gates every such
+	/// capture through <see cref="Silent"/>, which is what refuses the calls it cannot
+	/// compile without an arena; a sited capture needs no such gate — its records unwind.
+	/// </remarks>
+	bool Extent(Node node) =>
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.Behind => true,
@@ -257,6 +263,8 @@ sealed partial class Machine
 			Node.Choice(var alternatives) => alternatives.All(Extent),
 			Node.Repeat(var body, _, _)   => Extent(body),
 			Node.Atomic(var body)         => Extent(body),
+			Node.Call(var called, _)      => _graph.Results[called].Count == 0 &&
+			                                 !_graph.Types.ContainsKey(called),
 			_                             => false,
 		};
 
