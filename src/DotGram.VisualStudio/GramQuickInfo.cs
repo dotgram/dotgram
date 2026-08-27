@@ -482,6 +482,19 @@ sealed class EmbeddedGramQuickInfoSource(
 		if (point is null || !analysis.TryGet(snapshot, out var classifications, out _))
 			return null;
 
+		if (analysis.TryGetDslSites(snapshot, out var dslSites))
+			foreach (var site in dslSites)
+				if (site.Span.Contains(point.Value.Position))
+				{
+					var span = new SnapshotSpan(snapshot, site.Span.Start, site.Span.Length);
+					var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
+
+					await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+					return new QuickInfoItem(
+						trackingSpan,
+						new DslQuickInfoContent(trackingSpan, site.LanguageId, site.EntryRule));
+				}
+
 		if (classifications.Any(item => item.GrammarSpan.Contains(point.Value.Position)) &&
 			GramCSharpCompletionContext.TryGetExpression(
 				snapshot.GetText(), point.Value.Position,
@@ -529,4 +542,28 @@ sealed class EmbeddedGramQuickInfoSource(
 	public void Dispose()
 	{
 	}
+}
+
+sealed class DslQuickInfoContent : StackPanel, IDotGramQuickInfoContent
+{
+	public DslQuickInfoContent(ITrackingSpan trackingSpan, string languageId, string entryRule)
+	{
+		TrackingSpan = trackingSpan;
+		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
+			?? SystemColors.InfoTextBrush;
+
+		Children.Add(new TextBlock
+		{
+			Text = $"DotGram language: {languageId}",
+			Foreground = foreground,
+		});
+		Children.Add(new TextBlock
+		{
+			Text = $"Entry rule: {entryRule}",
+			Foreground = foreground,
+		});
+	}
+
+	public bool ShouldDisplay => true;
+	public ITrackingSpan TrackingSpan { get; }
 }

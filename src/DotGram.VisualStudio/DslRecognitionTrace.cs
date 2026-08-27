@@ -25,11 +25,13 @@ internal readonly record struct DslRecognitionExtent(
 internal sealed class DslRecognitionResult(
 	DslRecognitionStatus status,
 	int failurePosition,
-	IReadOnlyList<DslRecognitionExtent> extents)
+	IReadOnlyList<DslRecognitionExtent> extents,
+	IReadOnlyList<string> expected)
 {
 	public DslRecognitionStatus Status { get; } = status;
 	public int FailurePosition { get; } = failurePosition;
 	public IReadOnlyList<DslRecognitionExtent> Extents { get; } = extents;
+	public IReadOnlyList<string> Expected { get; } = expected;
 }
 
 /// <summary>
@@ -49,31 +51,54 @@ internal static class DslRecognitionTrace
 		if (input is null)       throw new ArgumentNullException(nameof(input));
 
 		if (publication.Kind != DotGram.Grammar.Parsing.PublishKind.Parse)
-			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, []);
+			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
 		var matcher = new Matcher(graph, input);
-		var matches = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
-			? matcher.Whole(publication.Rule, trivia).Where(match => match.End == input.Length).ToArray()
-			: matcher.Rule(publication.Rule, 0).Where(match => match.End == input.Length).ToArray();
+		var candidates = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
+			? matcher.Whole(publication.Rule, trivia).ToArray()
+			: matcher.Rule(publication.Rule, 0).ToArray();
+		var matches = candidates.Where(match => match.End == input.Length).ToArray();
+
+		foreach (var candidate in candidates)
+			if (candidate.End != input.Length)
+				matcher.Expect(candidate.End, "end of input");
 
 		if (matches.FirstOrDefault() is { } successful)
 			return new DslRecognitionResult(
 				DslRecognitionStatus.Success,
 				successful.End,
-				successful.Extents);
+				successful.Extents,
+				[]);
 
 		return new DslRecognitionResult(
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
-			[]);
+			[],
+			matcher.Expected);
 	}
 
 	sealed class Matcher(RecognitionGraph graph, string input)
 	{
 		readonly HashSet<(RuleSymbol Rule, int Position)> _active = [];
+		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
 
 		public int Furthest { get; private set; }
 		public bool Unsupported { get; private set; }
+		public IReadOnlyList<string> Expected => _expected.OrderBy(static item => item, StringComparer.Ordinal).ToArray();
+
+		public void Expect(int position, string expected)
+		{
+			if (position < Furthest)
+				return;
+
+			if (position > Furthest)
+			{
+				Furthest = position;
+				_expected.Clear();
+			}
+
+			_expected.Add(expected);
+		}
 
 		public IEnumerable<Match> Whole(RuleSymbol rule, Node trivia)
 		{
@@ -109,8 +134,6 @@ internal static class DslRecognitionTrace
 
 		IEnumerable<Match> MatchNode(Node node, int position, RuleSymbol owner)
 		{
-			Furthest = Math.Max(Furthest, position);
-
 			switch (node)
 			{
 				case Node.Empty:
@@ -123,11 +146,23 @@ internal static class DslRecognitionTrace
 							input, position, literal.Text, 0, literal.Text.Length,
 							literal.IgnoreCase, CultureInfo.InvariantCulture) == 0)
 						yield return Match.Empty(position + literal.Text.Length);
+					else
+					{
+						var matched = 0;
+						while (matched < literal.Text.Length && position + matched < input.Length &&
+							(input[position + matched] == literal.Text[matched] ||
+							 literal.IgnoreCase && char.ToUpperInvariant(input[position + matched]) ==
+							 char.ToUpperInvariant(literal.Text[matched])))
+							matched++;
+						Expect(position + matched, literal.ToString());
+					}
 					yield break;
 
 				case Node.Element element:
 					if (position < input.Length && Element(element, input[position]))
 						yield return Match.Empty(position + 1);
+					else if (element.References.Count == 0)
+						Expect(position, element.ToString());
 					yield break;
 
 				case Node.Sequence sequence:

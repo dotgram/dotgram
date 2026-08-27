@@ -79,6 +79,21 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	[Fact]
+	public void ReportsExpectedElementsAtFurthestFailure()
+	{
+		var (graph, publication) = Compile("""
+			parse Start
+			Start = "select" & ' ' & ("name" | "count")
+			""");
+
+		var result = DslRecognitionTrace.Recognize(graph, publication, "select value");
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.Equal(7, result.FailurePosition);
+		Assert.Equal(new[] { "\"count\"", "\"name\"" }, result.Expected);
+	}
+
+	[Fact]
 	public void DoesNotGuessWhenRecognitionRequiresUserCode()
 	{
 		var rule = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);

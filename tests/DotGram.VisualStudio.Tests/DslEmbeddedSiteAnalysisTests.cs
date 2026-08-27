@@ -27,6 +27,10 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
 
 		Assert.Empty(result.Diagnostics);
+		var site = Assert.Single(result.Sites);
+		Assert.Equal("dotgram.test.filter", site.LanguageId);
+		Assert.Equal("Start", site.EntryRule);
+		Assert.Equal("let total", text.ToString(site.Span));
 		Assert.Collection(
 			result.Classifications.OrderBy(item => item.Span.Start),
 			item =>
@@ -54,7 +58,9 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		Assert.Empty(result.Classifications);
 		var diagnostic = Assert.Single(result.Diagnostics);
 		Assert.Equal("GRAM5101", diagnostic.Diagnostic.Id);
-		Assert.Contains("dotgram.test.filter", diagnostic.Diagnostic.Message);
+		Assert.Equal(
+			"Expected ['a'..'z'] in DotGram language 'dotgram.test.filter'.",
+			diagnostic.Diagnostic.Message);
 	}
 
 	[Fact]

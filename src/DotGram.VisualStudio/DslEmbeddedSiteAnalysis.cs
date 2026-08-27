@@ -17,13 +17,16 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.VisualStudio;
 
 internal readonly record struct HostDslClassification(TextSpan Span, string Role);
+internal readonly record struct HostDslSite(TextSpan Span, string LanguageId, string EntryRule);
 
 internal sealed class DslEmbeddedSiteResult(
 	IReadOnlyList<HostDslClassification> classifications,
-	IReadOnlyList<HostDiagnostic> diagnostics)
+	IReadOnlyList<HostDiagnostic> diagnostics,
+	IReadOnlyList<HostDslSite> sites)
 {
 	public IReadOnlyList<HostDslClassification> Classifications { get; } = classifications;
 	public IReadOnlyList<HostDiagnostic> Diagnostics { get; } = diagnostics;
+	public IReadOnlyList<HostDslSite> Sites { get; } = sites;
 }
 
 internal sealed class DslPreparedLanguage(
@@ -78,6 +81,7 @@ internal static class DslEmbeddedSiteAnalysis
 		var catalog = DslLanguageDiscovery.Discover(model.Compilation, cancellationToken);
 		var classifications = new List<HostDslClassification>();
 		var diagnostics = new List<HostDiagnostic>();
+		var sites = new List<HostDslSite>();
 
 		foreach (var argument in root.DescendantNodes().OfType<ArgumentSyntax>())
 		{
@@ -117,6 +121,12 @@ internal static class DslEmbeddedSiteAnalysis
 			if (prepared is null)
 				continue;
 
+			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan))
+				sites.Add(new HostDslSite(
+					siteSpan,
+					carrier.Language.Id,
+					prepared.Publication.Rule.Name));
+
 			var trace = DslRecognitionTrace.Recognize(
 				prepared.Graph,
 				prepared.Publication,
@@ -133,7 +143,7 @@ internal static class DslEmbeddedSiteAnalysis
 				diagnostics.Add(new HostDiagnostic(
 					new GramDiagnostic(
 						RecognitionDiagnostic,
-						$"Text does not match DotGram language '{carrier.Language.Id}'.",
+						FailureMessage(carrier.Language.Id, trace.Expected),
 						0,
 						0,
 						GramSeverity.Error),
@@ -142,7 +152,7 @@ internal static class DslEmbeddedSiteAnalysis
 			}
 		}
 
-		return new DslEmbeddedSiteResult(classifications, diagnostics);
+		return new DslEmbeddedSiteResult(classifications, diagnostics, sites);
 	}
 
 	internal static DslPreparedLanguage? Prepare(
@@ -216,6 +226,13 @@ internal static class DslEmbeddedSiteAnalysis
 	}
 
 	static string CaptureName(string target) => target.Substring(target.IndexOf('.') + 1);
+
+	static string FailureMessage(string language, IReadOnlyList<string> expected) => expected.Count switch
+	{
+		0 => $"Text does not match DotGram language '{language}'.",
+		1 => $"Expected {expected[0]} in DotGram language '{language}'.",
+		_ => $"Expected one of {string.Join(", ", expected)} in DotGram language '{language}'.",
+	};
 
 	static bool IsError(GramDiagnostic diagnostic) => diagnostic.Severity == GramSeverity.Error;
 }

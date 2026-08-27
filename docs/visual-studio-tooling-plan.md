@@ -65,6 +65,8 @@ architecture and possible VS Code/LSP/metadata work remain in
   Visual Studio.
 - [x] Cache language discovery per Roslyn compilation and normalized DSL preparation
   per editor buffer.
+- [x] Report expected grammar elements at the furthest DSL recognition failure.
+- [x] Show the language id and published entry rule in Quick Info for routed DSL strings.
 
 The detailed design and explicit deferrals are in
 [`dsl-tooling-design.md`](dsl-tooling-design.md).

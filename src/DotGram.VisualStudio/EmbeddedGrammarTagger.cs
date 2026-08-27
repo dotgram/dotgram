@@ -228,6 +228,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	int                               _retryCount;
 	IReadOnlyList<HostClassification> _classifications = [];
 	IReadOnlyList<HostDslClassification> _dslClassifications = [];
+	IReadOnlyList<HostDslSite>           _dslSites = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
 	IReadOnlyList<HostBracePair>       _braces        = [];
@@ -317,6 +318,22 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 		Schedule(snapshot);
 		classifications = [];
+		return false;
+	}
+
+	public bool TryGetDslSites(ITextSnapshot snapshot, out IReadOnlyList<HostDslSite> sites)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				sites = _dslSites;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		sites = [];
 		return false;
 	}
 
@@ -466,17 +483,20 @@ sealed class EmbeddedGrammarBufferAnalysis
 					analyses.Count,
 					_classifications.Count,
 					_dslClassifications.Count,
-					_documentSymbols.Count);
+					_documentSymbols.Count,
+					_dslSites.Count);
 
 				if (preserveEmbeddedAnalysis && _snapshot is not null)
 				{
 					_classifications = TranslateClassifications(_classifications, _snapshot, snapshot);
 					_dslClassifications = TranslateDslClassifications(_dslClassifications, _snapshot, snapshot);
+					_dslSites = TranslateDslSites(_dslSites, _snapshot, snapshot);
 				}
 				else
 				{
 					_classifications = classifications;
 					_dslClassifications = dslSites.Classifications;
+					_dslSites = dslSites.Sites;
 				}
 
 				_snapshot        = snapshot;
@@ -519,9 +539,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 		int analysisCount,
 		int previousClassificationCount,
 		int previousDslClassificationCount,
-		int previousSymbolCount) =>
+		int previousSymbolCount,
+		int previousDslSiteCount) =>
 		hasSyntaxErrors && analysisCount == 0 &&
-		(previousClassificationCount > 0 || previousDslClassificationCount > 0 || previousSymbolCount > 0);
+		(previousClassificationCount > 0 || previousDslClassificationCount > 0 ||
+		 previousSymbolCount > 0 || previousDslSiteCount > 0);
 
 	static IReadOnlyList<HostClassification> TranslateClassifications(
 		IReadOnlyList<HostClassification> classifications,
@@ -544,6 +566,15 @@ sealed class EmbeddedGrammarBufferAnalysis
 		classifications.Select(item => new HostDslClassification(
 			Translate(item.Span, source, target),
 			item.Role)).ToArray();
+
+	static IReadOnlyList<HostDslSite> TranslateDslSites(
+		IReadOnlyList<HostDslSite> sites,
+		ITextSnapshot source,
+		ITextSnapshot target) =>
+		sites.Select(item => new HostDslSite(
+			Translate(item.Span, source, target),
+			item.LanguageId,
+			item.EntryRule)).ToArray();
 
 	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
 	{
