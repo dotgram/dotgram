@@ -3908,3 +3908,23 @@ Corpus, Release, two runs: 1.74/2.38/1.82/2.58 and 1.76/2.33/1.83/2.49 against
 already one test; what this removes is two instructions per alternative behind it,
 which the corpus cannot see. Kept for the same reason the CFG cleanups were: the
 generated text stops re-deriving what the line above it just proved.
+
+## Measured: the pool's threshold was cutting off the documents that need it
+
+The review's third P1 point, held until measured; measured, and it bit. A pooled
+parser whose arena grew past 4,096 entries was let go, and the corpus never noticed -
+Csv 512, Feed 1,024, Minimal 2,048, Url exactly 4,096 - but an ordinary 12 KB grammar
+document sits just over the line, so every parse of it rebuilt the whole machinery
+from nothing: 1.13 ms and 3.8 MB per parse, of which the tree itself is 315 KB.
+
+Three policies, one binary each, alternated five rounds. Dropping (the status quo):
+1.13 ms, 3.8 MB. Trimming the tables back to the threshold and keeping the parser:
+1.33 ms, 3.75 MB - worse than dropping, because the trim is itself a large-object
+allocation per parse and throws away nearly everything anyway. Keeping the parser
+whole: 0.85 ms and 315 KB - a quarter of the time gone and twelve times less
+allocation, the remainder being the tree the parse exists to build.
+
+So the policy stays what it was - keep unless outsized - and the bound moves to where
+"outsized" actually is: 65,536 entries, a few retained megabytes for a thread whose
+documents are that size, with the drop kept for genuine pathology. The trim variant
+is recorded here so nobody builds it again hoping.

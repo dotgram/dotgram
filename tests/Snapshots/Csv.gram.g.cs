@@ -1092,13 +1092,21 @@ namespace DotGram.Snapshots
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
 		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
-		/// so one outsized input does not leave every thread holding its arena for ever.
+		/// so a truly outsized input does not leave every thread holding its arena for
+		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
+		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
+		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
+		/// being everything but the tree. Trimming the tables instead of dropping them
+		/// was tried and measured slower than either: the trim is itself large-object
+		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
+		/// megabytes — the working set of a parser whose documents are that size — and
+		/// anything past it is the pathology the letting-go is for.
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
-		const int KeptEntries = 4096;
+		const int KeptEntries = 65536;
 
 		static Parser Recycled()
 		{
