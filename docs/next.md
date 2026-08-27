@@ -3817,3 +3817,33 @@ is the good kind of diagnostic debt. A driver test pins the three claims that
 matter: the string and reader overloads agree on a spaced list, a broken element is
 stepped over across a seam, and four thousand seamed records read through a window
 that holds none of them for long.
+
+## Tried and declined: fusing RuleCapture into Completed
+
+The last mechanical squeeze on the completion ceremony looked free: a Completed
+entry already sits with its caller's index in CallIndex, its State field seemed dead
+once Return had read the continuation out of it, so the capturing slot could live
+there and the RuleCapture entry - one of the three per completion - would never be
+written. Built in full: claim as an in-place rewrite, member walks reading the
+completion itself, valued Calls linking at birth so the incremental pass cannot walk
+past a not-yet-completed call (a real find - RuleCapture never had the problem only
+because it was always born ahead of LinkedUpTo).
+
+Two walls, both instructive. First, the state renumbering pass: Layout rewrites the
+second argument of every resumable ParserEntry literal as a state id, and a slot
+sitting in that position was silently renumbered into garbage - the exact "silent
+corruption" its own comment warns about, met from the other side. Removable, and
+removed. Second, the real one: a completed call can be resumed INTO - a standing
+exit in its tail - and complete again, and the second Return reads the continuation
+out of State. The continuation is not dead after Return; it is dead only when
+nothing can resume into the span, which is a dynamic fact this session already
+declined to track once. The claim and the continuation both need the field, there
+is no other free field in ParserEntry, and encoding both means renumber-aware
+arithmetic in every reader.
+
+So the RuleCapture entry is not a duplicate answer after all: it is the claim as a
+separate, poppable record - unwinding it is what un-claims - and the Completed's
+State is the continuation for however many times the call completes. The same
+lesson eager construction taught about records and backtracking, met at the next
+record over. Reverted clean; the linked-at-birth insight goes with it, since only
+the fusion needed it.
