@@ -799,7 +799,13 @@ public sealed partial class GrammarNormalizer
 		Expr.Reference(_, var name, var types)    => name + TypeArguments(types),
 		Expr.Call     (var target, var arguments) =>
 			Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
-		Expr.Literal  (true,  var text)           => CharRange.Quote(text[0]),
+		// A character literal with no character in it is not something an author can
+		// mean, but it is something a broken file can hold — and this runs on a grammar
+		// the lexer has already reported, because normalization does not stop at the
+		// first diagnostic. Answered rather than thrown on (found by the fuzzer).
+		Expr.Literal  (true,  var text)           => text.Length == 0
+			? "''"
+			: CharRange.Quote(text[0]),
 		Expr.Literal  (false, var text)           => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
 		_                                         => value.ToString(),
 	};

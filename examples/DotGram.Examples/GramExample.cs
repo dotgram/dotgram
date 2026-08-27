@@ -113,9 +113,13 @@ namespace DotGram.Examples;
 		& '{' & usings: Using* & declarations: Declaration* & '}'
 		=> @(new GramNamespace(name, usings, declarations))
 
+	// What a directive names is an expression, not only a rule (§6) — one operand, so
+	// the `with` that may follow is the directive's own rather than the operand's, and
+	// the type is the third part a rule has, in the place that reads as the method's.
 	Publication : @GramDecl
-		= kind: ("parse" | "find") & rule: Name & With? & ("as" & alias: Identifier)?
-		=> @(new GramPublication(kind, rule, alias))
+		= kind: ("parse" | "find") & target: QuantifiedCore & With?
+		& ("as" & alias: Identifier & (':' & type: Type)?)?
+		=> @(new GramPublication(kind, target, alias, type))
 
 	Rule : @GramDecl
 		= name: Identifier & Parameters? & (':' & type: Type)? & '=' & body: Body
@@ -127,7 +131,9 @@ namespace DotGram.Examples;
 
 	With           = "with" & Rebindings
 	Rebindings     = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
-	Rebinding      = Identifier & '=' & Identifier
+	// §5.1's other half: what replaces a rule may be any operand. The left stays an
+	// identifier — it opens what is being replaced, and opening is what a name is for.
+	Rebinding      = Identifier & '=' & QuantifiedCore
 
 	Body : @GramExpr
 		= first: Alternative & ('|' & rest: Alternative)*
@@ -149,9 +155,14 @@ namespace DotGram.Examples;
 
 	// `with` last, outermost of the three: `Number+ with (X = Y)` is `(Number+) with
 	// (X = Y)`, and the other reading needs parentheses.
-	Quantified : @GramExpr
-		= body: Prefixed & quantifier: Quantifier? & recovery: Recovery? & rebound: With?
-		=> @(GramGrammar.Quantified(body, quantifier, recovery, rebound))
+	Quantified : @GramExpr = body: QuantifiedCore & rebound: With? => @(GramGrammar.Rebound(body, rebound))
+
+	// Named because two other places take exactly this and stop short of the `with`: a
+	// directive's target and a rebinding's replacement, where a following `with` belongs
+	// to the thing around the operand rather than to the operand.
+	QuantifiedCore : @GramExpr
+		= body: Prefixed & quantifier: Quantifier? & recovery: Recovery?
+		=> @(GramGrammar.Quantified(body, quantifier, recovery))
 
 	Quantifier : @string
 		= text: ('?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}')
@@ -220,7 +231,7 @@ public partial class GramGrammar
 
 	public sealed record GramNamespace(string Name, GramUsing[] Usings, GramDecl[] Declarations) : GramDecl;
 
-	public sealed record GramPublication(string Kind, string Rule, string? Alias) : GramDecl;
+	public sealed record GramPublication(string Kind, GramExpr Target, string? Alias, string? Type) : GramDecl;
 
 	public sealed record GramRule(string Name, string? Type, GramExpr Body) : GramDecl;
 
@@ -270,10 +281,18 @@ public partial class GramGrammar
 	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
 		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
 
-	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery, string? rebound) =>
-		quantifier is null && recovery is null && rebound is null
+	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
+		quantifier is null && recovery is null
 			? body
-			: new GramQuantified(body, quantifier, recovery, rebound is not null);
+			: new GramQuantified(body, quantifier, recovery, false);
+
+	/// <summary>The `with` that may follow an operand, where one does (§5.1).</summary>
+	public static GramExpr Rebound(GramExpr body, string? rebound) =>
+		rebound is null
+			? body
+			: body is GramQuantified quantified
+				? quantified with { Rebound = true }
+				: new GramQuantified(body, null, null, true);
 
 	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest) =>
 		new GramCall(target, first is null ? [] : Joined(first, rest));

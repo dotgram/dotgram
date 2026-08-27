@@ -4337,3 +4337,35 @@ Both reference positions now take an operand, which is the whole of what "an exp
 may stand wherever a rule is referred to" comes to in this notation — and the two
 diagnostics it needed are about naming, not about the rule. Nothing downstream of the
 parser knows any of it happened.
+
+## Built: the notation's own grammar caught up with the notation
+
+Today's syntax changes were made in the hand-written front end, and the grammar of the
+notation — written in itself, in `GramExample.cs` — still described the language as it
+was that morning: a directive's target was `Name`, a rebinding's replacement was
+`Identifier`. The self-hosting differential was green the whole time, which is the part
+worth noticing: it was green because the corpus contained no grammar using the new
+forms, so it was holding two implementations to a language both had already outgrown.
+That is the same shape of gap the lexical inventory found once before, when the two
+implementations turned out to accept different languages at `parse Xas y`.
+
+So the grammar learned the two forms, and gained the production the hand parser has
+implicitly: `QuantifiedCore` — an operand up to but not including a trailing `with` —
+which is exactly what a directive's target and a rebinding's replacement take, and why
+a `with` after either belongs to the thing around the operand. `Quantified` is now that
+plus the `with`, which is what it always was underneath.
+
+And a fifth file joined the corpus: `Notation.gram`, a catalog of what an author may
+*write*, as `Minimal.gram` is a catalog of what the generator *emits*. It uses the
+forms rather than describing them — a directive naming a call, one declaring the type
+of what it lifts, a rebinding replacing a rule with a choice, a recursion through a
+forwarder, a value parameter given a literal — so the differential reads them on every
+run. Checked by reverting half of the grammar's own `Publication` rule and watching the
+differential say `Notation.gram: the hand-written parser says yes, the generated one
+says no`. That is the test being a test.
+
+The fuzzer found something on the way in, and it was mine: `Text(Expr)` renders a
+character literal as `CharRange.Quote(text[0])`, and the value-parameter work started
+calling it on a call's arguments — where a mutated file can hold `''`. Normalization
+does not stop at the first diagnostic, so a grammar the lexer has already refused still
+reaches here, and an empty character literal threw. Answered rather than thrown on.

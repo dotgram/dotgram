@@ -1,0 +1,38 @@
+// A catalog of what an author may *write*, as `Minimal.gram` is a catalog of what the
+// generator *emits*. Both implementations of the notation read every grammar here — the
+// hand-written front end the compiler uses, and the parser generated from the grammar of
+// the notation written in itself — so a form that only one of them accepts shows up as a
+// disagreement rather than as a surprise years later (`SelfHostingTests`).
+
+Word   : @string = w: ['a'..'z']+ => @(w)
+Number : @int    = d: ['0'..'9']+ => @(int.Parse(d))
+
+// §4.2: a recognizer parameter and a value one, the second given a literal rather than
+// a number.
+Padded(item, pad: char) : @string = t: item => @(t + pad)
+
+// §4.3: `Call` reaches itself through `Primary`, and `Primary` only forwards — so the
+// recursion is made direct and folded like any other. Left-associative: `7()()` is
+// `(7())()`.
+Primary : @int = p: Call => @(p) | n: Number => @(n)
+Call    : @int = target: Primary & "()" => @(target * 10)
+
+Sep  = ','
+List = Word & (Sep & Word)*
+
+// §6: a directive names an expression, not only a rule — one operand, so a choice needs
+// brackets and a following `with` is the directive's own. `as` is required for anything
+// but a bare name, since an expression has none to make a method name from.
+parse Padded(Word, '#') as Hashed
+
+// And it may declare the type of what it lifts, which is what makes a `=>` legal there.
+parse (v: Padded(Word, '#') => @(v)) as Marked : @string
+
+// §5.1: what replaces a rule may be an expression too. The left side stays a name — it
+// opens what is being replaced, and opening is what a name is for.
+parse List with (Sep = (',' | ';')) as Loose
+parse List as Tight
+
+parse ('a' | 'b') as Ab
+parse Primary
+find  Word as Words
