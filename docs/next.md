@@ -4244,3 +4244,30 @@ broken compilation of a file the consumer did not write. `DotGram.Benchmarks` ha
 such grammars and said so. Suppressed at the field, with the reason on it, rather than
 gated: the gate would have to be decided before the machines render and the wrapper
 that reads it is written before them.
+
+## Read: the last two rows were decisions wearing a gap's clothes
+
+The status table's remaining crosses were `document repair` and `incremental parsing`,
+and going to build them found there was nothing to build.
+
+**Repair is out of scope and was already said to be, three times.** `syntax.md` §11
+lists it under "deliberately out of scope"; `implementation.md` §0 says it was tried
+and abandoned in favour of §8.2; and that plan's own preamble names "recovery as a
+search for the cheapest edit over a whole document" among the sections it *removed*
+rather than corrected. The table meanwhile pointed at "§6 of the engine plan" - a
+section that no longer exists, since the plan runs 0, 1, 3, 5, 7, 9, 10, 13. A row of
+crosses against a decision reads as a debt, and pointing it at a deleted section reads
+as a plan nobody kept.
+
+**Incremental parsing is unstarted, and the plan says that too** - its memo-table
+sketch is in the same removed list, taken out once it was clear it had never been
+reached. What it does have is one concrete prerequisite, from reading Nitra earlier
+this month: the arena would have to record each entry's size rather than its position,
+so a tail nothing touched survives an edit that shifts everything after it.
+
+So both moved out of the pipeline table and into a paragraph under it that says which
+they are: a decision with its reason, and a direction with its first step. The table
+is for constructs, and a construct that is not a construct does not belong in it. That
+is the whole change - and it is the honest end of the walk through that table, because
+every other row it carried is now either ✓ across the pipeline or a refusal with a
+message that explains itself.

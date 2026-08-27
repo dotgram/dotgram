@@ -82,7 +82,6 @@ then quietly mean nothing.
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
 | `Match<T>` and its `Outcome` §7.5 | — | — | — | ✓ | ✓ |
 | an outcome for a failure past a commit point §8.2 | — | — | — | ✗ | ✗ |
-| document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
 | leading and trailing `trivia` §4.5 | — | — | — | ✓ | ✓ |
 | `trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |
 | a C# name as an argument of `@M(…)`, behind `@` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -96,7 +95,17 @@ then quietly mean nothing.
 | a repetition of something other than a rule §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
 | the §8.3 hook over a streamed parse | — | — | — | ✓ | ✓ |
-| incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+**Two things this table used to carry as rows are decisions rather than gaps**, and a
+row of crosses read as neither. **Repairing a document** — searching a broken input for
+the edit its author most likely meant — is out of scope by `syntax.md` §11, and by more
+than omission: it was tried and put down, and the engine plan's own section about it was
+removed rather than corrected. `recover` (§8.2) is not a smaller version of it; the two
+answer different questions, one about a document and one about the hundred-millionth
+record of a feed. **Incremental parsing** is not started, and has one known prerequisite
+rather than a design: the arena would have to record each entry's *size* instead of its
+position, so that a tail nothing touched stays valid when an edit shifts everything
+after it (`docs/next.md`, the Nitra reading).
 
 ## Backtracking, and where it stops
 
