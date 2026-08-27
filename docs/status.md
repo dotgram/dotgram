@@ -1466,10 +1466,16 @@ asking one character for the whole choice and searching for its comment delimite
 of testing it twice per character, and the give-back doors, checkpoints and locals the CFG
 work removed. On the notation grammar itself — a tower of recursive valued rules, which is
 the shape none of the flat work can reach — the hand-written-to-generated ratio stands
-between 1.8 and 2.6 depending on the corpus file, from about 3 before the series; what
-remains there is the completion ceremony, measured to its floor and pinned by two recorded
-experiments (`docs/next.md`: eager construction, and the RuleCapture fusion) as the price
-of honest backtracking.
+between 1.3 and 1.7 depending on the corpus file, from about 3 before the series. The last
+step was two analysis fixes in one day (2026-08-27): a positive lookahead's demand became
+part of a sequence's first set, which un-poisoned every operand reachable from the inline
+C# expression and let the tower's optionals settle, and every repetition that may take
+nothing is now entered through one character, so the general machinery is built only where
+its body could actually begin. What remains is the completion ceremony — two thirds of the
+remaining trace, measured to its floor and pinned by two recorded experiments
+(`docs/next.md`: eager construction, and the RuleCapture fusion) as the price of honest
+backtracking — and one enumerated two-token shape, the optional `name:` probe reading a
+word the reference after it reads again.
 
 **Eager construction** — a rule proved `Committed && Deterministic` at every call site
 running its `=>` the moment it returns, rather than waiting for the parse to be accepted —

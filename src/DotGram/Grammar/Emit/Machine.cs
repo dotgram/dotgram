@@ -3164,8 +3164,16 @@ sealed partial class Machine
 		// machinery is a Repeat entry, a way out, a failed probe and their unwinding.
 		// The same test a choice link makes before going into an alternative, kept for
 		// the same measured reason; unlike the settled form above, entering commits to
-		// nothing — every way back the general machinery keeps is still kept.
-		if (min == 0 && Decidable(body) is { } could)
+		// nothing — every way back the general machinery keeps is still kept. The body
+		// must not match empty: taking nothing and matching nothing differ by exactly
+		// the records §10 tells apart, and only the first may be chosen here.
+		var barred = Decidable(body) is { } heads
+			? RangesTest(heads.Ranges)
+			: !FirstSets.Nullable(body, _graph)
+				? EntryTest(body)
+				: null;
+
+		if (min == 0 && barred is { } could && could != "true")
 		{
 			_usesChar = true;
 
@@ -3174,7 +3182,7 @@ sealed partial class Machine
 			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atProbe.Line("c = text[p];");
-				atProbe.Line($"if ({RangesTest(could.Ranges)}) goto {Label(entry)};");
+				atProbe.Line($"if ({could}) goto {Label(entry)};");
 			}
 
 			atProbe.Line($"goto {Label(next)};");
@@ -3183,6 +3191,109 @@ sealed partial class Machine
 		}
 
 		return entry;
+	}
+
+	/// <summary>
+	/// The test over <c>c</c> for whether a node could begin at the character standing
+	/// here — or null where that is not knowable as one test.
+	/// </summary>
+	/// <remarks>
+	/// Wider than <see cref="Decidable"/> on purpose: that one goes through a
+	/// <see cref="FirstSets.First"/>, and a Unicode category is a few hundred ranges no
+	/// rendering should spell out — where the same category as an element is one
+	/// classification call (<see cref="CSharpEmitter.Test"/>). So this walks the node
+	/// instead, to the first thing that must consume, and lets each leaf write the test
+	/// it already knows how to write. Sound in one direction only: the test may admit
+	/// more than the body would (a nullable head contributes alongside what follows it),
+	/// never less — a false positive builds machinery that was going to be built anyway.
+	/// </remarks>
+	string? EntryTest(Node node, HashSet<RuleSymbol>? seen = null)
+	{
+		switch (node)
+		{
+			case Node.Literal(var text) { IgnoreCase: false } when text.Length > 0:
+				return $"c == {CSharpEmitter.Char(text[0])}";
+
+			case Node.Element element:
+			{
+				var test = CSharpEmitter.Test(element);
+
+				return test == "false" ? null : test;
+			}
+
+			case Node.Capture(_, var captured):  return EntryTest(captured, seen);
+			case Node.Construct(var built, _):   return EntryTest(built, seen);
+			case Node.Atomic(var kept):          return EntryTest(kept, seen);
+
+			case Node.Repeat(var repeated, var least, _):
+				return least > 0 ? EntryTest(repeated, seen) : null;
+
+			case Node.Call(var called, _):
+			{
+				seen ??= [];
+
+				if (!seen.Add(called) || !_graph.Bodies.TryGetValue(called, out var calledBody))
+					return null;
+
+				var inner = EntryTest(calledBody, seen);
+
+				seen.Remove(called);
+
+				return inner;
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var tests = new List<string>(alternatives.Count);
+
+				foreach (var alternative in alternatives)
+				{
+					if (EntryTest(alternative, seen) is not { } one)
+						return null;
+
+					if (one == "true")
+						return "true";
+
+					tests.Add(one);
+				}
+
+				return Joined(tests);
+			}
+
+			case Node.Sequence(var parts):
+			{
+				var tests = new List<string>();
+
+				foreach (var part in parts)
+				{
+					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard)
+						continue;
+
+					if (EntryTest(part, seen) is not { } head)
+						return null;
+
+					if (head == "true")
+						return "true";
+
+					tests.Add(head);
+
+					// A part that must consume settles what the sequence begins with;
+					// a nullable one and the next could each be what actually begins.
+					if (!FirstSets.Nullable(part, _graph))
+						break;
+				}
+
+				return tests.Count == 0 ? null : Joined(tests);
+			}
+
+			default:
+				return null;
+		}
+
+		static string Joined(List<string> tests) =>
+			tests.Count == 1
+				? tests[0]
+				: string.Join(" || ", tests.Select(static test => $"({test})"));
 	}
 
 	void LeaveRepeat(Writer writer, int next)

@@ -3990,3 +3990,23 @@ the measured floor. Corpus, Release, three runs: Csv 1.33, Feed 1.71, Minimal 1.
 Url 1.75, from 1.74 / 2.35 / 1.83 / 2.53 - the largest single step of the series,
 and the lexical design's own targets (Csv at or under 1.5, Url under 2) reached
 without a token in sight.
+
+## Built: the guard learned to read the body instead of the ranges
+
+The one repetition the entry guard could not cover was the one the trace said most
+operands walk into: `(name: Identifier & ':')?`, whose body begins with `\p{L}` -
+a few hundred ranges, which `Decidable` rightly refuses to spell out as comparisons.
+But the same category as an *element* is one classification call, so the guard now
+has a second source: `EntryTest` walks the body to the first thing that must
+consume and lets each leaf write the test it already knows how to write - an
+element's own test, a literal's first character, a choice's disjunction, a nullable
+head alongside what follows it. Sound in one direction only: it may admit more than
+the body would, never less. The compact `RangesTest` form is still preferred where
+the first set is small; the walk is the fallback for the sets no rendering should
+spell out.
+
+Url.gram's trace: 4,523 to 4,203; the day as a whole, 7,995 to 4,203. Corpus,
+Release, three runs: Csv 1.33, Feed 1.70, Minimal 1.34, Url 1.70. Two thirds of
+what remains is the completion ceremony; the enumerable residue is now exactly one
+shape - the `name:` probe reading a word that the reference after it reads again,
+which is the two-token fusion the lexical design names as v2.
