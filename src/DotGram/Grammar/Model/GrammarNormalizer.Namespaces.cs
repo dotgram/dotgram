@@ -195,7 +195,7 @@ public sealed partial class GrammarNormalizer
 
 		if (_origins.TryGetValue(called, out var origin) &&
 			targets.TryGetValue(origin.Origin, out var bound))
-			return ((Node.Call)Instantiate(bound, origin.Passed, origin.Counts)).Rule;
+			return ((Node.Call)Instantiate(bound, origin.Passed, origin.Counts, origin.Values)).Rule;
 
 		return null;
 	}
@@ -424,7 +424,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var origin      = _origins[instance];
 		var replacement = ((Node.Call)Instantiate(
-			targets[origin.Origin], origin.Passed, origin.Counts)).Rule;
+			targets[origin.Origin], origin.Passed, origin.Counts, origin.Values)).Rule;
 
 		if (cloneMap.TryGetValue(replacement, out var existing))
 			return existing;

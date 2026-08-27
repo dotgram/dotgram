@@ -638,6 +638,22 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void A_literal_of_the_wrong_type_for_a_value_parameter_is_reported()
+	{
+		// §4.2's kinds are the declaration's to state; what the literal actually is, is
+		// C#'s to say, and the resolver is the seam that asks. A resolver that admits
+		// everything leaves it to the consumer's own compiler, which is where §7.4 puts
+		// every other question about the C# a grammar wrote.
+		Assert.Contains(
+			GrammarNormalizer.UnbuiltCall,
+			Normalize("""
+				Padded(item, pad: char) = item & @(pad)
+				Word  = ['a'..'z']+
+				Start = Padded(Word, "xy")
+				""", new StrictAssignabilityResolver()).Diagnostics.Select(d => d.Id));
+	}
+
+	[Fact]
 	public void An_incompatible_parameterized_replacement_is_reported()
 	{
 		// §14 over §4.2: a parameterized rule has no lowered body of its own, so its

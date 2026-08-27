@@ -58,7 +58,9 @@ then quietly mean nothing.
 | parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
+| a value parameter given a literal of its type §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value parameter's name read by the C# it was written in §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value parameter given something the parse produces | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | one capture name over rules of one declared type §7.3 | — | — | ✓ | ✓ | ✓ |
 | the scalar form of it, `: item` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |

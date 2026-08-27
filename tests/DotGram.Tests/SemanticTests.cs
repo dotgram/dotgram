@@ -683,8 +683,6 @@ public sealed class SemanticTests
 	[InlineData(GrammarNormalizer.UnbuiltRecovery,
 		"Start = a: Row* recover eol => @(1) & b: Row* recover eol => @(2)\n"
 		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
-	[InlineData(GrammarNormalizer.UnbuiltCall,
-		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
 	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
 		"B(item) = item\nD = 'd'\nnamespace Ctx with (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
@@ -982,14 +980,58 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 
 	[Fact]
-	public void A_parameter_declared_as_a_C_sharp_type_is_a_value_and_says_so() =>
-		// §4.2: a C# type makes the parameter a value, anything else makes it a recognizer.
-		// Only one value is built — a number — so a `pad: char` handed a literal used to be
-		// quietly taken as a recognizer instead, which is the declaration meaning one thing
-		// to the author and another to the compiler.
+	public void A_parameter_declared_as_a_C_sharp_type_takes_a_literal_of_that_type()
+	{
+		// §4.2: a C# type makes the parameter a value, and a value is a literal. The
+		// specialization holds the one the call passed, so the C# the rule wrote reads
+		// it — which is what "a value is allowed anywhere a value is expected" says, and
+		// what used to emit a factory reading a name that does not exist.
+		var result = Compile("""
+			Padded(item, pad: char) : @string = t: item => @(t + pad)
+			Word   : @string = w: ['a'..'z']+ => @(w)
+			Marked : @string = m: Padded(Word, '!') => @(m)
+
+			parse Marked
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab!", EmittedCode.Match(assembly, "Grammar", "TryParseMarked", "ab").Value);
+	}
+
+	[Fact]
+	public void And_the_same_rule_specialized_twice_holds_two_values()
+	{
+		// The value is part of what a specialization is: two calls passing different
+		// literals are two rules, not one shared one holding whichever came last.
+		var result = Compile("""
+			Mark(item, m: char) : @string = t: item => @(t + m)
+			Word  : @string = w: ['a'..'z']+ => @(w)
+			Bang  : @string = b: Mark(Word, '!') => @(b)
+			Query : @string = q: Mark(Word, '?') => @(q)
+
+			parse Bang
+			parse Query
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab!", EmittedCode.Match(assembly, "Grammar", "TryParseBang",  "ab").Value);
+		Assert.Equal("ab?", EmittedCode.Match(assembly, "Grammar", "TryParseQuery", "ab").Value);
+	}
+
+	[Fact]
+	public void And_refuses_a_rule_where_a_value_was_declared() =>
+		// The declaration says which kind the parameter is, and a rule is not a value —
+		// taken as a recognizer, it would be the declaration meaning one thing to the
+		// author and another to the compiler.
 		Refused(
 			GrammarNormalizer.UnbuiltCall,
-			"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')");
+			"Padded(item, pad: char) = item & @(pad)\nWord = ['a'..'z']+\nSpace = ' '\nStart = Padded(Word, Space)");
 
 	[Fact]
 	public void A_number_still_reaches_a_parameter_that_declared_its_type() =>

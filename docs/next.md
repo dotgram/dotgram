@@ -4131,3 +4131,39 @@ machinery nor the arena has a shape for. Both halves are pinned: the postfix cha
 runs, the mutual `A = B - N | N` / `B = A + N | N` is refused, and the old
 `Other = Start | 'y'` pin survives unchanged as what it now is - an intermediary that
 is not only a name.
+
+## Built: a value parameter is the literal the call passed, wherever it is written
+
+Third red row, and it opened on a live bug. §4.2 says a value parameter is allowed
+anywhere a value is expected - a quantifier count, the arguments of `@Method`, inside
+`@(...)` - and only the count ever worked. The name written in C# was emitted as
+itself, so `Digits(n: int) : @int = ['0'..'9']{n} => @(n * 100)` produced a factory
+reading an `n` that does not exist: a compile error in somebody else's build, about a
+file they never wrote, with no diagnostic of ours anywhere near it.
+
+A specialization has one concrete argument, so what a value parameter stands for is
+known where the specialization is made and it is a piece of C# text. `Substituted`
+puts it where the name was written, identifier-aware rather than a string replace: a
+parameter called `n` does not rewrite the `n` of `name`, of `x.n`, of a comment, of a
+string, or of a character literal - and an interpolated string is read as what it is,
+text with code in its holes, so `$"{t}-{n} n"` becomes `$"{t}-{7} n"`. Verbatim
+strings, doubled quotes and doubled braces are all text.
+
+With that in place the feature is the same mechanism: a literal argument is a value,
+`Text(Expr)` already renders one as the C# it stands for, and the value is part of what
+a specialization is - `Mark(Word, '!')` and `Mark(Word, '?')` are two rules. What the
+literal is is C#'s to say, so the resolver is asked; a permissive one leaves the answer
+to the consumer's own compiler, which is where §7.4 puts every other question about the
+C# a grammar wrote.
+
+Two things the first attempt got wrong, both caught by the suite rather than by
+reading. A literal's kind comes from the parameter's declaration, not from the literal:
+the same `' '` is a piece of grammar where the parameter is a recognizer (JSON's
+`List(Value, ',')`, `Padded(Word, ' ')`) and a `char` where it is a value. And a number
+is a value whatever the declaration says, because `Digits(n) = ['0'..'9']{n}` is how
+§4.2's own example writes a count and `FixedWidthExample` is built on it.
+
+§4.2's table promised "a literal or a previously captured value". The second spelling
+cannot work and now says so: a specialization is made before anything runs, and a
+captured value exists only while it does. Refused with that reason, and the spec
+corrected rather than left promising it.

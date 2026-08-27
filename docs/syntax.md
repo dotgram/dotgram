@@ -490,7 +490,7 @@ Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 | --- | --- | --- |
 | `item` | a recognizer; result type comes from the call site | a rule, a literal or a recognition expression |
 | `item: Row` | a recognizer constrained to produce `Row` | the same, but obliged to produce `Row` |
-| `n: int`, `t: @Tag` | a value | a literal or a previously captured value |
+| `n: int`, `t: @Tag` | a value | a literal, or a value this rule was handed itself |
 
 Which kind a parameter is follows from §2, with nothing new needed: **rules** live in
 the grammar namespace, **types** in C#'s. That settles an ambiguity otherwise
@@ -509,7 +509,17 @@ Name    = Lex(Identifier)        // : string
 ```
 
 A value parameter is allowed anywhere a value is expected: in a quantifier count
-(`{n}`), in the arguments of `@Method`, inside `@(...)`.
+(`{n}`), in the arguments of `@Method`, inside `@(...)`. It stands for the literal the
+call passed, put where the name was written — so `Padded(item, pad: char)` called as
+`Padded(Word, '!')` reads a `'!'` and hands `'!'` to the C# it wrote. Two calls passing
+different literals are two specializations, the same as two calls passing different
+recognizers.
+
+A number is a value whatever the parameter's declaration says, because a count is where
+one goes: `Digits(n) = ['0'..'9']{n}` needs no type on `n`, and only a value that
+reaches C# needs one. What a value **cannot** be is something the parse produces: a
+specialization is made before anything runs, and a captured value exists only while it
+does. Pass a literal, or capture the thing and hand it to the `=>`.
 
 A recognizer parameter never becomes a delegate — specialization means calling it
 costs exactly what calling the rule directly costs. A recursive parameterized call

@@ -88,7 +88,7 @@ public sealed partial class GrammarNormalizer
 		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
 		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard     (var value)                       => Guarded(value),
-		Expr.CSharp    (var text)                        => new Node.Guard($"@({text})", StartOf(expression)),
+		Expr.CSharp    (var text)                        => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
 		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
 		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
 
@@ -117,10 +117,15 @@ public sealed partial class GrammarNormalizer
 	Node LowerConstruct(Expr pattern, Expr value, GrammarNamespace ns)
 	{
 		return new Node.Construct(
-			Lower(pattern, ns), new Construction.Expression(Text(value), StartOf(value)));
+			Lower(pattern, ns),
+			new Construction.Expression(Substituted(Text(value)), StartOf(value)));
 	}
 
-	static Node Guarded(Expr value) => new Node.Guard(Text(value), StartOf(value));
+	// Substituted, because a value parameter is allowed anywhere a value is expected and
+	// this is one of those places (§4.2, GrammarNormalizer.Values.cs). Off every path but
+	// a specialization's own: outside one there is nothing to substitute and the text is
+	// handed back as it was written.
+	Node Guarded(Expr value) => new Node.Guard(Substituted(Text(value)), StartOf(value));
 
 	/// <summary>
 	/// Where the C# of an expression starts, which is not always where the expression does.
@@ -445,48 +450,114 @@ public sealed partial class GrammarNormalizer
 		// given rather than a parameter of its own.
 		var passed = new List<Node?>(arguments.Count);
 		var counts = new List<int?>(arguments.Count);
+		var values = new List<string?>(arguments.Count);
 
-		foreach (var argument in arguments)
-			if (argument is Expr.Number(var value))
+		// §4.2 gives a parameter's kind by what its own declaration says — a C# type makes
+		// it a value, anything else a recognizer — and the argument is read as that kind.
+		// The same `' '` is a piece of grammar where the parameter is a recognizer and a
+		// `char` where it is a value, which is why this pairs the two rather than reading
+		// the argument alone.
+		for (var i = 0; i < arguments.Count; i++)
+		{
+			var parameter = declaration.Params[i];
+			var argument  = arguments[i];
+
+			if (parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name)))
+			{
+				// A value is a literal, or a value this rule was handed itself. §4.2's
+				// other spelling — a value captured earlier in the parse — is not one: a
+				// specialization is made before anything runs, and a captured value
+				// exists only while it does (docs/next.md).
+				var value = argument switch
+				{
+					Expr.Number(var number) => Text(number),
+					Expr.Literal            => Text(argument),
+					Expr.Reference(false, var named, _) when _values.TryGetValue(named, out var carried)
+						=> carried,
+					_ => null,
+				};
+
+				if (value is null)
+				{
+					Report(
+						UnbuiltCall,
+						$"'{parameter.Name}' is declared as the C# type '{TypeName(kind)}', which " +
+						"docs/syntax.md §4.2 makes a value, and a value is a literal or a value this " +
+						"rule was handed itself. Pass one, or drop the type to make it a recognizer.",
+						parameter.At);
+
+					return Node.Empty.Instance;
+				}
+
+				// What C# will make of the literal, against what the parameter says it is.
+				// The resolver is the seam that knows; one that admits everything leaves
+				// the answer to the consumer's own compiler, which is where §7.4 puts
+				// every other question about the C# a grammar wrote.
+				if (LiteralType(argument) is { } actual &&
+					!_resolver.IsAssignable(actual, TypeName(kind)))
+				{
+					Report(
+						UnbuiltCall,
+						$"'{parameter.Name}' is declared as '{TypeName(kind)}' and is passed a {actual}.",
+						parameter.At);
+
+					return Node.Empty.Instance;
+				}
+
+				passed.Add(null);
+				values.Add(value);
+
+				// A number is the one value a quantifier count can also be.
+				counts.Add(argument switch
+				{
+					Expr.Number(var number) => number,
+					Expr.Reference(false, var named, _) when _counts.TryGetValue(named, out var forwarded)
+						=> forwarded,
+					_ => null,
+				});
+
+				continue;
+			}
+
+			// A number is a value whatever the parameter's declaration says, because a
+			// quantifier count is where one goes and `Digits(n) = ['0'..'9']{n}` is how
+			// §4.2's own example writes it — the type is what a rule needs only when the
+			// value reaches C#.
+			if (argument is Expr.Number(var count))
 			{
 				passed.Add(null);
-				counts.Add(value);
+				counts.Add(count);
+				values.Add(Text(count));
+
+				continue;
 			}
-			else if (argument is Expr.Reference(false, var named, _) &&
-				_counts.TryGetValue(named, out var forwarded))
+
+			if (argument is Expr.Reference(false, var handed, _) &&
+				(_counts.ContainsKey(handed) || _values.ContainsKey(handed)))
 			{
 				passed.Add(null);
-				counts.Add(forwarded);
-			}
-			else
-			{
-				passed.Add(Lower(argument, ns));
-				counts.Add(null);
+				counts.Add(_counts.TryGetValue(handed, out var number) ? number : null);
+				values.Add(_values.TryGetValue(handed, out var held) ? held : null);
+
+				continue;
 			}
 
-		// §4.2 gives a parameter's kind by what its declaration says: a C# type makes it a
-		// value, anything else a recognizer. Only one value is built — a number, which a
-		// quantifier count can be — and a parameter declared `pad: char` that is handed
-		// anything else would silently become a recognizer instead. Refused rather than
-		// taken as something the grammar did not say.
-		for (var i = 0; i < declaration.Params.Count; i++)
-			if (declaration.Params[i].Type is { } kind &&
-				(kind.IsCSharp || IsCSharpKeyword(kind.Name)) &&
-				counts[i] is null)
-			{
-				Report(
-					UnbuiltCall,
-					$"'{declaration.Params[i].Name}' is declared as the C# type " +
-					$"'{TypeName(kind)}', which docs/syntax.md §4.2 makes a value, and the " +
-					"only value a call may pass so far is a number. Pass a number, or drop the " +
-					"type to make it a recognizer.",
-					declaration.Params[i].At);
+			passed.Add(Lower(argument, ns));
+			counts.Add(null);
+			values.Add(null);
+		}
 
-				return Node.Empty.Instance;
-			}
-
-		return Instantiate(rule, passed, counts);
+		return Instantiate(rule, passed, counts, values);
 	}
+
+	/// <summary>The C# type a literal argument is, or null where the argument is not one.</summary>
+	static string? LiteralType(Expr argument) => argument switch
+	{
+		Expr.Number                => "int",
+		Expr.Literal(true,  _)     => "char",
+		Expr.Literal(false, _)     => "string",
+		_                          => null,
+	};
 
 	/// <summary>
 	/// The specialization itself, from arguments already lowered — split from
@@ -494,19 +565,22 @@ public sealed partial class GrammarNormalizer
 	/// specialization for the same arguments a call already carried (§5.1), long after
 	/// <c>LowerAll</c> has run.
 	/// </summary>
-	Node Instantiate(RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts)
+	Node Instantiate(
+		RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts,
+		IReadOnlyList<string?> values)
 	{
 		var declaration = rule.Declaration!;
 
+		// Keyed by what the arguments are, so two calls that pass the same things share
+		// one specialization — and a value is part of that: `Padded(Word, ' ')` and
+		// `Padded(Word, '\t')` are two rules, not one.
 		var key = rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
-			node is null
-				? counts[i]!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
-				: node.ToString())) + ")";
+			node?.ToString() ?? values[i] ?? "?")) + ")";
 
 		if (_specialized.TryGetValue(key, out var made))
 			return new Node.Call(made, []);
 
-		var specialized = new RuleSymbol(NameFor(rule, passed, counts), rule.Namespace, declaration);
+		var specialized = new RuleSymbol(NameFor(rule, passed, counts, values), rule.Namespace, declaration);
 
 		_specialized[key] = specialized;
 		_rules.Add(specialized);
@@ -514,7 +588,7 @@ public sealed partial class GrammarNormalizer
 		// What this specialization is an instance of, and of what arguments — the one
 		// fact a parameterized rebinding needs later: a call to it is a call to the rule
 		// with these arguments, and the binding replaces the rule, not the instance.
-		_origins[specialized] = (rule, passed, counts);
+		_origins[specialized] = (rule, passed, counts, values);
 
 		// Before lowering, for the same reason an ordinary rule is: a specialization that
 		// reaches itself would otherwise recurse here rather than be reported.
@@ -522,15 +596,23 @@ public sealed partial class GrammarNormalizer
 
 		var outerArguments = _arguments;
 		var outerCounts    = _counts;
+		var outerValues    = _values;
 
 		_arguments = new Dictionary<string, Node>(StringComparer.Ordinal);
 		_counts    = new Dictionary<string, int>(StringComparer.Ordinal);
+		_values    = new Dictionary<string, string>(StringComparer.Ordinal);
 
 		for (var i = 0; i < passed.Count; i++)
+		{
 			if (passed[i] is { } node)
 				_arguments[declaration.Params[i].Name] = node;
-			else
-				_counts[declaration.Params[i].Name] = counts[i]!.Value;
+
+			if (counts[i] is { } count)
+				_counts[declaration.Params[i].Name] = count;
+
+			if (values[i] is { } value)
+				_values[declaration.Params[i].Name] = value;
+		}
 
 		_specializing.Add(specialized.Name);
 
@@ -541,6 +623,7 @@ public sealed partial class GrammarNormalizer
 		_currentRule         = outerRule;
 		_arguments           = outerArguments;
 		_counts              = outerCounts;
+		_values             = outerValues;
 
 		_specializing.RemoveAt(_specializing.Count - 1);
 
@@ -584,7 +667,9 @@ public sealed partial class GrammarNormalizer
 	/// the call's arguments, so it must be able to say "the same arguments, of the
 	/// replacement" long after the call itself was lowered away.
 	/// </summary>
-	readonly Dictionary<RuleSymbol, (RuleSymbol Origin, IReadOnlyList<Node?> Passed, IReadOnlyList<int?> Counts)> _origins = [];
+	readonly Dictionary<RuleSymbol, (
+		RuleSymbol Origin, IReadOnlyList<Node?> Passed, IReadOnlyList<int?> Counts,
+		IReadOnlyList<string?> Values)> _origins = [];
 
 	/// <summary>A repetition count: written, or the name of a parameter that carries one.</summary>
 	int? Counted(int? written, string? name, Expr at)
@@ -631,16 +716,22 @@ public sealed partial class GrammarNormalizer
 	/// not a call has no name of its own and is numbered instead — the alternative is a
 	/// method named after a character class.
 	/// </remarks>
-	string NameFor(RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts)
+	string NameFor(
+		RuleSymbol rule, IReadOnlyList<Node?> passed, IReadOnlyList<int?> counts,
+		IReadOnlyList<string?> values)
 	{
 		var name = rule.Name;
 
 		for (var i = 0; i < passed.Count; i++)
 			name += "_" + (passed[i] switch
 			{
-				null                     => Text(counts[i]!.Value),
-				Node.Call(var called, _) => called.Name.Replace(".", "_"),
-				_                        => Text(_specialized.Count),
+				// A number reads as itself; any other value is a piece of C# and its
+				// characters are not all ones an identifier may hold, so it is numbered
+				// instead. The name only has to be distinct and legible.
+				null when counts[i] is { } count => Text(count),
+				null                             => "value" + Text(_specialized.Count),
+				Node.Call(var called, _)         => called.Name.Replace(".", "_"),
+				_                                => Text(_specialized.Count),
 			});
 
 		var taken = name;
