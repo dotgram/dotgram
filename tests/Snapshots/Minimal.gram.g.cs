@@ -1876,12 +1876,12 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
-					expected = Recognize_DotGram_Alias_Expected0;
+					expected = Recognize_DotGram_Alias_Expected1;
 					goto Fail;
 				}
 				if (text[p] != '#')
 				{
-					expected = Recognize_DotGram_Alias_Expected0;
+					expected = Recognize_DotGram_Alias_Expected1;
 					goto Fail;
 				}
 				p += 1;
@@ -1899,19 +1899,19 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
-					expected = Recognize_DotGram_Alias_Expected1;
+					expected = Recognize_DotGram_Alias_Expected0;
 					goto Fail;
 				}
 				c = text[p];
 				if (!(((c >= '0' && c <= '9'))))
 				{
-					expected = Recognize_DotGram_Alias_Expected1;
+					expected = Recognize_DotGram_Alias_Expected0;
 					goto Fail;
 				}
 				p++;
 			}
 
-			S16:
+			S19:
 			{
 				turn0 = p;
 			}
@@ -1920,20 +1920,20 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
-					expected = Recognize_DotGram_Alias_Expected1;
-					goto S17;
+					expected = Recognize_DotGram_Alias_Expected0;
+					goto S20;
 				}
 				c = text[p];
 				if (!(((c >= '0' && c <= '9'))))
 				{
-					expected = Recognize_DotGram_Alias_Expected1;
-					goto S17;
+					expected = Recognize_DotGram_Alias_Expected0;
+					goto S20;
 				}
 				p++;
-				goto S16;
+				goto S19;
 			}
 
-			S17:
+			S20:
 			{
 				p = turn0;
 			}
@@ -4527,9 +4527,9 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Number_Expected0 = { "['0'..'9']" };
 
-		static readonly string[] Recognize_DotGram_Alias_Expected0 = { "'#'" };
+		static readonly string[] Recognize_DotGram_Alias_Expected0 = { "['0'..'9']" };
 
-		static readonly string[] Recognize_DotGram_Alias_Expected1 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Alias_Expected1 = { "'#'" };
 
 		static readonly string[] Recognize_DotGram_Predicted_Expected0 = { "\"aa\"" };
 

@@ -3583,3 +3583,43 @@ to Accept through the value-capture protocol. That needs the engine's capture
 protocol to accept a value that has no Completed entry, which is the same seam the
 eager build touched; the difference is that the decision is made once, at
 generation time, and costs the runtime nothing.
+
+## Built: sited calls - a captured call compiled as its callee's body
+
+The compile-time successor to the declined eager experiment. A captured call whose
+callee is the flat-value shape - one factory over captures that are spans of the
+input, with a required span to witness the site ran - compiles as the callee's body
+in place: its captures record into a run of slots the site owns (the same rule
+inlined twice may not share records), and the materializer builds the member by
+calling the callee's factory over those spans directly. No Call entry, no Completed
+rewrite, no RuleCapture, no dispatch - nothing written that was not already paid
+for, which is what the eager measurement demanded.
+
+No silence is asked. The site's captures are ordinary arena records and unwind like
+any others, so every call site of a qualifying rule qualifies, settled or not; and
+construction is untouched - the factory still runs at Accept, off the accepted
+derivation. Two exclusions carry the protocol they replace: a rule with a guard
+reads members mid-parse through the completed-call protocol, and a machine that
+recovers reads elements off it, so both keep the ceremony.
+
+Two bugs found by the example suite on first run, both worth remembering. Node is a
+record, and record equality is by value: `t: Line` written in two rules is one
+dictionary key unless the map is built over `NodeIdentity` - the same lesson
+CaptureLayout.cs already carries. And a rule every call of which became a site
+leaves its own states unreachable, whose capture local then trips CS0219 in the
+consumer's build - `UsesCapture` now checks the written states the way `UsesChar`
+does.
+
+Measured Release-to-Release: the corpus is flat (Csv 1.91, Feed 2.7, Minimal 2.10,
+Url 2.87 against 1.93 / 2.69 / 2.07 / 2.94) - and the reason is the notation's own
+shape, not the mechanism. Its valued leaf captures are collections: `usings:
+Using`, `declarations: Declaration`, `alternatives: Alternative` - sequence
+members, which V1 refuses because per-turn records need element boundaries the
+scalar walk does not have. The scalar case pays off where real grammars capture a
+lexeme-like rule once - Markdown's `text: Line` in Heading is the shape - and it is
+the foundation the sequence extension stands on.
+
+Next, in order: sited sequence members - wrap each element in one synthetic extent
+capture as the boundary (net minus two entries per element and no dispatch, against
+the three-plus-dispatch it replaces), walk the chain grouping parts between
+boundaries; then transparent-collapsed multi-slot members if the counts say so.

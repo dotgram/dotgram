@@ -373,7 +373,15 @@ sealed partial class Machine
 
 				scalars.Add(memberIndex);
 
-				if (member.Rule is not null)
+				// A sited member has no completed call to point at — its value is built
+				// from the spans the site recorded, one pair per callee member.
+				if (SiteFor(offset, member) is { } sited)
+					for (var part = 0; part < sited.Members.Count; part++)
+					{
+						file.Line($"var captured{memberIndex}_{part}From = -1;");
+						file.Line($"var captured{memberIndex}_{part}To   = -1;");
+					}
+				else if (member.Rule is not null)
 					file.Line($"var captured{memberIndex}At = -1;");
 				else
 				{
@@ -399,6 +407,33 @@ sealed partial class Machine
 						foreach (var memberIndex in scalars)
 						{
 							var member = members[memberIndex];
+
+							// A sited member collects per callee member: each of the
+							// site's slots is a case of its own, filled the way a text
+							// capture is.
+							if (SiteFor(offset, member) is { } sited)
+							{
+								for (var part = 0; part < sited.Members.Count; part++)
+								{
+									file.Line($"case {sited.Base + sited.Members[part].Slots[0]}:");
+
+									using (file.Indent())
+									{
+										using (file.Block(
+											"if (candidate.Kind == ParserEntry.Capture && " +
+											"candidate.CallIndex == completedAt)"))
+										{
+											file.Line($"if (captured{memberIndex}_{part}To < 0)");
+											file.Then($"captured{memberIndex}_{part}To = candidate.Value;");
+											file.Line($"captured{memberIndex}_{part}From = candidate.Position;");
+										}
+
+										file.Line("break;");
+									}
+								}
+
+								continue;
+							}
 
 							foreach (var slot in member.Slots)
 								file.Line($"case {offset + slot}:");
@@ -438,6 +473,46 @@ sealed partial class Machine
 
 				if (member.Rule is not null)
 				{
+					// A sited member is the callee's one factory over the spans the site
+					// recorded — called here, deferred to Accept exactly as a completed
+					// call's would have been, with the first required span as the witness
+					// that the site ran at all.
+					if (SiteFor(offset, member) is { } sited)
+					{
+						var witness = 0;
+
+						while (sited.Members[witness].IsOptional)
+							witness++;
+
+						var arguments = new List<string>(sited.Members.Count);
+
+						for (var part = 0; part < sited.Members.Count; part++)
+							arguments.Add(
+								$"captured{memberIndex}_{part}From < 0 ? " +
+								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
+								$"text.Slice(captured{memberIndex}_{part}From, " +
+								$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From).ToString()");
+
+						var built = $"{_factories[sited.Callee][0].Method}({string.Join(", ", arguments)})";
+
+						if (member.IsOptional)
+							file.Line(
+								$"{_results.ValueOf(member.Rule)}? captured{memberIndex} = " +
+								$"captured{memberIndex}_{witness}From < 0 ? " +
+								$"default({_results.ValueOf(member.Rule)}?) : {built};");
+						else
+						{
+							file.Line(
+								"global::System.Diagnostics.Debug.Assert(" +
+								$"captured{memberIndex}_{witness}From >= 0);");
+							file.Line($"var captured{memberIndex} = {built};");
+						}
+
+						file.Line();
+
+						continue;
+					}
+
 					if (member.IsSequence)
 					{
 						var slots = new List<string>(member.Slots.Count);

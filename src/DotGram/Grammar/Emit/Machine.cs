@@ -184,6 +184,11 @@ sealed partial class Machine
 			}
 		}
 
+		// After the first pass, because qualification reads the factories of callees the
+		// pass may not have reached yet; before anything compiles, because a site is a
+		// run of slots and the run has to be numbered before a state names it.
+		PlanSites();
+
 		var ruleIndex = 0;
 
 		foreach (var rule in _rules)
@@ -650,8 +655,11 @@ sealed partial class Machine
 				if (_usesCompleted)
 					file.Line("var completedCall = -1;");
 
+				// Declared only where a written state reads or writes it: a rule every
+				// call of which was compiled as a site leaves its own states unreachable,
+				// and an unused local is a warning in somebody else's build.
 				for (var i = 0; i < _captures; i++)
-					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i))
+					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i) && UsesCapture(i))
 						file.Line($"var capture{i} = 0;");
 
 				file.Line();
@@ -1331,7 +1339,7 @@ sealed partial class Machine
 
 			case Node.Capture(_, var body):
 			{
-				var slot = _captureSlots[node];
+				var slot = SlotOf(node);
 
 				// Two locals and nothing else: where the span began, and where it ended.
 				// Sound because `CanLowerValued` admitted no shape that could backtrack
@@ -1379,6 +1387,13 @@ sealed partial class Machine
 
 					return flatState;
 				}
+
+				// A captured call whose callee is the flat-value shape: the body stands
+				// where the call was, its captures record into the site's own slots, and
+				// the materializer builds the member from those spans — no Call entry, no
+				// Completed rewrite, no RuleCapture, no dispatch (Machine.Sites.cs).
+				if (_sites.TryGetValue(node, out var sitePlan))
+					return CompileSite((Node.Capture)node, sitePlan, next, following);
 
 				if (body is Node.Lookahead(true, var seen))
 					return CompileLookaheadCapture(slot, seen, next);

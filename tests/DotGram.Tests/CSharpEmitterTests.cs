@@ -150,12 +150,13 @@ public sealed class CSharpEmitterTests
 	{
 		// Three calls, one block. The value is what needs the block: it is materialized at
 		// the rule's own boundary, so the boundary has to be there to materialize it at.
-		// The trailing choice needs a way back ("q" continues into "qq"), which is what
-		// keeps this grammar on the engine now that a flat-valued rule inlines instead.
+		// The trailing choice needs a way back ("q" continues into "qq"), which keeps the
+		// grammar on the engine; Name's two constructions keep it off the sited-call path
+		// — a site speaks one factory, and this rule deliberately has two.
 		var source = Emit(
 			"""
 			Start : @string = a: Name & ':' & b: Name & ':' & c: Name & ("q" | "qq") => @(a + b + c)
-			Name  : @string = t: ('a' | 'b') => @(t)
+			Name  : @string = t: 'a' => @(t) | t: 'b' => @(t)
 			parse Start
 			""");
 
