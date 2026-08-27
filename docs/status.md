@@ -111,11 +111,19 @@ The inline form is `Start = ("xy" | "x") & 'y'`. Extracting the choice into `Nam
 not change its meaning, and a whole `parse` keeps alternatives available until the
 end-of-input condition is satisfied.
 
-**A grammar needing none of this compiles without the automaton at all.** No recursion, no
-backtracking anywhere, no construction deferred past a match — a rule proven to need none
-of the three compiles to a plain method, and where every publication qualifies, neither the
-arena nor the pooled parser is emitted. What follows in this section is about the grammars
-that do need it.
+**A publication needing none of this compiles without the automaton at all.** No
+recursion, no backtracking its proofs cannot discharge, no record a local cannot hold — a
+qualifying publication compiles to a plain method: captures as position locals, the one
+construction run after the whole-input check, a captured call to another such rule
+compiled as that rule's body in place. The question is asked per machine, of the rules it
+actually reaches — a recovery or a climb elsewhere in the grammar is some other machine's
+business — and where every publication of a machine qualifies, neither the arena nor the
+pooled parser is emitted for it. Inside the engine the same proofs shrink what is written:
+a possessive repetition is a loop with no entry, a one-character lookahead is its test, an
+atomic group over silent alternatives is a chain through one checkpoint local, and a
+captured call to a flat-valued rule is a site — the callee's body in place, its spans in
+slots of the site's own, its factory called at Accept, with no Call entry and no dispatch.
+What follows in this section is about what remains.
 
 `{ ... }` is the explicit exception. After an atomic group succeeds, alternatives made
 inside it are discarded; `{ "xy" | "x" } & 'y'` therefore fails on `xy`. A rule boundary
@@ -1320,9 +1328,15 @@ stage may itself be a rule with stages of its own. **Neither is built**: one `re
 rule is still refused, which is an implementation limit that this shape makes visible, and
 it will bite exactly when multi-stage feeds become worth writing.
 
-Nothing is emitted from any of this yet — no overloads, no diagnostic. The analysis is
-tested on its own, because one only exercised through the feature it gates is one nobody
-can tell is wrong.
+Both halves are built and emitting: `find` and `parse` take a `TextReader` where the
+analysis allows one, the driver reads stage by stage through the reused window, recovery
+steps over broken elements in the stream the way it does in memory, and a publication
+refused an overload is told why in a GRAM5001 information diagnostic. A spaced collection
+streams too — the driver skips the seam §4.5 weaves before each element it hands over,
+growing the window while the trivia may continue past it — and four thousand seamed
+records through a window that holds none of them for long is a pinned test. *`parse`
+reads from a reader* above has the mechanics; the analysis above is what the overloads
+rest on.
 
 ## What has been measured
 
@@ -1426,13 +1440,31 @@ has not applied since that generator was removed.
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
 
-**Whole-grammar lowering**: a grammar every publication of which needs none of the arena's
-three uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
+**Flat lowering**: a machine every publication of which needs none of the arena's three
+uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
 *Backtracking, and where it stops* above. Measured on a grammar structurally identical to a
-repeated-record feed (`benchmarks/Flat.cs`, one added capture the only difference from the
-lowered version): 119 ns and zero allocation against 691 ns and 952 B through the shared
-engine. A grammar with even one rule that still needs the arena pays the whole cost for
-every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
+repeated-record feed (`benchmarks/Flat.cs`): 119 ns and zero allocation against 691 ns and
+952 B through the shared engine. The gate is per machine and per reachable subgraph, so a
+recovery or a climb elsewhere in the grammar no longer costs an unrelated publication its
+flat path, and a value no longer disqualifies one: captures lower to position locals and
+the construction runs after the whole-input check, deferred exactly as the engine defers
+it.
+
+**The document shape, across the 2026-08 series** (`benchmarks/Documents.cs`: four hundred
+key-value records, trivia at every seam, span values, a collection in reading order):
+287.5 µs and 3.14 MB per parse before the series, 19.3 µs and 46 KB after — fifteenfold in
+time, sixty-eightfold in allocation, and the 46 KB that remain are the result itself. The
+seam costs seven percent over the dense input, comments ten. What moved it, in order:
+machine-scoped lowering gates, a repeated capture recorded once instead of per character,
+valued publications lowered flat, captured calls compiled as sites, the trivia scanner
+asking one character for the whole choice and searching for its comment delimiter instead
+of testing it twice per character, and the give-back doors, checkpoints and locals the CFG
+work removed. On the notation grammar itself — a tower of recursive valued rules, which is
+the shape none of the flat work can reach — the hand-written-to-generated ratio stands
+between 1.8 and 2.6 depending on the corpus file, from about 3 before the series; what
+remains there is the completion ceremony, measured to its floor and pinned by two recorded
+experiments (`docs/next.md`: eager construction, and the RuleCapture fusion) as the price
+of honest backtracking.
 
 **Eager construction** — a rule proved `Committed && Deterministic` at every call site
 running its `=>` the moment it returns, rather than waiting for the parse to be accepted —
