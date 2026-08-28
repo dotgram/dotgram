@@ -5095,3 +5095,73 @@ workaround above trades a factory named in the grammar for a null test in the ho
 common head would not ask for. It belongs on the list beside the lexical layer.
 
 1,271 tests green in both configurations.
+
+## Built: GRAM4016, and the two shipped examples it caught in its first run
+
+The diagnostic the last entry asked for. Two alternatives that begin with the same
+operand, where that operand leads back to the rule holding them — the shape whose cost
+compounds per level of nesting rather than merely doubling once.
+
+**It found the trap in the repository's own examples before it found anything else.**
+`DecimalCalculatorExample` and `ExpressionTreeExample` both wrote
+
+```dotgram
+Power = left: Primary & '^' & right: Unary | value: Primary
+```
+
+and `Primary` leads back to `Power` through its parentheses. Measured on the shipped
+calculator, one parse each:
+
+| parentheses deep | before | after |
+| --- | --- | --- |
+| 11 (45 chars) | 1.9 ms | 0.029 ms |
+| 13 (53 chars) | 5.4 ms | 0.035 ms |
+| 16 (65 chars) | **29.6 ms** | **0.052 ms** |
+
+Doubling per level before, flat after — and these are examples written to be copied.
+
+**`docs/syntax.md` §4.3 taught the same shape**, in the paragraph explaining that
+associativity is which side the recursion is on. It still explains that, and now also
+explains why the left-recursive one costs nothing and the right-recursive one has to be
+written with the tail optional: a left-recursive rule is rewritten into a loop over its
+tails, so its head operand is read once however many alternatives there are; a
+right-recursive one has no such rewrite.
+
+### Why it reports rather than rewrites
+
+Because the two forms are not the same grammar, and the difference is sometimes the
+point. Two alternatives prefer every reading of the first over any reading of the second,
+so a shared operand that *can give back* will give back to let the rest of the first
+alternative fit. Measured, on `a/b/c`:
+
+| | |
+| --- | --- |
+| `d: Segments & '/' & f: Name \| d: Segments` | `dir=a/b file=c` |
+| `d: Segments & ('/' & f: Name)?` | `dir=a/b/c file=-` |
+
+That is how the last segment of a path is split off, and no optional tail says it — the
+notation has no lazy quantifier to ask for a shorter reading. So where the operand can
+give back, which form to write is a decision about meaning and only the author has it.
+
+Where the operand **cannot** give back it has one reading, the two orders hold the same
+one thing, and the rewrite is exact — which is also when the diagnostic says nothing,
+because there is nothing to weigh. It is why the emitter has always factored runs of
+literal alternatives and why doing the same to a rule call in general would be wrong.
+
+`Doors` moved out of `Machine` into `Grammar/Model` for this: whether something leaves a
+way back into the middle of itself is now asked by two very different questions — whether
+a capture may keep its start in a variable, and whether two alternatives mean the same as
+one with an optional tail — and one of them is asked while the grammar is still being
+checked.
+
+### Not built: factoring where it is safe
+
+Also planned, and dropped on the measurement rather than on the effort. Factoring is
+invisible exactly where the shared operand leaves no door — and something that leaves no
+door cannot be recursive, because going round a cycle has to pass a repetition or a
+choice, and either of those *is* a door. So the cases where factoring is safe are exactly
+the cases where the cost cannot compound: a constant factor, on a shape the emitter
+already factors when it is written as literals. The exponential cases are precisely the
+unsafe ones. Writing that down is worth more than the code would have been.
+
+1,275 tests green in both configurations.

@@ -56,8 +56,12 @@ namespace DotGram.Examples;
 	Unary   : @Expression = '-' & operand: Unary                 => @(new Negate(operand))
 	                      | value: Power                         => @(value)
 
-	Power   : @Expression = left: Primary & '^' & right: Unary   => @(new Pow(left, right))
-	                      | value: Primary                       => @(value)
+	// The `^` is optional rather than a second alternative — see DecimalCalculatorExample
+	// for why. Two alternatives would read `Primary` twice, and `Primary` leads back here
+	// through its parentheses, so the doubling compounds per level of nesting. GRAM4016
+	// reports exactly that shape.
+	Power   : @Expression = left: Primary & ('^' & right: Unary)?
+	                      => @(right is null ? left : new Pow(left, right))
 
 	Primary : @Expression = '(' & inner: Sum & ')'               => @(inner)
 	                      | digits: Digits                       => @(new Number(decimal.Parse(digits, CultureInfo.InvariantCulture)))

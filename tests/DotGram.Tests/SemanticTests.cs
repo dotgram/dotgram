@@ -519,6 +519,59 @@ public sealed class SemanticTests
 		Assert.Equal(3, found.Cast<object>().Count());
 	}
 
+	/// <summary>Two alternatives beginning alike, where beginning twice compounds.</summary>
+	/// <remarks>
+	/// `Primary` leads back to `Power` through its parentheses, so reading it once for each
+	/// alternative doubles at every level of nesting. The shipped calculator example was
+	/// written this way: sixteen parentheses deep took 30 ms, and reading the operand once
+	/// takes 0.05 ms.
+	/// </remarks>
+	[Fact]
+	public void A_shared_beginning_that_leads_back_to_its_rule_is_reported() =>
+		Refused(
+			GrammarNormalizer.SharedPrefix,
+			"""
+			Power   : @int = left: Primary & '^' & right: Power => @(left + right)
+			               | value: Primary                    => @(value)
+			Primary : @int = '(' & inner: Power & ')'           => @(inner)
+			               | d: ['0'..'9']+                    => @(int.Parse(d))
+			""");
+
+	[Fact]
+	public void And_the_same_written_with_the_rest_optional_is_not() =>
+		Accepted(
+			"""
+			Power   : @int = left: Primary & ('^' & right: Power)? => @(left + (right ?? 0))
+			Primary : @int = '(' & inner: Power & ')'              => @(inner)
+			               | d: ['0'..'9']+                        => @(int.Parse(d))
+			""");
+
+	[Fact]
+	public void And_a_shared_beginning_that_leads_nowhere_back_is_not() =>
+		// Splitting the last segment off a path: two alternatives are the only way to say
+		// it, the operand gives back so the tail fits, and nothing here reads anything
+		// twice per level because nothing nests. Reporting this would be noise.
+		Accepted(
+			"""
+			Name     = ['a'..'z']+
+			Segments = Name & ('/' & Name)*
+			Start    = d: Segments & '/' & f: Name | d: Segments
+			""");
+
+	[Fact]
+	public void And_one_whose_beginning_cannot_give_back_is_not() =>
+		// A literal has one reading, so the two orders hold the same one thing and there is
+		// nothing to weigh — which is also why the emitter has always factored these.
+		Accepted("Start = \"ab\" & 'c' | \"ab\" & 'd'");
+
+	static void Accepted(string grammar)
+	{
+		var diagnostics = Compile(grammar).Diagnostics;
+
+		Assert.DoesNotContain(
+			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
+	}
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;

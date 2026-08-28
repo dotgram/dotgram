@@ -42,6 +42,7 @@ public sealed partial class GrammarNormalizer
 	public const string ReservedCaptureName = "GRAM4012";
 	public const string UnbuiltCall         = "GRAM4013";
 	public const string AmbiguousExternal   = "GRAM4015";
+	public const string SharedPrefix        = "GRAM4016";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -149,6 +150,10 @@ public sealed partial class GrammarNormalizer
 
 	void Report(string id, string message, Location at) =>
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+
+	/// <summary>The same, for a grammar that is correct and will be slower than it reads.</summary>
+	void Warn(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
 
 	// ── Nullability and the checks that need it ──────────────────────────────────
 

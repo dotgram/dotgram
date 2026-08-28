@@ -180,7 +180,7 @@ sealed partial class Machine
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
-		var doors = DoorsByRule();
+		var doors = Doors.ByRule(graph.Rules, graph.Bodies);
 
 		foreach (var rule in _rules)
 		{
@@ -226,7 +226,7 @@ sealed partial class Machine
 						// leaves none there is no way back into the close, and the variable
 						// is still right — which is most captures, `port: Digit+` over a set
 						// of digits included.
-						if (graph.Recursive.Contains(rule) || LeavesADoor(captured, doors))
+						if (graph.Recursive.Contains(rule) || Doors.LeavesOne(captured, doors))
 							_nestedCaptures.Add(slot);
 
 						// And a capture inside a repetition records one entry per turn, whose
@@ -341,71 +341,6 @@ sealed partial class Machine
 		}
 
 		return found;
-	}
-
-	/// <summary>
-	/// Whether matching this can leave a way back into the middle of it.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A repetition leaves the door its runs and turns are given back through, a choice
-	/// leaves the one an alternative is resumed by, and a negative lookahead leaves the
-	/// entry its own failure is read off. A literal and an element match where they stand
-	/// or fail there, and a failure that reaches past them has nothing here to come back
-	/// to. A call leaves whatever its callee leaves and nothing of its own: the arena's
-	/// own <c>Call</c> entry is a frame to restore while unwinding, never a state to
-	/// resume at — so a callee this machine does not know is the only one assumed to.
-	/// </para>
-	/// <para>
-	/// Asked through calls rather than assumed of them, because the difference is the
-	/// price of the answer: <c>port: Digit+</c> over <c>Digit = ['0'..'9']</c> is a
-	/// capture in a repetition whose body cannot be re-entered, and answering yes there
-	/// put a URL with a port a fifth slower for a hazard it does not have.
-	/// </para>
-	/// </remarks>
-	static bool LeavesADoor(Node node, IReadOnlyDictionary<RuleSymbol, bool> doors) =>
-		node switch
-		{
-			Node.Repeat                     => true,
-			Node.Lookahead(var positive, _) => !positive,
-			Node.Call(var called, _)        => !doors.TryGetValue(called, out var door) || door,
-			Node.Choice(var alternatives)   => alternatives.Count > 1 ||
-			                                   alternatives.Any(one => LeavesADoor(one, doors)),
-			Node.Sequence(var parts)        => parts.Any(part => LeavesADoor(part, doors)),
-			Node.Atomic(var body)           => LeavesADoor(body, doors),
-			Node.Capture(_, var captured)   => LeavesADoor(captured, doors),
-			Node.Construct(var built, _)    => LeavesADoor(built, doors),
-			_                               => false,
-		};
-
-	/// <summary>The same question of every rule, settled rather than walked.</summary>
-	/// <remarks>
-	/// A rule may reach itself, so the answer for one is the answer for the others and a
-	/// walk of a call would go round. Settling from no rule leaving a door is what makes
-	/// that terminate, and it is also right: a cycle has to pass a repetition or a choice
-	/// to come back round, and either of those answers yes on its own.
-	/// </remarks>
-	Dictionary<RuleSymbol, bool> DoorsByRule()
-	{
-		var doors = _graph.Rules.ToDictionary(static rule => rule, static _ => false);
-
-		for (var settling = true; settling;)
-		{
-			settling = false;
-
-			foreach (var rule in _graph.Rules)
-			{
-				if (doors[rule] ||
-					!_graph.Bodies.TryGetValue(rule, out var body) ||
-					!LeavesADoor(body, doors))
-					continue;
-
-				doors[rule] = true;
-				settling    = true;
-			}
-		}
-
-		return doors;
 	}
 
 	/// <summary>Whether any rule this machine compiles has a guard that reads a value.</summary>

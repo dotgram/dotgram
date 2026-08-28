@@ -566,12 +566,41 @@ what those shapes have meant since BNF.
 Sum   = left: Sum   & op: ['+' | '-'] & right: Product  => @Apply(left, op, right)
       | value: Product                                  => value
 
-Power = left: Unary & '^' & right: Power                => @Raise(left, right)
-      | value: Unary                                    => value
+Power = left: Unary & ('^' & right: Power)?             => @Raise(left, right)
 ```
 
 `1-2-3` groups as `(1-2)-3` and `2^3^2` as `2^(3^2)`, because that is how they are
 written.
+
+**The two are not written the same way, and the difference is the point.** `Sum`
+recurses on the left, and §4.3 rewrites a left-recursive rule into a loop over its tails
+— so the operand at the head is read once however many alternatives there are. `Power`
+recurses on the right, where there is no such rewrite, and the obvious form
+
+```dotgram
+Power = left: Unary & '^' & right: Power                => @Raise(left, right)
+      | value: Unary                                    => value                // no
+```
+
+reads `Unary` twice: once for an alternative that wants a `^` after it and once for the
+one that does not. That is a factor of two, and it *compounds* — `Unary` leads back to
+`Power` through the parentheses at the bottom of every expression grammar, so the second
+reading reads everything inside them twice again. Sixteen parentheses deep is thirty
+milliseconds written that way and a twentieth of one written as above. `GRAM4016` reports
+the shape, and reports it only where the shared operand leads back to the rule holding
+it, which is where the doubling compounds.
+
+The two are not the same grammar, which is why it is reported rather than rewritten. Two
+alternatives prefer every reading of the first over any reading of the second, so a shared
+operand that can give back will give back to let the rest of the first alternative fit:
+
+```dotgram
+Path = dir: Segments & '/' & file: Name | dir: Segments      // a/b/c is a/b and c
+```
+
+is how the last part of a path is split off, and no optional tail says it — written with
+one the `Segments` would take `a/b/c` and leave no file. So where the operand can give
+back, which form to write is a decision about meaning, and only the author has it.
 
 Associativity therefore belongs to an **alternative**, not to a rule — that is where
 the recursion is. A rule ends up with one because a level of precedence is a rule, and
