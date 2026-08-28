@@ -264,6 +264,148 @@ public sealed class ExpressionLanguageTests
 		// the whole reason this grammar declares a `wordboundary`.
 		Assert.True(ExpressionLanguage.Compile<Func<int, bool>>("(int x) => true")(0));
 
+	// ── Types by name, and everything a name in metadata unlocks ────────────────
+
+	[Fact]
+	public void A_name_is_a_type_where_the_namespaces_say_it_is() =>
+		// The keywords are the grammar's, written as `typeof(int)` where C# reads them. A
+		// name is the host's, because what `Exception` means is a question about which
+		// namespaces to look in — and no grammar can carry that for an API it has not been
+		// pointed at yet.
+		Assert.Equal(
+			[typeof(Exception), typeof(string), typeof(long)],
+			new[] { "(object o) => o as Exception", "(object o) => o as String", "(int x) => (long)x" }
+				.Select(text => ExpressionLanguage.Parse(text).Body.Type));
+
+	[Fact]
+	public void And_a_name_that_is_no_type_leaves_the_parenthesis_a_parenthesis() =>
+		// The cast ambiguity C# needs a rule of its own for: `(Foo)x` is a cast where `Foo`
+		// names a type and an expression where it does not, and the guard answering no is
+		// what sends the parse to the other reading.
+		Assert.Equal(
+			[6L, 8],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
+			});
+
+	[Fact]
+	public void An_instance_member_is_read_by_the_API_own_lookup() =>
+		// `Expression.PropertyOrField` answers this, and `Expression.Call` chooses the
+		// overload — so almost none of it is written in the host, and what cannot be found
+		// is reported in the API's own words.
+		Assert.Equal(
+			[3, 2, "ABC"],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<string, int>>("(string s) => s.Length")("abc"),
+				ExpressionLanguage.Compile<Func<string, int>>("(string s) => s.IndexOf(\"c\")")("abc"),
+				ExpressionLanguage.Compile<Func<string, string>>("(string s) => s.ToUpperInvariant()")("abc"),
+			});
+
+	[Fact]
+	public void A_static_member_names_its_type_first() =>
+		Assert.Equal(
+			[7, 3.0, ""],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => Math.Max(x, 7)")(3),
+				ExpressionLanguage.Compile<Func<double>>("() => Math.Floor(3.7)")(),
+				ExpressionLanguage.Compile<Func<string>>("() => String.Empty")(),
+			});
+
+	[Fact]
+	public void And_a_dotted_name_is_a_type_only_as_far_as_it_resolves() =>
+		// `System.Math.Max` resolves whole; `s.Length` does not resolve at all and is read
+		// as a name and a member of it. The greedy name gives back a part at a time.
+		Assert.Equal(7, ExpressionLanguage.Compile<Func<int, int>>("(int x) => System.Math.Max(x, 7)")(3));
+
+	[Fact]
+	public void A_constructor_is_chosen_by_what_fits_its_arguments() =>
+		Assert.Equal(
+			"boom",
+			ExpressionLanguage.Compile<Func<string, string>>(
+				"(string s) => new Exception(s).Message")("boom"));
+
+	[Fact]
+	public void An_array_is_made_by_size_or_by_what_is_in_it() =>
+		Assert.Equal(
+			[4, 3, 20],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int>>("() => new int[4].Length")(),
+				ExpressionLanguage.Compile<Func<int>>("() => new int[] { 10, 20, 30 }.Length")(),
+				ExpressionLanguage.Compile<Func<int>>("() => new int[] { 10, 20, 30 }[1]")(),
+			});
+
+	[Fact]
+	public void And_an_index_is_the_array_node_or_the_indexer_by_what_it_reads() =>
+		// Two factories and one syntax, told apart by the operand rather than by the text:
+		// an array's element is a node of this tree, anything else's is a property.
+		Assert.Equal(
+			['b', 20],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<string, char>>("(string s) => s[1]")("abc"),
+				ExpressionLanguage.Compile<Func<int>>("() => new int[] { 10, 20 }[1]")(),
+			});
+
+	[Theory]
+	[InlineData("(object o) => o is string",  "abc", true)]
+	[InlineData("(object o) => o is string",  42,    false)]
+	public void Is_asks_the_type_and_as_answers_null(string text, object argument, bool expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<object, bool>>(text)(argument));
+
+	[Fact]
+	public void And_as_answers_null_where_it_is_not_that() =>
+		Assert.Null(ExpressionLanguage.Compile<Func<object, string>>("(object o) => o as string")(42));
+
+	// ── try, catch, finally, throw ──────────────────────────────────────────────
+
+	[Theory]
+	[InlineData(2, 5)]
+	[InlineData(0, -1)]
+	public void A_try_catches_what_the_runtime_throws(int argument, int expected) =>
+		Assert.Equal(
+			expected,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int r = 0; try { r = 10 / n; } catch (DivideByZeroException e) { r = -1; } r }")
+				(argument));
+
+	[Fact]
+	public void And_a_finally_runs_either_way() =>
+		// Three shapes and three factories, and the grammar says which by what is written.
+		// A `finally` with no `catch` does not swallow what it runs after, so the last of
+		// these leaves by the exception with its `r += 1` already done.
+		Assert.Equal(
+			[11, 0, 6],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { int r = 0; try { r = 10 / n; } catch (Exception e) { r = -1; } finally { r += 1; } r }")(1),
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { int r = 0; try { r = 10 / n; } catch (Exception e) { r = -1; } finally { r += 1; } r }")(0),
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { int r = 0; try { r = 10 / n; } finally { r += 1; } r }")(2),
+			});
+
+	[Fact]
+	public void And_the_caught_variable_belongs_to_its_handler() =>
+		Assert.Equal(
+			"Attempted to divide by zero.",
+			ExpressionLanguage.Compile<Func<string>>(
+				"() => { string m = \"\"; int z = 0; try { m = (10 / z).ToString(); } catch (Exception e) { m = e.Message; } m }")());
+
+	[Fact]
+	public void And_a_throw_is_a_statement_that_never_comes_back() =>
+		Assert.Equal(
+			"no",
+			Assert.Throws<InvalidOperationException>(
+				() => ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { if (n < 0) throw new InvalidOperationException(\"no\"); n }")(-1))
+				.Message);
+
 	// ── Statements ──────────────────────────────────────────────────────────────
 
 	[Theory]

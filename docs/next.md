@@ -4842,3 +4842,78 @@ it and answered `default` instead. The label takes the body instead: control rea
 end of the body arrives at the label, and what it is worth there is what fell into it.
 
 1,247 tests green in both configurations.
+
+## Built: a type resolver in the host, and everything a name in metadata unlocks
+
+`Exception`, `Math.Max(x, 7)`, `s.Length`, `s.IndexOf("c")`, `new Exception(s).Message`,
+`new int[] { 10, 20 }[1]`, `o is string`, `o as string`, `try`/`catch`/`finally`, `throw`.
+The expression language now names **71 of the 120** factories on
+`System.Linq.Expressions.Expression`, up from 54.
+
+**The resolver is the host's and needed no seam.** The one reason it might have needed
+one — a position to report against — was already there: `parserSpan` reaches a `when`, and
+has since the scopes work. Type names come from the *parsed text*, not from the grammar,
+so `ISymbolResolver` (which the generator has for a grammar's own `@Name`) has nothing to
+say about them. What the host holds is a list of namespaces to look in, which is what a
+`using` is, and no grammar can carry one for an API it has not been pointed at yet.
+
+The keywords stay written as `typeof(int)`, where the C# compiler reads them. A name goes
+through a guard, which also settles the ambiguity C# needs a section of its own for:
+`(Foo)x` is a cast where `Foo` names a type and a parenthesized expression where it does
+not, and the guard answering no is what sends the parse to the other reading. A dotted
+name is greedy and gives a part back at a time, so `System.Math.Max` resolves whole and
+`s.Length` resolves not at all and is read as a name and a member of it.
+
+**Most of the rest is the API's own resolution.** `Expression.Call` takes a method by name
+and chooses the overload; `Expression.PropertyOrField` answers the same question for the
+other two. What is left in the host is what the API has no by-name form of: a constructor
+(`Expression.New` wants a `ConstructorInfo`), a static property or field (there is no
+static `PropertyOrField`), and the two places where the *operand's type* picks the factory
+— an array's `Length` is `ArrayLength` and its element is `ArrayIndex`, where every other
+type's are properties, and `string` calls its own indexer `Chars` rather than `Item`.
+
+That last one could not have been a guard, and finding out why is worth writing down: a
+guard runs while the text is read, and the operand of a left-recursive fold is not built
+until long after. So the only place that can ask an operand what it is, is a `=>`.
+
+### Found: two more generator defects, both by writing the grammar
+
+**A capture whose rule leads back into its own fold is emitted uncompilable.** Two lines:
+
+```dotgram
+Postfix : @Expression
+    = target: Postfix & '[' & index: Expression & ']' => @(Expression.ArrayIndex(target, index))
+    | p: Primary => @(p)
+```
+
+`Construct_Postfix_1(Expression[] index)` — the fold's own operand dropped from the
+signature, and the capture typed as a sequence. The `=>` then names `target`, which is not
+a parameter, and the *consumer's* build fails with CS0103 in a file they did not write.
+`index: Primary`, `index: Name`, `index: Dec` and `index: Arguments` are all fine in the
+same position; only the rule that reaches `Postfix` back is not. Worked around by writing
+the index through a list rule, the way `Arguments` already was — which reads better anyway,
+since an index is a list and a two-dimensional array now needs no second rule for it.
+
+**And the capture-start condition from earlier today was too narrow.** `Math.Max(1, 2)`
+threw `ArgumentOutOfRangeException` out of the parser. The condition said a capture keeps
+its start in a variable unless a *repetition* could reopen it; the general case has no
+repetition in it at all:
+
+> the close runs, the parse goes on, the same rule is read again somewhere else and writes
+> the variable, and then a failure unwinds to a door inside the first reading and runs its
+> close again — with a start belonging to the other reading.
+
+Here the capture was `name: TypeName` in the rule that resolves a dotted name, the door
+was the `*` inside `TypeName`, and the second reading was the same rule tried again inside
+`Math.Max`'s argument list. So the question is only whether the capture's *body* leaves a
+door — where it leaves none there is no way back into the close, which is still most
+captures, `port: Digit+` over a set of digits included.
+
+**What it costs, measured.** Six of Url's capture starts move into the arena. The URL
+round-robin, three runs a side: 110–113 / 288–291 / 114–117 / 175–179 / **62.2–62.6**
+against 103–107 / 284–288 / 110–115 / 173–181 / **52–54**. Two of the five are inside the
+noise, two are up about 3%, and the last — the input that fails and so backtracks hardest —
+is up 17%. That is the price, and it is the right way round: the defect it buys off threw
+an exception out of a shipped parser.
+
+1,263 tests green in both configurations.

@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using DotGram;
 
@@ -120,6 +123,10 @@ namespace DotGram.Parsers;
 
 		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 
+		// A type's name, dotted. Lexical for the same reason a suffix is: `System . Text`
+		// would be captured with the spaces in it, and nothing is named that.
+		TypeName = Word & ('.' & Word)*
+
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
 
 		Digit    = ['0'..'9']
@@ -233,6 +240,24 @@ namespace DotGram.Parsers;
 	             | "char"    => @(typeof(char))
 	             | "string"  => @(typeof(string))
 	             | "object"  => @(typeof(object))
+	             | t: NamedType => @(t)
+
+	// The keywords above are written where the C# compiler reads them. A name is not a
+	// keyword and cannot be: what `Exception` means is a question about the namespaces this
+	// host was told to look in, and it is asked while the text is read so that the answer
+	// can decide how the text reads.
+	NamedType : @Type = name: TypeName & when @(ExpressionLanguage.Resolves(name))
+	                  => @(ExpressionLanguage.TypeNamed(name))
+
+	// One rule for every argument list there is, so that a call, a constructor and an
+	// indexer all say it the same way and each hands the API one array.
+	Arguments : @Expression[]
+		= '(' & (first: Expression & (',' & rest: Expression)*)? & ')'
+		=> @(ExpressionLanguage.Listed(first, rest))
+
+	Indices : @Expression[]
+		= '[' & first: Expression & (',' & rest: Expression)* & ']'
+		=> @(ExpressionLanguage.Listed(first, rest))
 
 	// The guard is the declaration: it runs while the text is read, which is the only
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
@@ -296,7 +321,8 @@ namespace DotGram.Parsers;
 	Value : @Expression = b: Block => @(b) | c: Control => @(c) | e: Expression => @(e)
 
 	Control : @Expression
-		= c: If      => @(c)
+		= c: Try     => @(c)
+		| c: If      => @(c)
 		| c: While   => @(c)
 		| c: DoWhile => @(c)
 		| c: For     => @(c)
@@ -381,6 +407,28 @@ namespace DotGram.Parsers;
 	Jump : @Expression
 		= "break"    => @(Expression.Break(ExpressionLanguage.Exit(parserSpan)))
 		| "continue" => @(Expression.Continue(ExpressionLanguage.Again(parserSpan)))
+		| "throw" & value: Expression => @(Expression.Throw(value))
+		| "throw"                     => @(Expression.Rethrow())
+
+	// Three factories and three shapes, so the grammar says which by what is written and
+	// nothing here has to ask. The bodies are blocks and so are worth something, which
+	// `TryCatch` requires them to agree on — the API's rule, in the API's words.
+	Try : @Expression
+		= "try" & body: Block & handlers: Catch+ & "finally" & final: Block
+		  => @(Expression.TryCatchFinally(body, final, handlers))
+		| "try" & body: Block & handlers: Catch+
+		  => @(Expression.TryCatch(body, handlers))
+		| "try" & body: Block & "finally" & final: Block
+		  => @(Expression.TryFinally(body, final))
+
+	// The caught variable belongs to the handler and not to what is around it, so the
+	// `catch` records a scope of its own — the `(` it is declared in stands outside the
+	// handler's block, and without this the block around the `try` would claim it.
+	Catch : @CatchBlock
+		= "catch" & '(' & type: Type & name: Word
+		& when @(ExpressionLanguage.Declare(type, name, parserSpan)) & ')' & body: Block
+		& when @(ExpressionLanguage.Scoped(parserSpan))
+		=> @(Expression.Catch(ExpressionLanguage.Named(name, parserSpan), body))
 
 	// ── The operators: C#'s ladder, one rule per level of precedence (§4.3) ─────
 	//
@@ -450,7 +498,9 @@ namespace DotGram.Parsers;
 	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
 	// the second `>` says otherwise.
 	Relational : @Expression
-		= left: Relational & "<=" & right: Shift        => @(Expression.LessThanOrEqual(left, right))
+		= left: Relational & "is" & type: Type => @(Expression.TypeIs(left, type))
+		| left: Relational & "as" & type: Type => @(Expression.TypeAs(left, type))
+		| left: Relational & "<=" & right: Shift        => @(Expression.LessThanOrEqual(left, right))
 		| left: Relational & ">=" & right: Shift        => @(Expression.GreaterThanOrEqual(left, right))
 		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
 		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
@@ -490,15 +540,53 @@ namespace DotGram.Parsers;
 
 		| p: Postfix => @(p)
 
-	// The one level C# has that this one had no need of until there was something to assign
-	// to, and over a name for the same reason.
+	// Everything written after an operand rather than before it. Left recursive, which is
+	// what makes `a.b.c(d)[0]` one chain read once — §4.3 reads the operand at the head of
+	// it and then folds the suffixes on, rather than starting over for each.
+	//
+	// `Expression.Call` takes a method by its name and chooses the overload itself, and
+	// `Expression.PropertyOrField` answers the same question for the other two. That is
+	// most of why so little of this is written here: the API's own resolution is better
+	// than one this could invent, and it reports what it could not find in its own words.
 	Postfix : @Expression
-		= target: Name & "++" => @(Expression.PostIncrementAssign(target))
+		= target: Postfix & '.' & member: Word & args: Arguments
+		  => @(Expression.Call(target, member, null, args))
+
+		| target: Postfix & '.' & member: Word => @(ExpressionLanguage.Member(target, member))
+
+		// Written through a rule of its own rather than inline, for a reason that is a
+		// generator defect and not a taste: a capture whose rule leads back into this fold
+		// — `index: Expression` here — comes out typed as a sequence with the fold's own
+		// operand dropped, and the emitted C# does not compile. `Arguments` above has the
+		// same shape and is fine, which is what said to write this one the same way. The
+		// two-line reduction is in docs/next.md.
+		//
+		// It reads better for it: an index is a list, so a two-dimensional array and an
+		// indexer of two arguments are both written without another rule.
+		| target: Postfix & at: Indices => @(ExpressionLanguage.Indexed(target, at))
+
+		| target: Name & "++" => @(Expression.PostIncrementAssign(target))
 		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
 		| p: Primary          => @(p)
 
 	Primary : @Expression
-		= '(' & inner: Expression & ')' => @(inner)
+		= "new" & type: Type & '[' & size: Expression & ']'
+		  => @(Expression.NewArrayBounds(type, size))
+		| "new" & type: Type & '[' & ']'
+		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
+		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
+		| "new" & type: Type & args: Arguments
+		  => @(Expression.New(ExpressionLanguage.Constructor(type, args), args))
+
+		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
+		// which is the same question C# answers with a section of its own — a dotted name
+		// is a type where it names one, and an expression where it does not.
+		| type: NamedType & '.' & member: Word & args: Arguments
+		  => @(Expression.Call(type, member, null, args))
+		| type: NamedType & '.' & member: Word
+		  => @(ExpressionLanguage.StaticMember(type, member))
+
+		| '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
@@ -607,6 +695,186 @@ public static partial class ExpressionLanguage
 		var lambda = Parse(text);
 
 		return (TDelegate)Expression.Lambda(typeof(TDelegate), lambda.Body, lambda.Parameters).Compile();
+	}
+
+	// ── What a name written as a type means ─────────────────────────────────────
+	//
+	// The keywords are the grammar's, written as `typeof(int)` where the C# compiler reads
+	// them. A name is not: `Exception` means something only against a set of namespaces to
+	// look in, and that set is the host's to hold — it is what a `using` is, and no grammar
+	// can carry one for an API it has not been pointed at yet.
+
+	static readonly List<string> _namespaces = ["System"];
+
+	static readonly ConcurrentDictionary<string, Type?> _resolved = new(StringComparer.Ordinal);
+
+	/// <summary>Look for type names in this namespace as well, the way a <c>using</c> does.</summary>
+	public static void Using(string @namespace)
+	{
+		if (string.IsNullOrWhiteSpace(@namespace))
+			throw new ArgumentException("A namespace to search cannot be empty.", nameof(@namespace));
+
+		lock (_namespaces)
+		{
+			if (_namespaces.Contains(@namespace, StringComparer.Ordinal))
+				return;
+
+			_namespaces.Add(@namespace);
+		}
+
+		// What was not found before may be found now, and what was found still is.
+		_resolved.Clear();
+	}
+
+	/// <summary>Whether this name is a type here, asked while the text is read (§8.1).</summary>
+	/// <remarks>
+	/// This is what tells `(Foo)x` from `(foo)`, which C# needs a rule of its own for: a
+	/// parenthesized name is a cast where the name is a type and an expression where it is
+	/// not, and the guard answering no is what sends the parse to the other reading.
+	/// </remarks>
+	public static bool Resolves(string name) => Lookup(name) is not null;
+
+	/// <summary>The type that name means.</summary>
+	/// <exception cref="FormatException">It means none.</exception>
+	public static Type TypeNamed(string name) =>
+		Lookup(name) ?? throw new FormatException($"there is no type named '{name}' here.");
+
+	/// <summary>The name against the namespaces, then against every assembly loaded.</summary>
+	static Type? Lookup(string name)
+	{
+		if (_resolved.TryGetValue(name, out var known))
+			return known;
+
+		string[] tries;
+
+		lock (_namespaces)
+			tries = [name, .. _namespaces.Select(space => space + "." + name)];
+
+		var found = tries.Select(one => Type.GetType(one, false, false)).FirstOrDefault(one => one is not null);
+
+		if (found is null)
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				found = tries.Select(one => assembly.GetType(one, false, false))
+					.FirstOrDefault(one => one is not null);
+
+				if (found is not null)
+					break;
+			}
+
+		return _resolved[name] = found;
+	}
+
+	/// <summary>What <c>a.b</c> reads, which the type of <c>a</c> decides.</summary>
+	/// <remarks>
+	/// An array's length is a node of this tree — <c>ArrayLength</c> — where every other
+	/// type's is a property, and nothing in the syntax says which. It could not be a guard
+	/// either: a guard runs while the text is read and the operand of a fold is not built
+	/// until after, so the only place that can ask the operand what it is, is here.
+	/// </remarks>
+	public static Expression Member(Expression target, string name)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		return target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal)
+			? Expression.ArrayLength(target)
+			: Expression.PropertyOrField(target, name);
+	}
+
+	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
+	/// <remarks>
+	/// An array's element is a node of this tree and anything else's is an indexer — whose
+	/// name is not always <c>Item</c>, `string` calling its own <c>Chars</c>. The type says
+	/// which through its default member, which is what an indexer is.
+	/// </remarks>
+	public static Expression Indexed(Expression target, Expression[] at)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		if (at is null)
+			throw new ArgumentNullException(nameof(at));
+
+		if (target.Type.IsArray)
+			return Expression.ArrayIndex(target, at);
+
+		foreach (var member in target.Type.GetDefaultMembers())
+			if (member is PropertyInfo indexer && indexer.GetIndexParameters().Length == at.Length)
+				return Expression.Property(target, indexer, at);
+
+		throw new FormatException($"'{target.Type.Name}' has no indexer taking {at.Length} of them.");
+	}
+
+	/// <summary>A static property or a static field, whichever that name is.</summary>
+	/// <remarks>
+	/// Two factories and one syntax: `T.Name` says nothing about which, and the type does.
+	/// The instance form needs no such method — <c>Expression.PropertyOrField</c> is the
+	/// API's own answer to the same question, and there is no static overload of it.
+	/// </remarks>
+	public static Expression StaticMember(Type type, string name)
+	{
+		if (type is null)
+			throw new ArgumentNullException(nameof(type));
+
+		const BindingFlags Statics = BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+
+		if (type.GetProperty(name, Statics) is { } property)
+			return Expression.Property(null, property);
+
+		if (type.GetField(name, Statics) is { } field)
+			return Expression.Field(null, field);
+
+		throw new FormatException($"'{type.Name}' has no static '{name}'.");
+	}
+
+	/// <summary>The constructor those arguments fit.</summary>
+	/// <remarks>
+	/// <c>Expression.Call</c> takes a method by name and picks the overload itself;
+	/// <c>Expression.New</c> takes a <c>ConstructorInfo</c> and has no such overload, so
+	/// this is the one place the choosing is done here. Assignable rather than equal, so
+	/// that `new Exception(text)` finds the one taking a string.
+	/// </remarks>
+	public static ConstructorInfo Constructor(Type type, Expression[] arguments)
+	{
+		if (type is null)
+			throw new ArgumentNullException(nameof(type));
+
+		if (arguments is null)
+			throw new ArgumentNullException(nameof(arguments));
+
+		foreach (var candidate in type.GetConstructors())
+		{
+			var parameters = candidate.GetParameters();
+
+			if (parameters.Length != arguments.Length)
+				continue;
+
+			var fits = true;
+
+			for (var at = 0; at < parameters.Length; at++)
+				fits &= parameters[at].ParameterType.IsAssignableFrom(arguments[at].Type);
+
+			if (fits)
+				return candidate;
+		}
+
+		throw new FormatException(
+			$"'{type.Name}' has no constructor taking ({string.Join(", ", arguments.Select(one => one.Type.Name))}).");
+	}
+
+	/// <summary>The arguments of a call, in the order they were written.</summary>
+	public static Expression[] Listed(Expression? first, Expression[] rest)
+	{
+		if (first is null)
+			return [];
+
+		var arguments = new Expression[rest.Length + 1];
+
+		arguments[0] = first;
+		rest.CopyTo(arguments, 1);
+
+		return arguments;
 	}
 
 	// ── What System.Linq.Expressions has nowhere to keep ────────────────────────

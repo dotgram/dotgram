@@ -270,10 +270,6 @@ namespace DotGram.Snapshots
 				string[]? expected = null;
 				var turn0 = 0;
 				var completedCall = -1;
-				var capture3 = 0;
-				var capture4 = 0;
-				var capture5 = 0;
-				var capture6 = 0;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -333,7 +329,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture6 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 6, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 6, p, entries.Count, text, "Header");
 				}
 
 				{
@@ -497,7 +494,32 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 6) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 6, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 6, p, entries.Count, text, "Header");
 				}
 
@@ -579,7 +601,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture3 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 3, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 3, p, entries.Count, text, "Trailer");
 				}
 
 				{
@@ -626,7 +649,32 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 3, capture3, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 3) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 3, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 3, p, entries.Count, text, "Trailer");
 				}
 
@@ -745,7 +793,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture4 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 4, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 4, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -784,7 +833,32 @@ namespace DotGram.Snapshots
 
 				S70:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 4) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 4, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count, text, "Row");
 				}
 
@@ -805,7 +879,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture5 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 5, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 5, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -922,7 +997,32 @@ namespace DotGram.Snapshots
 
 				S56:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 5) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 5, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 5, p, entries.Count, text, "Row");
 				}
 
@@ -1100,7 +1200,7 @@ namespace DotGram.Snapshots
 						goto Dispatch;
 					}
 
-					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
+					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen)
 						continue;
 
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
@@ -1373,8 +1473,6 @@ namespace DotGram.Snapshots
 				var c       = '\0';
 				string[]? expected = null;
 				var turn0 = 0;
-				var capture0 = 0;
-				var capture1 = 0;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -1423,7 +1521,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture0 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 0, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -1462,7 +1561,32 @@ namespace DotGram.Snapshots
 
 				S25:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 0, capture0, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 0) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 0, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 0, p, entries.Count, text, "Row");
 				}
 
@@ -1483,7 +1607,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture1 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 1, p, call, atomic, repeat, lookahead, 0));
+					Trace("open capture", 1, p, entries.Count, text, "Row");
 				}
 
 				{
@@ -1600,7 +1725,32 @@ namespace DotGram.Snapshots
 
 				S11:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 1, capture1, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 1) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 1, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 1, p, entries.Count, text, "Row");
 				}
 
@@ -1731,7 +1881,7 @@ namespace DotGram.Snapshots
 						goto Dispatch;
 					}
 
-					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
+					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen)
 						continue;
 
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)

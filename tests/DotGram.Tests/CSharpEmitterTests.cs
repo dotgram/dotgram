@@ -1312,10 +1312,10 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void A_repetition_reopens_it_too_where_its_body_has_a_way_back_in()
 	{
-		// The other half of the same hazard, and the one that was wrong: turn two runs the
-		// opening again before turn one is final, and a door inside turn one is a way back
-		// into its close. `Run+` has that door; `'b'` alone does not, so `('a' & 'b')+`
-		// below still keeps its variable and pays nothing.
+		// The hazard is the body's door, and a repetition is the plainest way to reach it
+		// twice: turn two runs the opening again before turn one is final. `Run+` has that
+		// door; `'b'` alone does not, so `('a' & 'b')+` below still keeps its variable and
+		// pays nothing — which is most captures.
 		var reopens = Emit("Run = 'a'+\nStart : @string = t: Run{2} => @(t)");
 
 		Assert.Contains("ParserEntry.CaptureOpen", reopens, StringComparison.Ordinal);
@@ -1326,15 +1326,22 @@ public sealed class CSharpEmitterTests
 			StringComparison.Ordinal);
 	}
 
-	/// <summary>An optional is a repetition of one turn, and one turn reopens nothing.</summary>
+	/// <summary>And wherever else the close can be reached a second time.</summary>
 	/// <remarks>
-	/// `X?` is how the model spells an optional, so this is not a nicety: counting it as a
-	/// repetition put every `(':' & port: Digit+)?` in the arena, and a URL with a port a
-	/// fifth slower, for a second turn that cannot happen.
+	/// A repetition is one way and not the only one. The parse reads the same rule again
+	/// somewhere else, writes the variable there, and then a failure unwinds to a door
+	/// inside the first reading and closes it with the second one's start. Found by
+	/// `Math.Max(1, 2)` in the expression language, which threw out of the parser rather
+	/// than answering — the capture being a dotted name, and the door the `*` inside it.
 	/// </remarks>
 	[Fact]
-	public void An_optional_around_a_capture_is_not_a_repetition_of_it() =>
-		Assert.Contains("capture0 = p;", Emit("Run = 'a'+\nStart = (t: Run & 'b')?"));
+	public void And_wherever_a_second_reading_could_write_the_variable()
+	{
+		var source = Emit("Dotted = ['a'..'z']+ & ('.' & ['a'..'z']+)*\nStart = name: Dotted & '!'");
+
+		Assert.Contains("ParserEntry.CaptureOpen", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
+	}
 
 	[Theory]
 	[InlineData("Run = ['0'..'9']+\nStart : @string = t: Run{2} => @(t)", "1234", "1234")]

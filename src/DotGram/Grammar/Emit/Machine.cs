@@ -209,13 +209,24 @@ sealed partial class Machine
 					{
 						_textCaptures.Add(slot);
 
-						// Where the rule can reach itself, this capture can be opened again
-						// before it closes, and one variable cannot hold two starts. So can
-						// a repetition around it — the next turn opens before the turn
-						// before it is final, and a door inside that turn is a way back into
-						// its close. Where the body leaves no door there is no way back into
-						// it, and the variable is still right.
-						if (graph.Recursive.Contains(rule) || looped.Contains(node) && LeavesADoor(captured, doors))
+						// A variable holds the start between the opening and the close, and it
+						// is right for exactly as long as nothing opens the same capture in
+						// between. Two things do, and the second is the general one:
+						//
+						//   * a rule that reaches itself, opening the inner before the outer
+						//     closes;
+						//   * *any* second reading of this capture, once the close can be
+						//     reached a second time. A door inside the body is what makes
+						//     that possible: the close runs, the parse goes on, the same rule
+						//     is read again somewhere else and writes the variable, and then
+						//     a failure unwinds to that door and runs the close again — with
+						//     a start belonging to the other reading.
+						//
+						// So the question is only whether the body leaves a door. Where it
+						// leaves none there is no way back into the close, and the variable
+						// is still right — which is most captures, `port: Digit+` over a set
+						// of digits included.
+						if (graph.Recursive.Contains(rule) || LeavesADoor(captured, doors))
 							_nestedCaptures.Add(slot);
 
 						// And a capture inside a repetition records one entry per turn, whose
