@@ -132,6 +132,51 @@ public sealed class ExpressionLanguageTests
 		// §4.6 boundary of its own — and `m` and `L` remain perfectly good names.
 		Assert.Equal(4, ExpressionLanguage.Compile<Func<int, int>>("(int m) => m + 1")(3));
 
+	// ── Bases, text and characters ──────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("0x1F",   31)]
+	[InlineData("0xff",   255)]
+	[InlineData("0B1010", 10)]
+	[InlineData("0b1",    1)]
+	public void A_base_is_a_prefix_and_the_digits_are_its_own(string text, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int>>($"() => {text}")());
+
+	[Fact]
+	public void And_a_base_takes_the_long_suffix_too() =>
+		Assert.Equal(255L, ExpressionLanguage.Compile<Func<long>>("() => 0xFFL")());
+
+	[Theory]
+	[InlineData("\"\"",          "")]
+	[InlineData("\"abc\"",       "abc")]
+	[InlineData("\"a b\"",       "a b")]
+	[InlineData("\"a\\tb\"",     "a\tb")]
+	[InlineData("\"a\\\\b\"",    "a\\b")]
+	[InlineData("\"say \\\"x\\\"\"", "say \"x\"")]
+	[InlineData("\"\\u0041\"",   "A")]
+	public void A_string_is_its_parts_joined(string text, string expected) =>
+		// An escape is an alternative of the grammar naming the character it stands for,
+		// and a run that needs none is one part — so the decoding is the grammar's, and
+		// `string.Concat` is what puts them back together.
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<string>>($"() => {text}")());
+
+	[Theory]
+	[InlineData("'a'",      'a')]
+	[InlineData("'\\n'",    '\n')]
+	[InlineData("'\\''",    '\'')]
+	[InlineData("'\\\\'",   '\\')]
+	[InlineData("'\\u0041'", 'A')]
+	public void A_character_is_one_part_of_the_same_kind(string text, char expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<char>>($"() => {text}")());
+
+	[Fact]
+	public void And_text_compares_as_text() =>
+		Assert.True(ExpressionLanguage.Compile<Func<string, bool>>("(string s) => s == \"yes\"")("yes"));
+
+	[Fact]
+	public void And_an_unterminated_string_is_not_this_language() =>
+		Assert.False(ExpressionLanguage.TryParseLambda("() => \"abc").IsSuccess);
+
 	[Fact]
 	public void A_comparison_answers_bool() =>
 		Assert.True(ExpressionLanguage.Compile<Func<int, bool>>("(int x) => x > 2 && x < 10")(5));
@@ -141,6 +186,133 @@ public sealed class ExpressionLanguageTests
 		// §4.6 weaves a boundary round a keyword, so `trueish` would be a name — which is
 		// the whole reason this grammar declares a `wordboundary`.
 		Assert.True(ExpressionLanguage.Compile<Func<int, bool>>("(int x) => true")(0));
+
+	// ── The rest of C#'s ladder ─────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("(int x) => x & 6",   3,  2)]
+	[InlineData("(int x) => x | 4",   3,  7)]
+	[InlineData("(int x) => x ^ 1",   3,  2)]
+	[InlineData("(int x) => ~x",      3, -4)]
+	[InlineData("(int x) => x << 2",  3, 12)]
+	[InlineData("(int x) => x >> 1",  6,  3)]
+	[InlineData("(int x) => +x",      3,  3)]
+	public void The_bitwise_operators_and_the_shifts_are_there(string text, int argument, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
+
+	[Theory]
+	[InlineData("() => 1 | 2 ^ 3 & 4",  3)]    // 1 | (2 ^ (3 & 4))
+	[InlineData("() => 1 << 2 + 3",    32)]    // 1 << (2 + 3): additive binds tighter
+	[InlineData("() => 6 >> 1 + 1",     1)]    // 6 >> 2
+	[InlineData("() => 1 + 2 << 1",     6)]    // (1 + 2) << 1
+	public void And_they_sit_where_C_sharp_puts_them(string text, int expected) =>
+		// The ladder is the point, not the operators: each level is a rule that calls the
+		// next, so the order in the file is the order in the spec and reads as one.
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int>>(text)());
+
+	[Fact]
+	public void And_a_single_character_operator_does_not_eat_half_of_a_double_one() =>
+		// `?!'|'` is what keeps `||` out of `|`'s reach — and `1 | 0` still reads as the
+		// bitwise one, which is the half that would be lost by refusing `|` outright.
+		Assert.Equal(
+			[false, true, 1],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<bool>>("() => false || false")(),
+				ExpressionLanguage.Compile<Func<bool>>("() => false || true")(),
+				ExpressionLanguage.Compile<Func<int>>("() => 1 | 0")(),
+			});
+
+	[Fact]
+	public void And_a_shift_is_told_from_a_comparison_the_same_way() =>
+		Assert.True(ExpressionLanguage.Compile<Func<int, bool>>("(int x) => x >> 1 > 2")(6));
+
+	[Theory]
+	[InlineData("(int x) => x > 2 ? 1 : 0",           3, 1)]
+	[InlineData("(int x) => x > 2 ? 1 : 0",           1, 0)]
+	[InlineData("(int x) => x > 2 ? 1 : x > 0 ? 2 : 3", 1, 2)]   // groups to the right
+	public void A_conditional_chooses_and_groups_to_the_right(string text, int argument, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
+
+	[Theory]
+	[InlineData("yes",  "yes")]
+	[InlineData(null,   "none")]
+	public void And_a_coalesce_answers_the_left_where_it_has_one(string? argument, string expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<string?, string>>("(string s) => s ?? \"none\"")(argument));
+
+	[Fact]
+	public void And_null_is_a_word_like_any_other() =>
+		Assert.True(ExpressionLanguage.Compile<Func<string?, bool>>("(string s) => s == null")(null));
+
+	[Fact]
+	public void A_cast_is_a_type_in_parentheses_and_a_parenthesis_is_still_a_parenthesis() =>
+		// The two readings differ by what stands inside: a type is a keyword, and a
+		// keyword is no name — so no rule of the C# kind is needed to choose.
+		Assert.Equal(
+			[6L, 8],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
+			});
+
+	[Fact]
+	public void And_a_cast_is_the_only_place_a_conversion_comes_from() =>
+		// Nothing widens on its own, so `x + 1.5` over an `int` is refused — and the cast
+		// is how the author says they meant it.
+		Assert.Equal(4.5, ExpressionLanguage.Compile<Func<int, double>>("(int x) => (double)x + 1.5")(3));
+
+	// ── The literal forms, down to the ones that are easy to forget ─────────────
+
+	[Fact]
+	public void A_separator_stands_between_digits_and_is_no_part_of_the_value() =>
+		Assert.Equal(
+			[1000000, 0xFFFF, 0b1010],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int>>("() => 1_000_000")(),
+				ExpressionLanguage.Compile<Func<int>>("() => 0xFF_FF")(),
+				ExpressionLanguage.Compile<Func<int>>("() => 0b1_010")(),
+			});
+
+	[Fact]
+	public void An_exponent_and_a_leading_point_are_reals_too() =>
+		Assert.Equal(
+			[1500.0, 0.5, 0.0015],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<double>>("() => 1.5e3")(),
+				ExpressionLanguage.Compile<Func<double>>("() => .5")(),
+				ExpressionLanguage.Compile<Func<double>>("() => 1.5E-3")(),
+			});
+
+	[Fact]
+	public void And_every_suffix_C_sharp_writes_says_its_type() =>
+		Assert.Equal(
+			[
+				typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(ulong),
+				typeof(float), typeof(double), typeof(decimal), typeof(long),
+			],
+			new[] { "1", "1u", "1L", "1UL", "1lu", "1f", "1d", "1m", "0xFFL" }
+				.Select(text => ExpressionLanguage.Parse($"() => {text}").Body.Type));
+
+	[Fact]
+	public void And_an_integer_too_wide_for_an_int_is_a_long_as_it_is_in_C_sharp() =>
+		// Two readings of the same digits rather than a helper: `int.TryParse` is asked
+		// while the text is read, and the alternative it turns down is the `long` one.
+		Assert.Equal(
+			[typeof(int), typeof(long)],
+			new[] { "2147483647", "2147483648" }
+				.Select(text => ExpressionLanguage.Parse($"() => {text}").Body.Type));
+
+	[Theory]
+	[InlineData("\"\\x41\"",         "A")]
+	[InlineData("\"\\U00000041\"",   "A")]
+	[InlineData("\"a\\vb\"",         "a\vb")]
+	[InlineData("@\"a\\b\"",         "a\\b")]
+	[InlineData("@\"say \"\"x\"\"\"", "say \"x\"")]
+	public void And_the_escapes_and_the_verbatim_form_read_as_C_sharp_reads_them(string text, string expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<string>>($"() => {text}")());
 
 	// ── What it refuses to read at all ──────────────────────────────────────────
 

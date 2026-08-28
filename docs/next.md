@@ -4565,3 +4565,93 @@ One diagnostic on the way, and it was right: `text: Long` beside `text: Digits` 
 GRAM4007 — a capture of a rule that builds a value and a capture of plain text are two
 kinds of member, and §7.3 gives a rule one member per name. Two names, and the report
 said so in those words.
+
+## Built: the expression language reads C#'s expressions, and not a dialect of them
+
+The point of `DotGram.Parsers` is a parser someone would ship, and the measure of one
+here is that a reader who knows C# never has to ask how this language writes something.
+So the whole of C#'s precedence ladder is in the grammar now, in the spec's own order,
+with nothing skipped between a name and `?:`: the bitwise three between `&&` and `==`,
+the shifts between the comparisons and `+`, `??` and `?:` above `||`, and `+`, `~` and a
+cast beside the unary `-` and `!` that were already there. One rule per level, each
+calling the next, so the file reads top to bottom as the table reads.
+
+Two operators needed a lookahead rather than backtracking. `|` and `&` each begin a
+two-character operator one level out, and `>` begins a shift one level in, so `a || b`
+would be read as `a | (| b)` and `a >> b` as `a > (> b)` and only unwound afterwards.
+`?!'|'`, `?!'&'`, `?!'<'` and `?!'>'` say why instead of leaving it to §11 to discover.
+
+The literals went the same way — the forms C# has, not the ones that were convenient.
+Digit separators, an exponent, a real with nothing before the point, `u`/`U`, `l`/`L`
+and both orders of `ul`, `f`/`d`/`m`, the `0x` and `0b` prefixes with separators after
+them, `\a \b \f \v \x \u \U` beside the escapes already written, verbatim strings, and
+`null`. Two of them are worth the note:
+
+**The integer suffixes are one rule specialized three times.** `Unsigned(N)`,
+`SignedLong(N)` and `UnsignedLong(N)` take the digits they suffix as a parameter (§4.2),
+so `1UL`, `0xFFUL` and `0b1UL` are three call sites and not nine rules. This is the
+first parameterized rule in a parser meant to ship rather than in a test, and it is
+exactly the case §4.2 was written for.
+
+**An unsuffixed integer is an `int` where it fits and a `long` where it does not**,
+which is C#'s own rule, and the grammar says it as two readings of the same digits:
+`int.TryParse` asked in a `when` (§8.1) is what turns the first one down. No helper in
+the host class, and no widening decided anywhere but in the BCL.
+
+Three things are deliberately absent, and the file says so in its own header: `null` is
+an `object` because target typing is a second pass this file exists to do without;
+member access, calls and indexers need a name looked up in another assembly's metadata,
+which is a seam this has not been given yet and is the obvious next one to give it; and
+an assignment is a statement, never an expression.
+
+1,199 tests green in both configurations.
+
+## Found: two defects in how a repeated text capture is recorded
+
+Writing `\uXXXX` above wanted `t: Hex{4}`, and that reads as the empty string. The
+reduction has no rule call in it at all:
+
+```dotgram
+Digit = ['0'..'9']
+Start : @string = t: (Digit+){2} => @(t)        // on "1234", answers ""
+```
+
+**A capture's start is a local, and a local does not unwind.** The open compiles to
+`capture0 = p` and the close to an arena entry spanning `capture0..p`. Inside a counted
+repetition the next turn runs the open again *before* the previous turn's close is
+final: turn 2 sets `capture0 = 4`, its body fails, the give-back door re-enters the
+machine at turn 1's close — and the close writes `4..3`. The arena unwinds; the local
+does not. `Machine.Materialization.cs` already carries a comment about this family
+("a reopened capture's start once survived backtracking in a local") and a `#if DEBUG`
+guard against an inverted span, and the guard stays quiet here: the materializer takes
+the first start and the last end, which come out `4..4`, an empty slice rather than an
+inverted one.
+
+The mechanism for it exists — `_nestedCaptures` keeps the start in the arena instead of
+a variable — and is gated on `graph.Recursive` alone, which is one of the two ways a
+capture can be reopened before it closes. It looks incomplete for its own case too: the
+close marks the open finished by rewriting it in place, and unwinding does not undo a
+rewrite, so a door inside the capture would re-enter a close whose open no longer says
+it is open. An open entry and a close entry counted like brackets would answer both.
+
+**And the value of a repeated text capture is the extent, where §10 says it is the
+join.** `docs/syntax.md:1337` — "repeated text is the text joined":
+
+```dotgram
+Start : @string = (t: Digit+ & '-'){2} => @(t)  // on "12-34-", answers "12-34"
+```
+
+The extent is right exactly when consecutive turns are contiguous, which is the
+condition `HoistTextCaptures` checks before lifting a capture out of its repetition —
+and the materializer takes it unconditionally, for captures the hoist left where they
+were. Both defects live in the same place and a single change answers them: an open
+entry and a close entry per turn, and a value concatenated from the turns rather than
+sliced between the first and the last.
+
+Neither is in the way of anything shipped: the expression language writes `HexDigit{4}`
+for the four digits, which has no door inside it and so no way to reopen. Recorded here
+rather than fixed on the spot, because it changes the capture protocol in the arena.
+
+One smaller thing seen in the same dumps: for an exact count, the loop head emits its
+give-back door under the same condition as the jump that already left — `if (repeating
+.Value >= 2) goto S8;` and then `if (repeating.Value >= 2) { … }`. Dead, not wrong.

@@ -12,6 +12,12 @@ namespace DotGram.Parsers;
 //
 //     (int x, int y) => { int sum = x + y; return sum * sum; }
 //
+// **What it reads is C#'s expression syntax**, not a shape of its own: the same
+// precedence ladder in the same order, the same operators at each level, and the same
+// literal forms down to the digit separator and the verbatim string. A reader who knows
+// C# — or C, or C++, or Java — should never have to ask how this one writes something,
+// and every place where it does differ is written down at the end of this comment.
+//
 // **Every `=>` below is a call into `System.Linq.Expressions` by name.** There is no
 // model of this project's own between the grammar and the API, and no dispatch on an
 // operator's text either: one alternative per operator, each naming the factory that
@@ -58,6 +64,20 @@ namespace DotGram.Parsers;
 //
 // All three are the API's requirements showing through, which is what wiring one up
 // actually looks like.
+//
+// **Where it is not C#, and why.** None of these is a shape the notation could not
+// carry; each is the same API requirement showing through again.
+//
+//   * `null` is an `object` rather than whatever the other side of the operator wants.
+//     C# types it by its target, and target typing is a pass over the whole expression —
+//     the second layer this file exists to do without. `(string)null` says which instead.
+//   * There is no member access, no call and no indexer: `x.Length`, `Math.Max(a, b)`
+//     and `a[0]` each need a name looked up in another assembly's metadata, which is a
+//     seam this has not been given. It is the obvious next one to give it.
+//   * `is`, `as`, `typeof`, `default`, `checked` and a lambda inside an expression are
+//     absent for that same reason or for want of a use here.
+//   * An assignment is a statement, never an expression, so `a = b = c` and `x += 1` are
+//     not written — a block has declarations and `return`, and nothing else.
 
 [Gram("""
 	@using System;
@@ -70,22 +90,88 @@ namespace DotGram.Parsers;
 	{
 		trivia = none
 
-		Word   = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
-		Digits = ['0'..'9']+
-		Real   = Digits & '.' & Digits
+		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 
-		// A suffix says which type the constant is, as it does in C#. Lexical, because
-		// nothing may come between the digits and the letter — and because §4.6 weaves a
-		// boundary round a word literal, and a digit is a word character, so `"L"` after
-		// `1` would be refused by the very guard that keeps `int` out of `internal`. A
-		// set is not a literal and carries no boundary, which is the other half of why
-		// these are written as sets.
+		// ── Numbers, written the way C# writes them ─────────────────────────────────
+
+		Digit    = ['0'..'9']
+		HexDigit = ['0'..'9' | 'a'..'f' | 'A'..'F']
+		BinDigit = ['0' | '1']
+
+		// A separator stands between digits and is no part of the value, so every rule
+		// below hands back the digits with them taken out: `long.Parse` reads a number,
+		// not a number and an underscore.
+		DecRun = Digit    & ('_'* & Digit)*
+		HexRun = HexDigit & ('_'* & HexDigit)*
+		BinRun = BinDigit & ('_'* & BinDigit)*
+
+		Exponent = ['e' | 'E'] & ['+' | '-']? & DecRun
+
+		// The three ways C# writes a real: a point, a point with nothing before it, and
+		// an exponent standing in for the point.
+		RealRun = DecRun & '.' & DecRun & Exponent?
+		        | '.' & DecRun & Exponent?
+		        | DecRun & Exponent
+
+		// A base is a prefix rather than a suffix, and the digits it admits are its own.
+		Dec  : @string = t: DecRun                => @(t.Replace("_", ""))
+		Real : @string = t: RealRun               => @(t.Replace("_", ""))
+		Hex  : @string = "0x"i & '_'* & t: HexRun => @(t.Replace("_", ""))
+		Bin  : @string = "0b"i & '_'* & t: BinRun => @(t.Replace("_", ""))
+
+		Number : @string = r: Real => @(r) | d: Dec => @(d)
+
+		// A suffix says which type the constant is. Lexical, because nothing may come
+		// between the digits and the letter — and because §4.6 weaves a boundary round a
+		// word literal, and a digit is a word character, so `"L"` after `1` would be
+		// refused by the very guard that keeps `int` out of `internal`. A set is not a
+		// literal and carries no boundary, which is the other half of why these are
+		// written as sets.
 		//
-		// Each hands back the digits alone: `decimal.Parse` reads a number, not a number
-		// and a letter.
-		Long    : @string = t: Digits          & ['L' | 'l'] => @(t)
-		Decimal : @string = t: (Real | Digits) & ['m' | 'M'] => @(t)
-		Double  : @string = t: (Real | Digits) & ['d' | 'D'] => @(t)
+		// One rule per suffix, over the digits it suffixes (§4.2), so that `1UL`,
+		// `0xFFUL` and `0b1UL` are one rule specialized three times and not three rules.
+		Unsigned    (N) : @string = t: N & ['u' | 'U'] => @(t)
+		SignedLong  (N) : @string = t: N & ['l' | 'L'] => @(t)
+		UnsignedLong(N) : @string
+			= t: N & (['u' | 'U'] & ['l' | 'L'] | ['l' | 'L'] & ['u' | 'U']) => @(t)
+
+		Decimals : @string = t: Number & ['m' | 'M'] => @(t)
+		Doubles  : @string = t: Number & ['d' | 'D'] => @(t)
+		Floats   : @string = t: Number & ['f' | 'F'] => @(t)
+
+		// ── Text, and the characters that stand for themselves ──────────────────────
+
+		// An escape names the character it stands for, one alternative each, so the
+		// decoding is the grammar's and every value in it is a C# constant the compiler
+		// reads. A table in a helper would say the same thing where nothing checks it.
+		Escape : @string
+			= "\\a"                    => @("\a")
+			| "\\b"                    => @("\b")
+			| "\\f"                    => @("\f")
+			| "\\n"                    => @("\n")
+			| "\\r"                    => @("\r")
+			| "\\t"                    => @("\t")
+			| "\\v"                    => @("\v")
+			| "\\0"                    => @("\0")
+			| "\\\\"                   => @("\\")
+			| "\\'"                    => @("'")
+			| "\\\""                   => @("\"")
+			| "\\u" & t: HexDigit{4}   => @(((char)Convert.ToInt32(t, 16)).ToString())
+			| "\\U" & t: HexDigit{8}   => @(char.ConvertFromUtf32(Convert.ToInt32(t, 16)))
+			| "\\x" & t: HexDigit{1,4} => @(((char)Convert.ToInt32(t, 16)).ToString())
+
+		// The parts of a run: an escape, or the longest stretch that needs none.
+		TextPart : @string = e: Escape => @(e) | t: [^ '"' | '\\']+  => @(t)
+		CharPart : @string = e: Escape => @(e) | t: [^ '\'' | '\\'] => @(t)
+
+		Text : @string = '"' & parts: TextPart* & '"' => @(string.Concat(parts))
+		Char : @string = '\'' & part: CharPart & '\'' => @(part)
+
+		// A verbatim string takes every character as written, and doubling the quote is
+		// how it says one — the whole of the difference, and the whole of the rule.
+		VerbatimPart : @string = "\"\"" => @("\"") | t: [^ '"']+ => @(t)
+
+		Verbatim : @string = "@\"" & parts: VerbatimPart* & '"' => @(string.Concat(parts))
 	}
 
 	// §4.6: a keyword is a whole word, so `returned` is a name and not a jump, and
@@ -103,12 +189,21 @@ namespace DotGram.Parsers;
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
 	// rather than a switch over strings refusing it at run time.
-	Type : @Type = "int"     => @(typeof(int))
+	Type : @Type = "sbyte"   => @(typeof(sbyte))
+	             | "byte"    => @(typeof(byte))
+	             | "short"   => @(typeof(short))
+	             | "ushort"  => @(typeof(ushort))
+	             | "int"     => @(typeof(int))
+	             | "uint"    => @(typeof(uint))
 	             | "long"    => @(typeof(long))
+	             | "ulong"   => @(typeof(ulong))
+	             | "float"   => @(typeof(float))
 	             | "double"  => @(typeof(double))
 	             | "decimal" => @(typeof(decimal))
 	             | "bool"    => @(typeof(bool))
+	             | "char"    => @(typeof(char))
 	             | "string"  => @(typeof(string))
+	             | "object"  => @(typeof(object))
 
 	// The guard is the declaration: it runs while the text is read, which is the only
 	// moment this grammar has in the order it is written.
@@ -133,27 +228,63 @@ namespace DotGram.Parsers;
 	Return : @Expression = "return" & value: Expression & ';'
 	                     => @(ExpressionLanguage.Return(value))
 
-	// ── The operators, one rule per level of precedence (§4.3) ──────────────────
+	// ── The operators: C#'s ladder, one rule per level of precedence (§4.3) ─────
+	//
+	// Read this section from the bottom up and it is the table out of the C# spec, in
+	// order and with nothing skipped between a name and `?:`. Every level is left
+	// recursive, which is where the associativity is — `10 - 3 - 2` is `(10 - 3) - 2` —
+	// except the two C# groups to the right, which are written right recursive.
 
-	Expression : @Expression = e: Or => @(e)
+	Expression : @Expression = e: Conditional => @(e)
 
-	Or : @Expression = left: Or & "||" & right: And => @(Expression.OrElse(left, right))
-	                 | a: And                       => @(a)
+	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
+	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
+	Conditional : @Expression
+		= test: Coalesce & '?' & then: Conditional & ':' & otherwise: Conditional
+		  => @(Expression.Condition(test, then, otherwise))
+		| c: Coalesce => @(c)
 
-	And : @Expression = left: And & "&&" & right: Equality => @(Expression.AndAlso(left, right))
-	                  | e: Equality                        => @(e)
+	Coalesce : @Expression = left: Or & "??" & right: Coalesce => @(Expression.Coalesce(left, right))
+	                       | o: Or                             => @(o)
+
+	Or  : @Expression = left: Or  & "||" & right: And   => @(Expression.OrElse(left, right))
+	                  | a: And                          => @(a)
+
+	And : @Expression = left: And & "&&" & right: BitOr => @(Expression.AndAlso(left, right))
+	                  | b: BitOr                        => @(b)
+
+	// The bitwise three sit between `&&` and `==`, where C# puts them. `|` and `&` each
+	// begin a two-character operator one level out, and the lookahead is what tells them
+	// apart — cheaper than letting `a || b` be read as `a | (| b)` and unwound by
+	// backtracking, and clearer about why it is not.
+	BitOr  : @Expression = left: BitOr  & '|' & ?!'|' & right: BitXor  => @(Expression.Or(left, right))
+	                     | x: BitXor                                   => @(x)
+
+	BitXor : @Expression = left: BitXor & '^' & right: BitAnd          => @(Expression.ExclusiveOr(left, right))
+	                     | a: BitAnd                                   => @(a)
+
+	BitAnd : @Expression = left: BitAnd & '&' & ?!'&' & right: Equality => @(Expression.And(left, right))
+	                     | e: Equality                                  => @(e)
 
 	Equality : @Expression
 		= left: Equality & "==" & right: Relational => @(Expression.Equal(left, right))
 		| left: Equality & "!=" & right: Relational => @(Expression.NotEqual(left, right))
 		| r: Relational                             => @(r)
 
+	// `>` and `>>` are told apart the same way, and here the lookahead earns more: the
+	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
+	// the second `>` says otherwise.
 	Relational : @Expression
-		= left: Relational & "<=" & right: Additive => @(Expression.LessThanOrEqual(left, right))
-		| left: Relational & ">=" & right: Additive => @(Expression.GreaterThanOrEqual(left, right))
-		| left: Relational & '<'  & right: Additive => @(Expression.LessThan(left, right))
-		| left: Relational & '>'  & right: Additive => @(Expression.GreaterThan(left, right))
-		| a: Additive                               => @(a)
+		= left: Relational & "<=" & right: Shift        => @(Expression.LessThanOrEqual(left, right))
+		| left: Relational & ">=" & right: Shift        => @(Expression.GreaterThanOrEqual(left, right))
+		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
+		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
+		| s: Shift                                      => @(s)
+
+	Shift : @Expression
+		= left: Shift & "<<" & right: Additive => @(Expression.LeftShift(left, right))
+		| left: Shift & ">>" & right: Additive => @(Expression.RightShift(left, right))
+		| a: Additive                          => @(a)
 
 	Additive : @Expression
 		= left: Additive & '+' & right: Multiplicative => @(Expression.Add(left, right))
@@ -166,29 +297,68 @@ namespace DotGram.Parsers;
 		| left: Multiplicative & '%' & right: Unary => @(Expression.Modulo(left, right))
 		| u: Unary                                  => @(u)
 
-	Unary : @Expression = '-' & operand: Unary => @(Expression.Negate(operand))
-	                    | '!' & operand: Unary => @(Expression.Not(operand))
-	                    | p: Primary           => @(p)
+	Unary : @Expression
+		= '-' & operand: Unary => @(Expression.Negate(operand))
+		| '+' & operand: Unary => @(Expression.UnaryPlus(operand))
+		| '!' & operand: Unary => @(Expression.Not(operand))
+		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
 
-	// A literal says which it is by how it is written, so the two are two alternatives
-	// and each hands `Expression.Constant` a value of the type it already has.
+		// A cast is told from a parenthesized expression by what stands inside it: every
+		// type here is a keyword, and a keyword is no name. C# needs a rule of its own to
+		// decide this because a type there may be a name; a language whose types are a
+		// closed set of keywords does not.
+		| '(' & type: Type & ')' & operand: Unary => @(Expression.Convert(operand, type))
+
+		| p: Primary => @(p)
+
 	Primary : @Expression
 		= '(' & inner: Expression & ')' => @(inner)
 
-		// The suffixed forms first: ordered choice would otherwise read `1L` as the `1`
-		// of an `int` and leave the letter to whatever comes next, and only backtracking
-		// would find its way here (§11).
-		// Two names, not one: a capture of a rule that builds a value and a capture of
-		// plain text are two kinds of member, and §7.3 gives a rule one member per name.
-		| number: Long    => @(Expression.Constant(long.Parse(number, CultureInfo.InvariantCulture)))
-		| number: Decimal => @(Expression.Constant(decimal.Parse(number, CultureInfo.InvariantCulture)))
-		| number: Double  => @(Expression.Constant(double.Parse(number, CultureInfo.InvariantCulture)))
-		| text: Real      => @(Expression.Constant(double.Parse(text, CultureInfo.InvariantCulture)))
-		| text: Digits    => @(Expression.Constant(int.Parse(text, CultureInfo.InvariantCulture)))
+		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
+		// as the `1` of an `int` and leave the letter to whatever comes next, and only
+		// backtracking would find its way here (§11). Reals before integers for the same
+		// reason, so that `1.5`, `1e5` and `0x1F` are each read whole rather than as a
+		// number and something the parse then has nowhere to put.
+		| token: Decimals => @(Expression.Constant(decimal.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Doubles  => @(Expression.Constant(double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Floats   => @(Expression.Constant(float.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Real     => @(Expression.Constant(double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
 
-		| "true"        => @(Expression.Constant(true))
-		| "false"       => @(Expression.Constant(false))
-		| name: Word    => @(ExpressionLanguage.Named(name))
+		| token: UnsignedLong(Hex) => @(Expression.Constant(Convert.ToUInt64(token, 16)))
+		| token: SignedLong(Hex)   => @(Expression.Constant(Convert.ToInt64(token, 16)))
+		| token: Unsigned(Hex)     => @(Expression.Constant(Convert.ToUInt32(token, 16)))
+		| token: Hex               => @(Expression.Constant(Convert.ToInt32(token, 16)))
+
+		| token: UnsignedLong(Bin) => @(Expression.Constant(Convert.ToUInt64(token, 2)))
+		| token: SignedLong(Bin)   => @(Expression.Constant(Convert.ToInt64(token, 2)))
+		| token: Unsigned(Bin)     => @(Expression.Constant(Convert.ToUInt32(token, 2)))
+		| token: Bin               => @(Expression.Constant(Convert.ToInt32(token, 2)))
+
+		| token: UnsignedLong(Dec) => @(Expression.Constant(ulong.Parse(token, CultureInfo.InvariantCulture)))
+		| token: SignedLong(Dec)   => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
+		| token: Unsigned(Dec)     => @(Expression.Constant(uint.Parse(token, CultureInfo.InvariantCulture)))
+
+		// An integer with no suffix is an `int` where it fits and a `long` where it does
+		// not, which is C#'s own rule. `int.TryParse` is what knows, asked while the text
+		// is read (§8.1) — so the two are two readings of the same digits, and not a
+		// helper this class would otherwise have to hold.
+		| token: Dec & when @(int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+		                   => @(Expression.Constant(int.Parse(token, CultureInfo.InvariantCulture)))
+		| token: Dec       => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
+
+		| token: Verbatim  => @(Expression.Constant(token))
+		| token: Text      => @(Expression.Constant(token))
+		| token: Char      => @(Expression.Constant(token[0]))
+
+		| "true"     => @(Expression.Constant(true))
+		| "false"    => @(Expression.Constant(false))
+
+		// Typed `object`, because C# types `null` by what it stands against and that is a
+		// pass over the whole expression this language does not make. `(string)null` says
+		// which, where which one matters.
+		| "null"     => @(Expression.Constant(null, typeof(object)))
+
+		| name: Word => @(ExpressionLanguage.Named(name))
 
 	parse Lambda as ParseLambda
 	""")]
