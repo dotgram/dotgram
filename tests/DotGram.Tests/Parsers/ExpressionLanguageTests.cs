@@ -40,6 +40,124 @@ public sealed class ExpressionLanguageTests
 		// which is 5 and not 9.
 		Assert.Equal(5, ExpressionLanguage.Compile<Func<int, int>>("(int x) => 10 - 3 - x")(2));
 
+	/// <summary>What could have stood here, each thing named once.</summary>
+	/// <remarks>
+	/// A failure keeps every expectation recorded against the furthest position, and a
+	/// language this size has several sites wanting the same character — the `&lt;` that
+	/// opens a type argument list is written in more than one rule. Joined as they came,
+	/// the message said "Expected '&lt;' or '&lt;'.", which reads like a defect because it
+	/// is one: what a reader is owed is the set of what could have stood there.
+	/// Written as a property rather than against the exact text, which is a separate
+	/// question and one §7.5 is still the authority on.
+	/// </remarks>
+	[Fact]
+	public void What_could_have_stood_here_is_named_once_each()
+	{
+		var error = ExpressionLanguage.TryParseLambda(
+			"(int x) => x + return", new ExpressionLanguage.State()).Error!;
+
+		Assert.StartsWith("Expected ", error, StringComparison.Ordinal);
+
+		var terms = error
+			.Substring("Expected ".Length)
+			.TrimEnd('.')
+			.Split([", ", " or "], StringSplitOptions.None);
+
+		Assert.Equal(terms.Length, terms.Distinct().Count());
+	}
+
+	// ── checked and unchecked: §7.8's marks, in the language they were built for ──
+
+	/// <summary>
+	/// The same arithmetic, read the same way, building two different trees.
+	/// </summary>
+	/// <remarks>
+	/// `Additive` is one rule and has one alternative for `+`. What differs between these
+	/// two is not what was read — same characters, same route — but which of
+	/// <c>Expression.Add</c> and <c>Expression.AddChecked</c> the host was asked for, which
+	/// it decides from the mark standing over the construction (§7.8).
+	/// </remarks>
+	[Fact]
+	public void Overflow_wraps_where_nothing_says_otherwise() =>
+		Assert.Equal(
+			int.MinValue,
+			ExpressionLanguage.Compile<Func<int, int>>("(int x) => x + 1")(int.MaxValue));
+
+	[Fact]
+	public void And_throws_inside_checked() =>
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, int>>("(int x) => checked(x + 1)")(int.MaxValue));
+
+	[Theory]
+	[InlineData("(int x) => checked(x - 1)",  "Subtract")]
+	[InlineData("(int x) => checked(x * 2)",  "Multiply")]
+	[InlineData("(int x) => checked(-x)",     "Negate")]
+	public void And_every_arithmetic_node_that_has_a_checked_form_uses_it(string text, string _) =>
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, int>>(text)(int.MinValue));
+
+	[Fact]
+	public void And_a_cast_is_where_the_difference_shows_most() =>
+		// `(byte)300` is 44 unchecked and throws checked, and neither is something the C#
+		// compiler could have said anything about here: the value is not a constant until
+		// the tree is compiled.
+		Assert.Equal(44, ExpressionLanguage.Compile<Func<int, byte>>("(int x) => (byte)x")(300));
+
+	[Fact]
+	public void And_the_same_cast_throws_inside_checked() =>
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, byte>>("(int x) => checked((byte)x)")(300));
+
+	[Fact]
+	public void And_a_compound_assignment_is_marked_like_the_operator_it_stands_for() =>
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => { int a = x; return checked(a += 1); }")(int.MaxValue));
+
+	/// <summary>The shape a pair of flags cancelling each other cannot express.</summary>
+	/// <remarks>
+	/// `unchecked` does not turn `checked` off — it stands over its own protraction and the
+	/// outer mark is in force again after it. So the inner sum wraps and the outer one, over
+	/// the same reading of the same rule, throws.
+	/// </remarks>
+	[Fact]
+	public void A_mark_nests_rather_than_cancelling()
+	{
+		var wraps = ExpressionLanguage.Compile<Func<int, int>>("(int x) => unchecked(x + 1)");
+
+		Assert.Equal(int.MinValue, wraps(int.MaxValue));
+
+		var outer = ExpressionLanguage.Compile<Func<int, int>>(
+			"(int x) => checked(unchecked(x + 1) + 1)");
+
+		// The inner `x + 1` wrapped to int.MinValue without complaint; the outer `+ 1` is
+		// under `checked` again and has nothing to overflow, so this is an ordinary answer
+		// and the point is that it is one.
+		Assert.Equal(int.MinValue + 1, outer(int.MaxValue));
+
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => checked(unchecked(x + 0) + 1)")(int.MaxValue));
+	}
+
+	[Fact]
+	public void And_a_mark_reaches_through_a_call_to_another_rule() =>
+		// The mark is over `Expression`, and everything under it — a parenthesized group,
+		// a whole other level of the ladder — is inside. Nothing about that is written at
+		// the sites: they say what they are, and the extent does the rest.
+		Assert.Throws<OverflowException>(
+			() => ExpressionLanguage.Compile<Func<int, int>>("(int x) => checked((x + 0) * 2 + x)")(
+				int.MaxValue));
+
+	[Fact]
+	public void And_checked_is_not_a_name() =>
+		// §4.6: a keyword does not match inside a word, so a variable may be called
+		// `checkedTotal` without the reading stopping after seven characters.
+		Assert.Equal(
+			7,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => { int checkedTotal = x + 2; return checkedTotal; }")(5));
+
 	// ── Blocks: locals, and a return that is a jump ─────────────────────────────
 
 	[Fact]

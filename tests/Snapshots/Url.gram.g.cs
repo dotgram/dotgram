@@ -9194,6 +9194,40 @@ namespace DotGram.Snapshots
 					if (expected == null || expected.Length == 0)
 						return _otherwise;
 
+					// Two sites may ask for the same thing — a literal written in two rules,
+					// or the `<` that opens a type argument list in more than one — and a
+					// reader is owed one mention of it rather than one per site. Copied
+					// rather than compacted where it stands: without a tie this array is the
+					// one the generator declared `static readonly`, and rewriting that would
+					// change what every later failure says.
+					if (expected.Length > 1)
+					{
+						var unique = new string[expected.Length];
+						var kept   = 0;
+
+						for (var i = 0; i < expected.Length; i++)
+						{
+							var seen = false;
+
+							for (var j = 0; j < kept; j++)
+								if (string.Equals(
+										unique[j], expected[i], global::System.StringComparison.Ordinal))
+								{
+									seen = true;
+									break;
+								}
+
+							if (!seen)
+								unique[kept++] = expected[i];
+						}
+
+						if (kept < expected.Length)
+						{
+							expected = new string[kept];
+							global::System.Array.Copy(unique, expected, kept);
+						}
+					}
+
 					if (expected.Length == 1)
 						return "Expected " + expected[0] + ".";
 

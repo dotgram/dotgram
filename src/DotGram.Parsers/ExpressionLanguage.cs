@@ -129,11 +129,41 @@ namespace DotGram.Parsers;
 	// this, which is why nothing has to be cleared between one parse and the next.
 	context : @State
 
+	// What a piece of this text is being read under, as against what the reading works
+	// out (§7.8). Overflow is the only thing here that needs it today, and the type is
+	// the grammar's rather than that concern's: a second one would be more values, not a
+	// second declaration.
+	state : @Reading
+
 	namespace Lexical
 	{
 		trivia = none
 
 		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+
+		// What this language reserves. `Name` refuses these, which is the whole of what
+		// makes a keyword one: C# says an identifier is a word that is not a keyword, and
+		// leaving it to the order of alternatives only works where the keyword's own
+		// reading is tried first. `checked(x + 1)` is where that broke — a keyword followed
+		// by a parenthesized expression is indistinguishable from a call until something
+		// says the word is not a name, and `Postfix` reads a call before `Primary` is
+		// reached at all.
+		//
+		// The boundary is written here rather than left to §4.6, which weaves one beside a
+		// word literal standing where a match is *taken* — this one stands inside a
+		// lookahead that takes nothing, and `checkedTotal` was refused for beginning with
+		// `checked` until the boundary was said out loud. Whether the weaving should reach
+		// inside a lookahead is a question for the notation; saying it here is right either
+		// way, because what this rule means is "one of these words, whole".
+		Keyword
+			= ("as"      | "bool"    | "break"   | "byte"      | "case"   | "catch"
+			|  "char"    | "checked" | "continue"| "decimal"   | "default"| "do"
+			|  "double"  | "else"    | "false"   | "finally"   | "float"  | "for"
+			|  "if"      | "int"     | "is"      | "long"      | "new"    | "null"
+			|  "object"  | "return"  | "sbyte"   | "short"     | "string" | "switch"
+			|  "throw"   | "true"    | "try"     | "uint"      | "ulong"  | "unchecked"
+			|  "ushort"  | "while")
+			& ?![\p{L} | \p{Nd} | '_']
 
 		// A type's name, dotted. Lexical for the same reason a suffix is: `System . Text`
 		// would be captured with the spaces in it, and nothing is named that.
@@ -492,9 +522,12 @@ namespace DotGram.Parsers;
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
 		  => @(Expression.Assign(ExpressionLanguage.Place(target, at), value))
 
-		| target: Target & "+="  & value: Assignment => @(Expression.AddAssign(target, value))
-		| target: Target & "-="  & value: Assignment => @(Expression.SubtractAssign(target, value))
-		| target: Target & "*="  & value: Assignment => @(Expression.MultiplyAssign(target, value))
+		| target: Target & "+="  & value: Assignment
+		  => @(ExpressionLanguage.AddAssign(target, value, parserState))
+		| target: Target & "-="  & value: Assignment
+		  => @(ExpressionLanguage.SubtractAssign(target, value, parserState))
+		| target: Target & "*="  & value: Assignment
+		  => @(ExpressionLanguage.MultiplyAssign(target, value, parserState))
 		| target: Target & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
 		| target: Target & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
 		| target: Target & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
@@ -576,12 +609,15 @@ namespace DotGram.Parsers;
 		| a: Additive                          => @(a)
 
 	Additive : @Expression
-		= left: Additive & '+' & right: Multiplicative => @(Expression.Add(left, right))
-		| left: Additive & '-' & right: Multiplicative => @(Expression.Subtract(left, right))
+		= left: Additive & '+' & right: Multiplicative
+		  => @(ExpressionLanguage.Add(left, right, parserState))
+		| left: Additive & '-' & right: Multiplicative
+		  => @(ExpressionLanguage.Subtract(left, right, parserState))
 		| m: Multiplicative                            => @(m)
 
 	Multiplicative : @Expression
-		= left: Multiplicative & '*' & right: Unary => @(Expression.Multiply(left, right))
+		= left: Multiplicative & '*' & right: Unary
+		  => @(ExpressionLanguage.Multiply(left, right, parserState))
 		| left: Multiplicative & '/' & right: Unary => @(Expression.Divide(left, right))
 		| left: Multiplicative & '%' & right: Unary => @(Expression.Modulo(left, right))
 		| u: Unary                                  => @(u)
@@ -591,7 +627,7 @@ namespace DotGram.Parsers;
 	Unary : @Expression
 		= "++" & target: Name => @(Expression.PreIncrementAssign(target))
 		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
-		| '-' & operand: Unary => @(Expression.Negate(operand))
+		| '-' & operand: Unary => @(ExpressionLanguage.Negate(operand, parserState))
 		| '+' & operand: Unary => @(Expression.UnaryPlus(operand))
 		| '!' & operand: Unary => @(Expression.Not(operand))
 		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
@@ -600,7 +636,8 @@ namespace DotGram.Parsers;
 		// type here is a keyword, and a keyword is no name. C# needs a rule of its own to
 		// decide this because a type there may be a name; a language whose types are a
 		// closed set of keywords does not.
-		| '(' & type: Type & ')' & operand: Unary => @(Expression.Convert(operand, type))
+		| '(' & type: Type & ')' & operand: Unary
+		  => @(ExpressionLanguage.Cast(operand, type, parserState))
 
 		| p: Postfix => @(p)
 
@@ -659,6 +696,13 @@ namespace DotGram.Parsers;
 		| type: NamedType & '.' & member: Word
 		  => @(ExpressionLanguage.StaticMember(type, member))
 
+		// §7.8, and the one thing in this language that changes what a construction builds
+		// without changing anything about what is read. The operand is an ordinary
+		// expression, read by the ordinary rules; the mark stands over it and the
+		// arithmetic below asks what it stands under.
+		| "checked"   & '(' & inner: Expression with state @(Reading.Checked)   & ')' => @(inner)
+		| "unchecked" & '(' & inner: Expression with state @(Reading.Unchecked) & ')' => @(inner)
+
 		| '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
@@ -707,7 +751,7 @@ namespace DotGram.Parsers;
 
 		| n: Name    => @(n)
 
-	Name : @Expression = name: Word => @(context.Named(name, parserSpan))
+	Name : @Expression = ?!Keyword & name: Word => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
 	""")]
@@ -816,6 +860,84 @@ public static partial class ExpressionLanguage
 
 		return _resolved[name] = found;
 	}
+
+	/// <summary>What a piece of the text is being read under — the grammar's `state` (§7.8).</summary>
+	/// <remarks>
+	/// One type for the whole grammar, which is what §7.8 asks: a second concern would be
+	/// more values here rather than a second declaration, and what tells two concerns apart
+	/// is that a reader of one walks past the values of the other. <see cref="Checked"/>
+	/// asks for the arithmetic that throws on overflow; <see cref="Unchecked"/> asks for
+	/// the arithmetic that wraps, and exists so that it can be asked for again inside a
+	/// `checked` that already stands over it.
+	/// </remarks>
+	public enum Reading
+	{
+		Checked,
+		Unchecked,
+	}
+
+	/// <summary>Whether the nearest mark that speaks about overflow says to check it.</summary>
+	/// <remarks>
+	/// Read from the end, which is the nearest, and stopping at the first value of this
+	/// concern rather than at the first value: that is what lets a mark about something
+	/// else stand between a `checked` and the arithmetic under it without hiding it. C#'s
+	/// default is unchecked, and so is the answer where nothing says otherwise.
+	/// </remarks>
+	static bool Checked(ReadOnlySpan<Reading> reading)
+	{
+		for (var i = reading.Length - 1; i >= 0; i--)
+			switch (reading[i])
+			{
+				case Reading.Checked   : return true;
+				case Reading.Unchecked : return false;
+			}
+
+		return false;
+	}
+
+	// The eight nodes `System.Linq.Expressions` has two of. Written here rather than in the
+	// grammar for the reason everything else in this class is: the grammar says what a `+`
+	// is, in the word every language uses for it, and the host says what a `+` turns into
+	// here. A conditional written eight times into the notation would have said the same
+	// thing worse, and would have put a C# question — which overload — where a reader is
+	// looking for the shape of an expression.
+
+	public static Expression Add(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
+		Checked(reading) ? Expression.AddChecked(left, right) : Expression.Add(left, right);
+
+	public static Expression Subtract(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
+		Checked(reading) ? Expression.SubtractChecked(left, right) : Expression.Subtract(left, right);
+
+	public static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
+		Checked(reading) ? Expression.MultiplyChecked(left, right) : Expression.Multiply(left, right);
+
+	public static Expression Negate(Expression operand, ReadOnlySpan<Reading> reading) =>
+		Checked(reading) ? Expression.NegateChecked(operand) : Expression.Negate(operand);
+
+	/// <remarks>
+	/// A cast is where the difference is most visible and least like the others: `(byte)300`
+	/// is 44 unchecked and throws checked, and neither is an error the C# compiler would
+	/// have caught here — the value is not a constant until the tree is compiled.
+	/// </remarks>
+	public static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading) =>
+		Checked(reading) ? Expression.ConvertChecked(operand, type) : Expression.Convert(operand, type);
+
+	public static Expression AddAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Checked(reading)
+			? Expression.AddAssignChecked(target, value)
+			: Expression.AddAssign(target, value);
+
+	public static Expression SubtractAssign(
+		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Checked(reading)
+			? Expression.SubtractAssignChecked(target, value)
+			: Expression.SubtractAssign(target, value);
+
+	public static Expression MultiplyAssign(
+		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Checked(reading)
+			? Expression.MultiplyAssignChecked(target, value)
+			: Expression.MultiplyAssign(target, value);
 
 	/// <summary>What <c>a.b</c> reads, which the type of <c>a</c> decides.</summary>
 	/// <remarks>

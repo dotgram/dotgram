@@ -954,6 +954,53 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Everything a factory may be handed that is not one of its own captures, in the order
+	/// its parameters are written.
+	/// </summary>
+	/// <remarks>
+	/// One list, called from both places a factory is: the ordinary path below and the fold
+	/// above, which used to assemble its own and had drifted — it knew about the text and
+	/// the span and about none of the three added since. A factory's parameters are written
+	/// once, in <c>CSharpEmitter</c>, so what fills them has to be written once too or the
+	/// next name added is a call missing an argument in somebody else's build.
+	/// </remarks>
+	List<string> Supplied(Writer file, Factory factory, string at)
+	{
+		var arguments = new List<string>();
+
+		// Materialized only where the expression names it. It is the whole of what the
+		// rule matched, so building it for an expression that never looks at it doubles
+		// what a parse allocates — twice the string, for a rule whose value is the
+		// capture inside it.
+		if (CSharpEmitter.WantsText(factory))
+			arguments.Add(
+				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+
+		if (CSharpEmitter.Asks(factory, "parserSpan"))
+			arguments.Add(
+				"new SourceSpan(" +
+				"completed.Position, completed.Value - completed.Position)");
+
+		if (CSharpEmitter.Asks(factory, "parserInput"))
+			arguments.Add("parserInput");
+
+		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+			arguments.Add("context");
+
+		// The marks standing over this construction, outermost first. Built where it is
+		// asked for and nowhere else, the same as the text above it: a grammar that places
+		// marks and a factory that reads them are two different decisions.
+		//
+		// Gated on the declaration and not on whether anything places a mark: the parameter
+		// is, and the two have to agree. A grammar that declares a state and writes no
+		// `with state` hands over nothing, which is what an empty span says.
+		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
+
+		return arguments;
+	}
+
+	/// <summary>
 	/// A factory's arguments from the captures walked above — the same list whichever
 	/// branch asks for it.
 	/// </summary>
@@ -1036,16 +1083,7 @@ sealed partial class Machine
 					using (file.Indent())
 					using (file.Block(""))
 					{
-						var arguments = new List<string>();
-
-						if (CSharpEmitter.WantsText(factory))
-							arguments.Add(
-								"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
-
-						if (CSharpEmitter.Asks(factory, "parserSpan"))
-							arguments.Add(
-								"new SourceSpan(" +
-								"completed.Position, completed.Value - completed.Position)");
+						var arguments = Supplied(file, factory, "constructAt");
 
 						if (factory.Accumulator is not null)
 						{

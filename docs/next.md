@@ -5366,3 +5366,72 @@ all of it.
 
 1,344 tests green in both configurations, and the `checked(1 + unchecked(2 + 3) + 4)` case
 is one of them: one `Sum` rule, read one way, building two different trees.
+
+## Built: `checked` and `unchecked`, which is what `with state` was for
+
+The mark had tests and no user. Now it has one, and the first thing to say is that the
+grammar barely changed: two alternatives in `Primary` that place a mark, and eight `=>`
+that ask what they stand under. **85 of the 120** factories, up from 77 — the eight nodes
+`System.Linq.Expressions` has two of.
+
+```dotgram
+| "checked"   & '(' & inner: Expression with state @(Reading.Checked)   & ')' => @(inner)
+| "unchecked" & '(' & inner: Expression with state @(Reading.Unchecked) & ')' => @(inner)
+```
+
+`Additive` is still one rule with one alternative for `+`. What it builds now goes through
+the host — `ExpressionLanguage.Add(left, right, parserState)` — and the host picks the
+overload, which is exactly the division this class already ran on: the grammar says what a
+`+` is, in the word every language uses for it, and the host says what a `+` turns into
+here. A conditional written eight times into the notation would have put a C# question
+where a reader is looking for the shape of an expression.
+
+**The enum is `Reading`, not `Overflow`.** §7.8 says one type for the whole grammar and
+values for the concerns, so naming it after the only concern it has today would have
+invited the wrong second use. `Checked` reads back to the nearest value of *its* concern
+and walks past anything else, which is the idiom §7.8 documents and the shape a second
+concern will need.
+
+**What the design cost here was nothing measurable, and the reason is structural rather
+than lucky.** A mark makes `Silent` false on its operand, which pushes the surrounding
+publication off the flat rendering; the worry was that this grammar would pay for it. It
+does not — `ExpressionLanguage` emits one `Recognize_DotGram` and no flat method at all,
+and always did. There was nothing on that path to lose. Two `StateSet` sites in 24,872
+lines, and eight factories that read them.
+
+### Two defects, one of them a hole the previous commit dug
+
+**The fold assembled its own arguments.** `MaterializeFold` knew about the matched text and
+the span and about none of the three supplied names added since — `parserInput`, `context`,
+`parserState` — so a left-recursive rule whose factory named any of them emitted a call
+missing an argument. `Additive` is left-recursive, which is how it surfaced immediately.
+Both paths now call one `Supplied`, because a factory's parameters are written once in
+`CSharpEmitter` and what fills them has to be written once too.
+
+**A keyword was a keyword only by the order of alternatives.** `Postfix` reads
+`Name & Arguments` before `Primary` is reached, so `checked(x + 1)` was an invocation of
+something called `checked` and the failure surfaced in the host as "nothing named
+'checked'". Ordering had been enough until now because every other keyword's own reading is
+tried first where it can occur; a keyword followed by a parenthesized expression is
+indistinguishable from a call until something says the word is not a name. So `Name` now
+refuses a `Keyword`, which is what C# means by the word and what the grammar should have
+said from the start.
+
+That found a third thing worth knowing about the notation: **§4.6's woven word boundary
+does not reach inside a lookahead.** `?!Keyword` refused `checkedTotal` for beginning with
+`checked`. The boundary is written out in the rule instead — right either way, since what
+`Keyword` means is "one of these words, whole" — and whether the weaving should reach into
+a lookahead is left as a question for the notation rather than answered as a side effect of
+this.
+
+### And a message that read like a bug
+
+Chasing the above turned up `Expected '<' or '<'.` — not a mangled expectation but a
+duplicated one. A failure keeps everything recorded against the furthest position, and a
+language this size has several sites wanting the same character; the `<` that opens a type
+argument list is written in more than one rule. They were joined as they came. The message
+builder now names each thing once, which every generated parser gets. The test is a
+property — no term appears twice — rather than an assertion about the text, because *which*
+things are named at that position is §7.5's question and a separate one.
+
+1,356 tests green in both configurations.
