@@ -5165,3 +5165,42 @@ already factors when it is written as literals. The exponential cases are precis
 unsafe ones. Writing that down is worth more than the code would have been.
 
 1,275 tests green in both configurations.
+
+## Found: the choice of literals does not sharpen, and the position is a selector
+
+`Sharpen` moves `p` to the character of a literal that did not fit, on the branch where
+the comparison has already failed. Asked what it is for, the answer is not the caret. It
+is that `Fail:` keeps the **furthest** failure and reports that one's expectation, and
+sharpening is what lets a partial literal match count as having got somewhere.
+
+```dotgram
+A = "abcdef" & Tail
+B = "abq" & Tail
+Tail = ['0'..'9']+
+Start = A | B
+```
+
+| input | reported |
+| --- | --- |
+| `abcdez` | `at=5  Expected "abcdef"` — five characters in beats two |
+| `abqz` | `at=3  Expected ['0'..'9']` — that alternative got past its literal |
+| `zbcdef` | `at=0  Expected "abcdef" or "abq"` — neither got anywhere, so both are named |
+
+Without it the first line would be `at=0  Expected "abcdef" or "abq"`: everything that
+could have stood there, instead of the one the author almost wrote.
+
+**And the same grammar written as one rule does not get it.** A choice of literal
+alternatives is compiled by `LiteralGroup`/`CompileLiterals`, the shared-prefix form, and
+that path does not sharpen:
+
+```dotgram
+Start = "abcdef" & 'x' | "abq" & 'y'      // at=0  Expected "abcdefx" or "abqy"
+```
+
+So the quality of the message turns on which shape the author happened to write, in
+exactly the place — a choice between literals — where choosing between expectations is
+what the mechanism is for. The trie knows how far it got; it just does not say.
+
+Written down rather than fixed: the two paths compute "how far" differently — one walks
+the literal it failed against, the other walks a shared prefix across several — and making
+them agree is a change to the more delicate of the two.
