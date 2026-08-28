@@ -4756,3 +4756,89 @@ before parents, so every name inside a block is built before the block is, and a
 recorded there arrives after the last thing that needed it.
 
 1,216 tests green in both configurations.
+
+## Built: the statement layer, and what measuring it found
+
+`if`/`else`, `while`, `do`, `for`, `switch`, `break`, `continue`, assignment, every
+compound assignment C# writes, and `++`/`--` in both positions. The expression language
+now names **54 of the 120** factories on `System.Linq.Expressions.Expression`, up from 33.
+
+**What the API allows was measured rather than assumed**, because the question — can an
+`if` or a loop be worth something? — has a real answer either way:
+
+| | |
+| --- | --- |
+| `Condition(int, int)` | `Int32`, and the branches must agree *exactly* |
+| `Condition(a, b, typeof(void))` | `Void`, and takes branches that agree on nothing |
+| `Loop(body, voidBreak)` | `Void` |
+| `Loop(body, intBreak)` | `Int32` — and the built loop ran and answered |
+| `Switch` with no default | refused: "Default body must be supplied if case bodies are not Void" |
+| `Throw(ex, typeof(int))` | `Int32` — a throw may stand where a value is wanted |
+
+So an `if` with an `else` is worth what its branches are worth, and is written that way:
+`int n = if (c) 1 else 2;`. A loop is not, and cannot be in a language shaped like C#: the
+type comes from the break label, so only a loop with no ordinary way out could have one —
+the ordinary way out would have to carry a value too, and C#'s `break` carries nothing.
+
+**Where the line between the grammar and the host is.** `Expression.Condition` is one
+factory with two answers, and which one a given `if` meant is not in the syntax — `if (c)
+a else b` reads the same whether its value is wanted or thrown away. That is a question
+about this API and not about the language, so the host answers it and the grammar stays
+the shape every language writes. The rule the file now states: the grammar carries what is
+general, the host carries what is specific to the thing it is pointed at. A grammar that
+carried `System.Linq.Expressions`' own distinctions would be a grammar for one API, and
+whether the notation can be pointed at somebody else's is the whole question this parser
+exists to answer.
+
+Same division for `break`: which loop it leaves is where it is written, which is the
+question a *name* asks, answered the same way — the guard records the loop's extent while
+the text is read, the jump looks its label up when it is built. A `switch` records an
+extent of its own, because a `break` in a case leaves the switch and not the loop, and
+there is a test that would answer 1 instead of 8 if it did not.
+
+### Found: two routes to one construct is what makes a parse exponential
+
+A `Block` reachable both as a statement and as a `Primary` is read once as each, at every
+level of a nest of them. So is an `if`. Measured, before anything was done about it:
+
+| | |
+| --- | --- |
+| `if … else if … else if … else` (three deep) | **1,646 ms** |
+| five nested braces | **428 ms** |
+| two braces inside an `if`'s branches | **never finished** |
+
+Giving each construct one route — `Control` and `Block` reachable only from `Statement`,
+and a `Value` rule naming them where a value position may hold one — takes all three to
+**under a millisecond**, and a repeat run shows the growth is linear in nesting: 191, 336,
+387, 471 µs for one to four `else if`s.
+
+The cost is that `1 + { … }` is no longer written: a block and an `if` stand where a value
+is *expected* — an initializer, a `return`, a branch, the last thing in a block — and not
+as an operand in the middle of one. That is a measurement rather than a taste.
+
+A second multiplier went the same way. Eleven assignment alternatives each began `target:
+Unary`, so each read a whole operand — possibly a whole block — before finding out it was
+not the one. The left side of an assignment in this language can only be a name, since
+there is no member access and no indexer, and eleven words is nothing.
+
+### And three defects of this parser's own
+
+**`TryParseLambda` does not forget the parse before it.** Every list the host keeps is
+keyed by position, so a second parse of a different text finds the first one's blocks at
+overlapping offsets and resolves names against them. `Parse` cleared what there was; the
+generated `TryParseLambda` is the parser and nothing else, and knows nothing about a parse
+beginning. `TryParse` beside it is the one to call, and `Begin` clears all six lists —
+three of which this change added and none of which the old `Parse` knew about.
+
+**A block's variables were read out of its assignments**, which was right while a
+declaration was the only thing that could assign, and stopped being right the moment `a =
+1;` was a statement: the same variable was collected twice and `Expression.Block` said so.
+They are the declarations the block holds now — the ones whose innermost block is this one
+— which is the scope machinery already there, asked a second question.
+
+**And a `return` beside a block's value put the value out.** `Returning` wrapped the body
+as `Block(body, Label(target, default))`, so a lambda that ends in an expression computed
+it and answered `default` instead. The label takes the body instead: control reaching the
+end of the body arrives at the label, and what it is worth there is what fell into it.
+
+1,247 tests green in both configurations.

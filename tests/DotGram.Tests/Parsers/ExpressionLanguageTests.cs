@@ -85,10 +85,18 @@ public sealed class ExpressionLanguageTests
 				"(int x) => { int doubled = { int half = x; half * 2 }; doubled }")(5));
 
 	[Fact]
-	public void And_it_may_be_an_operand_like_any_other() =>
+	public void And_it_stands_where_a_value_is_expected_rather_than_anywhere_at_all() =>
+		// An initializer, a `return`, a branch, the last thing in a block. Not an operand in
+		// the middle of an expression: a construct reachable both as a statement and as a
+		// primary is read once as each, at every level of a nest of them, and that is what
+		// made a chain of three `else if`s take 1.6 seconds.
 		Assert.Equal(
-			7,
-			ExpressionLanguage.Compile<Func<int, int>>("(int x) => 1 + { int t = x; t * 2 }")(3));
+			[7, 7],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => { int t = { x * 2 }; t + 1 }")(3),
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => { return { x * 2 + 1 }; }")(3),
+			});
 
 	[Fact]
 	public void Two_blocks_beside_each_other_may_each_declare_the_same_name() =>
@@ -116,11 +124,15 @@ public sealed class ExpressionLanguageTests
 				() => ExpressionLanguage.Parse("() => { int a = { int t = 1; t }; t }")).Message);
 
 	[Fact]
-	public void And_a_block_that_is_worth_nothing_says_so() =>
+	public void And_a_block_with_nothing_in_it_says_so() =>
+		// Nothing else refuses a block: `Expression.Block` is worth its last expression
+		// whatever that is, so `{ int a = x; }` is worth the assignment and reads. Only a
+		// block with no expressions at all has nothing to be worth, and the tree has no
+		// such node.
 		Assert.Contains(
-			"worth its last expression",
+			"has to hold something",
 			Assert.Throws<FormatException>(
-				() => ExpressionLanguage.Parse("(int x) => { int a = x; }")).Message);
+				() => ExpressionLanguage.Parse("(int x) => { }")).Message);
 
 	[Fact]
 	public void A_return_still_leaves_the_whole_lambda() =>
@@ -145,7 +157,7 @@ public sealed class ExpressionLanguageTests
 		// The guard answers rather than throws — it runs during the match, on readings
 		// the parse may abandon — so a word that is not a type simply does not read as a
 		// declaration, and the text is refused as text.
-		Assert.False(ExpressionLanguage.TryParseLambda("(Widget w) => w").IsSuccess);
+		Assert.False(ExpressionLanguage.TryParse("(Widget w) => w").IsSuccess);
 
 	// ── Types, and what mixing them means ───────────────────────────────────────
 
@@ -189,7 +201,7 @@ public sealed class ExpressionLanguageTests
 	public void And_the_suffix_belongs_to_the_number_rather_than_standing_beside_it() =>
 		// Lexical, so nothing may come between: `1 L` is a constant and then a name, and
 		// a lambda made of those two is not this language.
-		Assert.False(ExpressionLanguage.TryParseLambda("() => 1 L").IsSuccess);
+		Assert.False(ExpressionLanguage.TryParse("() => 1 L").IsSuccess);
 
 	[Fact]
 	public void And_a_name_may_still_begin_with_a_suffix_letter() =>
@@ -240,7 +252,7 @@ public sealed class ExpressionLanguageTests
 
 	[Fact]
 	public void And_an_unterminated_string_is_not_this_language() =>
-		Assert.False(ExpressionLanguage.TryParseLambda("() => \"abc").IsSuccess);
+		Assert.False(ExpressionLanguage.TryParse("() => \"abc").IsSuccess);
 
 	[Fact]
 	public void A_comparison_answers_bool() =>
@@ -251,6 +263,151 @@ public sealed class ExpressionLanguageTests
 		// §4.6 weaves a boundary round a keyword, so `trueish` would be a name — which is
 		// the whole reason this grammar declares a `wordboundary`.
 		Assert.True(ExpressionLanguage.Compile<Func<int, bool>>("(int x) => true")(0));
+
+	// ── Statements ──────────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("(int x) => { int a = 0; if (x > 0) a = 1; else a = 2; a }",  3, 1)]
+	[InlineData("(int x) => { int a = 0; if (x > 0) a = 1; else a = 2; a }", -3, 2)]
+	[InlineData("(int x) => { int a = 5; if (x > 0) a = 1; a }",             -3, 5)]
+	public void An_if_reads_as_a_statement(string text, int argument, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
+
+	[Fact]
+	public void And_with_an_else_it_is_worth_what_its_branches_are() =>
+		// `Expression.Condition` with both branches the same type is a value, so the `if`
+		// is one — which `?:` cannot stand in for, because a branch of `?:` is an
+		// expression and this one takes a statement, blocks and declarations included.
+		Assert.Equal(
+			[1, 12],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int, int>>("(int x) => if (x > 0) 1 else -1")(3),
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int x) => { int n = if (x > 0) { int t = x; t * 4 } else 0; n }")(3),
+			});
+
+	[Theory]
+	[InlineData( 3, 1)]
+	[InlineData(-3, 0)]
+	public void And_branches_worth_different_things_make_it_worth_nothing(int argument, int expected) =>
+		// `Expression.Condition` is one factory with two answers, and which one an `if` meant
+		// is a question about this API rather than about the language — so the host answers
+		// it and the grammar stays the shape every language writes. Here the branches have
+		// no type in common, one of them being a `return`, so the `if` is worth nothing and
+		// the block is worth what follows it.
+		Assert.Equal(
+			expected,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => { int a = 0; if (x > 0) a = 1; else { return 0; } a }")(argument));
+
+	[Fact]
+	public void A_while_loop_runs_until_its_test_says_otherwise() =>
+		Assert.Equal(
+			120,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int i = 0; int f = 1; while (i < n) { i++; f *= i; } f }")(5));
+
+	[Fact]
+	public void A_do_loop_runs_once_before_it_asks() =>
+		Assert.Equal(
+			[6, 1],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { int i = 0; int c = 0; do { i++; c += i; } while (i < n); c }")(3),
+				ExpressionLanguage.Compile<Func<int, int>>(
+					"(int n) => { int i = 0; int c = 0; do { i++; c += i; } while (i < n); c }")(0),
+			});
+
+	[Fact]
+	public void A_for_loop_holds_its_own_variable() =>
+		// The initializer's `i` belongs to the loop and not to what is around it, which is
+		// the same scope machinery a block uses — a `for` records an extent of its own.
+		Assert.Equal(
+			10,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }")(5));
+
+	[Fact]
+	public void And_a_name_the_loop_declared_is_not_in_scope_after_it() =>
+		Assert.Contains(
+			"nothing named 'i'",
+			Assert.Throws<FormatException>(
+				() => ExpressionLanguage.Parse("(int n) => { for (int i = 0; i < n; i++) { n += 1; } i }"))
+				.Message);
+
+	[Fact]
+	public void Break_and_continue_name_the_loop_they_are_written_in() =>
+		Assert.Equal(
+			25,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { if (i % 2 == 0) continue; sum += i; } sum }")(10));
+
+	[Fact]
+	public void And_a_break_leaves_the_innermost_one() =>
+		Assert.Equal(
+			3,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int c = 0; for (int i = 0; i < n; i++) { for (int j = 0; j < n; j++) { if (j == 1) break; c++; } } c }")(3));
+
+	[Fact]
+	public void And_a_break_outside_every_loop_is_refused() =>
+		Assert.Contains(
+			"inside no loop and no switch",
+			Assert.Throws<FormatException>(
+				() => ExpressionLanguage.Parse("(int x) => { break; x }")).Message);
+
+	[Theory]
+	[InlineData(1, 10)]
+	[InlineData(2, 20)]
+	[InlineData(9, -1)]
+	public void A_switch_chooses_by_value(int argument, int expected) =>
+		Assert.Equal(
+			expected,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int r = 0; switch (n) { case 1: r = 10; break; case 2: r = 20; break; default: r = -1; } r }")
+				(argument));
+
+	[Fact]
+	public void And_a_break_in_a_case_leaves_the_switch_and_not_the_loop() =>
+		// C#'s rule, and the reason a switch records an extent of its own: were the jump to
+		// name the loop, this would stop at 2 and answer 1 rather than 8.
+		Assert.Equal(
+			8,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { switch (i) { case 2: break; default: sum += i; } } sum }")(5));
+
+	// ── Assignment, which is where a statement gets its work done ───────────────
+
+	[Theory]
+	[InlineData("(int x) => { int a = x; a += 5; a *= 2; a }",  1, 12)]
+	[InlineData("(int x) => { int a = x; a -= 1; a }",          5,  4)]
+	[InlineData("(int x) => { int a = x; a /= 2; a }",          9,  4)]
+	[InlineData("(int x) => { int a = x; a %= 3; a }",          8,  2)]
+	[InlineData("(int x) => { int a = x; a <<= 2; a }",         3, 12)]
+	[InlineData("(int x) => { int a = x; a >>= 1; a }",         8,  4)]
+	[InlineData("(int x) => { int a = x; a &= 6; a }",          3,  2)]
+	[InlineData("(int x) => { int a = x; a |= 4; a }",          3,  7)]
+	[InlineData("(int x) => { int a = x; a ^= 1; a }",          3,  2)]
+	public void Every_compound_assignment_C_sharp_writes_is_here(string text, int argument, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
+
+	[Fact]
+	public void And_an_assignment_is_worth_what_it_assigned() =>
+		// Which is C#'s rule and the API's both, and is what makes `a = b = c` read.
+		Assert.Equal(
+			7,
+			ExpressionLanguage.Compile<Func<int>>("() => { int a = 0; int b = 0; a = b = 7; a }")());
+
+	[Theory]
+	[InlineData("(int x) => { int a = x; int b = a++; b * 10 + a }", 1, 12)]
+	[InlineData("(int x) => { int a = x; int b = ++a; b * 10 + a }", 1, 22)]
+	[InlineData("(int x) => { int a = x; int b = a--; b * 10 + a }", 1, 10)]
+	[InlineData("(int x) => { int a = x; int b = --a; b * 10 + a }", 1,  0)]
+	public void And_increment_says_which_value_it_is_worth_by_where_it_stands(
+		string text, int argument, int expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
 
 	// ── The rest of C#'s ladder ─────────────────────────────────────────────────
 
@@ -388,7 +545,7 @@ public sealed class ExpressionLanguageTests
 	[InlineData("int x => x")]
 	public void A_text_that_is_not_this_language_is_refused_with_a_position(string text)
 	{
-		var match = ExpressionLanguage.TryParseLambda(text);
+		var match = ExpressionLanguage.TryParse(text);
 
 		Assert.False(match.IsSuccess);
 		Assert.NotNull(match.Error);

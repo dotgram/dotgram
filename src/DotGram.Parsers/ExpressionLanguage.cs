@@ -27,14 +27,23 @@ namespace DotGram.Parsers;
 // be a run-time exception in a library instead, which is the C# compiler kept out of
 // work it can do.
 //
-// **What is left in this class is what the API has nowhere to keep**, and the list is
-// worth reading as exactly that:
+// **What is left in this class is what belongs to this API rather than to the language.**
+// The grammar says what an `if` is, what a block is, what a name is — in the words every
+// language uses for them. The host says what those turn into *here*. That division is the
+// point: a grammar carrying `System.Linq.Expressions`' own distinctions would be a grammar
+// for one API, and the whole question this file exists to answer is whether the notation
+// can be pointed at somebody else's. So the list below is worth reading as exactly that —
+// what is specific to the target, kept where the target's name is already written:
 //
 //   * `Declare`/`Named`/`Scoped` — a `ParameterExpression` is an identity, and the one
 //     made for `(int x)` has to be the very object each `x` reads. Nothing in the API
 //     holds a mapping from a name to it, and nothing in it knows what a block is for.
+//   * `Loops`/`Breaks`/`Exit`/`Again` — the same thing for a label: which loop a `break`
+//     leaves is where it is written, and the label is an identity too.
 //   * `Return`/`Returning` — a `return` is a jump to a label, and the label belongs to
 //     the lambda rather than to any statement in it.
+//   * `Chosen` — `Expression.Condition` is one factory with two answers, the branches'
+//     type or `void`, and which one an `if` meant is a question about this API alone.
 //
 // Everything else the grammar says itself.
 //
@@ -54,8 +63,19 @@ namespace DotGram.Parsers;
 //
 // **A block is an expression**, because in this API it is one: `Expression.Block` yields
 // the value of its last expression, so `int a = { int b = 2; b * b };` reads and means
-// what it looks like. `return` is there too and does what C# does — leave the whole
-// lambda, from however deep in.
+// what it looks like — and nothing here decides that beyond passing the statements on.
+// `return` is there too and does what C# does: leave the whole lambda, from however deep.
+//
+// An `if` with an `else` is worth what its branches are worth, for the same reason, so
+// `int n = if (c) 1 else 2;` reads as well. `?:` is that same factory and does not stand
+// in for it: a branch of `?:` is an expression, and a branch of `if` is a statement, which
+// is where a block with declarations in it can go.
+//
+// Both stand where a value is *expected* — an initializer, a `return`, a branch, the last
+// thing in a block — and not as an operand in the middle of one: `1 + { … }` is not
+// written here. That is a measurement rather than a taste. A construct reachable both as a
+// statement and as a `Primary` is read once as each, at every level of a nest of them, and
+// a chain of three `else if`s took 1.6 seconds before each of them had one route.
 //
 // **And the grammar is shaped to the API in two places**, deliberately:
 //
@@ -80,8 +100,9 @@ namespace DotGram.Parsers;
 //     seam this has not been given. It is the obvious next one to give it.
 //   * `is`, `as`, `typeof`, `default`, `checked` and a lambda inside an expression are
 //     absent for that same reason or for want of a use here.
-//   * An assignment is a statement, never an expression, so `a = b = c` and `x += 1` are
-//     not written — a block has declarations, expressions and `return`, and no more.
+//   * A loop is void. The API would type one — a `Loop` whose break label carries a value
+//     is worth it — but only a loop with no ordinary way out can, since the ordinary way
+//     out would have to carry a value too, and C#'s `break` carries nothing.
 //   * A block may shadow a name an enclosing one declared, which C# refuses outright
 //     (CS0136). The nearer name wins here — more permissive than C#, so no valid C# is
 //     turned into something else, and the check C# makes is one this has no reason to.
@@ -190,7 +211,7 @@ namespace DotGram.Parsers;
 	// ── A lambda: what it takes, and what it does ───────────────────────────────
 
 	Lambda : @LambdaExpression
-		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Expression
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
 		=> @(Expression.Lambda(
 			ExpressionLanguage.Returning(body), ExpressionLanguage.Taking(first, rest)))
 
@@ -233,17 +254,133 @@ namespace DotGram.Parsers;
 	Block : @Expression
 		= '{' & statements: Statement* & value: Expression? & '}'
 		& when @(ExpressionLanguage.Scoped(parserSpan))
-		=> @(ExpressionLanguage.Block(statements, value))
+		=> @(ExpressionLanguage.Block(statements, parserSpan, value))
 
-	Statement : @Expression = s: Local => @(s) | s: Return => @(s) | s: Expression & ';' => @(s)
+	Statement : @Expression
+		= s: Local            => @(s)
+		| s: Return           => @(s)
+		| s: Block            => @(s)
+		| s: Control          => @(s)
+		| s: Jump & ';'       => @(s)
+		| s: Expression & ';' => @(s)
 
 	Local : @Expression
 		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name, parserSpan))
-		& '=' & value: Expression & ';'
+		& '=' & value: Value & ';'
 		=> @(Expression.Assign(ExpressionLanguage.Named(name, parserSpan), value))
 
-	Return : @Expression = "return" & value: Expression & ';'
+	Return : @Expression = "return" & value: Value & ';'
 	                     => @(ExpressionLanguage.Return(value))
+
+	// ── The statements that carry a body, and so end without a semicolon ────────
+	//
+	// An `if` with an `else` is worth what its branches are worth, so it is a `Primary` as
+	// well as a statement and `int n = if (c) 1 else 2;` reads. `?:` is the same factory
+	// and does not replace it: a branch there is an expression, and this one takes a
+	// statement, which is where a block with declarations in it can go.
+	//
+	// The rest are void. The API would type a loop too — a `Loop` whose break label
+	// carries a value is worth one — but only a loop with no ordinary way out can have it,
+	// since the ordinary way out would have to carry one as well, and C# has no `break`
+	// that does. A `switch` here is C#'s statement, likewise.
+
+	// Where a value is expected and a block or an `if` may stand: an initializer, a
+	// `return`, the branch of an `if`.
+	//
+	// **Two routes to one construct is what makes a parse exponential**, and this rule is
+	// the answer to it. A `Block` that is both a statement and a `Primary` is read once as
+	// each — at every level of a nest of them — and so is an `if` that is both a statement
+	// and a `Primary`. Written that way, a chain of three `else if`s took 1.6 seconds and a
+	// nest of five braces took 428 ms, both doubling and worse per level. Reachable one way
+	// only, with the value positions naming them here, both are too fast to measure.
+	Value : @Expression = b: Block => @(b) | c: Control => @(c) | e: Expression => @(e)
+
+	Control : @Expression
+		= c: If      => @(c)
+		| c: While   => @(c)
+		| c: DoWhile => @(c)
+		| c: For     => @(c)
+		| c: Switch  => @(c)
+
+	If : @Expression
+		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch
+		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
+		| "if" & '(' & test: Expression & ')' & then: Statement
+		  => @(Expression.IfThen(test, then))
+
+	// A branch is a statement where one was written and an expression where one was: C#
+	// only has the first, and the second is what `int n = if (c) 1 else 2;` needs. The
+	// statement is tried first, so `if (c) x = 1; else x = 2;` reads its semicolons the
+	// way it looks like it should, and the bare form is what the parse falls back to.
+	Branch : @Expression = s: Statement => @(s) | s: Expression => @(s)
+
+	// Which loop a `break` belongs to is the same question a name asks — which block is it
+	// written in — and it is answered the same way: the guard records the extent while the
+	// text is read, and the jump looks it up when it is built. It has to be that way round
+	// here too, because a `break` is built before the loop that holds it.
+	While : @Expression
+		= "while" & '(' & test: Expression & ')' & body: Statement
+		& when @(ExpressionLanguage.Loops(parserSpan))
+		=> @(Expression.Loop(
+			Expression.Condition(
+				test, body, Expression.Break(ExpressionLanguage.Exit(parserSpan)), typeof(void)),
+			ExpressionLanguage.Exit(parserSpan),
+			ExpressionLanguage.Again(parserSpan)))
+
+	// `Expression.Loop`'s own continue label stands at the top of the body, which is where
+	// C# puts it for a `while` and not where it puts it for a `do`: there it goes to the
+	// test. So this one places the label itself, with `Expression.Label`, and leaves the
+	// loop's own continue unused.
+	DoWhile : @Expression
+		= "do" & body: Statement & "while" & '(' & test: Expression & ')' & ';'
+		& when @(ExpressionLanguage.Loops(parserSpan))
+		=> @(Expression.Loop(
+			Expression.Block(
+				body,
+				Expression.Label(ExpressionLanguage.Again(parserSpan)),
+				Expression.Condition(
+					test,
+					Expression.Empty(),
+					Expression.Break(ExpressionLanguage.Exit(parserSpan)),
+					typeof(void))),
+			ExpressionLanguage.Exit(parserSpan)))
+
+	// A `for` is a scope as well as a loop — `int i = 0` belongs to it and not to what is
+	// around it — so it records both, and the block that holds the initializer is what
+	// declares the variable the initializer assigns.
+	For : @Expression
+		= "for" & '(' & init: Statement & test: Expression & ';' & step: Expression & ')'
+		& body: Statement
+		& when @(ExpressionLanguage.Loops(parserSpan) && ExpressionLanguage.Scoped(parserSpan))
+		=> @(ExpressionLanguage.Block(
+			new[] { init }, parserSpan,
+			Expression.Loop(
+				Expression.Condition(
+					test,
+					Expression.Block(body, Expression.Label(ExpressionLanguage.Again(parserSpan)), step),
+					Expression.Break(ExpressionLanguage.Exit(parserSpan)),
+					typeof(void)),
+				ExpressionLanguage.Exit(parserSpan))))
+
+	// A `switch` is what a `break` may name besides a loop, and C# says so — a `break` in a
+	// case leaves the switch and not the loop around it. So it records an extent of its own
+	// and puts the label the jumps go to after itself.
+	Switch : @Expression
+		= "switch" & '(' & value: Expression & ')' & '{' & cases: Case* & fallback: Fallback? & '}'
+		& when @(ExpressionLanguage.Breaks(parserSpan))
+		=> @(Expression.Block(
+			Expression.Switch(typeof(void), value, fallback, null, cases),
+			Expression.Label(ExpressionLanguage.Exit(parserSpan))))
+
+	Case : @SwitchCase
+		= "case" & test: Expression & ':' & body: Statement+
+		=> @(Expression.SwitchCase(Expression.Block(body), test))
+
+	Fallback : @Expression = "default" & ':' & body: Statement+ => @(Expression.Block(body))
+
+	Jump : @Expression
+		= "break"    => @(Expression.Break(ExpressionLanguage.Exit(parserSpan)))
+		| "continue" => @(Expression.Continue(ExpressionLanguage.Again(parserSpan)))
 
 	// ── The operators: C#'s ladder, one rule per level of precedence (§4.3) ─────
 	//
@@ -252,7 +389,28 @@ namespace DotGram.Parsers;
 	// recursive, which is where the associativity is — `10 - 3 - 2` is `(10 - 3) - 2` —
 	// except the two C# groups to the right, which are written right recursive.
 
-	Expression : @Expression = e: Conditional => @(e)
+	Expression : @Expression = e: Assignment => @(e)
+
+	// C# puts assignment lowest of all and groups it to the right, and its left side is a
+	// unary expression rather than any expression at all — `a + b = c` is not one. Here it
+	// is narrower still: a name, because a name is the only thing this language has that
+	// can be written to. That is not only about what is legal. Written as `Unary`, each of
+	// these eleven alternatives reads a whole operand before finding out it is not the one,
+	// and an operand may be a block — which made a lambda with two braces in it take longer
+	// to read than there is time. A name is one word, and eleven words is nothing.
+	Assignment : @Expression
+		= target: Name & "+="  & value: Assignment => @(Expression.AddAssign(target, value))
+		| target: Name & "-="  & value: Assignment => @(Expression.SubtractAssign(target, value))
+		| target: Name & "*="  & value: Assignment => @(Expression.MultiplyAssign(target, value))
+		| target: Name & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
+		| target: Name & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
+		| target: Name & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
+		| target: Name & "|="  & value: Assignment => @(Expression.OrAssign(target, value))
+		| target: Name & "^="  & value: Assignment => @(Expression.ExclusiveOrAssign(target, value))
+		| target: Name & "<<=" & value: Assignment => @(Expression.LeftShiftAssign(target, value))
+		| target: Name & ">>=" & value: Assignment => @(Expression.RightShiftAssign(target, value))
+		| target: Name & '=' & ?!'=' & value: Assignment => @(Expression.Assign(target, value))
+		| c: Conditional                           => @(c)
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -314,8 +472,12 @@ namespace DotGram.Parsers;
 		| left: Multiplicative & '%' & right: Unary => @(Expression.Modulo(left, right))
 		| u: Unary                                  => @(u)
 
+	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
+	// a name for the same reason assignment is: they write to what they read.
 	Unary : @Expression
-		= '-' & operand: Unary => @(Expression.Negate(operand))
+		= "++" & target: Name => @(Expression.PreIncrementAssign(target))
+		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
+		| '-' & operand: Unary => @(Expression.Negate(operand))
 		| '+' & operand: Unary => @(Expression.UnaryPlus(operand))
 		| '!' & operand: Unary => @(Expression.Not(operand))
 		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
@@ -326,12 +488,17 @@ namespace DotGram.Parsers;
 		// closed set of keywords does not.
 		| '(' & type: Type & ')' & operand: Unary => @(Expression.Convert(operand, type))
 
-		| p: Primary => @(p)
+		| p: Postfix => @(p)
+
+	// The one level C# has that this one had no need of until there was something to assign
+	// to, and over a name for the same reason.
+	Postfix : @Expression
+		= target: Name & "++" => @(Expression.PostIncrementAssign(target))
+		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
+		| p: Primary          => @(p)
 
 	Primary : @Expression
-		= b: Block => @(b)
-
-		| '(' & inner: Expression & ')' => @(inner)
+		= '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
@@ -377,7 +544,9 @@ namespace DotGram.Parsers;
 		// which, where which one matters.
 		| "null"     => @(Expression.Constant(null, typeof(object)))
 
-		| name: Word => @(ExpressionLanguage.Named(name, parserSpan))
+		| n: Name    => @(n)
+
+	Name : @Expression = name: Word => @(ExpressionLanguage.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
 	""")]
@@ -395,11 +564,35 @@ public static partial class ExpressionLanguage
 	/// </exception>
 	public static LambdaExpression Parse(string text)
 	{
-		_declared?.Clear();
-		_scopes?.Clear();
-		_returns = null;
+		Begin();
 
 		return ParseLambda(text);
+	}
+
+	/// <summary>The same, answering rather than throwing where the text is not this language.</summary>
+	/// <remarks>
+	/// The generated <c>TryParseLambda</c> beside it is the parser and nothing else, and
+	/// what this adds is the one thing a parser cannot know: that a new parse is beginning,
+	/// and that everything the last one wrote down about names, blocks and loops is now
+	/// about a text nobody is reading. Call it rather than the generated one.
+	/// </remarks>
+	public static Match<LambdaExpression> TryParse(string text)
+	{
+		Begin();
+
+		return TryParseLambda(text);
+	}
+
+	/// <summary>Forget the parse before this one. Every list here is keyed by position.</summary>
+	static void Begin()
+	{
+		_declared?.Clear();
+		_scopes?.Clear();
+		_loops?.Clear();
+		_breakables?.Clear();
+		_exits?.Clear();
+		_agains?.Clear();
+		_returns = null;
 	}
 
 	/// <summary>The same, compiled to a delegate of the caller's own type.</summary>
@@ -533,16 +726,82 @@ public static partial class ExpressionLanguage
 	}
 
 	/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
-	static Scope? Holding(int position)
+	static Scope? Holding(int position) => Innermost(_scopes, position);
+
+	/// <summary>The innermost of these extents holding a position, or none.</summary>
+	static Scope? Innermost(List<Scope>? among, int position)
 	{
 		var innermost = default(Scope?);
 
-		foreach (var scope in _scopes ?? [])
+		foreach (var scope in among ?? [])
 			if (scope.From <= position && position < scope.To &&
 				(innermost is not { } known || scope.From > known.From))
 				innermost = scope;
 
 		return innermost;
+	}
+
+	// ── Where a break and a continue go ─────────────────────────────────────────
+	//
+	// The same question as a name's, and the same answer: which one a jump belongs to is
+	// where it is written. A `break` may name a loop or a switch and a `continue` only a
+	// loop, which is C#'s rule and the reason these are two lists. Both are read while the
+	// text is; the labels themselves are made where they are first asked for, because a
+	// jump is built before the thing it jumps out of.
+
+	[ThreadStatic]
+	static List<Scope>? _loops;
+
+	[ThreadStatic]
+	static List<Scope>? _breakables;
+
+	[ThreadStatic]
+	static Dictionary<int, LabelTarget>? _exits;
+
+	[ThreadStatic]
+	static Dictionary<int, LabelTarget>? _agains;
+
+	/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
+	public static bool Loops(SourceSpan span)
+	{
+		(_loops ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+
+		return Breaks(span);
+	}
+
+	/// <summary>A switch, which only a <c>break</c> may name.</summary>
+	public static bool Breaks(SourceSpan span)
+	{
+		(_breakables ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+
+		return true;
+	}
+
+	/// <summary>Where a <c>break</c> written here goes.</summary>
+	public static LabelTarget Exit(SourceSpan at) =>
+		Labelled(
+			_exits ??= [],
+			Innermost(_breakables, at.Start) ??
+				throw new FormatException("a 'break' here is inside no loop and no switch."),
+			"break");
+
+	/// <summary>Where a <c>continue</c> written here goes.</summary>
+	public static LabelTarget Again(SourceSpan at) =>
+		Labelled(
+			_agains ??= [],
+			Innermost(_loops, at.Start) ??
+				throw new FormatException("a 'continue' here is inside no loop."),
+			"continue");
+
+	/// <summary>One label per extent, made the first time anything asks for it.</summary>
+	static LabelTarget Labelled(Dictionary<int, LabelTarget> labels, Scope? of, string name)
+	{
+		var at = of!.Value.From;
+
+		if (!labels.TryGetValue(at, out var target))
+			labels[at] = target = Expression.Label(name);
+
+		return target;
 	}
 
 	/// <summary>The parameters a lambda takes, in the order it wrote them.</summary>
@@ -570,6 +829,27 @@ public static partial class ExpressionLanguage
 		return Expression.Return(_returns, value);
 	}
 
+	/// <summary>An <c>if</c> with an <c>else</c>, worth what its branches agree on.</summary>
+	/// <remarks>
+	/// <c>Expression.Condition</c> is one factory with two answers — the branches' own type,
+	/// or <c>typeof(void)</c> where they have none in common — and which of them a given
+	/// <c>if</c> could have meant is a question about this API and not about the language.
+	/// The grammar says what an `if` is, in the words every language uses for it; this says
+	/// what that turns into here. Written the other way round, the grammar would have to
+	/// carry a distinction that only <c>System.Linq.Expressions</c> makes.
+	/// </remarks>
+	public static Expression Chosen(Expression test, Expression then, Expression otherwise)
+	{
+		if (then is null)
+			throw new ArgumentNullException(nameof(then));
+
+		if (otherwise is null)
+			throw new ArgumentNullException(nameof(otherwise));
+
+		return Expression.Condition(
+			test, then, otherwise, then.Type == otherwise.Type ? then.Type : typeof(void));
+	}
+
 	/// <summary>The body with the place its returns go to, where any of them do.</summary>
 	/// <remarks>
 	/// One label for the lambda rather than one per block, because that is what a
@@ -582,41 +862,53 @@ public static partial class ExpressionLanguage
 		if (body is null)
 			throw new ArgumentNullException(nameof(body));
 
+		// Where the body is worth what a `return` is worth, the label takes it: control that
+		// reaches the end of the body arrives at the label, and what the label is worth
+		// there is what fell into it. Written the other way — the label after the body,
+		// with a default — the body's own value is computed and thrown away, and a lambda
+		// that ends in an expression answers `default` instead of it.
+		//
+		// Where the body is worth nothing, because every path out of it is a `return`, there
+		// is nothing to fall through with and the default is the only thing to put there.
 		return _returns is null
 			? body
-			: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
+			: body.Type == _returns.Type
+				? Expression.Label(_returns, body)
+				: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
 	}
 
 	/// <summary>
 	/// A block: the variables it declared, its statements, and the expression it is worth.
 	/// </summary>
 	/// <remarks>
-	/// The variables are read back out of the assignments rather than collected
-	/// separately — an assignment to a variable is what a declaration became, so the
-	/// statements already say which they are.
+	/// The variables are the declarations this block holds — the ones whose innermost
+	/// block is this one — and not, as they once were, whatever the statements assign to.
+	/// That reading was right while a declaration was the only thing that could assign,
+	/// and stopped being right the moment `a = 1;` was a statement: it collected the same
+	/// variable twice and the tree said so.
 	/// </remarks>
-	public static Expression Block(Expression[] statements, Expression? value)
+	public static Expression Block(Expression[] statements, SourceSpan at, Expression? value)
 	{
 		if (statements is null)
 			throw new ArgumentNullException(nameof(statements));
 
 		var variables = new List<ParameterExpression>();
 
-		foreach (var statement in statements)
-			if (statement is BinaryExpression { NodeType: ExpressionType.Assign, Left: ParameterExpression variable })
-				variables.Add(variable);
+		foreach (var declaration in _declared ?? [])
+			if (Holding(declaration.At) is { } held && held.From == at.Start)
+				variables.Add(declaration.Variable);
 
 		var body = new List<Expression>(statements);
 
 		if (value is not null)
 			body.Add(value);
 
-		// A block that ends in a `return` never reaches its own end, so it needs no value:
-		// the jump is where control goes, and the lambda is what holds the label.
-		else if (statements.Length == 0 || statements[statements.Length - 1] is not GotoExpression)
-			throw new FormatException(
-				"a block is worth its last expression, and this one has none. End it with an " +
-				"expression, or with a 'return'.");
+		// Nothing decides what the block is worth beyond this: `Expression.Block` is worth
+		// its last expression, whatever that turns out to be. A trailing expression is one,
+		// an `if` whose branches agree is one, a statement whose value nobody wanted is one
+		// that nobody reads, and a block ending in a `return` never reaches its end at all.
+		if (body.Count == 0)
+			throw new FormatException("a block has to hold something.");
 
 		return Expression.Block(variables, body);
 	}
