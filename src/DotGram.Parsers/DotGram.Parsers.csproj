@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- One target for now, and deliberately not the floor the generated code can
+		     reach: what limits this package is the C# written by hand beside the
+		     grammars, not what the generator emits. Broadening to netstandard2.0 is a
+		     packaging-time decision and a widening, which is the easy direction. -->
+		<TargetFramework>net8.0</TargetFramework>
+		<RootNamespace>DotGram.Parsers</RootNamespace>
+
+		<Description>Parsers for real formats, written in .gram: expressions, URLs, protocols.</Description>
+
+		<!-- A parser that does not compile is not a parser, and this one ships. -->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!-- Generated files land on disk so a reader can open what the grammars became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else: a .gram parser acquires no runtime
+		     dependency, which is why this can be an ordinary library (docs/syntax.md
+		     §6.1). -->
+		<ProjectReference Include="..\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>

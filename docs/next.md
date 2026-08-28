@@ -4463,3 +4463,45 @@ each beginning with the forwarder stay recursive through *each other*, which no 
 removes. One rule whose tail is a choice of steps is the same language and folds — which
 is how the example is written, and the paragraph explaining why is the part worth
 copying.
+
+## Built: DotGram.Parsers, and an expression language that speaks only ET
+
+A new project in `src/`, meant to be packaged: parsers for real formats, written in
+`.gram`. The line between it and `examples/` is what each answers. An example shows one
+feature and is written to be copied; a parser here answers whether the notation is
+enough for a whole specification. And because it is an ordinary project the generator
+runs over, it is the second place — after the examples — where a real Roslyn resolver is
+exercised at all, which is where three of last week's five defects lived.
+
+The first is a small language that compiles to a .NET expression tree, with parameters,
+a block, local variables and `return`. The ruling that shaped it: **every `=>` builds
+`System.Linq.Expressions` and nothing else** — no model of this project's own between
+the grammar and the API — so that what is proved is that a third-party API can be wired
+to a parser as it stands, rather than through a layer written to suit the parser.
+
+Two facts about the language decide the shape, and the first was measured rather than
+assumed: `=>` runs after the whole match, children before parents and, among siblings,
+**from the end of the text backwards** — the materializer walks the arena by descending
+index, and its own comment says why. So a use of `x` is constructed before the parameter
+that declares it, and no `=>` can resolve a name. `when`, on the other hand, runs
+*during* the match, in reading order. So the declarations are made by guards while
+reading and the uses are built afterwards against a table that is by then complete;
+twenty lines hold `ParameterExpression`s by name, which is the one thing the API has
+nowhere to keep.
+
+Guards run on readings the parse abandons, and that is not a footnote — the first run
+died twice on it. `int x` is also `in` and `t` while a repetition gives characters back,
+and a failed parse retries the parameter list. So a guard **answers** rather than
+throws: a word that is not a type is not a declaration, which sends the parse to the
+reading that is one. What it costs is written where the guard is: an abandoned reading
+leaves its name behind, and no block shadows.
+
+Two places where the grammar is shaped to the API rather than the other way round, both
+deliberate and both documented in the file: a local says its type (`int sum = …`, not
+`var`), because `Expression.Variable` wants one where the declaration is read; and a
+name means one thing for the whole lambda, because shadowing would need a scope entered
+and left around a *construction*, and construction is not where the reading is.
+
+Twenty tests, every one of which compiles the tree and calls it — a lambda that builds
+and answers wrongly is the failure a snapshot cannot see. The corpus is unmoved:
+Csv 1.53, Feed 1.75, Minimal 1.39, Notation 1.31, Url 1.71.

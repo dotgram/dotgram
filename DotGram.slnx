@@ -28,6 +28,7 @@
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src/DotGram/DotGram.csproj" />
+		<Project Path="src/DotGram.Parsers/DotGram.Parsers.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj" />
