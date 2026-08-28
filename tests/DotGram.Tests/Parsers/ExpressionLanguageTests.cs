@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -64,6 +65,91 @@ public sealed class ExpressionLanguageTests
 			.Split([", ", " or "], StringSplitOptions.None);
 
 		Assert.Equal(terms.Length, terms.Distinct().Count());
+	}
+
+	// ── Nested initializers: the three the API has and one syntax says ───────────
+
+	/// <summary>A collection whose `Add` takes two things, which is what `ElementInit` is for.</summary>
+	/// <remarks>
+	/// A list of values could not have said this: `Add` is not obliged to take one thing,
+	/// and a dictionary's takes two. C# writes each call's arguments in braces of their
+	/// own and so does this — the grammar reads a braced group as one element and a bare
+	/// expression as an element of one.
+	/// </remarks>
+	[Fact]
+	public void A_collection_initializer_may_call_Add_with_more_than_one_thing()
+	{
+		ExpressionLanguage.Using("System.Collections.Generic");
+
+		var made = ExpressionLanguage.Compile<Func<Dictionary<int, string>>>(
+			"() => new Dictionary<int, string>() { { 1, \"one\" }, { 2, \"two\" } }")();
+
+		Assert.Equal(["one", "two"], new[] { made[1], made[2] });
+	}
+
+	[Fact]
+	public void And_one_whose_Add_takes_one_is_written_without_them()
+	{
+		ExpressionLanguage.Using("System.Collections.Generic");
+
+		Assert.Equal(
+			[10, 20],
+			ExpressionLanguage.Compile<Func<List<int>>>("() => new List<int>() { 10, 20 }")());
+	}
+
+	/// <summary>`Inner = { X = 1 }` sets what is already there rather than replacing it.</summary>
+	/// <remarks>
+	/// `MemberBind`, and the difference from an assignment is the whole point: no `new`
+	/// stands after the `=`, so the object the member already holds is the one initialized.
+	/// Which member's type the nested braces are read against is not known where they are
+	/// read — it is one step further in than the name — so the settings travel as text and
+	/// a value, and are bound where the member is in hand.
+	/// </remarks>
+	[Fact]
+	public void A_member_initializer_may_nest()
+	{
+		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+
+		var made = ExpressionLanguage.Compile<Func<Holder>>(
+			"() => new Holder() { Inner = { Count = 7 } }")();
+
+		Assert.Equal(7, made.Inner.Count);
+	}
+
+	[Fact]
+	public void And_a_nested_one_may_be_a_collection()
+	{
+		// `ListBind`: the list the member already holds is added to, not replaced.
+		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+
+		Assert.Equal(
+			[3, 4],
+			ExpressionLanguage.Compile<Func<Holder>>("() => new Holder() { Items = { 3, 4 } }")().Items);
+	}
+
+	[Fact]
+	public void And_the_three_forms_stand_side_by_side()
+	{
+		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+
+		var made = ExpressionLanguage.Compile<Func<Holder>>(
+			"() => new Holder() { Name = \"a\", Inner = { Count = 1 }, Items = { 5 } }")();
+
+		Assert.Equal("a", made.Name);
+		Assert.Equal(1,   made.Inner.Count);
+		Assert.Equal([5], made.Items);
+	}
+
+	[Fact]
+	public void And_a_collection_with_no_such_Add_says_so()
+	{
+		ExpressionLanguage.Using("System.Collections.Generic");
+
+		Assert.Contains(
+			"no 'Add' taking",
+			Assert.Throws<FormatException>(
+				() => ExpressionLanguage.Compile<Func<List<int>>>(
+					"() => new List<int>() { { 1, 2 } }")).Message);
 	}
 
 	// ── checked and unchecked: §7.8's marks, in the language they were built for ──
@@ -874,4 +960,23 @@ public sealed class ExpressionLanguageTests
 		Assert.False(match.IsSuccess);
 		Assert.NotNull(match.Error);
 	}
+}
+
+/// <summary>What the nested-initializer tests are written against.</summary>
+/// <remarks>
+/// Top level rather than nested in the test class, because the parser resolves a name
+/// against namespaces the way a `using` does and a nested type is not reachable that way.
+/// Its two initializable members are get-only and already populated, which is what tells
+/// `MemberBind` and `ListBind` from an assignment: the object is the one already there.
+/// </remarks>
+public sealed class Holder
+{
+	public string    Name  { get; set; } = "";
+	public Counter   Inner { get; }      = new();
+	public List<int> Items { get; }      = [];
+}
+
+public sealed class Counter
+{
+	public int Count { get; set; }
 }

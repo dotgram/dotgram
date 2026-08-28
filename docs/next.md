@@ -5435,3 +5435,61 @@ property — no term appears twice — rather than an assertion about the text, 
 things are named at that position is §7.5's question and a separate one.
 
 1,356 tests green in both configurations.
+
+## Built: nested initializers, and what the remaining 32 factories turn out to be
+
+`MemberBind`, `ListBind` and `ElementInit` — the three the API keeps for an initializer
+that goes a level deeper than an assignment.
+
+```csharp
+new Holder() { Name = "a", Inner = { Count = 1 }, Items = { 5 } }
+new Dictionary<int, string>() { { 1, "one" }, { 2, "two" } }
+```
+
+The difference from an assignment is the whole point of the two nested forms: no `new`
+stands after the `=`, so the object the member already holds is the one initialized. And
+`ElementInit` exists because `Add` is not obliged to take one thing — a dictionary's takes
+two, which a list of values cannot describe.
+
+**One route, three answers, decided where the type is.** `Binding` reads `Word '='` once and
+then whichever of the three followed, for the reason `Primary`'s `new` already gives: three
+alternatives would read the name and the `=` three times over and the third reading holds a
+whole expression. Which one was written is which of the three fields is not null, and that
+question is answered in `Bound`, one step further in — a nested initializer is read against
+the *member's* type, and the member is not known where its braces are. The same deferral
+the outer initializer already made, made once more.
+
+**88 of the 120.**
+
+### And that is the ceiling, which is worth saying rather than counting toward
+
+The remaining 32 are not a backlog. Named, because "coverage" is only a claim if the gap is:
+
+* **Six are not nodes.** `GetActionType`, `GetDelegateType`, `GetFuncType`,
+  `TryGetActionType`, `TryGetFuncType`, `SymbolDocument` return a `Type` or a document, not
+  a tree.
+* **Eight are the by-kind entry points** — `MakeBinary`, `MakeUnary`, `MakeIndex`,
+  `MakeMemberAccess`, `MakeCatchBlock`, `MakeTry`, `MakeGoto`, `MakeDynamic`. They exist for
+  code that decides the node kind at run time; a grammar knows which node it means and names
+  it. Reaching them would mean the grammar had stopped saying what it read.
+* **Ten have no C# syntax to read.** `Power` and `PowerAssign` (C# has no `**`), `IsTrue`
+  and `IsFalse` (the operators a type defines, not something written), `Increment` and
+  `Decrement` (C#'s `++` is an assignment, which is `PreIncrementAssign`), `TypeEqual` (`is`
+  is `TypeIs`), `Unbox` (what a cast compiles to, not what anyone writes), `TryFault` (C#
+  has no fault handler), and `IfThenElse` — the void form, where a block here has a value,
+  so an `if`/`else` means `Condition` and `Chosen` says so.
+* **Three are debugging** — `DebugInfo`, `ClearDebugInfo`, `RuntimeVariables`.
+* **Two are the same node under another name.** `Expression.Equal` on two reference types
+  already compares references, so `ReferenceEqual` and `ReferenceNotEqual` would be a second
+  spelling rather than a second meaning.
+* **Three would need more language than this has.** `Dynamic` is a binder story of its own,
+  `Quote` wants a nested lambda standing where a value goes, and `Goto` wants labels —
+  which want a scope, the way a block's locals do, and that is a piece of design rather
+  than a factory. It is the one genuinely open item and it is parked on purpose.
+
+So the sweep is finished rather than paused. What the exercise was for is answered: a
+notation that reads as C# does, over an API it was not designed around, reaches everything
+that API has a syntax for — and the 657 lines of grammar it took say where the notation was
+thin, which is what `docs/next.md` above this line is mostly made of.
+
+1,362 tests green in both configurations.

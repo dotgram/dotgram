@@ -317,11 +317,31 @@ namespace DotGram.Parsers;
 		= '{' & first: Binding & (',' & rest: Binding)* & '}'
 		=> @(ExpressionLanguage.Set(first, rest))
 
-	Binding : @Setting = name: Word & '=' & value: Expression => @(new Setting(name, value))
+	// Three things one syntax says, told apart by what stands after the `=` — a value, a
+	// nested initializer of members, or a nested one of elements. One route rather than
+	// three alternatives, for the reason `Primary`'s `new` gives: three would read the
+	// name and the `=` three times over, and the third reading holds a whole expression.
+	//
+	// `Bindings` is tried before the braced elements because it is the narrower of the
+	// two: it wants `Word =` inside, and where that is absent the same brace opens a list.
+	// One token of lookahead settles it.
+	Binding : @Setting
+		= name: Word & '='
+		& (nested: Bindings | '{' & items: Elements & '}' | value: Expression)
+		=> @(new Setting(name, value, nested, items))
 
-	Elements : @Expression[]
-		= first: Expression & (',' & rest: Expression)*
+	Elements : @Element[]
+		= first: Element & (',' & rest: Element)*
 		=> @(ExpressionLanguage.Listed(first, rest))
+
+	// An element is what one call to `Add` takes, which is usually one expression and for
+	// a dictionary is two. C# writes the second in braces of its own, and the API has a
+	// node for it — `ElementInit` — because a collection whose `Add` takes two arguments
+	// cannot be described by a list of values.
+	Element : @Element
+		= '{' & first: Expression & (',' & rest: Expression)* & '}'
+		  => @(new Element(ExpressionLanguage.Listed(first, rest)))
+		| only: Expression => @(ExpressionLanguage.Only(only))
 
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
@@ -1096,7 +1116,23 @@ public static partial class ExpressionLanguage
 	/// is what the text said and nothing more. A tuple would have said the same, and the
 	/// notation has no place to write one — a rule's type is a name.
 	/// </remarks>
-	public readonly record struct Setting(string Name, Expression Value);
+	/// <param name="Value">What the member is assigned, or null where it is initialized.</param>
+	/// <param name="Fields">A nested member initializer's own settings, or null.</param>
+	/// <param name="Items">A nested collection initializer's own elements, or null.</param>
+	public readonly record struct Setting(
+		string Name, Expression? Value, Setting[]? Fields, Element[]? Items);
+
+	/// <summary>What one call to a collection's `Add` takes.</summary>
+	/// <remarks>
+	/// A list rather than an expression, because `Add` is not obliged to take one thing:
+	/// `new Dictionary&lt;int, string&gt; { { 1, "a" } }` calls it with two, which is what
+	/// `Expression.ElementInit` exists to say and what a list of values could not.
+	/// </remarks>
+	public readonly record struct Element(Expression[] Arguments);
+
+	/// <summary>One element, where the text wrote it without braces of its own.</summary>
+	public static Element Only(Expression value) => new([value]);
+
 
 	/// <summary>What an initializer sets, in the order it was written.</summary>
 	public static Setting[] Set(Setting first, Setting[] rest)
@@ -1131,16 +1167,68 @@ public static partial class ExpressionLanguage
 
 		for (var at = 0; at < settings.Length; at++)
 		{
-			var (name, value) = settings[at];
+			var setting = settings[at];
 			var members = type.GetMember(
-				name, MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance);
+				setting.Name,
+				MemberTypes.Property | MemberTypes.Field,
+				BindingFlags.Public | BindingFlags.Instance);
 
-			bound[at] = members.Length == 1
-				? Expression.Bind(members[0], value)
-				: throw new FormatException($"'{type.Name}' has no one member named '{name}'.");
+			if (members.Length != 1)
+				throw new FormatException($"'{type.Name}' has no one member named '{setting.Name}'.");
+
+			var member = members[0];
+
+			// Which of the three the text wrote, answered here rather than where it was
+			// read: a nested initializer needs the *member's* type to go on, and that is
+			// known one step further in than the name was.
+			bound[at] =
+				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields)) :
+				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items)) :
+				Expression.Bind(member, setting.Value!);
 		}
 
 		return bound;
+	}
+
+	/// <summary>What a field or property holds, which a nested initializer is written in.</summary>
+	static Type MemberType(MemberInfo member) =>
+		member is PropertyInfo property ? property.PropertyType : ((FieldInfo)member).FieldType;
+
+	/// <summary>Those elements against the collection type that has the `Add`.</summary>
+	/// <remarks>
+	/// The overload is chosen by the arguments, the same way `Expression.Call` chooses one
+	/// — and for the same reason it is done here and not in the grammar: what `Add` a
+	/// collection has is a question about the type, and the type is a sibling of the braces
+	/// rather than something inside them.
+	/// </remarks>
+	public static ElementInit[] Added(Type type, Element[] elements)
+	{
+		if (type is null)
+			throw new ArgumentNullException(nameof(type));
+
+		if (elements is null)
+			throw new ArgumentNullException(nameof(elements));
+
+		var added = new ElementInit[elements.Length];
+
+		for (var at = 0; at < elements.Length; at++)
+		{
+			var arguments = elements[at].Arguments;
+			var add = type.GetMethod(
+				"Add",
+				BindingFlags.Public | BindingFlags.Instance,
+				binder: null,
+				[.. arguments.Select(static argument => argument.Type)],
+				modifiers: null);
+
+			added[at] = add is not null
+				? Expression.ElementInit(add, arguments)
+				: throw new FormatException(
+					$"'{type.Name}' has no 'Add' taking " +
+					$"({string.Join(", ", arguments.Select(static argument => argument.Type.Name))}).");
+		}
+
+		return added;
 	}
 
 	/// <summary>A construction, with whatever initializer was written after it.</summary>
@@ -1151,12 +1239,12 @@ public static partial class ExpressionLanguage
 	/// — so the reading is one and the choosing is here. It is the shape a generator that
 	/// factored the common head of its alternatives would let the grammar keep.
 	/// </remarks>
-	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Expression[]? items)
+	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items)
 	{
 		var made = Expression.New(Constructor(type, args), args);
 
 		return fields is not null ? Expression.MemberInit(made, Bound(type, fields))
-			: items is not null   ? Expression.ListInit(made, items)
+			: items is not null   ? Expression.ListInit(made, Added(type, items))
 			: made;
 	}
 
@@ -1172,6 +1260,27 @@ public static partial class ExpressionLanguage
 		rest.CopyTo(arguments, 1);
 
 		return arguments;
+	}
+
+	/// <summary>The elements of a collection initializer, in the order they were written.</summary>
+	/// <remarks>
+	/// The same shape as the one above and a second method rather than a generic one: an
+	/// <see cref="Element"/> is a struct and an <see cref="Expression"/> is not, so the
+	/// absent case they would have to share is spelled two different ways. Here there is
+	/// no absent case — the grammar asks for one element before the run — which is the
+	/// other half of why they do not merge.
+	/// </remarks>
+	public static Element[] Listed(Element first, Element[] rest)
+	{
+		if (rest is null)
+			throw new ArgumentNullException(nameof(rest));
+
+		var elements = new Element[rest.Length + 1];
+
+		elements[0] = first;
+		rest.CopyTo(elements, 1);
+
+		return elements;
 	}
 
 	/// <summary>The parameters a lambda takes, in the order it wrote them.</summary>
