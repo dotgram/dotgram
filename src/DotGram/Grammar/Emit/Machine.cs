@@ -280,11 +280,25 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 			if (graph.Bodies.TryGetValue(rule, out var checking))
 				foreach (var node in NodeWalk.Descendants(checking))
+				{
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
 						built.Contains("parserInput"))
 					{
 						UsesInput = true;
 					}
+
+					// A `when` may name it as well as a `=>`, which `parserInput` cannot —
+					// the input is what a value keeps, and the context is what a guard
+					// writes into.
+					if (graph.Context is not null &&
+						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
+							CSharpEmitter.Names(asked, "context") ||
+						node is Node.Guard { Text: var condition } &&
+							CSharpEmitter.Names(condition, "context")))
+					{
+						UsesContext = true;
+					}
+				}
 
 		CollectValueTypes();
 
@@ -628,6 +642,20 @@ sealed partial class Machine
 	string InputArgument  => UsesInput ? ", parserInput" : "";
 
 	/// <summary>
+	/// Whether anything in this machine names the grammar's own state (§7.7).
+	/// </summary>
+	/// <remarks>
+	/// Read out of the C# the same way `parserInput` is, and gating the same thing: a
+	/// grammar that declares a context and never names it is compiled exactly as one that
+	/// declares none, and its publications take no extra argument.
+	/// </remarks>
+	public bool UsesContext { get; private set; }
+
+	string ContextParameter => UsesContext ? $", {_graph.Context} context" : "";
+
+	string ContextArgument  => UsesContext ? ", context" : "";
+
+	/// <summary>
 	/// What a probe hands over instead, and why it may.
 	/// </summary>
 	/// <remarks>
@@ -686,12 +714,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{ContextParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}{ContextArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -720,7 +748,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}, " +
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{ContextParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -884,7 +912,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{ContextArgument});");
 								RootValue(file);
 							}
 						}
@@ -1816,6 +1844,16 @@ sealed partial class Machine
 					parameters.Add("SourceSpan parserSpan");
 					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
 				}
+
+				// The grammar's own state (§7.7), where the condition names it. A guard is
+				// where one is usually written into: it runs while the text is read, which
+				// is the only moment a grammar has in the order it is written.
+				if (node is Node.Guard { Text: var stateful } &&
+					_graph.Context is not null && CSharpEmitter.Names(stateful, "context"))
+				{
+					parameters.Add($"{_graph.Context} context");
+					arguments.Add("context");
+				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
 				foreach (var member in _graph.Results[rule])
@@ -1941,7 +1979,9 @@ sealed partial class Machine
 
 				if (hasTyped)
 				{
-					writer.Line($"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, entries);");
+					writer.Line(
+						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
+						$"entries{InputArgument}{ContextArgument});");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{

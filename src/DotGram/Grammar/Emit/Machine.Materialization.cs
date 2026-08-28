@@ -40,7 +40,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			$"ParserArena entries{InputParameter})"))
+			$"ParserArena entries{InputParameter}{ContextParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -865,6 +865,9 @@ sealed partial class Machine
 
 		if (CSharpEmitter.Asks(factory, "parserInput"))
 			arguments.Add("parserInput");
+
+		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+			arguments.Add("context");
 
 		foreach (var member in factory.Members)
 		{

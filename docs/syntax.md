@@ -1472,6 +1472,53 @@ checked by C#'s type system, and when the types do not agree the error must appe
 the grammar's line rather than in a machine-written file. The same goes for
 breakpoints and for "go to definition" in both directions.
 
+### 7.7 What a parse works out and the API has nowhere to keep
+
+Some grammars need somewhere to put what the reading works out: a table of names, the
+label a jump goes to, whatever the language being read means by scope. A `=>` cannot hold
+it — it runs after the whole match — and a `when` that writes into a static field has made
+that field global, which is a bug waiting for the second thread and the second parse.
+
+So a grammar may declare one:
+
+```dotgram
+context : @Names
+```
+
+The type is a C# name this notation never resolves. It is written into the generated
+signature and checked where it is written, exactly as a rule's own `: @T` is.
+
+**The caller makes one and hands it over**, and every publication of that grammar takes it:
+
+```csharp
+var names = new Names();
+var tree  = Grammar.ParseLambda(text, names);
+```
+
+**`context` is then a name a `=>` and a `when` may use**, like the supplied names of §8.2
+and under the same rule: a hook that does not name it is not passed it, so a grammar that
+declares a context and never uses it is compiled exactly as one that declares none, and
+its publications take no extra argument.
+
+```dotgram
+Local = type: Type & name: Word & when @(context.Declare(type, name, parserSpan)) & …
+Name : @Expression = n: Word => @(context.Named(n, parserSpan))
+```
+
+Reading and writing are on either side of the match, which is what the two hook kinds are
+for: a `when` runs while the text is read, in the order it is written, and a `=>` runs
+afterwards, against what the guards have by then recorded.
+
+**One per grammar, and outside every namespace.** A context declared inside one would be a
+context for part of a parse, and there is no such thing: the object a caller hands over is
+handed to all of it (`GRAM3013`, `GRAM3014`).
+
+**What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
+a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
+That is why what belongs here is what can be written down more than once without harm — a
+position, a declaration keyed by where it was read — and why a grammar that needs "this
+holds while that is being matched" is asking for something this is not.
+
 ---
 
 ## 8. Failure, recovery and streaming

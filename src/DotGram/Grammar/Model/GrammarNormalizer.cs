@@ -145,6 +145,7 @@ public sealed partial class GrammarNormalizer
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
+			Context    = model.Context?.Name,
 		};
 	}
 

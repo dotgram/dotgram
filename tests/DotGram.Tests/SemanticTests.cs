@@ -3,6 +3,7 @@ using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
 
@@ -571,6 +572,46 @@ public sealed class SemanticTests
 		Assert.DoesNotContain(
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
+
+	// ── §7.7, the state a parse works out ───────────────────────────────────────
+
+	[Fact]
+	public void A_context_belongs_to_the_whole_grammar() =>
+		Refused(
+			GrammarBinder.ContextNotAtRoot,
+			"""
+			namespace Inner
+			{
+				context : @Names
+				A = 'x'
+			}
+			Start = Inner.A
+			""");
+
+	[Fact]
+	public void And_a_grammar_declares_one_of_them() =>
+		Refused(
+			GrammarBinder.DuplicateContext,
+			"""
+			context : @Names
+			context : @Other
+			Start = 'x'
+			""");
+
+	[Fact]
+	public void And_context_is_still_an_ordinary_name_for_a_rule() =>
+		// A body is what tells the two apart, so a grammar that had a rule called `context`
+		// before this existed still has one.
+		Assert.Equal(
+			"xy",
+			Read(
+				Built(
+					"""
+					Start = a: context
+					context = "xy"
+					""",
+					"xy"),
+				"A"));
 
 	static void Refused(string id, string grammar)
 	{

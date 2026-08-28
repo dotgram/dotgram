@@ -5237,3 +5237,47 @@ input, the one that fails, which is the path the walk exists for. The first read
 upward through a session. Reversing the order took most of it away.
 
 1,279 tests green in both configurations.
+
+## Built: `context`, the state a parse works out and has nowhere to keep
+
+`ExpressionLanguage` had seven `[ThreadStatic]` fields and a `Begin()` to clear them. That
+is the shape a grammar falls into when a `when` needs to remember something: a static, and
+then a way to reset the static, and then the quiet knowledge that two parses on one thread
+must not overlap. It works and it is wrong, and it was written by the parser this notation
+is meant to make unnecessary.
+
+So a grammar may now declare what it needs to remember:
+
+```dotgram
+context : @Names
+```
+
+**The caller makes one and hands it over.** Every publication of a grammar that uses a
+context takes it as a second parameter, and it reaches whatever names it — a `when`, a
+`=>` — by exactly the rule the supplied names of §8.2 already follow: **a hook that does
+not name `context` is not passed it.** A grammar that declares one and never uses it emits
+the same code as a grammar that declares none, publications included. That was worth
+having: it means adding the declaration costs nothing until something reads it, and it
+means the test for "is this threaded correctly" is a `DoesNotContain`.
+
+Where it goes is fixed. After the `using` block, outside every namespace, once
+(`GRAM3013`, `GRAM3014`). A context inside a namespace would be a context for part of a
+parse and there is no such thing — the object the caller passes is passed to all of it.
+
+**The word was free because it had been given up.** `context` was this notation's keyword
+for what is now `namespace`, renamed earlier this session; the parser tells the two apart
+by what follows, so `context = 'x'` is still an ordinary rule called `context` and there is
+a test that says so.
+
+**What it deliberately is not** is somewhere to put state that has to be *undone*. Nothing
+here unwinds: a `when` runs on readings the parse goes on to abandon, and what it wrote
+stays written. What belongs here is what can be written twice without harm. The other half
+— a value that holds *while* something is being matched and is restored when the parse
+backs out of it — is the scoped state agreed next, and it is a different mechanism: a
+declared name whose value fits in an `int`, carried in the arena entry itself so that
+`Fail:` restores it the way it already restores `TurnDone`. `checked`/`unchecked` is what
+wants it.
+
+Six tests: the two refusals, the rule that is still a rule, the threading through
+publication, guard and factory, and the two that say a grammar without a context is
+untouched.

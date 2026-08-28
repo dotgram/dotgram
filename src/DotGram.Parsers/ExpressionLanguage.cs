@@ -30,6 +30,13 @@ namespace DotGram.Parsers;
 // be a run-time exception in a library instead, which is the C# compiler kept out of
 // work it can do.
 //
+// **What one reading works out lives in `State`, which the grammar declares as its
+// `context` (§7.7) and the caller hands over.** It used to be seven `[ThreadStatic]` fields
+// and a `Begin` that cleared them — a discipline rather than a guarantee, and one that
+// failed: the generated `TryParseLambda` never called it, so one parse's blocks were still
+// standing when the next one asked. Nothing there can be forgotten now, because nothing
+// survives the call.
+//
 // **What is left in this class is what belongs to this API rather than to the language.**
 // The grammar says what an `if` is, what a block is, what a name is — in the words every
 // language uses for them. The host says what those turn into *here*. That division is the
@@ -116,6 +123,11 @@ namespace DotGram.Parsers;
 	@using System.Linq.Expressions;
 
 	using Lexical;
+
+	// What this reading works out, handed over by the caller and living exactly as long as
+	// the call. Everything the host used to keep in a thread-static field is a field of
+	// this, which is why nothing has to be cleared between one parse and the next.
+	context : @State
 
 	namespace Lexical
 	{
@@ -220,7 +232,7 @@ namespace DotGram.Parsers;
 	Lambda : @LambdaExpression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
 		=> @(Expression.Lambda(
-			ExpressionLanguage.Returning(body), ExpressionLanguage.Taking(first, rest)))
+			context.Returning(body), ExpressionLanguage.Taking(first, rest)))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
@@ -289,8 +301,8 @@ namespace DotGram.Parsers;
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
 	// was read, which is the only thing that can say later which block it belongs to.
 	Parameter : @ParameterExpression
-		= type: Type & name: Word & when @(ExpressionLanguage.Takes(type, name, parserSpan))
-		=> @(ExpressionLanguage.Named(name, parserSpan))
+		= type: Type & name: Word & when @(context.Takes(type, name, parserSpan))
+		=> @(context.Named(name, parserSpan))
 
 	// ── A block, which is an expression like any other ──────────────────────────
 
@@ -304,8 +316,8 @@ namespace DotGram.Parsers;
 	// because a use inside the block is built before the block is.
 	Block : @Expression
 		= '{' & statements: Statement* & value: Expression? & '}'
-		& when @(ExpressionLanguage.Scoped(parserSpan))
-		=> @(ExpressionLanguage.Block(statements, parserSpan, value))
+		& when @(context.Scoped(parserSpan))
+		=> @(context.Block(statements, parserSpan, value))
 
 	Statement : @Expression
 		= s: Local            => @(s)
@@ -316,12 +328,12 @@ namespace DotGram.Parsers;
 		| s: Expression & ';' => @(s)
 
 	Local : @Expression
-		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name, parserSpan))
+		= type: Type & name: Word & when @(context.Declare(type, name, parserSpan))
 		& '=' & value: Value & ';'
-		=> @(Expression.Assign(ExpressionLanguage.Named(name, parserSpan), value))
+		=> @(Expression.Assign(context.Named(name, parserSpan), value))
 
 	Return : @Expression = "return" & value: Value & ';'
-	                     => @(ExpressionLanguage.Return(value))
+	                     => @(context.Return(value))
 
 	// ── The statements that carry a body, and so end without a semicolon ────────
 	//
@@ -372,12 +384,12 @@ namespace DotGram.Parsers;
 	// here too, because a `break` is built before the loop that holds it.
 	While : @Expression
 		= "while" & '(' & test: Expression & ')' & body: Statement
-		& when @(ExpressionLanguage.Loops(parserSpan))
+		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Condition(
-				test, body, Expression.Break(ExpressionLanguage.Exit(parserSpan)), typeof(void)),
-			ExpressionLanguage.Exit(parserSpan),
-			ExpressionLanguage.Again(parserSpan)))
+				test, body, Expression.Break(context.Exit(parserSpan)), typeof(void)),
+			context.Exit(parserSpan),
+			context.Again(parserSpan)))
 
 	// `Expression.Loop`'s own continue label stands at the top of the body, which is where
 	// C# puts it for a `while` and not where it puts it for a `do`: there it goes to the
@@ -385,17 +397,17 @@ namespace DotGram.Parsers;
 	// loop's own continue unused.
 	DoWhile : @Expression
 		= "do" & body: Statement & "while" & '(' & test: Expression & ')' & ';'
-		& when @(ExpressionLanguage.Loops(parserSpan))
+		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Block(
 				body,
-				Expression.Label(ExpressionLanguage.Again(parserSpan)),
+				Expression.Label(context.Again(parserSpan)),
 				Expression.Condition(
 					test,
 					Expression.Empty(),
-					Expression.Break(ExpressionLanguage.Exit(parserSpan)),
+					Expression.Break(context.Exit(parserSpan)),
 					typeof(void))),
-			ExpressionLanguage.Exit(parserSpan)))
+			context.Exit(parserSpan)))
 
 	// A `for` is a scope as well as a loop — `int i = 0` belongs to it and not to what is
 	// around it — so it records both, and the block that holds the initializer is what
@@ -403,26 +415,26 @@ namespace DotGram.Parsers;
 	For : @Expression
 		= "for" & '(' & init: Statement & test: Expression & ';' & step: Expression & ')'
 		& body: Statement
-		& when @(ExpressionLanguage.Loops(parserSpan) && ExpressionLanguage.Scoped(parserSpan))
-		=> @(ExpressionLanguage.Block(
+		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		=> @(context.Block(
 			new[] { init }, parserSpan,
 			Expression.Loop(
 				Expression.Condition(
 					test,
-					Expression.Block(body, Expression.Label(ExpressionLanguage.Again(parserSpan)), step),
-					Expression.Break(ExpressionLanguage.Exit(parserSpan)),
+					Expression.Block(body, Expression.Label(context.Again(parserSpan)), step),
+					Expression.Break(context.Exit(parserSpan)),
 					typeof(void)),
-				ExpressionLanguage.Exit(parserSpan))))
+				context.Exit(parserSpan))))
 
 	// A `switch` is what a `break` may name besides a loop, and C# says so — a `break` in a
 	// case leaves the switch and not the loop around it. So it records an extent of its own
 	// and puts the label the jumps go to after itself.
 	Switch : @Expression
 		= "switch" & '(' & value: Expression & ')' & '{' & cases: Case* & fallback: Fallback? & '}'
-		& when @(ExpressionLanguage.Breaks(parserSpan))
+		& when @(context.Breaks(parserSpan))
 		=> @(Expression.Block(
 			Expression.Switch(typeof(void), value, fallback, null, cases),
-			Expression.Label(ExpressionLanguage.Exit(parserSpan))))
+			Expression.Label(context.Exit(parserSpan))))
 
 	Case : @SwitchCase
 		= "case" & test: Expression & ':' & body: Statement+
@@ -431,8 +443,8 @@ namespace DotGram.Parsers;
 	Fallback : @Expression = "default" & ':' & body: Statement+ => @(Expression.Block(body))
 
 	Jump : @Expression
-		= "break"    => @(Expression.Break(ExpressionLanguage.Exit(parserSpan)))
-		| "continue" => @(Expression.Continue(ExpressionLanguage.Again(parserSpan)))
+		= "break"    => @(Expression.Break(context.Exit(parserSpan)))
+		| "continue" => @(Expression.Continue(context.Again(parserSpan)))
 		| "throw" & value: Expression => @(Expression.Throw(value))
 		| "throw"                     => @(Expression.Rethrow())
 
@@ -452,9 +464,9 @@ namespace DotGram.Parsers;
 	// handler's block, and without this the block around the `try` would claim it.
 	Catch : @CatchBlock
 		= "catch" & '(' & type: Type & name: Word
-		& when @(ExpressionLanguage.Declare(type, name, parserSpan)) & ')' & body: Block
-		& when @(ExpressionLanguage.Scoped(parserSpan))
-		=> @(Expression.Catch(ExpressionLanguage.Named(name, parserSpan), body))
+		& when @(context.Declare(type, name, parserSpan)) & ')' & body: Block
+		& when @(context.Scoped(parserSpan))
+		=> @(Expression.Catch(context.Named(name, parserSpan), body))
 
 	// ── The operators: C#'s ladder, one rule per level of precedence (§4.3) ─────
 	//
@@ -695,7 +707,7 @@ namespace DotGram.Parsers;
 
 		| n: Name    => @(n)
 
-	Name : @Expression = name: Word => @(ExpressionLanguage.Named(name, parserSpan))
+	Name : @Expression = name: Word => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
 	""")]
@@ -711,12 +723,7 @@ public static partial class ExpressionLanguage
 	/// <c>System.Linq.Expressions</c> itself, in its own words: this language holds no
 	/// opinion the API does not already hold.
 	/// </exception>
-	public static LambdaExpression Parse(string text)
-	{
-		Begin();
-
-		return ParseLambda(text);
-	}
+	public static LambdaExpression Parse(string text) => ParseLambda(text, new State());
 
 	/// <summary>The same, answering rather than throwing where the text is not this language.</summary>
 	/// <remarks>
@@ -725,24 +732,8 @@ public static partial class ExpressionLanguage
 	/// and that everything the last one wrote down about names, blocks and loops is now
 	/// about a text nobody is reading. Call it rather than the generated one.
 	/// </remarks>
-	public static Match<LambdaExpression> TryParse(string text)
-	{
-		Begin();
+	public static Match<LambdaExpression> TryParse(string text) => TryParseLambda(text, new State());
 
-		return TryParseLambda(text);
-	}
-
-	/// <summary>Forget the parse before this one. Every list here is keyed by position.</summary>
-	static void Begin()
-	{
-		_declared?.Clear();
-		_scopes?.Clear();
-		_loops?.Clear();
-		_breakables?.Clear();
-		_exits?.Clear();
-		_agains?.Clear();
-		_returns = null;
-	}
 
 	/// <summary>The same, compiled to a delegate of the caller's own type.</summary>
 	/// <remarks>
@@ -1061,211 +1052,6 @@ public static partial class ExpressionLanguage
 		return arguments;
 	}
 
-	// ── What System.Linq.Expressions has nowhere to keep ────────────────────────
-
-	/// <summary>A block's extent, which is the whole of what a scope is.</summary>
-	readonly record struct Scope(int From, int To);
-
-	/// <summary>A variable, the name the text calls it, and where that name was written.</summary>
-	readonly record struct Declaration(int At, string Name, ParameterExpression Variable);
-
-	/// <summary>Every block read, by where it stood.</summary>
-	/// <remarks>
-	/// Recorded by position rather than pushed and popped, and the difference is
-	/// backtracking. A guard runs on readings the parse goes on to abandon, so a stack
-	/// would be left holding a scope nothing is inside; a position is the same fact
-	/// however many times it is written down, and an abandoned reading records an extent
-	/// that no surviving name is written inside.
-	/// </remarks>
-	[ThreadStatic]
-	static List<Scope>? _scopes;
-
-	/// <summary>The variables of the lambda being read, in the order they were declared.</summary>
-	/// <remarks>
-	/// A <c>ParameterExpression</c> is an identity: the one made for <c>(int x)</c> has to
-	/// be the very object every <c>x</c> in the body reads, or the compiled lambda closes
-	/// over a variable nothing assigns. A list rather than a table by name, because two
-	/// blocks beside each other may each declare an <c>x</c> and those are two variables —
-	/// which is legal C#, and the whole reason a name is looked up by where it is written.
-	/// </remarks>
-	[ThreadStatic]
-	static List<Declaration>? _declared;
-
-	/// <summary>Where a <c>return</c> goes, made once the first one says what it yields.</summary>
-	[ThreadStatic]
-	static LabelTarget? _returns;
-
-	/// <summary>A block, recorded while the text is read (§8.1).</summary>
-	/// <remarks>
-	/// It has to be read rather than built: <c>=&gt;</c> runs children before parents, so
-	/// every name inside a block is built before the block itself is, and a scope recorded
-	/// there would arrive after the last thing that needed it.
-	/// </remarks>
-	public static bool Scoped(SourceSpan span)
-	{
-		(_scopes ??= []).Add(new Scope(span.Start, span.Start + span.Length));
-
-		return true;
-	}
-
-	/// <summary>
-	/// A declaration, made while the text is read (§8.1) — the only moment this grammar
-	/// has in the order it is written.
-	/// </summary>
-	/// <returns>
-	/// Whether this reads as a declaration at all. A guard answers rather than throws,
-	/// and it has to: <c>when</c> runs during the match, so it also runs on readings the
-	/// parse goes on to abandon.
-	/// </returns>
-	/// <remarks>
-	/// What that costs is that an abandoned reading leaves its name behind. It is a name
-	/// at a position now, though, so only a use inside the same block can find it — and
-	/// where the reading was abandoned, no such use is left.
-	/// </remarks>
-	public static bool Declare(Type type, string name, SourceSpan at) =>
-		Holds(Expression.Variable(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
-
-	/// <summary>The same for a lambda's parameter, which the API names apart.</summary>
-	/// <remarks>
-	/// <c>Expression.Parameter</c> and <c>Expression.Variable</c> make the same kind of
-	/// node, and the API keeps two names for it because a language does: one is what a
-	/// lambda is handed and the other is what a block declares. This one reads them apart
-	/// because it can — they are two rules — and says so by naming both.
-	/// </remarks>
-	public static bool Takes(Type type, string name, SourceSpan at) =>
-		Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
-
-	static bool Holds(ParameterExpression variable, string name, SourceSpan at)
-	{
-		(_declared ??= []).Add(new Declaration(at.Start, name, variable));
-
-		return true;
-	}
-
-	/// <summary>The variable that name means where it is written.</summary>
-	/// <remarks>
-	/// <para>
-	/// A declaration is visible from where it stands to the end of the block holding it,
-	/// which is C#'s rule and is what these two positions decide between them. The
-	/// innermost block wins, so an inner one shadows: where C# refuses that outright
-	/// (CS0136) this reads the nearer name, which is the more permissive of the two and
-	/// turns no valid C# into something else.
-	/// </para>
-	/// <para>A parameter is written outside every block and is therefore in all of them.</para>
-	/// </remarks>
-	public static ParameterExpression Named(string name, SourceSpan at)
-	{
-		var use   = at.Start;
-		var found = default(ParameterExpression);
-		var inner = int.MinValue;
-		var wrote = int.MinValue;
-
-		foreach (var declaration in _declared ?? [])
-		{
-			if (!string.Equals(declaration.Name, name, StringComparison.Ordinal) ||
-				declaration.At > use)
-				continue;
-
-			var block = Holding(declaration.At);
-
-			// Declared in a block this use is not inside: the other branch of the same
-			// choice, the block before this one. Not a shadow and not an error — simply
-			// not a name that is in scope here.
-			if (block is { } held && (held.From > use || held.To <= use))
-				continue;
-
-			var from = block?.From ?? int.MinValue + 1;
-
-			if (from > inner || from == inner && declaration.At > wrote)
-			{
-				found = declaration.Variable;
-				inner = from;
-				wrote = declaration.At;
-			}
-		}
-
-		return found ?? throw new FormatException($"nothing named '{name}' is declared here.");
-	}
-
-	/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
-	static Scope? Holding(int position) => Innermost(_scopes, position);
-
-	/// <summary>The innermost of these extents holding a position, or none.</summary>
-	static Scope? Innermost(List<Scope>? among, int position)
-	{
-		var innermost = default(Scope?);
-
-		foreach (var scope in among ?? [])
-			if (scope.From <= position && position < scope.To &&
-				(innermost is not { } known || scope.From > known.From))
-				innermost = scope;
-
-		return innermost;
-	}
-
-	// ── Where a break and a continue go ─────────────────────────────────────────
-	//
-	// The same question as a name's, and the same answer: which one a jump belongs to is
-	// where it is written. A `break` may name a loop or a switch and a `continue` only a
-	// loop, which is C#'s rule and the reason these are two lists. Both are read while the
-	// text is; the labels themselves are made where they are first asked for, because a
-	// jump is built before the thing it jumps out of.
-
-	[ThreadStatic]
-	static List<Scope>? _loops;
-
-	[ThreadStatic]
-	static List<Scope>? _breakables;
-
-	[ThreadStatic]
-	static Dictionary<int, LabelTarget>? _exits;
-
-	[ThreadStatic]
-	static Dictionary<int, LabelTarget>? _agains;
-
-	/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
-	public static bool Loops(SourceSpan span)
-	{
-		(_loops ??= []).Add(new Scope(span.Start, span.Start + span.Length));
-
-		return Breaks(span);
-	}
-
-	/// <summary>A switch, which only a <c>break</c> may name.</summary>
-	public static bool Breaks(SourceSpan span)
-	{
-		(_breakables ??= []).Add(new Scope(span.Start, span.Start + span.Length));
-
-		return true;
-	}
-
-	/// <summary>Where a <c>break</c> written here goes.</summary>
-	public static LabelTarget Exit(SourceSpan at) =>
-		Labelled(
-			_exits ??= [],
-			Innermost(_breakables, at.Start) ??
-				throw new FormatException("a 'break' here is inside no loop and no switch."),
-			"break");
-
-	/// <summary>Where a <c>continue</c> written here goes.</summary>
-	public static LabelTarget Again(SourceSpan at) =>
-		Labelled(
-			_agains ??= [],
-			Innermost(_loops, at.Start) ??
-				throw new FormatException("a 'continue' here is inside no loop."),
-			"continue");
-
-	/// <summary>One label per extent, made the first time anything asks for it.</summary>
-	static LabelTarget Labelled(Dictionary<int, LabelTarget> labels, Scope? of, string name)
-	{
-		var at = of!.Value.From;
-
-		if (!labels.TryGetValue(at, out var target))
-			labels[at] = target = Expression.Label(name);
-
-		return target;
-	}
-
 	/// <summary>The parameters a lambda takes, in the order it wrote them.</summary>
 	public static ParameterExpression[] Taking(ParameterExpression? first, ParameterExpression[] rest)
 	{
@@ -1278,17 +1064,6 @@ public static partial class ExpressionLanguage
 		rest.CopyTo(parameters, 1);
 
 		return parameters;
-	}
-
-	/// <summary>A jump to the lambda's label, which the first <c>return</c> is what makes.</summary>
-	public static Expression Return(Expression value)
-	{
-		if (value is null)
-			throw new ArgumentNullException(nameof(value));
-
-		_returns ??= Expression.Label(value.Type, "return");
-
-		return Expression.Return(_returns, value);
 	}
 
 	/// <summary>An <c>if</c> with an <c>else</c>, worth what its branches agree on.</summary>
@@ -1310,66 +1085,295 @@ public static partial class ExpressionLanguage
 	public static Expression Coalesced(Expression left, Expression? right) =>
 		right is null ? left : Expression.Coalesce(left, right);
 
-	/// <summary>The body with the place its returns go to, where any of them do.</summary>
-	/// <remarks>
-	/// One label for the lambda rather than one per block, because that is what a
-	/// <c>return</c> means in C#: it leaves the whole method, from however deep in. The
-	/// lambda is also the only place that can hold it — a block is built before the blocks
-	/// around it, so no block knows whether it is the outermost.
-	/// </remarks>
-	public static Expression Returning(Expression body)
-	{
-		if (body is null)
-			throw new ArgumentNullException(nameof(body));
-
-		// Where the body is worth what a `return` is worth, the label takes it: control that
-		// reaches the end of the body arrives at the label, and what the label is worth
-		// there is what fell into it. Written the other way — the label after the body,
-		// with a default — the body's own value is computed and thrown away, and a lambda
-		// that ends in an expression answers `default` instead of it.
-		//
-		// Where the body is worth nothing, because every path out of it is a `return`, there
-		// is nothing to fall through with and the default is the only thing to put there.
-		return _returns is null
-			? body
-			: body.Type == _returns.Type
-				? Expression.Label(_returns, body)
-				: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
-	}
-
 	/// <summary>
-	/// A block: the variables it declared, its statements, and the expression it is worth.
+	/// What one reading of this language works out, and <c>System.Linq.Expressions</c> has
+	/// nowhere to keep.
 	/// </summary>
 	/// <remarks>
-	/// The variables are the declarations this block holds — the ones whose innermost
-	/// block is this one — and not, as they once were, whatever the statements assign to.
-	/// That reading was right while a declaration was the only thing that could assign,
-	/// and stopped being right the moment `a = 1;` was a statement: it collected the same
-	/// variable twice and the tree said so.
+	/// <para>
+	/// The grammar declares this as its `context` (§7.7) and the caller hands one over, so
+	/// it lives exactly as long as a parse. It was seven <c>[ThreadStatic]</c> fields and a
+	/// <c>Begin</c> that cleared them, which is a discipline rather than a guarantee — and
+	/// the discipline failed: the generated <c>TryParseLambda</c> never called it, so one
+	/// parse's blocks were still standing when the next one asked and a perfectly good text
+	/// was told there was no such name. Nothing here can be forgotten to be cleared, because
+	/// nothing survives the call.
+	/// </para>
+	/// <para>
+	/// What is not here is the namespace list and the type cache. Those belong to the
+	/// parser rather than to a parse, are shared on purpose, and stayed where they were.
+	/// </para>
 	/// </remarks>
-	public static Expression Block(Expression[] statements, SourceSpan at, Expression? value)
+	public sealed class State
 	{
-		if (statements is null)
-			throw new ArgumentNullException(nameof(statements));
+		/// <summary>A block's extent, which is the whole of what a scope is.</summary>
+		readonly record struct Scope(int From, int To);
 
-		var variables = new List<ParameterExpression>();
+		/// <summary>A variable, the name the text calls it, and where that name was written.</summary>
+		readonly record struct Declaration(int At, string Name, ParameterExpression Variable);
 
-		foreach (var declaration in _declared ?? [])
-			if (Holding(declaration.At) is { } held && held.From == at.Start)
-				variables.Add(declaration.Variable);
+		/// <summary>Every block read, by where it stood.</summary>
+		/// <remarks>
+		/// Recorded by position rather than pushed and popped, and the difference is
+		/// backtracking. A guard runs on readings the parse goes on to abandon, so a stack
+		/// would be left holding a scope nothing is inside; a position is the same fact
+		/// however many times it is written down, and an abandoned reading records an extent
+		/// that no surviving name is written inside.
+		/// </remarks>
+		List<Scope>? _scopes;
 
-		var body = new List<Expression>(statements);
+		/// <summary>The variables of the lambda being read, in the order they were declared.</summary>
+		/// <remarks>
+		/// A <c>ParameterExpression</c> is an identity: the one made for <c>(int x)</c> has to
+		/// be the very object every <c>x</c> in the body reads, or the compiled lambda closes
+		/// over a variable nothing assigns. A list rather than a table by name, because two
+		/// blocks beside each other may each declare an <c>x</c> and those are two variables —
+		/// which is legal C#, and the whole reason a name is looked up by where it is written.
+		/// </remarks>
+		List<Declaration>? _declared;
 
-		if (value is not null)
-			body.Add(value);
+		/// <summary>Where a <c>return</c> goes, made once the first one says what it yields.</summary>
+		LabelTarget? _returns;
 
-		// Nothing decides what the block is worth beyond this: `Expression.Block` is worth
-		// its last expression, whatever that turns out to be. A trailing expression is one,
-		// an `if` whose branches agree is one, a statement whose value nobody wanted is one
-		// that nobody reads, and a block ending in a `return` never reaches its end at all.
-		if (body.Count == 0)
-			throw new FormatException("a block has to hold something.");
+		/// <summary>A block, recorded while the text is read (§8.1).</summary>
+		/// <remarks>
+		/// It has to be read rather than built: <c>=&gt;</c> runs children before parents, so
+		/// every name inside a block is built before the block itself is, and a scope recorded
+		/// there would arrive after the last thing that needed it.
+		/// </remarks>
+		public bool Scoped(SourceSpan span)
+		{
+			(_scopes ??= []).Add(new Scope(span.Start, span.Start + span.Length));
 
-		return Expression.Block(variables, body);
+			return true;
+		}
+
+		/// <summary>
+		/// A declaration, made while the text is read (§8.1) — the only moment this grammar
+		/// has in the order it is written.
+		/// </summary>
+		/// <returns>
+		/// Whether this reads as a declaration at all. A guard answers rather than throws,
+		/// and it has to: <c>when</c> runs during the match, so it also runs on readings the
+		/// parse goes on to abandon.
+		/// </returns>
+		/// <remarks>
+		/// What that costs is that an abandoned reading leaves its name behind. It is a name
+		/// at a position now, though, so only a use inside the same block can find it — and
+		/// where the reading was abandoned, no such use is left.
+		/// </remarks>
+		public bool Declare(Type type, string name, SourceSpan at) =>
+			Holds(Expression.Variable(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+
+		/// <summary>The same for a lambda's parameter, which the API names apart.</summary>
+		/// <remarks>
+		/// <c>Expression.Parameter</c> and <c>Expression.Variable</c> make the same kind of
+		/// node, and the API keeps two names for it because a language does: one is what a
+		/// lambda is handed and the other is what a block declares. This one reads them apart
+		/// because it can — they are two rules — and says so by naming both.
+		/// </remarks>
+		public bool Takes(Type type, string name, SourceSpan at) =>
+			Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+
+		bool Holds(ParameterExpression variable, string name, SourceSpan at)
+		{
+			(_declared ??= []).Add(new Declaration(at.Start, name, variable));
+
+			return true;
+		}
+
+		/// <summary>The variable that name means where it is written.</summary>
+		/// <remarks>
+		/// <para>
+		/// A declaration is visible from where it stands to the end of the block holding it,
+		/// which is C#'s rule and is what these two positions decide between them. The
+		/// innermost block wins, so an inner one shadows: where C# refuses that outright
+		/// (CS0136) this reads the nearer name, which is the more permissive of the two and
+		/// turns no valid C# into something else.
+		/// </para>
+		/// <para>A parameter is written outside every block and is therefore in all of them.</para>
+		/// </remarks>
+		public ParameterExpression Named(string name, SourceSpan at)
+		{
+			var use   = at.Start;
+			var found = default(ParameterExpression);
+			var inner = int.MinValue;
+			var wrote = int.MinValue;
+
+			foreach (var declaration in _declared ?? [])
+			{
+				if (!string.Equals(declaration.Name, name, StringComparison.Ordinal) ||
+					declaration.At > use)
+					continue;
+
+				var block = Holding(declaration.At);
+
+				// Declared in a block this use is not inside: the other branch of the same
+				// choice, the block before this one. Not a shadow and not an error — simply
+				// not a name that is in scope here.
+				if (block is { } held && (held.From > use || held.To <= use))
+					continue;
+
+				var from = block?.From ?? int.MinValue + 1;
+
+				if (from > inner || from == inner && declaration.At > wrote)
+				{
+					found = declaration.Variable;
+					inner = from;
+					wrote = declaration.At;
+				}
+			}
+
+			return found ?? throw new FormatException($"nothing named '{name}' is declared here.");
+		}
+
+		/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
+		Scope? Holding(int position) => Innermost(_scopes, position);
+
+		/// <summary>The innermost of these extents holding a position, or none.</summary>
+		Scope? Innermost(List<Scope>? among, int position)
+		{
+			var innermost = default(Scope?);
+
+			foreach (var scope in among ?? [])
+				if (scope.From <= position && position < scope.To &&
+					(innermost is not { } known || scope.From > known.From))
+					innermost = scope;
+
+			return innermost;
+		}
+
+		// ── Where a break and a continue go ─────────────────────────────────────────
+		//
+		// The same question as a name's, and the same answer: which one a jump belongs to is
+		// where it is written. A `break` may name a loop or a switch and a `continue` only a
+		// loop, which is C#'s rule and the reason these are two lists. Both are read while the
+		// text is; the labels themselves are made where they are first asked for, because a
+		// jump is built before the thing it jumps out of.
+
+		List<Scope>? _loops;
+
+		List<Scope>? _breakables;
+
+		Dictionary<int, LabelTarget>? _exits;
+
+		Dictionary<int, LabelTarget>? _agains;
+
+		/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
+		public bool Loops(SourceSpan span)
+		{
+			(_loops ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+
+			return Breaks(span);
+		}
+
+		/// <summary>A switch, which only a <c>break</c> may name.</summary>
+		public bool Breaks(SourceSpan span)
+		{
+			(_breakables ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+
+			return true;
+		}
+
+		/// <summary>Where a <c>break</c> written here goes.</summary>
+		public LabelTarget Exit(SourceSpan at) =>
+			Labelled(
+				_exits ??= [],
+				Innermost(_breakables, at.Start) ??
+					throw new FormatException("a 'break' here is inside no loop and no switch."),
+				"break");
+
+		/// <summary>Where a <c>continue</c> written here goes.</summary>
+		public LabelTarget Again(SourceSpan at) =>
+			Labelled(
+				_agains ??= [],
+				Innermost(_loops, at.Start) ??
+					throw new FormatException("a 'continue' here is inside no loop."),
+				"continue");
+
+		/// <summary>One label per extent, made the first time anything asks for it.</summary>
+		LabelTarget Labelled(Dictionary<int, LabelTarget> labels, Scope? of, string name)
+		{
+			var at = of!.Value.From;
+
+			if (!labels.TryGetValue(at, out var target))
+				labels[at] = target = Expression.Label(name);
+
+			return target;
+		}
+
+		/// <summary>A jump to the lambda's label, which the first <c>return</c> is what makes.</summary>
+		public Expression Return(Expression value)
+		{
+			if (value is null)
+				throw new ArgumentNullException(nameof(value));
+
+			_returns ??= Expression.Label(value.Type, "return");
+
+			return Expression.Return(_returns, value);
+		}
+
+		/// <summary>The body with the place its returns go to, where any of them do.</summary>
+		/// <remarks>
+		/// One label for the lambda rather than one per block, because that is what a
+		/// <c>return</c> means in C#: it leaves the whole method, from however deep in. The
+		/// lambda is also the only place that can hold it — a block is built before the blocks
+		/// around it, so no block knows whether it is the outermost.
+		/// </remarks>
+		public Expression Returning(Expression body)
+		{
+			if (body is null)
+				throw new ArgumentNullException(nameof(body));
+
+			// Where the body is worth what a `return` is worth, the label takes it: control that
+			// reaches the end of the body arrives at the label, and what the label is worth
+			// there is what fell into it. Written the other way — the label after the body,
+			// with a default — the body's own value is computed and thrown away, and a lambda
+			// that ends in an expression answers `default` instead of it.
+			//
+			// Where the body is worth nothing, because every path out of it is a `return`, there
+			// is nothing to fall through with and the default is the only thing to put there.
+			return _returns is null
+				? body
+				: body.Type == _returns.Type
+					? Expression.Label(_returns, body)
+					: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
+		}
+
+		/// <summary>
+		/// A block: the variables it declared, its statements, and the expression it is worth.
+		/// </summary>
+		/// <remarks>
+		/// The variables are the declarations this block holds — the ones whose innermost
+		/// block is this one — and not, as they once were, whatever the statements assign to.
+		/// That reading was right while a declaration was the only thing that could assign,
+		/// and stopped being right the moment `a = 1;` was a statement: it collected the same
+		/// variable twice and the tree said so.
+		/// </remarks>
+		public Expression Block(Expression[] statements, SourceSpan at, Expression? value)
+		{
+			if (statements is null)
+				throw new ArgumentNullException(nameof(statements));
+
+			var variables = new List<ParameterExpression>();
+
+			foreach (var declaration in _declared ?? [])
+				if (Holding(declaration.At) is { } held && held.From == at.Start)
+					variables.Add(declaration.Variable);
+
+			var body = new List<Expression>(statements);
+
+			if (value is not null)
+				body.Add(value);
+
+			// Nothing decides what the block is worth beyond this: `Expression.Block` is worth
+			// its last expression, whatever that turns out to be. A trailing expression is one,
+			// an `if` whose branches agree is one, a statement whose value nobody wanted is one
+			// that nobody reads, and a block ending in a `return` never reaches its end at all.
+			if (body.Count == 0)
+				throw new FormatException("a block has to hold something.");
+
+			return Expression.Block(variables, body);
+		}
 	}
 }

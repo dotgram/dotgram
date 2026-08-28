@@ -1431,6 +1431,52 @@ public sealed class CSharpEmitterTests
 		}
 	}
 
+	/// <summary>What a parse works out, handed over rather than kept in a static (§7.7).</summary>
+	/// <remarks>
+	/// Threaded to whatever names it and to nothing else, the way the supplied names of
+	/// §8.2 are: a grammar that declares a context and never uses it is compiled exactly as
+	/// one that declares none.
+	/// </remarks>
+	[Fact]
+	public void A_declared_context_reaches_whatever_names_it()
+	{
+		var source = Emit(
+			"""
+			context : @Names
+			Word = ['a'..'z']+
+			Start : @string = n: Word & when @(context.Seen(n)) => @(context.Count + n)
+			parse Start
+			""");
+
+		Assert.Contains("public static string ParseStart(string input, Names context)", source);
+		Assert.Contains("Names context, ref Failure failure", source);
+		Assert.Contains("Recognize_DotGram_Guard0(Names context, string n)", source);
+		Assert.Contains("Construct_Start(Names context, string n)", source);
+	}
+
+	[Fact]
+	public void And_a_grammar_that_declares_none_is_untouched() =>
+		Assert.DoesNotContain(
+			"context",
+			Emit(
+				"""
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_one_that_declares_it_without_naming_it_is_too() =>
+		// The publication takes no argument nobody asked for.
+		Assert.Contains(
+			"public static string ParseStart(string input)",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				"""));
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

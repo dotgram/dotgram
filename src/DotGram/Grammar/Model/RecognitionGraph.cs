@@ -331,6 +331,24 @@ public sealed class RecognitionGraph(
 	/// <summary>The public API this grammar asked for — carried through unchanged (§6).</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
+	/// <summary>
+	/// The C# type a grammar's own state is declared as, or null where it declares none.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// `context : @T`. The caller makes one and hands it to a publication; every `=>` and
+	/// `when` that names `context` is passed it, and those that do not are not — the same
+	/// rule the supplied names of §8.2 follow, and for the same reason.
+	/// </para>
+	/// <para>
+	/// It is where a grammar keeps what the parse works out and the API has nowhere to
+	/// hold: a table of names, the labels a jump goes to. Before it, a host had to keep
+	/// that in a static field and make it thread-static to keep two parses apart — which
+	/// also made it the host's job to clear between them, and forgetting is silent.
+	/// </para>
+	/// </remarks>
+	public string? Context { get; init; }
+
 	public bool HasErrors => Diagnostics.Count > 0;
 
 	/// <summary>

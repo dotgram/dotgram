@@ -64,6 +64,15 @@ public abstract record Decl : ILocated
 	public sealed record Publish(
 		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl;
 
+	/// <summary>
+	/// <c>context : @T</c> — the name a grammar's own state travels under.
+	/// </summary>
+	/// <remarks>
+	/// A name and a type and no body, which is what tells it from the rule it otherwise
+	/// looks like: `context : @T = …` declares a rule called `context`, and this does not.
+	/// </remarks>
+	public sealed record Context(TypeRef Type) : Decl;
+
 	public sealed override string ToString() => Dump.Of(this);
 }
 

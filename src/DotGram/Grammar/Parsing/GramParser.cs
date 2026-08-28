@@ -189,6 +189,12 @@ public sealed class GramParser
 		if (AtPublication())
 			return ParsePublication();
 
+		// `context : @T` and nothing after it. A body would have made it a rule called
+		// `context`, which stays perfectly writable — that is what `StartsRule` decides,
+		// and it is asked first.
+		if (AtKeyword("context") && Next.Kind == TokenKind.Colon && !StartsRule())
+			return ParseContext();
+
 		if (At(TokenKind.Identifier))
 			return ParseRule();
 
@@ -505,6 +511,17 @@ public sealed class GramParser
 		Expect(TokenKind.CloseParen);
 
 		return parameters;
+	}
+
+	/// <summary>The name a grammar's own state travels under (§7.7).</summary>
+	Decl.Context ParseContext()
+	{
+		var start = _index;
+
+		Take();                                   // `context`
+		Expect(TokenKind.Colon);
+
+		return new Decl.Context(ParseType()) { At = From(start) };
 	}
 
 	TypeRef ParseType()

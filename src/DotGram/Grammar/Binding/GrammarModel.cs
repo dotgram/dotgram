@@ -229,6 +229,16 @@ public sealed class GrammarModel(
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
+	/// <summary>
+	/// The declared type of the grammar's own state, or null where it declares none.
+	/// </summary>
+	/// <remarks>
+	/// What a `context : @T` says. The type is a C# name this half never resolves — it is
+	/// written into the generated signature and checked where it is written, the same as a
+	/// rule's own `: @T`.
+	/// </remarks>
+	public TypeRef? Context { get; init; }
+
 	/// <summary>The `trivia` each namespace sees — §4.5, resolved once per namespace.</summary>
 	public IReadOnlyDictionary<GrammarNamespace, RuleSymbol> Trivia { get; } = trivia;
 

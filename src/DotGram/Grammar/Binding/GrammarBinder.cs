@@ -29,6 +29,8 @@ public sealed class GrammarBinder
 	public const string NamespaceBoundNameRedeclared = "GRAM3010";
 	public const string CircularRebinding     = "GRAM3011";
 	public const string ShadowsEnclosingRule      = "GRAM3012";
+	public const string ContextNotAtRoot          = "GRAM3013";
+	public const string DuplicateContext          = "GRAM3014";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a namespace outside
@@ -84,8 +86,11 @@ public sealed class GrammarBinder
 
 		return new GrammarModel(
 			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
-			binder._publications, binder._diagnostics);
+			binder._publications, binder._diagnostics) { Context = binder._context };
 	}
+
+	/// <summary>The declared type of the grammar's own state, or null where none is.</summary>
+	TypeRef? _context;
 
 	GrammarNamespace CreateStandardLibrary()
 	{
@@ -231,6 +236,31 @@ public sealed class GrammarBinder
 		{
 			switch (node)
 			{
+				// The name a grammar's own state travels under. One per grammar and at the
+				// top of it: a context declared inside a namespace would be a context for
+				// part of a parse, and there is no such thing — the object the caller hands
+				// over is handed to all of it.
+				case Decl.Context context:
+
+					if (ns.Parent?.Parent is not null)
+						Report(
+							ContextNotAtRoot,
+							"A 'context' belongs to the whole grammar, so it is declared outside every " +
+							"namespace. The one object a caller hands over is handed to all of it.",
+							context.At);
+
+					else if (_context is not null)
+						Report(
+							DuplicateContext,
+							"This grammar already declares a 'context'. One name, one type, one object " +
+							"for the parse.",
+							context.At);
+
+					else
+						_context = context.Type;
+
+					break;
+
 				case Decl.Rule rule:
 					ResolveRule(rule, ns);
 					break;

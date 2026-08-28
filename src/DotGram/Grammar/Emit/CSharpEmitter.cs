@@ -127,7 +127,8 @@ public static partial class CSharpEmitter
 					Streams(graph, publication),
 					compiled.Flat,
 					compiled.Machine.Ties,
-					compiled.Machine.UsesInput);
+					compiled.Machine.UsesInput,
+					compiled.Machine.UsesContext ? graph.Context : null);
 
 				file.Line();
 			}
@@ -570,8 +571,14 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input)
+		bool ties, bool input, string? context)
 	{
+		// The grammar's own state (§7.7), where anything in this machine names it. The
+		// caller makes one and hands it over; a grammar that declares none, or declares one
+		// and never names it, is published exactly as it was before the name existed.
+		var takes = context is null ? "" : $", {context} context";
+		var gives = context is null ? "" : ", context";
+
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
 		var built  = results.QualifiedOf(publication.Rule);
@@ -583,7 +590,7 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "");
+			(input ? ", input" : "") + gives;
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -597,7 +604,7 @@ public static partial class CSharpEmitter
 
 		if (publication.Kind == PublishKind.Find)
 		{
-			EmitFind(file, publication, method, name, value, match, hands, Recognized);
+			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes);
 
 			if (streams)
 			{
@@ -614,9 +621,9 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"public static {value} {method}(string input)"))
+		using (file.Block($"public static {value} {method}(string input{takes})"))
 		{
-			file.Line($"var match = Try{method}(input);");
+			file.Line($"var match = Try{method}(input{gives});");
 			file.Line();
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
@@ -627,7 +634,7 @@ public static partial class CSharpEmitter
 		file.Line();
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		using (file.Block($"public static {match} Try{method}(string input)"))
+		using (file.Block($"public static {match} Try{method}(string input{takes})"))
 		{
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
@@ -684,12 +691,13 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static void EmitFind(
 		Writer file, Publication publication, string method, string name,
-		string value, string match, string hands, Func<string, string, string> recognized)
+		string value, string match, string hands, Func<string, string, string> recognized,
+		string takes)
 	{
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input)"))
+			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
@@ -894,6 +902,11 @@ public static partial class CSharpEmitter
 		// bargain only the author of the grammar can strike.
 		if (Asks(factory, "parserInput"))
 			parameters.Add("string parserInput");
+
+		// The grammar's own state (§7.7). What a `=>` gets is the object the caller handed
+		// over — the same one every hook sees, because nothing here copies it.
+		if (graph.Context is not null && Asks(factory, "context"))
+			parameters.Add($"{graph.Context} context");
 
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
@@ -1111,7 +1124,31 @@ public static partial class CSharpEmitter
 
 	internal static bool Asks(Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
-		text.Contains(name);
+		(name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name));
+
+	/// <summary>Whether this C# names that identifier, rather than merely containing it.</summary>
+	/// <remarks>
+	/// The supplied names of §8.2 all begin with `parser`, and a substring test is enough
+	/// for them — that prefix is what it is for. A name the author chose has no such
+	/// protection: `context` is inside `contexts` and `myContext`, and taking either for
+	/// the name itself would put a parameter on a publication that does not need one.
+	/// </remarks>
+	internal static bool Names(string text, string name)
+	{
+		for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			var before = at == 0 || !Continues(text[at - 1]);
+			var after  = at + name.Length == text.Length || !Continues(text[at + name.Length]);
+
+			if (before && after)
+				return true;
+		}
+
+		return false;
+
+		static bool Continues(char c) => char.IsLetterOrDigit(c) || c == '_';
+	}
 
 	/// <summary>
 	/// The repetition of a rule that was marked <c>recover</c>, the slot its elements
