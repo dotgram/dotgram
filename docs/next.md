@@ -5528,3 +5528,168 @@ imported into it, so the API's has to be written out in full inside that namespa
 `ExampleTests` takes the same collision the other way and aliases it.
 
 1,369 tests green in both configurations.
+
+## Considered: parser inheritance, and what a grammar library could be
+
+Raised in conversation and worked through rather than built. Nothing here is committed to;
+one question is left open on purpose and is marked as such.
+
+**The idea.** A host class inherits from a host that is itself a parser. The base has a
+grammar; the derived grammar includes it — spelled `using Base;`, the same word §5.1
+already has. Grammars could hang on interfaces too, and then a library is an ordinary
+assembly reference.
+
+### Why the `:` is load-bearing rather than decorative
+
+The first objection raised against it here was that a grammar is not self-contained: it
+names C#. The base's `=> @(Made(type, args))` and `@JsonObject` resolved in the *base's*
+assembly, and merged into a deriving compilation they must resolve there.
+
+Inheritance answers that, which is the whole point of the spelling. The generated code for
+the derived parser lands in a class that **inherits the base's members and nested types**,
+so `Made` resolves if it is `protected`, and `JsonObject` resolves if it is nested in the
+base class. The `:` is what carries the base's C# scope to where its own grammar's hooks
+are re-emitted.
+
+And the generator does not stand in the way: it writes `partial class {name}` with no
+`static` and no accessibility of its own (`CSharpEmitter`), so a host meant to be inherited
+is simply written non-static. **No generator change is needed for the inheritance itself to
+be legal C#** — only for the grammar to be merged.
+
+### Which gives two levels of library, and the notation says which is which
+
+An interface carries text but its members are not in the implementing class's scope; a base
+class carries both. So:
+
+* **a base class is a grammar with `=>`** — a parser somebody extends;
+* **an interface is a grammar without `=>`** — a recognizer somebody brings their own
+  constructions to.
+
+Arrived at twice from opposite ends: once from "the composable part of a grammar is the
+part that builds nothing", once from what each carrier can and cannot bring with it. Worth
+keeping, because it is a rule the mechanism enforces rather than one a document asks for.
+
+### Implementation: concatenation, and nothing new in the pipeline
+
+Wrap the imported grammar in a `namespace` named after its class, put the texts together,
+and run the existing pipeline. `Decl.Namespace`, `using`, rebinding and
+`SpecializeNamespaces` do inclusion and overriding **unchanged** — there is no new model
+concept in any of it.
+
+Three things already work for free, checked rather than assumed:
+
+* **`@using` of the base arrives.** `GrammarNormalizer.Imports` walks nested namespaces and
+  collects C# imports recursively, so a `@using System.Text;` inside the wrapper reaches the
+  generated file's head. Nothing has to be hoisted by hand.
+* **`trivia` stays the base's.** §4.5 takes it from where a rule is *declared*, so wrapping
+  is enough: a library written under `trivia = none` does not infect the grammar that
+  imports it.
+* **Overriding already has a form, and the diagnostic teaches it.** Redeclaring a name an
+  import provides is `GRAM3012`, whose message says in so many words: *if this means to
+  replace it rather than declare a new rule under the same name, say so with a rebinding
+  instead — `namespace (Name = ...)`*. So "override a base rule" is a rebinding, not a
+  redeclaration, and an author who reaches for the wrong one is told which is right.
+
+And two where it stops being textual:
+
+* **The base's publications would come along.** `parse X as Parse` inside the wrapper is
+  legal and would generate methods on the derived class that also hide the inherited ones
+  (CS0108). They have to be dropped — which is after parsing, so the merge is a small
+  transform on `GrammarFile` rather than on a string. No loss: the text is parsed anyway.
+* **Positions.** §7.6 maps a diagnostic's offset back into the `[Gram(...)]` literal as it
+  was spelled. Concatenation shifts every offset, so the merge has to carry a map from
+  merged offset to origin. This is the one genuinely non-trivial piece, and it is exactly
+  what the word "concatenation" hides.
+
+### Reading the base's grammar is the easy half
+
+`Host.From` already holds the `INamedTypeSymbol` — `ForAttributeWithMetadataName` hands it
+over because that provider is semantic anyway — so `type.BaseType.GetAttributes()` yields
+the base's grammar as a plain string **in the cheap stage**. No `CompilationProvider`, no
+incrementality lost: a string is equatable, the cache keys on it, and editing the base's
+grammar invalidates its derivatives exactly as it should.
+
+"The project is not compiled yet" is not an obstacle. Source symbols are complete long
+before emit, and `[Gram]`'s argument is a constant that Roslyn hands back the same way from
+source and from metadata.
+
+### Where it actually breaks: diagnostics, at one line
+
+`Host.From` keeps the literal token beside the decoded text, because a diagnostic carries an
+offset into the value and putting it where the author can see it means finding that place in
+the spelling:
+
+```csharp
+var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax && …
+```
+
+**`ApplicationSyntaxReference` is non-null only for an attribute written in source.** Read
+from metadata it is null. So:
+
+* **base in the same assembly** — the literal is there, offsets map, an error in the base's
+  rules is underlined where it was written, and the mechanism works untouched;
+* **base in a referenced assembly** — there is no token, nothing to map onto, and the
+  `#line` in an emitted `Construct_*` points into a file that may not be on the machine.
+
+Three consequences to decide before any of this is built:
+
+1. **Duplicates.** An error in the base's rules would be reported twice — once generating
+   the base, once generating each derivative, at the same place. A rule is needed: a
+   derivative reports what the merge caused and stays silent about what the base already
+   says for itself.
+2. **The live-editing cascade.** While `class Derived : Bas` is half typed, the base does
+   not resolve, the merged grammar is the derived one without its imports, and every rule
+   the base provided is suddenly undefined. Today a broken grammar breaks one class; here it
+   would break every derivative, continuously. The answer is probably to generate nothing
+   and say one thing when a base list is present and unresolved, rather than compile a
+   grammar known to be missing half of itself.
+3. **Cycles cannot happen.** C# forbids `A : B, B : A`, so inheritance gets termination for
+   free — which a named `using grammar Foo;` would not have.
+
+**So: same-assembly first.** It is the whole feature — composition, overriding, libraries
+within a solution — and it costs nothing in diagnostics, because everything still points at
+real source and no metadata is read. Cross-assembly is a second step whose price is not
+access to the data but that errors lose their place, and that is a decision rather than a
+detail.
+
+### Open: what `context` and `state` mean under a merge
+
+Left open deliberately.
+
+Both are root-only by construction — `GRAM3013` and `GRAM3015` refuse them inside a
+namespace, because a context for part of a parse is not a thing. So a base grammar that
+declares either **cannot be wrapped**, and the first library above the recognizer level
+walks straight into it. Two shapes were discussed:
+
+**Per-namespace.** Tempting, and not a new concept: §4.5 already scopes `trivia` by where a
+rule is declared. Argued against here on one ground — a publication's signature would then
+depend on the transitive set of reachable rules, so adding a rule inside a library would
+change every consumer's call site. And `state` per namespace would need one mark array per
+namespace and a slot index in the arena entry, which is the machinery §7.8 was designed to
+avoid.
+
+**Lifted and reconciled**, the merge pulling them out of the wrapper before binding — the
+same place the publications are dropped. Then the two behave differently, and the
+difference is forced rather than chosen:
+
+* `context` could reconcile by assignment: `DerivedState : BaseState`, one parameter of the
+  most derived type, the base's `@(context.…)` still compiling because it is a `BaseState`.
+  No variance problem, no signature churn.
+* `state` cannot. `ReadOnlySpan<T>` is invariant, so a span of a derived mark type will not
+  pass to a parameter of the base's. The rule would have to be exactly one state type
+  declared once along the chain — and that turns §7.8's "one type for the whole grammar"
+  from a convenience into a constraint on composition: a grammar meant to be a base would
+  have to declare its `state` as a reference type, since an enum cannot be extended by the
+  consumer who needs a concern of their own.
+
+Both directions are written down; neither is chosen.
+
+## Noted: `?.` is not the extension node to start with
+
+Offered against the example above and worth keeping so it is not re-derived. Null-conditional
+looks like the obvious first custom node in `ExpressionLanguage` and is not: `Postfix` is
+left recursive, so `a?.b.c` builds as `Member(Member(NullConditional(a), b), c)` — the node
+lands at the *bottom* of the chain while what it must short-circuit is the whole of it. One
+node does not do it; the rule's shape has to change so that the node wraps the chain rather
+than the operand. `foreach`, `using` and `lock` are the better first ones, because the
+extent of the node is exactly what the rule read.
