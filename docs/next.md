@@ -5493,3 +5493,38 @@ that API has a syntax for — and the 657 lines of grammar it took say where the
 thin, which is what `docs/next.md` above this line is mostly made of.
 
 1,362 tests green in both configurations.
+
+## And the thing the count could not see: an extension node
+
+Raised in conversation against the paragraph above, which was overstated. `System.Linq
+.Expressions` has a whole mechanism that is not one of the 120 and never could be, because
+it is reached by **deriving** rather than by calling: an extension node — a class of your
+own over `Expression` whose `NodeType` is `ExpressionType.Extension`, that says through
+`CanReduce`/`Reduce` how to become ordinary nodes when something finally asks. There is no
+`Expression.Extension(...)` to count. The count stands at 88 of 120 and the claim built on
+it did not.
+
+**Nothing has to be added for a grammar to reach it**, which is the interesting half. A
+`=>` is C#, a rule's `: @T` is a C# type, and a class over `Expression` is an `Expression`
+— so `=> @(new ClampExpression(value, low, high))` was always legal and nothing in the
+notation or the generator has an opinion about which side of the API a construction came
+from. That was worth proving rather than asserting, so
+`examples/DotGram.Examples/ExtensionNodeExample.cs` now does: a grammar reading
+`clamp(x, 0, 10)`, a node the API does not have, and four assertions in `ExampleTests` —
+that the tree holds the node rather than its expansion, that `Compile` is what expands it,
+that an `ExpressionVisitor` knowing nothing about clamping still rewrites inside one
+(`VisitChildren`, whose omission is the usual silent first bug), and that it composes with
+the nodes that do have factories.
+
+Which puts the real ceiling somewhere else than the count did: **the API's own factories
+are a floor, not a limit.** What a `=>` may build is any value of the type the rule
+declares, and an API that can be extended can be extended from a grammar without the
+grammar knowing that is what it is doing.
+
+One thing the example ran into is worth recording as a note about the examples project
+rather than about the notation: `DotGram.Examples` already declares an `Expression` — the
+record tree `ExpressionTreeExample` builds — and a name declared in a namespace beats one
+imported into it, so the API's has to be written out in full inside that namespace.
+`ExampleTests` takes the same collision the other way and aliases it.
+
+1,369 tests green in both configurations.

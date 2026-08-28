@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 using DotGram.Examples;
+
+// The API's own namespace under a name of its own: this file already sees an
+// `Expression`, the examples' record tree, and importing the other would make every
+// existing mention of it ambiguous. `ExtensionNodeExample` explains the collision.
+using Linq = System.Linq.Expressions;
 
 using Xunit;
 
@@ -1172,6 +1177,62 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_writing_it_again_gives_back_what_was_read() =>
 		Assert.Equal("orders[2].lines", Selectors.Written(Selectors.ParseSelector("orders[2].lines")));
+
+	// ── A node the API does not have (ExtensionNodeExample) ──────────────────────
+
+	/// <summary>
+	/// The tree holds the node the grammar built, not what it becomes.
+	/// </summary>
+	/// <remarks>
+	/// The claim the example is for: a `=&gt;` may build any <c>Expression</c>, including
+	/// one `System.Linq.Expressions` has no factory for — because an extension node is
+	/// reached by deriving rather than by calling, and nothing in the notation or the
+	/// generator has an opinion about which of those a construction did.
+	/// </remarks>
+	[Fact]
+	public void A_construction_may_build_a_node_the_API_has_no_factory_for()
+	{
+		var tree = ClampedExample.Read("clamp(x, 0, 10)");
+
+		var clamp = Assert.IsType<ClampExpression>(tree.Body);
+
+		Assert.Equal(Linq.ExpressionType.Extension, clamp.NodeType);
+		Assert.True(clamp.CanReduce);
+		Assert.Equal("clamp(x, 0, 10)", clamp.ToString());
+	}
+
+	[Theory]
+	[InlineData(-5,  0)]
+	[InlineData(3,   3)]
+	[InlineData(15, 10)]
+	public void And_it_becomes_ordinary_nodes_where_something_asks(int argument, int expected) =>
+		// `Compile` is the something. Until it ran, nothing had expanded the node — and
+		// the test above is what says so.
+		Assert.Equal(
+			expected,
+			ClampedExample.Read("clamp(x, 0, 10)").Compile().DynamicInvoke(argument));
+
+	[Fact]
+	public void And_it_is_rewritten_like_any_other_node() =>
+		// What `VisitChildren` is for: a visitor that knows nothing about clamping still
+		// replaces the operands inside one, and gets a clamp back rather than a clamp that
+		// quietly kept what it had.
+		Assert.Equal(
+			"clamp(x, 1, 11)",
+			new Raise().Visit(ClampedExample.Read("clamp(x, 0, 10)").Body)!.ToString());
+
+	[Fact]
+	public void And_it_composes_with_the_nodes_that_do_have_factories() =>
+		Assert.Equal(
+			13,
+			ClampedExample.Read("clamp(x, 0, 10) + 3").Compile().DynamicInvoke(15));
+
+	/// <summary>Every constant one higher, which knows nothing about clamping.</summary>
+	sealed class Raise : Linq.ExpressionVisitor
+	{
+		protected override Linq.Expression VisitConstant(Linq.ConstantExpression node) =>
+			Linq.Expression.Constant((int)node.Value! + 1);
+	}
 
 	[Fact]
 	public void A_parameterized_rule_is_published_without_a_rule_to_wrap_it() =>
