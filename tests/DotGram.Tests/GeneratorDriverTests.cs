@@ -258,6 +258,101 @@ public sealed class GeneratorDriverTests
 
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
+	// ── One `context` and one `state` for the assembly (GRAM3017, GRAM3018) ──────
+
+	/// <summary>
+	/// Two grammars in one assembly may not both declare a <c>context</c>.
+	/// </summary>
+	/// <remarks>
+	/// Taken before anything depends on it, because it is what keeps a grammar includable
+	/// in another later: a merged grammar can have only one context, since a context is one
+	/// object handed to a whole parse. Reported at both sites — which of the two the
+	/// generator saw first is not something an author can act on.
+	/// </remarks>
+	[Fact]
+	public void An_assembly_declares_one_context()
+	{
+		var result = RunGenerator(
+			"""
+			[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
+			public partial class One { }
+
+			[DotGram.Gram("context : @B\nStart = 'b'\nparse Start")]
+			public partial class Two { }
+			""");
+
+		var reported = result.Diagnostics
+			.Where(diagnostic => diagnostic.Id == "GRAM3017")
+			.ToArray();
+
+		Assert.Equal(2, reported.Length);
+		Assert.All(reported, diagnostic => Assert.Contains("One", diagnostic.GetMessage()));
+		Assert.All(reported, diagnostic => Assert.Contains("Two", diagnostic.GetMessage()));
+	}
+
+	[Fact]
+	public void And_one_state() =>
+		Assert.Equal(
+			2,
+			RunGenerator(
+				"""
+				[DotGram.Gram("state : @A\nStart = 'a'\nparse Start")]
+				public partial class One { }
+
+				[DotGram.Gram("state : @B\nStart = 'b'\nparse Start")]
+				public partial class Two { }
+				""")
+				.Diagnostics.Count(diagnostic => diagnostic.Id == "GRAM3018"));
+
+	[Fact]
+	public void And_the_two_are_counted_apart() =>
+		// A `context` in one grammar and a `state` in another is two of nothing.
+		Assert.Empty(
+			RunGenerator(
+				"""
+				[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
+				public partial class One { }
+
+				[DotGram.Gram("state : @B\nStart = 'b'\nparse Start")]
+				public partial class Two { }
+				""")
+				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3017" or "GRAM3018"));
+
+	[Fact]
+	public void And_one_grammar_may_have_both() =>
+		Assert.Empty(
+			RunGenerator(
+				"""
+				[DotGram.Gram("context : @A\nstate : @B\nStart = 'a'\nparse Start")]
+				public partial class One { }
+
+				[DotGram.Gram("Start = 'b'\nparse Start")]
+				public partial class Two { }
+				""")
+				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3017" or "GRAM3018"));
+
+	[Fact]
+	public void And_it_is_said_at_the_declaration_rather_than_at_the_class()
+	{
+		var reported = RunGenerator(
+			"""
+			[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
+			public partial class One { }
+
+			[DotGram.Gram("context : @B\nStart = 'b'\nparse Start")]
+			public partial class Two { }
+			""")
+			.Diagnostics
+			.First(diagnostic => diagnostic.Id == "GRAM3017");
+
+		var at = reported.Location.GetMappedLineSpan();
+
+		// The first line of the grammar, which is where `context : @A` is written — found
+		// inside the attribute's own spelling, not guessed from the class.
+		Assert.Equal("GeneratorDriverTest.cs", at.Path);
+		Assert.Equal(0, at.StartLinePosition.Line);
+	}
+
 	static void AssertDiagnostic(string id, GeneratorDriverRunResult result) =>
 		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
 

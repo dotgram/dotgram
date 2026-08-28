@@ -35,6 +35,20 @@ public sealed class GrammarBinder
 	public const string DuplicateState            = "GRAM3016";
 
 	/// <summary>
+	/// One <c>context</c> and one <c>state</c> per assembly, not merely per grammar.
+	/// </summary>
+	/// <remarks>
+	/// Raised by the shell rather than here, because it is a question about every grammar in
+	/// a compilation and this half sees one. The ids live beside their per-grammar
+	/// counterparts all the same: it is the same rule asked over a wider extent, and an
+	/// author who looks one up will look for the other next to it.
+	/// </remarks>
+	public const string SharedContext             = "GRAM3017";
+
+	/// <inheritdoc cref="SharedContext"/>
+	public const string SharedState               = "GRAM3018";
+
+	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a namespace outside
 	/// the global one, so a grammar can shadow any of them by declaring its own — which
 	/// is exactly how whitespace handling works (§4.5).

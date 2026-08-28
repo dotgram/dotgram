@@ -5693,3 +5693,34 @@ lands at the *bottom* of the chain while what it must short-circuit is the whole
 node does not do it; the rule's shape has to change so that the node wraps the chain rather
 than the operand. `foreach`, `using` and `lock` are the better first ones, because the
 extent of the node is exactly what the rule read.
+
+## Built: one `context` and one `state` for the whole assembly
+
+Taken now, on the strength of the entry above, and for one reason: it is the constraint that
+keeps a grammar includable in another later, and taking it before anything leans on it makes
+it a rule rather than a later change of one. `GRAM3017` and `GRAM3018`.
+
+**It is stricter than what will eventually be wanted**, which is one per inheritance chain —
+and a chain cannot be checked today because there is nothing to follow. So two parsers in one
+assembly that never meet are refused for a reason neither of them can see. That is the price,
+it was taken knowingly, and the message says *why* rather than only what: a context belongs
+to a whole parse, and a merged grammar could not say which of two it meant.
+
+**Checked apart from generation rather than folded into it.** A `Collect` in the pipeline that
+produces parsers would make every parser's output depend on every grammar in the project, and
+a keystroke in one would recompile all of them. This is a second `RegisterSourceOutput` that
+generates nothing and only says things, fed by the few grammars that declare anything — so it
+holds still while the rest of the project is edited. The grammar is already parsed in the
+cheap stage for its C# questions, so recording *where* the two declarations stand costs two
+offsets and a length each, and those are what the collected value is keyed on.
+
+**Said at every site rather than at all but one.** Which grammar the generator saw first is
+not something an author can know or act on, and whichever file they are looking at is where
+they need to be told. Placed inside the grammar text through the same path a binder
+diagnostic takes — `Report.Of(GramDiagnostic, …)` with the host's literal and offset — so it
+underlines the declaration and not the class.
+
+Five tests, and the one worth naming is `And_the_two_are_counted_apart`: a `context` in one
+grammar and a `state` in another is two of nothing, because they are two rules and not one.
+
+1,374 tests green in both configurations.

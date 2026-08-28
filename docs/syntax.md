@@ -1513,6 +1513,12 @@ afterwards, against what the guards have by then recorded.
 context for part of a parse, and there is no such thing: the object a caller hands over is
 handed to all of it (`GRAM3013`, `GRAM3014`).
 
+**And one per assembly** (`GRAM3017`). Wider than it has to be today, and taken deliberately:
+a grammar that one day includes another can have only one context between them, and refusing
+the second now is a rule rather than a later change of one. Two parsers in one assembly that
+never meet are refused for a reason neither can see — that is what the message says, and it
+is the price of the constraint being there before anything leans on it.
+
 **What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
 a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
 That is why what belongs here is what can be written down more than once without harm — a
@@ -1566,7 +1572,8 @@ hook that does not name it is not passed it, and a grammar that places no mark h
 empty span to one that does.
 
 **One type for all of them, declared once, outside every namespace** (`GRAM3015`,
-`GRAM3016`). Which mark a hook means is the hook's to decide — it reads back for the
+`GRAM3016`), and one per assembly (`GRAM3018`) — for the reason §7.7 gives about its own.
+Which mark a hook means is the hook's to decide — it reads back for the
 nearest value of its own concern and walks past everything belonging to another, which is
 why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit
 this sets is real and worth stating plainly: **two unrelated concerns must be different
