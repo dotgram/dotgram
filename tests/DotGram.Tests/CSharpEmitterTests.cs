@@ -1279,7 +1279,7 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("Start = text: ('a' & Start?)");
 
-		Assert.Contains("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.Contains("ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0", source);
 		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("var capture0 = 0;", source, StringComparison.Ordinal);
 	}
@@ -1291,8 +1291,56 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = text: ('a' & 'b')");
 
 		Assert.Contains("capture0 = p;", source);
-		Assert.DoesNotContain("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.DoesNotContain("ParserEntry.CaptureOpen", source, StringComparison.Ordinal);
 	}
+
+	[Fact]
+	public void A_repetition_reopens_it_too_where_its_body_has_a_way_back_in()
+	{
+		// The other half of the same hazard, and the one that was wrong: turn two runs the
+		// opening again before turn one is final, and a door inside turn one is a way back
+		// into its close. `Run+` has that door; `'b'` alone does not, so `('a' & 'b')+`
+		// below still keeps its variable and pays nothing.
+		var reopens = Emit("Run = 'a'+\nStart : @string = t: Run{2} => @(t)");
+
+		Assert.Contains("ParserEntry.CaptureOpen", reopens, StringComparison.Ordinal);
+		Assert.DoesNotContain("capture0 = p;", reopens, StringComparison.Ordinal);
+
+		Assert.DoesNotContain(
+			"ParserEntry.CaptureOpen", Emit("Start : @string = (t: 'a' & 'b')+ => @(t)"),
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>An optional is a repetition of one turn, and one turn reopens nothing.</summary>
+	/// <remarks>
+	/// `X?` is how the model spells an optional, so this is not a nicety: counting it as a
+	/// repetition put every `(':' & port: Digit+)?` in the arena, and a URL with a port a
+	/// fifth slower, for a second turn that cannot happen.
+	/// </remarks>
+	[Fact]
+	public void An_optional_around_a_capture_is_not_a_repetition_of_it() =>
+		Assert.Contains("capture0 = p;", Emit("Run = 'a'+\nStart = (t: Run & 'b')?"));
+
+	[Theory]
+	[InlineData("Run = ['0'..'9']+\nStart : @string = t: Run{2} => @(t)", "1234", "1234")]
+	[InlineData("Start : @string = t: (['0'..'9']+){2} => @(t)",          "1234", "1234")]
+	public void And_the_start_it_reads_back_is_the_one_its_own_turn_wrote(
+		string grammar, string input, string expected) =>
+		// Both answered "" before the opening went into the arena: turn two had set the
+		// variable to where it began, its body failed, and the give-back door came back to
+		// turn one's close — which recorded a span starting after it ended.
+		Assert.Equal(expected, Run(grammar, input).Value);
+
+	[Theory]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-'){2} => @(t)",   "12-34-",    "1234")]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-')+ => @(t)",     "12-34-56-", "123456")]
+	[InlineData("D = ['0'..'9']\nStart : @string = (t: D+ & '-')+ => @(t)", "12-34-", "1234")]
+	public void A_repeated_text_capture_is_the_turns_joined_and_not_the_span_they_lie_in(
+		string grammar, string input, string expected) =>
+		// §10: repeated text is the text joined. The span from the first start to the last
+		// end is that only where the turns are adjacent — and the generator still takes it
+		// where they are, which is what the measurements are for.
+		Assert.Equal(expected, Run(grammar, input).Value);
 
 	// ── A literal a later alternative continues ─────────────────────────────────
 

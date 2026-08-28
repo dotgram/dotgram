@@ -4655,3 +4655,58 @@ rather than fixed on the spot, because it changes the capture protocol in the ar
 One smaller thing seen in the same dumps: for an exact count, the loop head emits its
 give-back door under the same condition as the jump that already left — `if (repeating
 .Value >= 2) goto S8;` and then `if (repeating.Value >= 2) { … }`. Dead, not wrong.
+
+## Fixed: a capture's start goes in the arena, and its turns are joined
+
+Both defects the expression language turned up, and they were one defect and one
+unbuilt feature.
+
+**The start.** A capture compiles to `capture{n} = p` at the opening and an arena entry
+spanning `capture{n}..p` at the close, and a variable is right for exactly as long as
+nothing opens the same capture in between. Recursion was known to do that and already
+kept its start in the arena. A repetition does it too, and that was not: turn two runs
+the opening before turn one is final, and a door inside turn one — a run to shorten, an
+alternative to resume — is a way back into turn one's close, which then reads a start the
+parse has given back. `t: (Digit+){2}` over `"1234"` answered `""`, with the entry
+recording 4..3.
+
+The protocol the recursive case used would not have carried it either. It marked an
+opening closed by rewriting it in place, and an in-place rewrite survives backtracking
+that the close which wrote it does not — the same trap `ParserEntry.TurnDone` exists to
+avoid. So the opening is now an entry of its own, `ParserEntry.CaptureOpen`, and a close
+finds its own by counting openings against closes the way brackets are counted. Both
+kinds unwind with everything above the door, so the count is always over a prefix that
+makes sense.
+
+**What it costs is nothing, once the question is asked exactly.** Answering "is this
+capture inside a repetition whose body can be re-entered" carelessly costs real time, and
+both careless answers were measured before they were replaced:
+
+- treating every call as leaving a door put `port: Digit+` over `Digit = ['0'..'9']` in
+  the arena, and a full URL a **fifth** slower. A call leaves whatever its callee leaves
+  and nothing of its own — the arena's `Call` entry is a frame to restore while unwinding,
+  never a state to resume at — so the question is settled per rule, from no rule leaving a
+  door, which terminates because a cycle has to pass a repetition or a choice to come back
+  round and either answers yes alone.
+- counting an optional as a repetition put `(':' & port: Digit+)?` there as well, for a
+  second turn that cannot happen: `X?` is how the model spells an optional. With both
+  narrowed, the URL round-robin is the baseline again — 104.7 / 278.9 / 107.3 / 175.9 /
+  55.7 against 103–107 / 284–288 / 110–115 / 173–181 / 52–54 over three runs a side.
+
+**The join was the other half, and it was a `GRAM4006` all along.** §10 gives a repeated
+text capture the text joined, and the materializer took the span from the first turn's
+start to the last turn's end — the same thing only where the turns are adjacent. That
+shape *was* refused, as "recognized and not built": a capture inside a repetition without
+being the whole of what repeats. Except the check looked only at the innermost repetition,
+so `(t: A+ & '-'){2}` walked past it and answered `"12-34"`, and whether it was refused at
+all turned on whether `HoistTextCaptures` had lifted the capture first.
+
+So it is built instead of refused. The pieces are measured while they are collected, and
+the span is taken only where the measurements say the pieces tile it — one slice and one
+string, which is what a contiguous capture cost before. Where they do not tile, the pieces
+are copied out in reading order. `GRAM4006` now means one thing, a capture inside a
+lookahead, and `(t: 'x' & 'y')+` is an ordinary grammar.
+
+1,206 tests green in both configurations, and the corpus snapshots carry the new protocol
+where a capture can be reopened — `Minimal` for a recursive one, and nothing in `Url`,
+which is the narrowing working.

@@ -76,6 +76,19 @@ sealed partial class Machine
 		return false;
 	}
 
+	/// <summary>
+	/// Whether a text member records a turn at a time, so its value is the turns joined.
+	/// </summary>
+	/// <remarks>
+	/// One member may be written in several places (§7.3 gives a rule one member per name),
+	/// and a repetition around any of them is enough: the walk that collects them cannot
+	/// tell which slot a given turn came from without asking, and the join costs nothing
+	/// where the turns turn out to tile their own span. See <see cref="_repeatedCaptures"/>.
+	/// </remarks>
+	bool Joined(int offset, ResultMember member) =>
+		member.Rule is null &&
+		member.Slots.Any(slot => _repeatedCaptures.Contains(offset + slot));
+
 	/// <summary>The site a member's one slot was compiled as, or null.</summary>
 	SitePlan? SiteFor(int offset, ResultMember member) =>
 		member is { Rule: not null, Slots.Count: 1 } &&
@@ -287,29 +300,45 @@ sealed partial class Machine
 
 		if (_nestedCaptures.Contains(site.Boundary))
 		{
+			// The same open-and-count protocol the ordinary capture uses — see the
+			// comment there, and `ParserEntry.CaptureOpen` for why it is not a mark.
 			atOpen.Line(
-				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, p, " +
-				"call, atomic, repeat, lookahead, -1));");
+				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {site.Boundary}, p, " +
+				"call, atomic, repeat, lookahead, 0));");
 			atOpen.Line($"goto {Label(inlined)};");
 
-			using (atClose.Block(
-				"for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+			atClose.Line("var closed  = 0;");
+			atClose.Line("var openedAt = entries.Count - 1;");
+			atClose.Line();
+
+			using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
 			{
 				atClose.Line("var opened = entries[openedAt];");
 				atClose.Line();
-				atClose.Line(
-					$"if (opened.Kind != ParserEntry.Capture || opened.State != {site.Boundary} || " +
-					"opened.Value >= 0)");
+				atClose.Line($"if (opened.State != {site.Boundary}) continue;");
+				atClose.Line();
+
+				using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+				{
+					atClose.Line("closed++;");
+					atClose.Line("continue;");
+				}
+
+				atClose.Line();
+				atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
 				atClose.Then("continue;");
 				atClose.Line();
-				atClose.Line(
-					$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
-					"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
-					"opened.RepeatIndex, opened.LookaheadIndex, p);");
+				atClose.Line("if (closed == 0)");
+				atClose.Then("break;");
 				atClose.Line();
-				atClose.Line("break;");
+				atClose.Line("closed--;");
 			}
 
+			atClose.Line();
+			atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
+			atClose.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
+				"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
 			atClose.Line($"goto {Label(next)};");
 		}
 		else

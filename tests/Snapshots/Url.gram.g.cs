@@ -8724,6 +8724,7 @@ namespace DotGram.Snapshots
 						var captured1To   = -1;
 						var captured2From = -1;
 						var captured2To   = -1;
+						var captured2Length = 0;
 						for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
 						{
 							var candidate = entries[capturedAt];
@@ -8752,6 +8753,7 @@ namespace DotGram.Snapshots
 										if (captured2To < 0)
 											captured2To = candidate.Value;
 										captured2From = candidate.Position;
+										captured2Length += candidate.Value - candidate.Position;
 									}
 									break;
 							}
@@ -8773,7 +8775,35 @@ namespace DotGram.Snapshots
 						if (captured2From >= 0 && captured2To < captured2From)
 							throw new global::System.InvalidOperationException("DotGram invariant: capture 'port' of rule 'Authority' has its end before its start (" + captured2From.ToString() + ".." + captured2To.ToString() + "). This is a generator defect; please report the grammar.");
 						#endif
-						var captured2 = captured2From < 0 ? null : text.Slice(captured2From, captured2To - captured2From).ToString();
+						string? captured2;
+
+						if (captured2From < 0)
+							captured2 = null;
+						else if (captured2To - captured2From == captured2Length)
+							captured2 = text.Slice(captured2From, captured2Length).ToString();
+						else
+						{
+							var captured2Chars = new char[captured2Length];
+							var captured2At    = captured2Length;
+
+							for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])
+							{
+								var candidate = entries[capturedAt];
+
+								if (candidate.Kind != ParserEntry.Capture || candidate.CallIndex != completedAt)
+									continue;
+
+								if (candidate.State != 7)
+									continue;
+
+								var captured2Piece = candidate.Value - candidate.Position;
+
+								captured2At -= captured2Piece;
+								text.Slice(candidate.Position, captured2Piece).CopyTo(new global::System.Span<char>(captured2Chars, captured2At, captured2Piece));
+							}
+
+							captured2 = new string(captured2Chars);
+						}
 
 						values1[completedAt] = new global::DotGram.Snapshots.Url.Authority(
 							captured0,
@@ -9426,6 +9456,23 @@ namespace DotGram.Snapshots
 			/// moment the parse abandons it.
 			/// </remarks>
 			internal const int TurnDone = 15;
+
+			/// <summary>
+			/// Where a capture began, standing where unwinding can take it away again.
+			/// </summary>
+			/// <remarks>
+			/// A start kept in a variable is right for exactly as long as nothing opens the
+			/// same capture between the opening and the close. Two things do: a rule that
+			/// reaches itself, and a repetition whose next turn begins before a door inside
+			/// the turn before it has been passed. Both leave the variable holding a start
+			/// the parse has given back, and backtracking restores the arena and nothing
+			/// else — so the start goes in the arena, and the close finds its own by
+			/// counting these against the <see cref="Capture"/> entries that closed them,
+			/// the way brackets are counted. Marking an opening closed in place would not
+			/// do: an in-place rewrite survives backtracking that the close it recorded
+			/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
+			/// </remarks>
+			internal const int CaptureOpen = 16;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

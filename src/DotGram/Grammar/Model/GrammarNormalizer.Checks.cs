@@ -15,7 +15,7 @@ public sealed partial class GrammarNormalizer
 		foreach (var rule in _rules)
 		{
 			CheckRepetitions  (_bodies[rule], rule);
-			CheckCaptures     (_bodies[rule], rule, repeated: null);
+			CheckCaptures     (_bodies[rule], rule);
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
 			CheckRecovery     (rule);
@@ -24,27 +24,6 @@ public sealed partial class GrammarNormalizer
 		CheckTrivia();
 	}
 
-	/// <summary>
-	/// What a capture under a repetition is allowed to be, and what it is not yet.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A repeated capture of a rule that builds is a sequence of values (§7.3), and where
-	/// it sits under the repetition does not matter: every iteration appends where its
-	/// value is built, and an abandoned attempt truncates back to the length it pushed.
-	/// </para>
-	/// <para>
-	/// A repeated capture of <b>text</b> is not that. §10 binds a capture tighter than a
-	/// quantifier, so <c>scheme: ['a'..'z']+</c> is a capture repeated, and §7.3 gives it
-	/// the text joined — which is the extent from the first iteration to the last, and is
-	/// exactly that only when the capture is the whole of what repeats. Written around
-	/// something else, the text between the iterations would be swept in with them.
-	/// </para>
-	/// <para>
-	/// Inside a lookahead a capture belongs to a machine of its own that answers yes or no
-	/// and hands nothing back.
-	/// </para>
-	/// </remarks>
 	/// <summary>
 	/// A <c>=&gt;</c> builds the rule's value, so it has to be somewhere that is the
 	/// rule's value and there has to be a type for it to build.
@@ -178,9 +157,6 @@ public sealed partial class GrammarNormalizer
 			rule.Declaration!.At);
 	}
 
-	bool IsFoldLoop(RuleSymbol rule, Node node) =>
-		_folds.TryGetValue(rule, out var fold) && ReferenceEquals(fold.Loop, node);
-
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
 	static IReadOnlyList<Node> Alternatives(Node body) =>
 		body is Node.Choice(var alternatives) ? alternatives : [body];
@@ -195,12 +171,24 @@ public sealed partial class GrammarNormalizer
 				yield return found;
 	}
 
-	void CheckCaptures(Node node, RuleSymbol rule, Node? repeated, bool inLookahead = false)
+	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>
+	/// <remarks>
+	/// <para>
+	/// A capture under a repetition used to be the other: text captured somewhere that was
+	/// not the whole of what repeats was refused, because the value was the span from the
+	/// first turn to the last and anything else in the loop lay inside it. The turns are
+	/// joined now, so the shape is ordinary — and it was never refused as widely as it
+	/// read, since the check looked only at the innermost repetition.
+	/// </para>
+	/// <para>
+	/// Inside a lookahead a capture belongs to a machine of its own that answers yes or no
+	/// and hands nothing back, and that is still not built.
+	/// </para>
+	/// </remarks>
+	void CheckCaptures(Node node, RuleSymbol rule, bool inLookahead = false)
 	{
-		if (node is Node.Capture(var name, var captured))
+		if (node is Node.Capture(var name, _))
 		{
-			var collects = captured is Node.Call(var called, _) && BuildsValue(called);
-
 			// The supplied names of §7.3 and §8.2 become parameters of the method a `=>`
 			// turns into, so a capture of the same name wants a parameter that is already
 			// taken. The prefix makes that unlikely; this is what happens when an author
@@ -216,32 +204,24 @@ public sealed partial class GrammarNormalizer
 					"with 'parser', which is what that prefix is for.",
 					rule.Declaration!.At);
 
+			// A capture inside a repetition that is not the whole of what repeats used to be
+			// refused here, on the grounds that the text of the turns could not be told from
+			// the text between them. It can: each turn records an entry of its own, and §10's
+			// value is those joined rather than the span they lie in. The refusal was also
+			// never quite the rule it read as — it looked only at the innermost repetition,
+			// so `(t: A+ & '-'){2}` passed it and answered with the dashes in.
 			if (inLookahead)
 				Report(
 					UnbuiltCapture,
 					$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
 					"a lookahead consumes nothing and answers only whether it matched.",
 					rule.Declaration!.At);
-
-			else if (repeated is not null && !collects && !ReferenceEquals(repeated, node))
-				Report(
-					UnbuiltCapture,
-					$"'{name}' captures text inside a repetition in '{rule.Name}' without being the whole of " +
-					"what repeats, which is not built yet: the text of the iterations cannot be told from " +
-					"the text between them. Move the quantifier inside the capture.",
-					rule.Declaration!.At);
 		}
-
-		// The fold loop is the generator's, not the author's: a capture under it is
-		// consumed by the fold on the iteration that wrote it (§4.3).
-		var inside = node is Node.Repeat(var body, _, not 1) && !IsFoldLoop(rule, node)
-			? body
-			: repeated;
 
 		var lookings = inLookahead || node is Node.Lookahead;
 
 		foreach (var child in node.Children)
-			CheckCaptures(child, rule, inside, lookings);
+			CheckCaptures(child, rule, lookings);
 	}
 
 	void CheckRepetitions(Node node, RuleSymbol rule)

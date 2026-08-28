@@ -1635,8 +1635,11 @@ public sealed class SemanticTests
 		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
 
 	[Fact]
-	public void But_text_captured_around_something_else_is_still_refused() =>
-		Refused(GrammarNormalizer.UnbuiltCapture, "Start = (a: 'x' & 'y')+");
+	public void And_text_captured_around_something_else_is_the_turns_joined() =>
+		// This was refused while the value was the span the turns lie in — where `'y'`
+		// would have been swept in with them. Each turn records an entry of its own now,
+		// and §10's value is those joined, so the shape is an ordinary one.
+		Assert.Equal("xx", Read(Built("Start = (a: 'x' & 'y')+", "xyxy"), "A"));
 
 	[Fact]
 	public void Nor_is_one_inside_a_lookahead() =>

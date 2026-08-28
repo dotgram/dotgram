@@ -430,14 +430,13 @@ inner ones had collected before it began. No iterations is an empty array, never
 
 A repeated capture of **text** is a different thing and stays one: §10 binds a capture
 tighter than a quantifier, so `digits: ['0'..'9']+` is one capture repeated, and §7.3
-gives it the text joined — which it produces as the extent of the whole run.
+gives it the text joined. Each turn records an entry of its own and the value is those
+joined — taken as the extent of the whole run where the turns are adjacent, which is
+measured rather than assumed, so `(t: A+ & '-')+` answers `"1234"` and not `"12-34"`.
 
-Two things a capture can still be that are recognized and not built, `GRAM4006` rather
-than a silent drop:
-
-- a capture of *text* inside a repetition without being the whole of what repeats — the
-  text of the iterations could not be told from the text between them.
-- a capture inside a lookahead, which is a machine of its own that answers yes or no.
+One thing a capture can still be that is recognized and not built, `GRAM4006` rather
+than a silent drop: a capture inside a lookahead, which is a machine of its own that
+answers yes or no.
 
 And `GRAM4007`: one name captured twice with different types.
 

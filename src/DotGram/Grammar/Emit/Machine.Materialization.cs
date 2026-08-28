@@ -387,6 +387,12 @@ sealed partial class Machine
 				{
 					file.Line($"var captured{memberIndex}From = -1;");
 					file.Line($"var captured{memberIndex}To   = -1;");
+
+					// A member a repetition repeats is measured as well as bounded: the
+					// pieces tell the span whether it is the text, and if it is not they
+					// are what the text is made of.
+					if (Joined(offset, member))
+						file.Line($"var captured{memberIndex}Length = 0;");
 				}
 			}
 
@@ -457,6 +463,11 @@ sealed partial class Machine
 										file.Line($"if (captured{memberIndex}To < 0)");
 										file.Then($"captured{memberIndex}To = candidate.Value;");
 										file.Line($"captured{memberIndex}From = candidate.Position;");
+
+										if (Joined(offset, member))
+											file.Line(
+												$"captured{memberIndex}Length += " +
+												"candidate.Value - candidate.Position;");
 									}
 
 								file.Line("break;");
@@ -615,11 +626,75 @@ sealed partial class Machine
 					$"captured{memberIndex}From.ToString() + \"..\" + captured{memberIndex}To.ToString() + " +
 					"\"). This is a generator defect; please report the grammar.\");");
 				file.Line("#endif");
+
+				if (!Joined(offset, member))
+				{
+					file.Line(
+						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
+						(member.IsOptional ? "null" : "string.Empty") + " : " +
+						$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
+						$"captured{memberIndex}From).ToString();");
+					file.Line();
+
+					continue;
+				}
+
+				// §10's join, and the span where the span is the join. Turns of a repetition
+				// that has nothing else in it are adjacent, and then the pieces measure
+				// exactly the distance between the first start and the last end — one slice
+				// and one string, which is what this cost before it was right. Where they do
+				// not tile, what stands between them is not part of the value, and the
+				// pieces are copied out in reading order instead. The walk runs backwards,
+				// so the buffer is filled from its end.
+				file.Line($"string{(member.IsOptional ? "?" : "")} captured{memberIndex};");
+				file.Line();
+				file.Line($"if (captured{memberIndex}From < 0)");
+				file.Then($"captured{memberIndex} = {(member.IsOptional ? "null" : "string.Empty")};");
 				file.Line(
-					$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
-					(member.IsOptional ? "null" : "string.Empty") + " : " +
-					$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
-					$"captured{memberIndex}From).ToString();");
+					$"else if (captured{memberIndex}To - captured{memberIndex}From == " +
+					$"captured{memberIndex}Length)");
+				file.Then(
+					$"captured{memberIndex} = " +
+					$"text.Slice(captured{memberIndex}From, captured{memberIndex}Length).ToString();");
+
+				using (file.Block("else"))
+				{
+					file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
+					file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
+					file.Line();
+
+					using (file.Block(
+						"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
+						"capturedAt = linkNexts[capturedAt])"))
+					{
+						file.Line("var candidate = entries[capturedAt];");
+						file.Line();
+						file.Line(
+							"if (candidate.Kind != ParserEntry.Capture || " +
+							"candidate.CallIndex != completedAt)");
+						file.Then("continue;");
+						file.Line();
+						file.Line(
+							"if (" +
+							string.Join(
+								" && ",
+								member.Slots.Select(slot => $"candidate.State != {offset + slot}")) +
+							")");
+						file.Then("continue;");
+						file.Line();
+						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
+						file.Line();
+						file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
+						file.Line(
+							$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
+							$"new global::System.Span<char>(captured{memberIndex}Chars, " +
+							$"captured{memberIndex}At, captured{memberIndex}Piece));");
+					}
+
+					file.Line();
+					file.Line($"captured{memberIndex} = new string(captured{memberIndex}Chars);");
+				}
+
 				file.Line();
 			}
 

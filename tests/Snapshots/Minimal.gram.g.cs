@@ -2413,7 +2413,7 @@ namespace DotGram.Snapshots
 
 				S19:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1));
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("open capture", 0, p, entries.Count, text, "Sum");
 				}
 
@@ -2434,17 +2434,32 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
 					{
 						var opened = entries[openedAt];
 
-						if (opened.Kind != ParserEntry.Capture || opened.State != 0 || opened.Value >= 0)
+						if (opened.State != 0) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
 							continue;
 
-						entries[openedAt] = new ParserEntry(ParserEntry.Capture, 0, opened.Position, opened.CallIndex, opened.AtomicIndex, opened.RepeatIndex, opened.LookaheadIndex, p);
+						if (closed == 0)
+							break;
 
-						break;
+						closed--;
 					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 0, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					Trace("capture", 0, p, entries.Count, text, "Sum");
 				}
 
@@ -2608,7 +2623,7 @@ namespace DotGram.Snapshots
 						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
-					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture)
+					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen)
 						continue;
 
 					if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)
@@ -5404,6 +5419,23 @@ namespace DotGram.Snapshots
 			/// moment the parse abandons it.
 			/// </remarks>
 			internal const int TurnDone = 15;
+
+			/// <summary>
+			/// Where a capture began, standing where unwinding can take it away again.
+			/// </summary>
+			/// <remarks>
+			/// A start kept in a variable is right for exactly as long as nothing opens the
+			/// same capture between the opening and the close. Two things do: a rule that
+			/// reaches itself, and a repetition whose next turn begins before a door inside
+			/// the turn before it has been passed. Both leave the variable holding a start
+			/// the parse has given back, and backtracking restores the arena and nothing
+			/// else — so the start goes in the arena, and the close finds its own by
+			/// counting these against the <see cref="Capture"/> entries that closed them,
+			/// the way brackets are counted. Marking an opening closed in place would not
+			/// do: an in-place rewrite survives backtracking that the close it recorded
+			/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
+			/// </remarks>
+			internal const int CaptureOpen = 16;
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,

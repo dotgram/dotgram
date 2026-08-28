@@ -43,6 +43,20 @@ sealed partial class Machine
 	/// already given back, and its span comes back with its end before its beginning.
 	/// </remarks>
 	readonly HashSet<int> _nestedCaptures = [];
+
+	/// <summary>
+	/// The text captures a repetition repeats, whose value is the turns joined.
+	/// </summary>
+	/// <remarks>
+	/// §10: repeated text is the text joined. Where the turns happen to be adjacent the
+	/// join is also the span from the first start to the last end, and that is the shape
+	/// <see cref="GrammarNormalizer.HoistTextCaptures"/> proves before lifting a capture
+	/// out of its repetition — but a capture it left inside one has whatever else the
+	/// loop's body matched standing between the turns, and there the span is longer than
+	/// the text. Both are handled at once: the pieces are measured while they are
+	/// collected, and the span is taken only where the measurements say it tiles.
+	/// </remarks>
+	readonly HashSet<int> _repeatedCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
@@ -166,6 +180,8 @@ sealed partial class Machine
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
+		var doors = DoorsByRule();
+
 		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
@@ -175,11 +191,13 @@ sealed partial class Machine
 			_captureOffsets[rule] = _captures;
 			_factories[rule] = factories;
 
+			var looped = Looped(graph.Bodies[rule]);
+
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			{
 				_owners[node] = rule;
 
-				if (node is Node.Capture)
+				if (node is Node.Capture(_, var captured))
 				{
 					var slot = _captures + layout.SlotOf(node);
 
@@ -192,9 +210,20 @@ sealed partial class Machine
 						_textCaptures.Add(slot);
 
 						// Where the rule can reach itself, this capture can be opened again
-						// before it closes, and one variable cannot hold two starts.
-						if (graph.Recursive.Contains(rule))
+						// before it closes, and one variable cannot hold two starts. So can
+						// a repetition around it — the next turn opens before the turn
+						// before it is final, and a door inside that turn is a way back into
+						// its close. Where the body leaves no door there is no way back into
+						// it, and the variable is still right.
+						if (graph.Recursive.Contains(rule) || looped.Contains(node) && LeavesADoor(captured, doors))
 							_nestedCaptures.Add(slot);
+
+						// And a capture inside a repetition records one entry per turn, whose
+						// value §10 says is the text joined. The turns need not be adjacent —
+						// anything else in the loop's body stands between them — so the span
+						// from the first start to the last end is not that text.
+						if (looped.Contains(node))
+							_repeatedCaptures.Add(slot);
 					}
 				}
 				else if (node is Node.Construct)
@@ -270,6 +299,102 @@ sealed partial class Machine
 			// top of the method instead.
 			entry.Line($"goto {Label(body)};");
 		}
+	}
+
+	/// <summary>The captures a repetition repeats — the ones that record a turn at a time.</summary>
+	/// <remarks>
+	/// Identity, not value: two captures written the same way in two places are two
+	/// captures, and only the one a loop encloses records more than once. An optional is
+	/// a repetition of at most one turn and encloses nothing in that sense — which is not
+	/// a nicety: `X?` is how the model spells an optional, so counting it would put every
+	/// `(':' & port: Digit+)?` in the arena for a second turn that cannot happen.
+	/// </remarks>
+	static HashSet<Node> Looped(Node body)
+	{
+		var found   = NodeWalk.ByIdentity([]);
+		var pending = new Stack<(Node Node, bool Inside)>();
+
+		pending.Push((body, false));
+
+		while (pending.Count > 0)
+		{
+			var (node, inside) = pending.Pop();
+
+			if (inside && node is Node.Capture)
+				found.Add(node);
+
+			var loops = node is Node.Repeat(_, _, var most) && most != 1;
+
+			foreach (var child in node.Children)
+				pending.Push((child, inside || loops));
+		}
+
+		return found;
+	}
+
+	/// <summary>
+	/// Whether matching this can leave a way back into the middle of it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A repetition leaves the door its runs and turns are given back through, a choice
+	/// leaves the one an alternative is resumed by, and a negative lookahead leaves the
+	/// entry its own failure is read off. A literal and an element match where they stand
+	/// or fail there, and a failure that reaches past them has nothing here to come back
+	/// to. A call leaves whatever its callee leaves and nothing of its own: the arena's
+	/// own <c>Call</c> entry is a frame to restore while unwinding, never a state to
+	/// resume at — so a callee this machine does not know is the only one assumed to.
+	/// </para>
+	/// <para>
+	/// Asked through calls rather than assumed of them, because the difference is the
+	/// price of the answer: <c>port: Digit+</c> over <c>Digit = ['0'..'9']</c> is a
+	/// capture in a repetition whose body cannot be re-entered, and answering yes there
+	/// put a URL with a port a fifth slower for a hazard it does not have.
+	/// </para>
+	/// </remarks>
+	static bool LeavesADoor(Node node, IReadOnlyDictionary<RuleSymbol, bool> doors) =>
+		node switch
+		{
+			Node.Repeat                     => true,
+			Node.Lookahead(var positive, _) => !positive,
+			Node.Call(var called, _)        => !doors.TryGetValue(called, out var door) || door,
+			Node.Choice(var alternatives)   => alternatives.Count > 1 ||
+			                                   alternatives.Any(one => LeavesADoor(one, doors)),
+			Node.Sequence(var parts)        => parts.Any(part => LeavesADoor(part, doors)),
+			Node.Atomic(var body)           => LeavesADoor(body, doors),
+			Node.Capture(_, var captured)   => LeavesADoor(captured, doors),
+			Node.Construct(var built, _)    => LeavesADoor(built, doors),
+			_                               => false,
+		};
+
+	/// <summary>The same question of every rule, settled rather than walked.</summary>
+	/// <remarks>
+	/// A rule may reach itself, so the answer for one is the answer for the others and a
+	/// walk of a call would go round. Settling from no rule leaving a door is what makes
+	/// that terminate, and it is also right: a cycle has to pass a repetition or a choice
+	/// to come back round, and either of those answers yes on its own.
+	/// </remarks>
+	Dictionary<RuleSymbol, bool> DoorsByRule()
+	{
+		var doors = _graph.Rules.ToDictionary(static rule => rule, static _ => false);
+
+		for (var settling = true; settling;)
+		{
+			settling = false;
+
+			foreach (var rule in _graph.Rules)
+			{
+				if (doors[rule] ||
+					!_graph.Bodies.TryGetValue(rule, out var body) ||
+					!LeavesADoor(body, doors))
+					continue;
+
+				doors[rule] = true;
+				settling    = true;
+			}
+		}
+
+		return doors;
 	}
 
 	/// <summary>Whether any rule this machine compiles has a guard that reads a value.</summary>
@@ -947,6 +1072,11 @@ sealed partial class Machine
 							"entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || " +
 							"entry.Kind == ParserEntry.RuleCapture";
 
+						// An opening is a mark and not a way back, and taking it away again
+						// is the whole of what unwinding owes it.
+						if (_nestedCaptures.Count > 0)
+							ignored += " || entry.Kind == ParserEntry.CaptureOpen";
+
 						if (_recoveries.Count > 0)
 							ignored += " || entry.Kind == ParserEntry.Recovery || " +
 								"entry.Kind == ParserEntry.PendingRecovery";
@@ -1506,35 +1636,51 @@ sealed partial class Machine
 
 				// A capture the parse can open again before it closes keeps its start in the
 				// arena instead of a variable, because the arena is the only thing
-				// backtracking puts back. The opening writes the entry the close will need
-				// and marks it unfinished; the close finds the innermost one still unfinished
-				// and fills its end in. They nest and unwind in the same order, so the
-				// innermost is always this one's.
+				// backtracking puts back. The opening writes an entry of its own and the
+				// close finds it by counting openings against closes, the way brackets are
+				// counted — never by marking one closed, because an in-place mark survives
+				// backtracking that the close which wrote it does not, and the next way in
+				// would find an opening that says it is spoken for.
 				if (_nestedCaptures.Contains(slot))
 				{
 					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, " +
-						"call, atomic, repeat, lookahead, -1));");
+						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
+						"call, atomic, repeat, lookahead, 0));");
 					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(inner)};");
 
-					using (atClose.Block("for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+					atClose.Line("var closed  = 0;");
+					atClose.Line("var openedAt = entries.Count - 1;");
+					atClose.Line();
+
+					using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
 					{
 						atClose.Line("var opened = entries[openedAt];");
 						atClose.Line();
-						atClose.Line(
-							$"if (opened.Kind != ParserEntry.Capture || opened.State != {slot} || " +
-							"opened.Value >= 0)");
+						atClose.Line($"if (opened.State != {slot}) continue;");
+						atClose.Line();
+
+						using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+						{
+							atClose.Line("closed++;");
+							atClose.Line("continue;");
+						}
+
+						atClose.Line();
+						atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
 						atClose.Then("continue;");
 						atClose.Line();
-						atClose.Line(
-							$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {slot}, " +
-							"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
-							"opened.RepeatIndex, opened.LookaheadIndex, p);");
+						atClose.Line("if (closed == 0)");
+						atClose.Then("break;");
 						atClose.Line();
-						atClose.Line("break;");
+						atClose.Line("closed--;");
 					}
 
+					atClose.Line();
+					atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
+					atClose.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
+						"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(next)};");
 
