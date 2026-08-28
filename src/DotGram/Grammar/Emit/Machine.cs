@@ -124,6 +124,7 @@ sealed partial class Machine
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
+	int _sharpens;
 	int _captures;
 
 	/// <summary>
@@ -2533,7 +2534,12 @@ sealed partial class Machine
 				// Name the character that did not fit, not where the shared prefix started —
 				// worked out on a branch the comparison has already failed rather than on the
 				// way in, so what it costs is a cost of failing.
-				Sharpen(writer, shared);
+				//
+				// Only where the failure goes to `Fail:`, which puts the position back from
+				// the arena. A prefix conflict chains several of these runs through `fail`,
+				// and the run this jumps to reads from where this one started.
+				if (fail == Fail)
+					Sharpen(writer, shared);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -2599,8 +2605,10 @@ sealed partial class Machine
 			// makes, and for the same reason: the room test above has proved every one of
 			// these in range and the range-check eliminator will not take its word for it,
 			// while `SequenceEqual` against a constant is checked once and compared a
-			// machine word at a time. Nothing is sharpened here; an alternative that does
-			// not fit is not a failure, it is the next alternative.
+			// machine word at a time. Nothing is sharpened here, and nothing needs to be:
+			// an alternative that does not fit is not a failure, it is the next
+			// alternative. Where they all fail to fit, the catch-all below walks them
+			// together to find how far any of them got.
 			var rest = text.Substring(shared.Length);
 
 			if (rest.Length > 1)
@@ -2648,17 +2656,36 @@ sealed partial class Machine
 				break;
 		}
 
-		// Every failure site in this run — the shared-prefix guards above and this
-		// catch-all — covers the same, full set of `texts`: nothing here narrows a
-		// subset the way a real trie would. One known gap accepted for now: where a
-		// prefix conflict (`"p" | "q" | "pr"`) splits one grammar-level choice into
-		// several entry-less `CompileLiterals` runs chained by `fail`, a later run's own
-		// `expected` can overwrite an earlier one's before either reaches the real
-		// `Fail:` — under-reporting, never mis-attributing or over-reporting. Left as a
-		// documented first-cut gap rather than solved, per docs/implementation.md's own
-		// "the corpus grows by one rule" policy.
+		// The shared-prefix guards above name the full set of `texts`, which is right:
+		// where the shared prefix itself did not fit, none of them did and none got
+		// further than another. This catch-all is where they differ, and `SharpenAll`
+		// walks them together — moving to the deepest character any of them agreed with
+		// and naming the ones that were still agreeing there.
+		//
+		// One known gap remains: where a prefix conflict (`"p" | "q" | "pr"`) splits one
+		// grammar-level choice into several entry-less `CompileLiterals` runs chained by
+		// `fail`, a later run's own `expected` can overwrite an earlier one's before
+		// either reaches the real `Fail:` — under-reporting, never mis-attributing or
+		// over-reporting.
 		if (!settled)
-			EmitTerminalFailure(writer, fail, arrayName);
+		{
+			// How far any of them agreed, and which of them were still agreeing there —
+			// which together decide whether this failure or another one is the one
+			// reported, and what it says. The shared-prefix guard above sharpens its own
+			// branch; this covers the characters past it, where the alternatives differ
+			// and each was compared whole.
+			if (fail == Fail)
+			{
+				_expectedUsed.Add(arrayName);
+				writer.Line($"expected = {arrayName};");
+
+				SharpenAll(writer, texts, displays);
+
+				writer.Line($"goto {Label(fail)};");
+			}
+			else
+				EmitTerminalFailure(writer, fail, arrayName);
+		}
 
 		return state;
 	}
@@ -3586,6 +3613,97 @@ sealed partial class Machine
 	/// a cost of failing. The last character needs no test of its own: if every earlier one
 	/// matched and the whole did not, it is the one.
 	/// </remarks>
+	/// <summary>
+	/// The same for a run of them: move <c>p</c> to the deepest character any of these
+	/// still agreed with, knowing that none of them matched whole.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A failed literal's position is not a caret, it is a selector: <c>Fail:</c> keeps the
+	/// furthest failure and reports that one's expectation, so how far a literal got is what
+	/// decides whether the reader is told the one thing they almost wrote or every thing
+	/// that could have stood there. A run of alternatives left unsharpened reported the
+	/// start of the run — `"abcdef" | "abq"` against `abcdez` naming both, where five
+	/// characters into the first is plainly the better answer.
+	/// </para>
+	/// <para>
+	/// Written as the walk of a trie rather than as one <see cref="Sharpen"/> per text,
+	/// because the alternatives share their beginnings and so should share the reading of
+	/// them. On the failing branch only, like everything else here.
+	/// </para>
+	/// </remarks>
+	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays)
+	{
+		// Out of line, and that is a measurement rather than tidiness. Written into the
+		// recognizer, this cold walk sat between hot states and cost the URL corpus five
+		// per cent on inputs that never reach it — a method of ten thousand lines has
+		// nowhere to put anything without moving something else. A call on the failing
+		// branch costs nothing that is not already failing.
+		var method = $"Recognize_DotGram{_tag}_Sharpen" + _sharpens++;
+		var helper = new Writer(0);
+
+		helper.Line(
+			$"static int {method}(global::System.ReadOnlySpan<char> text, int p, " +
+			"ref string[]? expected)");
+
+		using (helper.Block(""))
+		{
+			var body = new Writer(0);
+
+			Deepest([.. Enumerable.Range(0, texts.Count)], 0, body);
+
+			helper.Write(body.ToString());
+			helper.Line("return p;");
+		}
+
+		_extra.Add(helper.ToString());
+
+		writer.Line($"p = {method}(text, p, ref expected);");
+
+		void Deepest(IReadOnlyList<int> here, int depth, Writer writer)
+		{
+			var branches = here
+				.Where(one => texts[one].Length > depth)
+				.GroupBy(one => texts[one][depth])
+				.ToList();
+
+			if (branches.Count == 0)
+				return;
+
+			var first = true;
+
+			foreach (var branch in branches)
+			{
+				// `p` moves as the walk descends, so every level reads the character it
+				// stands on and steps one — which is also why the room test is the same
+				// one at every level.
+				writer.Line(
+					$"{(first ? "if" : "else if")} ({Room(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
+
+				using (writer.Block(""))
+				{
+					writer.Line("p += 1;");
+
+					// And which of them are still agreeing, which is the other half of what
+					// a reader is told. Written only where the walk has actually narrowed
+					// the set: naming the same texts again would be one more assignment for
+					// nothing.
+					if (branch.Count() < here.Count)
+					{
+						var narrowed = DeclareExpected([.. branch.Select(one => displays[one])]);
+
+						_expectedUsed.Add(narrowed);
+						writer.Line($"expected = {narrowed};");
+					}
+
+					Deepest([.. branch], depth + 1, writer);
+				}
+
+				first = false;
+			}
+		}
+	}
+
 	static void Sharpen(Writer writer, string value)
 	{
 		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");

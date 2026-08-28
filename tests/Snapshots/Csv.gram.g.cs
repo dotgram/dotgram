@@ -187,13 +187,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected5;
+						expected = Recognize_DotGram_Expected8;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
 					{
-						expected = Recognize_DotGram_Expected5;
+						expected = Recognize_DotGram_Expected8;
 						goto Fail;
 					}
 					p++;
@@ -203,13 +203,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected5;
+						expected = Recognize_DotGram_Expected8;
 						goto S32;
 					}
 					c = text[p];
 					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
 					{
-						expected = Recognize_DotGram_Expected5;
+						expected = Recognize_DotGram_Expected8;
 						goto S32;
 					}
 					p++;
@@ -279,7 +279,7 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length || text[p] != ',')
 					{
-						expected = Recognize_DotGram_Expected4;
+						expected = Recognize_DotGram_Expected7;
 						goto Fail;
 					}
 					p += 1;
@@ -294,13 +294,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto Fail;
 					}
 					p++;
@@ -310,13 +310,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto S22;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto S22;
 					}
 					p++;
@@ -347,6 +347,7 @@ namespace DotGram.Snapshots
 						goto Return;
 					}
 					expected = Recognize_DotGram_Expected2;
+					p = Recognize_DotGram_Sharpen0(text, p, ref expected);
 					goto Fail;
 				}
 
@@ -415,13 +416,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto S37;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto S37;
 					}
 					p++;
@@ -432,13 +433,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
-						expected = Recognize_DotGram_Expected3;
+						expected = Recognize_DotGram_Expected6;
 						goto Fail;
 					}
 					p++;
@@ -500,6 +501,7 @@ namespace DotGram.Snapshots
 						goto Return;
 					}
 					expected = Recognize_DotGram_Expected2;
+					p = Recognize_DotGram_Sharpen1(text, p, ref expected);
 					goto Fail;
 				}
 
@@ -704,10 +706,50 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
+		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		{
+			if ((uint)p < (uint)text.Length && text[p] == '\r')
+			{
+				p += 1;
+				expected = Recognize_DotGram_Expected3;
+				if ((uint)p < (uint)text.Length && text[p] == '\n')
+				{
+					p += 1;
+					expected = Recognize_DotGram_Expected4;
+				}
+			}
+			else if ((uint)p < (uint)text.Length && text[p] == '\n')
+			{
+				p += 1;
+				expected = Recognize_DotGram_Expected5;
+			}
+			return p;
+		}
+
 		static bool Recognize_DotGram_Guard0(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
+
+		static int Recognize_DotGram_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		{
+			if ((uint)p < (uint)text.Length && text[p] == '\r')
+			{
+				p += 1;
+				expected = Recognize_DotGram_Expected3;
+				if ((uint)p < (uint)text.Length && text[p] == '\n')
+				{
+					p += 1;
+					expected = Recognize_DotGram_Expected4;
+				}
+			}
+			else if ((uint)p < (uint)text.Length && text[p] == '\n')
+			{
+				p += 1;
+				expected = Recognize_DotGram_Expected5;
+			}
+			return p;
+		}
 
 		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
@@ -886,11 +928,17 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Expected2 = { "\"\r\n\"", "'\\n'", "'\\r'" };
 
-		static readonly string[] Recognize_DotGram_Expected3 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Expected3 = { "\"\r\n\"", "'\\r'" };
 
-		static readonly string[] Recognize_DotGram_Expected4 = { "','" };
+		static readonly string[] Recognize_DotGram_Expected4 = { "\"\r\n\"" };
 
-		static readonly string[] Recognize_DotGram_Expected5 = { "['A'..'Z' | 'a'..'z']" };
+		static readonly string[] Recognize_DotGram_Expected5 = { "'\\n'" };
+
+		static readonly string[] Recognize_DotGram_Expected6 = { "['0'..'9']" };
+
+		static readonly string[] Recognize_DotGram_Expected7 = { "','" };
+
+		static readonly string[] Recognize_DotGram_Expected8 = { "['A'..'Z' | 'a'..'z']" };
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure

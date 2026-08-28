@@ -5201,6 +5201,39 @@ So the quality of the message turns on which shape the author happened to write,
 exactly the place — a choice between literals — where choosing between expectations is
 what the mechanism is for. The trie knows how far it got; it just does not say.
 
-Written down rather than fixed: the two paths compute "how far" differently — one walks
-the literal it failed against, the other walks a shared prefix across several — and making
-them agree is a change to the more delicate of the two.
+Fixed in the entry below.
+
+## Fixed: a run of literals now fails where the same choice of rules does
+
+`SharpenAll` — the walk of a trie over the alternatives of a literal run, on the branch
+where all of them have failed. It moves to the deepest character any of them agreed with
+and names the ones still agreeing there, which is what the same choice written one literal
+per rule already reported. The two shapes now answer identically:
+
+| input | both shapes |
+| --- | --- |
+| `abcdezz` | `at=5  Expected "abcdefx"` |
+| `abqzzz` | `at=3  Expected "abqy"` |
+| `abczzzz` | `at=3  Expected "abcdefx"` |
+| `zbcdefx` | `at=0  Expected "abcdefx" or "abqy"` |
+
+The run used to report `at=0` and name both, for all four. That also closes the gap the
+code's own comment recorded — "nothing here narrows a subset the way a real trie would".
+
+**Two things came out of doing it, and both are the sort a measurement finds.**
+
+The position may only move where the failure goes to `Fail:`. A prefix conflict — `"p" |
+"q" | "pr"` — splits one grammar-level choice into several runs chained through `fail`, and
+the run jumped to reads from where this one started. Moving `p` there broke the `Filter`
+example outright, which is how it was found; the guard is `fail == Fail`, and the
+shared-prefix sharpen above it, which had the same hazard latent, now carries it too.
+
+And the walk goes out of line. Written into the recognizer it sat between hot states and
+cost the URL corpus five per cent on inputs that never reach it — a method of ten thousand
+lines has nowhere to put anything without moving something else. Six alternating runs
+against a worktree of the parent commit put the remaining cost at a few per cent on one
+input, the one that fails, which is the path the walk exists for. The first reading of
+"five per cent" was an ordering artefact: base always measured first, and the numbers drift
+upward through a session. Reversing the order took most of it away.
+
+1,279 tests green in both configurations.

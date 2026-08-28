@@ -1401,6 +1401,36 @@ public sealed class CSharpEmitterTests
 				""",
 				"a[b][c]").Value);
 
+	/// <summary>Two shapes of the same choice, and the same answer about where it failed.</summary>
+	/// <remarks>
+	/// A failed literal's position is a selector rather than a caret: `Fail:` keeps the
+	/// furthest failure and reports that one's expectation. A run of literal alternatives
+	/// used to report the start of the run and name all of them, where the same choice
+	/// written one literal per rule named the one that got furthest — the same grammar,
+	/// two qualities of message, decided by which shape the author happened to write.
+	/// </remarks>
+	[Theory]
+	[InlineData("abcdezz", 5L, "Expected \"abcdefx\".")]
+	[InlineData("abqzzz",  3L, "Expected \"abqy\".")]
+	[InlineData("abczzzz", 3L, "Expected \"abcdefx\".")]
+	[InlineData("zbcdefx", 0L, "Expected \"abcdefx\" or \"abqy\".")]
+	public void A_run_of_literals_fails_where_the_same_choice_of_rules_does(
+		string input, long position, string message)
+	{
+		foreach (var grammar in new[]
+		{
+			"Start = \"abcdefx\" | \"abqy\"",
+			"A = \"abcdefx\"\nB = \"abqy\"\nStart = A | B",
+		})
+		{
+			var (_, _, error, at) = EmittedCode.Match(
+				EmittedCode.Compile(Emit(grammar + "\nparse Start")), "Grammar", "TryParseStart", input);
+
+			Assert.Equal(position, at);
+			Assert.Equal(message, error);
+		}
+	}
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

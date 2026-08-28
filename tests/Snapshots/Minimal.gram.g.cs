@@ -1167,7 +1167,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
-					expected = Recognize_DotGram_C_Expected1;
+					expected = Recognize_DotGram_C_Expected3;
 					goto Fail;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
@@ -1179,7 +1179,7 @@ namespace DotGram.Snapshots
 						else
 							p += 2;
 					}
-					expected = Recognize_DotGram_C_Expected1;
+					expected = Recognize_DotGram_C_Expected3;
 					goto Fail;
 				}
 				p += 3;
@@ -1199,7 +1199,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
-					expected = Recognize_DotGram_C_Expected3;
+					expected = Recognize_DotGram_C_Expected4;
 					goto Fail;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
@@ -1213,7 +1213,7 @@ namespace DotGram.Snapshots
 						else
 							p += 3;
 					}
-					expected = Recognize_DotGram_C_Expected3;
+					expected = Recognize_DotGram_C_Expected4;
 					goto Fail;
 				}
 				p += 4;
@@ -1270,6 +1270,7 @@ namespace DotGram.Snapshots
 					goto Accept;
 				}
 				expected = Recognize_DotGram_D_Expected0;
+				p = Recognize_DotGram_D_Sharpen1(text, p, ref expected);
 				goto Fail;
 			}
 
@@ -4311,15 +4312,143 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_B_Expected0 = { "\"abcd\"" };
 
+		static int Recognize_DotGram_C_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		{
+			if ((uint)p < (uint)text.Length && text[p] == 'h')
+			{
+				p += 1;
+				expected = Recognize_DotGram_C_Expected1;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 't')
+					{
+						p += 1;
+						if ((uint)p < (uint)text.Length && text[p] == 'p')
+						{
+							p += 1;
+							if ((uint)p < (uint)text.Length && text[p] == 's')
+							{
+								p += 1;
+								expected = Recognize_DotGram_C_Expected2;
+							}
+						}
+					}
+				}
+			}
+			else if ((uint)p < (uint)text.Length && text[p] == 'f')
+			{
+				p += 1;
+				expected = Recognize_DotGram_C_Expected3;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 'p')
+					{
+						p += 1;
+					}
+				}
+			}
+			return p;
+		}
+
 		static readonly string[] Recognize_DotGram_C_Expected0 = { "\"http\"", "\"https\"", "\"ftp\"" };
 
-		static readonly string[] Recognize_DotGram_C_Expected1 = { "\"ftp\"" };
+		static readonly string[] Recognize_DotGram_C_Expected1 = { "\"http\"", "\"https\"" };
 
 		static readonly string[] Recognize_DotGram_C_Expected2 = { "\"https\"" };
 
-		static readonly string[] Recognize_DotGram_C_Expected3 = { "\"http\"" };
+		static readonly string[] Recognize_DotGram_C_Expected3 = { "\"ftp\"" };
+
+		static readonly string[] Recognize_DotGram_C_Expected4 = { "\"http\"" };
+
+		static int Recognize_DotGram_D_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		{
+			if ((uint)p < (uint)text.Length && text[p] == 'h')
+			{
+				p += 1;
+				expected = Recognize_DotGram_D_Expected1;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 't')
+					{
+						p += 1;
+						if ((uint)p < (uint)text.Length && text[p] == 'p')
+						{
+							p += 1;
+							if ((uint)p < (uint)text.Length && text[p] == 's')
+							{
+								p += 1;
+								expected = Recognize_DotGram_D_Expected2;
+							}
+						}
+					}
+				}
+			}
+			else if ((uint)p < (uint)text.Length && text[p] == 'f')
+			{
+				p += 1;
+				expected = Recognize_DotGram_D_Expected3;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 'p')
+					{
+						p += 1;
+					}
+				}
+			}
+			return p;
+		}
+
+		static int Recognize_DotGram_D_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		{
+			if ((uint)p < (uint)text.Length && text[p] == 'h')
+			{
+				p += 1;
+				expected = Recognize_DotGram_D_Expected1;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 't')
+					{
+						p += 1;
+						if ((uint)p < (uint)text.Length && text[p] == 'p')
+						{
+							p += 1;
+							if ((uint)p < (uint)text.Length && text[p] == 's')
+							{
+								p += 1;
+								expected = Recognize_DotGram_D_Expected2;
+							}
+						}
+					}
+				}
+			}
+			else if ((uint)p < (uint)text.Length && text[p] == 'f')
+			{
+				p += 1;
+				expected = Recognize_DotGram_D_Expected3;
+				if ((uint)p < (uint)text.Length && text[p] == 't')
+				{
+					p += 1;
+					if ((uint)p < (uint)text.Length && text[p] == 'p')
+					{
+						p += 1;
+					}
+				}
+			}
+			return p;
+		}
 
 		static readonly string[] Recognize_DotGram_D_Expected0 = { "\"https\"", "\"http\"", "\"ftp\"" };
+
+		static readonly string[] Recognize_DotGram_D_Expected1 = { "\"https\"", "\"http\"" };
+
+		static readonly string[] Recognize_DotGram_D_Expected2 = { "\"https\"" };
+
+		static readonly string[] Recognize_DotGram_D_Expected3 = { "\"ftp\"" };
 
 		static readonly string[] Recognize_DotGram_E_Expected0 = { "'s'" };
 
