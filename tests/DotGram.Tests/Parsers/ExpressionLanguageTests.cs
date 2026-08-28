@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
 
 using DotGram.Parsers;
@@ -97,6 +98,39 @@ public sealed class ExpressionLanguageTests
 	[Fact]
 	public void And_two_doubles_add_as_doubles() =>
 		Assert.Equal(3.5, ExpressionLanguage.Compile<Func<double, double>>("(double x) => x + 1.5")(2));
+
+	// ── Constants say their type the way C# does ────────────────────────────────
+
+	[Fact]
+	public void A_suffix_says_which_type_a_constant_is() =>
+		Assert.Equal(
+			[typeof(int), typeof(long), typeof(decimal), typeof(double), typeof(double), typeof(decimal)],
+			new[] { "1", "1L", "1m", "1d", "1.5", "1.5m" }
+				.Select(text => ExpressionLanguage.Parse($"() => {text}").Body.Type));
+
+	[Theory]
+	[InlineData("(long x) => x + 1L",        3L,    4L)]
+	[InlineData("(long x) => x * 2L",        3L,    6L)]
+	public void And_a_suffixed_constant_computes_in_its_own_type(string text, long argument, long expected) =>
+		Assert.Equal(expected, ExpressionLanguage.Compile<Func<long, long>>(text)(argument));
+
+	[Fact]
+	public void And_a_decimal_stays_a_decimal() =>
+		Assert.Equal(
+			7.5m,
+			ExpressionLanguage.Compile<Func<decimal, decimal>>("(decimal x) => x * 1.5m")(5m));
+
+	[Fact]
+	public void And_the_suffix_belongs_to_the_number_rather_than_standing_beside_it() =>
+		// Lexical, so nothing may come between: `1 L` is a constant and then a name, and
+		// a lambda made of those two is not this language.
+		Assert.False(ExpressionLanguage.TryParseLambda("() => 1 L").IsSuccess);
+
+	[Fact]
+	public void And_a_name_may_still_begin_with_a_suffix_letter() =>
+		// The suffix is a character set rather than a word literal, so it carries no
+		// §4.6 boundary of its own — and `m` and `L` remain perfectly good names.
+		Assert.Equal(4, ExpressionLanguage.Compile<Func<int, int>>("(int m) => m + 1")(3));
 
 	[Fact]
 	public void A_comparison_answers_bool() =>

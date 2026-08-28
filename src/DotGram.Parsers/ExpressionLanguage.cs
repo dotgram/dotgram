@@ -72,6 +72,20 @@ namespace DotGram.Parsers;
 
 		Word   = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 		Digits = ['0'..'9']+
+		Real   = Digits & '.' & Digits
+
+		// A suffix says which type the constant is, as it does in C#. Lexical, because
+		// nothing may come between the digits and the letter — and because §4.6 weaves a
+		// boundary round a word literal, and a digit is a word character, so `"L"` after
+		// `1` would be refused by the very guard that keeps `int` out of `internal`. A
+		// set is not a literal and carries no boundary, which is the other half of why
+		// these are written as sets.
+		//
+		// Each hands back the digits alone: `decimal.Parse` reads a number, not a number
+		// and a letter.
+		Long    : @string = t: Digits          & ['L' | 'l'] => @(t)
+		Decimal : @string = t: (Real | Digits) & ['m' | 'M'] => @(t)
+		Double  : @string = t: (Real | Digits) & ['d' | 'D'] => @(t)
 	}
 
 	// §4.6: a keyword is a whole word, so `returned` is a name and not a jump, and
@@ -160,11 +174,21 @@ namespace DotGram.Parsers;
 	// and each hands `Expression.Constant` a value of the type it already has.
 	Primary : @Expression
 		= '(' & inner: Expression & ')' => @(inner)
-		| text: (Digits & '.' & Digits) => @(Expression.Constant(double.Parse(text, CultureInfo.InvariantCulture)))
-		| text: Digits                  => @(Expression.Constant(int.Parse(text, CultureInfo.InvariantCulture)))
-		| "true"                        => @(Expression.Constant(true))
-		| "false"                       => @(Expression.Constant(false))
-		| name: Word                    => @(ExpressionLanguage.Named(name))
+
+		// The suffixed forms first: ordered choice would otherwise read `1L` as the `1`
+		// of an `int` and leave the letter to whatever comes next, and only backtracking
+		// would find its way here (§11).
+		// Two names, not one: a capture of a rule that builds a value and a capture of
+		// plain text are two kinds of member, and §7.3 gives a rule one member per name.
+		| number: Long    => @(Expression.Constant(long.Parse(number, CultureInfo.InvariantCulture)))
+		| number: Decimal => @(Expression.Constant(decimal.Parse(number, CultureInfo.InvariantCulture)))
+		| number: Double  => @(Expression.Constant(double.Parse(number, CultureInfo.InvariantCulture)))
+		| text: Real      => @(Expression.Constant(double.Parse(text, CultureInfo.InvariantCulture)))
+		| text: Digits    => @(Expression.Constant(int.Parse(text, CultureInfo.InvariantCulture)))
+
+		| "true"        => @(Expression.Constant(true))
+		| "false"       => @(Expression.Constant(false))
+		| name: Word    => @(ExpressionLanguage.Named(name))
 
 	parse Lambda as ParseLambda
 	""")]

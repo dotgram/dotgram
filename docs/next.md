@@ -4540,3 +4540,28 @@ that belongs to the block rather than to any statement in it. Four methods, and 
 grammar says the rest.
 
 1,144 tests green in both configurations.
+
+## Built: a constant says its type, and where the suffix had to go
+
+`1L`, `1m`, `1d`, `1.5m` — the C# suffixes, for the types this language has. One
+alternative each, each handing `Expression.Constant` a value of the type it already is,
+which is the same rule the rest of the grammar follows.
+
+Two things decided where they are written, and both are worth the lines they cost.
+
+**They are lexical.** Written in the spaced part of the grammar, `Digits & ['L' | 'l']`
+would put a seam between the number and the letter and read `1 L` as a constant — §4.5
+puts trivia between operands, and a suffix is not an operand of anything. So they live
+in the namespace whose trivia is none, with the digits captured and handed back alone:
+`decimal.Parse` reads a number, not a number and a letter.
+
+**And they are sets, not literals.** `"L"` after `1` would be refused by §4.6's own
+boundary — the weave asks that a word literal not continue a word, a digit is a word
+character, and so the guard that keeps `int` out of `internal` would keep `L` out of
+`1L`. A set is not a literal and carries no boundary. Which also leaves `m` and `L`
+perfectly good names, and there is a test for exactly that.
+
+One diagnostic on the way, and it was right: `text: Long` beside `text: Digits` is
+GRAM4007 — a capture of a rule that builds a value and a capture of plain text are two
+kinds of member, and §7.3 gives a rule one member per name. Two names, and the report
+said so in those words.
