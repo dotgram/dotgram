@@ -4505,3 +4505,38 @@ and left around a *construction*, and construction is not where the reading is.
 Twenty tests, every one of which compiles the tree and calls it — a lambda that builds
 and answers wrongly is the failure a snapshot cannot see. The corpus is unmoved:
 Csv 1.53, Feed 1.75, Minimal 1.39, Notation 1.31, Url 1.71.
+
+## Fixed, on a reading: the helpers were the layer, spelled differently
+
+The intermediate model was taken out of the expression language, and the next reading
+found it still there — as static helpers. `Arithmetic(op, left, right)` and
+`Compare(op, …)` chose a factory by switching on the operator's *text*, and
+`TypeNamed(string)` chose a type the same way. Both put a decision one step away from
+where C# could see it: a factory that does not exist, or one handed the wrong type, is a
+C# error on the grammar's own line (§7.6) — unless a switch over strings turns it into a
+run-time exception in a library, which is the compiler kept out of work it can do.
+
+So the choices moved into the grammar, where they are alternatives:
+
+    Additive : @Expression
+        = left: Additive & '+' & right: Multiplicative => @(Expression.Add(left, right))
+        | left: Additive & '-' & right: Multiplicative => @(Expression.Subtract(left, right))
+
+    Type : @Type = "int" => @(typeof(int)) | "double" => @(typeof(double)) | …
+
+Which pays twice over. Every construction is now a named call the compiler checks. A
+word that is no type stops being a declaration by *not parsing*, so the guard no longer
+has to answer no about it — and the `int` that a backtracking repetition could read as
+`in` and `t` cannot arise at all, because `"int"` is a word literal with §4.6's boundary
+woven round it. And the numeric widening went with them: nothing widens on its own, so
+`x + 1.5` over an `int` and a `double` is refused by `Expression.Add` itself, in its own
+words. A language that speaks only this API has no place to put a conversion the API did
+not ask for.
+
+What is left in the host class is a list worth reading as exactly what it is — the
+things `System.Linq.Expressions` has nowhere to keep. A `ParameterExpression` is an
+identity, and nothing in the API maps a name to one. A `return` is a jump to a label
+that belongs to the block rather than to any statement in it. Four methods, and the
+grammar says the rest.
+
+1,144 tests green in both configurations.

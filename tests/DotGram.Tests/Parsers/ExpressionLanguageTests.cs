@@ -58,12 +58,12 @@ public sealed class ExpressionLanguageTests
 	[Fact]
 	public void And_a_local_says_its_type_because_the_API_asks_where_it_is_read() =>
 		// `Expression.Variable` wants a type at the declaration, and the initializer is
-		// not built until long after — so the language says `int sum`, not `var sum`.
+		// not built until long after — so the language says `double half`, not `var half`.
 		// The grammar shaped to the API, which is what wiring one up looks like.
 		Assert.Equal(
 			2.5,
-			ExpressionLanguage.Compile<Func<int, double>>(
-				"(int x) => { double half = x / 2.0; return half; }")(5));
+			ExpressionLanguage.Compile<Func<double, double>>(
+				"(double x) => { double half = x / 2.0; return half; }")(5));
 
 	[Fact]
 	public void And_a_name_nothing_declares_is_refused_by_the_binder() =>
@@ -84,8 +84,19 @@ public sealed class ExpressionLanguageTests
 	// ── Types, and what mixing them means ───────────────────────────────────────
 
 	[Fact]
-	public void An_int_and_a_double_meet_as_a_double() =>
-		Assert.Equal(3.5, ExpressionLanguage.Compile<Func<int, double>>("(int x) => x + 1.5")(2));
+	public void Nothing_widens_on_its_own_and_the_API_is_what_says_so() =>
+		// The language holds no opinion the API does not hold. Adding an `int` to a
+		// `double` is refused by `Expression.Add` itself, in its own words — which is
+		// better than a message this could invent, and is the whole reason every `=>` in
+		// the grammar names a factory instead of dispatching on the operator's text.
+		Assert.Contains(
+			"not defined for the types",
+			Assert.Throws<InvalidOperationException>(
+				() => ExpressionLanguage.Parse("(int x) => x + 1.5")).Message);
+
+	[Fact]
+	public void And_two_doubles_add_as_doubles() =>
+		Assert.Equal(3.5, ExpressionLanguage.Compile<Func<double, double>>("(double x) => x + 1.5")(2));
 
 	[Fact]
 	public void A_comparison_answers_bool() =>
