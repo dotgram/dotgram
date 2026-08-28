@@ -603,16 +603,17 @@ Three things are rejected when the grammar is built:
   constructions in order against an accumulator that is itself the result of one —
   arbitrarily many shapes, which is what this rejection has always been about.
 
-  **And the tail may not capture yet.** Making the recursion direct turns one
-  alternative into one per thing the forwarder forwards, and the one leading with the
-  rule itself becomes the fold's step while the others stay bases — so a capture
-  written in the tail ends up both inside the loop and outside it. A capture under a
-  fold loop is collected, because a step's `=>` needs that iteration's value rather
-  than the last one's, and a rule has one member per name; the two then disagree about
-  what the name holds (`GRAM4007`). So `Call = target: Primary & "()"` works and
-  `Member = target: Primary & '.' & name: Name` does not, which is the postfix chain
-  this is for. Write that one with a repetition — `Root & Step*` — until the fold can
-  hold one name on both sides.
+  **Every postfix step goes in one rule**, and that is not a style choice. Written as
+  several rules that each begin with the forwarder — `Member`, `Index`, `Apply` —
+  making each one's recursion direct leaves them recursive through *each other*, which
+  no rewrite removes and which is refused for the reason above. One rule whose tail is
+  a choice of steps is the same language and folds:
+
+  ```dotgram
+  Selector = s: Applied => @(s) | s: Root => @(s)
+  Applied  = target: Selector & step: Step => @(new Step(target, step))
+  Step     = t: ('.' & Name | Subscript | Arguments) => @(t)
+  ```
 - **a rule whose every alternative is left-recursive.** There is nothing to start from.
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one

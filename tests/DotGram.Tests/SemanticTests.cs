@@ -1179,6 +1179,17 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
+	public void And_refuses_a_value_standing_where_a_recognizer_goes() =>
+		// The other half of the same silence: §4.2 allows a value where a value is
+		// expected, and an operand is not one of those places. It used to lower to an
+		// element set with nothing in it, so the parse refused everything while naming a
+		// set the author never wrote — found by writing `open & item & close` against
+		// `open: char` in an example.
+		Refused(
+			GrammarNormalizer.UnbuiltCall,
+			"Bracketed(item, open: char) = open & item\nWord = ['a'..'z']+\nStart = Bracketed(Word, '[')");
+
+	[Fact]
 	public void And_refuses_a_rule_where_a_value_was_declared() =>
 		// The declaration says which kind the parameter is, and a rule is not a value —
 		// taken as a recognizer, it would be the declaration meaning one thing to the
@@ -2203,24 +2214,32 @@ public sealed class SemanticTests
 			""");
 
 	[Fact]
-	public void But_a_tail_that_captures_is_refused_until_a_fold_can_share_a_name() =>
-		// The limit, found by writing an example against this feature. Unfolding turns
-		// one alternative into one per source, and the one leading with the rule itself
-		// becomes the fold's step while the others stay bases — so every capture in the
-		// tail now stands both inside the loop and outside it. A capture under a fold
-		// loop is stored as a sequence (a step's `=>` needs that iteration's value, not
-		// the last one's) and a rule has one member per name, so the two spellings of
-		// `tail` disagree about what it holds.
-		//
-		// Pinned so that fixing it changes a test on purpose: this is the postfix chain
-		// every expression language is written as, and it is what the feature is for.
-		Refused(
-			GrammarNormalizer.CaptureTypeMismatch,
-			"""
+	public void And_the_tail_may_capture()
+	{
+		// The postfix chain every expression language is written as, which is what this
+		// feature is for. Unfolding turns one alternative into one per source, and the
+		// one leading with the rule itself becomes the fold's step while the others stay
+		// bases — so a capture written in the tail stands both inside the loop and
+		// outside it. What the two must agree on is what the author sees: a slot under a
+		// fold's loop collects because a step is applied once per iteration, and the
+		// step's `=>` is handed one of what it collected, which is a value either way.
+		var result = Compile("""
 			Word  : @string = w: ['a'..'z']+ => @(w)
 			Chain : @string = c: Step => @(c) | c: Word => @(c)
-			Step  : @string = head: Chain & '.' & tail: Word => @(head + "." + tail)
+			Step  : @string = head: Chain & '.' & tail: Word => @(head + "[" + tail + "]")
+
+			parse Chain
 			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		// Left-associative, because that is where the recursion is: `a.b.c` is `(a.b).c`.
+		Assert.Equal("a",       EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a").Value);
+		Assert.Equal("a[b]",    EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a.b").Value);
+		Assert.Equal("a[b][c]", EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a.b.c").Value);
+	}
 
 	[Fact]
 	public void And_so_is_a_mutual_recursion_where_both_sides_build() =>

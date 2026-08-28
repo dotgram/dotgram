@@ -4411,3 +4411,55 @@ What a fix would have to decide: whether a name may be one member with two stora
 (scalar outside the loop, collected inside), or whether the unfolding should rename the
 step's captures and rewrite the `=>` that reads them — which is the author's own C#,
 and this project does not rewrite that.
+
+## Built: the selector example, and the five things it found on the way
+
+`examples/SelectorExample.cs` reads `orders[2].lines.total(net)` as the chain of steps
+it is — the postfix shape indirect left recursion through a forwarder exists for, and
+the one levels-as-rules cannot write. Writing it found five things, which is what
+examples are for and why this repository keeps whole parsers rather than snippets.
+
+**A parameter's type was never asked of the host.** `open: char` failed the build with
+"the question collector did not foresee the type question for 'char'" — an internal
+defect reaching a consumer as CS8785. The collector walks a rule's declared type and its
+body and had never walked its parameters, because until this week a value parameter
+could only be given a number. Every test that passes a value uses a resolver that
+answers everything, so nothing asked the host until a real build did.
+
+**Distributing an alternative shared its tail's nodes.** Kept by reference on purpose,
+to preserve identity-keyed facts — which is the wrong half of §19: a node in two
+alternatives has two owners, and the second capture layout clobbers the first. Copied
+now, through the same clone a namespace uses, which carries those facts onto the copies.
+
+**A capture in the tail is not a sequence to the author.** Unfolding puts a tail capture
+both inside the fold's loop and outside it, and a slot under a loop collects — so the
+two spellings disagreed and GRAM4007 refused the whole shape. But the machinery had
+already drawn this distinction and named it: a fold step's factory takes `int r`, not
+`int[] r`, and both the emitter and the materializer write `member.IsSequence &&
+factory.Accumulator is null`. What was missing was a word for it. `CaptureSlot.InFold`
+is that word and `Collects` is what the author sees; the merge compares that instead of
+the storage. `a.b.c` folds to `a[b][c]`, left-associatively.
+
+**A folded rule's body is not a choice.** `BuildByConstructor` and `PassThrough` read a
+rule's alternatives as "the choice, or the body" and guard on "one of them already
+constructs" — but §4.3 rewrote a folded body into a *sequence* of the bases and the
+loop, so the guard saw no construction where every alternative had one and wrapped the
+whole body in another. The fold machinery then met a Construct where it laid out a
+Sequence. Only reachable with a resolver that can find constructors, which is why no
+test and no probe had ever seen it: both passes skip folded rules now.
+
+**Two machines emitted one scanner twice.** A grammar with two publications has two
+machines in one class, and a scanner was named `Scan_trivia` in both — one method
+defined twice, in every spaced grammar publishing more than one thing. Tagged like every
+other name a machine emits.
+
+And one the example itself got wrong, which was worth the diagnostic it now has: a value
+parameter standing where an operand goes lowered to an element set with nothing in it,
+so the parse refused everything while naming a set the author never wrote. §4.2 says
+where a value may stand; an operand is not one of those places, and it says so now.
+
+The other limit the example met is real and is written into §4.3: several postfix rules
+each beginning with the forwarder stay recursive through *each other*, which no rewrite
+removes. One rule whose tail is a choice of steps is the same language and folds — which
+is how the example is written, and the paragraph explaining why is the part worth
+copying.

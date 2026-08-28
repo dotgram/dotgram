@@ -337,8 +337,8 @@ namespace DotGram.Snapshots
                                 (v);
 #line default
 
-		/// <summary>What <c>Padded_Word_value0</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static string Construct_Padded_Word_value0(string t) =>
+		/// <summary>What <c>Padded_Word_value1</c> builds its value with (docs/syntax.md §7.3).</summary>
+		static string Construct_Padded_Word_value1(string t) =>
 #line 12 "Notation.gram"
                                                 (t + '#');
 #line default
@@ -382,7 +382,7 @@ namespace DotGram.Snapshots
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
-					Trace("call Padded_Word_value0", 4, p, entries.Count, text, "Hashed");
+					Trace("call Padded_Word_value1", 4, p, entries.Count, text, "Hashed");
 				}
 
 				{
@@ -426,7 +426,7 @@ namespace DotGram.Snapshots
 				S7:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 2, capture2, call, atomic, repeat, lookahead, p));
-					Trace("capture", 2, p, entries.Count, text, "Padded_Word_value0");
+					Trace("capture", 2, p, entries.Count, text, "Padded_Word_value1");
 					goto Return;
 				}
 
@@ -659,7 +659,7 @@ namespace DotGram.Snapshots
 			if (flat0_0Start >= 0)
 			{
 				var captured1_0 = value2;
-				value1 = Construct_Padded_Word_value0(captured1_0);
+				value1 = Construct_Padded_Word_value1(captured1_0);
 			}
 			var captured0_0 = value1;
 			value = Construct_Marked(captured0_0);
@@ -2062,7 +2062,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(captured0_0From >= 0);
 						var captured0 = Construct_Word(captured0_0From < 0 ? string.Empty : text.Slice(captured0_0From, captured0_0To - captured0_0From).ToString());
 
-						values0[completedAt] = Construct_Padded_Word_value0(captured0!);
+						values0[completedAt] = Construct_Padded_Word_value1(captured0!);
 						break;
 					}
 					case 2:

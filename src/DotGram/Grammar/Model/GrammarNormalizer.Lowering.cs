@@ -162,6 +162,23 @@ public sealed partial class GrammarNormalizer
 		if (symbol is ParameterSymbol && _arguments.TryGetValue(name, out var argument))
 			return argument;
 
+		// A value parameter standing where an operand goes is the other half of the same
+		// silence: §4.2 allows a value where a value is expected — a count, an argument of
+		// `@Method`, inside `@(...)` — and this is none of those. Left alone it lowered to
+		// an empty element set and the parse refused everything, naming a set the author
+		// never wrote (found by writing `open & item & close` against `open: char`).
+		if (symbol is ParameterSymbol && _values.ContainsKey(name))
+		{
+			Report(
+				UnbuiltCall,
+				$"'{name}' is a value (docs/syntax.md §4.2) and stands here where a piece of " +
+				"grammar goes. A value is allowed where a value is expected — a count, an " +
+				"argument of '@Method', inside '@(...)'. Drop its type to make it a recognizer.",
+				expression.At);
+
+			return Node.Empty.Instance;
+		}
+
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule, []);
 
@@ -726,10 +743,12 @@ public sealed partial class GrammarNormalizer
 			name += "_" + (passed[i] switch
 			{
 				// A number reads as itself; any other value is a piece of C# and its
-				// characters are not all ones an identifier may hold, so it is numbered
-				// instead. The name only has to be distinct and legible.
+				// characters are not all ones an identifier may hold, so it is named by
+				// where it stands instead. The name only has to be distinct and legible —
+				// and by position rather than by a running count, so that two values in
+				// one call do not come out under the same word.
 				null when counts[i] is { } count => Text(count),
-				null                             => "value" + Text(_specialized.Count),
+				null                             => "value" + Text(i),
 				Node.Call(var called, _)         => called.Name.Replace(".", "_"),
 				_                                => Text(_specialized.Count),
 			});

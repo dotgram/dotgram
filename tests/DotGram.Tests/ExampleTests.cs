@@ -1145,4 +1145,37 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_missing_key_is_an_empty_node_rather_than_null() =>
 		Assert.Equal("", YamlLite.Read("a: 1\n")["b"]["c"].Value);
+
+	// ── Selectors: postfix chains, which is indirect left recursion ─────────────
+
+	[Theory]
+	[InlineData("orders",                     "orders")]
+	[InlineData("orders.total",               "orders|.total")]
+	[InlineData("orders[2]",                  "orders|[2]")]
+	[InlineData("total(net)",                 "total|(net)")]
+	[InlineData("orders[2].lines.total(net)", "orders|[2]|.lines|.total|(net)")]
+	public void A_selector_is_the_chain_of_steps_it_reads_as(string text, string expected) =>
+		// `Applied` reaches itself through `Selector`, which only forwards, so the
+		// recursion is made direct and folded — and the steps come back in the order they
+		// were written, because a fold is left-associative.
+		Assert.Equal(expected, string.Join("|", Selectors.Steps(Selectors.ParseSelector(text))));
+
+	[Fact]
+	public void And_reads_the_same_however_it_is_spaced() =>
+		// The steps are the same steps; their text is the extent each matched, and a seam
+		// sits inside a step rather than between the two operands of one (§4.5) — so the
+		// space after the dot belongs to `.b`, which is what "the text it matched" means.
+		Assert.Equal(
+			"a|. b|[1]",
+			string.Join("|", Selectors.Steps(Selectors.ParseSelector("a . b [1]"))));
+
+	[Fact]
+	public void And_writing_it_again_gives_back_what_was_read() =>
+		Assert.Equal("orders[2].lines", Selectors.Written(Selectors.ParseSelector("orders[2].lines")));
+
+	[Fact]
+	public void A_parameterized_rule_is_published_without_a_rule_to_wrap_it() =>
+		// `parse (b: Bracketed(Digits, '[', ']') => @(b)) as ParseSubscript : @string`:
+		// the directive names the expression, and the type is what makes the `=>` legal.
+		Assert.Equal("[42]", Selectors.ParseSubscript("[42]"));
 }

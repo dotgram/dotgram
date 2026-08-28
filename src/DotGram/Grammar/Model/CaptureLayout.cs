@@ -24,7 +24,19 @@ sealed class NodeIdentity : IEqualityComparer<Node>
 /// or null when what it captures is text; <paramref name="IsSequence"/> says the capture
 /// is under a repetition and so collects rather than holds.
 /// </summary>
-public sealed record CaptureSlot(int Index, string Name, RuleSymbol? Rule, bool IsSequence);
+/// <param name="IsSequence">Whether the slot is written more than once, and so collects.</param>
+/// <param name="InFold">
+/// Why it collects, where it does: a slot under a fold's loop is written once per step
+/// and read one step at a time, so what the author's <c>=&gt;</c> is handed is one of
+/// what it collected — a value, not the sequence. A slot under an ordinary repetition
+/// collects for the author too.
+/// </param>
+public sealed record CaptureSlot(
+	int Index, string Name, RuleSymbol? Rule, bool IsSequence, bool InFold = false)
+{
+	/// <summary>What the author sees: whether the name holds a sequence in their C#.</summary>
+	public bool Collects => IsSequence && !InFold;
+}
 
 /// <summary>
 /// Where a rule body's captures are, numbered in the order the notation writes them.
@@ -116,7 +128,9 @@ public sealed class CaptureLayout
 				_slotOf[node] = _slots.Count;
 
 				_slots.Add(new CaptureSlot(
-					_slots.Count, name, called, IsSequence: inFold || (repeated && called is not null)));
+					_slots.Count, name, called,
+					IsSequence: inFold || (repeated && called is not null),
+					InFold: inFold));
 
 				Walk(captured, buildsValue, repeated, inFold);
 				break;

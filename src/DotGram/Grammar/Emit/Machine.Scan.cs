@@ -39,7 +39,11 @@ sealed partial class Machine
 			body is Node.Atomic(var kept) &&
 			!KeepsRecords(kept) &&
 			Scannable(kept, FirstSets.First.None)
-				? "Scan_" + CSharpEmitter.IdentifierOf(rule)
+				// Tagged like every other name this machine emits: a grammar with two
+				// publications has two machines in one class, and both may reach the same
+				// scanner — `trivia` does, in every spaced grammar with more than one
+				// thing published — which without this is one method defined twice.
+				? "Scan_" + CSharpEmitter.IdentifierOf(rule) + _tag
 				: null;
 
 		_scanners[rule] = name;

@@ -3705,7 +3705,7 @@ namespace DotGram.Snapshots
 			var flat0_0End = 0;
 
 			{
-				p = Scan_Spaced_trivia(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
 			}
 
 			{
@@ -3751,7 +3751,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
 			}
 
 			{
@@ -3779,7 +3779,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
 			}
 
 			{
@@ -3830,7 +3830,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
 				goto Accept;
 			}
 
@@ -3848,7 +3848,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>trivia</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_trivia(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
 			var c = '\0';
