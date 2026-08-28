@@ -361,6 +361,70 @@ public sealed class ExpressionLanguageTests
 	public void And_as_answers_null_where_it_is_not_that() =>
 		Assert.Null(ExpressionLanguage.Compile<Func<object, string>>("(object o) => o as string")(42));
 
+	[Fact]
+	public void A_generic_type_is_named_with_what_it_is_over() =>
+		// Metadata names it by arity — `Func`2` — which is one more thing about the runtime
+		// rather than about the language, and so is the host's. The grammar reads a name, a
+		// `<`, some types and a `>`, which is what every language calls a generic type.
+		Assert.Equal(
+			8,
+			ExpressionLanguage.Compile<Func<Func<int, int>, int, int>>(
+				"(Func<int, int> f, int x) => f(x) * 2")(n => n + 3, 1));
+
+	[Fact]
+	public void And_a_type_may_be_an_array_of_one() =>
+		Assert.Equal(
+			[3, 20],
+			new[]
+			{
+				ExpressionLanguage.Compile<Func<int[], int>>("(int[] a) => a.Length")([1, 2, 3]),
+				ExpressionLanguage.Compile<Func<int[], int>>("(int[] a) => a[1] * 10")([1, 2, 3]),
+			});
+
+	[Fact]
+	public void An_initializer_sets_what_it_names() =>
+		// Which member a name is cannot be known where the name is read — the type is a
+		// sibling of the braces rather than something above them — so the pair travels as
+		// text and a value, and the member is found where the type is in hand.
+		Assert.Equal(
+			"boom",
+			ExpressionLanguage.Compile<Func<string, string>>(
+				"(string s) => new Exception() { Source = s }.Source")("boom"));
+
+	[Fact]
+	public void And_a_collection_initializer_adds_what_it_lists()
+	{
+		// `List` is in a namespace the host was not told about, which is what a `using` is
+		// for — and the host is where it belongs, because a grammar cannot carry one for an
+		// API it has not been pointed at yet.
+		ExpressionLanguage.Using("System.Collections.Generic");
+
+		Assert.Equal(
+			3,
+			ExpressionLanguage.Compile<Func<int>>("() => new List<int>() { 10, 20, 30 }.Count")());
+	}
+
+	[Fact]
+	public void A_member_and_an_element_may_be_written_to() =>
+		// The API keeps reading an element apart from writing one — `ArrayIndex` answers
+		// with a value and `ArrayAccess` with the element — and which is meant is decided by
+		// which side of the `=` it stands on, which the grammar knows and the API cannot.
+		Assert.Equal(
+			[7, "set"],
+			new object[]
+			{
+				ExpressionLanguage.Compile<Func<int[], int>>("(int[] a) => { a[1] = 7; a[1] }")([1, 2, 3]),
+				ExpressionLanguage.Compile<Func<string>>(
+					"() => { Exception e = new Exception(); e.Source = \"set\"; e.Source }")(),
+			});
+
+	[Fact]
+	public void And_a_compound_assignment_writes_to_a_name_or_a_member() =>
+		// Not to an element, and that is a measurement rather than a taste: an index is an
+		// expression, and eleven alternatives reading it eleven times before finding out
+		// which operator they are made `a[a[a[a[0]]]] = 1` take most of a second.
+		Assert.False(ExpressionLanguage.TryParse("(int[] a) => { a[1] += 7; a[1] }").IsSuccess);
+
 	// ── try, catch, finally, throw ──────────────────────────────────────────────
 
 	[Theory]

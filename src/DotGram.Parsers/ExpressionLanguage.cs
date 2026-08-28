@@ -225,7 +225,12 @@ namespace DotGram.Parsers;
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
 	// rather than a switch over strings refusing it at run time.
-	Type : @Type = "sbyte"   => @(typeof(sbyte))
+	// A type is a name for one, and then as many `[]` as the author wrote. Left recursive,
+	// so `int[][]` is read once and folded rather than started over.
+	Type : @Type = t: Type & "[]" => @(t.MakeArrayType())
+	             | c: Core        => @(c)
+
+	Core : @Type = "sbyte"   => @(typeof(sbyte))
 	             | "byte"    => @(typeof(byte))
 	             | "short"   => @(typeof(short))
 	             | "ushort"  => @(typeof(ushort))
@@ -246,13 +251,34 @@ namespace DotGram.Parsers;
 	// keyword and cannot be: what `Exception` means is a question about the namespaces this
 	// host was told to look in, and it is asked while the text is read so that the answer
 	// can decide how the text reads.
-	NamedType : @Type = name: TypeName & when @(ExpressionLanguage.Resolves(name))
-	                  => @(ExpressionLanguage.TypeNamed(name))
+	//
+	// The generic form asks nothing while reading, and cannot: what a guard may look at is
+	// what the text said, and the arguments here are types the `=>` has not built yet. It
+	// needs no guard either — nothing else in this language is a name followed by `<`, a
+	// type, and `>`, so a reading that gets that far is a generic type or is nothing.
+	NamedType : @Type
+		= name: TypeName & '<' & first: Type & (',' & rest: Type)* & '>'
+		  => @(ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first, rest)))
+		| name: TypeName & when @(ExpressionLanguage.Resolves(name))
+		  => @(ExpressionLanguage.TypeNamed(name))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
 	Arguments : @Expression[]
 		= '(' & (first: Expression & (',' & rest: Expression)*)? & ')'
+		=> @(ExpressionLanguage.Listed(first, rest))
+
+	// What a member initializer sets, as the text said it: the member's name and the value,
+	// with which member that is left until the type is known — which is at construction,
+	// where the type is.
+	Bindings : @Setting[]
+		= '{' & first: Binding & (',' & rest: Binding)* & '}'
+		=> @(ExpressionLanguage.Set(first, rest))
+
+	Binding : @Setting = name: Word & '=' & value: Expression => @(new Setting(name, value))
+
+	Elements : @Expression[]
+		= first: Expression & (',' & rest: Expression)*
 		=> @(ExpressionLanguage.Listed(first, rest))
 
 	Indices : @Expression[]
@@ -263,7 +289,7 @@ namespace DotGram.Parsers;
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
 	// was read, which is the only thing that can say later which block it belongs to.
 	Parameter : @ParameterExpression
-		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name, parserSpan))
+		= type: Type & name: Word & when @(ExpressionLanguage.Takes(type, name, parserSpan))
 		=> @(ExpressionLanguage.Named(name, parserSpan))
 
 	// ── A block, which is an expression like any other ──────────────────────────
@@ -441,24 +467,38 @@ namespace DotGram.Parsers;
 
 	// C# puts assignment lowest of all and groups it to the right, and its left side is a
 	// unary expression rather than any expression at all — `a + b = c` is not one. Here it
-	// is narrower still: a name, because a name is the only thing this language has that
-	// can be written to. That is not only about what is legal. Written as `Unary`, each of
-	// these eleven alternatives reads a whole operand before finding out it is not the one,
-	// and an operand may be a block — which made a lambda with two braces in it take longer
-	// to read than there is time. A name is one word, and eleven words is nothing.
+	// is narrower still, and deliberately: a name, a member of a name, or an element of
+	// one. Written as `Unary`, each of these eleven alternatives would read a whole operand
+	// before finding out it is not the one, and an operand may be a block — which made a
+	// lambda with two braces in it take longer to read than there is time.
 	Assignment : @Expression
-		= target: Name & "+="  & value: Assignment => @(Expression.AddAssign(target, value))
-		| target: Name & "-="  & value: Assignment => @(Expression.SubtractAssign(target, value))
-		| target: Name & "*="  & value: Assignment => @(Expression.MultiplyAssign(target, value))
-		| target: Name & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
-		| target: Name & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
-		| target: Name & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
-		| target: Name & "|="  & value: Assignment => @(Expression.OrAssign(target, value))
-		| target: Name & "^="  & value: Assignment => @(Expression.ExclusiveOrAssign(target, value))
-		| target: Name & "<<=" & value: Assignment => @(Expression.LeftShiftAssign(target, value))
-		| target: Name & ">>=" & value: Assignment => @(Expression.RightShiftAssign(target, value))
-		| target: Name & '=' & ?!'=' & value: Assignment => @(Expression.Assign(target, value))
+		// An element is written to by one alternative and not by eleven, and that is a
+		// measurement: an index is an expression, eleven alternatives read it eleven times
+		// before finding out which operator they are, and `a[a[a[a[0]]]] = 1` took most of
+		// a second. So a compound assignment writes to a name or a member of one, and only
+		// the plain `=` writes to an element.
+		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
+		  => @(Expression.Assign(ExpressionLanguage.Place(target, at), value))
+
+		| target: Target & "+="  & value: Assignment => @(Expression.AddAssign(target, value))
+		| target: Target & "-="  & value: Assignment => @(Expression.SubtractAssign(target, value))
+		| target: Target & "*="  & value: Assignment => @(Expression.MultiplyAssign(target, value))
+		| target: Target & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
+		| target: Target & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
+		| target: Target & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
+		| target: Target & "|="  & value: Assignment => @(Expression.OrAssign(target, value))
+		| target: Target & "^="  & value: Assignment => @(Expression.ExclusiveOrAssign(target, value))
+		| target: Target & "<<=" & value: Assignment => @(Expression.LeftShiftAssign(target, value))
+		| target: Target & ">>=" & value: Assignment => @(Expression.RightShiftAssign(target, value))
+		| target: Target & '=' & ?!'=' & value: Assignment => @(Expression.Assign(target, value))
 		| c: Conditional                           => @(c)
+
+	// What may be written to. An element is read one way and written another — `ArrayIndex`
+	// answers with a value and `ArrayAccess` with a place — and which is wanted is decided
+	// by where it stands, which is a thing the grammar knows and the API does not.
+	Target : @Expression
+		= n: Name & '.' & member: Word => @(ExpressionLanguage.Member(n, member))
+		| n: Name                      => @(n)
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -565,6 +605,8 @@ namespace DotGram.Parsers;
 		// indexer of two arguments are both written without another rule.
 		| target: Postfix & at: Indices => @(ExpressionLanguage.Indexed(target, at))
 
+		| target: Name & args: Arguments => @(Expression.Invoke(target, args))
+
 		| target: Name & "++" => @(Expression.PostIncrementAssign(target))
 		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
 		| p: Primary          => @(p)
@@ -575,6 +617,16 @@ namespace DotGram.Parsers;
 		| "new" & type: Type & '[' & ']'
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
 		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
+		// An initializer is written after the constructor's own arguments, and which of the
+		// two it is is what stands inside the braces: `Name = value` sets a member, and an
+		// expression is an element to add. Ordered choice reads them apart.
+		| "new" & type: Type & args: Arguments & fields: Bindings
+		  => @(Expression.MemberInit(
+			Expression.New(ExpressionLanguage.Constructor(type, args), args),
+			ExpressionLanguage.Bound(type, fields)))
+		| "new" & type: Type & args: Arguments & '{' & items: Elements & '}'
+		  => @(Expression.ListInit(
+			Expression.New(ExpressionLanguage.Constructor(type, args), args), items))
 		| "new" & type: Type & args: Arguments
 		  => @(Expression.New(ExpressionLanguage.Constructor(type, args), args))
 
@@ -782,6 +834,24 @@ public static partial class ExpressionLanguage
 			: Expression.PropertyOrField(target, name);
 	}
 
+	/// <summary>The same element as a place to write rather than a value to read.</summary>
+	/// <remarks>
+	/// The API keeps the two apart where C# does not: <c>ArrayIndex</c> answers with a
+	/// value and cannot be assigned to, <c>ArrayAccess</c> answers with the element itself.
+	/// Which one `a[0]` means is decided by which side of the `=` it stands on, which the
+	/// grammar knows and the API cannot.
+	/// </remarks>
+	public static Expression Place(Expression target, Expression[] at)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		if (at is null)
+			throw new ArgumentNullException(nameof(at));
+
+		return target.Type.IsArray ? Expression.ArrayAccess(target, at) : Indexed(target, at);
+	}
+
 	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
 	/// <remarks>
 	/// An array's element is a node of this tree and anything else's is an indexer — whose
@@ -863,6 +933,94 @@ public static partial class ExpressionLanguage
 			$"'{type.Name}' has no constructor taking ({string.Join(", ", arguments.Select(one => one.Type.Name))}).");
 	}
 
+	/// <summary>The type that name and those arguments mean.</summary>
+	/// <remarks>
+	/// A generic type is named in metadata by its arity — <c>Func`2</c> — which is one more
+	/// thing about the runtime rather than about the language, and so is here rather than
+	/// in the grammar. The name looked up is the one the author wrote with the count of
+	/// what they wrote it over.
+	/// </remarks>
+	public static Type Generic(string name, Type[] arguments)
+	{
+		if (arguments is null)
+			throw new ArgumentNullException(nameof(arguments));
+
+		var open = Lookup(name + "`" + arguments.Length.ToString(CultureInfo.InvariantCulture))
+			?? throw new FormatException(
+				$"there is no type named '{name}' taking {arguments.Length} of them here.");
+
+		return open.MakeGenericType(arguments);
+	}
+
+	/// <summary>A generic type's arguments, in the order they were written.</summary>
+	public static Type[] Types(Type first, Type[] rest)
+	{
+		if (rest is null)
+			throw new ArgumentNullException(nameof(rest));
+
+		var arguments = new Type[rest.Length + 1];
+
+		arguments[0] = first;
+		rest.CopyTo(arguments, 1);
+
+		return arguments;
+	}
+
+	/// <summary>What one member initializer said, before the type is known.</summary>
+	/// <remarks>
+	/// The one type of this file's own, and it carries syntax rather than meaning: which
+	/// member a name is cannot be worked out where the name is read, because the type is a
+	/// sibling of the braces rather than something above them. A pair of a name and a value
+	/// is what the text said and nothing more. A tuple would have said the same, and the
+	/// notation has no place to write one — a rule's type is a name.
+	/// </remarks>
+	public readonly record struct Setting(string Name, Expression Value);
+
+	/// <summary>What an initializer sets, in the order it was written.</summary>
+	public static Setting[] Set(Setting first, Setting[] rest)
+	{
+		if (rest is null)
+			throw new ArgumentNullException(nameof(rest));
+
+		var set = new Setting[rest.Length + 1];
+
+		set[0] = first;
+		rest.CopyTo(set, 1);
+
+		return set;
+	}
+
+	/// <summary>Those settings against the type that has the members.</summary>
+	/// <remarks>
+	/// The grammar reads `Name = value` and stops there, because which member a name is
+	/// cannot be known where it is read: the type is a sibling of the braces rather than
+	/// something above them. So the pairs travel as text and a value, and the member is
+	/// found here, where the type is in hand.
+	/// </remarks>
+	public static MemberBinding[] Bound(Type type, Setting[] settings)
+	{
+		if (type is null)
+			throw new ArgumentNullException(nameof(type));
+
+		if (settings is null)
+			throw new ArgumentNullException(nameof(settings));
+
+		var bound = new MemberBinding[settings.Length];
+
+		for (var at = 0; at < settings.Length; at++)
+		{
+			var (name, value) = settings[at];
+			var members = type.GetMember(
+				name, MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance);
+
+			bound[at] = members.Length == 1
+				? Expression.Bind(members[0], value)
+				: throw new FormatException($"'{type.Name}' has no one member named '{name}'.");
+		}
+
+		return bound;
+	}
+
 	/// <summary>The arguments of a call, in the order they were written.</summary>
 	public static Expression[] Listed(Expression? first, Expression[] rest)
 	{
@@ -938,12 +1096,22 @@ public static partial class ExpressionLanguage
 	/// at a position now, though, so only a use inside the same block can find it — and
 	/// where the reading was abandoned, no such use is left.
 	/// </remarks>
-	public static bool Declare(Type type, string name, SourceSpan at)
-	{
-		if (type is null)
-			throw new ArgumentNullException(nameof(type));
+	public static bool Declare(Type type, string name, SourceSpan at) =>
+		Holds(Expression.Variable(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
 
-		(_declared ??= []).Add(new Declaration(at.Start, name, Expression.Variable(type, name)));
+	/// <summary>The same for a lambda's parameter, which the API names apart.</summary>
+	/// <remarks>
+	/// <c>Expression.Parameter</c> and <c>Expression.Variable</c> make the same kind of
+	/// node, and the API keeps two names for it because a language does: one is what a
+	/// lambda is handed and the other is what a block declares. This one reads them apart
+	/// because it can — they are two rules — and says so by naming both.
+	/// </remarks>
+	public static bool Takes(Type type, string name, SourceSpan at) =>
+		Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+
+	static bool Holds(ParameterExpression variable, string name, SourceSpan at)
+	{
+		(_declared ??= []).Add(new Declaration(at.Start, name, variable));
 
 		return true;
 	}

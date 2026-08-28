@@ -4976,3 +4976,53 @@ that kind, is the wrong trade. Written down here so the next person does not hav
 re-derive why.
 
 1,265 tests green in both configurations.
+
+## Built: generic types, invocation, initializers, and writing to what was read
+
+`Func<int, int> f` and `f(x)`, `int[] a` and `a.Length`, `new Exception() { Source = s }`,
+`new List<int>() { 10, 20, 30 }`, `a[1] = 7`, `e.Source = "set"`. **77 of the 120**
+factories, up from 71 — and two of the six close a gap rather than a counter: nothing
+could be written to but a name.
+
+**A generic type is named by arity in metadata** — `Func`2` — which is one more thing
+about the runtime than about the language, and so is the host's. The grammar reads a name,
+a `<`, some types and a `>`, which is what every language calls one. It asks nothing while
+reading, and could not: what a guard may look at is what the text said, and the arguments
+are types the `=>` has not built yet. It needs no guard either, since nothing else here is
+a name followed by `<`, a type and `>`.
+
+**Reading an element and writing one are two nodes**, and the API is right to keep them
+apart where C# does not: `ArrayIndex` answers with a value and cannot be assigned to,
+`ArrayAccess` answers with the element. Which `a[0]` means is decided by which side of the
+`=` it stands on — something the grammar knows and the API cannot, so the grammar says it
+by calling two rules.
+
+**And the parameters of a lambda are `Expression.Parameter` now**, where a block's locals
+stay `Expression.Variable`. The API makes the same node either way and keeps two names for
+it because a language does; this one reads them apart in two rules, so it can say so.
+
+### Found: eleven alternatives reading an index eleven times
+
+The same shape as the `else if` chain a few entries up, and it wanted the same discipline.
+Every compound assignment is an alternative of its own — that is the doctrine, one
+alternative per operator, each naming its factory — and each of the eleven began by
+reading the target. With an element as a target, the target contains an *expression*:
+
+| | |
+| --- | --- |
+| `a[0] = 1` | 1.6 ms |
+| `a[a[0]] = 1` | 5.0 ms |
+| `a[a[a[0]]] = 1` | 55 ms |
+| `a[a[a[a[0]]]] = 1` | **826 ms** |
+
+Reading the index in one alternative rather than eleven takes the last to **3.6 ms**. What
+it costs is that a compound assignment writes to a name or a member of one and not to an
+element: `a[1] += 7` is not written here, and is refused rather than misread.
+
+That is the second time this session that a cost turned out to be a construct readable
+more than one way, and both times the fix was to leave it one way. Worth stating as a rule
+of thumb for grammars in this notation: **ordered choice is cheap when the alternatives
+disagree early and expensive when they agree for a while**, and an alternative that reads a
+whole operand before testing one character is the expensive kind.
+
+1,271 tests green in both configurations.
