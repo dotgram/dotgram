@@ -4710,3 +4710,49 @@ lookahead, and `(t: 'x' & 'y')+` is an ordinary grammar.
 1,206 tests green in both configurations, and the corpus snapshots carry the new protocol
 where a capture can be reopened — `Minimal` for a recursive one, and nothing in `Url`,
 which is the narrowing working.
+
+## Built: a block is an expression, and a name means what it means where it is written
+
+Two changes that turn out to be one, because the second is what the first needs.
+
+**`Expression.Block` is worth its last expression, so this language's block is too.**
+`{ int sum = x + y; sum * sum }` — no `return`, no label — and being an expression it
+stands wherever one does: `int doubled = { int half = x; half * 2 };`, or `1 + { int t =
+x; t * 2 }`. The rule reads the way the API does, which is the whole point of writing a
+language against a concrete API rather than around one.
+
+`return` stays, and does what C# does: leave the whole lambda, from however deep in. That
+means the label belongs to the lambda and not to a block — which is also the only place
+that *can* hold it, since a block is built before the blocks around it and so cannot know
+whether it is the outermost. `Returning` is the two lines that put it there.
+
+**And then a name has to mean what it means where it is written.** One block was one
+scope and a table by name was enough; nested blocks are not. C# forbids a nested local
+shadowing an enclosing one (CS0136), so "one meaning per lambda" was already C#'s rule
+for nesting — but two blocks *beside* each other may each declare a `t`, and those are
+two variables.
+
+So scopes are pairs of positions. A guard at the end of `Block` records the extent it
+read, a declaration records where its name was written, and a use asks which declaration
+of that name is visible where *it* is written: the innermost block holding the
+declaration must hold the use too, and the innermost such declaration wins.
+
+Recorded by position rather than pushed and popped, and the difference is backtracking. A
+guard runs on readings the parse abandons, so a stack would be left holding a scope
+nothing is inside — the same hazard that made `Declare` answer rather than throw. A
+position is the same fact however many times a reading writes it down, and an abandoned
+reading records an extent that no surviving name is written inside.
+
+Shadowing an enclosing block's name is accepted here where C# refuses it, and the nearer
+name wins. More permissive than C#, so no valid C# is read as something else, and the
+check C# makes is one this has no reason to make.
+
+**The notation needed one thing for this, and the spec already promised it.** §8.1 has
+always said the supplied names are in scope inside a `when`, and only `parserText` was
+ever handed over. A guard runs before its rule is finished, so `parserSpan` there is the
+rule from where it began to where the parse stands — the same extent `parserText` cuts,
+unread. That is the only way to record *where* something was read: a `=>` runs children
+before parents, so every name inside a block is built before the block is, and a scope
+recorded there arrives after the last thing that needed it.
+
+1,216 tests green in both configurations.

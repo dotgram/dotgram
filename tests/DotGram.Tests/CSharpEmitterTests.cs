@@ -348,6 +348,21 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("string? a", source);
 	}
 
+	/// <summary>A guard may ask where it is, which is what a scope is recorded from.</summary>
+	/// <remarks>
+	/// §8.1 has always said the supplied names are in scope inside a <c>when</c>, and only
+	/// <c>parserText</c> was handed over. A guard runs before its rule is finished, so the
+	/// span is the rule from where it began to where the parse now stands — the same extent
+	/// <c>parserText</c> cuts, unread.
+	/// </remarks>
+	[Theory]
+	[InlineData("abc",  true)]
+	[InlineData("ab",   false)]
+	public void A_guard_may_ask_for_the_span_it_has_reached(string input, bool expected) =>
+		Assert.Equal(
+			expected,
+			Run("Start = ['a'..'z']+ & when @(parserSpan.Length > 2)", input).Matched);
+
 	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
 	{

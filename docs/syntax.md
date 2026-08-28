@@ -469,6 +469,13 @@ current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
 `parser`, which is what that prefix is for — a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
+A `when` runs before its rule is finished, so the two that say what the rule matched say
+what it has matched **so far**: from where the rule began to where the parse stands. That
+is the same extent either way — `parserText` is the string of it and `parserSpan` is the
+two numbers — and it is what lets a guard record *where* something was read, which is the
+only thing a `=>` cannot do later. Construction runs children before parents, so anything
+written inside a construct is built before the construct is.
+
 There is no limit on the size of an expression, but there is a recommendation: once
 it stops reading at a glance it is better off as a named method in the partial class
 next door, where it has a debugger and refactoring. The generator neither declares nor

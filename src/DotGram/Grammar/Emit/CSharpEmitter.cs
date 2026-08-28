@@ -1100,7 +1100,8 @@ public static partial class CSharpEmitter
 			if (graph.Bodies.TryGetValue(rule, out var body))
 				foreach (var node in NodeWalk.Descendants(body))
 					if (node is Node.Construct { How: Construction.Expression { Text: var text } } &&
-						text.Contains("parserSpan"))
+						text.Contains("parserSpan") ||
+						node is Node.Guard { Text: var condition } && condition.Contains("parserSpan"))
 					{
 						return true;
 					}

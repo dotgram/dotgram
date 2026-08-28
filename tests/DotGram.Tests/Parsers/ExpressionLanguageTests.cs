@@ -66,6 +66,71 @@ public sealed class ExpressionLanguageTests
 			ExpressionLanguage.Compile<Func<double, double>>(
 				"(double x) => { double half = x / 2.0; return half; }")(5));
 
+	// ── A block is an expression, and it holds a scope ──────────────────────────
+
+	[Fact]
+	public void A_block_is_worth_its_last_expression() =>
+		// Which is what `Expression.Block` is worth, so the language says it too: no
+		// `return`, no label, just the value the block ends on.
+		Assert.Equal(
+			25,
+			ExpressionLanguage.Compile<Func<int, int, int>>(
+				"(int x, int y) => { int sum = x + y; sum * sum }")(2, 3));
+
+	[Fact]
+	public void And_being_an_expression_it_stands_wherever_one_does() =>
+		Assert.Equal(
+			10,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => { int doubled = { int half = x; half * 2 }; doubled }")(5));
+
+	[Fact]
+	public void And_it_may_be_an_operand_like_any_other() =>
+		Assert.Equal(
+			7,
+			ExpressionLanguage.Compile<Func<int, int>>("(int x) => 1 + { int t = x; t * 2 }")(3));
+
+	[Fact]
+	public void Two_blocks_beside_each_other_may_each_declare_the_same_name() =>
+		// The case a table by name gets wrong and the reason a name is looked up by where
+		// it is written: these are two variables, and legal C#. The second `t` is 100, and
+		// an answer of 200 would mean the first block's `t` had been overwritten.
+		Assert.Equal(
+			101,
+			ExpressionLanguage.Compile<Func<int>>(
+				"() => { int a = { int t = 1; t }; int b = { int t = 100; t }; a + b }")());
+
+	[Fact]
+	public void And_an_inner_block_shadows_the_name_around_it() =>
+		// C# refuses this outright (CS0136); reading the nearer name is the more permissive
+		// of the two answers and turns no valid C# into something else.
+		Assert.Equal(
+			2,
+			ExpressionLanguage.Compile<Func<int>>("() => { int t = 1; { int t = 2; t } }")());
+
+	[Fact]
+	public void And_a_name_the_block_beside_it_declared_is_not_in_scope() =>
+		Assert.Contains(
+			"nothing named 't'",
+			Assert.Throws<FormatException>(
+				() => ExpressionLanguage.Parse("() => { int a = { int t = 1; t }; t }")).Message);
+
+	[Fact]
+	public void And_a_block_that_is_worth_nothing_says_so() =>
+		Assert.Contains(
+			"worth its last expression",
+			Assert.Throws<FormatException>(
+				() => ExpressionLanguage.Parse("(int x) => { int a = x; }")).Message);
+
+	[Fact]
+	public void A_return_still_leaves_the_whole_lambda() =>
+		// The C# form, unchanged — and from a block inside a block, which is what a label
+		// on the lambda rather than on a block is for.
+		Assert.Equal(
+			9,
+			ExpressionLanguage.Compile<Func<int, int>>(
+				"(int x) => { int t = x; { return t * 3; } }")(3));
+
 	[Fact]
 	public void And_a_name_nothing_declares_is_refused_by_the_binder() =>
 		// The grammar reads it — a name is a word — and the binder is what knows there is

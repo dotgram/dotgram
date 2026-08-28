@@ -1859,6 +1859,16 @@ sealed partial class Machine
 					parameters.Add("string parserText");
 					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
 				}
+
+				// The same extent unread. A guard runs before its rule is finished, so this
+				// is the rule from where it began to where the parse now stands — which is
+				// what "the current rule's span" can mean at a point that is not the end,
+				// and the only thing here that says *where* rather than *what*.
+				if (node is Node.Guard { Text: var spanning } && spanning.Contains("parserSpan"))
+				{
+					parameters.Add("SourceSpan parserSpan");
+					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
+				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
 				foreach (var member in _graph.Results[rule])

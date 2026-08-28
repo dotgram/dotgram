@@ -30,11 +30,11 @@ namespace DotGram.Parsers;
 // **What is left in this class is what the API has nowhere to keep**, and the list is
 // worth reading as exactly that:
 //
-//   * `Declare`/`Named` — a `ParameterExpression` is an identity, and the one made for
-//     `(int x)` has to be the very object each `x` reads. Nothing in the API holds a
-//     mapping from a name to it.
-//   * `Return`/`Block` — a `return` is a jump to a label, and the label belongs to the
-//     block rather than to any statement in it.
+//   * `Declare`/`Named`/`Scoped` — a `ParameterExpression` is an identity, and the one
+//     made for `(int x)` has to be the very object each `x` reads. Nothing in the API
+//     holds a mapping from a name to it, and nothing in it knows what a block is for.
+//   * `Return`/`Returning` — a `return` is a jump to a label, and the label belongs to
+//     the lambda rather than to any statement in it.
 //
 // Everything else the grammar says itself.
 //
@@ -46,24 +46,28 @@ namespace DotGram.Parsers;
 //     that declares it, and no `=>` can resolve a name.
 //   * `when` runs *during* the match (§8.1), in reading order.
 //
-// So declarations are made by guards while reading, and uses are built afterwards
-// against a table that is by then complete. A guard **answers** rather than throws,
-// because it also runs on readings the parse abandons.
+// So declarations and blocks are recorded by guards while reading, and uses are built
+// afterwards against a picture that is by then complete. A guard **answers** rather than
+// throws, because it also runs on readings the parse abandons — which is also why a
+// scope is a pair of positions and not a stack that was pushed and popped. A position is
+// the same fact however many times a reading writes it down.
 //
-// **And the grammar is shaped to the API in three places**, deliberately:
+// **A block is an expression**, because in this API it is one: `Expression.Block` yields
+// the value of its last expression, so `int a = { int b = 2; b * b };` reads and means
+// what it looks like. `return` is there too and does what C# does — leave the whole
+// lambda, from however deep in.
+//
+// **And the grammar is shaped to the API in two places**, deliberately:
 //
 //   * a local says its type — `int sum = …`, not `var sum = …` — because
 //     `Expression.Variable` wants one where the declaration is read, and the initializer
 //     is not built until long after;
-//   * a name means one thing for the whole lambda: a block does not shadow, because
-//     shadowing needs a scope entered and left around a *construction*, and construction
-//     is not where the reading is;
 //   * nothing widens on its own — `x + 1.5` over an `int` and a `double` is refused by
 //     `Expression.Add` itself, in its own words, because a language that speaks only this
 //     API has no place to put a conversion the API did not ask for.
 //
-// All three are the API's requirements showing through, which is what wiring one up
-// actually looks like.
+// Both are the API's requirements showing through, which is what wiring one up actually
+// looks like.
 //
 // **Where it is not C#, and why.** None of these is a shape the notation could not
 // carry; each is the same API requirement showing through again.
@@ -77,7 +81,10 @@ namespace DotGram.Parsers;
 //   * `is`, `as`, `typeof`, `default`, `checked` and a lambda inside an expression are
 //     absent for that same reason or for want of a use here.
 //   * An assignment is a statement, never an expression, so `a = b = c` and `x += 1` are
-//     not written — a block has declarations and `return`, and nothing else.
+//     not written — a block has declarations, expressions and `return`, and no more.
+//   * A block may shadow a name an enclosing one declared, which C# refuses outright
+//     (CS0136). The nearer name wins here — more permissive than C#, so no valid C# is
+//     turned into something else, and the check C# makes is one this has no reason to.
 
 [Gram("""
 	@using System;
@@ -183,8 +190,9 @@ namespace DotGram.Parsers;
 	// ── A lambda: what it takes, and what it does ───────────────────────────────
 
 	Lambda : @LambdaExpression
-		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Body
-		=> @(Expression.Lambda(body, ExpressionLanguage.Taking(first, rest)))
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Expression
+		=> @(Expression.Lambda(
+			ExpressionLanguage.Returning(body), ExpressionLanguage.Taking(first, rest)))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
@@ -206,24 +214,33 @@ namespace DotGram.Parsers;
 	             | "object"  => @(typeof(object))
 
 	// The guard is the declaration: it runs while the text is read, which is the only
-	// moment this grammar has in the order it is written.
+	// moment this grammar has in the order it is written — and `parserSpan` is where it
+	// was read, which is the only thing that can say later which block it belongs to.
 	Parameter : @ParameterExpression
-		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name))
-		=> @(ExpressionLanguage.Named(name))
+		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name, parserSpan))
+		=> @(ExpressionLanguage.Named(name, parserSpan))
 
-	Body : @Expression = b: Block => @(b) | e: Expression => @(e)
+	// ── A block, which is an expression like any other ──────────────────────────
 
-	// ── A block, and the statements it is made of ───────────────────────────────
+	// `Expression.Block` yields the value of its last expression, so this one does too:
+	// statements, and then the expression the block is worth. C# writes that as `return`
+	// and both are here — a `return` is a jump out of the whole lambda, as it is in C#,
+	// and a trailing expression is the block's own value, as it is in the API.
+	//
+	// The guard at the end records the extent, which is what a name written inside it
+	// resolves against. It runs while the text is read (§8.1); a `=>` would be too late,
+	// because a use inside the block is built before the block is.
+	Block : @Expression
+		= '{' & statements: Statement* & value: Expression? & '}'
+		& when @(ExpressionLanguage.Scoped(parserSpan))
+		=> @(ExpressionLanguage.Block(statements, value))
 
-	Block : @Expression = '{' & statements: Statement* & '}'
-	                    => @(ExpressionLanguage.Block(statements))
-
-	Statement : @Expression = s: Local => @(s) | s: Return => @(s)
+	Statement : @Expression = s: Local => @(s) | s: Return => @(s) | s: Expression & ';' => @(s)
 
 	Local : @Expression
-		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name))
+		= type: Type & name: Word & when @(ExpressionLanguage.Declare(type, name, parserSpan))
 		& '=' & value: Expression & ';'
-		=> @(Expression.Assign(ExpressionLanguage.Named(name), value))
+		=> @(Expression.Assign(ExpressionLanguage.Named(name, parserSpan), value))
 
 	Return : @Expression = "return" & value: Expression & ';'
 	                     => @(ExpressionLanguage.Return(value))
@@ -312,7 +329,9 @@ namespace DotGram.Parsers;
 		| p: Primary => @(p)
 
 	Primary : @Expression
-		= '(' & inner: Expression & ')' => @(inner)
+		= b: Block => @(b)
+
+		| '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
@@ -358,7 +377,7 @@ namespace DotGram.Parsers;
 		// which, where which one matters.
 		| "null"     => @(Expression.Constant(null, typeof(object)))
 
-		| name: Word => @(ExpressionLanguage.Named(name))
+		| name: Word => @(ExpressionLanguage.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
 	""")]
@@ -377,6 +396,7 @@ public static partial class ExpressionLanguage
 	public static LambdaExpression Parse(string text)
 	{
 		_declared?.Clear();
+		_scopes?.Clear();
 		_returns = null;
 
 		return ParseLambda(text);
@@ -398,19 +418,50 @@ public static partial class ExpressionLanguage
 
 	// ── What System.Linq.Expressions has nowhere to keep ────────────────────────
 
-	/// <summary>The variables of the lambda being read, by the name the text calls them.</summary>
+	/// <summary>A block's extent, which is the whole of what a scope is.</summary>
+	readonly record struct Scope(int From, int To);
+
+	/// <summary>A variable, the name the text calls it, and where that name was written.</summary>
+	readonly record struct Declaration(int At, string Name, ParameterExpression Variable);
+
+	/// <summary>Every block read, by where it stood.</summary>
+	/// <remarks>
+	/// Recorded by position rather than pushed and popped, and the difference is
+	/// backtracking. A guard runs on readings the parse goes on to abandon, so a stack
+	/// would be left holding a scope nothing is inside; a position is the same fact
+	/// however many times it is written down, and an abandoned reading records an extent
+	/// that no surviving name is written inside.
+	/// </remarks>
+	[ThreadStatic]
+	static List<Scope>? _scopes;
+
+	/// <summary>The variables of the lambda being read, in the order they were declared.</summary>
 	/// <remarks>
 	/// A <c>ParameterExpression</c> is an identity: the one made for <c>(int x)</c> has to
 	/// be the very object every <c>x</c> in the body reads, or the compiled lambda closes
-	/// over a variable nothing assigns. Thread-static and cleared where a parse begins,
-	/// so one lambda's <c>x</c> cannot answer another's.
+	/// over a variable nothing assigns. A list rather than a table by name, because two
+	/// blocks beside each other may each declare an <c>x</c> and those are two variables —
+	/// which is legal C#, and the whole reason a name is looked up by where it is written.
 	/// </remarks>
 	[ThreadStatic]
-	static Dictionary<string, ParameterExpression>? _declared;
+	static List<Declaration>? _declared;
 
 	/// <summary>Where a <c>return</c> goes, made once the first one says what it yields.</summary>
 	[ThreadStatic]
 	static LabelTarget? _returns;
+
+	/// <summary>A block, recorded while the text is read (§8.1).</summary>
+	/// <remarks>
+	/// It has to be read rather than built: <c>=&gt;</c> runs children before parents, so
+	/// every name inside a block is built before the block itself is, and a scope recorded
+	/// there would arrive after the last thing that needed it.
+	/// </remarks>
+	public static bool Scoped(SourceSpan span)
+	{
+		(_scopes ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+
+		return true;
+	}
 
 	/// <summary>
 	/// A declaration, made while the text is read (§8.1) — the only moment this grammar
@@ -422,26 +473,77 @@ public static partial class ExpressionLanguage
 	/// parse goes on to abandon.
 	/// </returns>
 	/// <remarks>
-	/// What that costs is that an abandoned reading leaves its name behind, so a use of a
-	/// name only a failed path declared resolves to a variable no lambda holds — which
-	/// <c>Expression.Lambda</c> refuses, in its own words.
+	/// What that costs is that an abandoned reading leaves its name behind. It is a name
+	/// at a position now, though, so only a use inside the same block can find it — and
+	/// where the reading was abandoned, no such use is left.
 	/// </remarks>
-	public static bool Declare(Type type, string name)
+	public static bool Declare(Type type, string name, SourceSpan at)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
-		(_declared ??= new Dictionary<string, ParameterExpression>(StringComparer.Ordinal))[name] =
-			Expression.Variable(type, name);
+		(_declared ??= []).Add(new Declaration(at.Start, name, Expression.Variable(type, name)));
 
 		return true;
 	}
 
-	/// <summary>The variable that name was declared as.</summary>
-	public static ParameterExpression Named(string name) =>
-		_declared is not null && _declared.TryGetValue(name, out var found)
-			? found
-			: throw new FormatException($"nothing named '{name}' is declared here.");
+	/// <summary>The variable that name means where it is written.</summary>
+	/// <remarks>
+	/// <para>
+	/// A declaration is visible from where it stands to the end of the block holding it,
+	/// which is C#'s rule and is what these two positions decide between them. The
+	/// innermost block wins, so an inner one shadows: where C# refuses that outright
+	/// (CS0136) this reads the nearer name, which is the more permissive of the two and
+	/// turns no valid C# into something else.
+	/// </para>
+	/// <para>A parameter is written outside every block and is therefore in all of them.</para>
+	/// </remarks>
+	public static ParameterExpression Named(string name, SourceSpan at)
+	{
+		var use   = at.Start;
+		var found = default(ParameterExpression);
+		var inner = int.MinValue;
+		var wrote = int.MinValue;
+
+		foreach (var declaration in _declared ?? [])
+		{
+			if (!string.Equals(declaration.Name, name, StringComparison.Ordinal) ||
+				declaration.At > use)
+				continue;
+
+			var block = Holding(declaration.At);
+
+			// Declared in a block this use is not inside: the other branch of the same
+			// choice, the block before this one. Not a shadow and not an error — simply
+			// not a name that is in scope here.
+			if (block is { } held && (held.From > use || held.To <= use))
+				continue;
+
+			var from = block?.From ?? int.MinValue + 1;
+
+			if (from > inner || from == inner && declaration.At > wrote)
+			{
+				found = declaration.Variable;
+				inner = from;
+				wrote = declaration.At;
+			}
+		}
+
+		return found ?? throw new FormatException($"nothing named '{name}' is declared here.");
+	}
+
+	/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
+	static Scope? Holding(int position)
+	{
+		var innermost = default(Scope?);
+
+		foreach (var scope in _scopes ?? [])
+			if (scope.From <= position && position < scope.To &&
+				(innermost is not { } known || scope.From > known.From))
+				innermost = scope;
+
+		return innermost;
+	}
 
 	/// <summary>The parameters a lambda takes, in the order it wrote them.</summary>
 	public static ParameterExpression[] Taking(ParameterExpression? first, ParameterExpression[] rest)
@@ -457,7 +559,7 @@ public static partial class ExpressionLanguage
 		return parameters;
 	}
 
-	/// <summary>A jump to the block's label, which the first <c>return</c> is what makes.</summary>
+	/// <summary>A jump to the lambda's label, which the first <c>return</c> is what makes.</summary>
 	public static Expression Return(Expression value)
 	{
 		if (value is null)
@@ -468,21 +570,35 @@ public static partial class ExpressionLanguage
 		return Expression.Return(_returns, value);
 	}
 
+	/// <summary>The body with the place its returns go to, where any of them do.</summary>
+	/// <remarks>
+	/// One label for the lambda rather than one per block, because that is what a
+	/// <c>return</c> means in C#: it leaves the whole method, from however deep in. The
+	/// lambda is also the only place that can hold it — a block is built before the blocks
+	/// around it, so no block knows whether it is the outermost.
+	/// </remarks>
+	public static Expression Returning(Expression body)
+	{
+		if (body is null)
+			throw new ArgumentNullException(nameof(body));
+
+		return _returns is null
+			? body
+			: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
+	}
+
 	/// <summary>
-	/// A block: the variables it declared, its statements, and the label its returns go to.
+	/// A block: the variables it declared, its statements, and the expression it is worth.
 	/// </summary>
 	/// <remarks>
 	/// The variables are read back out of the assignments rather than collected
 	/// separately — an assignment to a variable is what a declaration became, so the
 	/// statements already say which they are.
 	/// </remarks>
-	public static Expression Block(Expression[] statements)
+	public static Expression Block(Expression[] statements, Expression? value)
 	{
 		if (statements is null)
 			throw new ArgumentNullException(nameof(statements));
-
-		if (_returns is null)
-			throw new FormatException("a block has to end in a return.");
 
 		var variables = new List<ParameterExpression>();
 
@@ -490,13 +606,17 @@ public static partial class ExpressionLanguage
 			if (statement is BinaryExpression { NodeType: ExpressionType.Assign, Left: ParameterExpression variable })
 				variables.Add(variable);
 
-		var body = new List<Expression>(statements)
-		{
-			// The label is the block's value, and the tree asks for a default for the
-			// path that falls off the end — which this language does not allow and the
-			// tree has no way to know.
-			Expression.Label(_returns, Expression.Default(_returns.Type)),
-		};
+		var body = new List<Expression>(statements);
+
+		if (value is not null)
+			body.Add(value);
+
+		// A block that ends in a `return` never reaches its own end, so it needs no value:
+		// the jump is where control goes, and the lambda is what holds the label.
+		else if (statements.Length == 0 || statements[statements.Length - 1] is not GotoExpression)
+			throw new FormatException(
+				"a block is worth its last expression, and this one has none. End it with an " +
+				"expression, or with a 'return'.");
 
 		return Expression.Block(variables, body);
 	}
