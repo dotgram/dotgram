@@ -5026,3 +5026,72 @@ disagree early and expensive when they agree for a while**, and an alternative t
 whole operand before testing one character is the expensive kind.
 
 1,271 tests green in both configurations.
+
+## Found, on being asked "826 ms?": the whole ladder was exponential
+
+The number was real — re-measured as a single parse, 904 ms, with the run's wall clock
+agreeing. But checking it found something much worse than the shape it was about.
+
+**A plain nested expression was exponential too.** `(((0 + 1) + 1) + 1)` and so on, no
+assignment, no index, nothing but parentheses and `+`:
+
+| depth | before | after |
+| --- | --- | --- |
+| 6 (50 chars) | 446 ms | 0.23 ms |
+| 7 (56 chars) | 1,822 ms | 0.29 ms |
+| 8 (62 chars) | 7,395 ms | 0.39 ms |
+| 9 (68 chars) | **29,977 ms** | **0.43 ms** |
+
+Factor 4.06 per level, settled. A sixty-eight-character expression took half a minute, and
+an eighty-character one would have taken a working day.
+
+**It was two rules.** `Conditional` and `Coalesce` are the only right-associative levels of
+the ladder, and both were written as two alternatives:
+
+```dotgram
+Conditional = test: Coalesce & '?' & then: Conditional & ':' & otherwise: Conditional
+            | c: Coalesce
+```
+
+The first reads its whole operand to look for a `?` that is almost never there; the second
+reads it again to hand it on. Each such rule doubles per level of nesting, and two of them
+multiply the cost of a parenthesis by four. Every level below them is left-recursive, and
+§4.3 folds those — a fold reads its operand once by construction, which is why the twelve
+levels that *are* folds never showed this and the two that are not showed all of it.
+
+Written with the tail optional instead — `test: Coalesce & ('?' & … )?` — the operand is
+read once and the same thirty seconds is 0.43 ms. What the host gains is a null test:
+`Chosen` answers the condition where no tail was written.
+
+Three more shapes were measured after it, and two of them had it too:
+
+| | before | after |
+| --- | --- | --- |
+| nested `new` (256 chars, nine deep) | 1,001 ms | 0.53 ms |
+| nested `if`/`else` branches | already linear | 0.68 ms |
+| nested indexed assignment | 10,373 ms | 4.09 ms |
+
+`new` was three alternatives reading `Type & Arguments` before diverging on what stood in
+the braces after them — the same mistake, factor 3. Now one alternative with the
+initializer optional, and the host chooses among `New`, `MemberInit` and `ListInit` by what
+was written.
+
+Nested indexed assignment is the one that is still not linear: 1.9 per level, because the
+alternative that writes to an element reads a whole index before testing the `=` after it.
+At nine deep that is 4 ms, so it is left as it is and written down here.
+
+### What this is really about
+
+Three times this session a cost turned out to be **an alternative that reads a whole
+operand before testing one character**, and each time the fix was to stop it: one route per
+construct, one reading of the target, one reading of the arguments. That is a rule of thumb
+for writing grammars in this notation, and it is already in the file above.
+
+It is also a missing generator feature, and the honest name for it is **left factoring**.
+`A = X & p | X & q` can read `X` once and choose after it; nothing in the notation stops
+the author writing the natural form, and nothing in the generator saves them from it. Every
+workaround above trades a factory named in the grammar for a null test in the host —
+`Chosen`, `Coalesced`, `Made` — which is precisely the trade a generator that factored the
+common head would not ask for. It belongs on the list beside the lexical layer.
+
+1,271 tests green in both configurations.

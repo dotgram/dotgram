@@ -502,13 +502,25 @@ namespace DotGram.Parsers;
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
+	//
+	// **The tail is optional rather than the whole thing being two alternatives**, and that
+	// is the difference between this parser and one that cannot be used. Written as
+	// `test: Coalesce & '?' & … | c: Coalesce`, each of these two rules reads its operand
+	// once to look for an operator that is usually not there and once more to hand it on —
+	// so each doubles per level of nesting, and the two of them together multiplied the
+	// cost of a parenthesis by four. `(((0 + 1) + 1) + 1)` nine deep, sixty-eight
+	// characters, took **thirty seconds**; with the tail optional it takes 0.39 ms.
+	//
+	// The left-recursive levels below never had this: §4.3 folds them, and a fold reads its
+	// operand once by construction. These two are the only right-associative ones, which is
+	// why they are the only two that were written this way.
 	Conditional : @Expression
-		= test: Coalesce & '?' & then: Conditional & ':' & otherwise: Conditional
-		  => @(Expression.Condition(test, then, otherwise))
-		| c: Coalesce => @(c)
+		= test: Coalesce & ('?' & then: Conditional & ':' & otherwise: Conditional)?
+		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
 
-	Coalesce : @Expression = left: Or & "??" & right: Coalesce => @(Expression.Coalesce(left, right))
-	                       | o: Or                             => @(o)
+	Coalesce : @Expression
+		= left: Or & ("??" & right: Coalesce)?
+		  => @(ExpressionLanguage.Coalesced(left, right))
 
 	Or  : @Expression = left: Or  & "||" & right: And   => @(Expression.OrElse(left, right))
 	                  | a: And                          => @(a)
@@ -619,16 +631,13 @@ namespace DotGram.Parsers;
 		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
 		// An initializer is written after the constructor's own arguments, and which of the
 		// two it is is what stands inside the braces: `Name = value` sets a member, and an
-		// expression is an element to add. Ordered choice reads them apart.
-		| "new" & type: Type & args: Arguments & fields: Bindings
-		  => @(Expression.MemberInit(
-			Expression.New(ExpressionLanguage.Constructor(type, args), args),
-			ExpressionLanguage.Bound(type, fields)))
-		| "new" & type: Type & args: Arguments & '{' & items: Elements & '}'
-		  => @(Expression.ListInit(
-			Expression.New(ExpressionLanguage.Constructor(type, args), args), items))
+		// expression is an element to add. Both are one optional tail rather than three
+		// alternatives, for the reason `Conditional` gives above — three alternatives read
+		// the arguments three times before finding out which they are, and the arguments
+		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
-		  => @(Expression.New(ExpressionLanguage.Constructor(type, args), args))
+		  & (fields: Bindings | '{' & items: Elements & '}')?
+		  => @(ExpressionLanguage.Made(type, args, fields, items))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -1021,6 +1030,23 @@ public static partial class ExpressionLanguage
 		return bound;
 	}
 
+	/// <summary>A construction, with whatever initializer was written after it.</summary>
+	/// <remarks>
+	/// Three factories and one syntax, and which is meant is whether an initializer was
+	/// written and what stood inside its braces. That could have been three alternatives,
+	/// each naming its own factory, and reading the arguments three times is what that cost
+	/// — so the reading is one and the choosing is here. It is the shape a generator that
+	/// factored the common head of its alternatives would let the grammar keep.
+	/// </remarks>
+	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Expression[]? items)
+	{
+		var made = Expression.New(Constructor(type, args), args);
+
+		return fields is not null ? Expression.MemberInit(made, Bound(type, fields))
+			: items is not null   ? Expression.ListInit(made, items)
+			: made;
+	}
+
 	/// <summary>The arguments of a call, in the order they were written.</summary>
 	public static Expression[] Listed(Expression? first, Expression[] rest)
 	{
@@ -1274,17 +1300,15 @@ public static partial class ExpressionLanguage
 	/// what that turns into here. Written the other way round, the grammar would have to
 	/// carry a distinction that only <c>System.Linq.Expressions</c> makes.
 	/// </remarks>
-	public static Expression Chosen(Expression test, Expression then, Expression otherwise)
-	{
-		if (then is null)
-			throw new ArgumentNullException(nameof(then));
+	public static Expression Chosen(Expression test, Expression? then, Expression? otherwise) =>
+		then is null || otherwise is null
+			? test
+			: Expression.Condition(
+				test, then, otherwise, then.Type == otherwise.Type ? then.Type : typeof(void));
 
-		if (otherwise is null)
-			throw new ArgumentNullException(nameof(otherwise));
-
-		return Expression.Condition(
-			test, then, otherwise, then.Type == otherwise.Type ? then.Type : typeof(void));
-	}
+	/// <summary>A <c>??</c> where one was written, and the left side where none was.</summary>
+	public static Expression Coalesced(Expression left, Expression? right) =>
+		right is null ? left : Expression.Coalesce(left, right);
 
 	/// <summary>The body with the place its returns go to, where any of them do.</summary>
 	/// <remarks>
