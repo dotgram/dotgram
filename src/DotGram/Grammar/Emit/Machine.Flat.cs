@@ -192,7 +192,7 @@ sealed partial class Machine
 	/// </remarks>
 	public bool CanLowerValued(RuleSymbol rule, bool whole)
 	{
-		if (UsesInput || !FlatValued(rule))
+		if (UsesInput || ReadsState || !FlatValued(rule))
 			return false;
 
 		_valuesInLocals = true;
@@ -309,6 +309,8 @@ sealed partial class Machine
 			Node.Choice(var alternatives)     => alternatives.All(part => CapturesAreExtents(part, repeated)),
 			Node.Repeat(var body, _, var max) => CapturesAreExtents(body, repeated || max != 1),
 			Node.Atomic(var body)             => CapturesAreExtents(body, repeated),
+			Node.Marked(var body, _)          => CapturesAreExtents(body, repeated),
+
 			Node.Lookahead(_, var seen)       => NodeWalk.Descendants(seen).All(
 			                                         static inner => inner is not Node.Capture),
 			Node.Construct                    => false,

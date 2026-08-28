@@ -121,6 +121,31 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 			"hand-written: Xas is one token");
 	}
 
+	/// <summary>
+	/// Both implementations read the two declarations of §7.7 and §7.8, and both still read
+	/// a rule that happens to be called by either name.
+	/// </summary>
+	/// <remarks>
+	/// A word and a colon and a type, with nothing after it: what makes `context = 'x'` a
+	/// rule rather than a declaration is the `=`, and both halves have to agree about that
+	/// or the notation has two meanings.
+	/// </remarks>
+	[Theory]
+	[InlineData("context : @Names\nStart = 'x'\n")]
+	[InlineData("state : @Overflow\nStart = 'x'\n")]
+	[InlineData("context : @Names\nstate : @Overflow\nStart = 'x'\n")]
+	[InlineData("context = 'c'\nstate = 's'\nStart = context & state\n")]
+	[InlineData("state : @int\nStart = ('a' & 'b') with state @(1) & 'c'\n")]
+	[InlineData("state : @int\nStart = x: 'a'+ with state @(Overflow.Checked)\n")]
+	[InlineData("state : @int\nA = 'a'\nStart = A with (A = 'b') with state @(1)\n")]
+	public void Both_implementations_read_the_supplied_declarations(string text)
+	{
+		Assert.True(GramGrammar.TryParseFile(text).IsSuccess, "generated");
+		Assert.False(
+			GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).HasErrors,
+			"hand-written");
+	}
+
 	/// <summary>The checked-in grammars, the same way the corpus test finds them.</summary>
 	static (string Name, string Text)[] Corpus() =>
 		[.. Directory

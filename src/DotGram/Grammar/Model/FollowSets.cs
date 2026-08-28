@@ -161,6 +161,7 @@ public static class FollowSets
 					case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
 					case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
 					case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
+					case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
 
 					// What is inside is read and given back, so what follows it is read
 					// again by whatever comes next — which this cannot see from here.
@@ -223,6 +224,7 @@ public static class FollowSets
 			case Node.Capture(_, var captured):  return Precedes(captured, after, graph, seam);
 			case Node.Construct(var built, _):   return Precedes(built,    after, graph, seam);
 			case Node.Atomic(var kept):          return Precedes(kept,     after, graph, seam);
+			case Node.Marked(var kept, _):       return Precedes(kept,     after, graph, seam);
 
 			// A turn is either taken — and then it stands before another turn or before the
 			// continuation, with anything past its own seam unknowable from here — or, for

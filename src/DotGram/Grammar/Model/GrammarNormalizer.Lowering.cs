@@ -110,6 +110,7 @@ public sealed partial class GrammarNormalizer
 		Expr.Call     (var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
 		Expr.Reference(_, var name, _)            => LowerReference(expression, name),
 		Expr.With     (var operand, _)            => LowerWith(expression, operand, ns),
+		Expr.Marked   (var operand, var value)    => new Node.Marked(Lower(operand, ns), Substituted(Text(value))),
 		_                                         => Node.Empty.Instance,
 	};
 

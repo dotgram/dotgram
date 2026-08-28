@@ -190,6 +190,11 @@ public sealed partial class GrammarNormalizer
 			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) => a == b,
 			(Node.Literal a, Node.Literal b)                       => a == b,
 			(Node.Atomic(var a), Node.Atomic(var b))               => SameShape(a, b),
+
+			// The marks themselves are not compared: a mark changes nothing about what is
+			// read, so two alternatives that differ only in one really do share a prefix.
+			(Node.Marked(var a, _), Node.Marked(var b, _))         => SameShape(a, b),
+
 			_                                                      => false,
 		};
 
@@ -390,6 +395,7 @@ public sealed partial class GrammarNormalizer
 			case Node.Capture  (_, var captured):    return Reaches(captured, target, seen);
 			case Node.Construct(var built, _):       return Reaches(built, target, seen);
 			case Node.Atomic   (var atomic):         return Reaches(atomic, target, seen);
+			case Node.Marked   (var marked, _):      return Reaches(marked, target, seen);
 			case Node.Repeat   (var repeated, _, _): return Reaches(repeated, target, seen);
 			case Node.Lookahead(_, var ahead):       return Reaches(ahead, target, seen);
 

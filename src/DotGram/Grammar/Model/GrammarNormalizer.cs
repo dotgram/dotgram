@@ -146,6 +146,7 @@ public sealed partial class GrammarNormalizer
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
 			Context    = model.Context?.Name,
+			State      = model.State?.Name,
 		};
 	}
 
@@ -206,6 +207,7 @@ public sealed partial class GrammarNormalizer
 		Node.Guard                           => true,
 		Node.Lookahead                       => true,
 		Node.Atomic   (var body)             => IsNullable(body),
+		Node.Marked   (var body, _)          => IsNullable(body),
 		Node.Capture  (_, var body)          => IsNullable(body),
 		Node.Construct(var body, _)          => IsNullable(body),
 		Node.Repeat   (var body, var min, _) => min == 0 || IsNullable(body),
@@ -534,6 +536,7 @@ public sealed partial class GrammarNormalizer
 	{
 		Node.Capture  (var captured, var body)  => captured == name || Writes(body, name),
 		Node.Atomic   (var body)                => Writes(body, name),
+		Node.Marked   (var body, _)             => Writes(body, name),
 		Node.Sequence (var nodes)               => nodes.Any(child => Writes(child, name)),
 		Node.Choice   (var nodes)               => nodes.All(child => Writes(child, name)),
 		Node.Construct(var built, _)            => Writes(built, name),

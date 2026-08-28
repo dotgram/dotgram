@@ -573,6 +573,178 @@ public sealed class SemanticTests
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
 
+	// ── §7.8, the marks a parse places over an extent ────────────────────────────
+
+	/// <summary>
+	/// The property the whole design rests on: a mark changes nothing about what is read.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the parser rather than of the generated text, because that is the claim — a
+	/// comparison of sources fails on state numbering, which shifts the moment two states
+	/// are added and says nothing about what either parser does. So the same grammar is
+	/// compiled twice, with marks over it and without, and run over inputs that succeed,
+	/// that fail outright, and that fail after backtracking. The two must agree on all of
+	/// it: the answer, the value, the message and where the failure is reported.
+	/// </remarks>
+	[Theory]
+	[InlineData("1")]
+	[InlineData("1+2")]
+	[InlineData("1+2+3")]
+	[InlineData("")]
+	[InlineData("1+")]
+	[InlineData("+1")]
+	[InlineData("1+2x")]
+	public void A_mark_changes_nothing_about_what_is_read(string input)
+	{
+		const string Plain =
+			"""
+			Start : @string = left: Digit & ('+' & right: Start)? => @(left + ":" + right)
+			Digit : @string = t: ['0'..'9'] => @(t)
+			""";
+
+		const string Marked =
+			"""
+			state : @int
+			Start : @string = left: Digit with state @(1) & ('+' & right: Start)? => @(left + ":" + right)
+			Digit : @string = t: ['0'..'9'] => @(t)
+			""";
+
+		var plain  = Parsed(Plain,  input);
+		var marked = Parsed(Marked, input);
+
+		Assert.Equal(plain.IsSuccess, marked.IsSuccess);
+		Assert.Equal(plain.Value,     marked.Value);
+		Assert.Equal(plain.Error,     marked.Error);
+		Assert.Equal(plain.Position,  marked.Position);
+	}
+
+	/// <summary>Nested marks, and the nearest one winning — which is what `checked` needs.</summary>
+	/// <remarks>
+	/// One rule read in three places, under two marks, one mark and none. What it is handed
+	/// is what stands over it and nothing else, outermost first, so the last element is the
+	/// nearest — and that is the whole of how a hook tells `checked` from the `unchecked`
+	/// inside it.
+	/// </remarks>
+	[Fact]
+	public void The_marks_a_construction_stands_under_are_the_ones_over_it() =>
+		Assert.Equal(
+			"a1b2c-",
+			Built(
+				"""
+					state : @int
+					Start : @string
+						= (a: Item & b: Item with state @(2)) with state @(1) & c: Item
+						=> @(a + b + c)
+					Item : @string
+						= t: ['a'..'z']
+						=> @(t + (parserState.Length == 0
+							? "-"
+							: parserState[parserState.Length - 1].ToString()))
+					""",
+				"abc"));
+
+	[Fact]
+	public void A_mark_an_abandoned_reading_placed_is_not_one_the_accepted_reading_stands_under() =>
+		// Nothing unwinds a mark, because nothing has to: the entry recording it is taken
+		// away with everything else the abandoned reading wrote, and the walk that reads
+		// them runs over what is left. The first alternative here matches `ab`, marks it,
+		// and is then given back for want of the `!` — so the second alternative's `Item`
+		// must see no mark at all.
+		Assert.Equal(
+			"a-b-",
+			Built(
+				"""
+					state : @int
+					Start : @string
+						= (x: Item & y: Item) with state @(9) & '!' => @(x + y)
+						| p: Item & q: Item                        => @(p + q)
+					Item : @string
+						= t: ['a'..'z']
+						=> @(t + (parserState.Length == 0
+							? "-"
+							: parserState[parserState.Length - 1].ToString()))
+					""",
+				"ab"));
+
+	[Fact]
+	public void A_state_belongs_to_the_whole_grammar() =>
+		Refused(
+			GrammarBinder.StateNotAtRoot,
+			"""
+			namespace Inner
+			{
+				state : @int
+				A = 'x'
+			}
+			Start = Inner.A
+			""");
+
+	[Fact]
+	public void And_a_grammar_declares_one_type_for_all_of_them() =>
+		Refused(
+			GrammarBinder.DuplicateState,
+			"""
+			state : @int
+			state : @string
+			Start = 'x'
+			""");
+
+	[Fact]
+	public void And_state_is_still_an_ordinary_name_for_a_rule() =>
+		// The body is what tells the two apart, the same as `context` — and `with (state =
+		// other)` still rebinds this rule, because a rebinding is parenthesized and a mark
+		// is not.
+		Assert.Equal(
+			"xy",
+			Read(
+				Built(
+					"""
+					Start = a: state
+					state = "xy"
+					""",
+					"xy"),
+				"A"));
+
+	/// <summary>What all of this was built for, written out whole.</summary>
+	/// <remarks>
+	/// One <c>Sum</c> rule, read the same way everywhere, whose construction asks what it
+	/// stands under: `!` where overflow is checked and `+` where it is not. That is the
+	/// division §7.8 rests on — the mark cannot change what is read, and here nothing about
+	/// the reading differs; only the value built from it does.
+	/// <para>
+	/// `c(1+u(2+3)+4)` is the shape a pair of flags cancelling each other cannot express.
+	/// The inner mark does not turn the outer one off — it stands over its own protraction
+	/// and the outer one is in force again after it, which is what nesting means and what
+	/// an arena gives for nothing.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("1+2",           "(1+2)")]
+	[InlineData("c(1+2)",        "(1!2)")]
+	[InlineData("c(1+u(2+3)+4)", "(1!((2+3)!4))")]
+	[InlineData("u(c(1+2))",     "(1!2)")]
+	[InlineData("c(u(c(1+2)))",  "(1!2)")]
+	public void A_mark_is_how_one_rule_reads_two_ways(string input, string expected) =>
+		Assert.Equal(
+			expected,
+			Built(
+				"""
+				state : @int
+				Sum : @string
+					= left: Atom & ('+' & right: Sum)?
+					=> @(right == null
+						? left
+						: "(" + left +
+							(parserState.Length > 0 && parserState[parserState.Length - 1] == 1 ? "!" : "+") +
+							right + ")")
+				Atom : @string
+					= 'c' & '(' & e: Sum with state @(1) & ')' => @(e)
+					| 'u' & '(' & e: Sum with state @(0) & ')' => @(e)
+					| d: ['0'..'9']                            => @(d)
+				Start : @string = e: Sum => @(e)
+				""",
+				input));
+
 	// ── §7.7, the state a parse works out ───────────────────────────────────────
 
 	[Fact]

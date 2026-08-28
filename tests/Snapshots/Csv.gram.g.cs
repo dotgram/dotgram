@@ -1210,6 +1210,19 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal const int CaptureOpen = 16;
 
+			/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
+			/// <remarks>
+			/// Inert while the text is read: nothing dispatches on these and nothing restores
+			/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
+			/// it is why a mark needs no save-and-restore of its own. What reads them is the
+			/// walk that runs the factories once a derivation is accepted, over an arena that
+			/// by then holds only what was accepted (§7.8).
+			/// </remarks>
+			internal const int StateSet = 17;
+
+			/// <inheritdoc cref="StateSet"/>
+			internal const int StateEnd = 18;
+
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
 				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1)

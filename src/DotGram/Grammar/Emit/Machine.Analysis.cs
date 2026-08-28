@@ -306,6 +306,9 @@ sealed partial class Machine
 			case Node.Atomic(var kept):
 				return 1 + Weight(kept, budget - 1);
 
+			case Node.Marked(var kept, _):
+				return 1 + Weight(kept, budget - 1);
+
 			case Node.Lookahead(_, var seen):
 				return 1 + Weight(seen, budget - 1);
 
@@ -468,6 +471,7 @@ sealed partial class Machine
 			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
 			Node.Construct(var body, _)                => Deterministic(body, seen, following),
 			Node.Atomic(var body)                      => Deterministic(body, seen, following),
+			Node.Marked(var body, _)                   => Deterministic(body, seen, following),
 			Node.Sequence(var parts)                   => AllDeterministic(parts, seen, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllDeterministic(

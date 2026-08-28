@@ -224,9 +224,16 @@ sealed partial class Machine
 
 		var factory = factories[0];
 
+		// Everything a factory can be handed that is not one of its own captures. The call
+		// written for a site is built from the spans the site recorded and from nothing
+		// else, so a callee that asks for any of these has to keep its boundary — the
+		// alternative is a call missing an argument, which is an error in the consumer's
+		// build rather than in this one.
 		if (CSharpEmitter.WantsText(factory) ||
 			CSharpEmitter.Asks(factory, "parserSpan") ||
 			CSharpEmitter.Asks(factory, "parserInput") ||
+			_graph.Context is not null && CSharpEmitter.Asks(factory, "context") ||
+			_graph.State is not null && CSharpEmitter.Asks(factory, "parserState") ||
 			factory.Accumulator is not null)
 			return false;
 
@@ -255,6 +262,7 @@ sealed partial class Machine
 			Node.Choice(var alternatives)     => alternatives.All(part => SpanCaptures(part, repeated)),
 			Node.Repeat(var body, _, var max) => SpanCaptures(body, repeated || max != 1),
 			Node.Atomic(var body)             => SpanCaptures(body, repeated),
+			Node.Marked(var body, _)          => SpanCaptures(body, repeated),
 			Node.Lookahead(_, var seen)       => NodeWalk.Descendants(seen).All(
 			                                         static inner => inner is not Node.Capture),
 			Node.Construct                    => false,

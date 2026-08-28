@@ -31,6 +31,8 @@ public sealed class GrammarBinder
 	public const string ShadowsEnclosingRule      = "GRAM3012";
 	public const string ContextNotAtRoot          = "GRAM3013";
 	public const string DuplicateContext          = "GRAM3014";
+	public const string StateNotAtRoot            = "GRAM3015";
+	public const string DuplicateState            = "GRAM3016";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a namespace outside
@@ -86,11 +88,15 @@ public sealed class GrammarBinder
 
 		return new GrammarModel(
 			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
-			binder._publications, binder._diagnostics) { Context = binder._context };
+			binder._publications, binder._diagnostics)
+			{ Context = binder._context, State = binder._state };
 	}
 
-	/// <summary>The declared type of the grammar's own state, or null where none is.</summary>
+	/// <summary>What a parse works out and hands back, or null where none is (§7.7).</summary>
 	TypeRef? _context;
+
+	/// <summary>The type every <c>with state</c> mark is written in, or null (§7.8).</summary>
+	TypeRef? _state;
 
 	GrammarNamespace CreateStandardLibrary()
 	{
@@ -258,6 +264,30 @@ public sealed class GrammarBinder
 
 					else
 						_context = context.Type;
+
+					break;
+
+				// The same three rules, for the same reason: the marks a parse places are
+				// read by one walk over one arena, and a type for part of that would be a
+				// type for part of an answer.
+				case Decl.State state:
+
+					if (ns.Parent?.Parent is not null)
+						Report(
+							StateNotAtRoot,
+							"A 'state' belongs to the whole grammar, so it is declared outside every " +
+							"namespace. Every mark a 'with state' site places is written in the one type.",
+							state.At);
+
+					else if (_state is not null)
+						Report(
+							DuplicateState,
+							"This grammar already declares a 'state'. Two concerns are told apart by " +
+							"their values, read by the hook that cares — not by declaring a second type.",
+							state.At);
+
+					else
+						_state = state.Type;
 
 					break;
 

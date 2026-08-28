@@ -103,10 +103,20 @@ namespace DotGram.Examples;
 	// language's own (§2).
 	Using : @GramUsing = '@'? & "using" & name: Name & ';' => @(new GramUsing(name))
 
+	// `context : @T` and `state : @T` before the rules, because a rule may be called
+	// either name: what tells a declaration from one is that a declaration stops at the
+	// type, and a rule goes on to `=`. Ordered choice asks that by trying.
 	Declaration : @GramDecl
-		= d: Namespace   => @(d)
+		= d: Supplied    => @(d)
+		| d: Namespace   => @(d)
 		| d: Publication => @(d)
 		| d: Rule        => @(d)
+
+	// §7.7 and §7.8. One shape, because they are one shape: a word, a colon, a type,
+	// and nothing after it.
+	Supplied : @GramDecl
+		= kind: ("context" | "state") & ':' & type: Type & ?!'='
+		=> @(new GramSupplied(kind, type))
 
 	Namespace : @GramDecl
 		= "namespace" & name: Identifier & With?
@@ -129,7 +139,10 @@ namespace DotGram.Examples;
 	Parameter      = Identifier & (':' & Type)?
 	Type : @string = text: (Reference & "[]"?) => @(text)
 
+	// §7.8's mark reuses the word and is told from a rebinding by the token after it:
+	// `(` opens a rebinding, and `state` can only be the other.
 	With           = "with" & Rebindings
+	Marking : @string = "with" & "state" & value: Value => @(value)
 	Rebindings     = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
 	// §5.1's other half: what replaces a rule may be any operand. The left stays an
 	// identifier — it opens what is being replaced, and opening is what a name is for.
@@ -155,7 +168,11 @@ namespace DotGram.Examples;
 
 	// `with` last, outermost of the three: `Number+ with (X = Y)` is `(Number+) with
 	// (X = Y)`, and the other reading needs parentheses.
-	Quantified : @GramExpr = body: QuantifiedCore & rebound: With? => @(GramGrammar.Rebound(body, rebound))
+	// Both suffixes, repeated: they are different mechanisms on the same operand and
+	// either may want the other around it, so what is written first ends up innermost.
+	Quantified : @GramExpr
+		= body: QuantifiedCore & rebound: With* & mark: Marking*
+		=> @(GramGrammar.Marked(GramGrammar.Rebound(body, rebound), mark))
 
 	// Named because two other places take exactly this and stop short of the `with`: a
 	// directive's target and a rebinding's replacement, where a following `with` belongs
@@ -235,6 +252,9 @@ public partial class GramGrammar
 
 	public sealed record GramRule(string Name, string? Type, GramExpr Body) : GramDecl;
 
+	/// <summary>A `context : @T` or a `state : @T` — §7.7 and §7.8.</summary>
+	public sealed record GramSupplied(string Kind, string Type) : GramDecl;
+
 	public abstract record GramExpr;
 
 	public sealed record GramChoice(GramExpr[] Alternatives) : GramExpr;
@@ -243,6 +263,9 @@ public partial class GramGrammar
 
 	/// <summary>A quantifier, a <c>recover</c> or a <c>with</c> wrapped around an operand.</summary>
 	public sealed record GramQuantified(GramExpr Body, string? Quantifier, GramExpr? Recovery, bool Rebound) : GramExpr;
+
+	/// <summary>An operand under a `with state` mark (§7.8).</summary>
+	public sealed record GramMarked(GramExpr Body, string Value) : GramExpr;
 
 	public sealed record GramCapture(string Name, GramExpr Body) : GramExpr;
 
@@ -286,13 +309,22 @@ public partial class GramGrammar
 			? body
 			: new GramQuantified(body, quantifier, recovery, false);
 
-	/// <summary>The `with` that may follow an operand, where one does (§5.1).</summary>
+	/// <summary>The `with` suffixes that may follow an operand, where any do (§5.1).</summary>
 	public static GramExpr Rebound(GramExpr body, string? rebound) =>
-		rebound is null
+		string.IsNullOrEmpty(rebound)
 			? body
 			: body is GramQuantified quantified
 				? quantified with { Rebound = true }
 				: new GramQuantified(body, null, null, true);
+
+	/// <summary>The `with state` marks that may follow an operand, where any do (§7.8).</summary>
+	public static GramExpr Marked(GramExpr body, string[] mark)
+	{
+		foreach (var value in mark)
+			body = new GramMarked(body, value);
+
+		return body;
+	}
 
 	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest) =>
 		new GramCall(target, first is null ? [] : Joined(first, rest));

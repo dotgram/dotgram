@@ -1477,6 +1477,52 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""));
 
+	// ── §7.8, the marks a parse places over an extent ────────────────────────────
+
+	[Fact]
+	public void A_factory_that_names_the_marks_is_handed_them()
+	{
+		var source = Emit(
+			"""
+			state : @Overflow
+			Value : @int = t: ['0'..'9']+ => @(Read(t, parserState))
+			Start : @int = "checked" & '(' & v: Value with state @(Overflow.Checked) & ')' => @(v)
+			parse Start
+			""");
+
+		Assert.Contains(
+			"Construct_Value(global::System.ReadOnlySpan<Overflow> parserState, string t)", source);
+		Assert.Contains("ParserEntry.StateSet, 0, p,", source);
+		Assert.Contains("ParserEntry.StateEnd, 0, p,", source);
+	}
+
+	[Fact]
+	public void And_one_that_does_not_is_not() =>
+		// The same rule the supplied names of §8.2 and `context` follow: what a hook does
+		// not name, it is not given.
+		Assert.DoesNotContain(
+			"parserState",
+			Emit(
+				"""
+				state : @Overflow
+				Value : @int = t: ['0'..'9']+ => @(int.Parse(t))
+				Start : @int = 'c' & v: Value with state @(Overflow.Checked) => @(v)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_a_grammar_that_places_none_carries_none_of_the_machinery() =>
+		Assert.DoesNotContain(
+			"ParserEntry.StateSet",
+			Emit(
+				"""
+				state : @Overflow
+				Start : @int = t: ['0'..'9']+ => @(int.Parse(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

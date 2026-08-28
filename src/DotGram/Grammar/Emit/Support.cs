@@ -713,6 +713,7 @@ public static partial class CSharpEmitter
 			/// time is never looked at.
 			/// </remarks>
 			int[] _owners = global::System.Array.Empty<int>();
+			/*MARK_FIELD*/
 			internal int LinkedUpTo;
 			int _valuesUsed;
 
@@ -741,6 +742,7 @@ public static partial class CSharpEmitter
 				if (_owners.Length < count)
 					global::System.Array.Resize(ref _owners, global::System.Math.Max(count, _owners.Length * 2));
 
+				/*MARK_RESIZE*/
 				_valuesUsed = count;
 
 				return _values;
@@ -751,6 +753,7 @@ public static partial class CSharpEmitter
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;
+			/*MARK_ACCESS*/
 
 			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
 			// smaller call is still the answer for that index, and re-zeroing it would erase
@@ -904,6 +907,19 @@ public static partial class CSharpEmitter
 			/// </remarks>
 			internal const int CaptureOpen = 16;
 
+			/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
+			/// <remarks>
+			/// Inert while the text is read: nothing dispatches on these and nothing restores
+			/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
+			/// it is why a mark needs no save-and-restore of its own. What reads them is the
+			/// walk that runs the factories once a derivation is accepted, over an arena that
+			/// by then holds only what was accepted (§7.8).
+			/// </remarks>
+			internal const int StateSet = 17;
+
+			/// <inheritdoc cref="StateSet"/>
+			internal const int StateEnd = 18;
+
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
 				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1/*POWER_PARAMETER*/)
@@ -1039,7 +1055,8 @@ public static partial class CSharpEmitter
 	/// grown once.
 	/// </para>
 	/// </remarks>
-	internal static string ParserRuntime(bool powers, bool caches, IReadOnlyList<string> valueTypes)
+	internal static string ParserRuntime(
+		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1091,6 +1108,19 @@ public static partial class CSharpEmitter
 			"internal void Truncate(int count, ParserArena entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",
 			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
+
+		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
+		// it is the mark that encloses it, and everywhere else the innermost mark standing
+		// over it. Nothing else can sit at a `StateSet`'s own index, so the two readings
+		// never meet — and that is what turns "which marks are in force here" from a scan
+		// into following a chain. Not grown like the link tables: nothing is carried from
+		// one materialization to the next.
+		runtime = CacheRuntime(runtime, "MARK_FIELD",
+			"int[] _marks = global::System.Array.Empty<int>();", marks);
+		runtime = CacheRuntime(runtime, "MARK_RESIZE",
+			"if (_marks.Length < count)\n\tglobal::System.Array.Resize(ref _marks, global::System.Math.Max(count, _marks.Length * 2));", marks);
+		runtime = CacheRuntime(runtime, "MARK_ACCESS",
+			"internal int[] MaterializationMarks() { return _marks; }", marks);
 
 		return runtime;
 	}

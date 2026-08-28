@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -81,6 +82,8 @@ sealed partial class Machine
 			}
 		}
 		file.Line("parser.LinkedUpTo = entries.Count;");
+
+		MarkChain(file);
 
 		// A transparent rule may have completed before a surrounding path backtracked and
 		// selected another derivation. Such completed entries can remain useful as history,
@@ -715,7 +718,7 @@ sealed partial class Machine
 			// there is nothing to walk for.
 			file.Line(
 				$"{ValueInto(type, "completedAt")} = " +
-				$"{factories[0].Method}({string.Join(", ", FactoryArguments(factories[0], members))});");
+				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
 		}
 		else
 		{
@@ -748,7 +751,7 @@ sealed partial class Machine
 					{
 						file.Line(
 							$"{ValueInto(type, "completedAt")} = " +
-							$"{factory.Method}({string.Join(", ", FactoryArguments(factory, members))});");
+							$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))});");
 						file.Line("break;");
 					}
 				}
@@ -843,10 +846,119 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Where each arena slot's innermost mark is, worked out in one pass over what was
+	/// accepted (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Not incremental like the link tables above it. A guard that materializes mid-parse
+	/// does so over an arena the parse is still writing, and marks are the one thing here
+	/// whose meaning is where they stand relative to each other — so the whole of it is
+	/// walked, which is a pass over an array of ints and is what everything else in this
+	/// method already costs.
+	/// </para>
+	/// <para>
+	/// Then a factory that names <c>parserState</c> follows the chain from its own index
+	/// instead of scanning: `marks[at]` is the innermost mark standing over `at`, and
+	/// `marks[thatMark]` is the one enclosing it, all the way out.
+	/// </para>
+	/// </remarks>
+	void MarkChain(Writer file)
+	{
+		if (!UsesMarks)
+			return;
+
+		file.Line();
+		file.Line("var marks   = parser.MaterializationMarks();");
+		file.Line("var markTop = -1;");
+		file.Line("var markDeep = 0;");
+		file.Line("var markMost = 0;");
+		file.Line();
+
+		using (file.Block("for (var markAt = 0; markAt < entries.Count; markAt++)"))
+		{
+			file.Line("var marked = entries[markAt];");
+			file.Line();
+
+			using (file.Block("if (marked.Kind == ParserEntry.StateSet)"))
+			{
+				// Written before `markTop` moves, so the slot holds what encloses this mark
+				// rather than the mark itself — which is what makes one array enough.
+				file.Line("marks[markAt] = markTop;");
+				file.Line("markTop       = markAt;");
+				file.Line("if (++markDeep > markMost) markMost = markDeep;");
+				file.Line("continue;");
+			}
+
+			using (file.Block("if (marked.Kind == ParserEntry.StateEnd)"))
+			{
+				file.Line("global::System.Diagnostics.Debug.Assert(markTop >= 0);");
+				file.Line("markTop = marks[markTop];");
+				file.Line("markDeep--;");
+			}
+
+			file.Line();
+			file.Line("marks[markAt] = markTop;");
+		}
+
+		file.Line();
+		file.Line($"var markState = new {_graph.State}[markMost];");
+	}
+
+	/// <summary>
+	/// The marks standing over one arena slot, outermost first — what a factory that names
+	/// <c>parserState</c> is handed.
+	/// </summary>
+	/// <remarks>
+	/// Filled from the back, because following the chain gives the innermost first and a
+	/// hook reads the other way: it scans from the end for the nearest value of its own
+	/// concern, so the nearest has to be last. Written into one buffer held for the whole
+	/// walk rather than a fresh array each time — nothing outlives the call it is passed
+	/// to, which is what a span already says.
+	/// </remarks>
+	string MarksIn(Writer file, string at)
+	{
+		var name = $"marksAt{_markReads++}";
+
+		file.Line($"var {name}Count = 0;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"{name}Count++;");
+
+		file.Line($"var {name}Fill = {name}Count;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"markState[--{name}Fill] = {MarkValue($"entries[{name}Walk].State")};");
+
+		return $"new global::System.ReadOnlySpan<{_graph.State}>(markState, 0, {name}Count)";
+	}
+
+	int _markReads;
+
+	/// <summary>The C# a site's number stands for, as an expression over that number.</summary>
+	string MarkValue(string site)
+	{
+		var switched = new StringBuilder("(");
+
+		// A conditional chain rather than a switch expression: this is C# 8 ground (see
+		// .claude/rules/emitted-code.md), and the sites are few — one per `with state`
+		// written in the grammar, not one per place a mark is read.
+		for (var index = 0; index < _marks.Count; index++)
+			switched.Append(index + 1 < _marks.Count
+				? $"{site} == {index} ? {_marks[index]} : "
+				: _marks[index]);
+
+		return switched.Append(')').ToString();
+	}
+
+	/// <summary>
 	/// A factory's arguments from the captures walked above — the same list whichever
 	/// branch asks for it.
 	/// </summary>
-	List<string> FactoryArguments(Factory factory, IReadOnlyList<ResultMember> members)
+	List<string> FactoryArguments(
+		Writer file, Factory factory, IReadOnlyList<ResultMember> members, string at)
 	{
 		var arguments = new List<string>();
 
@@ -868,6 +980,15 @@ sealed partial class Machine
 
 		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
 			arguments.Add("context");
+
+		// The marks standing over this construction, outermost first. Built where it is
+		// asked for and nowhere else, the same as the text above it: a grammar that places
+		// marks and a factory that reads them are two different decisions.
+		// Gated on the declaration and not on whether anything places a mark: the parameter
+		// is, and the two have to agree. A grammar that declares a state and writes no
+		// `with state` hands over nothing, which is what an empty span says.
+		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
 
 		foreach (var member in factory.Members)
 		{

@@ -91,6 +91,11 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Atomic(atomic);
 
+				case Node.Marked(var kept, var text):
+					return Spaced(kept, seam) is var marked && ReferenceEquals(marked, kept)
+						? node
+						: new Node.Marked(marked, text);
+
 				case Node.Capture(var name, var captured):
 					return Spaced(captured, seam) is var held && ReferenceEquals(held, captured)
 						? node

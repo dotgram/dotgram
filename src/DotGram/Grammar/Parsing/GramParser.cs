@@ -195,6 +195,9 @@ public sealed class GramParser
 		if (AtKeyword("context") && Next.Kind == TokenKind.Colon && !StartsRule())
 			return ParseContext();
 
+		if (AtKeyword("state") && Next.Kind == TokenKind.Colon && !StartsRule())
+			return ParseState();
+
 		if (At(TokenKind.Identifier))
 			return ParseRule();
 
@@ -524,6 +527,17 @@ public sealed class GramParser
 		return new Decl.Context(ParseType()) { At = From(start) };
 	}
 
+	/// <summary>The one type every <c>with state</c> mark is written in (§7.8).</summary>
+	Decl.State ParseState()
+	{
+		var start = _index;
+
+		Take();                                   // `state`
+		Expect(TokenKind.Colon);
+
+		return new Decl.State(ParseType()) { At = From(start) };
+	}
+
 	TypeRef ParseType()
 	{
 		var start    = Current.Position;
@@ -679,10 +693,19 @@ public sealed class GramParser
 	/// </summary>
 	Expr ParseWith(Expr operand, int start)
 	{
-		if (!TakeIfKeyword("with"))
-			return operand;
+		// A loop rather than one of each: the two are different mechanisms on the same
+		// operand and either may want the other around it, so what is written first is
+		// innermost and the reader is not asked to remember an order.
+		//
+		// One token apart, and unambiguously: a rebinding is always parenthesized, so `(`
+		// after `with` can only be one and the word `state` can only be the other. A rule
+		// named `state` is still rebindable — that is written `with (state = other)`.
+		while (TakeIfKeyword("with"))
+			operand = TakeIfKeyword("state")
+				? new Expr.Marked(operand, ParseValue()) { At = From(start) }
+				: new Expr.With(operand, ParseRebindings()) { At = From(start) };
 
-		return new Expr.With(operand, ParseRebindings()) { At = From(start) };
+		return operand;
 	}
 
 	/// <summary>

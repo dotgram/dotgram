@@ -79,6 +79,11 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Atomic(atomic);
 
+				case Node.Marked(var kept, var text):
+					return Hoist(kept) is var marked && ReferenceEquals(marked, kept)
+						? node
+						: new Node.Marked(marked, text);
+
 				case Node.Capture(var name, var body):
 					return Hoist(body) is var inner && ReferenceEquals(inner, body)
 						? node
@@ -129,6 +134,7 @@ public sealed partial class GrammarNormalizer
 			Node.Choice(var alternatives)   => alternatives.All(PureText),
 			Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),
 			Node.Atomic(var body)           => PureText(body),
+			Node.Marked(var body, _)        => PureText(body),
 			Node.Lookahead(_, var body)     => PureText(body),
 			_                               => false,
 		};

@@ -287,6 +287,16 @@ sealed partial class Machine
 						UsesInput = true;
 					}
 
+					// The same, and for the same reason: the flat rendering builds a
+					// factory's arguments out of its members alone, and this is not one —
+					// it comes off the arena the flat rendering exists not to have.
+					if (graph.State is not null &&
+						node is Node.Construct { How: Construction.Expression { Text: var reading } } &&
+						reading.Contains("parserState"))
+					{
+						ReadsState = true;
+					}
+
 					// A `when` may name it as well as a `=>`, which `parserInput` cannot —
 					// the input is what a value keeps, and the context is what a guard
 					// writes into.
@@ -654,6 +664,36 @@ sealed partial class Machine
 	string ContextParameter => UsesContext ? $", {_graph.Context} context" : "";
 
 	string ContextArgument  => UsesContext ? ", context" : "";
+
+	/// <summary>
+	/// Every <c>with state</c> site this machine compiled, in the order it reached them —
+	/// the index is what an arena entry carries, and the text is the C# that says what the
+	/// mark's value is (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// A site rather than a value: what a mark is worth is a C# expression, and the arena
+	/// holds ints. So the entry names which site placed it and a generated switch turns
+	/// that back into a value — the same trade a <c>Construct</c> entry already makes with
+	/// its factory. Nothing here is boxed, and the value's type is whatever the grammar
+	/// declared, not something this half had to constrain.
+	/// </remarks>
+	readonly List<string> _marks = [];
+
+	/// <summary>Whether anything in this machine places a mark.</summary>
+	public bool UsesMarks => _marks.Count > 0;
+
+	/// <summary>Whether any factory in it reads the marks standing over it.</summary>
+	public bool ReadsState { get; private set; }
+
+	int MarkSite(string text)
+	{
+		// Two sites writing the same C# are still two sites. Merging them would be sound —
+		// they place the same value — but the numbering is what a trace reads back, and a
+		// grammar with `checked` written twice should say which of the two ran.
+		_marks.Add(text);
+
+		return _marks.Count - 1;
+	}
 
 	/// <summary>
 	/// What a probe hands over instead, and why it may.
@@ -1041,7 +1081,8 @@ sealed partial class Machine
 						file.Line();
 					}
 
-					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead)
+					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead ||
+						_marks.Count > 0)
 					{
 						var ignored =
 							"entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || " +
@@ -1051,6 +1092,12 @@ sealed partial class Machine
 						// is the whole of what unwinding owes it.
 						if (_nestedCaptures.Count > 0)
 							ignored += " || entry.Kind == ParserEntry.CaptureOpen";
+
+						// The same: a mark is a record and not a way back, and popping it is
+						// everything unwinding owes it.
+						if (_marks.Count > 0)
+							ignored += " || entry.Kind == ParserEntry.StateSet || " +
+								"entry.Kind == ParserEntry.StateEnd";
 
 						if (_recoveries.Count > 0)
 							ignored += " || entry.Kind == ParserEntry.Recovery || " +
@@ -2044,6 +2091,33 @@ sealed partial class Machine
 				writer.Line($"goto {Label(next)};");
 
 				return state;
+			}
+
+			case Node.Marked(var body, var text):
+			{
+				// Two entries and no dispatch: nothing reads a mark while the text is read,
+				// so neither of these is a state the engine ever comes back to. The opening
+				// stands over what follows until the close is reached, and unwinding needs
+				// no case of its own — an abandoned reading takes both away with everything
+				// else it wrote, which is the whole of what restoring a mark means here.
+				var site   = MarkSite(text);
+				var closed = Reserve(out var atClose);
+				var inner  = Compile(body, closed, following);
+				var opened = Reserve(out var atOpen);
+
+				atOpen.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.StateSet, {site}, p, " +
+					"call, atomic, repeat, lookahead, 0));");
+				atOpen.Line($"Trace(\"set state\", {site}, p, entries.Count{Traced});");
+				atOpen.Line($"goto {Label(inner)};");
+
+				atClose.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.StateEnd, {site}, p, " +
+					"call, atomic, repeat, lookahead, 0));");
+				atClose.Line($"Trace(\"end state\", {site}, p, entries.Count{Traced});");
+				atClose.Line($"goto {Label(next)};");
+
+				return opened;
 			}
 
 			case Node.Atomic(var body):
@@ -3082,6 +3156,7 @@ sealed partial class Machine
 			Node.Element              => true,
 			Node.Literal(var text)    => text.Length == 1,
 			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
+			Node.Marked(var kept, _)  => FailsWhereItBegan(kept),
 			_                         => false,
 		};
 
@@ -3402,6 +3477,7 @@ sealed partial class Machine
 			case Node.Capture(_, var captured):  return EntryTest(captured, seen);
 			case Node.Construct(var built, _):   return EntryTest(built, seen);
 			case Node.Atomic(var kept):          return EntryTest(kept, seen);
+			case Node.Marked(var kept, _):       return EntryTest(kept, seen);
 
 			case Node.Repeat(var repeated, var least, _):
 				return least > 0 ? EntryTest(repeated, seen) : null;

@@ -5281,3 +5281,88 @@ wants it.
 Six tests: the two refusals, the rule that is still a rule, the threading through
 publication, guard and factory, and the two that say a grammar without a context is
 untouched.
+
+## Built: `with state`, the other half of what a parse has to remember
+
+`context` (above) is state a parse accumulates and keeps. This is the other kind: state
+that holds **while** something is being read and is gone after it — `checked(...)`, "inside
+a loop", "inside a query". It was designed in conversation and the design changed twice
+under questioning, both times toward less machinery.
+
+**First sketch, mine:** declared names, one slot per name, a save-and-restore record in the
+arena per setting, restored by `Fail:` the way `TurnDone` is. **First correction, in
+conversation:** that is a variable-declaration mechanism inside the parser — scoping, name
+resolution, defaults, per-name diagnostics, and an answer owed for how it interacts with
+`namespace (...)` cloning. One array of marks that the hook itself inspects is a fraction
+of the work and puts the interpreting where the meaning already lives.
+
+That correction turned out to answer the question the declarations were introduced for. I
+had asked "how does a hook tell mark A from an unrelated mark B lying over it", and answered
+it with names. The hook answers it by itself: it reads back from the end for the nearest
+value of its own concern and walks past everything else. **Second correction:** and the type
+need not be `object` either — the grammar declares one type, every mark is of it, and what
+tells two concerns apart is their values. No boxing, no per-name table, one line of
+declaration.
+
+**What was kept from the first sketch is the one thing that made it cheap.** A mark is only
+ever read by a `=>`, and a `=>` runs at `Accept:`, over an arena that by then holds only
+what was accepted. So nothing has to be restored when a reading is abandoned — being gone
+*is* the restoration — and nothing is spent while the text is read. `Fail:` gained two
+entry kinds to step over and no work.
+
+```dotgram
+state : @Overflow
+
+Checked : @Expression = "checked" & '(' & e: Expression with state @(Overflow.Checked) & ')' => @(e)
+Additive : @Expression = … => @(Arithmetic.Add(left, right, parserState))
+```
+
+`with state`, chosen over `under`/`marked`/`in` after the alternatives were laid side by
+side: it joins the `with` family, where all three extents already mean "on this extent,
+something is different", and the qualifier answers the objection to reusing the bare word —
+a reader can tell at the site which mechanism is running. `ParseWith` became a loop, so the
+two compose in either order, and the notation's own grammar says so with `With* & Marking*`.
+
+**How it is built.** `Node.Marked(Body, Text)` — a node, not a fact keyed by node identity,
+because a fact carried by identity is a fact a rebuilding pass can drop, and this
+implementation has already had that defect once (`CollapseTransparent.Inline`, earlier this
+session). The node is transparent to every analysis and the ~25 sites that had to say so
+were found by hand: the switches over `Node` are not exhaustive — they have `_ =>` defaults
+— so the compiler said nothing, which is worth knowing about this codebase. What stands in
+for the compiler is a differential test: the same grammar with marks and without, run over
+inputs that succeed, that fail, and that fail after backtracking, agreeing on the answer,
+the value, the message and the position.
+
+Compiling a mark is two arena entries and no dispatch. Reading them is one pass over the
+accepted arena filling one `int[]`: at a `StateSet` the slot holds the mark enclosing it,
+and everywhere else the innermost mark standing over that slot. The two readings never meet
+— nothing else sits at a `StateSet`'s own index — so one array answers both "which mark is
+in force here" and "what encloses this mark", and a factory follows the chain instead of
+scanning. The span it is handed is a view of one buffer the walk reuses.
+
+**Three defects came out of it, one of them mine from the commit above.**
+
+`parserState` was not in `SuppliedNames`, so a factory naming it made the *rule* unbindable:
+the reference lowered to an unresolved element, and the whole call site compiled to a
+failure. The symptom was a truncated machine with no obvious cause, and a long bisect
+through the wrong suspects — the fast paths, the site optimization, the analyses — before
+printing the lowered graph, which said `v: [Value]` and gave it away in one line. Print the
+graph first.
+
+`Tree.Children` — "the one place traversal is defined" — had no case for the new node, so
+the binder never descended into a marked operand. Same symptom, same cause, found the same
+way. A new `Expr` case has exactly two obligations and this is one of them.
+
+And `Machine.Sites`'s `ComputeSitedValued` did not refuse a callee whose factory names
+`context`. A sited call's arguments are built from the spans the site recorded and nothing
+else, so such a callee emitted a call missing an argument — an error in the consumer's
+build, not in ours. That one shipped in the commit above and is fixed here alongside
+`parserState`, which would have fallen into the same hole.
+
+The notation's own grammar was two features behind — it never learned `context` either —
+and now reads both declarations, the mark, and a rule that happens to be called `context`
+or `state`. Seven cases assert that the hand-written parser and the generated one agree on
+all of it.
+
+1,344 tests green in both configurations, and the `checked(1 + unchecked(2 + 3) + 4)` case
+is one of them: one `Sum` rule, read one way, building two different trees.

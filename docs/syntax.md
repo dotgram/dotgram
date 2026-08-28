@@ -1519,6 +1519,72 @@ That is why what belongs here is what can be written down more than once without
 position, a declaration keyed by where it was read — and why a grammar that needs "this
 holds while that is being matched" is asking for something this is not.
 
+### 7.8 What holds while something is being read
+
+§7.7's context is state a parse *accumulates*: written once, still written at the end. The
+other kind is state that holds **while** one thing is being read and is gone after it —
+what C# means by `checked(...)`, what a language means by "inside a loop", "inside a query".
+
+A grammar marks the extent:
+
+```dotgram
+state : @Overflow
+
+Checked   : @Expression = "checked"   & '(' & e: Expression with state @(Overflow.Checked)   & ')' => @(e)
+Unchecked : @Expression = "unchecked" & '(' & e: Expression with state @(Overflow.Unchecked) & ')' => @(e)
+```
+
+and the construction that cares reads what it stands under:
+
+```dotgram
+Additive : @Expression
+	= left: Multiplicative & ('+' & right: Multiplicative)*
+	=> @(Arithmetic.Add(left, right, parserState))
+```
+
+`Additive` is one rule. **The mark changes nothing about what is read** — the same
+characters, the same route, the same failures in the same places. What differs is which
+`Expression.Add*` the host calls, and that is decided after the parse, where the value is
+built:
+
+```csharp
+static Expression Add(Expression left, Expression right, ReadOnlySpan<Overflow> state)
+{
+	for (var i = state.Length - 1; i >= 0; i--)
+	{
+		if (state[i] == Overflow.Checked)   return Expression.AddChecked(left, right);
+		if (state[i] == Overflow.Unchecked) break;
+	}
+
+	return Expression.Add(left, right);
+}
+```
+
+**`parserState` is the marks standing over that construction, outermost first**, so the
+last is the nearest. Named like the supplied names of §8.2 and given by the same rule: a
+hook that does not name it is not passed it, and a grammar that places no mark hands an
+empty span to one that does.
+
+**One type for all of them, declared once, outside every namespace** (`GRAM3015`,
+`GRAM3016`). Which mark a hook means is the hook's to decide — it reads back for the
+nearest value of its own concern and walks past everything belonging to another, which is
+why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit
+this sets is real and worth stating plainly: **two unrelated concerns must be different
+values, not different declarations.** An enum per concern, all of them in the one type the
+grammar declares.
+
+**Nesting is what a mark is for.** `checked(a + unchecked(b + c) + d)` is not two flags
+cancelling: the inner mark stands over its own protraction and the outer one is in force
+again after it. That falls out of where the marks are kept — in the arena, in order — and
+so does the other half: **an abandoned reading's marks are abandoned with it.** Nothing
+unwinds them, because being gone is the whole of what unwinding owes them, and the walk
+that reads them runs over what was accepted.
+
+`with state` and §5.1's `with (...)` share a word and no mechanism, which is why this one is
+qualified. A rebinding replaces rules before anything runs and is visible to the grammar; a
+mark leaves the grammar alone and is visible only to hooks. A rule named `state` stays
+ordinary and stays rebindable — `with (state = other)` is parenthesized and this is not.
+
 ---
 
 ## 8. Failure, recovery and streaming

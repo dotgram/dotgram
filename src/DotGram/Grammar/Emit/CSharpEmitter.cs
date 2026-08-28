@@ -289,6 +289,7 @@ public static partial class CSharpEmitter
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
 				machines.Exists(static compiled => compiled.Machine.Caches),
+				machines.Exists(static compiled => compiled.Machine.UsesMarks),
 				tables));
 
 		while (scope.Count > 0)
@@ -908,6 +909,13 @@ public static partial class CSharpEmitter
 		if (graph.Context is not null && Asks(factory, "context"))
 			parameters.Add($"{graph.Context} context");
 
+		// The marks standing over this construction, outermost first (§7.8). A span rather
+		// than an array because it is a view of a buffer the walk reuses: it is right for
+		// the length of the call and no longer, which is what a factory needs and all it
+		// may keep.
+		if (graph.State is not null && Asks(factory, "parserState"))
+			parameters.Add($"global::System.ReadOnlySpan<{graph.State}> parserState");
+
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
@@ -1228,6 +1236,7 @@ public static partial class CSharpEmitter
 		Node.Repeat(var body, _, _)  => [body],
 		Node.Construct(var body, _)  => [body],
 		Node.Atomic(var body)        => [body],
+		Node.Marked(var body, _)     => [body],
 		_                            => [],
 	};
 

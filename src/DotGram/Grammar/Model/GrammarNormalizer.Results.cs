@@ -618,6 +618,13 @@ public sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
 			}
 
+			case Node.Marked(var body, var text):
+			{
+				var inner = Gather(body, element, ref taken);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
+			}
+
 			default:
 				return node;
 		}
@@ -773,6 +780,7 @@ public sealed partial class GrammarNormalizer
 		Node.Choice(var nodes)       => nodes.Any(HasCapture),
 		Node.Repeat(var body, _, _)  => HasCapture(body),
 		Node.Atomic(var body)        => HasCapture(body),
+		Node.Marked(var body, _)     => HasCapture(body),
 		Node.Construct(var built, _) => HasCapture(built),
 
 		// Not across a call — that is another rule's result — and not into a lookahead,

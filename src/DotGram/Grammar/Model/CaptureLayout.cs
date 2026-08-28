@@ -168,6 +168,11 @@ public sealed class CaptureLayout
 				Walk(body, buildsValue, repeated, inFold);
 				break;
 
+			case Node.Marked(var marked, _):
+
+				Walk(marked, buildsValue, repeated, inFold);
+				break;
+
 			// A guard is not a slot, but it needs a place in the numbering all the same:
 			// what it may look at is what was captured before it, and "before" is this.
 			case Node.Guard:

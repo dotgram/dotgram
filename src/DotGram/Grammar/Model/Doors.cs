@@ -76,6 +76,7 @@ public static class Doors
 			                                   alternatives.Any(one => LeavesOne(one, doors)),
 			Node.Sequence(var parts)        => parts.Any(part => LeavesOne(part, doors)),
 			Node.Atomic(var body)           => LeavesOne(body, doors),
+			Node.Marked(var body, _)        => LeavesOne(body, doors),
 			Node.Capture(_, var captured)   => LeavesOne(captured, doors),
 			Node.Construct(var built, _)    => LeavesOne(built, doors),
 			_                               => false,
