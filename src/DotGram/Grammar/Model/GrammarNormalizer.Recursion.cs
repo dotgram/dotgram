@@ -151,14 +151,65 @@ public sealed partial class GrammarNormalizer
 	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> NoTargets =
 		new Dictionary<RuleSymbol, RuleSymbol>();
 
-	/// <summary>The identity-keyed facts an alternative carries into the ones it becomes.</summary>
+	/// <summary>The identity-keyed facts a node hands to whatever replaces it.</summary>
+	/// <remarks>
+	/// Every pass before this one records what it worked out against the node it worked it
+	/// out on, by reference — a binding power, a recovery, the loop a fold runs, the tail
+	/// each of that fold's accumulators belongs to. A pass that rebuilds a node has to hand
+	/// those on, or the fact is left naming a node no body holds any more.
+	/// <para>
+	/// The fold went unhanded for a long time, and what it cost is worth the line: a
+	/// forwarder collapsed inside a left-recursive tail rebuilt the loop around it, the
+	/// layout stopped recognizing that loop as the fold's, and every capture in the tails
+	/// came out a sequence with the fold's own operand missing from the factory — C# the
+	/// *consumer* could not compile, in a file they never wrote.
+	/// </para>
+	/// </remarks>
 	void Carry(Node from, Node to)
 	{
+		if (ReferenceEquals(from, to))
+			return;
+
 		if (_bounds.TryGetValue(from, out var bound))
 			_bounds[to] = bound;
 
+		if (_powers.TryGetValue(from, out var power))
+			_powers[to] = power;
+
 		if (_recoveries.TryGetValue(from, out var recovery))
 			_recoveries[to] = recovery;
+
+		foreach (var rule in _folds.Keys.ToList())
+			_folds[rule] = Moved(_folds[rule], from, to);
+
+		foreach (var rule in _climbing.Keys.ToList())
+			if (_climbing[rule].TryGetValue(from, out var level))
+				_climbing[rule] = Alongside(_climbing[rule], to, level);
+	}
+
+	/// <summary>A fold naming the node that replaced one of the two kinds it names.</summary>
+	static Fold Moved(Fold fold, Node from, Node to)
+	{
+		if (ReferenceEquals(fold.Loop, from))
+			fold = fold with { Loop = to };
+
+		if (!fold.Accumulators.TryGetValue(from, out var accumulator))
+			return fold;
+
+		return fold with { Accumulators = Alongside(fold.Accumulators, to, accumulator) };
+	}
+
+	/// <summary>The same table with one more node in it, the node comparison unchanged.</summary>
+	static Dictionary<Node, T> Alongside<T>(IReadOnlyDictionary<Node, T> table, Node node, T what)
+	{
+		var moved = new Dictionary<Node, T>(NodeIdentity.Instance);
+
+		foreach (var pair in table)
+			moved[pair.Key] = pair.Value;
+
+		moved[node] = what;
+
+		return moved;
 	}
 
 	/// <summary>

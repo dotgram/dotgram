@@ -110,10 +110,20 @@ public sealed partial class GrammarNormalizer
 			_bodies[rule] = Inline(_bodies[rule]);
 
 		// Identity-preserving on purpose: everything before this pass has already keyed
-		// facts by node reference — binding powers, sequence captures, recoveries — and a
-		// clone of an untouched subtree would orphan them. Only a path that actually
-		// holds a replaced call is rebuilt.
+		// facts by node reference — binding powers, sequence captures, recoveries, the loop
+		// a fold runs — and a clone of an untouched subtree would orphan them. Only a path
+		// that actually holds a replaced call is rebuilt, and what is rebuilt hands its
+		// facts on: `Carry` is what a node that is going away owes the one taking its place.
 		Node Inline(Node node)
+		{
+			var inlined = Rebuild(node);
+
+			Carry(node, inlined);
+
+			return inlined;
+		}
+
+		Node Rebuild(Node node)
 		{
 			switch (node)
 			{

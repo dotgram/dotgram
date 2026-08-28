@@ -4917,3 +4917,62 @@ is up 17%. That is the price, and it is the right way round: the defect it buys 
 an exception out of a shipped parser.
 
 1,263 tests green in both configurations.
+
+## Fixed: a fold stops naming its own loop when a pass rebuilds it
+
+The defect the last entry only worked around, and the reduction is three rules:
+
+```dotgram
+C : @string = t: ['a'..'z']+ => @(t)
+E : @string = e: P => @(e)
+P : @string = t: P & '[' & m: E & ']' => @(t + m) | p: C => @(p)
+parse E
+```
+
+`Construct_P_1(string[] m)` — the fold's own operand missing from the signature, and the
+capture typed as a sequence. The `=>` then names `t`, which is not a parameter, and the
+**consumer's** build fails with CS0103 in a file they never wrote.
+
+**`E` forwards to `P`, and that is the whole of it.** `CollapseTransparent` replaces the
+call to a forwarder, rebuilding the sequence that held it — and with it the repetition
+around that sequence, which is the loop `P`'s fold named by reference. `CaptureLayout`
+recognizes a fold's loop with `ReferenceEquals`, so from that moment it recognized nothing:
+every capture in the tails came out `IsSequence` with `InFold` false, and the accumulator
+went with it.
+
+The pass's own comment had the principle exactly right — "everything before this pass has
+already keyed facts by node reference … a clone of an untouched subtree would orphan them"
+— and rebuilt nodes without handing those facts on. `Carry`, which the recursion pass
+already had for binding powers and recoveries, now carries the fold's loop and the tail of
+each of its accumulators as well, and `Inline` calls it on everything it rebuilds. The
+climb's levels go the same way, for the same reason.
+
+Two tests: the factory keeps its operand, and `a[b][c]` reads to `abc`.
+
+`HoistTextCaptures` and `SpaceLists` were never bitten by this because both skip a rule
+that owns a fold outright. That is a guard against the same hazard, arrived at from the
+other side — and now the hazard itself is answered rather than avoided.
+
+### Not done: narrowing the capture-start condition back
+
+The other half of what was planned, and the measurement says leave it. What the widened
+condition costs is inherent to putting a start in the arena: one more entry per capture,
+and more to pop when a parse unwinds — which is why the input that costs most is the one
+that fails. The narrowings that are *sound* are small:
+
+- a capture at the head of its rule needs neither a variable nor an entry, because its
+  start is the rule's own and the call entry already holds it and already unwinds. Two of
+  Url's six moved captures are that shape — and a rule inlined at a call site (§7.3's
+  sited calls) compiles its body under the *caller's* call entry, where that reasoning is
+  wrong, so the narrowing needs the site interaction thought through before it is safe.
+- "this rule is entered at most once per parse" would cover the rest, and is exactly the
+  kind of whole-grammar reasoning that produced the defect this fixed. Entries are never
+  popped on success, so every door of an earlier activation stays live for the whole
+  parse; a second entry anywhere clobbers.
+
+Three of the five URL inputs are inside the noise or up ~3%. Chasing the fourth with an
+analysis of that kind, days after two capture defects that both came from reasoning of
+that kind, is the wrong trade. Written down here so the next person does not have to
+re-derive why.
+
+1,265 tests green in both configurations.

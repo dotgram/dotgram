@@ -1364,6 +1364,43 @@ public sealed class CSharpEmitterTests
 		// where they are, which is what the measurements are for.
 		Assert.Equal(expected, Run(grammar, input).Value);
 
+	/// <summary>A fold keeps naming its own loop when a pass rebuilds it.</summary>
+	/// <remarks>
+	/// `E` forwards to `P`, so collapsing the call to it rebuilds the sequence holding it —
+	/// and with it the repetition around it, which is the loop `P`'s fold named by
+	/// reference. Left unhanded, the layout stopped recognizing that loop as the fold's:
+	/// every capture in the tails came out a sequence, the fold's own operand went missing
+	/// from the factory, and the C# the *consumer* compiles named a parameter that was not
+	/// there. Found by `a[i]` in the expression language, where the index is an expression
+	/// and an expression leads back into the postfix chain.
+	/// </remarks>
+	[Fact]
+	public void A_capture_in_a_fold_stays_a_value_when_a_forwarder_below_it_collapses()
+	{
+		var source = Emit(
+			"""
+			C : @string = t: ['a'..'z']+ => @(t)
+			E : @string = e: P => @(e)
+			P : @string = t: P & '[' & m: E & ']' => @(t + m) | p: C => @(p)
+			parse E
+			""");
+
+		Assert.Contains("static string Construct_P_1(string t, string m)", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("string[] m", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_the_parse_it_emits_reads_the_chain() =>
+		Assert.Equal(
+			"abc",
+			Run(
+				"""
+				C : @string = t: ['a'..'z']+ => @(t)
+				Start : @string = e: P => @(e)
+				P : @string = t: P & '[' & m: Start & ']' => @(t + m) | p: C => @(p)
+				""",
+				"a[b][c]").Value);
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]
