@@ -142,5 +142,5 @@ public static class MultiQueryExample
 	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("select");
 
 	// Put the caret after the space and press Ctrl+Space: `+` and `-` should be offered.
-	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer");
+	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer ");
 }
