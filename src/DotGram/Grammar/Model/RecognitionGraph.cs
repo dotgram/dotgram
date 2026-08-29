@@ -341,6 +341,69 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
+	/// <summary>Every rule's lowered body, one node to a line.</summary>
+	/// <remarks>
+	/// <para>
+	/// A node prints itself as the notation it came from, which reads well and is ambiguous
+	/// about the one thing a lowering question usually turns on: <c>c: Call =&gt; (c)</c> is
+	/// what both a construction around a capture and a capture around a construction print,
+	/// and which of them it is decides where a factory belongs. So this prints the tree as a
+	/// tree — the kind of every node, indented, with the one detail that tells one of that
+	/// kind from another.
+	/// </para>
+	/// <para>
+	/// Over <see cref="Node.Children"/>, which is where traversal is defined, so a node kind
+	/// added later shows up here without anyone remembering to add it.
+	/// </para>
+	/// </remarks>
+	public string Dump()
+	{
+		var text = new StringBuilder();
+
+		foreach (var rule in Rules)
+			text.Append(Dump(rule));
+
+		return text.ToString();
+	}
+
+	/// <summary>The same for one rule, which is what a report about one rule can carry.</summary>
+	public string Dump(RuleSymbol rule)
+	{
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		if (!Bodies.TryGetValue(rule, out var body))
+			return rule.Name + ": (no body)\n";
+
+		var text = new StringBuilder();
+
+		text.Append(rule.Name).Append(':').Append('\n');
+		Write(body, 1);
+
+		return text.ToString();
+
+		void Write(Node node, int depth)
+		{
+			text.Append(' ', depth * 2).Append(node.GetType().Name);
+
+			switch (node)
+			{
+				case Node.Capture(var name, _):    text.Append(" '").Append(name).Append('\''); break;
+				case Node.Call(var called, _):     text.Append(' ').Append(called.Name); break;
+				case Node.Construct(_, var how):   text.Append(" => ").Append(how); break;
+				case Node.Repeat(_, var min, var max): text.Append(' ').Append(min).Append("..").Append(max?.ToString() ?? "*"); break;
+				case Node.Guard or Node.Literal or Node.Element or Node.External or Node.Marked:
+					text.Append(' ').Append(node);
+					break;
+			}
+
+			text.Append('\n');
+
+			foreach (var child in node.Children)
+				Write(child, depth + 1);
+		}
+	}
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;

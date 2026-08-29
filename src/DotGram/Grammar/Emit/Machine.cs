@@ -409,13 +409,22 @@ sealed partial class Machine
 		IReadOnlyList<ResultMember> Members,
 		string? Accumulator = null);
 
-	static int IndexOf(IReadOnlyList<Factory> factories, Node construct, RuleSymbol rule)
+	/// <remarks>
+	/// The message carries the rule it failed on, lowered. A construction reaches here that
+	/// the rule's own alternatives did not offer, which means the shape the compiler made is
+	/// not the shape something else expected of it — and the shape is the whole of what a
+	/// reader needs next. It used to say only that a construction somewhere had no factory,
+	/// and the shape was reachable only by building something that would not build.
+	/// </remarks>
+	int IndexOf(IReadOnlyList<Factory> factories, Node construct, RuleSymbol rule)
 	{
 		for (var i = 0; i < factories.Count; i++)
 			if (ReferenceEquals(factories[i].Of, construct))
 				return i;
 
-		throw new InvalidOperationException($"A construction in '{rule.Name}' has no factory.");
+		throw new InvalidOperationException(
+			$"A construction in '{rule.Name}' has no factory. It lowered to:\n" +
+			_graph.Dump(rule));
 	}
 
 	/// <summary>

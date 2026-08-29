@@ -6497,3 +6497,48 @@ the sharing out.
 
 What is built is the proof, the place, and the three things that had to follow an alternative
 into it.
+
+## Built: the lowered grammar, printed as a tree
+
+An attempt at left-factoring through a call was lost for an afternoon inside an ambiguity
+that had nothing to do with the change. A node prints itself as the notation it came from,
+and `c: Call => (c)` is what a construction around a capture prints *and* what a capture
+around a construction prints — while which of the two it is decides where a factory belongs.
+The whole question being investigated was where a factory belongs.
+
+So `RecognitionGraph.Dump()` prints the tree as a tree: the kind of every node, indented,
+with the one detail that tells one of that kind from another.
+
+```text
+Start:
+  Construct => (w)
+    Sequence
+      Capture 'w'
+        Call Word
+      Repeat 0..1
+        Literal '!'
+```
+
+Over `Node.Children`, which is where traversal is defined, so a node kind added later shows
+up without anyone remembering to add it. A test asserts the whole of a small grammar's dump,
+which pins the format and the lowering together.
+
+**And the report carries it.** `A construction in 'X' has no factory` is a compiler defect,
+raised where a construction reached compilation that the rule's own alternatives did not
+offer — which is to say, where the shape the compiler made is not the shape something else
+expected. The shape is the whole of what a reader needs next, so the message now has the
+rule lowered underneath it. It used to say only that a construction somewhere had no factory,
+and the shape was reachable only by building something that would not build.
+
+### And a fragility found and not acted on
+
+The suite cannot run while a grammar in `DotGram.Parsers` fails to generate: the test project
+references it, so a generator defect in one grammar takes down every test — including the
+ones that would diagnose it. The reference is not incidental; `tests/DotGram.Tests/Parsers/`
+holds real tests of those parsers, and they need the generated API.
+
+The fix would be a layout change — the tests that need a consumer's *generated code* in one
+project, the ones that only need the compiler in another — and that is a decision about the
+repository rather than a defect to fix quietly. Recorded here, not taken. What is taken is
+the half that removes the need: with the shape in the defect report, the common case no
+longer needs a run at all.
