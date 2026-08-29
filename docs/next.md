@@ -6340,3 +6340,45 @@ analyses that have to be exact.
 3. One `CallGraph` with SCC, and the four hand-written walks folded into it.
 4. The typed CFG, for the engine and the scanner at once, or it will be written twice.
 5. The unified analysis layer, after 2 and 3, which are half of it.
+
+## Fixed: the last two answers a grammar was giving twice
+
+Steps 1 through 3 of the order above are built. What follows are the two smaller findings of
+the same kind — a question about a grammar answered in two places, and worse in one of them —
+taken now because 4 and 5 are large and these are not.
+
+**Whether an element admits a line terminator.** `Retention` decides whether a rule can be
+read from a window, and needed to know whether a character class can match `\n` or `\r`. It
+worked it out itself, and treated a Unicode category as admitting one whatever category it
+was. Safe in the direction that mattered when it was written — a rule wrongly said to cross a
+line loses an overload, wrongly said not to it loses data — and wrong: a letter is not a line
+terminator, so `[\p{L}]+` was said to cross lines and could not be read from a window.
+`FirstSets` already expands a category into the characters it holds, so the question goes
+there and the answer is the overlap with the two terminators. The conservative direction
+survives without being restated: an element holding a C# predicate is "anything" over there,
+and anything overlaps a terminator.
+
+**Whether a node can match without consuming anything.** Written twice, and the two copies
+had drifted apart in both directions at once. `FirstSets` stopped at `min == 0` for a
+repetition, so `B{1,1}` over a nullable `B` was called consuming — a shape that is not refused
+the way a nullable body under `*` or `+` is, since it cannot spin, and so reachable from
+source. The normalizer had no case for `Behind` and fell through to "consumes", which would
+make a sequence beginning with a lookbehind opaque to the left-recursion walk; nothing reaches
+that today, since a lookbehind only comes from lowering a word lexeme and a consuming literal
+follows it. Each was right where the other was wrong.
+
+The shape of a node is answered once now. The only difference between the callers is who can
+answer for a rule — the normalizer reads the estimate its own fixed point is still refining,
+everything else reads the settled map — so that is a parameter.
+
+### And what is not started
+
+Step 4, the typed CFG, is not begun, and saying so is worth more than a partial attempt. The
+reason is specific: a large fraction of the `goto` sites the layout pass has to see are not
+plain gotos. They are conditions and jumps written into one line — `if (…) goto …`, a `case`
+arm that jumps, a range test that falls through — so recording an edge only where a `goto` is
+written on its own would give a control-flow graph that is *incomplete*, which is worse than
+the regex it replaces: a regex that misses an edge is visibly a regex, and a graph that misses
+one is trusted. Doing it properly means the emitter's writing layer records edges as it
+writes, at every site, which is a change to how code is emitted rather than to how it is read
+afterwards.
