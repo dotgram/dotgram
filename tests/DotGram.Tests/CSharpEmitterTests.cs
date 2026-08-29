@@ -1552,6 +1552,70 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("(uint)p", source, StringComparison.Ordinal);
 	}
 
+	// ── Two contracts over one object (§7.7) ────────────────────────────────────
+
+	/// <summary>
+	/// Rules from different grammars see the caller's object through their own types, and
+	/// the whole thing compiles.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The point of the design, and the reason it is ordinary subtyping rather than anything
+	/// this notation invented: the included rule's guard takes `Names`, the including rule's
+	/// factory takes `Outer`, the publication takes `Outer`, and the call from one to the
+	/// other upcasts because `Outer` is a `Names`. Virtual dispatch works, and members added
+	/// by `Outer` are invisible to the rule that was written against `Names` — which is what
+	/// keeps including a grammar from changing what its already-written C# means.
+	/// </para>
+	/// <para>
+	/// Compiled rather than only inspected: two signatures that disagree with their calls is
+	/// exactly the failure this whole area has produced four times, and reading the text for
+	/// the two types would not have caught any of them.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_rule_sees_the_context_through_its_own_grammar_type()
+	{
+		var source = Emit(
+			"""
+			context : @Outer
+			namespace Inner
+			{
+				context : @Names
+				Word : @string = t: ['a'..'z']+ & when @(context.Seen(t)) => @(context.Say(t))
+			}
+			Start : @string = w: Inner.Word => @(context.Wrap(w))
+			parse Start
+			""");
+
+		// The included rule, against the contract its own grammar named.
+		Assert.Contains("Names context, string t", source, StringComparison.Ordinal);
+
+		// The including rule, and the publication, against the effective type.
+		Assert.Contains("Construct_Start(Outer context, string w)", source, StringComparison.Ordinal);
+		Assert.Contains("ParseStart(string input, Outer context)", source, StringComparison.Ordinal);
+
+		// And the two really are different types, so the upcast is doing work.
+		EmittedCode.Compile(
+			"public class Names { public bool Seen(string s) => true; public string Say(string s) => s; }\n" +
+			"public class Outer : Names { public string Wrap(string s) => s; }\n" + source,
+			className: "Grammar");
+	}
+
+	[Fact]
+	public void And_one_grammar_declaring_one_context_is_unchanged() =>
+		// Where nothing is included the contract and the effective type are the same, which
+		// is every grammar written before this existed.
+		Assert.Contains(
+			"Construct_Start(Names context, string t)",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(context.Say(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

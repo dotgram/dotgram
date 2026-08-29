@@ -1896,9 +1896,13 @@ sealed partial class Machine
 				// where one is usually written into: it runs while the text is read, which
 				// is the only moment a grammar has in the order it is written.
 				if (node is Node.Guard { Text: var stateful } &&
-					_graph.Context is not null && CSharpEmitter.Names(stateful, "context"))
+					_graph.ContextOf(rule) is { } contract &&
+					CSharpEmitter.Names(stateful, "context"))
 				{
-					parameters.Add($"{_graph.Context} context");
+					// Typed by this rule's own contract, not the effective type — see the
+					// factory's own parameters for why. The argument is the same object
+					// either way; passing it upcasts.
+					parameters.Add($"{contract} context");
 					arguments.Add("context");
 				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();

@@ -913,10 +913,14 @@ public static partial class CSharpEmitter
 		if (Asks(factory, "parserInput"))
 			parameters.Add("string parserInput");
 
-		// The grammar's own state (§7.7). What a `=>` gets is the object the caller handed
-		// over — the same one every hook sees, because nothing here copies it.
-		if (graph.Context is not null && Asks(factory, "context"))
-			parameters.Add($"{graph.Context} context");
+		// The grammar's own state (§7.7), typed by the contract *this rule's* grammar
+		// declared rather than by the effective type. The object is the caller's and every
+		// hook sees the same one; what differs is the type it is seen through, which belongs
+		// to whoever wrote the code. A rule included from another grammar goes on meaning
+		// what it meant, and the call upcasts on its own (docs/next.md, "Decided: `context`
+		// is a contract").
+		if (graph.ContextOf(rule) is { } contract && Asks(factory, "context"))
+			parameters.Add($"{contract} context");
 
 		// The marks standing over this construction, outermost first (§7.8). A span rather
 		// than an array because it is a view of a buffer the walk reuses: it is right for
