@@ -439,7 +439,8 @@ sealed partial class Machine
 	/// turn back — asked of the model, which is where the question lives now.
 	/// </summary>
 	bool Possessive(Node body, FirstSets.First following) =>
-		Determinism.Possessive(body, following, _graph);
+		Determinism.Possessive(
+			body, new FollowSets.Continuation(following, following), _graph, _seam);
 
 	/// <summary>
 	/// The character tests that decide a choice outright, or null where the input does not.

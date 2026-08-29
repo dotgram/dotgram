@@ -68,7 +68,7 @@ public sealed partial class GrammarNormalizer
 			// constructions a factory. Distributing there is not a fold that does not pay, it
 			// is a shape the rest of the compiler does not have.
 			var given = Given(body) ?? body;
-			var rewritten = Folded(given, after.Plain, graph, rule);
+			var rewritten = Folded(given, after, graph, rule);
 
 			// The distribution on its own is a rearrangement worth nothing, so it is kept
 			// only where the fold that follows it took.
@@ -289,7 +289,7 @@ public sealed partial class GrammarNormalizer
 		};
 
 	/// <summary>This node with every choice inside it folded where one can be.</summary>
-	Node Folded(Node node, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner)
+	Node Folded(Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol owner)
 	{
 		switch (node)
 		{
@@ -340,7 +340,12 @@ public sealed partial class GrammarNormalizer
 			case Node.Repeat(var body, var min, var max):
 			{
 				// A turn is followed by another turn or by what follows the repetition.
-				var inner = Folded(body, FirstSets.Of(body, graph).Or(following), graph, owner);
+				var inner = Folded(
+					body,
+					following.Or(new FollowSets.Continuation(
+						FirstSets.Of(body, graph), FirstSets.Of(body, graph))),
+					graph,
+					owner);
 
 				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Repeat(inner, min, max));
 			}
@@ -371,7 +376,7 @@ public sealed partial class GrammarNormalizer
 	/// The alternatives with every run of them that shares a determinate leading operand
 	/// replaced by one alternative that reads it once.
 	/// </summary>
-	Node Share(IReadOnlyList<Node> alternatives, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner)
+	Node Share(IReadOnlyList<Node> alternatives, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol owner)
 	{
 		List<Node>? folded = null;
 
@@ -379,7 +384,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var last = Run(alternatives, at, owner);
 
-			if (last > at && Sharing(alternatives, at, last, following, graph) is { } one)
+			if (last > at && Sharing(alternatives, at, last, following, graph, owner) is { } one)
 			{
 				folded ??= [.. alternatives.Take(at)];
 				folded.Add(one);
@@ -427,11 +432,11 @@ public sealed partial class GrammarNormalizer
 	/// have a single reading and the fold would therefore be visible.
 	/// </summary>
 	Node? Sharing(
-		IReadOnlyList<Node> alternatives, int from, int last, FirstSets.First following,
-		RecognitionGraph graph)
+		IReadOnlyList<Node> alternatives, int from, int last, FollowSets.Continuation following,
+		RecognitionGraph graph, RuleSymbol owner)
 	{
 		var tails = new List<Node>(last - from + 1);
-		var after = FirstSets.First.None;
+		var after = FollowSets.Continuation.None;
 		var named = Named(Head(alternatives[from]));
 
 		for (var at = from; at <= last; at++)
@@ -447,7 +452,7 @@ public sealed partial class GrammarNormalizer
 
 			// What follows the shared operand in this alternative is this tail, and past it
 			// whatever follows the choice, where the tail can match nothing.
-			after = after.Or(FirstSets.Precedes(rest, following, graph));
+			after = after.Or(FollowSets.Precedes(rest, following, graph, FollowSets.SeamOf(owner, graph)));
 			tails.Add(how is null ? rest : new Node.Construct(rest, how));
 		}
 
@@ -455,7 +460,7 @@ public sealed partial class GrammarNormalizer
 
 		// The whole condition. Reading it once instead of once per alternative is the same
 		// reading only where there was one reading to begin with.
-		return Determinism.Of(head, after, graph)
+		return Determinism.Of(head, after, graph, FollowSets.SeamOf(owner, graph))
 			? new Node.Sequence([head, new Node.Choice(tails)])
 			: null;
 	}
@@ -579,7 +584,7 @@ public sealed partial class GrammarNormalizer
 	/// Each of them, folded, threading what follows — or null where none of them changed.
 	/// </summary>
 	IReadOnlyList<Node>? Each(
-		IReadOnlyList<Node> nodes, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner,
+		IReadOnlyList<Node> nodes, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol owner,
 		bool sequence = true)
 	{
 		List<Node>? rewritten = null;
@@ -596,7 +601,7 @@ public sealed partial class GrammarNormalizer
 			}
 
 			if (sequence)
-				after = FirstSets.Precedes(nodes[at], after, graph);
+				after = FollowSets.Precedes(nodes[at], after, graph, FollowSets.SeamOf(owner, graph));
 		}
 
 		return rewritten;

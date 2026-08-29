@@ -6696,3 +6696,49 @@ second flavour of `FOLLOW` and a design rather than a line.
 The corpus is unchanged by this — 782,412 bytes of expression language, the same as before it,
 against 783,053 with the fold off — which is what a sharper proof looks like when the thing it
 newly proves is not on the path anything took.
+
+## Built: the continuation carried whole, and the boundary that is not an analysis gap
+
+The previous entry called the next step a design — follow sets computed past the trivia. It was
+written already. `FollowSets.Continuation` is a pair, and its second half is exactly that, with
+a doc comment describing the case bisection had just found:
+
+> What the continuation can begin with once a leading application of the namespace's trivia has
+> consumed what it consumes. §4.5 puts that application at the head of every spaced seam, so a
+> repetition whose turns lead with the trivia and the continuation behind it both start by
+> reading the same run of it — and the question that decides whether a turn could instead have
+> been the continuation is asked of what each reads *next*.
+
+`NeverGivesBack` in the emitter has used it all along. `Determinism` could not, because it
+carried a bare first set, which is why the previous commit needed a structural special case:
+in a set the shared trivia can no longer be told from anything else.
+
+So the walk carries the whole continuation now, threads it with `FollowSets.Precedes`, and
+asks the seam-aware half where a turn leads with the seam. The special case is gone — the
+general mechanism subsumes it, and it reaches the shape the special case could not: a
+repetition that *ends* its rule, where what follows is the caller's and only `FOLLOW` knows it.
+`TypeArgs` in the notation's grammar is proved determinate now, where before it was not.
+
+The emitter is handed `Continuation(following, following)` for the present. Over-approximating
+the seam-aware half by the plain one is sound — what can follow past the seam is a subset of
+what can follow — so nothing it used to prove is lost. Threading the real pair through `Silent`
+is a separate step and a larger one.
+
+### And the boundary, which is not an analysis gap
+
+`Primary` in the notation still does not fold, and the reason has changed kind. It is no longer
+a set poisoned by trivia; it is that `Name` is genuinely not determinate under its own
+continuation:
+
+```dotgram
+Name = Identifier & ('.' & Identifier)*
+```
+
+`FOLLOW(Name)` contains letters, because `trivia` is nullable and nothing in the grammar says a
+name is read to its end. The hand-written parser reads one greedily and never gives it back;
+the grammar does not say so, so nothing can prove it. `wordboundary` exists and applies to word
+*literals* (§4.6) — a rule that spells a lexeme out gets no such protection.
+
+That is the lexical layer, named in the memory of this project long ago and not yet built: a
+rule that is a token, read once and to its end. The fold is waiting on the notation, not on the
+analysis, and that is a better place for it to be waiting.

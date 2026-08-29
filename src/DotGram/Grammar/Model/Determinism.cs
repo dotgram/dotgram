@@ -32,44 +32,74 @@ public static class Determinism
 {
 	/// <summary>Whether this node has at most one match, given what follows it.</summary>
 	public static bool Of(
-		Node node, FirstSets.First following, RecognitionGraph graph) =>
-		Of(node, [], following, graph);
+		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		Of(node, [], following, graph, seam);
 
 	/// <summary>
 	/// Whether a repetition of this body may run to its end and never be asked to give a
 	/// turn back.
 	/// </summary>
 	public static bool Possessive(
-		Node body, FirstSets.First following, RecognitionGraph graph) =>
-		Possessive(body, [], following, graph);
+		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		Possessive(body, [], following, graph, seam);
 
 	static bool Possessive(
-		Node body, Asked asked, FirstSets.First following, RecognitionGraph graph) =>
-		following.IsKnown &&
+		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		following.Plain.IsKnown &&
 		!FirstSets.Nullable(body, graph) &&
-		!FirstSets.Of(body, graph).Overlaps(following) &&
-		Of(body, asked, FirstSets.Of(body, graph).Or(following), graph);
+		!Decides(body, graph, seam).Overlaps(Against(body, following, seam)) &&
+		Of(body, asked, following.Or(new FollowSets.Continuation(
+			FirstSets.Of(body, graph), FirstSets.Of(body, graph))), graph, seam);
+
+	/// <summary>
+	/// What tells a turn from the continuation behind it: the turn's own first set, or what
+	/// it reads after the trivia where it leads with the trivia.
+	/// </summary>
+	/// <remarks>
+	/// §4.5 weaves <c>trivia</c> between every pair of operands, so a turn and the
+	/// continuation behind it both open by reading the same run of it. `trivia` is an atomic
+	/// group — it commits its first reading and never gives it back — so that run is the same
+	/// either way, and what decides between them is what each reads next. Compared plainly
+	/// the two overlap on the trivia itself and the comparison says nothing, which on a
+	/// grammar written the way §4.5 recommends is nearly every loop there is.
+	/// </remarks>
+	static FirstSets.First Decides(Node body, RecognitionGraph graph, RuleSymbol? seam) =>
+		Past(body, seam) is { } past ? FirstSets.Of(past, graph) : FirstSets.Of(body, graph);
+
+	/// <summary>And the half of the continuation it is compared against.</summary>
+	static FirstSets.First Against(Node body, FollowSets.Continuation following, RuleSymbol? seam) =>
+		Past(body, seam) is null ? following.Plain : following.AfterSeam;
+
+	/// <summary>A turn with the trivia it leads with taken off, or null where it leads with none.</summary>
+	static Node? Past(Node body, RuleSymbol? seam) =>
+		seam is not null &&
+		body is Node.Sequence(var parts) &&
+		parts.Count > 1 &&
+		parts[0] is Node.Call(var called, { Count: 0 }) &&
+		ReferenceEquals(called, seam)
+			? parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)])
+			: null;
 
 	static bool Of(
-		Node node, Asked asked, FirstSets.First following, RecognitionGraph graph) =>
+		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
 		node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
 			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture  (_, var body)   => Of(body, asked, following, graph),
-			Node.Construct(var body, _)   => Of(body, asked, following, graph),
+			Node.Capture  (_, var body)   => Of(body, asked, following, graph, seam),
+			Node.Construct(var body, _)   => Of(body, asked, following, graph, seam),
 			// An atomic group commits its first reading and never gives one back, which is
 			// what "at most one match" says. Looking inside asked a harder question than the
 			// braces already answer, and answered it badly wherever the body was a choice or
 			// a star — which is every trivia written the way §4.5 recommends, and so nearly
 			// every grammar.
 			Node.Atomic                   => true,
-			Node.Marked   (var body, _)   => Of(body, asked, following, graph),
-			Node.Sequence (var parts)     => All(parts, asked, following, graph),
+			Node.Marked   (var body, _)   => Of(body, asked, following, graph, seam),
+			Node.Sequence (var parts)     => All(parts, asked, following, graph, seam),
 			Node.Choice   (var options)   => Distinguishable(options, graph) &&
-			                                 All(options, asked, following, graph, sequence: false),
-			Node.Repeat   (var body, _, _) => Possessive(body, asked, following, graph),
-			Node.Call     (var rule, _)   => Of(rule, asked, following, graph),
+			                                 All(options, asked, following, graph, seam, sequence: false),
+			Node.Repeat   (var body, _, _) => Possessive(body, asked, following, graph, seam),
+			Node.Call     (var rule, _)   => Of(rule, asked, following, graph, seam),
 			_                             => false,
 		};
 
@@ -97,12 +127,13 @@ public static class Determinism
 	/// </para>
 	/// </remarks>
 	static bool Of(
-		RuleSymbol rule, Asked asked, FirstSets.First following, RecognitionGraph graph)
+		RuleSymbol rule, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
 		if (asked.TryGetValue(rule, out var already))
 		{
 			foreach (var seen in already)
-				if (FirstSets.Same(seen, following))
+				if (FirstSets.Same(seen.Plain, following.Plain) &&
+					FirstSets.Same(seen.AfterSeam, following.AfterSeam))
 					return true;
 		}
 		else
@@ -113,7 +144,7 @@ public static class Determinism
 		already.Add(following);
 
 		var settled = graph.Bodies.TryGetValue(rule, out var body) &&
-			Of(body, asked, following, graph);
+			Of(body, asked, following, graph, seam);
 
 		already.RemoveAt(already.Count - 1);
 
@@ -121,75 +152,21 @@ public static class Determinism
 	}
 
 	static bool All(
-		IReadOnlyList<Node> nodes, Asked asked, FirstSets.First following, RecognitionGraph graph,
+		IReadOnlyList<Node> nodes, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam,
 		bool sequence = true)
 	{
 		var after = following;
 
 		for (var at = nodes.Count - 1; at >= 0; at--)
 		{
-			var settled = sequence ? PastWoven(nodes, at, after, asked, graph) : null;
-
-			if (!(settled ?? Of(nodes[at], asked, after, graph)))
+			if (!Of(nodes[at], asked, after, graph, seam))
 				return false;
 
 			if (sequence)
-				after = FirstSets.Precedes(nodes[at], after, graph);
+				after = FollowSets.Precedes(nodes[at], after, graph, seam);
 		}
 
 		return true;
-	}
-
-	/// <summary>
-	/// A repetition whose turn and whose continuation both open by reading the same trivia,
-	/// answered on what stands after it — or null where that is not the shape.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// §4.5 weaves <c>trivia</c> between every pair of operands, so a repetition written
-	/// <c>(',' &amp; Type)*</c> is lowered with one at the head of each turn and another
-	/// standing after the loop. <c>trivia</c> is nullable, so its own characters join the
-	/// first set of everything it leads, and the ordinary test then sees the turn and the
-	/// continuation beginning alike and concludes the loop might give a turn back. On a
-	/// grammar that follows §4.5's own recommendation that is nearly every loop there is.
-	/// </para>
-	/// <para>
-	/// They do not begin alike. <c>trivia</c> is an atomic group: it commits its first
-	/// reading and never gives it back, so the same run of it is consumed whether the loop
-	/// takes another turn or stops, and what decides between them is what stands after it —
-	/// here a <c>','</c> against a <c>'&gt;'</c>, which share nothing. So the comparison is
-	/// made there, and only where both sides really do open with a call to the same atomic
-	/// rule.
-	/// </para>
-	/// <para>
-	/// Only the comparison moves. Whether the turn can match nothing, and whether the turn
-	/// is itself determinate, are asked of the whole turn as before: what the trivia settles
-	/// is where one turn ends and the next begins, not what happens inside one.
-	/// </para>
-	/// </remarks>
-	static bool? PastWoven(
-		IReadOnlyList<Node> nodes, int at, FirstSets.First following, Asked asked, RecognitionGraph graph)
-	{
-		if (nodes[at] is not Node.Repeat(Node.Sequence(var turn) body, _, _) ||
-			turn.Count < 2 ||
-			turn[0] is not Node.Call(var woven, { Count: 0 }) ||
-			at + 1 >= nodes.Count ||
-			nodes[at + 1] is not Node.Call(var next, { Count: 0 }) ||
-			!ReferenceEquals(next, woven) ||
-			!graph.Bodies.TryGetValue(woven, out var read) ||
-			read is not Node.Atomic)
-			return null;
-
-		var past = new Node.Sequence([.. turn.Skip(1)]);
-		var rest = following;
-
-		for (var back = nodes.Count - 1; back > at + 1; back--)
-			rest = FirstSets.Precedes(nodes[back], rest, graph);
-
-		return following.IsKnown &&
-			!FirstSets.Nullable(body, graph) &&
-			!FirstSets.Of(past, graph).Overlaps(rest) &&
-			Of(body, asked, FirstSets.Of(body, graph).Or(following), graph);
 	}
 
 	/// <summary>Whether one character tells every alternative from every other.</summary>
@@ -256,5 +233,5 @@ public static class Determinism
 	/// continuation per rule, because a rule reached again under a different one is a
 	/// different question and gets asked.
 	/// </remarks>
-	sealed class Asked : Dictionary<RuleSymbol, List<FirstSets.First>>;
+	sealed class Asked : Dictionary<RuleSymbol, List<FollowSets.Continuation>>;
 }

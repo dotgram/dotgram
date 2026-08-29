@@ -31,7 +31,7 @@ public sealed class DeterminismTests
 	{
 		var graph = Graph("Item = '(' & Item & ')' | ['a'..'z']\nStart = Item & ';'");
 
-		Assert.True(Determinism.Of(Body(graph, "Item"), Ends(';'), graph));
+		Assert.True(Determinism.Of(Body(graph, "Item"), Ends(';'), graph, null));
 	}
 
 	/// <summary>And one whose choice a character cannot settle is not.</summary>
@@ -40,7 +40,7 @@ public sealed class DeterminismTests
 	{
 		var graph = Graph("Item = 'a' & Item | 'a'\nStart = Item & ';'");
 
-		Assert.False(Determinism.Of(Body(graph, "Item"), Ends(';'), graph));
+		Assert.False(Determinism.Of(Body(graph, "Item"), Ends(';'), graph, null));
 	}
 
 	/// <summary>
@@ -70,7 +70,12 @@ public sealed class DeterminismTests
 		Assert.False(Determinism.Distinguishable(body.Nodes, graph, 8));
 	}
 
-	static FirstSets.First Ends(char c) => FirstSets.First.Chars([new CharRange(c, c)]);
+	static FollowSets.Continuation Ends(char c)
+	{
+		var only = FirstSets.First.Chars([new CharRange(c, c)]);
+
+		return new FollowSets.Continuation(only, only);
+	}
 
 	static Node Body(RecognitionGraph graph, string rule) =>
 		graph.Bodies[graph.Rules.First(one => one.Name == rule)];
