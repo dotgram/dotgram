@@ -285,7 +285,10 @@ then quietly means nothing is the failure this project is most careful about:
 
 - a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
   refused rather than quietly taken as a recognizer
-- a second `recover` in one rule, and indirect left recursion
+- indirect left recursion, except through rules that only forward — `Call` reaching itself
+  through a `Primary` that does nothing but hand its alternatives on is rewritten and works;
+  a chain of rules that recurse through each other, or one where a rule between does
+  something of its own, is refused
 - the allocation-free `Read()`/`Current` and generated-outcome surfaces from §8.3;
   typed streamed results and the `OnRecovered` sink already work
 - incremental parsing
@@ -305,7 +308,7 @@ written against it, with no test framework anywhere near them.
 | [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `trivia` |
 | [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a namespace that shadows `trivia` back off |
 | [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
-| [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace with (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
+| [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace Name with (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
 | [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |
 | [`OneRuleTreeExample.cs`](examples/DotGram.Examples/OneRuleTreeExample.cs) | that tree from one rule of eight lines — the whole of a small DSL in one place, and the same nodes its five-rule twin builds |
 | [`Expression.cs`](examples/DotGram.Examples/Expression.cs) | the tree those two build, and everything it can do. No grammar in it, deliberately |

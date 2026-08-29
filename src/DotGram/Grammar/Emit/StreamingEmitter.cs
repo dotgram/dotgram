@@ -48,7 +48,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static void EmitStreamingFind(
 		Writer file, Publication publication, string method, string name,
-		string match, string hands, bool builds)
+		string match, string hands, bool builds, string takes)
 	{
 		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
 
@@ -60,7 +60,7 @@ public static partial class CSharpEmitter
 
 		using (file.Block(
 			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
-			"global::System.IO.TextReader input)"))
+			$"global::System.IO.TextReader input{takes})"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -108,7 +108,8 @@ public static partial class CSharpEmitter
 
 		file.Line();
 
-		EmitOverLines(file, $"global::System.Collections.Generic.IEnumerable<{match}>", method, name);
+		EmitOverLines(
+			file, $"global::System.Collections.Generic.IEnumerable<{match}>", method, name, takes);
 	}
 
 	/// <summary>
@@ -119,7 +120,8 @@ public static partial class CSharpEmitter
 	/// back. Written out rather than left to the caller so that <c>File.ReadLines</c> and
 	/// a <c>List&lt;string&gt;</c> are as ordinary an input as a string is.
 	/// </remarks>
-	static void EmitOverLines(Writer file, string returns, string method, string name)
+	static void EmitOverLines(
+		Writer file, string returns, string method, string name, string takes = "")
 	{
 		file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
 		file.Line("/// <remarks>");
@@ -130,9 +132,9 @@ public static partial class CSharpEmitter
 
 		using (file.Block(
 			$"public static {returns} {method}(" +
-			"global::System.Collections.Generic.IEnumerable<string> input)"))
+			$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 		{
-			file.Line($"return {method}(new {LinesType}(input));");
+			file.Line($"return {method}(new {LinesType}(input){(takes.Length > 0 ? ", context" : "")});");
 		}
 	}
 

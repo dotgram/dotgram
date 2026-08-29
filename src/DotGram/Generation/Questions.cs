@@ -100,6 +100,7 @@ static class Questions
 		var sequences = new List<string>();
 		var externals = new List<string>();
 		var producers = new List<(string Method, string Against)>();
+		var contexts  = new List<string>();
 
 		Collect(file.Usings, file.Decls);
 
@@ -112,6 +113,13 @@ static class Questions
 		foreach (var element in sequences)
 			foreach (var type in declared)
 				questions.Add(Question.Fits(type, element));
+
+		// Both ways round, because the effective contract is whichever of them satisfies the
+		// rest and that is what the answers are for deciding.
+		foreach (var one in contexts)
+			foreach (var other in contexts)
+				if (one != other)
+					questions.Add(Question.Fits(one, other));
 
 		// §7.3: a rule declaring a type may have it built from its captures, so what every
 		// declared type can be built with is asked for. The same superset as the rest of
@@ -188,6 +196,20 @@ static class Questions
 						// from syntax alone, both halves of it, unlike T itself.
 						if (type is not null && body is Expr.Reference(true, var method, _))
 							producers.Add((method, GrammarNormalizer.TypeName(type)));
+
+						break;
+
+					// Every grammar in a composition declares the contract its own rules
+					// were written against, and what is handed over has to satisfy all of
+					// them at once (GRAM3019). Which pair the model ends up asking about
+					// depends on which contract turns out to be the effective one, so every
+					// pairing is asked for here — the same superset as §4.1's above.
+					case Decl.Context(var contract):
+
+						names.Add(new Question(contract.Name, Question.Exists));
+
+						if (!contexts.Contains(contract.Name))
+							contexts.Add(contract.Name);
 
 						break;
 

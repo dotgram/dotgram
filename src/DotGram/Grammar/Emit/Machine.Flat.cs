@@ -46,7 +46,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure)"))
+			$"ref {CSharpEmitter.FailureType} failure{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 
@@ -261,9 +261,11 @@ sealed partial class Machine
 
 		foreach (var factory in factories)
 		{
-			if (CSharpEmitter.WantsText(factory) ||
-				CSharpEmitter.Asks(factory, "parserSpan") ||
-				CSharpEmitter.Asks(factory, "parserInput") ||
+			// What this rendering can hand a construction is said once, in `Renderings.cs`,
+			// and read here rather than listed again. The list is what kept going out of
+			// date: a name added to the signature and not to one of these was a call short
+			// an argument, in somebody else's build.
+			if (!Renderings.Supplies(Renderings.Rendering.Flat, factory, _graph) ||
 				factory.Accumulator is not null)
 				return false;
 
@@ -388,7 +390,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, out {type} value)"))
+			$"ref {CSharpEmitter.FailureType} failure, out {type} value{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 
@@ -505,6 +507,16 @@ sealed partial class Machine
 	{
 		var offset    = _captureOffsets[rule];
 		var arguments = new List<string>();
+
+		// The grammar's own state, where the factory names it (§7.7). Nothing else supplied
+		// can reach here — `ComputeFlatValued` refuses a factory wanting the matched text,
+		// the span or the input, and `CanLowerValued` refuses a machine that reads marks —
+		// so this is the whole of what a flat construction is handed beyond its captures.
+		// It was missing, and the two halves disagreed in silence: the publication passed a
+		// context the recognizer did not take, and the recognizer called a factory without
+		// the one it did.
+		if (UsesContext && CSharpEmitter.Asks(_graph, factory, "context"))
+			arguments.Add("context");
 
 		for (var index = 0; index < factory.Members.Count; index++)
 		{

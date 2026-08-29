@@ -29,24 +29,76 @@ public sealed class GrammarBinder
 	public const string NamespaceBoundNameRedeclared = "GRAM3010";
 	public const string CircularRebinding     = "GRAM3011";
 	public const string ShadowsEnclosingRule      = "GRAM3012";
-	public const string ContextNotAtRoot          = "GRAM3013";
+	/// <summary>
+	/// Retired. <c>GRAM3013</c> refused a <c>context</c> inside a namespace, on the
+	/// reasoning that a context for part of a parse is not a thing.
+	/// </summary>
+	/// <remarks>
+	/// It is a thing, and the reasoning confused two of them: one object is handed to the
+	/// whole parse, and the *type it is seen through* belongs to the grammar that wrote the
+	/// code — so a grammar included in another declares its own contract and its rules keep
+	/// it (docs/next.md, "Decided: `context` is a contract"). The number is left unused
+	/// rather than given to something else: an id that changes meaning is worse than a gap,
+	/// because a suppression written against the old one would silently apply to the new.
+	/// </remarks>
 	public const string DuplicateContext          = "GRAM3014";
-	public const string StateNotAtRoot            = "GRAM3015";
+	/// <summary>
+	/// Retired. <c>GRAM3015</c> refused a <c>state</c> inside a namespace, for the reason
+	/// <c>GRAM3013</c> refused a <c>context</c> there.
+	/// </summary>
+	/// <remarks>
+	/// The reason was right about <c>state</c> and wrong about where to say so. There is one
+	/// mark type for a whole parse, which is exactly what makes a grammar included in another
+	/// able to declare it: what it declares is a claim to be the same type, not a second one.
+	/// Refusing the place made an inherited grammar that uses <c>with state</c> impossible to
+	/// include at all. The claim is checked instead, by <see cref="StateNotInvariant"/>, and
+	/// the number is left unused for the reason <c>GRAM3013</c>'s is.
+	/// </remarks>
+	// GRAM3015
+
 	public const string DuplicateState            = "GRAM3016";
 
 	/// <summary>
-	/// One <c>context</c> and one <c>state</c> per assembly, not merely per grammar.
+	/// Retired. <c>GRAM3017</c> and <c>GRAM3018</c> allowed one <c>context</c> and one
+	/// <c>state</c> per assembly, not merely per grammar.
 	/// </summary>
 	/// <remarks>
-	/// Raised by the shell rather than here, because it is a question about every grammar in
-	/// a compilation and this half sees one. The ids live beside their per-grammar
-	/// counterparts all the same: it is the same rule asked over a wider extent, and an
-	/// author who looks one up will look for the other next to it.
+	/// <para>
+	/// Taken early and deliberately, as the constraint that would keep a grammar includable
+	/// in another later. It was being kept compatible with a design that turned out to want
+	/// the opposite: not one per assembly and not one per chain, but an effective type that
+	/// satisfies every contract inherited along the way. A condition rather than a
+	/// prohibition, which is <see cref="ContextNotRefined"/>, and two parsers in one assembly
+	/// that never meet are no longer refused for a reason neither of them can see.
+	/// </para>
+	/// <para>
+	/// The numbers are left unused rather than given to the check that replaced them, for the
+	/// reason <c>GRAM3013</c> is: a suppression written against the old meaning would silently
+	/// apply to the new one, and a gap is the cheaper of the two.
+	/// </para>
 	/// </remarks>
-	public const string SharedContext             = "GRAM3017";
+	// GRAM3017, GRAM3018
 
-	/// <inheritdoc cref="SharedContext"/>
-	public const string SharedState               = "GRAM3018";
+	/// <summary>
+	/// The type handed to a parse does not satisfy a contract the grammar inherited.
+	/// </summary>
+	/// <remarks>
+	/// The one condition composing contexts puts on a composed grammar. Raised in the model
+	/// rather than here: it needs every namespace's declaration and the host's answer about
+	/// assignability, and neither is in hand while names are being bound.
+	/// </remarks>
+	public const string ContextNotRefined         = "GRAM3019";
+
+	/// <summary>
+	/// Two grammars in one composition declare a different <c>state</c>.
+	/// </summary>
+	/// <remarks>
+	/// The other half of <see cref="ContextNotRefined"/>, and the asymmetry between them is
+	/// the design rather than an oversight: a context is one object seen through as many
+	/// contracts as there are grammars, and a mark is one value in a stack read as one span,
+	/// which admits exactly one type.
+	/// </remarks>
+	public const string StateNotInvariant         = "GRAM3020";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a namespace outside
@@ -134,7 +186,7 @@ public sealed class GrammarBinder
 	static string ShadowsMessage(string name) =>
 		$"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
 		$"this means to replace it rather than declare a new rule under the same name, say " +
-		$"so with a rebinding instead: 'namespace ({name} = ...)' (§5.1).";
+		$"so with a rebinding instead: 'namespace Name with ({name} = ...) {{ ... }}' (§5.1).";
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
@@ -152,7 +204,7 @@ public sealed class GrammarBinder
 							$"'{rule.Name}' is already defined in this namespace; put one of them in a nested namespace to shadow the other.",
 							node.At);
 
-					// A nested namespace is one parenthesis away from a header that would have
+					// A nested namespace is one `with (...)` away from a header that would have
 					// meant this as a replacement rather than a new declaration (§5.1) — a
 					// declaration always means a new rule, and a rebinding is the only way to
 					// replace one, so silently landing on an enclosing namespace's own rule is
@@ -256,28 +308,31 @@ public sealed class GrammarBinder
 		{
 			switch (node)
 			{
-				// The name a grammar's own state travels under. One per grammar and at the
-				// top of it: a context declared inside a namespace would be a context for
-				// part of a parse, and there is no such thing — the object the caller hands
-				// over is handed to all of it.
+				// The contract the rules around it were written against. One object is handed
+				// to the whole parse — that has not changed — but *which type that object is
+				// seen through* belongs to the grammar that wrote the code, so a grammar
+				// included in another declares its own and its rules keep it (docs/next.md,
+				// "Decided: `context` is a contract"). At the root it is also the effective
+				// type, which is what a publication takes and what a caller supplies.
 				case Decl.Context context:
 
-					if (ns.Parent?.Parent is not null)
-						Report(
-							ContextNotAtRoot,
-							"A 'context' belongs to the whole grammar, so it is declared outside every " +
-							"namespace. The one object a caller hands over is handed to all of it.",
-							context.At);
-
-					else if (_context is not null)
+					if (ns.Context is not null)
 						Report(
 							DuplicateContext,
-							"This grammar already declares a 'context'. One name, one type, one object " +
-							"for the parse.",
+							"This grammar already declares a 'context'. One contract for the rules " +
+							"written here; a grammar including this one may strengthen it for its own.",
 							context.At);
 
 					else
-						_context = context.Type;
+					{
+						ns.Context = context.Type;
+
+						// The root's is the effective one. An inner namespace's is a contract
+						// its own rules are bound to and says nothing about what the caller
+						// hands over.
+						if (ns.Parent?.Parent is null)
+							_context = context.Type;
+					}
 
 					break;
 
@@ -286,14 +341,7 @@ public sealed class GrammarBinder
 				// type for part of an answer.
 				case Decl.State state:
 
-					if (ns.Parent?.Parent is not null)
-						Report(
-							StateNotAtRoot,
-							"A 'state' belongs to the whole grammar, so it is declared outside every " +
-							"namespace. Every mark a 'with state' site places is written in the one type.",
-							state.At);
-
-					else if (_state is not null)
+					if (ns.State is not null)
 						Report(
 							DuplicateState,
 							"This grammar already declares a 'state'. Two concerns are told apart by " +
@@ -301,7 +349,15 @@ public sealed class GrammarBinder
 							state.At);
 
 					else
-						_state = state.Type;
+					{
+						ns.State = state.Type;
+
+						// The root's is the one a parse writes its marks in. An included
+						// grammar's is a claim that it is the same type, checked once every
+						// grammar in the composition has been read.
+						if (ns.Parent?.Parent is null)
+							_state = state.Type;
+					}
 
 					break;
 

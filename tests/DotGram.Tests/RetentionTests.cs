@@ -104,12 +104,23 @@ public sealed class RetentionTests
 			LineExtent.Beyond,
 			ExtentOf("Either = ['a'..'z']+ | '\\n' & ['a'..'z']", "Either"));
 
+	/// <summary>A category admits a terminator exactly when it holds one.</summary>
+	/// <remarks>
+	/// It used to be assumed to, whichever category it was — safe, and wrong: a letter is
+	/// not a line terminator, and a rule of letters that was said to cross a line lost the
+	/// streaming overload it could have had. `FirstSets` expands a category into the
+	/// characters it holds and was written that way for the same reason, so this asks it
+	/// rather than guessing again.
+	/// </remarks>
 	[Fact]
-	public void A_category_is_assumed_to_admit_a_terminator() =>
-		// Not looked into, and wrong in the safe direction: a rule wrongly said to take a
-		// terminator loses an overload it could have had; wrongly said not to, it would
-		// lose data.
-		Assert.Equal(LineExtent.Beyond, ExtentOf(@"Any = [\p{L}]+", "Any"));
+	public void A_category_admits_a_terminator_only_where_it_holds_one()
+	{
+		// Letters do not, so a run of them stays inside its line.
+		Assert.NotEqual(LineExtent.Beyond, ExtentOf(@"Any = [\p{L}]+", "Any"));
+
+		// The control characters do, both terminators among them.
+		Assert.Equal(LineExtent.Beyond, ExtentOf(@"Any = [\p{Cc}]+", "Any"));
+	}
 
 	// ── Stages: whether a published rule can be read from a window ───────────────
 

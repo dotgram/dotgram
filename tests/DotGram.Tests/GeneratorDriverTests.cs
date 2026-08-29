@@ -258,100 +258,289 @@ public sealed class GeneratorDriverTests
 
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
-	// ── One `context` and one `state` for the assembly (GRAM3017, GRAM3018) ──────
+	// ── A host inheriting a grammar ─────────────────────────────────────────────
 
 	/// <summary>
-	/// Two grammars in one assembly may not both declare a <c>context</c>.
+	/// A host inherits its base's grammar, and reaches it by the name the base is included
+	/// under.
 	/// </summary>
 	/// <remarks>
-	/// Taken before anything depends on it, because it is what keeps a grammar includable
-	/// in another later: a merged grammar can have only one context, since a context is one
-	/// object handed to a whole parse. Reported at both sites — which of the two the
-	/// generator saw first is not something an author can act on.
+	/// The whole arrangement: the base's rules arrive wrapped in a namespace, the derived
+	/// grammar's <c>using</c> imports them, and what comes out is one parser built from
+	/// both. Nothing in the derived grammar says where <c>Word</c> came from except that
+	/// <c>using</c>, and nothing in C# says it except the <c>:</c>.
 	/// </remarks>
 	[Fact]
-	public void An_assembly_declares_one_context()
+	public void A_host_inherits_the_grammar_of_the_class_it_derives_from()
+	{
+		var assembly = EmittedCode.Compile(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Word = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nStart : @string = w: Word => @(w)\nparse Start")]
+				public partial class Reader : Lexemes { }
+				""")
+				.Results
+				.SelectMany(result => result.GeneratedSources)
+				.Single(source => source.HintName.StartsWith("Reader", StringComparison.Ordinal))
+				.SourceText
+				.ToString(),
+			className: "Reader");
+
+		Assert.Equal(
+			"abc",
+			EmittedCode.Match(assembly, "Reader", "TryParseStart", "abc").Value);
+	}
+
+	[Fact]
+	public void And_the_name_it_is_reached_by_is_the_one_the_base_gave_itself()
 	{
 		var result = RunGenerator(
 			"""
-			[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
-			public partial class One { }
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			public partial class VeryLongBaseName { }
 
-			[DotGram.Gram("context : @B\nStart = 'b'\nparse Start")]
-			public partial class Two { }
+			[DotGram.Gram("using Lexical;\nStart = w: Word\nparse Start")]
+			public partial class Reader : VeryLongBaseName { }
 			""");
 
-		var reported = result.Diagnostics
-			.Where(diagnostic => diagnostic.Id == "GRAM3017")
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+	}
+
+	[Fact]
+	public void And_a_base_that_declares_no_grammar_is_walked_past() =>
+		// A class may sit between two that have one for reasons of its own.
+		Assert.DoesNotContain(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Word = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				public partial class Between : Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nStart = w: Word\nparse Start")]
+				public partial class Reader : Between { }
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+
+	/// <summary>An error in the base's grammar is underlined in the base's grammar.</summary>
+	/// <remarks>
+	/// What the position map is for, asked of the generator rather than of the map: the
+	/// derived host is what was being generated, and the squiggle has to land on the line
+	/// the base's author wrote — which for a base in the same assembly is a line that
+	/// exists.
+	/// </remarks>
+	[Fact]
+	public void And_an_error_in_what_was_inherited_is_underlined_where_it_was_written()
+	{
+		var source =
+			"[DotGram.Gram(\"\"\"\n" +
+			"	Word = Nonexistent\n" +
+			"	\"\"\")]\n" +
+			"public partial class Lexemes { }\n" +
+			"\n" +
+			"[DotGram.Gram(\"using Lexemes;\\nStart = w: Word\\nparse Start\")]\n" +
+			"public partial class Reader : Lexemes { }";
+
+		// Twice: once generating the base, once generating what inherited it. Both are
+		// placed on the same characters, which is the base's own grammar.
+		var reported = RunGenerator(source)
+			.Diagnostics
+			.Where(diagnostic => diagnostic.Id == "GRAM3002")
 			.ToArray();
 
 		Assert.Equal(2, reported.Length);
-		Assert.All(reported, diagnostic => Assert.Contains("One", diagnostic.GetMessage()));
-		Assert.All(reported, diagnostic => Assert.Contains("Two", diagnostic.GetMessage()));
+
+		// Where it starts, and not how far it runs: a span reaches to the beginning of the
+		// next token rather than to the end of this one — `GramParser.From` — so a
+		// construct with anything after it takes the whitespace with it. That is true of
+		// every location in every grammar and has nothing to do with joining; what this
+		// asks is that the squiggle begins on the word the base's author wrote.
+		foreach (var diagnostic in reported)
+			Assert.StartsWith(
+				"Nonexistent",
+				source.Substring(diagnostic.Location.SourceSpan.Start),
+				StringComparison.Ordinal);
 	}
 
+	// ── The name a grammar is included under ────────────────────────────────────
+
+	/// <summary>
+	/// A named argument beside the grammar does not stop the grammar from being found in
+	/// its own spelling.
+	/// </summary>
+	/// <remarks>
+	/// The trap this arrangement sets: a diagnostic in an inline grammar is placed by
+	/// searching the attribute's literal, and the search used to require the attribute to
+	/// have exactly one argument. Writing a second one would have taken every diagnostic's
+	/// placement with it, silently — so this asserts the placement rather than the reading.
+	/// </remarks>
 	[Fact]
-	public void And_one_state() =>
-		Assert.Equal(
-			2,
-			RunGenerator(
-				"""
-				[DotGram.Gram("state : @A\nStart = 'a'\nparse Start")]
-				public partial class One { }
-
-				[DotGram.Gram("state : @B\nStart = 'b'\nparse Start")]
-				public partial class Two { }
-				""")
-				.Diagnostics.Count(diagnostic => diagnostic.Id == "GRAM3018"));
-
-	[Fact]
-	public void And_the_two_are_counted_apart() =>
-		// A `context` in one grammar and a `state` in another is two of nothing.
-		Assert.Empty(
-			RunGenerator(
-				"""
-				[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
-				public partial class One { }
-
-				[DotGram.Gram("state : @B\nStart = 'b'\nparse Start")]
-				public partial class Two { }
-				""")
-				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3017" or "GRAM3018"));
-
-	[Fact]
-	public void And_one_grammar_may_have_both() =>
-		Assert.Empty(
-			RunGenerator(
-				"""
-				[DotGram.Gram("context : @A\nstate : @B\nStart = 'a'\nparse Start")]
-				public partial class One { }
-
-				[DotGram.Gram("Start = 'b'\nparse Start")]
-				public partial class Two { }
-				""")
-				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3017" or "GRAM3018"));
-
-	[Fact]
-	public void And_it_is_said_at_the_declaration_rather_than_at_the_class()
+	public void A_grammar_beside_a_named_argument_is_still_placed_where_it_was_written()
 	{
-		var reported = RunGenerator(
-			"""
-			[DotGram.Gram("context : @A\nStart = 'a'\nparse Start")]
-			public partial class One { }
+		var error = Assert.Single(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Start = missing", IncludedAs = "Lexical")]
+				public partial class Grammar { }
+				""")
+				.Diagnostics
+				.Where(diagnostic => diagnostic.Id == "GRAM3002")
+				.ToArray());
 
-			[DotGram.Gram("context : @B\nStart = 'b'\nparse Start")]
-			public partial class Two { }
-			""")
-			.Diagnostics
-			.First(diagnostic => diagnostic.Id == "GRAM3017");
+		var at = error.Location.GetMappedLineSpan();
 
-		var at = reported.Location.GetMappedLineSpan();
-
-		// The first line of the grammar, which is where `context : @A` is written — found
-		// inside the attribute's own spelling, not guessed from the class.
+		// The first line of the source above, at the column `missing` is written — inside
+		// the literal, not at the class and not at the start of the attribute.
 		Assert.Equal("GeneratorDriverTest.cs", at.Path);
-		Assert.Equal(0, at.StartLinePosition.Line);
+		Assert.Equal(0,  at.StartLinePosition.Line);
+		Assert.Equal(23, at.StartLinePosition.Character);
 	}
+
+	[Theory]
+	[InlineData("a.b")]
+	[InlineData("")]
+	[InlineData("1st")]
+	[InlineData("has space")]
+	public void A_name_that_is_not_an_identifier_is_refused(string name) =>
+		// A grammar is included by being wrapped in a namespace, and a namespace is named
+		// by an identifier. Said at the host, before the splice can turn it into a parse
+		// error in a text nobody wrote.
+		AssertDiagnostic(
+			"GRAM0005",
+			RunGenerator(
+				$$"""
+				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "{{name}}")]
+				public partial class Grammar { }
+				"""));
+
+	[Fact]
+	public void And_a_name_that_is_one_is_not() =>
+		Assert.DoesNotContain(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "Lexical")]
+				public partial class Grammar { }
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Id == "GRAM0005");
+
+	// ── A context is a contract, and inheritance refines it (GRAM3019, GRAM3020) ──
+
+	/// <summary>Two parsers that never meet each declare whatever they like.</summary>
+	/// <remarks>
+	/// Which <c>GRAM3017</c> and <c>GRAM3018</c> refused: one <c>context</c> and one
+	/// <c>state</c> per assembly, taken early as the constraint that would keep a grammar
+	/// includable in another. The design it was kept compatible with wants the opposite — a
+	/// condition on what is actually composed, not a prohibition on what is not — so two
+	/// grammars in one assembly are no longer refused for a reason neither of them can see.
+	/// </remarks>
+	[Fact]
+	public void Two_grammars_in_one_assembly_are_not_one_grammar() =>
+		Assert.Empty(
+			RunGenerator(
+				"""
+				public interface IOne { }
+				public interface ITwo { }
+
+				[DotGram.Gram("context : @IOne\nstate : @int\nStart = 'a'\nparse Start")]
+				public partial class One { }
+
+				[DotGram.Gram("context : @ITwo\nstate : @string\nStart = 'b'\nparse Start")]
+				public partial class Two { }
+				""")
+				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3019" or "GRAM3020"));
+
+	/// <summary>A derived grammar may need more of the same object than its base does.</summary>
+	/// <remarks>
+	/// One object flows down and the two halves of the composition see it through different
+	/// static types — the base's rules through what the base declared, the derived grammar's
+	/// through what it declared. Ordinary subtyping, and the parse takes the derived type.
+	/// </remarks>
+	[Fact]
+	public void A_derived_grammar_may_strengthen_the_contract_it_inherited()
+	{
+		var result = RunGenerator(
+			"""
+			public interface IWords { int Count { get; } }
+			public interface IReading : IWords { bool Deep { get; } }
+
+			[DotGram.Gram("context : @IWords\nWord : @int = w: ['a'..'z']+ => @(context.Count)")]
+			public partial class Lexemes { }
+
+			[DotGram.Gram("using Lexemes;\ncontext : @IReading\nStart : @bool = Word => @(context.Deep)\nparse Start")]
+			public partial class Reader : Lexemes { }
+			""");
+
+		Assert.Empty(result.Diagnostics.Where(diagnostic => diagnostic.Id == "GRAM3019"));
+
+		var source = result
+			.Results
+			.SelectMany(one => one.GeneratedSources)
+			.Single(one => one.HintName.StartsWith("Reader", StringComparison.Ordinal))
+			.SourceText
+			.ToString();
+
+		// The base’s factory takes what the base declared and the derived grammar’s takes
+		// what it declared, and both are handed the same object.
+		Assert.Contains("IWords context", source, StringComparison.Ordinal);
+		Assert.Contains("IReading context", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And may not replace it.</summary>
+	[Fact]
+	public void And_may_not_replace_it() =>
+		AssertDiagnostic(
+			"GRAM3019",
+			RunGenerator(
+				"""
+				public interface IWords    { }
+				public interface ISomething { }
+
+				[DotGram.Gram("context : @IWords\nWord = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\ncontext : @ISomething\nStart = Word\nparse Start")]
+				public partial class Reader : Lexemes { }
+				"""));
+
+	/// <summary>A state is inherited as it stands, since there is one type for all marks.</summary>
+	/// <remarks>
+	/// The base's declaration arrives inside a namespace, which <c>GRAM3015</c> used to
+	/// refuse outright — so a grammar that used <c>with state</c> could not be inherited at
+	/// all. It is the parse's mark type now, and the derived grammar need say nothing.
+	/// </remarks>
+	[Fact]
+	public void A_state_is_inherited_rather_than_redeclared() =>
+		Assert.Empty(
+			RunGenerator(
+				"""
+				[DotGram.Gram("state : @int\nWord = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nStart = Word\nparse Start")]
+				public partial class Reader : Lexemes { }
+				""")
+				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3020" or "GRAM3015"));
+
+	/// <summary>And a second type for it is a second type for part of one answer.</summary>
+	[Fact]
+	public void And_a_derived_grammar_may_not_write_its_marks_in_another_type() =>
+		AssertDiagnostic(
+			"GRAM3020",
+			RunGenerator(
+				"""
+				[DotGram.Gram("state : @int\nWord = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nstate : @string\nStart = Word\nparse Start")]
+				public partial class Reader : Lexemes { }
+				"""));
 
 	static void AssertDiagnostic(string id, GeneratorDriverRunResult result) =>
 		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
@@ -789,11 +978,17 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
+	/// <remarks>
+	/// The two alternatives name the operand differently, which is what keeps them two: a
+	/// fold that shared it would have to drop one of the names along with the slot it was
+	/// written to, so it declines. Reading the operand twice is what this test is about, and
+	/// the test below is about not having to.
+	/// </remarks>
 	[Fact]
 	public void A_cached_guard_value_is_discarded_with_its_derivation()
 	{
 		var type = Build("""
-			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | again: Number & when @(again == 1) => @(again)\nNumber : @int = '1' => @Built()\nparse Start")]
 			public partial class BacktrackedGuardValue
 			{
 				public static int Calls;
@@ -803,6 +998,30 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
 		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
+	}
+
+	/// <summary>And the same grammar with the operand shared reads it once.</summary>
+	/// <remarks>
+	/// The same two alternatives, naming the operand the same thing. `Number` has one
+	/// reading, so which of them matches cannot turn on how much of it was read, and the
+	/// fold puts it in front of both. What the author wrote is unchanged; what runs is one
+	/// derivation instead of two, and the factory the abandoned one had already called
+	/// is not called again.
+	/// </remarks>
+	[Fact]
+	public void And_a_shared_operand_is_read_once()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			public partial class SharedGuardValue
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("SharedGuardValue")!;
+
+		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
+		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
 	[Fact]

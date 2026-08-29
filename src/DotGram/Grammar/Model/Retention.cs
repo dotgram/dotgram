@@ -716,24 +716,22 @@ public static class Retention
 	/// Whether an element set admits a line terminator.
 	/// </summary>
 	/// <remarks>
-	/// A Unicode category is not looked into: <c>\p{Cc}</c> contains both terminators and
-	/// several others could be argued about. Treated as admitting one, which is again the
-	/// direction that costs an overload rather than data.
+	/// <para>
+	/// Asked of the one place that knows what characters an element admits. This used to
+	/// work it out again and worse — a Unicode category was taken to admit a terminator
+	/// whatever category it was, so <c>\p{L}</c> claimed to, which is safe and is wrong.
+	/// <see cref="FirstSets"/> expands a category into the characters it actually holds, and
+	/// was written that way for the same reason: saying "anything" about a category poisons
+	/// everything downstream of it.
+	/// </para>
+	/// <para>
+	/// The safe direction is kept where it belongs rather than restated here. An element
+	/// holding a C# predicate is "anything" over there, and anything overlaps a terminator,
+	/// so a host predicate still counts as admitting one — which is the answer it has to be.
+	/// </para>
 	/// </remarks>
-	static bool Admits(Node.Element element)
-	{
-		if (element.Categories.Count > 0)
-			return true;
+	static bool Admits(Node.Element element) => FirstSets.OfElement(element).Overlaps(Terminators);
 
-		var named = false;
-
-		foreach (var range in element.Ranges)
-			if (range is { From: <= '\n', To: >= '\n' } or { From: <= '\r', To: >= '\r' })
-			{
-				named = true;
-				break;
-			}
-
-		return element.IsNegated ? !named : named;
-	}
+	static readonly FirstSets.First Terminators =
+		FirstSets.First.Chars([new CharRange('\n', '\n'), new CharRange('\r', '\r')]);
 }

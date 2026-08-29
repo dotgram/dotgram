@@ -13,7 +13,7 @@ namespace DotGram.Examples;
 //
 // The replacement happens at the publication, not in the rule:
 //
-//   namespace with (Point = Comma)
+//   namespace Ctx with (Point = Comma)
 //   {
 //       parse Number as ParseEuropeanNumber
 //   }

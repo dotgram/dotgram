@@ -1,20 +1,28 @@
-# Unified parser handoff
+# Engineering diary
 
-This is an internal engineering handoff, not public product documentation. It records
-the current implementation, the decisions behind it, known gaps, and a safe order for
-continuing the work on another machine. Public guarantees belong in `syntax.md` and
-`status.md` only after the old and new generators have the same semantics.
+**This file is a diary, not a description of the compiler.** It is written newest last,
+each entry recording what was built or found and — the part worth keeping — *why the
+alternatives were not taken*. An entry is true of the day it was written and is left alone
+afterwards, because a design note that gets edited to match the code stops being a record
+of the decision and becomes a worse copy of the code.
+
+So: **nothing here is authoritative about the present.**
+
+| For | Read |
+| --- | --- |
+| what the language is | [`syntax.md`](syntax.md) — a specification, present tense |
+| what the compiler does today | [`status.md`](status.md) — the report |
+| why it is that way | this file, and `git log` |
+
+The sections between here and the first `## Built:` entry are the oldest of all — they
+were the handoff this file began as, and they describe an engine of some ninety commits
+ago. They are kept because the reasoning in them is still the reasoning, and read as
+history. Where one of them names a file (`Region.cs`) or a number (887 tests) that no
+longer exists, that is the point: the entry below it says what happened to it.
 
 ## Read this first
 
-Work is on `main`. The current direction is a private nested parser object executing one
-shared generated automaton. Recognition records an all-integer derivation arena;
-user-visible values and `=>` calls are materialized only after the parse has been
-accepted. Recursive rules use explicit frames rather than the C# call stack.
-
-The checkout was clean before this handoff was written. Which commit that was is not
-recorded here: it went stale within the day and said nothing `git log` does not say
-better.
+The conventions below are the one part of the old handoff that is still operational.
 
 ## Repository conventions and verification
 
@@ -37,8 +45,9 @@ better.
 - Before committing, run `git diff --check`, verify line endings and BOM policy, and
   inspect generated snapshot changes rather than accepting them mechanically.
 
-Current baseline: the build succeeds with no warnings or errors. The runner discovers
-887 tests and all 887 pass. The stray-character recovery regression is fixed: a broken
+Baseline **as of the day this was written**, kept for the shape of the report rather than
+for the number — `status.md` is where the current one lives: the build succeeded with no
+warnings or errors, and the runner discovered 887 tests, all passing. The stray-character recovery regression is fixed: a broken
 expression now produces the lexer error and one parser synchronization diagnostic, while
 rules following the broken declaration are still bound and checked.
 
@@ -5724,3 +5733,816 @@ Five tests, and the one worth naming is `And_the_two_are_counted_apart`: a `cont
 grammar and a `state` in another is two of nothing, because they are two rules and not one.
 
 1,374 tests green in both configurations.
+
+## Built: the position map, which is the half inheritance rests on
+
+The first piece of the entry above, on its own and provable on its own: joining grammars
+into the one text they are compiled as, and taking a position in that text back apart.
+
+**The including grammar goes first and is not moved.** Asked in conversation as
+prepend-or-append, and the answer is diagnostic rather than aesthetic. A diagnostic in a
+grammar written inside an attribute is placed by *searching* the literal's spelling for the
+text — a C# string knows how to turn its spelling into a value and not the other way round.
+So the text an author is actually editing keeps offsets `0..N`, its diagnostics land exactly
+where they landed before any of this existed, and only what follows needs translating.
+Putting the included grammars first would shift the one text somebody reads in order to
+serve the order of a file nobody reads.
+
+**What is included is wrapped in a namespace and not indented.** The wrapper is what hides
+its rules until a `using` asks for them (§5.1) and what keeps its `trivia` its own (§4.5).
+Indenting would read better and is refused: it would shift every position on every line, and
+the translation is only exact while a segment's bytes are the segment's bytes. The braces
+stand on lines of their own instead.
+
+**The wrapper's own characters belong to no grammar** and are left out of the map rather
+than attributed to one, so a position landing in them is answered "nowhere" — which is what
+`ILineMap` asks for over a guess.
+
+`ILineMap.TryMap(position, out file, out line, out column)` turned out to be exactly the
+right seam already: it answers *which file*, so a composite of it is all a segment map has
+to be. `SplicedLineMap` holds `(Start, Length, Map)` and delegates after translating;
+`GrammarSplice.Join` produces the text and the map **in one call**, because they are one
+fact said two ways and working them out separately is how they come to disagree.
+
+The two tests that matter are the last two, and they are end to end rather than about the
+map: a grammar including another **compiles** — its `using Base;` reaching declarations that
+come after it in the file, which works because the binder declares everything before it
+resolves anything — and an error inside what was included comes back as line 1, column 8 of
+`Base.gram` rather than as somewhere in the joined text. That last one is what would catch a
+boundary off by anything at all.
+
+Nothing reads any of this yet. What it unblocks, in order: the merge on `GrammarFile`
+(dropping the base's publications), reading the base's `[Gram]` in `Host.From`, and the two
+diagnostics rules — duplicates, and an unresolved base list.
+
+1,384 tests green in both configurations.
+
+## Built: `IncludedAs`, and a report that was being dropped
+
+The second piece: a host may say what name another grammar includes it under, where that
+should not be its class's own — `JsonGrammarBase` wanting to be `using Json;`.
+
+**A property on `[Gram]` rather than a second attribute.** The marker attributes are emitted
+into *every* consumer's assembly, so a new type is a type everybody carries, including
+everybody who never touches inheritance. A property costs nothing at the type level and
+works for both forms `[Gram]` already has — the empty constructor for a `.gram` file and the
+one taking text.
+
+**Not called `Namespace`.** That word was carefully separated once already: `GramCompilerOptions
+.Namespace` and the emitter's `@namespace` are the *generated code's* C# namespace, and the
+`context` → `namespace` rename settled on "`GrammarNamespace`, never bare `Namespace`" to
+keep the senses apart. `IncludedAs` also names the thing exactly: it means something only
+when another grammar includes this one, and it is what they write.
+
+The name has to be one identifier — a grammar is included by being wrapped in a namespace,
+and a dotted name would mean nesting, which is written in the grammar itself. `GRAM0005`,
+said at the host, before the splice can turn it into a parse error in a text nobody wrote.
+
+### Two defects it turned up, and the second was silent
+
+**A named argument would have taken every inline diagnostic's placement with it.** A
+diagnostic in a grammar written inside an attribute is placed by searching the literal's
+spelling, and the search matched `Arguments is [{ Expression: LiteralExpressionSyntax }]` —
+*exactly one* argument. Writing `IncludedAs = "…"` beside the grammar makes two, the pattern
+stops matching, `Literal` becomes null, and every squiggle silently falls back to the class.
+Now it takes the first positional argument instead. The test asserts the placement rather
+than the reading, because the reading would have gone on working.
+
+**And the first stage's reports were being dropped.** `Compile` starts a fresh builder and
+never carried `grammar.Reports` forward. It had never shown, because every report `Asked`
+made until now came with an early return — no text, and the branch above hands those on. The
+first report that could stand beside a grammar which reads perfectly well went missing, and
+was found only because it was looked for. `Compile` now seeds its builder with what came
+before it.
+
+Nothing reads `IncludedName` yet either.
+
+1,390 tests green in both configurations.
+
+## Built: a host inherits its base's grammar
+
+The pieces joined up. `class Reader : Lexemes` and `using Lexemes;` in the derived grammar,
+and what comes out is one parser built from both — same assembly, which is the case that
+costs nothing in diagnostics.
+
+**Reading the chain is in the cheap stage and adds no dependency.**
+`ForAttributeWithMetadataName` hands over the target's symbol because that provider is
+semantic anyway, so walking `BaseType` and reading a constant off each costs nothing extra
+and loses no caching. Matched **by display name** rather than by symbol: `[Gram]` is emitted
+into every assembly separately and on purpose, so a base compiled elsewhere carries *its*
+assembly's `DotGram.GramAttribute` and the two are not the same type. What they share is
+what they are called. A base with no grammar is walked past rather than stopping the walk.
+
+**The joining is in the cheap stage too**, where the additional files are; the placing is in
+the third, where the diagnostics are. `Piece` is what travels between them, and both the
+`#line` map and the squiggle are built from the same one — working out which grammar a
+position came from twice, from two sets of numbers, is how the two come to disagree.
+
+`TryResolveGrammar` stopped taking a `Host` and started taking a source, a name and a place
+to report at. A base's grammar is then found the way any grammar is, by the same code, and
+its "no such file" is reported against the class that declares it rather than the one that
+inherited it. A base whose grammar cannot be found is left out and the rest still compiles;
+what it was going to provide comes back as ordinary undefined names.
+
+### The regression the splice tests should have caught and did not
+
+`Join` appended the newline that keeps a grammar from running into the wrapper **whether or
+not there was a wrapper**. One character makes the end of the text a different place, and a
+rule that failed at the end of the input is reported there — so every host that inherits
+nothing was quietly told its last token ran one character longer. Caught by an existing
+generator test rather than by the eight tests written for the splice, because the example
+they used happened to end with a newline already. The theory now has a case that does not.
+
+**Joining one grammar has to be that grammar, to the character.**
+
+### And a pre-existing imprecision, seen because inheritance put text after a grammar
+
+`GramParser.From(start)` measures to the beginning of the *next* token rather than to the
+end of this one, so a construct with anything after it takes the trailing whitespace into
+its span. True of every location in every grammar and nothing to do with joining — it had
+simply never shown, because a grammar's last token has nothing after it and the tests that
+assert on exact spans use last tokens. An error in an inherited grammar has a wrapper's
+brace after it, and there it shows. Left alone: the fix is one line and its blast radius is
+every location the parser reports, which is a change to make deliberately rather than as a
+side effect of this.
+
+1,395 tests green in both configurations.
+
+## Fixed: `context` reached the engine and nothing else
+
+Found by an external review of `d744de9`, reproduced exactly as described, and worse than
+described in one respect. A grammar as ordinary as
+
+```dotgram
+context : @C
+Value : @int = d: ['0'..'9']+ => @(context.Count + d.Length)
+parse Value
+```
+
+emitted this:
+
+```csharp
+public static int ParseValue(string input, C context)                        // takes it
+static int Construct_Value(C context, string d) => …                         // wants it
+static int Recognize_Value_Whole(…, ref Failure failure, out int value)      // has neither
+    …
+    value = Construct_Value(captured0_0);                                    // CS7036
+```
+
+**A valid grammar produced C# that does not compile** — the worst shape a generator defect
+takes, because the error lands in a file nobody wrote. Two breaks, not one: the publication
+handed a context to a recognizer whose signature did not have it, *and* that recognizer
+called a factory without the one it did.
+
+The streamed `find` was the same story a second time. `streamedHands` left the context out
+where it carefully passed `null!` for the input, and the reasoning behind that turns out to
+be exactly why the context should have stayed: a window has no whole input, and that is a
+fact about the input. A context is the caller's object and says nothing about how much text
+is held.
+
+Fixed by threading rather than by refusing, which is the right answer and was the reviewer's:
+`context` needs no arena. `RenderFlat` and `RenderFlatValued` take it, `EmitFlatFactoryCall`
+passes it, and the streamed `find` and its sequence-of-lines overload hand it on.
+
+### Why the tests did not have it
+
+The corpus tested `context` against the engine, because that is where it was built. The
+tests now go the other way round: one grammar per *rendering* — flat-valued, flat and
+valueless, the engine, a call compiled in place, a stream — each pinned to a shape only that
+rendering emits, and each compiled. Pinning the shape is the part that matters: five
+grammars that all compile prove nothing if four of them quietly took the same path, and the
+first draft of this test had exactly that problem — a capture makes a valueless rule
+non-flat, so the case written to cover flat-and-valueless was the engine again.
+
+**This is the fourth time the same defect class has been found this session** — `parserState`
+missing from `SuppliedNames`, the fold materializer assembling its own arguments, sited
+callees not refusing a `context`, and now this. Every one is a supplied name that reached
+one rendering and not another. The review is right that the answer is not another `if`: what
+is wanted is one place that says which requirements a rendering can meet, with the
+renderings consuming it rather than each carrying its own list of what it forbids. Recorded
+as the next architectural piece rather than done here.
+
+1,400 tests green in both configurations.
+
+## Fixed: the documentation, and what checking it found
+
+Prompted by the same review. Each claim was checked against the compiler before anything
+was written, which was worth doing: two of them were right, one was right about a bigger
+problem than it named, and one thing nobody had noticed was worse than any of them.
+
+**A diagnostic recommending syntax the compiler refuses.** `GRAM3012` told an author to
+write `namespace (B = ...)` — and `ParseNamespace` has a diagnostic of its very own,
+`NamespaceNeedsWith`, for exactly that mistake. The message also put the *rule's* name
+where the *namespace's* goes. Now: `namespace Name with (B = ...) { ... }`.
+
+**And that turned out to be systematic.** The `context` → `namespace` rename made the name
+mandatory; the prose did not follow. Eleven places wrote the unnamed form — eight in
+`syntax.md`, one in `README.md`, one in `examples/README.md`, and the header comment of
+`LocaleNumberExample`, whose own grammar twenty lines below writes it correctly. All fixed.
+
+**§5 contradicted itself, and its own example is refused.** Line 891 said "a rule of the
+same name shadows the outer one" and the example said `B = 'd' // shadowing: a new,
+unrelated rule named B`. Compiled, that example is `GRAM3012 Error` — and §5's own account
+five hundred lines further down describes the refusal correctly. The early passage and the
+example now say what the compiler does and why: a declaration always means a *new* rule,
+which is almost never what was wanted and cannot be seen locally.
+
+**README on indirect left recursion.** It said flatly not built; `GrammarNormalizer
+.Recursion` rewrites the one shape of it that is not arbitrary. `status.md` had both — the
+table said it works, a paragraph three hundred lines later said "Refused: indirect left
+recursion". Both now say the same thing, which is the precise thing: through rules that only
+forward, yes; through a chain that recurses through itself, or a rule that does something of
+its own, refused. The second `recover` claim in README was simply stale and is gone.
+
+**`CSharpEmitter`'s own header** said "Publications share one state-machine method" thirty-six
+lines above the code saying "One machine per published rule". It now also says that a
+publication needing none of the three things the arena is for reaches no machine at all.
+
+**And the one nobody named: `status.md` did not know about this session at all.** No row for
+`context`, none for `state`, none for inheritance. That is not historical drift, it is drift
+made this week, by me, feature by feature. Nine rows added, including the one that says a
+base in a referenced assembly does *not* work — which is the kind of row a status table
+exists for.
+
+`next.md` itself is renamed in spirit rather than in path: its header now says it is a
+diary, newest last, authoritative about nothing present, with a table pointing at
+`syntax.md` for the language and `status.md` for the compiler. The old handoff sections are
+kept and labelled as what they are — an engine ninety commits ago — because the reasoning in
+them is still the reasoning. The baseline of 887 tests is left standing and dated rather
+than corrected: an entry edited to match the code stops being a record of a decision.
+
+Splitting it into `architecture.md` / `design-notes/` / `backlog.md` is the reviewer's
+suggestion and is not done here — 5,900 lines of prose to sort is a decision, not a tidy-up.
+
+1,400 tests green in both configurations.
+
+## Built: one place that says what each rendering can hand over
+
+The review's central architectural point, taken. Four times in one week the same defect
+appeared — a name the language supplies to a `=>` threaded through the rendering it was
+built in and silently absent from the rest — and each time it was fixed where it was found.
+`Renderings.cs` is the place that stops the fifth being found the same way.
+
+**It is a table, not a capability system.** For every supplied name and every rendering —
+the engine, the flat method, the call compiled in place — one entry: either the rendering
+hands it over, or a sentence saying why it refuses. `ComputeFlatValued` and
+`ComputeSitedValued` read it instead of each listing forbidden names, which is where the
+lists kept going out of date.
+
+**A missing pair throws rather than defaulting to "no".** That is the whole design. A
+default would make an oversight look like a decision, which is precisely how this went
+wrong: nobody ever decided the flat rendering could not supply a `context` — it was simply
+never asked, and the generated call went one argument short.
+
+**And the test asks for the decision rather than for the behaviour.** There already *was* a
+test that `context` works; it passed while three renderings could not hand it over, because
+it only ever ran the engine. This one enumerates every name against every rendering — thirty
+pairs — and asserts that each is answered. Verified by removing one entry: the pair that
+disappears is `(Flat, context)`, which is the P0 itself, and the failure names it.
+
+The refusals are written as sentences an author of this compiler can act on, and asserted to
+be sentences: "a flat rendering keeps no record of where the rule began", not `false`.
+
+## Fixed: a room check that could overflow
+
+`p + count > text.Length` is the obvious spelling and is wrong at the edge. A span may hold
+`int.MaxValue` characters, so a position near the end plus a literal's length wraps
+negative, the check passes, and what should have been an ordinary refusal to match becomes
+an exception out of a slice. Four gigabytes of input to reach, and still a wrong answer
+rather than a slow one.
+
+Asked the other way round — `text.Length - p` against the count — it cannot overflow: both
+sides are non-negative and the difference is between them.
+
+**Signed, deliberately, where the single-character form beside it is unsigned.** That form
+is unsigned because it is then the same comparison the indexer's own bounds check makes,
+which is the measured reason it was written that way. Here unsigned would be wrong: were `p`
+ever past the end, `text.Length - p` is negative and casting it to `uint` makes it enormous
+— the check would report room where there is none, which is the one direction a room check
+may not fail in.
+
+The review suggested the change partly for range-check elimination. That half is not
+claimed: this project's own gate says measure in a parser and expect noise, and no
+measurement was made. What is claimed is that the overflow is gone.
+
+Snapshots moved and the diff is nothing but the room checks.
+
+1,433 tests green in both configurations.
+
+## Fixed: a `with` cycle answered by document order
+
+The oldest of the review's findings, and the comment warning about it had been sitting in
+`GrammarNormalizer.With.cs` for some time:
+
+> A cycle between two with-bearing rules … has no order that satisfies both.
+
+What settled it was `visited` — a rule met twice simply stopped waiting for the other's
+splice. Which of the two gave up depended on which the loop reached first, and that is the
+order the rules are written in. **Moving a rule in the file changed what the parser did**,
+silently, and nothing would ever have caught it: both orders compile, both produce a
+parser, and the two parsers differ.
+
+Refused now, `GRAM4017`, before the ordering runs — because a cycle is precisely what has no
+order to run in.
+
+**Refused rather than settled**, which is the reviewer's recommendation and the right one:
+settling it means choosing what the notation means, and nobody has. The shape that would
+answer it is a specialization keyed by (rule, bindings) with memoization and a placeholder
+symbol standing in before the body exists — which turns sequencing side effects over
+`_bodies` into ordinary graph construction, and is a piece of design rather than a fix.
+
+**A rule reaching only itself is not this** and is not refused: there is one thing to do and
+one order to do it in. What has no order is two.
+
+The detection closes the reach relation over itself rather than walking strongly-connected
+components. The graph has as many nodes as the grammar has rules containing a `with` — a
+handful — so the clearer of the two costs nothing measurable.
+
+### The test the defect deserved
+
+Not "is it refused". The pass that settles a cycle by document order passes that. The one
+that matters is **that the same thing is said either way round**: the same two rules, written
+`A` first and then `B` first, and both refused. A test asserting only the first order is a
+test the old behaviour also passes half the time.
+
+And one that the refusal did not take the feature with it: a chain of `with` sites that does
+not come back still finds its order, which is what the ordering was written for.
+
+1,436 tests green in both configurations.
+
+## Fixed: the one dangerous half of layout reading its own output
+
+The review wants `Machine.Layout` to stop recovering a control-flow graph by regex over the
+C# it just wrote. That is right and it is not what was done here — 85 `goto` sites and 43
+arena pushes is a mechanical change at exactly the scale where a mechanical change in a code
+generator goes quietly wrong, and it should be one deliberate piece of work rather than a
+follow-on.
+
+**What was done is the part that is actually dangerous**, which is not `goto S(\d+)` — that
+pattern is unambiguous and cannot mean anything else. It is the other regex:
+
+```
+new ParserEntry\(ParserEntry\.(\w+), (\d+),
+```
+
+whose second capture means **different things for different kinds**. Layout rewrites it as a
+state number, and reading a capture slot or a factory as one has already been a silent
+corruption once: a slot that happened to equal a collapsed state's number came back as that
+state's, the value it named was never built, and a construction was handed a null.
+
+It was guarded by a list of the eight kinds that *are* states, which **said nothing about
+the other ten**. A kind added later was undecided by default, in whichever direction the next
+reader assumed — and two kinds were added this week.
+
+Now every kind has an entry saying what its second field is: a state, a slot, a choice of
+factory or recovery or `with state` site, or nothing numbered at all. `MeansAState` throws
+for a kind nobody has decided about. The same shape as `Renderings.cs` two entries above,
+for the same reason and against the same defect class.
+
+**The test reads the kinds out of the emitted code**, from a checked-in snapshot rather than
+from a list written beside it — so a kind added to the engine appears there on the next run
+and is then asked about. Taking an entry out was tried: it breaks generation itself, loudly,
+but as a downstream compile error in the consumer rather than as a sentence naming the kind.
+So both are asserted — the throw says which kind, and the theory says every kind reaches it.
+
+The larger change stays on the list, and its shape is the review's: `StateBlock` carrying
+text plus typed edges, recorded where a jump is written rather than recovered from how it
+was spelled.
+
+1,455 tests green in both configurations.
+
+## Fixed: a fourth table keyed by a node could be forgotten
+
+The third instance this session of one shape of defect, and the third fix of the same
+shape. Passes here record what they work out against the node they worked it out on, by
+reference; a pass that rebuilds a node has to hand those on, and `Carry` did it as a run of
+`if`s. The fold was once left out of that run, and `Recursion.cs`'s own remarks say what it
+cost — C# the *consumer* could not compile, in a file they never wrote.
+
+Nothing about a run of `if`s says a fourth table has been added and a fifth has not. `Carry`
+now walks a list; adding a table is one line in one place; and a test asks, by reflection,
+whether every field of the shape `Dictionary<Node, …>` is in that list.
+
+The two tables keyed by *rule* whose values name nodes — `_folds`, `_climbing` — are in the
+list too, and are why it holds a move rather than a dictionary. The reflection cannot demand
+them, and the list can carry them.
+
+### The first version of this test was worthless, which is worth writing down
+
+It built the normalizer with `FormatterServices.GetUninitializedObject`, so no field
+initializer ran, so **every field was null and so was every registered table**. "Is this null
+among those nulls" is true of anything. It passed, and it would have passed with nothing
+registered at all.
+
+Then the check that it caught a missing table was itself wrong twice over: the probe field
+it was supposed to add never got added, because the pattern it matched on omitted a
+`readonly`, and the run that "passed" was a run against unmodified source. Two green results
+in a row, both meaningless.
+
+What settled it was printing what the reflection actually found — three names, then four
+once the field really existed — and only then asserting. **A test that has not been seen to
+fail has not been seen to do anything**, and the way to see it is to make the thing it
+guards against, not to reason that it would.
+
+1,456 tests green in both configurations.
+
+## Decided: `context` is a contract, and inheritance refines it
+
+Settled in conversation, and it overturns what was written above — under "Considered: parser
+inheritance" the open question was recorded as a choice between scoping `context` per
+namespace or lifting it and reconciling by assignment, with `state` unable to follow because
+`ReadOnlySpan<T>` is invariant. The answer is neither: **`context` and `state` do not compose
+the same way at all**, and treating them as one thing was the mistake.
+
+### The rule
+
+> A grammar declares the contract its own semantic code requires. A derived grammar may
+> strengthen the effective type, provided that type satisfies every inherited contract and is
+> visible where the derived grammar compiles. **Inherited semantic code stays statically bound
+> to the contract it was written under.**
+
+So a declaration in a derived grammar does not create a second context. It refines the
+inherited one, and the parts of a composed grammar legitimately see one object through
+different static contracts:
+
+```text
+                     the object: DerivedContext
+                              |
+              +---------------+---------------+
+       base rules see                  derived rules see
+        BaseContext                     DerivedContext
+```
+
+Which is ordinary subtyping — virtual dispatch works, new members are invisible to the base,
+and nothing about it is special to this notation.
+
+### Why the last clause is the load-bearing one
+
+If base rules were recompiled against the derived type, **inheriting a grammar would change
+what already-written C# means**. The example that raised it would not actually have flipped —
+`context.Resolve(name)` with `name` a `string` picks `Resolve(string)` over an added
+`Resolve(object)` either way, an exact match being the better one. What does flip:
+
+* `new`-hiding — a derived `new bool Resolve(string)` takes a statically-derived call outright;
+* an overload better by conversion, `Resolve(ReadOnlySpan<char>)` beside `Resolve(string)`;
+* an extension method applicable to the derived type and not the base;
+* optional parameters, `params`, generic inference.
+
+So the principle holds more strongly than the example showed, and it is what settles the
+design.
+
+### And it overturns `GRAM3017`
+
+A base and a derived host in one assembly both declare a `context`. Today that is an error —
+the one taken deliberately as forward-compatible, on the reasoning that a constraint taken
+early is a rule rather than a later change of one. This design is what it was being kept
+compatible *with*, and it wants the opposite: not one per assembly, and not even one per
+chain, but **an effective type satisfying every inherited contract**. A condition rather than
+a prohibition. `GRAM3017` and `GRAM3018` are rewritten when the check exists.
+
+The early constraint was not wasted: it means no existing grammar has two, so nothing breaks
+when the rule changes shape.
+
+### `state` does not follow, and the reason is not the variance
+
+`ReadOnlySpan<T>` being invariant is the mechanical reason a derived mark type cannot be
+handed where a base one is expected. The real reason is underneath it: **a context is one
+object flowing down, and a mark is a heterogeneous stack of values from several authors.**
+Different shapes compose differently.
+
+So `state` stays invariant across composition — one type, declared once along the chain — and
+§7.8's existing note gains weight: a grammar meant to be inherited declares its `state` as a
+reference type, because a consumer cannot extend an enum to add a concern of their own. Named
+channels or a heterogeneous mark model would be a separate design and are not this one.
+
+### Four things this needs that were not in the proposal
+
+1. **The contract type must be visible where the derived grammar compiles.** An emitted
+   `BaseGuard(…, BaseContext context)` does not compile if `BaseContext` is `internal` to
+   another assembly. Within one assembly it is nothing; for a library it is a rule, and the
+   same rule as the one that makes `@JsonObject` resolve — what a library grammar names in
+   its C# has to be reachable from where it is re-emitted.
+2. **"Interface" means two different things here.** A contract that is an interface —
+   `context : @INameContext` — is exactly right, and is what makes several inherited
+   contracts satisfiable by one type. An interface *carrying a grammar* is a different thing
+   and cannot have `=>` at all, because its members are not in the implementing class's
+   scope. They will be conflated if not separated in writing.
+3. **The scoping becomes asymmetric.** `context` is per-rule; `state` stays per-graph. Two
+   scoping rules in one model, accepted rather than stumbled into.
+4. **The check has a seam already.** `ISymbolResolver.IsAssignable(from, to)` exists for §4.1
+   — "assignability is inheritance, interfaces and conversions, none of which a grammar can
+   see". Nothing new is needed and `Grammar/` stays free of Roslyn.
+
+### Order
+
+1. `ContextOf(rule)` in the model — the contract by where a rule came from. The splice
+   already knows which segment each rule was read from.
+2. Signatures by contract: a guard and a factory take their origin's type, a publication
+   takes the effective one, and the calls upcast on their own.
+3. The refinement check through `IsAssignable`, and `GRAM3017` rewritten from a prohibition
+   into a condition.
+4. `state` invariant, with a diagnostic saying so.
+
+**One thing about (1) and (2):** the contract has to survive `with` specialization, cloning,
+inlining, the flat rendering and sites — which is exactly the class of "do not forget this on
+a rebuild" that got a registry two commits ago and a per-rendering table one commit before
+that. The place to put it now exists, and so does the kind of test that will not let it be
+forgotten.
+
+## Assessed: the second architecture review, and what it found that is a defect
+
+A review of `d744de9` against the whole backend. Eight commits have landed since, so five of
+its findings were already answered — recorded here because a review's value is partly in
+which of its points survive contact:
+
+* **the `with` cycle settled by mutation order** — refused now, `GRAM4017`, and the exact
+  comment the review quotes as its red flag is gone;
+* **`Carry` transferring node annotations by hand** — a registry, with a test that every
+  `Dictionary<Node, …>` field is in it;
+* **the hardcoded `Resumable` kinds inside layout** — one decision per kind, throwing for an
+  undecided one, with the kinds read out of the emitted code;
+* **`context`/`state` left deliberately open** — the design is decided and two of its four
+  steps are built;
+* **the scanner's signed room checks** — asked so they cannot overflow.
+
+The core of its first finding stands untouched: layout still recovers a control-flow graph by
+regex over the C# it just wrote. Only the dangerous half — an entry's second field meaning
+different things for different kinds — was closed.
+
+### The strongest finding is not debt
+
+**Embedded C# is analysed by string search, and it is wrong in both directions.** Verified
+rather than accepted:
+
+```dotgram
+Start : @string = t: ['a'..'z']+ => @(Log("parserInput") + t)
+```
+
+emits a factory taking `string parserInput` and sets `UsesInput` — and `CanLowerValued`
+opens with `if (UsesInput || …) return false`, so **a string literal decides which rendering
+a grammar gets**. The other direction is exact by reading: `Names` treats anything that is
+not a letter, digit or underscore as a boundary, so `Other.context` — a member access —
+counts as naming the `context`.
+
+This is not an approximation inside an optimization. It is spelling deciding a signature and
+a compilation strategy. And Roslyn is already in hand: `ICSharpScanner` is called on every
+`@(...)` to find where it ends, so the free names can come from the same pass that is
+already made.
+
+### Where the review's order is changed
+
+It puts the typed CFG first. Free names go first here instead: the CFG is a large refactor
+bought for reliability, and this is a defect with a reproduction.
+
+### Where it is argued with
+
+**`recover` as a structural node.** There is a measurement from this week: `Node.Marked` took
+about twenty-five sites and the compiler helped at none of them, because the switches over
+`Node` carry `_ =>` defaults. It paid for `Marked` because a mark is transparent to
+everything; `Recovery` is not, so every site is a decision rather than a line. The registry
+and its test are cheaper and already stand.
+
+**A `StreamStage` IR.** The complaint is right — `Yields()` recognizes shapes rather than
+meaning — but normalizing into one canonical shape before the question is asked is cheaper
+than an IR with a single consumer.
+
+**And one where the review is right about something it could not have known:** the `with`
+cycle check written two days ago closes the reach relation over itself by hand, which is the
+fourth ad-hoc walk over the call graph. That is exactly the duplication its "SCC as a central
+primitive" predicts.
+
+### The line worth keeping
+
+The most useful thing in the review is not a finding, it is a boundary:
+
+| decides | may be a heuristic |
+| --- | --- |
+| what the language means | no |
+| whether backtracking can be removed | only by proof |
+| whether something can stream | proof, or a stated conservative limit |
+| which rendering is *legal* | proof |
+| which rendering is *cheaper* | yes |
+| inline or call | yes |
+| unroll 8, 16 or 24 | yes |
+
+`Unrollable = 24` and `Emitted = 8` are fine **because** they choose between implementations
+already proved equivalent. What is not fine is a heuristic on the other side of that line —
+which is precisely where the string search sits.
+
+`Weight()` should be called what it is, an estimate of emitted size, and kept away from the
+analyses that have to be exact.
+
+### Order taken
+
+1. Free names through Roslyn, replacing `.Contains` and the boundary scanner.
+2. `FIRST` as a least fixed point — recursion answers `Top` today, which cuts the proof power
+   of everything below it, and `Nullable` and `FOLLOW` already have the shape.
+3. One `CallGraph` with SCC, and the four hand-written walks folded into it.
+4. The typed CFG, for the engine and the scanner at once, or it will be written twice.
+5. The unified analysis layer, after 2 and 3, which are half of it.
+
+## Fixed: the last two answers a grammar was giving twice
+
+Steps 1 through 3 of the order above are built. What follows are the two smaller findings of
+the same kind — a question about a grammar answered in two places, and worse in one of them —
+taken now because 4 and 5 are large and these are not.
+
+**Whether an element admits a line terminator.** `Retention` decides whether a rule can be
+read from a window, and needed to know whether a character class can match `\n` or `\r`. It
+worked it out itself, and treated a Unicode category as admitting one whatever category it
+was. Safe in the direction that mattered when it was written — a rule wrongly said to cross a
+line loses an overload, wrongly said not to it loses data — and wrong: a letter is not a line
+terminator, so `[\p{L}]+` was said to cross lines and could not be read from a window.
+`FirstSets` already expands a category into the characters it holds, so the question goes
+there and the answer is the overlap with the two terminators. The conservative direction
+survives without being restated: an element holding a C# predicate is "anything" over there,
+and anything overlaps a terminator.
+
+**Whether a node can match without consuming anything.** Written twice, and the two copies
+had drifted apart in both directions at once. `FirstSets` stopped at `min == 0` for a
+repetition, so `B{1,1}` over a nullable `B` was called consuming — a shape that is not refused
+the way a nullable body under `*` or `+` is, since it cannot spin, and so reachable from
+source. The normalizer had no case for `Behind` and fell through to "consumes", which would
+make a sequence beginning with a lookbehind opaque to the left-recursion walk; nothing reaches
+that today, since a lookbehind only comes from lowering a word lexeme and a consuming literal
+follows it. Each was right where the other was wrong.
+
+The shape of a node is answered once now. The only difference between the callers is who can
+answer for a rule — the normalizer reads the estimate its own fixed point is still refining,
+everything else reads the settled map — so that is a parameter.
+
+### And what is not started
+
+Step 4, the typed CFG, is not begun, and saying so is worth more than a partial attempt. The
+reason is specific: a large fraction of the `goto` sites the layout pass has to see are not
+plain gotos. They are conditions and jumps written into one line — `if (…) goto …`, a `case`
+arm that jumps, a range test that falls through — so recording an edge only where a `goto` is
+written on its own would give a control-flow graph that is *incomplete*, which is worse than
+the regex it replaces: a regex that misses an edge is visibly a regex, and a graph that misses
+one is trusted. Doing it properly means the emitter's writing layer records edges as it
+writes, at every site, which is a change to how code is emitted rather than to how it is read
+afterwards.
+
+## Built: the context contract checked, and the state claim with it
+
+Steps 3 and 4 of "Decided: `context` is a contract". They are one change rather than two:
+both checks stop being about an assembly and start being about a composition, and doing only
+one of them would leave `state` guarded by a rule the other half had just abandoned.
+
+**The context.** Every namespace's declaration is a contract its own rules were compiled
+against. The effective type is the root's where there is one — the grammar being compiled is
+the one whose caller supplies the object — and otherwise the first inherited contract that
+satisfies all the others. That type has to be assignable to every contract underneath it,
+asked through `ISymbolResolver.IsAssignable`, which is the seam §4.1 already had.
+
+**The state.** The same walk, the opposite condition: every declaration must name the same
+type. What an included grammar declares is a claim, not a contract of its own.
+
+### What this replaces, and how the numbers were handled
+
+The design entry above says `GRAM3017` and `GRAM3018` are *rewritten*. They are retired
+instead, and the new checks are `GRAM3019` and `GRAM3020`. The reason is written in this
+repository already, next to `GRAM3013`: an id that changes meaning is worse than a gap,
+because a suppression written against the old one silently applies to the new. That applies
+here more strongly than it did there — the old rule and the new one are about the same
+declaration, so a suppression aimed at the old would land squarely on the new.
+
+`GRAM3015` goes with them, and it was the one actually blocking something. It refused a
+`state` inside a namespace, which is exactly where an included grammar's declaration lands —
+so a grammar that used `with state` could not be inherited at all. Refusing the place was the
+wrong shape for a rule about the type.
+
+### What it found
+
+A defect neither the design nor the review had in view. The generator collects, from the
+grammar text alone, every question it will ask the host, answers them in one Roslyn stage,
+and then the pure half may only ask what has already been answered — that is what keeps the
+expensive part of generation out of the per-keystroke path. `Questions.Of` had never looked
+at a `context` declaration, so the first real refinement check threw `GRAM0001` with the
+collector's own message: it "did not foresee the type question". The declarations are
+collected now, and every ordered pairing of contracts is asked for — both ways round, since
+which of them is the effective one is what the answers decide.
+
+Two smaller things the tests found: `using` comes before `context` in a grammar file, and a
+grammar that declares a context but never names it in a hook generates code that mentions no
+context at all — so the test that proves the two contracts coexist had to make both halves
+use theirs. It does, and one generated file now carries `IWords context` and
+`IReading context` in different signatures, which is the design in one line.
+
+## Built: a shared leading operand is read once
+
+The author who writes `A & X | A & Y` writes the same language as the author who writes
+`A & (X | Y)` and gets a different parser: every alternative after the first reads `A` again,
+and the doubling compounds through nesting. Making the author write for the machine is what a
+generator exists to avoid, so the compiler folds it.
+
+**Only where the fold cannot be seen.** The two spellings are the same grammar exactly when
+`A` has one reading where it stands, and the difference where it does not is not a subtlety
+about speed. Measured on the parser rather than argued:
+
+```dotgram
+Chunk = 'x'+
+Start : @string = a: Chunk & "xy" => @("first:" + a) | a: Chunk & "y" => @("second:" + a)
+```
+
+on `xxy` gives `first:x` spelled out and `factored:xx/y` folded — the same text consumed, a
+different alternative matched, a different `=>` run. `'x'+` can give back, so the alternatives
+prefer a shorter reading of it that lets a tail fit and the folded form prefers its own. With
+`Word = "ab"` in place of `Chunk` both spellings answer identically, because there was one
+reading to prefer.
+
+So the whole condition is `Determinism`: the shared operand must have at most one match where
+it stands. Where the proof does not reach, nothing is folded and `GRAM4016` is left to tell
+the author, whose choice it then is — the diagnostic is unchanged and still fires where it
+fired.
+
+### Where it had to go, and what that cost
+
+Not in the emitter, though that is where the continuation the proof needs is already threaded.
+Capture slots are numbered per node in source order, and the numbering is load-bearing —
+"everything written since this point" has to be a contiguous suffix. A fold drops a duplicate
+capture and renumbers, so it has to happen before the results are computed, which is the
+normalizer.
+
+And after the checks, not before. A `=>` is refused anywhere but on an alternative of the
+rule, and the folded shape puts one behind a shared head. The author may not write that and
+the compiler may — so the grammar is checked as written, then folded, then the results are
+computed again.
+
+Three things had to learn to follow an alternative there, and each is one place:
+
+* `Fold.Of`, which says what a rule's alternatives are, and so which constructions get
+  factories. It looks through a sequence ending in a choice of constructions — a shape no
+  author can have written, since that is what the check just refused, so no marker is needed
+  to tell the compiler's fold from a hand-written one.
+* `CaptureLayout`, which gives each alternative the range of slots its `=>` may name. A folded
+  alternative begins at the head it shares, not at the tail that tells it from its siblings.
+* The optionality of a member, which asked whether *this alternative* writes it. The head
+  standing in front is as much a part of the alternative as the tail, and without that a
+  capture written on every path came out nullable.
+
+### What it does not do yet
+
+Two things are left out rather than reasoned about carelessly: a rule rewritten for left
+recursion, whose loop is held by node identity that a rewrite would break, and a grammar with
+a recovery, which is a decision about a shape this moves.
+
+And the case that motivated the whole thing is not covered. `Call | Reference`, where `Call`'s
+body *begins with* a call to `Reference`, is not two alternatives with a shared leading
+operand — it is one alternative whose prefix is the other alternative, one call down. Seeing
+it means looking through a call, and folding it means putting a rule's body behind a head
+while the rule itself stays for its other callers. That is the next step and it is the one
+that pays: the corpus is byte-identical today, and the fold fires only where a grammar spells
+the sharing out.
+
+What is built is the proof, the place, and the three things that had to follow an alternative
+into it.
+
+## Built: the lowered grammar, printed as a tree
+
+An attempt at left-factoring through a call was lost for an afternoon inside an ambiguity
+that had nothing to do with the change. A node prints itself as the notation it came from,
+and `c: Call => (c)` is what a construction around a capture prints *and* what a capture
+around a construction prints — while which of the two it is decides where a factory belongs.
+The whole question being investigated was where a factory belongs.
+
+So `RecognitionGraph.Dump()` prints the tree as a tree: the kind of every node, indented,
+with the one detail that tells one of that kind from another.
+
+```text
+Start:
+  Construct => (w)
+    Sequence
+      Capture 'w'
+        Call Word
+      Repeat 0..1
+        Literal '!'
+```
+
+Over `Node.Children`, which is where traversal is defined, so a node kind added later shows
+up without anyone remembering to add it. A test asserts the whole of a small grammar's dump,
+which pins the format and the lowering together.
+
+**And the report carries it.** `A construction in 'X' has no factory` is a compiler defect,
+raised where a construction reached compilation that the rule's own alternatives did not
+offer — which is to say, where the shape the compiler made is not the shape something else
+expected. The shape is the whole of what a reader needs next, so the message now has the
+rule lowered underneath it. It used to say only that a construction somewhere had no factory,
+and the shape was reachable only by building something that would not build.
+
+### And a wrong conclusion, corrected
+
+This entry first recorded a second finding: that the suite cannot run while a grammar in
+`DotGram.Parsers` fails to generate, and that separating the tests which need a consumer's
+generated code from the ones which need only the compiler would fix it.
+
+There is nothing to fix. A project that does not build does not build for what depends on it,
+and the test project depends on the parsers because it tests them. That is a build working,
+not a repository with a flaw in it, and the proposal to split the tests over it was reaching
+for a change in the layout to make up for a mistake in method.
+
+The mistake was mine and is worth the line: told that the compiler had broken on a real
+grammar, I kept trying to diagnose it through a suite that could not run, rather than
+reproducing the break on a grammar that stands on its own. The dump above earns its place for
+the same reason it was written — it puts the shape where it is read — and not as a way around
+a build.

@@ -224,16 +224,12 @@ sealed partial class Machine
 
 		var factory = factories[0];
 
-		// Everything a factory can be handed that is not one of its own captures. The call
-		// written for a site is built from the spans the site recorded and from nothing
-		// else, so a callee that asks for any of these has to keep its boundary — the
+		// The call written for a site is built from the spans the site recorded and from
+		// nothing else, so a callee asking for anything beyond its own captures keeps its
+		// boundary. Which those are is said once, in `Renderings.cs`, and read here — the
 		// alternative is a call missing an argument, which is an error in the consumer's
-		// build rather than in this one.
-		if (CSharpEmitter.WantsText(factory) ||
-			CSharpEmitter.Asks(factory, "parserSpan") ||
-			CSharpEmitter.Asks(factory, "parserInput") ||
-			_graph.Context is not null && CSharpEmitter.Asks(factory, "context") ||
-			_graph.State is not null && CSharpEmitter.Asks(factory, "parserState") ||
+		// build rather than in this one, and which is how the last three were found.
+		if (!Renderings.Supplies(Renderings.Rendering.Site, factory, _graph) ||
 			factory.Accumulator is not null)
 			return false;
 

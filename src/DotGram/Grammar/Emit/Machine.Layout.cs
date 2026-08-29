@@ -128,7 +128,7 @@ sealed partial class Machine
 				// Only a resumable kind names a state there. The others name a capture slot
 				// or a factory, and reading one as a state kept whatever state happened to
 				// share its number alive — text nothing could reach.
-				if (!Resumable.Contains(match.Groups[1].Value))
+				if (!MeansAState(match.Groups[1].Value))
 					continue;
 
 				var resumed = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
@@ -179,7 +179,7 @@ sealed partial class Machine
 				}
 
 				foreach (Match match in Resumes.Matches(_bodies[at]))
-					if (Resumable.Contains(match.Groups[1].Value))
+					if (MeansAState(match.Groups[1].Value))
 						waiting.Push(
 							Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)));
 
@@ -328,7 +328,7 @@ sealed partial class Machine
 			$"goto {Label(Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)))};");
 
 		return Resumes.Replace(body, match =>
-			!Resumable.Contains(match.Groups[1].Value)
+			!MeansAState(match.Groups[1].Value)
 				? match.Value
 				:
 			$"new ParserEntry(ParserEntry.{match.Groups[1].Value}, " +
@@ -352,6 +352,63 @@ sealed partial class Machine
 	/// Latent until something made a rule's entry state collapsible — the collapse is what
 	/// makes a rewrite happen at all — and found by trying to take a `Trace` call out of one.
 	/// </remarks>
-	static readonly HashSet<string> Resumable =
-		["Choice", "Call", "Lookahead", "Completed", "Dead", "Run", "PendingRecovery", "LoopExit"];
+	/// <summary>What an arena entry's second field means, for each kind there is.</summary>
+	/// <remarks>
+	/// One entry per kind and no default: <see cref="MeansAState"/> throws for a kind nobody
+	/// has decided about. The list this replaces named the eight resumable kinds and said
+	/// nothing about the other ten, so a kind added later carrying a state there would have
+	/// had its target quietly collapse — and one added carrying something else would have
+	/// been read as a state if anyone had put it in by reflex. Two kinds were added this
+	/// week.
+	/// </remarks>
+	enum Second
+	{
+		/// <summary>A state to resume at. These are the ones layout must follow.</summary>
+		State,
+
+		/// <summary>A capture's slot.</summary>
+		Slot,
+
+		/// <summary>Which factory, or which recovery, or which `with state` site.</summary>
+		Choice,
+
+		/// <summary>Nothing that is numbered — a marker, whose second field is always zero.</summary>
+		Nothing,
+	}
+
+	static readonly Dictionary<string, Second> SecondField = new()
+	{
+		["Choice"]          = Second.State,
+		["Call"]            = Second.State,
+		["Lookahead"]       = Second.State,
+		["Completed"]       = Second.State,
+		["Dead"]            = Second.State,
+		["Run"]             = Second.State,
+		["PendingRecovery"] = Second.State,
+		["LoopExit"]        = Second.State,
+
+		["Capture"]         = Second.Slot,
+		["RuleCapture"]     = Second.Slot,
+		["CaptureOpen"]     = Second.Slot,
+
+		["Construct"]       = Second.Choice,
+		["Recovery"]        = Second.Choice,
+		["StateSet"]        = Second.Choice,
+		["StateEnd"]        = Second.Choice,
+
+		["Atomic"]          = Second.Nothing,
+		["Repeat"]          = Second.Nothing,
+		["TurnDone"]        = Second.Nothing,
+	};
+
+	/// <summary>Whether this kind's second field is a state to resume at.</summary>
+	/// <exception cref="InvalidOperationException">Nobody has decided.</exception>
+	static bool MeansAState(string kind) =>
+		SecondField.TryGetValue(kind, out var means)
+			? means == Second.State
+			: throw new InvalidOperationException(
+				$"No decision about what a '{kind}' entry's second field is. Layout rewrites " +
+				"state numbers and follows them; a slot or a factory read as one is silent " +
+				"corruption, and a state not read as one is text nothing can reach " +
+				"(Machine.Layout.cs).");
 }

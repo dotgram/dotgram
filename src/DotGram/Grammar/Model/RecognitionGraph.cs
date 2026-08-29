@@ -341,9 +341,85 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
+	/// <summary>Every rule's lowered body, one node to a line.</summary>
+	/// <remarks>
+	/// <para>
+	/// A node prints itself as the notation it came from, which reads well and is ambiguous
+	/// about the one thing a lowering question usually turns on: <c>c: Call =&gt; (c)</c> is
+	/// what both a construction around a capture and a capture around a construction print,
+	/// and which of them it is decides where a factory belongs. So this prints the tree as a
+	/// tree — the kind of every node, indented, with the one detail that tells one of that
+	/// kind from another.
+	/// </para>
+	/// <para>
+	/// Over <see cref="Node.Children"/>, which is where traversal is defined, so a node kind
+	/// added later shows up here without anyone remembering to add it.
+	/// </para>
+	/// </remarks>
+	public string Dump()
+	{
+		var text = new StringBuilder();
+
+		foreach (var rule in Rules)
+			text.Append(Dump(rule));
+
+		return text.ToString();
+	}
+
+	/// <summary>The same for one rule, which is what a report about one rule can carry.</summary>
+	public string Dump(RuleSymbol rule)
+	{
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		if (!Bodies.TryGetValue(rule, out var body))
+			return rule.Name + ": (no body)\n";
+
+		var text = new StringBuilder();
+
+		text.Append(rule.Name).Append(':').Append('\n');
+		Write(body, 1);
+
+		return text.ToString();
+
+		void Write(Node node, int depth)
+		{
+			text.Append(' ', depth * 2).Append(node.GetType().Name);
+
+			switch (node)
+			{
+				case Node.Capture(var name, _):    text.Append(" '").Append(name).Append('\''); break;
+				case Node.Call(var called, _):     text.Append(' ').Append(called.Name); break;
+				case Node.Construct(_, var how):   text.Append(" => ").Append(how); break;
+				case Node.Repeat(_, var min, var max): text.Append(' ').Append(min).Append("..").Append(max?.ToString() ?? "*"); break;
+				case Node.Guard or Node.Literal or Node.Element or Node.External or Node.Marked:
+					text.Append(' ').Append(node);
+					break;
+			}
+
+			text.Append('\n');
+
+			foreach (var child in node.Children)
+				Write(child, depth + 1);
+		}
+	}
+
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;
+
+	/// <summary>
+	/// The same answer as a function, for the node walk that asks it.
+	/// </summary>
+	/// <remarks>
+	/// Held rather than made at each call: <see cref="FirstSets.Nullable(Node, RecognitionGraph)"/>
+	/// runs inside the emitter's analysis loops, and a closure per call there would be one
+	/// allocation for every node of every rule.
+	/// </remarks>
+	internal Func<RuleSymbol, bool> RuleIsNullable =>
+		_ruleIsNullable ??= called => Nullable.TryGetValue(called, out var yes) && yes;
+
+	Func<RuleSymbol, bool>? _ruleIsNullable;
 	public IReadOnlyList<GramDiagnostic>         Diagnostics { get; } = diagnostics;
 
 	/// <summary>
@@ -372,7 +448,59 @@ public sealed class RecognitionGraph(
 	/// also made it the host's job to clear between them, and forgetting is silent.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Which names each embedded C# expression uses, keyed by the expression itself.
+	/// </summary>
+	/// <remarks>
+	/// Empty where no scanner was supplied, and missing an entry for an expression that
+	/// would not parse — both of which mean "ask the spelling instead", which is what
+	/// everything did before there was a syntax tree to ask.
+	/// </remarks>
+	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
+		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
+	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
+	/// <remarks>
+	/// Held here because it is a fact about this graph that costs a fixed point to find, and
+	/// set once by <see cref="FirstSets"/> the first time anything asks. Set before that
+	/// fixed point finishes, on purpose: a rule reached while its own answer is still being
+	/// worked out has to read the estimate rather than start the walk again, which is the
+	/// whole difference between a fixed point and the recursion it replaces.
+	/// </remarks>
+	internal IReadOnlyDictionary<RuleSymbol, FirstSets.First>? FirstByRule { get; set; }
+
 	public string? Context { get; init; }
+
+	/// <summary>
+	/// The <c>context</c> contract a rule's own code was written against, or null.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Context"/> is the effective type — what a publication takes and what the
+	/// caller hands over. This is the type the rule's own <c>when</c> and <c>=&gt;</c> see it
+	/// through, which is whatever the grammar that declared the rule named. They differ only
+	/// where one grammar includes another: the included rules keep the contract they were
+	/// compiled against, and the including grammar may strengthen the effective type without
+	/// changing what they mean (docs/next.md, "Decided: `context` is a contract").
+	/// </para>
+	/// <para>
+	/// Derived from where the rule was declared rather than recorded against the rule, which
+	/// is what makes it survive every clone: specialization keeps a clone in its original's
+	/// namespace — all four places that make one do — so there is nothing here to hand on and
+	/// nothing to forget handing on.
+	/// </para>
+	/// </remarks>
+	public string? ContextOf(RuleSymbol rule)
+	{
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		for (var ns = rule.Namespace; ns is not null; ns = ns.Parent)
+			if (ns.Context is { } declared)
+				return declared.Name;
+
+		return Context;
+	}
 
 	/// <summary>
 	/// The C# type every <c>with state</c> mark is written in, or null where none is
@@ -434,52 +562,37 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> Recursive => field ??= FindRecursive();
 
+	/// <summary>
+	/// Which rule calls which, worked out once for everything that asks.
+	/// </summary>
+	/// <remarks>
+	/// Internal because it is a fact about this graph rather than part of what a grammar
+	/// means, and shared because the alternative is what was here before: the same edges
+	/// rebuilt by whoever needed them, each with its own idea of what a cycle is.
+	/// </remarks>
+	internal CallGraph Calls => field ??= new CallGraph(Rules, Called);
+
+	IEnumerable<RuleSymbol> Called(RuleSymbol rule)
+	{
+		if (!Bodies.TryGetValue(rule, out var body))
+			yield break;
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Call(var target, _))
+				yield return target;
+	}
+
 	HashSet<RuleSymbol> FindRecursive()
 	{
-		var calls = new Dictionary<RuleSymbol, List<RuleSymbol>>();
-
-		foreach (var rule in Rules)
-		{
-			var called = new List<RuleSymbol>();
-
-			if (Bodies.TryGetValue(rule, out var body))
-				foreach (var node in NodeWalk.Descendants(body))
-					if (node is Node.Call(var target, _) && !called.Contains(target))
-						called.Add(target);
-
-			calls[rule] = called;
-		}
-
 		var recursive = new HashSet<RuleSymbol>();
 
-		// Reachability from each rule to itself. Quadratic in the number of rules and run
-		// once per grammar, which is nothing beside what it saves at every call site.
+		// A component of more than one rule is a cycle by construction, and a rule that
+		// calls itself is one a component of a single rule cannot show. That is the whole
+		// of it — where this used to walk from every rule looking for a way back to itself,
+		// which is the same answer worked out once per rule instead of once per grammar.
 		foreach (var rule in Rules)
-		{
-			var seen    = new HashSet<RuleSymbol>();
-			var pending = new Stack<RuleSymbol>();
-
-			foreach (var target in calls[rule])
-				pending.Push(target);
-
-			while (pending.Count > 0)
-			{
-				var at = pending.Pop();
-
-				if (ReferenceEquals(at, rule))
-				{
-					recursive.Add(rule);
-
-					break;
-				}
-
-				if (!seen.Add(at) || !calls.TryGetValue(at, out var next))
-					continue;
-
-				foreach (var target in next)
-					pending.Push(target);
-			}
-		}
+			if (Calls.Recurses(rule))
+				recursive.Add(rule);
 
 		return recursive;
 	}

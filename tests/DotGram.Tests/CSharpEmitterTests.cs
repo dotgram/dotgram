@@ -528,7 +528,12 @@ public sealed class CSharpEmitterTests
 
 		// No `parserText`: the condition asks about the capture, so the run around it is
 		// never built. What the guard reads out of the arena is the capture and nothing else.
-		Assert.Contains("Recognize_DotGram_Guard0(string? value)", source);
+		//
+		// And not `string?`: the two alternatives share their leading operand, so the fold
+		// reads it once in front of them and the capture is written on every path that
+		// reaches the guard. It used to be optional because the guard's own alternative was
+		// one of two places it could have been written.
+		Assert.Contains("Recognize_DotGram_Guard0(string value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
 		Assert.DoesNotContain("bool[] _built", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
@@ -1519,6 +1524,157 @@ public sealed class CSharpEmitterTests
 				"""
 				state : @Overflow
 				Start : @int = t: ['0'..'9']+ => @(int.Parse(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	/// <summary>A room check cannot overflow, whatever the input's size.</summary>
+	/// <remarks>
+	/// `p + count > text.Length` is the obvious spelling and is wrong at the edge: a span
+	/// may hold `int.MaxValue` characters, so a position near the end plus a literal's
+	/// length wraps negative, the check passes, and an ordinary refusal to match becomes an
+	/// exception out of a slice. Asked the other way round — `text.Length - p` against the
+	/// count — it cannot overflow, because both sides are non-negative and the difference is
+	/// between them. Pinned as a generated-code test rather than left to a comment: the
+	/// input that would demonstrate it is four gigabytes.
+	/// </remarks>
+	[Fact]
+	public void A_room_check_is_asked_so_that_it_cannot_overflow()
+	{
+		var source = Emit(
+			"""
+			Start = "https" | "http" | 'x'
+			parse Start
+			""");
+
+		Assert.Contains("text.Length - p", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("p + 5 >", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("p + 5 <=", source, StringComparison.Ordinal);
+
+		// One character keeps the unsigned form — either way up, whichever the site wants —
+		// which is the comparison the indexer's own bounds check makes and the whole reason
+		// it is written that way. Nothing about that changes here.
+		Assert.Contains("(uint)p", source, StringComparison.Ordinal);
+	}
+
+	// ── Two contracts over one object (§7.7) ────────────────────────────────────
+
+	/// <summary>
+	/// Rules from different grammars see the caller's object through their own types, and
+	/// the whole thing compiles.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The point of the design, and the reason it is ordinary subtyping rather than anything
+	/// this notation invented: the included rule's guard takes `Names`, the including rule's
+	/// factory takes `Outer`, the publication takes `Outer`, and the call from one to the
+	/// other upcasts because `Outer` is a `Names`. Virtual dispatch works, and members added
+	/// by `Outer` are invisible to the rule that was written against `Names` — which is what
+	/// keeps including a grammar from changing what its already-written C# means.
+	/// </para>
+	/// <para>
+	/// Compiled rather than only inspected: two signatures that disagree with their calls is
+	/// exactly the failure this whole area has produced four times, and reading the text for
+	/// the two types would not have caught any of them.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_rule_sees_the_context_through_its_own_grammar_type()
+	{
+		var source = Emit(
+			"""
+			context : @Outer
+			namespace Inner
+			{
+				context : @Names
+				Word : @string = t: ['a'..'z']+ & when @(context.Seen(t)) => @(context.Say(t))
+			}
+			Start : @string = w: Inner.Word => @(context.Wrap(w))
+			parse Start
+			""");
+
+		// The included rule, against the contract its own grammar named.
+		Assert.Contains("Names context, string t", source, StringComparison.Ordinal);
+
+		// The including rule, and the publication, against the effective type.
+		Assert.Contains("Construct_Start(Outer context, string w)", source, StringComparison.Ordinal);
+		Assert.Contains("ParseStart(string input, Outer context)", source, StringComparison.Ordinal);
+
+		// And the two really are different types, so the upcast is doing work.
+		EmittedCode.Compile(
+			"public class Names { public bool Seen(string s) => true; public string Say(string s) => s; }\n" +
+			"public class Outer : Names { public string Wrap(string s) => s; }\n" + source,
+			className: "Grammar");
+	}
+
+	[Fact]
+	public void And_one_grammar_declaring_one_context_is_unchanged() =>
+		// Where nothing is included the contract and the effective type are the same, which
+		// is every grammar written before this existed.
+		Assert.Contains(
+			"Construct_Start(Names context, string t)",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(context.Say(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	// ── What an expression asks for, from its syntax (§8.2) ─────────────────────
+
+	/// <summary>
+	/// A supplied name inside a string literal is text, and asks for nothing.
+	/// </summary>
+	/// <remarks>
+	/// It used to ask. `parserInput` found by substring set `UsesInput`, and
+	/// `CanLowerValued` opens with `if (UsesInput || …) return false` — so quoting a name
+	/// in a message decided which rendering the grammar got. The signature is the visible
+	/// half; the rendering was the half nobody would have looked for.
+	/// </remarks>
+	[Fact]
+	public void A_supplied_name_inside_a_literal_asks_for_nothing()
+	{
+		var source = Emit(
+			"""
+			Start : @string = t: ['a'..'z']+ => @(Log("parserInput") + t + "parserSpan")
+			parse Start
+			""");
+
+		Assert.DoesNotContain("string parserInput", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("SourceSpan parserSpan", source, StringComparison.Ordinal);
+
+		// And it still reaches the rendering a grammar of this shape should get, which is
+		// the half the false positive was quietly taking away.
+		Assert.Contains("out string value)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And a member of that name is a member.</summary>
+	/// <remarks>
+	/// The other direction: the boundary test counted anything that is not a letter, digit
+	/// or underscore as a boundary, so a dot before the name read as the start of one.
+	/// </remarks>
+	[Fact]
+	public void And_a_member_of_that_name_is_not_the_name() =>
+		Assert.DoesNotContain(
+			"Names context",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(Other.context + t)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_the_name_written_as_itself_is_still_asked_for() =>
+		// The point of the exercise is precision, not silence.
+		Assert.Contains(
+			"Names context",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(context.Say(t))
 				parse Start
 				"""),
 			StringComparison.Ordinal);

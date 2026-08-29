@@ -51,7 +51,16 @@ public sealed partial class GrammarNormalizer
 			return;
 
 		var groups = _pendingWith.GroupBy(site => site.Rule).ToList();
-		var order  = OrderByDependency(groups, BuildCallGraph());
+		var graph  = BuildCallGraph();
+
+		// Before ordering, because a cycle is what has no order. Two rules whose sites
+		// reach each other cannot both be specialized against the other already specialized,
+		// and the walk below would settle it by whichever the loop met first — which is
+		// document order, and not an answer to anything.
+		if (RefuseCircularWith(groups, graph))
+			return;
+
+		var order = OrderByDependency(groups, graph);
 
 		foreach (var group in order)
 		{
@@ -99,6 +108,83 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// Refuses two or more <c>with</c>-bearing rules whose sites reach each other.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A `with` rebinds what a rule actually resolves to, not a snapshot taken before this
+	/// pass ran — so `R2 = R1 with (C = D)` has to be specialized after whatever `R1`'s own
+	/// `with` did to it. Where two rules each want the other done first there is no such
+	/// order, and until this check the walk below picked one by which the loop reached
+	/// first. That is document order: moving a rule in the file changed what the parser did,
+	/// silently and in a way nothing would ever have caught.
+	/// </para>
+	/// <para>
+	/// Refused rather than settled, because settling it means choosing what the notation
+	/// means and no one has. The shape that would answer it is a specialization keyed by
+	/// (rule, bindings) with memoization and a placeholder symbol before the body exists,
+	/// which turns this from a sequencing problem into ordinary graph construction — and
+	/// which is a piece of design, not a fix. `docs/next.md` carries the reasoning.
+	/// </para>
+	/// <para>
+	/// A rule reaching only itself is not this: there is exactly one thing to do and one
+	/// order to do it in. What has no order is two.
+	/// </para>
+	/// </remarks>
+	bool RefuseCircularWith(
+		List<IGrouping<RuleSymbol, WithSite>> groups,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var bearing = new HashSet<RuleSymbol>(groups.Select(group => group.Key));
+
+		// What each with-bearing rule's own sites can reach, kept to the rules that bear
+		// one: everything else is passed through rather than specialized, so it can be on
+		// the path and cannot be at either end of the cycle.
+		var reaches = new Dictionary<RuleSymbol, HashSet<RuleSymbol>>();
+
+		foreach (var group in groups)
+		{
+			var reached = new HashSet<RuleSymbol>();
+
+			foreach (var site in group)
+				foreach (var called in ReachableFromSeed(DirectCalls(site.Root), forward, site.Targets))
+					if (bearing.Contains(called) && called != group.Key)
+						reached.Add(called);
+
+			reaches[group.Key] = reached;
+		}
+
+		// Two rules reach each other exactly when they share a strongly connected component,
+		// which is what a component *is* — so the question is asked of one rather than
+		// worked out by closing the relation over itself. This closure was written by hand
+		// two days before `CallGraph` existed and was the fourth walk over these edges,
+		// which is the duplication that made the shared one worth having.
+		var cycles = new CallGraph(
+			reaches.Keys,
+			rule => reaches.TryGetValue(rule, out var onward) ? onward : []);
+
+		var refused = false;
+
+		foreach (var group in groups)
+			foreach (var other in reaches[group.Key])
+				if (cycles.Together(group.Key, other) &&
+					string.CompareOrdinal(group.Key.Name, other.Name) < 0)
+				{
+					refused = true;
+
+					Report(
+						CircularWith,
+						$"'{group.Key.Name}' and '{other.Name}' each contain a 'with' that reaches the " +
+						$"other, so neither can be specialized against the other already specialized. " +
+						$"Give one of them the rebinding the other was going to apply, or write the " +
+						$"substitution as a 'namespace Name with (...)' block around both.",
+						group.Key.Declaration?.At ?? default);
+				}
+
+		return refused;
+	}
+
+	/// <summary>
 	/// <paramref name="groups"/>, ordered so that a rule is processed only after every
 	/// other with-bearing rule its own sites can reach — the dependency <c>R2 = R1 with
 	/// (C = D)</c> has on <c>R1</c>'s own <c>with</c> having already run, generalized to
@@ -110,11 +196,11 @@ public sealed partial class GrammarNormalizer
 	/// of them is spliced, only what lies inside it does, so one snapshot answers the
 	/// ordering question for the whole pass even though <see cref="SpecializeWithSites"/>
 	/// rebuilds the graph again, per group, for the affected-set computation itself.
-	/// A cycle between two with-bearing rules — each reachable from the other's own site —
-	/// has no order that satisfies both. <c>visited</c> does not distinguish a rule still
-	/// partway through recursing into its own dependencies from one already fully placed,
-	/// and does not need to: either way a repeat visit is one side of the cycle simply
-	/// giving up on seeing the other's splice, rather than looping forever.
+	/// A cycle between two with-bearing rules has no order that satisfies both, and is
+	/// refused before this runs (<see cref="RefuseCircularWith"/>) — so <c>visited</c> here
+	/// guards against nothing but a rule reaching itself, where there is one thing to do and
+	/// one order to do it in. It used to guard the cycle too, by having one side give up on
+	/// seeing the other's splice, which settled it by document order.
 	/// </remarks>
 	List<IGrouping<RuleSymbol, WithSite>> OrderByDependency(
 		List<IGrouping<RuleSymbol, WithSite>> groups,

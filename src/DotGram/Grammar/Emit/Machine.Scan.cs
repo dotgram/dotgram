@@ -342,14 +342,14 @@ sealed partial class Machine
 					if (!folded && text.Length > 1)
 					{
 						code.Line(
-							$"if (p + {text.Length} > text.Length || " +
+							$"if ({Short(text.Length)} || " +
 							"!global::System.MemoryExtensions.SequenceEqual(" +
 							$"text.Slice(p, {text.Length}), {Spanned(text)}))");
 						code.Then($"goto {fail};");
 					}
 					else
 					{
-						code.Line($"if (p + {text.Length} > text.Length) goto {fail};");
+						code.Line($"if ({Short(text.Length)}) goto {fail};");
 
 						for (var i = 0; i < text.Length; i++)
 						{

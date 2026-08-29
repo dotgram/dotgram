@@ -284,6 +284,12 @@ public sealed class SemanticTests
 		grammar,
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
+	/// <summary>The graph itself, where what a test asks about is not a diagnostic.</summary>
+	static RecognitionGraph Graph(string grammar) =>
+		GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(
+				GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
+
 	/// <summary>The one diagnostic a grammar must be refused with.</summary>
 	// ── One mistake, one message about it ────────────────────────────────────────
 
@@ -573,6 +579,70 @@ public sealed class SemanticTests
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
 
+	// ── A `with` cycle, which has no order (GRAM4017) ───────────────────────────
+
+	/// <summary>
+	/// Two rules whose `with` sites reach each other are refused rather than ordered.
+	/// </summary>
+	/// <remarks>
+	/// A `with` rebinds what a rule actually resolves to, so `R2 = R1 with (C = D)` has to
+	/// be specialized after whatever `R1`'s own `with` did to it. Where each wants the other
+	/// first there is no such order, and the pass used to settle it by whichever rule the
+	/// loop reached first — document order. Moving a rule in the file changed what the
+	/// parser did.
+	/// </remarks>
+	[Fact]
+	public void Two_rules_whose_with_sites_reach_each_other_are_refused() =>
+		Refused(
+			GrammarNormalizer.CircularWith,
+			"""
+			A = B with (X = Y)
+			B = A with (X = Z)
+			X = 'x'
+			Y = 'y'
+			Z = 'z'
+			Start = A
+			""");
+
+	/// <summary>And the answer does not depend on which of them is written first.</summary>
+	/// <remarks>
+	/// The test the defect deserved: not "is it refused" but "is the same thing said either
+	/// way round". A pass that settles a cycle by document order passes the first assertion
+	/// and fails this one.
+	/// </remarks>
+	[Fact]
+	public void And_it_is_refused_whichever_of_them_is_written_first()
+	{
+		const string Tail =
+			"""
+			X = 'x'
+			Y = 'y'
+			Z = 'z'
+			Start = A
+			""";
+
+		Refused(GrammarNormalizer.CircularWith, "A = B with (X = Y)\nB = A with (X = Z)\n" + Tail);
+		Refused(GrammarNormalizer.CircularWith, "B = A with (X = Z)\nA = B with (X = Y)\n" + Tail);
+	}
+
+	[Fact]
+	public void And_a_chain_that_does_not_come_back_is_not_a_cycle() =>
+		// `C` reaches `B`, and nothing reaches `C`. There is an order and the pass finds it,
+		// which is what the ordering was written for in the first place — the refusal must
+		// not take the feature with it.
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				B = X with (X = Y)
+				C = B with (X = Z)
+				X = 'x'
+				Y = 'y'
+				Z = 'z'
+				Start = C
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.CircularWith);
+
 	// ── §7.8, the marks a parse places over an extent ────────────────────────────
 
 	/// <summary>
@@ -666,11 +736,37 @@ public sealed class SemanticTests
 					""",
 				"ab"));
 
+	/// <summary>One mark type for a whole parse, wherever the declarations stand.</summary>
+	/// <remarks>
+	/// It used to be the place that was refused: a <c>state</c> inside a namespace was
+	/// <c>GRAM3015</c>, on the reasoning that a state for part of a parse is not a thing. The
+	/// reasoning is right and the refusal was in the wrong place — an included grammar is put
+	/// in a namespace of its own, so refusing the place made a grammar that uses
+	/// <c>with state</c> impossible to inherit. What it declares is a claim to be the same
+	/// type, and that is what is checked.
+	/// </remarks>
 	[Fact]
-	public void A_state_belongs_to_the_whole_grammar() =>
+	public void A_state_belongs_to_the_whole_grammar()
+	{
+		// The same type twice is one type, and says nothing.
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				state : @int
+				namespace Inner
+				{
+					state : @int
+					A = 'x'
+				}
+				Start = Inner.A
+				""").Diagnostics,
+			diagnostic => diagnostic.Id == GrammarBinder.StateNotInvariant);
+
+		// A second type is a second type for part of one answer.
 		Refused(
-			GrammarBinder.StateNotAtRoot,
+			GrammarBinder.StateNotInvariant,
 			"""
+			state : @string
 			namespace Inner
 			{
 				state : @int
@@ -678,6 +774,22 @@ public sealed class SemanticTests
 			}
 			Start = Inner.A
 			""");
+	}
+
+	/// <summary>And where only the included grammar declares one, that one is it.</summary>
+	[Fact]
+	public void And_an_included_grammar_may_be_the_only_one_that_declares_it() =>
+		Assert.Equal(
+			"int",
+			Graph(
+				"""
+				namespace Inner
+				{
+					state : @int
+					A = 'x'
+				}
+				Start = Inner.A
+				""").State);
 
 	[Fact]
 	public void And_a_grammar_declares_one_type_for_all_of_them() =>
@@ -745,20 +857,185 @@ public sealed class SemanticTests
 				""",
 				input));
 
-	// ── §7.7, the state a parse works out ───────────────────────────────────────
+	// ── FIRST through recursion (§4.3) ──────────────────────────────────────────
+
+	static FirstSets.First FirstOf(string grammar, string rule)
+	{
+		var graph = Normalized(grammar);
+
+		return FirstSets.Of(graph.Bodies[graph.Rules.First(one => one.Name == rule)], graph);
+	}
+
+	/// <summary>
+	/// Two rules that reach each other have the set they plainly have.
+	/// </summary>
+	/// <remarks>
+	/// The walk this replaced had to stop somewhere and stopped at "anything", which is
+	/// sound and is Top — and Top at the head of a rule is Top for everything containing it.
+	/// A fixed point has no such place to stop: every rule starts at nothing and grows.
+	/// </remarks>
+	[Fact]
+	public void A_rule_that_reaches_itself_still_has_a_first_set()
+	{
+		var first = FirstOf("A = B | 'a'\nB = A | 'b'\nStart = A", "A");
+
+		Assert.True(first.IsKnown, "the set is known rather than 'anything'");
+		Assert.True(first.Overlaps(FirstSets.First.Chars([new CharRange('a', 'a')])));
+		Assert.True(first.Overlaps(FirstSets.First.Chars([new CharRange('b', 'b')])));
+
+		// And nothing else got in on the way round.
+		Assert.False(first.Overlaps(FirstSets.First.Chars([new CharRange('c', 'c')])));
+	}
 
 	[Fact]
-	public void A_context_belongs_to_the_whole_grammar() =>
-		Refused(
-			GrammarBinder.ContextNotAtRoot,
+	public void And_a_directly_recursive_rule_too() =>
+		// `Sum = Sum '+' Term | Term` is rewritten to a fold before this sees it, but the
+		// shape a reader writes is the shape that used to answer "anything".
+		Assert.True(FirstOf("A = A & 'x' | 'a'\nStart = A", "A").IsKnown);
+
+	/// <summary>An external recognizer is still "anything", and honestly so.</summary>
+	/// <remarks>
+	/// What it accepts is the host's knowledge. A fixed point makes recursion knowable; it
+	/// does not make a C# predicate knowable, and claiming otherwise would be the unsound
+	/// direction.
+	/// </remarks>
+	[Fact]
+	public void And_a_rule_with_no_body_is_anything() =>
+		Assert.False(FirstOf("A = [@Digit] & 'x'\nStart = A", "A").IsKnown);
+
+	// ── Which context a rule was written against (§7.7) ─────────────────────────
+
+	static RecognitionGraph Normalized(string grammar) =>
+		GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(
+				DotGram.Grammar.Parsing.GramParser.Parse(
+					DotGram.Grammar.Parsing.GramLexer.Tokenize(
+						grammar, RoslynCSharpScanner.Instance)).File!));
+
+	static string? ContextOf(RecognitionGraph graph, string rule) =>
+		graph.ContextOf(graph.Rules.First(one => one.Name == rule));
+
+	/// <summary>
+	/// A rule is bound to the contract its own grammar named, and the root's is the
+	/// effective one.
+	/// </summary>
+	/// <remarks>
+	/// The two are the same until one grammar includes another, which is why they were one
+	/// thing until they could not be. What a publication takes is the root's — the object
+	/// the caller hands over — and what a rule's `when` and `=&gt;` see it through is the
+	/// contract of the grammar that wrote them.
+	/// </remarks>
+	[Fact]
+	public void A_rule_is_bound_to_the_context_its_own_grammar_declared()
+	{
+		var graph = Normalized(
 			"""
+			context : @Outer
 			namespace Inner
 			{
 				context : @Names
 				A = 'x'
 			}
-			Start = Inner.A
+			Start = a: Inner.A
 			""");
+
+		Assert.Equal("Outer", graph.Context);
+		Assert.Equal("Names", ContextOf(graph, "A"));
+		Assert.Equal("Outer", ContextOf(graph, "Start"));
+	}
+
+	[Fact]
+	public void And_a_grammar_that_declares_one_binds_every_rule_to_it() =>
+		// Where nothing is included there is one contract and it is the effective type, which
+		// is the shape everything written before this had.
+		Assert.Equal(
+			"Names",
+			ContextOf(
+				Normalized("context : @Names\nA = 'x'\nStart = a: A"),
+				"A"));
+
+	[Fact]
+	public void And_a_grammar_that_declares_none_binds_every_rule_to_nothing() =>
+		Assert.Null(ContextOf(Normalized("A = 'x'\nStart = a: A"), "A"));
+
+	/// <summary>A specialized clone keeps the contract of the rule it was cloned from.</summary>
+	/// <remarks>
+	/// Which is the part that could have gone wrong and does not, because the contract is
+	/// derived from where a rule was declared rather than recorded against the rule: every
+	/// place that makes a clone keeps it in its original's namespace, so there is nothing to
+	/// hand on. The same fact recorded per rule would have been a fifth thing for `Carry` to
+	/// forget.
+	/// </remarks>
+	[Fact]
+	public void And_a_clone_made_by_a_rebinding_keeps_it()
+	{
+		var graph = Normalized(
+			"""
+			namespace Inner
+			{
+				context : @Names
+				Sep = ','
+				List = 'a' & Sep & 'b'
+			}
+			namespace Other with (Inner.Sep = Semi)
+			{
+				Start = Inner.List
+			}
+			Semi = ';'
+			""");
+
+		// Every rule that came from `Inner`, clone or original, sees `Names`.
+		Assert.All(
+			graph.Rules.Where(rule => rule.Name.Contains("List", StringComparison.Ordinal)),
+			rule => Assert.Equal("Names", graph.ContextOf(rule)));
+	}
+
+	// ── §7.7, the state a parse works out ───────────────────────────────────────
+
+	/// <summary>
+	/// A <c>context</c> inside a namespace is that grammar's own contract, not a second
+	/// object and not an error.
+	/// </summary>
+	/// <remarks>
+	/// It used to be `GRAM3013`, refused on the reasoning that a context for part of a parse
+	/// is not a thing. It is one, and the reasoning confused two: the caller hands over one
+	/// object for the whole parse, and the *type it is seen through* belongs to whoever wrote
+	/// the code — which is what lets a grammar be included in another and keep meaning what
+	/// it meant (docs/next.md, "Decided: `context` is a contract").
+	/// </remarks>
+	[Fact]
+	public void A_context_inside_a_namespace_is_that_grammar_own_contract() =>
+		Assert.Empty(
+			Compile(
+				"""
+				namespace Inner
+				{
+					context : @Names
+					A = 'x'
+				}
+				Start = Inner.A
+				parse Start
+				""")
+				.Diagnostics);
+
+	[Fact]
+	public void And_the_one_at_the_top_is_the_one_a_caller_supplies() =>
+		// Two contracts, and the effective type — what the publication takes — is the root's.
+		Assert.Contains(
+			"ParseStart(string input, Outer context)",
+			Compile(
+				"""
+				context : @Outer
+				namespace Inner
+				{
+					context : @Names
+					A : @string = t: 'x' => @(context.Seen(t))
+				}
+				Start : @string = a: Inner.A => @(a)
+				parse Start
+				""")
+				.Sources[0].Text,
+			StringComparison.Ordinal);
 
 	[Fact]
 	public void And_a_grammar_declares_one_of_them() =>
@@ -1766,6 +2043,51 @@ public sealed class SemanticTests
 	// ── Captures, and the value they build (§7.3) ───────────────────────────────
 
 	/// <summary>Compiles and runs as <see cref="Matches"/> does, and hands back the value.</summary>
+	// ── A shared leading operand, folded only where the fold is invisible ────────
+
+	/// <summary>An operand that can give back is not shared, because sharing it would show.</summary>
+	/// <remarks>
+	/// The whole condition on left-factoring, from the side that says no. Two alternatives
+	/// prefer a shorter reading of the operand that lets a tail fit; one alternative with the
+	/// operand in front prefers the operand’s own reading and then chooses. On <c>xxy</c>
+	/// the spelled-out form gives back to <c>x</c> so that <c>"xy"</c> fits and the first
+	/// alternative wins; a folded form would take <c>xx</c> and fall to the second. Same text
+	/// consumed, different alternative matched, different <c>=&gt;</c> run — which is why the
+	/// fold is refused here and <c>GRAM4016</c> is left to say so.
+	/// </remarks>
+	[Fact]
+	public void An_operand_that_can_give_back_is_not_shared() =>
+		Assert.Equal(
+			"first:x",
+			Built(
+				"""
+				Chunk = 'x'+
+				Start : @string
+					= a: Chunk & "xy" => @("first:" + a)
+					| a: Chunk & "y"  => @("second:" + a)
+				""",
+				"xxy"));
+
+	/// <summary>And one that cannot is, with nothing to show for it but the reading saved.</summary>
+	/// <remarks>
+	/// <c>"ab"</c> has one reading, so which alternative matches cannot turn on how much of
+	/// it was read. Both spellings answer the same thing, which is the point: the fold is
+	/// admitted exactly where it cannot be seen. That it happened is visible only in the work
+	/// — <c>GeneratorDriverTests.And_a_shared_operand_is_read_once</c> counts it.
+	/// </remarks>
+	[Fact]
+	public void And_one_that_cannot_is_shared() =>
+		Assert.Equal(
+			"second:ab",
+			Built(
+				"""
+				Word = "ab"
+				Start : @string
+					= a: Word & "cd" => @("first:" + a)
+					| a: Word & "ce" => @("second:" + a)
+				""",
+				"abce"));
+
 	static object? Built(string grammar, string input)
 	{
 		var (isSuccess, value, _, _) = Parsed(grammar, input);
@@ -2914,7 +3236,7 @@ public sealed class SemanticTests
 	{
 		// §22 test 12: `namespace { trivia = none }` is lexical and has no effect on `Pair`,
 		// declared outside it and merely published from inside — `LexicalPair` behaves
-		// exactly like `DefaultPair`. `namespace (trivia = none) { ... }` is a rebinding and
+		// exactly like `DefaultPair`. `namespace N with (trivia = none) { ... }` is a rebinding and
 		// does reach `Pair` — `NamespacePair` rejects the space `DefaultPair` accepts.
 		var result = Compile("""
 			trivia = ' '*
@@ -2984,7 +3306,7 @@ public sealed class SemanticTests
 		// The question that started this feature: `parse Sum with (trivia = none) as
 		// Evaluate` alongside the ordinary, whitespace-tolerant publication of the same
 		// rule — one directive, no block, no name for the substitution beyond the
-		// publication's own. Mirrors what `namespace (trivia = none) { parse ... }`
+		// publication's own. Mirrors what `namespace N with (trivia = none) { parse ... }`
 		// already proved elsewhere, through the publication's own header instead.
 		var result = Compile("""
 			trivia = ' '*

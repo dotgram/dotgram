@@ -239,7 +239,7 @@ sealed partial class Machine
 					}
 				}
 				else if (node is Node.Construct)
-					_constructs[node] = IndexOf(factories, node);
+					_constructs[node] = IndexOf(factories, node, rule);
 			}
 
 			_captures += layout.Slots.Count;
@@ -282,7 +282,7 @@ sealed partial class Machine
 				foreach (var node in NodeWalk.Descendants(checking))
 				{
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
-						built.Contains("parserInput"))
+						CSharpEmitter.Uses(graph, built, "parserInput"))
 					{
 						UsesInput = true;
 					}
@@ -292,7 +292,7 @@ sealed partial class Machine
 					// it comes off the arena the flat rendering exists not to have.
 					if (graph.State is not null &&
 						node is Node.Construct { How: Construction.Expression { Text: var reading } } &&
-						reading.Contains("parserState"))
+						CSharpEmitter.Uses(graph, reading, "parserState"))
 					{
 						ReadsState = true;
 					}
@@ -302,9 +302,9 @@ sealed partial class Machine
 					// writes into.
 					if (graph.Context is not null &&
 						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
-							CSharpEmitter.Names(asked, "context") ||
+							CSharpEmitter.Uses(graph, asked, "context") ||
 						node is Node.Guard { Text: var condition } &&
-							CSharpEmitter.Names(condition, "context")))
+							CSharpEmitter.Uses(graph, condition, "context")))
 					{
 						UsesContext = true;
 					}
@@ -409,13 +409,22 @@ sealed partial class Machine
 		IReadOnlyList<ResultMember> Members,
 		string? Accumulator = null);
 
-	static int IndexOf(IReadOnlyList<Factory> factories, Node construct)
+	/// <remarks>
+	/// The message carries the rule it failed on, lowered. A construction reaches here that
+	/// the rule's own alternatives did not offer, which means the shape the compiler made is
+	/// not the shape something else expected of it — and the shape is the whole of what a
+	/// reader needs next. It used to say only that a construction somewhere had no factory,
+	/// and the shape was reachable only by building something that would not build.
+	/// </remarks>
+	int IndexOf(IReadOnlyList<Factory> factories, Node construct, RuleSymbol rule)
 	{
 		for (var i = 0; i < factories.Count; i++)
 			if (ReferenceEquals(factories[i].Of, construct))
 				return i;
 
-		throw new InvalidOperationException("A construction has no factory.");
+		throw new InvalidOperationException(
+			$"A construction in '{rule.Name}' has no factory. It lowered to:\n" +
+			_graph.Dump(rule));
 	}
 
 	/// <summary>
@@ -1740,7 +1749,7 @@ sealed partial class Machine
 
 						var tagged = Reserve(out var atTag);
 
-						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node)};");
+						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node, owner)};");
 						atTag.Line($"goto {Label(next)};");
 
 						return Compile(body, tagged, following);
@@ -1876,7 +1885,7 @@ sealed partial class Machine
 				// A guard runs at every position the rule reaches it, and what the rule has
 				// matched so far is a string built to run it. Built only where the condition
 				// names it — most conditions ask about the captures, not about the run.
-				if (node is Node.Guard { Text: var guardText } && guardText.Contains("parserText"))
+				if (node is Node.Guard { Text: var guardText } && CSharpEmitter.Uses(_graph, guardText, "parserText"))
 				{
 					parameters.Add("string parserText");
 					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
@@ -1886,7 +1895,7 @@ sealed partial class Machine
 				// is the rule from where it began to where the parse now stands — which is
 				// what "the current rule's span" can mean at a point that is not the end,
 				// and the only thing here that says *where* rather than *what*.
-				if (node is Node.Guard { Text: var spanning } && spanning.Contains("parserSpan"))
+				if (node is Node.Guard { Text: var spanning } && CSharpEmitter.Uses(_graph, spanning, "parserSpan"))
 				{
 					parameters.Add("SourceSpan parserSpan");
 					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
@@ -1896,9 +1905,13 @@ sealed partial class Machine
 				// where one is usually written into: it runs while the text is read, which
 				// is the only moment a grammar has in the order it is written.
 				if (node is Node.Guard { Text: var stateful } &&
-					_graph.Context is not null && CSharpEmitter.Names(stateful, "context"))
+					_graph.ContextOf(rule) is { } contract &&
+					CSharpEmitter.Uses(_graph, stateful, "context"))
 				{
-					parameters.Add($"{_graph.Context} context");
+					// Typed by this rule's own contract, not the effective type — see the
+					// factory's own parameters for why. The argument is the same object
+					// either way; passing it upcasts.
+					parameters.Add($"{contract} context");
 					arguments.Add("context");
 				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
@@ -3683,10 +3696,36 @@ sealed partial class Machine
 	/// forward or is restored from one — and were it ever to be, the unsigned form refuses
 	/// where the signed one would have read out of bounds.
 	/// </remarks>
-	static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"p + {count} > text.Length";
+	/// <remarks>
+	/// <para>
+	/// More than one is asked the other way round — <c>text.Length - p</c> against the
+	/// count, rather than <c>p + count</c> against the length. Two reasons, and the first is
+	/// not a nicety.
+	/// </para>
+	/// <para>
+	/// <c>p + count</c> can overflow. A span may hold <c>int.MaxValue</c> characters, so a
+	/// position near the end plus a literal's length wraps negative, the check passes, and
+	/// what was an ordinary refusal to match becomes an exception out of a slice. It takes a
+	/// four-gigabyte input to reach and it is still a wrong answer rather than a slow one.
+	/// Subtracting cannot overflow: both sides are non-negative and the difference is
+	/// between them.
+	/// </para>
+	/// <para>
+	/// Signed, and deliberately, where the single-character form above is unsigned. There
+	/// the unsigned comparison is the same one the indexer's own bounds check makes, which
+	/// is the whole point of writing it that way. Here it would be wrong: were <c>p</c> ever
+	/// past the end, <c>text.Length - p</c> is negative, and casting that to
+	/// <c>uint</c> makes it enormous — the check would report room where there is none,
+	/// which is the one direction a room check may not fail in.
+	/// </para>
+	/// </remarks>
+	static string Short(int count) =>
+		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
-	static string Room(int count) => count == 1 ? "(uint)p < (uint)text.Length" : $"p + {count} <= text.Length";
+	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
+	static string Room(int count) =>
+		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
 	/// <remarks>

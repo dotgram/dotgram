@@ -44,6 +44,12 @@ public sealed partial class GrammarNormalizer
 	public const string AmbiguousExternal   = "GRAM4015";
 	public const string SharedPrefix        = "GRAM4016";
 
+	/// <summary>
+	/// Two rules whose <c>with</c> sites reach each other, which has no order to be
+	/// specialized in.
+	/// </summary>
+	public const string CircularWith        = "GRAM4017";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -58,13 +64,21 @@ public sealed partial class GrammarNormalizer
 	{
 		_model    = model;
 		_resolver = resolver;
+
+		_ruleIsNullable = rule => _nullable.TryGetValue(rule, out var nullable) && nullable;
 	}
 
 	/// <param name="resolver">
 	/// Asked one thing only: whether one C# type fits into another, which is what §4.1
 	/// case 2 needs and nothing here can work out for itself.
 	/// </param>
-	public static RecognitionGraph Normalize(GrammarModel model, ISymbolResolver? resolver = null)
+	/// <param name="scanner">
+	/// Asked which names each embedded C# expression uses. Optional, and where it is absent
+	/// the emitter falls back to searching the spelling — which is what it used to do
+	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
+	/// </param>
+	public static RecognitionGraph Normalize(
+		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -129,6 +143,16 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Check();
 
+		// After the checks, because the grammar is checked as it was written and the fold
+		// makes a shape the author may not: a construction after a head shared with its
+		// neighbours. Before the two below, which only read what binding recorded.
+		normalizer.Factor();
+
+		// Last, and reading only what binding recorded: which contract each grammar in the
+		// composition declared, and whether one type can be seen through all of them.
+		normalizer.ReconcileContexts();
+		normalizer.ReconcileState();
+
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,
@@ -145,9 +169,52 @@ public sealed partial class GrammarNormalizer
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
-			Context    = model.Context?.Name,
-			State      = model.State?.Name,
+			Context    = (normalizer._context ?? model.Context)?.Name,
+			State      = (normalizer._state ?? model.State)?.Name,
+			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 		};
+	}
+
+	/// <summary>
+	/// Which names each embedded expression uses, keyed by the expression itself.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// By text and not by node, which is what makes it immune to the rebuilds everything
+	/// else here has to be careful about: two guards spelled the same use the same names,
+	/// so a clone, a splice or a specialization needs no transfer at all. Built at the end
+	/// of normalization, when every substitution has already happened and the text a node
+	/// holds is the text that will be emitted.
+	/// </para>
+	/// <para>
+	/// An expression the scanner cannot parse is left out rather than recorded as using
+	/// nothing, so a reader can tell "asks for none of them" from "could not be asked".
+	/// </para>
+	/// </remarks>
+	static IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames(
+		IEnumerable<Node> bodies, ICSharpScanner? scanner)
+	{
+		var names = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
+		if (scanner is null)
+			return names;
+
+		foreach (var body in bodies)
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				var text = node switch
+				{
+					Node.Guard(var condition)                                  => condition,
+					Node.Construct(_, Construction.Expression(var built, _))   => built,
+					Node.Marked(_, var mark)                                   => mark,
+					_                                                          => null,
+				};
+
+				if (text is not null && !names.ContainsKey(text) && scanner.FreeNames(text) is { } free)
+					names[text] = free;
+			}
+
+		return names;
 	}
 
 	void Report(string id, string message, Location at) =>
@@ -199,23 +266,14 @@ public sealed partial class GrammarNormalizer
 					_nullable[rule] = rule.Name is "none" or "eof" or "trivia" or "wordboundary";
 	}
 
-	bool IsNullable(Node node) => node switch
-	{
-		Node.Empty                           => true,
-		Node.Literal  (var text)             => text.Length == 0,
-		Node.Element                         => false,
-		Node.Guard                           => true,
-		Node.Lookahead                       => true,
-		Node.Atomic   (var body)             => IsNullable(body),
-		Node.Marked   (var body, _)          => IsNullable(body),
-		Node.Capture  (_, var body)          => IsNullable(body),
-		Node.Construct(var body, _)          => IsNullable(body),
-		Node.Repeat   (var body, var min, _) => min == 0 || IsNullable(body),
-		Node.Sequence (var nodes)            => nodes.All(IsNullable),
-		Node.Choice   (var nodes)            => nodes.Any(IsNullable),
-		Node.Call     (var rule, _)          => _nullable.TryGetValue(rule, out var nullable) && nullable,
-		_                                    => false,
-	};
+	/// <summary>
+	/// Whether a node can match without consuming anything, asked of the one place that
+	/// knows the shapes — with the answer for a call taken from the estimate this fixed
+	/// point is still refining.
+	/// </summary>
+	bool IsNullable(Node node) => FirstSets.Nullable(node, _ruleIsNullable);
+
+	readonly Func<RuleSymbol, bool> _ruleIsNullable;
 
 	// ── Results ──────────────────────────────────────────────────────────────────
 

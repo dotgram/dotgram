@@ -36,7 +36,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 	public const string AskedStage    = "Asked";
 	public const string AnsweredStage = "Answered";
 	public const string CompiledStage = "Compiled";
-	public const string SharedStage   = "Shared";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
@@ -99,103 +98,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.WithTrackingName(CompiledStage),
 			static (production, parser) => parser.Deliver(production));
 
-		// One `context` and one `state` for the whole assembly, checked apart from the
-		// generation above rather than folded into it: a `Collect` in that pipeline would
-		// make every parser's output depend on every grammar, and a keystroke in one would
-		// recompile all of them. Here nothing is generated — only said — and the collected
-		// value is the few grammars that declare anything, so it holds still while the rest
-		// of the project is edited.
-		context.RegisterSourceOutput(
-			asked
-				.Where(static grammar => grammar.Declares.Any)
-				.Collect()
-				.WithTrackingName(SharedStage),
-			static (production, declaring) => DeliverShared(production, declaring));
-	}
-
-	/// <summary>
-	/// Says so where two grammars in one assembly both declare a <c>context</c> or a
-	/// <c>state</c>.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Taken now, before anything depends on it, because it is the constraint that keeps a
-	/// grammar includable in another later (docs/next.md, "Considered: parser inheritance").
-	/// A merged grammar can have only one of each — a context is one object handed to the
-	/// whole parse, and a mark is one type for all of them — and an assembly is the widest
-	/// extent this can be asked over without a base-class relationship to follow.
-	/// </para>
-	/// <para>
-	/// It is stricter than the rule that will eventually be wanted, which is one per
-	/// inheritance chain: two parsers in one assembly that never meet are refused here for a
-	/// reason neither of them can see. That is the price of taking it early, and the message
-	/// says why rather than only what.
-	/// </para>
-	/// <para>
-	/// Reported at every site rather than at all but one. There is no first among them —
-	/// which grammar the generator saw first is not something an author can know or act on —
-	/// and whichever file they are looking at is where they need to be told.
-	/// </para>
-	/// </remarks>
-	static void DeliverShared(SourceProductionContext production, ImmutableArray<Grammar> declaring)
-	{
-		Say(
-			DotGram.Grammar.Binding.GrammarBinder.SharedContext,
-			"context",
-			static grammar => grammar.Declares.ContextAt,
-			static grammar => grammar.Declares.ContextLength);
-
-		Say(
-			DotGram.Grammar.Binding.GrammarBinder.SharedState,
-			"state",
-			static grammar => grammar.Declares.StateAt,
-			static grammar => grammar.Declares.StateLength);
-
-		void Say(string id, string word, Func<Grammar, int> at, Func<Grammar, int> length)
-		{
-			var declared = declaring.Where(grammar => at(grammar) >= 0).ToArray();
-
-			if (declared.Length < 2)
-				return;
-
-			// Named in a fixed order, so the message does not change with the order the
-			// generator happened to see them in.
-			var named = declared
-				.Select(static grammar => grammar.Host.ClassName)
-				.OrderBy(static name => name, StringComparer.Ordinal)
-				.ToArray();
-
-			foreach (var grammar in declared)
-			{
-				var others = string.Join(
-					", ", named.Where(name => name != grammar.Host.ClassName));
-
-				var diagnostic = new GramDiagnostic(
-					id,
-					$"'{grammar.Host.ClassName}' declares a '{word}' and so does {others}. An " +
-					$"assembly has at most one, so that one grammar can be included in another: a " +
-					$"'{word}' belongs to a whole parse, and a merged grammar could not say which " +
-					$"of two it meant.",
-					at(grammar),
-					length(grammar),
-					GramSeverity.Error);
-
-				new Parser(
-					null,
-					null,
-					new EquatableArray<Report>(
-					[
-						Report.Of(
-							diagnostic,
-							grammar.Path,
-							grammar.Text ?? "",
-							grammar.Host.Location,
-							grammar.Host.Literal,
-							grammar.Host.LiteralAt),
-					]))
-					.Deliver(production);
-			}
-		}
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
@@ -213,7 +115,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		catch (Exception exception) when (Recoverable(exception))
 		{
 			return Failed(
-				new Grammar(host, null, null, default, default, default, Declared.None),
+				new Grammar(host, null, null, default, default, default),
 				"reading and analyzing the grammar",
 				exception);
 		}
@@ -337,48 +239,26 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Question> Questions,
 		EquatableArray<Answer>   Answers,
 		EquatableArray<Report>   Reports,
-		Declared                 Declares = default);
+		EquatableArray<Piece>    Pieces = default);
 
 	/// <summary>
-	/// Where a grammar declares a <c>context</c> and a <c>state</c>, or -1 for neither.
+	/// One grammar inside the joined text, and everything needed to put a position in it
+	/// back where it was written.
 	/// </summary>
 	/// <remarks>
-	/// Kept as offsets rather than as the declarations themselves because this is a cache
-	/// key: two ints and a length say everything the check needs and nothing that changes
-	/// when something else in the file does.
+	/// The joining happens in the cheap stage, where the additional files are; the placing
+	/// happens in the third, where the diagnostics are. This is what travels between them,
+	/// and both a <c>#line</c> and a squiggle are built from the same one — working out
+	/// which grammar a position came from twice, from two sets of numbers, is how the two
+	/// come to disagree.
 	/// </remarks>
-	readonly record struct Declared(int ContextAt, int ContextLength, int StateAt, int StateLength)
-	{
-		public static readonly Declared None = new(-1, 0, -1, 0);
-
-		public bool Any => ContextAt >= 0 || StateAt >= 0;
-
-		public static Declared Of(DotGram.Grammar.Parsing.GrammarFile? file)
-		{
-			if (file is null)
-				return None;
-
-			var declared = None;
-
-			// The root and nowhere else, which is where both are allowed to stand at all
-			// (GRAM3013, GRAM3015) — so there is nothing to walk into.
-			foreach (var declaration in file.Decls)
-				if (declaration is DotGram.Grammar.Parsing.Decl.Context)
-					declared = declared with
-					{
-						ContextAt     = declaration.At.Position,
-						ContextLength = declaration.At.Length,
-					};
-				else if (declaration is DotGram.Grammar.Parsing.Decl.State)
-					declared = declared with
-					{
-						StateAt     = declaration.At.Position,
-						StateLength = declaration.At.Length,
-					};
-
-			return declared;
-		}
-	}
+	readonly record struct Piece(
+		int       Start,
+		int       Length,
+		string?   Path,
+		string?   Literal,
+		int       LiteralAt,
+		Location? Location);
 
 	/// <summary>
 	/// Stage one: find the grammar and work out what it needs to know about the host's C#.
@@ -392,11 +272,60 @@ public sealed class GramGenerator : IIncrementalGenerator
 		{
 			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.Location, host.ClassName));
 
-			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
+			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
-		if (!TryResolveGrammar(reports, host, files, out var text, out var path))
-			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
+		// Said before the grammar is read, because it is about the host rather than about
+		// the grammar, and because a name that cannot be a namespace would otherwise reach
+		// the splice and come back as a parse error in a text nobody wrote.
+		if (host.IncludedAs is { } included && !IsIdentifier(included))
+			reports.Add(Report.Of(
+				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
+
+		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
+			return new Grammar(host, null, null, default, default, Values(reports));
+
+		// What the host inherits, joined onto the end of its own — which is where it goes
+		// so that the text somebody is editing keeps the offsets it always had
+		// (GrammarSplice). A base whose grammar cannot be found is reported against the
+		// class that declares it and left out; the rest still compiles, and what it was
+		// going to provide comes back as ordinary undefined names.
+		var parts   = new List<GrammarSplice.Part>();
+		var bases   = new List<Included>();
+
+		foreach (var inherited in host.Includes.Items)
+			if (TryResolveGrammar(
+				reports,
+				inherited.Source,
+				SimpleNameOf(inherited.ClassName),
+				inherited.ClassName,
+				inherited.Location,
+				files,
+				out var inheritedText,
+				out var inheritedPath))
+			{
+				parts.Add(new GrammarSplice.Part(inheritedText, inherited.Name, null));
+				bases.Add(inherited with { Source = inheritedPath });
+			}
+
+		var (text, joined) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), parts);
+
+		var pieces = ImmutableArray.CreateBuilder<Piece>();
+
+		pieces.Add(new Piece(
+			0, own.Length, path, host.Literal, host.LiteralAt, host.Location));
+
+		for (var at = 0; at < bases.Count; at++)
+			pieces.Add(new Piece(
+				joined.Segments[at + 1].Start,
+				joined.Segments[at + 1].Length,
+
+				// `Source` now holds the path it resolved to, or null where the grammar was
+				// written into the attribute — the same two cases the host's own has.
+				bases[at].Source,
+				bases[at].Literal,
+				bases[at].LiteralAt,
+				bases[at].Location));
 
 		// Parsed twice over a grammar's life: once here for the questions, once in the
 		// third stage for the answer. Both are cheap next to normalization and emission,
@@ -411,7 +340,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			new EquatableArray<Question>(Questions.Of(parsed)),
 			default,
 			Values(reports),
-			Declared.Of(parsed));
+			new EquatableArray<Piece>(pieces.ToImmutable()));
 	}
 
 	/// <summary>
@@ -426,6 +355,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var host    = grammar.Host;
 		var reports = ImmutableArray.CreateBuilder<Report>();
 
+		// What the first stage had to say, carried rather than dropped. Every report it
+		// used to make came with an early return — no text, so the branch above hands them
+		// on — and the first one that could stand beside a grammar that reads perfectly
+		// well went silently missing until it was looked for.
+		reports.AddRange(grammar.Reports.Items);
+
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
@@ -436,22 +371,109 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			// §7.6. A grammar that is its own file maps onto itself; one written into an
 			// attribute maps into the C# file holding it, which has to be searched for
-			// rather than computed — see InlineLineMap.
-			LineMap        = grammar.Path is { } path
-				? new GrammarLineMap(text, path)
-				: host.Literal is { } spelling && host.Location?.SourceTree is { } tree
-					? new InlineLineMap(text, spelling, host.LiteralAt, tree)
-					: null,
+			// rather than computed — see InlineLineMap. Where a host inherits grammars the
+			// text is several of them joined, and the map is one per piece with the same
+			// two cases inside it.
+			LineMap        = MapOf(grammar, text),
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
-			reports.Add(Report.Of(
-				diagnostic, grammar.Path, text, host.Location, host.Literal, host.LiteralAt));
+			reports.Add(PlacedIn(grammar, text, diagnostic));
 
 		return new Parser(
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
 			Values(reports));
+	}
+
+	/// <summary>Where each piece of the joined text belongs (§7.6).</summary>
+	static ILineMap? MapOf(Grammar grammar, string text)
+	{
+		var pieces = grammar.Pieces.Items;
+
+		if (pieces.Length == 0)
+			return MapOfPiece(new Piece(0, text.Length, grammar.Path, grammar.Host.Literal,
+				grammar.Host.LiteralAt, grammar.Host.Location), text);
+
+		// One piece is the ordinary case and needs no splicing over it: a host inheriting
+		// nothing compiles the map it always did.
+		if (pieces.Length == 1)
+			return MapOfPiece(pieces[0], text);
+
+		return new SplicedLineMap(
+		[
+			.. pieces.Select(piece => new SplicedLineMap.Segment(
+				piece.Start, piece.Length, MapOfPiece(piece, text))),
+		]);
+	}
+
+	static ILineMap? MapOfPiece(Piece piece, string text)
+	{
+		var own = text.Substring(piece.Start, piece.Length);
+
+		return piece.Path is { } path
+			? new GrammarLineMap(own, path)
+			: piece.Literal is { } spelling && piece.Location?.SourceTree is { } tree
+				? new InlineLineMap(own, spelling, piece.LiteralAt, tree)
+				: null;
+	}
+
+	/// <summary>
+	/// A diagnostic placed in the grammar it came from rather than in the joined text.
+	/// </summary>
+	/// <remarks>
+	/// Its position arrives in the joined text's offsets and has to leave in one grammar's,
+	/// because that is what a squiggle is put on. A position in the wrapper a joined grammar
+	/// is written into belongs to no grammar; it keeps the host's own fallback, which puts
+	/// the message on the class rather than nowhere.
+	/// </remarks>
+	static Report PlacedIn(Grammar grammar, string text, GramDiagnostic diagnostic)
+	{
+		var host   = grammar.Host;
+		var pieces = grammar.Pieces.Items;
+
+		foreach (var piece in pieces)
+		{
+			if (diagnostic.Position < piece.Start || diagnostic.Position > piece.Start + piece.Length)
+				continue;
+
+			return Report.Of(
+				new GramDiagnostic(
+					diagnostic.Id,
+					diagnostic.Message,
+					diagnostic.Position - piece.Start,
+					diagnostic.Length,
+					diagnostic.Severity),
+				piece.Path,
+				text.Substring(piece.Start, piece.Length),
+				piece.Location ?? host.Location,
+				piece.Literal,
+				piece.LiteralAt);
+		}
+
+		return Report.Of(
+			diagnostic, grammar.Path, text, host.Location, host.Literal, host.LiteralAt);
+	}
+
+	/// <summary>The innermost name of a dotted one.</summary>
+	static string SimpleNameOf(string className)
+	{
+		var dot = className.LastIndexOf('.');
+
+		return dot < 0 ? className : className.Substring(dot + 1);
+	}
+
+	/// <summary>One identifier, which is all a namespace can be named by.</summary>
+	static bool IsIdentifier(string name)
+	{
+		if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] == '_'))
+			return false;
+
+		for (var at = 1; at < name.Length; at++)
+			if (!(char.IsLetterOrDigit(name[at]) || name[at] == '_'))
+				return false;
+
+		return true;
 	}
 
 	static EquatableArray<Report> Values(ImmutableArray<Report>.Builder reports) =>
@@ -466,6 +488,27 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Host                           host,
 		ImmutableArray<GrammarFile>    files,
 		out string                     text,
+		out string?                    path) =>
+		TryResolveGrammar(
+			reports, host.Source, host.SimpleName, host.ClassName, host.Location, files,
+			out text, out path);
+
+	/// <summary>
+	/// The same for a grammar that is not this host's — one it inherits.
+	/// </summary>
+	/// <remarks>
+	/// Told apart from the host's own by nothing at all, which is the point: a base's
+	/// grammar is found the way any grammar is, and its diagnostics are placed against the
+	/// class that declares it rather than against the one that inherited it.
+	/// </remarks>
+	static bool TryResolveGrammar(
+		ImmutableArray<Report>.Builder reports,
+		string?                        source,
+		string                         simpleName,
+		string                         className,
+		Location?                      location,
+		ImmutableArray<GrammarFile>    files,
+		out string                     text,
 		out string?                    path)
 	{
 		text = "";
@@ -474,14 +517,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// A single line ending in .gram is a path; anything else is the grammar itself.
 		// The two are told apart exactly the way the attribute documents it, and a grammar
 		// short enough to be mistaken for a path would not be a grammar.
-		if (host.Source is { } source && !IsPath(source))
+		if (source is { } written && !IsPath(written))
 		{
-			text = source;
+			text = written;
 
 			return true;
 		}
 
-		var wanted = host.Source ?? host.SimpleName + GramFileExtension;
+		var wanted = source ?? simpleName + GramFileExtension;
 		var found  = files.Where(file => Matches(file.Path, wanted)).ToImmutableArray();
 
 		switch (found.Length)
@@ -494,7 +537,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			case 0:
 				reports.Add(Report.Of(
-					Diagnostics.GrammarFileNotFound, host.Location, wanted, host.ClassName));
+					Diagnostics.GrammarFileNotFound, location, wanted, className));
 
 				return false;
 
@@ -502,7 +545,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				// Picking one by reference order would make which file won invisible.
 				reports.Add(Report.Of(
 					Diagnostics.AmbiguousGrammarFile,
-					host.Location,
+					location,
 					wanted,
 					string.Join(", ", found.Select(file => file.Path))));
 
@@ -536,6 +579,34 @@ public sealed class GramGenerator : IIncrementalGenerator
 	readonly record struct GrammarFile(string Path, string Text);
 
 	/// <summary>
+	/// A grammar a host inherits, as the attribute on that base class spells it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Values and not symbols, for the reason <see cref="Host"/> gives about itself. Read in
+	/// the cheap stage all the same: <c>ForAttributeWithMetadataName</c> hands over the
+	/// target's symbol because that provider is semantic anyway, so walking to a base and
+	/// reading a constant off it costs no dependency on the compilation and loses no
+	/// caching. A string is equatable, and editing a base's grammar invalidates its
+	/// derivatives exactly as it should.
+	/// </para>
+	/// <para>
+	/// <see cref="Source"/> is the attribute's argument unresolved — a path or the text
+	/// itself, told apart the same way the host's own is, and by the same code, one stage
+	/// later where the additional files are in hand.
+	/// </para>
+	/// </remarks>
+	/// <param name="Name">What a grammar including this one writes after `using`.</param>
+	/// <param name="ClassName">Whose grammar it is, for anything that has to say so.</param>
+	readonly record struct Included(
+		string    Name,
+		string    ClassName,
+		string?   Source,
+		string?   Literal,
+		int       LiteralAt,
+		Location? Location);
+
+	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
 	/// </summary>
 	/// <remarks>
@@ -559,8 +630,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		Location? Location,
 		string?   Literal    = null,
-		int       LiteralAt  = 0)
+		int       LiteralAt  = 0,
+		string?   IncludedAs = null,
+		EquatableArray<Included> Includes = default)
 	{
+		/// <summary>
+		/// The name a grammar including this one writes after <c>using</c>.
+		/// </summary>
+		/// <remarks>
+		/// The host's own name unless the attribute said otherwise, so that following the
+		/// <c>:</c> from an including class lands on the answer. Not the C# namespace of
+		/// the generated code, which is decided by where the host is declared — the two
+		/// senses of the word were separated on purpose (docs/next.md, the `context` to
+		/// `namespace` rename) and are kept apart here by not using it.
+		/// </remarks>
+		public string IncludedName => IncludedAs ?? SimpleName;
+
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
 		/// </summary>
@@ -620,12 +705,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
 
+			var includedAs = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
+				.Value.Value as string;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
 			// that knows where the escapes and the indentation went.
+			// The first positional argument and not the only one: a named argument beside it
+			// is legal — `[Gram("…", IncludedAs = "Json")]` — and requiring exactly one
+			// would quietly stop finding the spelling the moment somebody wrote one, taking
+			// every diagnostic's placement with it.
 			var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
-				syntax.ArgumentList?.Arguments is [{ Expression: LiteralExpressionSyntax spelled }]
+				syntax.ArgumentList?.Arguments.FirstOrDefault(
+					static argument => argument.NameEquals is null) is
+						{ Expression: LiteralExpressionSyntax spelled }
 					? spelled.Token
 					: default;
 
@@ -655,8 +750,72 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
-				Literal:   written == default ? null : written.Text,
-				LiteralAt: written == default ? 0    : written.SpanStart);
+				Literal:    written == default ? null : written.Text,
+				LiteralAt:  written == default ? 0    : written.SpanStart,
+				IncludedAs: includedAs,
+				Includes:   new EquatableArray<Included>(Inherited(type)));
+		}
+
+		/// <summary>Every grammar up the base chain, nearest first.</summary>
+		/// <remarks>
+		/// <para>
+		/// By display name and not by symbol: the attribute is emitted into every assembly
+		/// separately and on purpose, so a base compiled elsewhere carries *its* assembly's
+		/// <c>DotGram.GramAttribute</c> and the two types are not the same type. What they
+		/// share is what they are called.
+		/// </para>
+		/// <para>
+		/// A base with no grammar is walked past rather than stopping the walk: a class may
+		/// sit between two that have one for reasons of its own.
+		/// </para>
+		/// <para>
+		/// Cycles cannot happen — C# forbids a class from inheriting itself, directly or
+		/// through anything — which is a property this spelling gets for free and a named
+		/// import of grammars would not have.
+		/// </para>
+		/// </remarks>
+		static ImmutableArray<Included> Inherited(INamedTypeSymbol type)
+		{
+			var included = ImmutableArray.CreateBuilder<Included>();
+
+			for (var above = type.BaseType; above is not null; above = above.BaseType)
+			{
+				var attribute = above
+					.GetAttributes()
+					.FirstOrDefault(static candidate =>
+						candidate.AttributeClass?.ToDisplayString() == GramAttribute);
+
+				if (attribute is null)
+					continue;
+
+				var spelled = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
+					syntax.ArgumentList?.Arguments.FirstOrDefault(
+						static argument => argument.NameEquals is null) is
+							{ Expression: LiteralExpressionSyntax literal }
+						? literal.Token
+						: default;
+
+				var named = attribute.NamedArguments
+					.FirstOrDefault(static argument => argument.Key == nameof(Host.IncludedAs))
+					.Value.Value as string;
+
+				included.Add(new Included(
+					Name:      named ?? above.Name,
+					ClassName: above.ToDisplayString(),
+					Source:    attribute.ConstructorArguments.Length == 1
+						? attribute.ConstructorArguments[0].Value as string
+						: null,
+					Literal:   spelled == default ? null : spelled.Text,
+					LiteralAt: spelled == default ? 0    : spelled.SpanStart,
+
+					// Null where the base is in a referenced assembly, which is what makes
+					// a diagnostic in its grammar have nowhere to point (docs/next.md).
+					Location:  attribute.ApplicationSyntaxReference is { } reference
+						? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
+						: null));
+			}
+
+			return included.ToImmutable();
 		}
 	}
 }

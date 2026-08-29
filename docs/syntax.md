@@ -887,9 +887,10 @@ namespace Syntax
 
 The top of a file is an implicit global namespace. The `{ }` after `namespace Name` is
 a block of declarations, not an expression; in expression position braces mean a
-repetition count and nothing else (§3.3). An inner namespace sees the outer one; a rule
-of the same name shadows the outer one; the qualified name `Namespace.Rule` is available
-from outside.
+repetition count and nothing else (§3.3). An inner namespace sees the outer one; the
+qualified name `Namespace.Rule` is available from outside. Declaring a rule whose name
+already resolves outside is refused rather than taken as shadowing — replacing a rule is
+what a rebinding is for, and the rule is stated where the two are told apart below.
 
 `using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
@@ -934,8 +935,8 @@ A = B
 
 namespace Ns
 {
-    B = 'd'                 // shadowing: a new, unrelated rule named B
-    E = A                   // E -> outer A -> outer B -> 'c'
+    B = 'd'                 // GRAM3012: 'B' already resolves out here, and a
+    E = A                   // declaration would be a second, unrelated rule
 }
 
 namespace Ns2 with (B = D)
@@ -961,7 +962,7 @@ replaced, and identifying is what a name is for.
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
-`namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
+`namespace Name with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
 to a visible rule. A parameterized rule (§4.2) may replace and be replaced by one of
 the same signature — the same parameter count, each parameter the same kind, a value
 where a value was and a recognizer where a recognizer was — because a rebinding
@@ -972,12 +973,12 @@ refused (`GRAM3009`): a call's arguments have to fit the replacement for the
 substitution to mean anything.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
-is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`
+is written in: `namespace Name with (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested namespace inherits its enclosing
 one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`namespace with (trivia = none)` reuses an already-written rule under different
+`namespace Name with (trivia = none)` reuses an already-written rule under different
 whitespace handling — the same substitution as any other binding, and a different
 mechanism from shadowing `trivia` locally (§4.5), which affects only what the block
 itself declares.
@@ -995,7 +996,7 @@ points over one `Number` rule is the shape this exists for. Reach for shadowing 
 ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
 different for the rest of the file or block from that point on, with nothing shared
 reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
-grammar is exactly that, and wrapping the entire file in `namespace with (trivia =
+grammar is exactly that, and wrapping the entire file in `namespace Name with (trivia =
 none) { ... }` for it adds a block with nothing on the other side of the substitution
 to contrast against.
 
@@ -1022,7 +1023,7 @@ header once more than one call needs the same rebinding, or the substitution is 
 a name of its own.
 
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
-wrapped in a `namespace with (...)` block just to reach it:
+wrapped in a `namespace Name with (...)` block just to reach it:
 
 ```dotgram
 parse Number with (Point = Comma) as Evaluate
@@ -1031,11 +1032,11 @@ parse Number with (Point = Comma) as Evaluate
 is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
 block, no name for the substitution beyond the publication's own. A publication's own
 `with` is the more locally written of the two extents, so it composes on top of an
-enclosing `namespace with (...)`'s own rebinding of the same rule rather than instead
+enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
 of it.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
-`namespace with (A = B) { ... }` is a substitution, written where a reader expects one;
+`namespace Name with (A = B) { ... }` is a substitution, written where a reader expects one;
 a declaration with the same name sitting in the body, with no header entry for it, is
 an error. A declaration always means a new rule; a rebinding is the only way to replace
 one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
@@ -1043,7 +1044,7 @@ an enclosing *grammar* scope, or through that namespace's own `using` import, is
 refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
 shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
-is shadowing at the top level of a file, where there is no `namespace with (...)`
+is shadowing at the top level of a file, where there is no `namespace Name with (...)`
 header nearby to have meant instead.
 
 ---
@@ -1509,15 +1510,23 @@ Reading and writing are on either side of the match, which is what the two hook 
 for: a `when` runs while the text is read, in the order it is written, and a `=>` runs
 afterwards, against what the guards have by then recorded.
 
-**One per grammar, and outside every namespace.** A context declared inside one would be a
-context for part of a parse, and there is no such thing: the object a caller hands over is
-handed to all of it (`GRAM3013`, `GRAM3014`).
+**One per grammar** (`GRAM3014`), and the one at the top of a file is the one a caller
+supplies. A grammar included in another (§5.1) may declare its own, and that is a *contract*
+rather than a second object: the rules written there see the caller's object through the type
+their own grammar named, and an including grammar may strengthen the type for its own rules
+without changing what the included ones were compiled against.
 
-**And one per assembly** (`GRAM3017`). Wider than it has to be today, and taken deliberately:
-a grammar that one day includes another can have only one context between them, and refusing
-the second now is a rule rather than a later change of one. Two parsers in one assembly that
-never meet are refused for a reason neither can see — that is what the message says, and it
-is the price of the constraint being there before anything leans on it.
+**And what is handed over has to satisfy every contract along the way** (`GRAM3019`). One
+object flows down, and the parts of a composed grammar see it through as many static types as
+there are grammars in it — the base’s rules through what the base declared, the including
+grammar’s through what it declared. The type actually supplied is the one at the top of the
+file, and it has to be assignable to every contract underneath it. Which is ordinary
+subtyping: virtual dispatch works, new members are invisible to the grammar that did not
+declare them, and inherited semantic code keeps meaning what it meant when it was written.
+
+Where the top of the file declares none, the effective type is the contract that satisfies
+all the others — the most derived of what was inherited. Where no single one does, there is
+no object to hand over and the grammar has to say which type it means.
 
 **What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
 a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
@@ -1571,8 +1580,15 @@ last is the nearest. Named like the supplied names of §8.2 and given by the sam
 hook that does not name it is not passed it, and a grammar that places no mark hands an
 empty span to one that does.
 
-**One type for all of them, declared once, outside every namespace** (`GRAM3015`,
-`GRAM3016`), and one per assembly (`GRAM3018`) — for the reason §7.7 gives about its own.
+**One type for all of them** (`GRAM3016`, `GRAM3020`). A grammar included in another may
+declare it too, and what that declares is a claim to be the *same* type rather than a
+contract of its own — which is where `state` parts company with §7.7’s `context`, and the
+reason is not the variance that makes it mechanically impossible. A context is one object
+flowing down; a mark is a heterogeneous stack of values placed by several authors and read as
+one span, and a span admits exactly one element type.
+
+Which is why a grammar meant to be inherited declares its `state` as a reference type: a
+consumer cannot extend an enum to add a concern of their own.
 Which mark a hook means is the hook's to decide — it reads back for the
 nearest value of its own concern and walks past everything belonging to another, which is
 why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit

@@ -1528,7 +1528,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 > text.Length)
+					if (text.Length - p < 2)
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
@@ -1580,7 +1580,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 > text.Length)
+					if (text.Length - p < 2)
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;

@@ -23,7 +23,7 @@ then quietly mean nothing.
 | rules calling rules, recursion | ✓ | ✓ | ✓ | ✓ | ✓ |
 | namespaces, `using`, shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same rule name in two namespaces | ✓ | ✓ | ✓ | ✓ | ✓ |
-| rebinding `namespace (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| rebinding `namespace N with (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, expression-scoped, `Expr with (A = B)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -100,6 +100,14 @@ then quietly mean nothing.
 | a repetition of something other than a rule §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
 | the §8.3 hook over a streamed parse | — | — | — | ✓ | ✓ |
+| `context : @T`, handed over by the caller §7.7 | — | — | — | ✓ | ✓ |
+| the same reaching a `when`, a `=>` and every rendering §7.7 | — | — | — | ✓ | ✓ |
+| `state : @T` and `Expr with state @(...)` §7.8 | — | — | — | ✓ | ✓ |
+| a mark read by a construction as `parserState` §7.8 | — | — | — | ✓ | ✓ |
+| one `context` and one `state` per assembly §7.7 | — | — | — | ✓ | ✓ |
+| a host inheriting the grammar of its base class | — | — | — | ✓ | ✓ |
+| the same naming itself with `[Gram(IncludedAs = "…")]` | — | — | — | ✓ | ✓ |
+| a base in a referenced assembly | — | — | — | ✗ | ✗ |
 
 **Two things this table used to carry as rows are decisions rather than gaps**, and a
 row of crosses read as neither. **Repairing a document** — searching a broken input for
@@ -297,8 +305,9 @@ rule at one — and a postfix chain wants three: member access, call, index. Wha
 collected instead is each alternative's own captures, one entry per iteration, which
 needs no common type at all.
 
-Refused: indirect left recursion, which has arbitrarily many shapes to rewrite; a rule
-whose every alternative is left-recursive, which has nothing to start from; and an
+Refused: indirect left recursion **except through rules that only forward**, which is the
+one shape of it that is not arbitrary and is rewritten (`GrammarNormalizer.Recursion`); a
+rule whose every alternative is left-recursive, which has nothing to start from; and an
 alternative recursive on both sides, which ordered choice cannot settle — `-1-2` under
 `E = E & '-' & E` answered 1 rather than -3 until that was checked.
 
