@@ -51,18 +51,35 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var rule in _rules)
 		{
-			// A left-recursive rule was rewritten into a loop, and that loop is held by
-			// identity — `Fold.Loop`, and the accumulators keyed by the steps under it. A
-			// rewrite inside the body replaces those nodes and the fold stops recognizing
-			// its own. Left out of the first cut rather than rebuilt carelessly.
+			// Two rules whose shape is held by node identity elsewhere: a left-recursive one,
+			// rewritten into a loop that `Fold.Loop` and its accumulators name; and a
+			// climbing one, whose binding powers are keyed by the nodes that carry them. A
+			// rewrite replaces those nodes and the naming stops finding what it named. Left
+			// out rather than rebuilt carelessly.
 			if (_folds.ContainsKey(rule) ||
+				_climbing.ContainsKey(rule) ||
 				!_bodies.TryGetValue(rule, out var body) ||
 				!follow.TryGetValue(rule, out var after))
 				continue;
 
-			var rewritten = Folded(body, after.Plain, graph);
+			// A rule whose alternatives all hand on the same capture is written with one `=>`
+			// outside the choice, and `CollapseTransparent` makes that shape out of a
+			// forwarding rule whether anyone wrote it or not. Given to each alternative
+			// instead it says the same thing, and says it where an alternative can be
+			// replaced by the body it would have called.
+			//
+			// A rule's body and nowhere else. An alternative that is itself a choice — which
+			// is what collapsing a forwarding rule into one alternative leaves — would become
+			// a choice of constructions nested inside the choice above it, and the
+			// alternatives of a rule are the ones at the top: nothing would ever give those
+			// constructions a factory. Distributing there is not a fold that does not pay, it
+			// is a shape the rest of the compiler does not have.
+			var given = Given(body) ?? body;
+			var rewritten = Folded(given, after.Plain, graph, rule);
 
-			if (ReferenceEquals(rewritten, body))
+			// The distribution on its own is a rearrangement worth nothing, so it is kept
+			// only where the fold that follows it took.
+			if (ReferenceEquals(rewritten, given))
 				continue;
 
 			_bodies[rule] = rewritten;
@@ -72,6 +89,194 @@ public sealed partial class GrammarNormalizer
 		if (folded)
 			ComputeResults();
 	}
+
+	/// <summary>
+	/// Puts a rule's body where a bare pass-through call to it stood, so that a prefix one
+	/// call down becomes a prefix the fold can see.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The shape that motivated left-factoring is not two alternatives sharing an operand.
+	/// It is one alternative whose prefix <em>is</em> the other alternative, a call down:
+	/// </para>
+	/// <code>
+	/// Primary   = … | c: Call | r: Reference | …
+	/// Call      = target: Reference &amp; '(' &amp; … &amp; ')' =&gt; …
+	/// Reference = …
+	/// </code>
+	/// <para>
+	/// Every bare reference is read twice — once inside the `Call` that then fails for want
+	/// of a bracket, once as itself — and references are most of what a grammar is made of.
+	/// Nothing about the two alternatives says so where they are written; what says it is
+	/// `Call`'s own first operand.
+	/// </para>
+	/// <para>
+	/// So the alternative that only passes the call's value along is replaced by the body it
+	/// would have called. That is an equality, not an approximation: the alternative built
+	/// the rule's value out of the callee's value and nothing else, and the callee's body
+	/// builds the callee's value. Then the prefix is a prefix where the fold can see it, and
+	/// the fold decides on its own terms whether sharing it is invisible.
+	/// </para>
+	/// <para>
+	/// Both alternatives have to be pass-throughs of a call, the two rules and this one have
+	/// to declare the same type — the value travels from one to the other unchanged — and
+	/// nothing the body captures may already be captured elsewhere in this rule, since after
+	/// this it is captured here.
+	/// </para>
+	/// </remarks>
+	Node Inlined(Node node, RuleSymbol owner)
+	{
+		if (node is not Node.Choice(var alternatives))
+			return node;
+
+		List<Node>? rewritten = null;
+
+		for (var at = 0; at + 1 < alternatives.Count; at++)
+		{
+			if (!Reaching(alternatives[at], out var longer) ||
+				!Reaching(alternatives[at + 1], out var shorter) ||
+				!Opens(longer, shorter, owner, out var head, out var name))
+				continue;
+
+			rewritten ??= [.. alternatives];
+
+			rewritten[at]     = CloneAndRewrite(_bodies[longer], NoTargets, [], owner.Name);
+			rewritten[at + 1] = new Node.Construct(head, new Construction.Expression("(" + name + ")"));
+
+			// One pair per choice. A second would be looking at alternatives this one has
+			// just replaced, and the fold that follows is what makes anything of either.
+			break;
+		}
+
+		return rewritten is null ? node : new Node.Choice(rewritten);
+	}
+
+	/// <summary>
+	/// The one name an expression hands straight back, or null where it does anything else.
+	/// </summary>
+	/// <remarks>
+	/// <c>@(c)</c> arrives here as the text <c>(c)</c> — the parentheses belong to the
+	/// notation that introduced the C#, not to the C#, and they are kept because what is
+	/// emitted is the text as written. So the brackets come off before the name is compared,
+	/// as many layers as there are.
+	/// </remarks>
+	static string? Handed(string text)
+	{
+		var handed = text.Trim();
+
+		while (handed.Length > 2 && handed[0] == '(' && handed[^1] == ')' && Wrapping(handed))
+			handed = handed[1..^1].Trim();
+
+		foreach (var c in handed)
+			if (!char.IsLetterOrDigit(c) && c != '_')
+				return null;
+
+		return handed.Length == 0 ? null : handed;
+	}
+
+	/// <summary>Whether the first bracket is the one the last closes.</summary>
+	static bool Wrapping(string text)
+	{
+		var depth = 0;
+
+		for (var at = 0; at < text.Length; at++)
+		{
+			if (text[at] == '(')
+				depth++;
+
+			else if (text[at] == ')' && --depth == 0)
+				return at == text.Length - 1;
+		}
+
+		return false;
+	}
+
+	/// <summary>Whether every alternative captures the one name the choice hands on.</summary>
+	static bool Handing(IReadOnlyList<Node> alternatives, string name)
+	{
+		if (alternatives.Count < 2)
+			return false;
+
+		foreach (var one in alternatives)
+			if (one is not Node.Capture(var captured, _) ||
+				!string.Equals(captured, name, StringComparison.Ordinal))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The rule an alternative does nothing with but call and hand on, or false where it
+	/// does anything else.
+	/// </summary>
+	static bool Reaching(Node alternative, out RuleSymbol called)
+	{
+		called = null!;
+
+		return alternative is Node.Construct(
+				Node.Capture(var name, Node.Call(var rule, { Count: 0 })),
+				Construction.Expression(var text, _)) &&
+			string.Equals(Handed(text), name, StringComparison.Ordinal) &&
+			(called = rule) is not null;
+	}
+
+	/// <summary>
+	/// Whether one rule's body opens with a call to the other, and everything else this
+	/// needs is true of them.
+	/// </summary>
+	bool Opens(RuleSymbol longer, RuleSymbol shorter, RuleSymbol owner, out Node head, out string name)
+	{
+		head = null!;
+		name = "";
+
+		if (ReferenceEquals(longer, shorter) ||
+			_folds.ContainsKey(longer) ||
+			longer.Declaration is null ||
+			!_bodies.TryGetValue(longer, out var body) ||
+			!_types.TryGetValue(owner, out var mine) ||
+			!_types.TryGetValue(longer, out var his) ||
+			!_types.TryGetValue(shorter, out var hers) ||
+			!string.Equals(mine, his, StringComparison.Ordinal) ||
+			!string.Equals(mine, hers, StringComparison.Ordinal))
+			return false;
+
+		var inner = body is Node.Construct(var built, _) ? built : body;
+
+		if (inner is not Node.Sequence(var parts) ||
+			parts.Count < 2 ||
+			parts[0] is not Node.Capture(var opening, Node.Call(var first, { Count: 0 })) ||
+			!ReferenceEquals(first, shorter))
+			return false;
+
+		// After this the callee's captures are this rule's, so a name it uses must not
+		// already mean something else here.
+		var taken = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var node in NodeWalk.Descendants(_bodies[owner]))
+			if (node is Node.Capture(var used, _))
+				taken.Add(used);
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Capture(var used, _) && taken.Contains(used) &&
+				!string.Equals(used, opening, StringComparison.Ordinal))
+				return false;
+
+		head = parts[0];
+		name = opening;
+
+		return true;
+	}
+
+	/// <summary>
+	/// A body written as one construction over a choice, given to each alternative instead —
+	/// or null where it is not that shape.
+	/// </summary>
+	Node.Choice? Given(Node body) =>
+		body is Node.Construct(Node.Choice(var shared), Construction.Expression(var text, _) how) &&
+		Handed(text) is { } handed &&
+		Handing(shared, handed)
+			? new Node.Choice([.. shared.Select(one => (Node)new Node.Construct(one, how))])
+			: null;
 
 	/// <summary>The graph as it stands, for the sets this pass reasons with.</summary>
 	/// <remarks>
@@ -91,41 +296,50 @@ public sealed partial class GrammarNormalizer
 		};
 
 	/// <summary>This node with every choice inside it folded where one can be.</summary>
-	Node Folded(Node node, FirstSets.First following, RecognitionGraph graph)
+	Node Folded(Node node, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner)
 	{
 		switch (node)
 		{
 			case Node.Choice(var alternatives):
 			{
-				var inner = Each(alternatives, following, graph, sequence: false);
+				var inner = Each(alternatives, following, graph, owner, sequence: false) ?? alternatives;
 
-				return Share(inner ?? alternatives, following, graph);
+				// An alternative that only hands on a call is replaced by the body it would
+				// have called, but only where the fold then takes: on its own it duplicates
+				// a body and saves nothing, so an inline that does not lead to a shared
+				// operand is put back.
+				if (Inlined(new Node.Choice(inner), owner) is Node.Choice(var opened) &&
+					Share(opened, following, graph) is var wider &&
+					(wider is not Node.Choice(var kept) || kept.Count < opened.Count))
+					return wider;
+
+				return Share(inner, following, graph);
 			}
 
 			case Node.Sequence(var parts):
 			{
-				var inner = Each(parts, following, graph);
+				var inner = Each(parts, following, graph, owner);
 
 				return inner is null ? node : new Node.Sequence(inner);
 			}
 
 			case Node.Capture(var name, var body):
 			{
-				var inner = Folded(body, following, graph);
+				var inner = Folded(body, following, graph, owner);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Capture(name, inner);
 			}
 
 			case Node.Construct(var body, var how):
 			{
-				var inner = Folded(body, following, graph);
+				var inner = Folded(body, following, graph, owner);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Construct(inner, how);
 			}
 
 			case Node.Atomic(var body):
 			{
-				var inner = Folded(body, following, graph);
+				var inner = Folded(body, following, graph, owner);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
 			}
@@ -133,7 +347,7 @@ public sealed partial class GrammarNormalizer
 			case Node.Repeat(var body, var min, var max):
 			{
 				// A turn is followed by another turn or by what follows the repetition.
-				var inner = Folded(body, FirstSets.Of(body, graph).Or(following), graph);
+				var inner = Folded(body, FirstSets.Of(body, graph).Or(following), graph, owner);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Repeat(inner, min, max);
 			}
@@ -304,7 +518,7 @@ public sealed partial class GrammarNormalizer
 	/// Each of them, folded, threading what follows — or null where none of them changed.
 	/// </summary>
 	IReadOnlyList<Node>? Each(
-		IReadOnlyList<Node> nodes, FirstSets.First following, RecognitionGraph graph,
+		IReadOnlyList<Node> nodes, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner,
 		bool sequence = true)
 	{
 		List<Node>? rewritten = null;
@@ -312,7 +526,7 @@ public sealed partial class GrammarNormalizer
 
 		for (var at = nodes.Count - 1; at >= 0; at--)
 		{
-			var one = Folded(nodes[at], after, graph);
+			var one = Folded(nodes[at], after, graph, owner);
 
 			if (!ReferenceEquals(one, nodes[at]))
 			{

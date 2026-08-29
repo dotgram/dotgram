@@ -6546,3 +6546,56 @@ grammar, I kept trying to diagnose it through a suite that could not run, rather
 reproducing the break on a grammar that stands on its own. The dump above earns its place for
 the same reason it was written — it puts the shape where it is read — and not as a way around
 a build.
+
+## Built: a prefix one call down, and the shape that hid it
+
+The case left-factoring was for is not two alternatives sharing an operand. It is one
+alternative whose prefix *is* the other alternative, a call down:
+
+```dotgram
+Primary   = … | c: Call | r: Reference | …
+Call      = target: Reference & '(' & … & ')' => …
+Reference = …
+```
+
+Every bare reference is read twice — once inside the `Call` that then fails for want of a
+bracket, once as itself — and references are most of what a grammar is made of. Nothing where
+the two alternatives are written says so; what says it is `Call`'s own first operand.
+
+So an alternative that does nothing with a call but hand its value on is replaced by the body
+it would have called. That is an equality: the alternative built the rule's value out of the
+callee's value and nothing else, and the callee's body builds the callee's value. The prefix
+is then a prefix where the fold can see it, and the fold decides on its own terms whether
+sharing it is invisible. An inline the fold does not then take is put back — on its own it
+duplicates a body and saves nothing.
+
+Both alternatives have to hand on a call, the two rules and the one holding them have to
+declare the same type, and nothing the body captures may already be captured in the rule it
+moves into.
+
+### The shape that hid it, and what it cost
+
+`CollapseTransparent` writes a forwarding rule's choice into its caller, which leaves one
+`=>` outside a choice rather than one on each alternative — `(p: Call | p: Reference) => @(p)`.
+Nothing matches an alternative there, so the construction is given to each alternative first,
+which says the same thing in the shape the rest of the pass reads.
+
+**And only on a rule's own body.** An alternative that is itself a choice — which is what
+collapsing a forwarding rule into one alternative among several leaves — would become a choice
+of constructions nested inside the choice above it, and the alternatives of a rule are the
+ones at the top. Nothing would ever give those constructions a factory, and nothing did: the
+expression language failed to generate on `Statement`, whose fourth alternative is a collapsed
+`Control`.
+
+That defect took an afternoon the first time and one run the second, which is the whole
+argument for the dump above it. The first attempt was abandoned and reverted; what found it
+was a throwaway tool outside the repository that runs the compiler on a grammar and prints the
+lowered tree — no consumer project, so nothing about a broken parser stops it.
+
+### What it is worth
+
+The generated expression language changes: 645 bytes smaller, and `Primary` most of all. A
+driver test counts what is actually saved, with a `when` rather than a `=>` — construction is
+deferred to acceptance, so a factory runs once however many readings were tried and thrown
+away, while a guard runs while the text is read. Two readings become one, and the longer
+alternative still wins where it fits.
