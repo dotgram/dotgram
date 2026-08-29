@@ -43,6 +43,20 @@ sealed partial class Machine
 	/// already given back, and its span comes back with its end before its beginning.
 	/// </remarks>
 	readonly HashSet<int> _nestedCaptures = [];
+
+	/// <summary>
+	/// The text captures a repetition repeats, whose value is the turns joined.
+	/// </summary>
+	/// <remarks>
+	/// §10: repeated text is the text joined. Where the turns happen to be adjacent the
+	/// join is also the span from the first start to the last end, and that is the shape
+	/// <see cref="GrammarNormalizer.HoistTextCaptures"/> proves before lifting a capture
+	/// out of its repetition — but a capture it left inside one has whatever else the
+	/// loop's body matched standing between the turns, and there the span is longer than
+	/// the text. Both are handled at once: the pieces are measured while they are
+	/// collected, and the span is taken only where the measurements say it tiles.
+	/// </remarks>
+	readonly HashSet<int> _repeatedCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
@@ -62,6 +76,29 @@ sealed partial class Machine
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
+
+	/// <summary>
+	/// Whether any state the layout kept reads <c>c</c> — asked of the written bodies
+	/// rather than of the compile-time flag, because compilation sets the flag for states
+	/// the layout may then drop, and a variable declared for dropped states is a compiler
+	/// warning in somebody else's build. Found by the differential fuzzer, as a grammar
+	/// whose generated parser did not compile clean.
+	/// </summary>
+	bool UsesChar
+	{
+		get
+		{
+			if (!_usesChar)
+				return false;
+
+			foreach (var index in _order)
+				if (_bodies[index].Contains("c = text[", StringComparison.Ordinal) ||
+					_bodies[index].Contains("c == ", StringComparison.Ordinal))
+					return true;
+
+			return false;
+		}
+	}
 	bool _usesRuns;
 	bool _usesCompleted;
 	bool _usesDead;
@@ -87,7 +124,40 @@ sealed partial class Machine
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
+	int _sharpens;
 	int _captures;
+
+	/// <summary>
+	/// Whether a choice here may keep its way back in locals — the checkpoint class.
+	/// </summary>
+	/// <remarks>
+	/// True only while a flat method is being asked about or written, and only outside
+	/// the constructs that route failure somewhere other than <c>Fail:</c> — a silent
+	/// repetition's door, an atomic group's chain, a lookahead's rewind. Inside those a
+	/// pending way back would be jumped past, so the flag is put down on the way in.
+	/// <see cref="Silent"/> and <see cref="Compile"/> both read it, which is what keeps
+	/// the two from answering differently about the same choice.
+	/// </remarks>
+	bool _checkpointsAllowed;
+
+	/// <summary>A choice compiled with its way back in locals — one per static site.</summary>
+	/// <param name="Id">The site's number, which its locals are named under.</param>
+	/// <param name="Count">How many alternatives it has.</param>
+	/// <param name="Retries">The state that re-enters each alternative after the first.</param>
+	sealed record CheckpointSite(int Id, int Count, IReadOnlyList<int> Retries);
+
+	readonly List<CheckpointSite> _checkpoints = [];
+	int _checkpointIds;
+
+	/// <summary>The states something outside the state bodies jumps to by label.</summary>
+	readonly HashSet<int> _namedOutside = [];
+
+	/// <summary>
+	/// Whether any flat method of this machine can reach the same failure position twice —
+	/// which is what decides whether the emitted <c>Failure</c> struct needs
+	/// <c>ExpectedMore</c> and whether the wrapper hands it over.
+	/// </summary>
+	public bool Ties { get; private set; }
 
 	/// <param name="only">
 	/// The rules this machine compiles, or null for all of them. A machine is built for one
@@ -111,6 +181,8 @@ sealed partial class Machine
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
+		var doors = Doors.ByRule(graph.Rules, graph.Bodies);
+
 		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
@@ -120,11 +192,13 @@ sealed partial class Machine
 			_captureOffsets[rule] = _captures;
 			_factories[rule] = factories;
 
+			var looped = Looped(graph.Bodies[rule]);
+
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			{
 				_owners[node] = rule;
 
-				if (node is Node.Capture)
+				if (node is Node.Capture(_, var captured))
 				{
 					var slot = _captures + layout.SlotOf(node);
 
@@ -136,10 +210,32 @@ sealed partial class Machine
 					{
 						_textCaptures.Add(slot);
 
-						// Where the rule can reach itself, this capture can be opened again
-						// before it closes, and one variable cannot hold two starts.
-						if (graph.Recursive.Contains(rule))
+						// A variable holds the start between the opening and the close, and it
+						// is right for exactly as long as nothing opens the same capture in
+						// between. Two things do, and the second is the general one:
+						//
+						//   * a rule that reaches itself, opening the inner before the outer
+						//     closes;
+						//   * *any* second reading of this capture, once the close can be
+						//     reached a second time. A door inside the body is what makes
+						//     that possible: the close runs, the parse goes on, the same rule
+						//     is read again somewhere else and writes the variable, and then
+						//     a failure unwinds to that door and runs the close again — with
+						//     a start belonging to the other reading.
+						//
+						// So the question is only whether the body leaves a door. Where it
+						// leaves none there is no way back into the close, and the variable
+						// is still right — which is most captures, `port: Digit+` over a set
+						// of digits included.
+						if (graph.Recursive.Contains(rule) || Doors.LeavesOne(captured, doors))
 							_nestedCaptures.Add(slot);
+
+						// And a capture inside a repetition records one entry per turn, whose
+						// value §10 says is the text joined. The turns need not be adjacent —
+						// anything else in the loop's body stands between them — so the span
+						// from the first start to the last end is not that text.
+						if (looped.Contains(node))
+							_repeatedCaptures.Add(slot);
 					}
 				}
 				else if (node is Node.Construct)
@@ -148,18 +244,27 @@ sealed partial class Machine
 
 			_captures += layout.Slots.Count;
 
-			if (CSharpEmitter.RecoveryIn(graph, results, rule) is { } recoveryFound)
+			// One plan per marked repetition: each has its own sync, its own `=>` and its
+			// own sequence, and the arena has always dispatched a recovery by plan.
+			var recoveries = CSharpEmitter.RecoveriesIn(graph, results, rule);
+
+			for (var found = 0; found < recoveries.Count; found++)
 			{
-				var (repetition, recovery, recoverySlot) = recoveryFound;
+				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
 					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
-					_recoveryPlans.Count, CSharpEmitter.MethodOf(rule) + "_Recover",
+					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
 				_recoveries[repetition] = plan;
 				_recoveryPlans.Add(plan);
 			}
 		}
+
+		// After the first pass, because qualification reads the factories of callees the
+		// pass may not have reached yet; before anything compiles, because a site is a
+		// run of slots and the run has to be numbered before a state names it.
+		PlanSites();
 
 		var ruleIndex = 0;
 
@@ -175,11 +280,35 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 			if (graph.Bodies.TryGetValue(rule, out var checking))
 				foreach (var node in NodeWalk.Descendants(checking))
+				{
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
 						built.Contains("parserInput"))
 					{
 						UsesInput = true;
 					}
+
+					// The same, and for the same reason: the flat rendering builds a
+					// factory's arguments out of its members alone, and this is not one —
+					// it comes off the arena the flat rendering exists not to have.
+					if (graph.State is not null &&
+						node is Node.Construct { How: Construction.Expression { Text: var reading } } &&
+						reading.Contains("parserState"))
+					{
+						ReadsState = true;
+					}
+
+					// A `when` may name it as well as a `=>`, which `parserInput` cannot —
+					// the input is what a value keeps, and the context is what a guard
+					// writes into.
+					if (graph.Context is not null &&
+						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
+							CSharpEmitter.Names(asked, "context") ||
+						node is Node.Guard { Text: var condition } &&
+							CSharpEmitter.Names(condition, "context")))
+					{
+						UsesContext = true;
+					}
+				}
 
 		CollectValueTypes();
 
@@ -188,8 +317,12 @@ sealed partial class Machine
 		// and that is only known once every one of them has been looked at.
 		_follow = FollowSets.Of(graph);
 
+
 		foreach (var rule in _rules)
 		{
+			_seam      = FollowSets.SeamOf(rule, graph);
+			_traceRule = rule.Name;
+
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
 			var entry = _states[_entries[rule] - First];
 
@@ -202,6 +335,37 @@ sealed partial class Machine
 			// top of the method instead.
 			entry.Line($"goto {Label(body)};");
 		}
+	}
+
+	/// <summary>The captures a repetition repeats — the ones that record a turn at a time.</summary>
+	/// <remarks>
+	/// Identity, not value: two captures written the same way in two places are two
+	/// captures, and only the one a loop encloses records more than once. An optional is
+	/// a repetition of at most one turn and encloses nothing in that sense — which is not
+	/// a nicety: `X?` is how the model spells an optional, so counting it would put every
+	/// `(':' & port: Digit+)?` in the arena for a second turn that cannot happen.
+	/// </remarks>
+	static HashSet<Node> Looped(Node body)
+	{
+		var found   = NodeWalk.ByIdentity([]);
+		var pending = new Stack<(Node Node, bool Inside)>();
+
+		pending.Push((body, false));
+
+		while (pending.Count > 0)
+		{
+			var (node, inside) = pending.Pop();
+
+			if (inside && node is Node.Capture)
+				found.Add(node);
+
+			var loops = node is Node.Repeat(_, _, var most) && most != 1;
+
+			foreach (var child in node.Children)
+				pending.Push((child, inside || loops));
+		}
+
+		return found;
 	}
 
 	/// <summary>Whether any rule this machine compiles has a guard that reads a value.</summary>
@@ -363,8 +527,14 @@ sealed partial class Machine
 		if (!whole || _wholeEntries.ContainsKey(root))
 			return;
 
+		// After the whole-wrapped body there is the end of the input and nothing else —
+		// that is what `whole` means, and the engine's Accept enforces it. "Anything" here
+		// cost every repetition at the tail of a `parse` its proof.
+		_seam      = FollowSets.SeamOf(root, _graph);
+		_traceRule = root.Name;
+
 		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
-			? Compile(BodyOf(root, whole: true), Return, FirstSets.First.All)
+			? Compile(BodyOf(root, whole: true), Return, FollowSets.Continuation.End)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
@@ -396,12 +566,23 @@ sealed partial class Machine
 	/// recognizer, a lookahead, an atomic group — defaults to not silent. Asking it once at
 	/// the root asks it of everything reachable.
 	/// </remarks>
-	public bool CanLower(RuleSymbol rule, bool whole) =>
-		Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+	public bool CanLower(RuleSymbol rule, bool whole)
+	{
+		_checkpointsAllowed = true;
+
+		try
+		{
+			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+		}
+		finally
+		{
+			_checkpointsAllowed = false;
+		}
+	}
 
 	public int Register(Node node)
 	{
-		var state = Compile(node, Return, FirstSets.First.All);
+		var state = Compile(node, Return, FollowSets.Continuation.All);
 
 		_roots.Add(state);
 
@@ -411,11 +592,49 @@ sealed partial class Machine
 	/// <summary>The states something outside the table jumps to.</summary>
 	readonly HashSet<int> _roots = [];
 
-	IReadOnlyDictionary<RuleSymbol, FirstSets.First> _follow =
-		new Dictionary<RuleSymbol, FirstSets.First>();
+	IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> _follow =
+		new Dictionary<RuleSymbol, FollowSets.Continuation>();
 
-	FirstSets.First Follows(RuleSymbol rule) =>
-		_follow.TryGetValue(rule, out var after) ? after : FirstSets.First.All;
+	FollowSets.Continuation Follows(RuleSymbol rule) =>
+		_follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All;
+
+	/// <summary>
+	/// The seam of the rule whose body is being compiled — which trivia a leading call
+	/// would have to be for the pair's other half to mean anything here.
+	/// </summary>
+	/// <remarks>
+	/// Saved and restored around an inlined call, because an inlined body composes its
+	/// continuations against its own namespace's seam, exactly as
+	/// <see cref="FollowSets"/>'s walk does at a call it does not inline.
+	/// </remarks>
+	RuleSymbol? _seam;
+
+	/// <summary>
+	/// Whether captures compile to position locals and the construction is left for
+	/// Accept — the flat-value rendering, where nothing ever backtracks over either.
+	/// Off for the engine, whose captures are arena entries backtracking must unwind.
+	/// </summary>
+	bool _valuesInLocals;
+
+	/// <summary>Whether any repetition compiled with a standing exit.</summary>
+	bool _usesLoopExits;
+
+	/// <summary>Whether any repetition counts its turns, and so has to un-count them.</summary>
+	bool _usesTurns;
+
+	/// <summary>
+	/// The rule whose body is being compiled, for the trace lines its states carry.
+	/// </summary>
+	/// <remarks>
+	/// Written into each emitted <c>Trace</c> call as a literal, because it is knowable
+	/// here and not there: at run time a state is a number, and the engine that owns it
+	/// shares those numbers between every rule it inlined. An inlined body traces as the
+	/// rule it was inlined into, which is where its states actually live.
+	/// </remarks>
+	string _traceRule = "";
+
+	/// <summary>The trailing arguments of an emitted trace call: input and rule.</summary>
+	string Traced => $", text, \"{Escape(_traceRule)}\"";
 
 	/// <summary>
 	/// Whether any construction in this grammar asks for the whole input (§8.2).
@@ -431,6 +650,50 @@ sealed partial class Machine
 	string InputParameter => UsesInput ? ", string parserInput" : "";
 
 	string InputArgument  => UsesInput ? ", parserInput" : "";
+
+	/// <summary>
+	/// Whether anything in this machine names the grammar's own state (§7.7).
+	/// </summary>
+	/// <remarks>
+	/// Read out of the C# the same way `parserInput` is, and gating the same thing: a
+	/// grammar that declares a context and never names it is compiled exactly as one that
+	/// declares none, and its publications take no extra argument.
+	/// </remarks>
+	public bool UsesContext { get; private set; }
+
+	string ContextParameter => UsesContext ? $", {_graph.Context} context" : "";
+
+	string ContextArgument  => UsesContext ? ", context" : "";
+
+	/// <summary>
+	/// Every <c>with state</c> site this machine compiled, in the order it reached them —
+	/// the index is what an arena entry carries, and the text is the C# that says what the
+	/// mark's value is (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// A site rather than a value: what a mark is worth is a C# expression, and the arena
+	/// holds ints. So the entry names which site placed it and a generated switch turns
+	/// that back into a value — the same trade a <c>Construct</c> entry already makes with
+	/// its factory. Nothing here is boxed, and the value's type is whatever the grammar
+	/// declared, not something this half had to constrain.
+	/// </remarks>
+	readonly List<string> _marks = [];
+
+	/// <summary>Whether anything in this machine places a mark.</summary>
+	public bool UsesMarks => _marks.Count > 0;
+
+	/// <summary>Whether any factory in it reads the marks standing over it.</summary>
+	public bool ReadsState { get; private set; }
+
+	int MarkSite(string text)
+	{
+		// Two sites writing the same C# are still two sites. Merging them would be sound —
+		// they place the same value — but the numbering is what a trace reads back, and a
+		// grammar with `checked` written twice should say which of the two ran.
+		_marks.Add(text);
+
+		return _marks.Count - 1;
+	}
 
 	/// <summary>
 	/// What a probe hands over instead, and why it may.
@@ -491,12 +754,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{ContextParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}{ContextArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -525,7 +788,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}, " +
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{ContextParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -560,9 +823,11 @@ sealed partial class Machine
 					file.Line("var syncFrom = 0;");
 				}
 
-				if (_usesChar)
+				if (UsesChar)
 					file.Line("var c       = '\\0';");
 				file.Line("string[]? expected = null;");
+				// Set where a room check fails and read where a failure is recorded, so
+				// what it says is of the furthest failure and not of any (§7.5).
 
 				// One per repetition written as a loop, and only where the way out that reads
 				// it was kept: a turn that cannot fail after consuming has no way back to
@@ -579,8 +844,11 @@ sealed partial class Machine
 				if (_usesCompleted)
 					file.Line("var completedCall = -1;");
 
+				// Declared only where a written state reads or writes it: a rule every
+				// call of which was compiled as a site leaves its own states unreachable,
+				// and an unused local is a warning in somebody else's build.
 				for (var i = 0; i < _captures; i++)
-					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i))
+					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i) && UsesCapture(i))
 						file.Line($"var capture{i} = 0;");
 
 				file.Line();
@@ -588,7 +856,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
 					"0, rootRule));");
 				file.Line("call = 0;");
-				file.Line("Trace(\"enter\", state, p, entries.Count);");
+				file.Line("Trace(\"enter\", state, p, entries.Count, text, \"\");");
 
 				// The hottest block there is: every return from a rule and every resumption
 				// after a failure comes through it. Written here, before the states, rather
@@ -653,7 +921,7 @@ sealed partial class Machine
 				}
 				file.Line();
 				file.Line("call = previousCall;");
-				file.Line("Trace(\"return\", state, p, entries.Count);");
+				file.Line("Trace(\"return\", state, p, entries.Count, text, \"\");");
 				file.Line("goto Dispatch;");
 
 				file.Line();
@@ -684,7 +952,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{ContextArgument});");
 								RootValue(file);
 							}
 						}
@@ -713,15 +981,18 @@ sealed partial class Machine
 					file.Line("failure.ExpectedMore = null;");
 				}
 				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
-				file.Then(
-					"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-					".Add(expected);");
+				using (file.Block(""))
+				{
+					file.Line(
+						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
+						".Add(expected);");
+				}
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
 					file.Then("reach = p;");
 				}
-				file.Line("Trace(\"fail\", state, p, entries.Count);");
+				file.Line("Trace(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
 				using (file.Block("while (entries.Count > 0)"))
@@ -741,8 +1012,50 @@ sealed partial class Machine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
-						file.Line("Trace(\"resume\", state, p, entries.Count);");
+						file.Line("Trace(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
+					}
+
+					if (_usesTurns)
+					{
+						using (file.Block("if (entry.Kind == ParserEntry.TurnDone)"))
+						{
+							file.Line("var counted = entries[entry.RepeatIndex];");
+							file.Line();
+							file.Line("global::System.Diagnostics.Debug.Assert(counted.Kind == ParserEntry.Repeat);");
+							file.Line(
+								"entries[entry.RepeatIndex] = new ParserEntry(ParserEntry.Repeat, 0, " +
+								"counted.Position, counted.CallIndex, counted.AtomicIndex, " +
+								"counted.RepeatIndex, counted.LookaheadIndex, counted.Value - 1, " +
+								"counted.RuleIndex);");
+							file.Line("Trace(\"give a turn back\", entry.RepeatIndex, entry.Position, entries.Count, text, \"\");");
+							file.Line("continue;");
+						}
+					}
+
+					if (_usesLoopExits)
+					{
+						using (file.Block("if (entry.Kind == ParserEntry.LoopExit)"))
+						{
+							// Only the latest exit of its loop is live. Its Repeat entry —
+							// always below it, so always still there — says where the last
+							// completed turn ended; an exit standing anywhere else is a
+							// turn the parse has since gone past.
+							file.Line(
+								"if (entry.RepeatIndex < 0 || " +
+								"entries[entry.RepeatIndex].Kind != ParserEntry.Repeat || " +
+								"entries[entry.RepeatIndex].RuleIndex != entry.Position)");
+							file.Then("continue;");
+							file.Line();
+							file.Line("state  = entry.State;");
+							file.Line("p      = entry.Position;");
+							file.Line("call   = entry.CallIndex;");
+							file.Line("atomic = entry.AtomicIndex;");
+							file.Line("repeat = entry.RepeatIndex;");
+							file.Line("lookahead = entry.LookaheadIndex;");
+							file.Line("Trace(\"resume exit\", state, p, entries.Count, text, \"\");");
+							file.Line("goto Dispatch;");
+						}
 					}
 
 					if (_usesRuns)
@@ -761,18 +1074,30 @@ sealed partial class Machine
 								"entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, " +
 								"entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, " +
 								"entry.LookaheadIndex, p));");
-							file.Line("Trace(\"shorten run\", state, p, entries.Count);");
+							file.Line("Trace(\"shorten run\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 
 						file.Line();
 					}
 
-					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead)
+					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead ||
+						_marks.Count > 0)
 					{
 						var ignored =
 							"entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || " +
 							"entry.Kind == ParserEntry.RuleCapture";
+
+						// An opening is a mark and not a way back, and taking it away again
+						// is the whole of what unwinding owes it.
+						if (_nestedCaptures.Count > 0)
+							ignored += " || entry.Kind == ParserEntry.CaptureOpen";
+
+						// The same: a mark is a record and not a way back, and popping it is
+						// everything unwinding owes it.
+						if (_marks.Count > 0)
+							ignored += " || entry.Kind == ParserEntry.StateSet || " +
+								"entry.Kind == ParserEntry.StateEnd";
 
 						if (_recoveries.Count > 0)
 							ignored += " || entry.Kind == ParserEntry.Recovery || " +
@@ -836,9 +1161,9 @@ sealed partial class Machine
 									"entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, " +
 									"call, atomic, repeat, lookahead, p));");
 								file.Line(
-									"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count);");
+									$"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
 							}
-							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count);");
+							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 					}
@@ -891,6 +1216,12 @@ sealed partial class Machine
 			foreach (var state in Dispatched())
 				named.Add(Resolved(state));
 
+		// Named from outside the state bodies — a checkpoint site's retries, which only
+		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
+		// layout did not put it first.
+		foreach (var state in _namedOutside)
+			named.Add(Resolved(state));
+
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var i    = _order[written];
@@ -922,7 +1253,7 @@ sealed partial class Machine
 	/// tree rather than looked up: a rule compiled into its caller follows that caller's
 	/// text, and the same rule compiled on its own follows whatever any caller has.
 	/// </param>
-	int Compile(Node node, int next, FirstSets.First following)
+	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
 		if (_owners.TryGetValue(node, out var owner) &&
 			_graph.Climbing.TryGetValue(owner, out var levels) &&
@@ -940,7 +1271,7 @@ sealed partial class Machine
 		return CompileUnguarded(node, next, following);
 	}
 
-	int CompileUnguarded(Node node, int next, FirstSets.First following)
+	int CompileUnguarded(Node node, int next, FollowSets.Continuation following)
 	{
 		switch (node)
 		{
@@ -974,6 +1305,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
+						writer.Line("failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
@@ -1013,6 +1345,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
+						writer.Line("failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
@@ -1034,6 +1367,15 @@ sealed partial class Machine
 						// did not fit actually is, not where the whole literal started.
 						if (i > 0)
 							writer.Line($"p += {i};");
+
+						// Which half of the folded test fired, asked where it is already
+						// failing: the room check stays folded into the first character's,
+						// so nothing is added to the path that matches. Only where more
+						// than one character was wanted — a test of one fails for want of
+						// room exactly at the end of the input, and the boundary reads
+						// that off the position itself (§7.5).
+						if (i == 0 && room is not null && value.Length > 1)
+							writer.Line($"if ({room}) failure.OutOfInput = p + 1;");
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -1058,20 +1400,15 @@ sealed partial class Machine
 					return state;
 				}
 
-				if (_starves)
 				{
 					writer.Line("if ((uint)p >= (uint)text.Length)");
 					using (writer.Block(""))
 					{
-						writer.Line("failure.Starved = true;");
+						if (_starves)
+							writer.Line("failure.Starved = true;");
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
-				}
-				else
-				{
-					writer.Line("if ((uint)p >= (uint)text.Length)");
-					using (writer.Block(""))
-						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
 				if (test != "true")
@@ -1097,7 +1434,7 @@ sealed partial class Machine
 				for (var i = nodes.Count - 1; i >= 0; i--)
 				{
 					target = Compile(nodes[i], target, after);
-					after  = Precedes(nodes[i], after);
+					after  = FollowSets.Precedes(nodes[i], after, _graph, _seam);
 				}
 
 				return target;
@@ -1108,8 +1445,17 @@ sealed partial class Machine
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
+				// The checkpoint class: a way back the locals hold. Admitted by the same
+				// three questions `Silent`'s own Choice case asks, in the same order, so
+				// the two cannot disagree — a run of literals that never comes back is
+				// compiled below as it always was, and only a choice that does need
+				// coming back to is given its doors.
+				if (LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
+					CheckpointSilent(alternatives, following.Plain))
+					return CompileCheckpointChoice(alternatives, next, following);
+
 				var last   = alternatives.Count - 1;
-				var run    = LiteralGroup(alternatives, last, following);
+				var run    = LiteralGroup(alternatives, last, following.Plain);
 				var target = run > 0
 					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 					: Compile(alternatives[last], next, following);
@@ -1122,7 +1468,7 @@ sealed partial class Machine
 					// matched, so where they differ is where the next is tried — which is
 					// what a common prefix is worth, and it is worth it whether or not there
 					// is one.
-					if (LiteralGroup(alternatives, i, following) is var here and > 0)
+					if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
 					{
 						var from = i - here + 1;
 
@@ -1203,7 +1549,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count);");
+					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(first)};");
 
 					if (mine is not null)
@@ -1218,7 +1564,61 @@ sealed partial class Machine
 
 			case Node.Capture(_, var body):
 			{
-				var slot = _captureSlots[node];
+				var slot = SlotOf(node);
+
+				// Two locals and nothing else: where the span began, and where it ended.
+				// Sound because `CanLowerValued` admitted no shape that could backtrack
+				// over a finished capture, and the sentinel start is what tells an
+				// optional capture that never ran (null) from one that matched nothing.
+				if (_valuesInLocals)
+				{
+					// A capture of a flat-valued call is a site: the callee's body
+					// compiled in place under an instance of its own — the same rule
+					// inlined twice may not share locals — with its factory run at
+					// Accept, guarded by this slot's sentinel saying the site ran.
+					if (SiteCallee(node) is { } called)
+					{
+						var parent = _flatInstance;
+						var site   = _flatInstances++;
+
+						_flatSites.Add(new FlatSite(site, called, parent, slot));
+						_flatLocals.Add((parent, slot, true));
+						_flatRuleOf[site] = called;
+						_flatInstance     = site;
+
+						var siteBody = Compile(_graph.Bodies[called], next, following);
+
+						_flatInstance = parent;
+
+						var siteState = Reserve(out var atSiteOpen);
+
+						atSiteOpen.Line($"flat{parent}_{slot}Start = p;");
+						atSiteOpen.Line($"goto {Label(siteBody)};");
+
+						return siteState;
+					}
+
+					_flatLocals.Add((_flatInstance, slot, false));
+
+					var flatClose = Reserve(out var atFlatClose);
+					var flatInner = Compile(body, flatClose, following);
+					var flatState = Reserve(out var atFlatOpen);
+
+					atFlatOpen.Line($"flat{_flatInstance}_{slot}Start = p;");
+					atFlatOpen.Line($"goto {Label(flatInner)};");
+
+					atFlatClose.Line($"flat{_flatInstance}_{slot}End = p;");
+					atFlatClose.Line($"goto {Label(next)};");
+
+					return flatState;
+				}
+
+				// A captured call whose callee is the flat-value shape: the body stands
+				// where the call was, its captures record into the site's own slots, and
+				// the materializer builds the member from those spans — no Call entry, no
+				// Completed rewrite, no RuleCapture, no dispatch (Machine.Sites.cs).
+				if (_sites.TryGetValue(node, out var sitePlan))
+					return CompileSite((Node.Capture)node, sitePlan, next, following);
 
 				if (body is Node.Lookahead(true, var seen))
 					return CompileLookaheadCapture(slot, seen, next);
@@ -1250,7 +1650,7 @@ sealed partial class Machine
 					atClose.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
-					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count);");
+					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;
@@ -1258,36 +1658,52 @@ sealed partial class Machine
 
 				// A capture the parse can open again before it closes keeps its start in the
 				// arena instead of a variable, because the arena is the only thing
-				// backtracking puts back. The opening writes the entry the close will need
-				// and marks it unfinished; the close finds the innermost one still unfinished
-				// and fills its end in. They nest and unwind in the same order, so the
-				// innermost is always this one's.
+				// backtracking puts back. The opening writes an entry of its own and the
+				// close finds it by counting openings against closes, the way brackets are
+				// counted — never by marking one closed, because an in-place mark survives
+				// backtracking that the close which wrote it does not, and the next way in
+				// would find an opening that says it is spoken for.
 				if (_nestedCaptures.Contains(slot))
 				{
 					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, " +
-						"call, atomic, repeat, lookahead, -1));");
-					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count);");
+						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
+						"call, atomic, repeat, lookahead, 0));");
+					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(inner)};");
 
-					using (atClose.Block("for (var openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
+					atClose.Line("var closed  = 0;");
+					atClose.Line("var openedAt = entries.Count - 1;");
+					atClose.Line();
+
+					using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
 					{
 						atClose.Line("var opened = entries[openedAt];");
 						atClose.Line();
-						atClose.Line(
-							$"if (opened.Kind != ParserEntry.Capture || opened.State != {slot} || " +
-							"opened.Value >= 0)");
+						atClose.Line($"if (opened.State != {slot}) continue;");
+						atClose.Line();
+
+						using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+						{
+							atClose.Line("closed++;");
+							atClose.Line("continue;");
+						}
+
+						atClose.Line();
+						atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
 						atClose.Then("continue;");
 						atClose.Line();
-						atClose.Line(
-							$"entries[openedAt] = new ParserEntry(ParserEntry.Capture, {slot}, " +
-							"opened.Position, opened.CallIndex, opened.AtomicIndex, " +
-							"opened.RepeatIndex, opened.LookaheadIndex, p);");
+						atClose.Line("if (closed == 0)");
+						atClose.Then("break;");
 						atClose.Line();
-						atClose.Line("break;");
+						atClose.Line("closed--;");
 					}
 
-					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+					atClose.Line();
+					atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
+					atClose.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
+						"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
+					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(next)};");
 
 					return state;
@@ -1299,7 +1715,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
-				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count);");
+				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(next)};");
 
 				return state;
@@ -1307,6 +1723,41 @@ sealed partial class Machine
 
 			case Node.Construct(var body, _):
 			{
+				// The factory runs at Accept, once the whole parse is decided — deferred
+				// construction, kept without an entry. Where the body is a choice of
+				// constructions, which alternative matched is a tag local written as the
+				// alternative closes, and Accept switches on it.
+				if (_valuesInLocals)
+				{
+					var owner = _owners.TryGetValue(node, out var of) ? of : null;
+
+					if (owner is not null &&
+						_flatRuleOf.TryGetValue(_flatInstance, out var live) &&
+						ReferenceEquals(owner, live) &&
+						_factories[owner].Count > 1)
+					{
+						_flatTags.Add(_flatInstance);
+
+						var tagged = Reserve(out var atTag);
+
+						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node)};");
+						atTag.Line($"goto {Label(next)};");
+
+						return Compile(body, tagged, following);
+					}
+
+					return Compile(body, next, following);
+				}
+
+				// The entry answers one question — which construction ran — and a rule
+				// with one factory was never going to answer anything else. The
+				// materializer calls that factory without looking. A fold keeps its
+				// entries: there, each one is an iteration, not a choice.
+				if (_owners.TryGetValue(node, out var constructed) &&
+					_factories[constructed].Count == 1 &&
+					!_graph.Folds.ContainsKey(constructed))
+					return Compile(body, next, following);
+
 				var factory = _constructs[node];
 				var close   = Reserve(out var atClose);
 				var inner   = Compile(body, close, following);
@@ -1316,7 +1767,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
-				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count);");
+				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(next)};");
 
 				return state;
@@ -1324,8 +1775,55 @@ sealed partial class Machine
 
 			case Node.Call(var rule, _):
 			{
+				// A rule that recognizes and remembers nothing costs a call, the way it
+				// would in a hand-written parser. Nullable scanners cannot say no, and
+				// trivia — the scanner every spaced grammar calls at every seam — is one.
+				if (ScannerOf(rule) is { } scanner)
+				{
+					var scanned = Reserve(out var atScan);
+
+					if (FirstSets.Nullable(_graph.Bodies[rule] is Node.Atomic(var inside)
+							? inside
+							: _graph.Bodies[rule], _graph))
+					{
+						atScan.Line($"p = {scanner}(text, p);");
+					}
+					else
+					{
+						var arrayName = DeclareExpected([rule.Name]);
+
+						atScan.Line($"var scanned = {scanner}(text, p);");
+						atScan.Line("if (scanned < 0)");
+						using (atScan.Block(""))
+							EmitTerminalFailure(atScan, _fail, arrayName);
+						atScan.Line("p = scanned;");
+					}
+
+					atScan.Line($"goto {Label(next)};");
+
+					return scanned;
+				}
+
 				if (CanInline(rule))
-					return Compile(_graph.Bodies[rule], next, following);
+				{
+					// The inlined body composes continuations against its own seam. Where
+					// that seam is another namespace's, what this site knows past its own
+					// is no use inside — the same crossing FollowSets makes at a call it
+					// does not inline.
+					var outerSeam = _seam;
+					var handed    = following;
+
+					_seam = FollowSets.SeamOf(rule, _graph);
+
+					if (!ReferenceEquals(_seam, outerSeam))
+						handed = new FollowSets.Continuation(following.Plain, FirstSets.First.All);
+
+					var inlined = Compile(_graph.Bodies[rule], next, handed);
+
+					_seam = outerSeam;
+
+					return inlined;
+				}
 
 				var state = Reserve(out var writer);
 				var calledPower = _graph.Climbing.ContainsKey(rule)
@@ -1340,7 +1838,7 @@ sealed partial class Machine
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
-				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count);");
+				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(_entries[rule])};");
 
 				return state;
@@ -1382,6 +1880,26 @@ sealed partial class Machine
 				{
 					parameters.Add("string parserText");
 					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
+				}
+
+				// The same extent unread. A guard runs before its rule is finished, so this
+				// is the rule from where it began to where the parse now stands — which is
+				// what "the current rule's span" can mean at a point that is not the end,
+				// and the only thing here that says *where* rather than *what*.
+				if (node is Node.Guard { Text: var spanning } && spanning.Contains("parserSpan"))
+				{
+					parameters.Add("SourceSpan parserSpan");
+					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
+				}
+
+				// The grammar's own state (§7.7), where the condition names it. A guard is
+				// where one is usually written into: it runs while the text is read, which
+				// is the only moment a grammar has in the order it is written.
+				if (node is Node.Guard { Text: var stateful } &&
+					_graph.Context is not null && CSharpEmitter.Names(stateful, "context"))
+				{
+					parameters.Add($"{_graph.Context} context");
+					arguments.Add("context");
 				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
@@ -1508,7 +2026,9 @@ sealed partial class Machine
 
 				if (hasTyped)
 				{
-					writer.Line($"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, entries);");
+					writer.Line(
+						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
+						$"entries{InputArgument}{ContextArgument});");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{
@@ -1573,8 +2093,103 @@ sealed partial class Machine
 				return state;
 			}
 
+			case Node.Marked(var body, var text):
+			{
+				// Two entries and no dispatch: nothing reads a mark while the text is read,
+				// so neither of these is a state the engine ever comes back to. The opening
+				// stands over what follows until the close is reached, and unwinding needs
+				// no case of its own — an abandoned reading takes both away with everything
+				// else it wrote, which is the whole of what restoring a mark means here.
+				var site   = MarkSite(text);
+				var closed = Reserve(out var atClose);
+				var inner  = Compile(body, closed, following);
+				var opened = Reserve(out var atOpen);
+
+				atOpen.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.StateSet, {site}, p, " +
+					"call, atomic, repeat, lookahead, 0));");
+				atOpen.Line($"Trace(\"set state\", {site}, p, entries.Count{Traced});");
+				atOpen.Line($"goto {Label(inner)};");
+
+				atClose.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.StateEnd, {site}, p, " +
+					"call, atomic, repeat, lookahead, 0));");
+				atClose.Line($"Trace(\"end state\", {site}, p, entries.Count{Traced});");
+				atClose.Line($"goto {Label(next)};");
+
+				return opened;
+			}
+
 			case Node.Atomic(var body):
 			{
+				// First-match-commits held in locals: each alternative is tried through
+				// the give-back door, and the first that matches is final. The same test
+				// `Silent`'s own Atomic case asks — recoveries included, whose owned
+				// mark only the engine's commit writes — so the two agree.
+				if (_recoveries.Count == 0 &&
+					(body is Node.Choice(var options)
+						? AllSilent(options, following.Plain, sequence: false)
+						: Silent(body, following.Plain)))
+				{
+					// No pending site may open inside: the chain's doors are where a
+					// failure goes here, and a way back they jumped past would stand
+					// armed for ever. The same flag `Silent`'s Atomic case put down.
+					var checkpoints = _checkpointsAllowed;
+
+					_checkpointsAllowed = false;
+
+					if (body is not Node.Choice(var tried) || tried.Count == 1)
+					{
+						var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
+
+						_checkpointsAllowed = checkpoints;
+
+						return kept;
+					}
+
+					var mine  = _depth++;
+					var doors = false;
+
+					// Built back to front: the last alternative fails outward, and each
+					// earlier one fails into the door that rewinds and tries the next —
+					// unless it fails where it began, in which case the next alternative
+					// is the failure target directly. A capture a failed alternative
+					// opened is unset on the way through.
+					var target = Compile(tried[tried.Count - 1], next, following);
+
+					for (var at = tried.Count - 2; at >= 0; at--)
+					{
+						List<string>? undone = null;
+
+						if (_valuesInLocals)
+							foreach (var descendant in NodeWalk.Descendants(tried[at]))
+								if (descendant is Node.Capture)
+									(undone ??= []).Add(
+										$"flat{_flatInstance}_{_captureSlots[descendant]}Start");
+
+						var saved  = _fail;
+						var direct = undone is null && FailsWhereItBegan(tried[at]);
+
+						if (!direct)
+							doors = true;
+
+						_fail  = direct ? target : GiveBack(target, mine, out _, undone);
+						target = Compile(tried[at], next, following);
+						_fail  = saved;
+					}
+
+					var entered = Reserve(out var atEnter);
+
+					if (doors)
+						atEnter.Line($"turn{mine} = p;");
+					atEnter.Line($"goto {Label(target)};");
+
+					_depth = mine;
+					_checkpointsAllowed = checkpoints;
+
+					return entered;
+				}
+
 				var commit = Reserve(out var atCommit);
 				var inner  = Compile(body, commit, following);
 				var state  = Reserve(out var writer);
@@ -1582,7 +2197,7 @@ sealed partial class Machine
 				writer.Line("var atomicIndex = entries.Count;");
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count);");
+				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
@@ -1629,7 +2244,7 @@ sealed partial class Machine
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count);");
+				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count{Traced});");
 				atCommit.Line($"goto {Label(next)};");
 
 				return state;
@@ -1640,7 +2255,7 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if (SilentRepeat(repeat, following))
+				if (SilentRepeat(repeat, following.Plain))
 					return CompileSilentRepeat(repeat, next, following);
 
 				return RunTest(repeat.Body) is { } runTest
@@ -1648,10 +2263,136 @@ sealed partial class Machine
 					: CompileRepeat(repeat, next, following);
 			}
 
+			// One comparison against the character behind, and nothing else: no entry,
+			// no state of its own beyond this one, and failing it is an ordinary failure.
+			case Node.Behind(var boundary):
+			{
+				var state     = Reserve(out var writer);
+				var arrayName = DeclareExpected([node.ToString()]);
+
+				_usesChar = true;
+
+				using (writer.Block("if (p > 0)"))
+				{
+					writer.Line("c = text[p - 1];");
+					writer.Line($"if ({CSharpEmitter.Test(boundary)})");
+					using (writer.Block(""))
+						EmitTerminalFailure(writer, _fail, arrayName);
+				}
+
+				writer.Line($"goto {Label(next)};");
+
+				return state;
+			}
+
 			case Node.Lookahead(var isPositive, var body):
 			{
+				// A silent body needs no entry: entering is a checkpoint local, leaving is
+				// putting the position back — the same door a possessive turn leaves by.
+				// The same test `Silent`'s own Lookahead case asks, so the two agree.
+				if (Silent(body, FirstSets.First.All))
+				{
+					// A body one character decides needs no checkpoint either: the
+					// lookahead is its test and nothing else — no local, no consuming,
+					// no rewinding. §4.6 weaves one of these around every word literal,
+					// so the boundary of a keyword is one comparison each side.
+					if (RunTest(body) is { } asked && asked != "true")
+					{
+						_usesChar = true;
+
+						var predicate = Reserve(out var atAsk);
+						var askedName = DeclareExpected([node.ToString()]);
+
+						if (isPositive)
+						{
+							atAsk.Line("if ((uint)p >= (uint)text.Length)");
+							using (atAsk.Block(""))
+								EmitTerminalFailure(atAsk, _fail, askedName);
+							atAsk.Line("c = text[p];");
+							atAsk.Line($"if (!({asked}))");
+							using (atAsk.Block(""))
+								EmitTerminalFailure(atAsk, _fail, askedName);
+						}
+						else
+						{
+							using (atAsk.Block("if ((uint)p < (uint)text.Length)"))
+							{
+								atAsk.Line("c = text[p];");
+								atAsk.Line($"if ({asked})");
+								using (atAsk.Block(""))
+									EmitTerminalFailure(atAsk, _fail, askedName);
+							}
+						}
+
+						atAsk.Line($"goto {Label(next)};");
+
+						return predicate;
+					}
+
+					var mine = _depth++;
+
+					// The rewind doors are where the body's outcomes go, and a pending
+					// site opened inside would be jumped past — the flag `Silent`'s own
+					// Lookahead case put down.
+					var checkpoints = _checkpointsAllowed;
+
+					_checkpointsAllowed = false;
+
+					if (isPositive)
+					{
+						// Body matched: rewind and carry on. Body failed: rewind first,
+						// then fail outward — a lookahead does not report how far it
+						// looked, and both doors go through the same local.
+						var rewind    = GiveBack(next, mine, out var start);
+						var outward   = _fail;
+						var backOut   = GiveBack(outward, mine, out _);
+
+						_fail = backOut;
+
+						var flatInner = Compile(body, rewind, FollowSets.Continuation.All);
+
+						_fail = outward;
+
+						var flatState = Reserve(out var atFlatEnter);
+
+						atFlatEnter.Line($"{start} = p;");
+						atFlatEnter.Line($"goto {Label(flatInner)};");
+
+						_depth = mine;
+						_checkpointsAllowed = checkpoints;
+
+						return flatState;
+					}
+
+					// Negative: the body failing is this succeeding, so the body's own
+					// failures rewind and continue; the body matching is this failing.
+					var resume    = GiveBack(next, mine, out var begun);
+					var matched   = Reserve(out var atMatched);
+					var arrayName = DeclareExpected([node.ToString()]);
+					var saved     = _fail;
+
+					_fail = resume;
+
+					var refused = Compile(body, matched, FollowSets.Continuation.All);
+
+					_fail = saved;
+					_checkpointsAllowed = checkpoints;
+
+					var entered = Reserve(out var atEnter);
+
+					atEnter.Line($"{begun} = p;");
+					atEnter.Line($"goto {Label(refused)};");
+
+					atMatched.Line($"p = {begun};");
+					EmitTerminalFailure(atMatched, _fail, arrayName);
+
+					_depth = mine;
+
+					return entered;
+				}
+
 				var success = Reserve(out var atSuccess);
-				var inner   = Compile(body, success, FirstSets.First.All);
+				var inner   = Compile(body, success, FollowSets.Continuation.All);
 				var state   = Reserve(out var writer);
 
 				writer.Line("var lookaheadIndex = entries.Count;");
@@ -1659,7 +2400,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
-				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count);");
+				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -1673,7 +2414,7 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
-				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count);");
+				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count{Traced});");
 				atSuccess.Line($"goto {(isPositive ? Label(next) : "Fail")};");
 
 				return state;
@@ -1710,7 +2451,7 @@ sealed partial class Machine
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
 		var success = Reserve(out var atSuccess);
-		var inner   = Compile(seen, success, FirstSets.First.All);
+		var inner   = Compile(seen, success, FollowSets.Continuation.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -1718,7 +2459,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -1736,7 +2477,7 @@ sealed partial class Machine
 		atSuccess.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
 			"repeat, lookahead, seenTo));");
-		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count);");
+		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
 		atSuccess.Line($"goto {Label(next)};");
 
 		return state;
@@ -1770,7 +2511,7 @@ sealed partial class Machine
 	int CompileNegativeLookaheadCapture(int slot, Node rejected, int next)
 	{
 		var matched = Reserve(out var atMatched);
-		var inner   = Compile(rejected, matched, FirstSets.First.All);
+		var inner   = Compile(rejected, matched, FollowSets.Continuation.All);
 		var state   = Reserve(out var writer);
 
 		writer.Line("var lookaheadIndex = entries.Count;");
@@ -1778,7 +2519,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count);");
+		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -1894,6 +2635,7 @@ sealed partial class Machine
 				if (_starves)
 					writer.Line("failure.Starved = true;");
 
+				writer.Line("failure.OutOfInput = p + 1;");
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 
@@ -1906,7 +2648,12 @@ sealed partial class Machine
 				// Name the character that did not fit, not where the shared prefix started —
 				// worked out on a branch the comparison has already failed rather than on the
 				// way in, so what it costs is a cost of failing.
-				Sharpen(writer, shared);
+				//
+				// Only where the failure goes to `Fail:`, which puts the position back from
+				// the arena. A prefix conflict chains several of these runs through `fail`,
+				// and the run this jumps to reads from where this one started.
+				if (fail == Fail)
+					Sharpen(writer, shared);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -1972,8 +2719,10 @@ sealed partial class Machine
 			// makes, and for the same reason: the room test above has proved every one of
 			// these in range and the range-check eliminator will not take its word for it,
 			// while `SequenceEqual` against a constant is checked once and compared a
-			// machine word at a time. Nothing is sharpened here; an alternative that does
-			// not fit is not a failure, it is the next alternative.
+			// machine word at a time. Nothing is sharpened here, and nothing needs to be:
+			// an alternative that does not fit is not a failure, it is the next
+			// alternative. Where they all fail to fit, the catch-all below walks them
+			// together to find how far any of them got.
 			var rest = text.Substring(shared.Length);
 
 			if (rest.Length > 1)
@@ -2011,7 +2760,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count);");
+					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count{Traced});");
 				}
 
 				writer.Line($"goto {Label(next)};");
@@ -2021,17 +2770,97 @@ sealed partial class Machine
 				break;
 		}
 
-		// Every failure site in this run — the shared-prefix guards above and this
-		// catch-all — covers the same, full set of `texts`: nothing here narrows a
-		// subset the way a real trie would. One known gap accepted for now: where a
-		// prefix conflict (`"p" | "q" | "pr"`) splits one grammar-level choice into
-		// several entry-less `CompileLiterals` runs chained by `fail`, a later run's own
-		// `expected` can overwrite an earlier one's before either reaches the real
-		// `Fail:` — under-reporting, never mis-attributing or over-reporting. Left as a
-		// documented first-cut gap rather than solved, per docs/implementation.md's own
-		// "the corpus grows by one rule" policy.
+		// The shared-prefix guards above name the full set of `texts`, which is right:
+		// where the shared prefix itself did not fit, none of them did and none got
+		// further than another. This catch-all is where they differ, and `SharpenAll`
+		// walks them together — moving to the deepest character any of them agreed with
+		// and naming the ones that were still agreeing there.
+		//
+		// One known gap remains: where a prefix conflict (`"p" | "q" | "pr"`) splits one
+		// grammar-level choice into several entry-less `CompileLiterals` runs chained by
+		// `fail`, a later run's own `expected` can overwrite an earlier one's before
+		// either reaches the real `Fail:` — under-reporting, never mis-attributing or
+		// over-reporting.
 		if (!settled)
-			EmitTerminalFailure(writer, fail, arrayName);
+		{
+			// How far any of them agreed, and which of them were still agreeing there —
+			// which together decide whether this failure or another one is the one
+			// reported, and what it says. The shared-prefix guard above sharpens its own
+			// branch; this covers the characters past it, where the alternatives differ
+			// and each was compared whole.
+			if (fail == Fail)
+			{
+				_expectedUsed.Add(arrayName);
+				writer.Line($"expected = {arrayName};");
+
+				SharpenAll(writer, texts, displays);
+
+				writer.Line($"goto {Label(fail)};");
+			}
+			else
+				EmitTerminalFailure(writer, fail, arrayName);
+		}
+
+		return state;
+	}
+
+	/// <summary>
+	/// A choice whose way back lives in three locals instead of an arena entry — the
+	/// checkpoint class. C, E and F of the Minimal catalog are the shapes it exists for.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What an arena entry holds for a choice is where to resume, from where, and which
+	/// ways back were pending before it — and for a choice no repetition sits over, each
+	/// is one local: <c>way</c> is the position, <c>alt</c> the next alternative to try,
+	/// <c>over</c> the site that was pending before this one opened. <c>pending</c> is
+	/// the dispatcher's stack pointer: any later failure, the continuation's included,
+	/// goes to <c>Fail:</c>, which records it and resumes the innermost open site — the
+	/// engine's pop, without the engine.
+	/// </para>
+	/// <para>
+	/// No repetition may stand over a site, because one set of locals holds one
+	/// activation; <see cref="Deterministic"/> already refuses the choice, so a silent
+	/// repetition never contains one, and <see cref="_checkpointsAllowed"/> is put down
+	/// inside every construct that routes failure around <c>Fail:</c>. Re-entering the
+	/// site from an outer resume runs its entry again, which re-arms all three locals.
+	/// </para>
+	/// </remarks>
+	int CompileCheckpointChoice(
+		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following)
+	{
+		var id      = ++_checkpointIds;
+		var entries = new int[alternatives.Count];
+		var retries = new int[alternatives.Count - 1];
+
+		for (var at = alternatives.Count - 1; at >= 0; at--)
+			entries[at] = Compile(alternatives[at], next, following);
+
+		// One state per alternative after the first: rewind, say which comes after it,
+		// and go in. Reached only from the dispatcher below `Fail:`, which no state
+		// names — so each is a root of its own, or the layout would drop it.
+		for (var at = 1; at < alternatives.Count; at++)
+		{
+			var retry = Reserve(out var atRetry);
+
+			atRetry.Line($"p = way{id};");
+			atRetry.Line($"alt{id} = {at + 1};");
+			atRetry.Line($"goto {Label(entries[at])};");
+
+			retries[at - 1] = retry;
+			_roots.Add(retry);
+			_namedOutside.Add(retry);
+		}
+
+		_checkpoints.Add(new CheckpointSite(id, alternatives.Count, retries));
+
+		var state = Reserve(out var writer);
+
+		writer.Line($"way{id} = p;");
+		writer.Line($"alt{id} = 1;");
+		writer.Line($"over{id} = pending;");
+		writer.Line($"pending = {id};");
+		writer.Line($"goto {Label(entries[0])};");
 
 		return state;
 	}
@@ -2040,7 +2869,7 @@ sealed partial class Machine
 	/// A choice one character decides: read it, jump to the alternative it belongs to.
 	/// </summary>
 	int CompilePredictedChoice(
-		IReadOnlyList<Node> alternatives, string[] tests, int next, FirstSets.First following)
+		IReadOnlyList<Node> alternatives, string[] tests, int next, FollowSets.Continuation following)
 	{
 		var targets = new int[alternatives.Count];
 
@@ -2063,20 +2892,13 @@ sealed partial class Machine
 		// below.
 		var arrayName = DeclareExpected([PredictedDisplay(alternatives)]);
 
-		if (_starves)
+		writer.Line("if ((uint)p >= (uint)text.Length)");
+		using (writer.Block(""))
 		{
-			writer.Line("if ((uint)p >= (uint)text.Length)");
-			using (writer.Block(""))
-			{
+			if (_starves)
 				writer.Line("failure.Starved = true;");
-				EmitTerminalFailure(writer, _fail, arrayName);
-			}
-		}
-		else
-		{
-			writer.Line("if ((uint)p >= (uint)text.Length)");
-			using (writer.Block(""))
-				EmitTerminalFailure(writer, _fail, arrayName);
+
+			EmitTerminalFailure(writer, _fail, arrayName);
 		}
 
 		writer.Line("c = text[p];");
@@ -2130,7 +2952,7 @@ sealed partial class Machine
 	/// cannot collide with the bracketed form whatever it contains.
 	/// </para>
 	/// </remarks>
-	int? CompileTested(Node node, string test, int next, FirstSets.First following)
+	int? CompileTested(Node node, string test, int next, FollowSets.Continuation following)
 	{
 		// Asked before anything is written: a sequence's tail would otherwise be compiled
 		// only to be abandoned when its head turned out not to qualify, and an abandoned
@@ -2143,7 +2965,7 @@ sealed partial class Machine
 
 		return Entered(node, next, following);
 
-		int Entered(Node at, int to, FirstSets.First after) =>
+		int Entered(Node at, int to, FollowSets.Continuation after) =>
 			at switch
 			{
 				// The terminal itself contributes no state: the dispatch steps over it.
@@ -2159,7 +2981,7 @@ sealed partial class Machine
 				_ => throw new InvalidOperationException($"{at.GetType().Name} does not begin with a terminal."),
 			};
 
-		int Threaded(IReadOnlyList<Node> nodes, int to, FirstSets.First after)
+		int Threaded(IReadOnlyList<Node> nodes, int to, FollowSets.Continuation after)
 		{
 			var target = to;
 			var rest   = after;
@@ -2167,7 +2989,7 @@ sealed partial class Machine
 			for (var i = nodes.Count - 1; i >= 1; i--)
 			{
 				target = Compile(nodes[i], target, rest);
-				rest   = Precedes(nodes[i], rest);
+				rest   = FollowSets.Precedes(nodes[i], rest, _graph, _seam);
 			}
 
 			return Entered(nodes[0], target, rest);
@@ -2226,7 +3048,7 @@ sealed partial class Machine
 	/// give back leaves no trace.
 	/// </para>
 	/// </remarks>
-	int CompileRun(Node.Repeat repeatNode, string test, int next, FirstSets.First following)
+	int CompileRun(Node.Repeat repeatNode, string test, int next, FollowSets.Continuation following)
 	{
 		var (_, min, max) = repeatNode;
 
@@ -2282,7 +3104,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Run, {next}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
 
-		writer.Line($"Trace(\"run\", {next}, p, entries.Count);");
+		writer.Line($"Trace(\"run\", {next}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(next)};");
 
 		return state;
@@ -2318,13 +3140,41 @@ sealed partial class Machine
 	/// began is kept in a local of its own and the way out reads it. The repetition ends
 	/// where its last whole turn ended, not where a broken one stopped.
 	/// </remarks>
-	int GiveBack(int next, int depth, out string start)
+	/// <summary>
+	/// Whether every failure of this node happens before it has moved the position — so
+	/// the door that puts the position back would put back what never changed.
+	/// </summary>
+	/// <remarks>
+	/// One character is the shape: the test refuses before <c>p++</c>. A literal longer
+	/// than one is not, and not only for the obvious reason — its failure branch moves
+	/// <c>p</c> to the character that did not fit, for the diagnostic.
+	/// </remarks>
+	static bool FailsWhereItBegan(Node node) =>
+		node switch
+		{
+			Node.Empty or Node.Behind => true,
+			Node.Element              => true,
+			Node.Literal(var text)    => text.Length == 1,
+			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
+			Node.Marked(var kept, _)  => FailsWhereItBegan(kept),
+			_                         => false,
+		};
+
+	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null)
 	{
 		start = "turn" + depth;
 
 		var state = Reserve(out var writer);
 
 		writer.Line($"p = {start};");
+
+		// A capture the given-back turn opened is a record backtracking would have
+		// unwound; kept in locals, the door it leaves by has to unset it (the sentinel
+		// is what tells an optional capture that never happened from one that did).
+		if (resetLocals is not null)
+			foreach (var local in resetLocals)
+				writer.Line($"{local} = -1;");
+
 		writer.Line($"goto {Label(next)};");
 
 		_turns.Add((depth, state));
@@ -2332,11 +3182,18 @@ sealed partial class Machine
 		return state;
 	}
 
-	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
+	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
-		var inside = FirstSets.Of(body, _graph).Or(following);
+		var inside = new FollowSets.Continuation(
+			FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All);
 		var target = next;
+
+		// A turn's failure leaves by the loop's door, and one set of site locals holds
+		// one activation — the flag `SilentRepeat`'s own body question put down.
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
 
 		// One local per depth rather than per repetition. Two of them are live at once only
 		// where one of these is written inside another, and that nests two or three deep in
@@ -2346,19 +3203,35 @@ sealed partial class Machine
 		// is every line of the method, not the loops.
 		var mine = _depth++;
 
+		// The capture locals a given-back turn would leave set (flat-value rendering
+		// only; the engine's captures unwind with the arena). A site's inner locals
+		// need no reset of their own — its parent slot here is the guard they sit
+		// behind at Accept.
+		List<string>? resets = null;
+
+		if (_valuesInLocals)
+			foreach (var descendant in NodeWalk.Descendants(body))
+				if (descendant is Node.Capture)
+					(resets ??= []).Add($"flat{_flatInstance}_{_captureSlots[descendant]}Start");
+
+		// A body whose every failure happens where its turn began needs no door at all:
+		// there is nothing to put back, and the way out is a plain jump.
+		var direct = resets is null && FailsWhereItBegan(body);
+
 		if (max is null)
 		{
 			var loop  = Reserve(out var atLoop);
 			var saved = _fail;
 
 			// Round again, or out — and out is through the door that puts the position back.
-			_fail = GiveBack(next, mine, out var start);
+			_fail = direct ? next : GiveBack(next, mine, out _, resets);
 
 			var inner = Compile(body, loop, inside);
 
 			_fail = saved;
 
-			atLoop.Line($"{start} = p;");
+			if (!direct)
+				atLoop.Line($"turn{mine} = p;");
 			atLoop.Line($"goto {Label(inner)};");
 
 			target = loop;
@@ -2369,13 +3242,14 @@ sealed partial class Machine
 				var saved = _fail;
 				var after = target;
 
-				_fail  = GiveBack(after, mine, out var start);
+				_fail  = direct ? after : GiveBack(after, mine, out _, resets);
 				target = Compile(body, after, inside);
 				_fail  = saved;
 
 				var began = Reserve(out var atBegan);
 
-				atBegan.Line($"{start} = p;");
+				if (!direct)
+					atBegan.Line($"turn{mine} = p;");
 				atBegan.Line($"goto {Label(target)};");
 
 				target = began;
@@ -2385,30 +3259,79 @@ sealed partial class Machine
 			target = Compile(body, target, inside);
 
 		_depth = mine;
+		_checkpointsAllowed = checkpoints;
 
 		return target;
 	}
 
-	int CompileRepeat(Node.Repeat repeatNode, int next, FirstSets.First following)
+	int CompileRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
 
 		if (max == 0)
 			return next;
 
+		// One standing way out instead of one per turn. The proof is NeverGivesBack's;
+		// what it buys is that a failure behind the repetition resumes one exit and pops
+		// past the stale ones, where it used to resume every one of them and re-read the
+		// suffix per turn — the exponential this engine was measured to have.
+		// An optional is a repetition of one, and its skip is a way back like any other:
+		// three of them in a row are eight readings of the same failure. The mechanism
+		// already handles a bounded loop — the count-exit marks the standing exit spent —
+		// so nothing excludes them.
+		var settled = NeverGivesBack(repeatNode, following);
+
+		// A settled optional whose body one character decides needs no arena at all. The
+		// character says whether the body is entered; entered, it must finish, because
+		// skipping instead would ask the continuation to begin on the character the test
+		// let through — which is what settled rules out. What was a Repeat entry, a
+		// standing exit, a count and their unwinding per optional becomes one comparison,
+		// and the grammar of the notation carries several optionals per operand.
+		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins)
+		{
+			_usesChar = true;
+
+			var entered = Compile(body, next, following);
+			var state   = Reserve(out var atTest);
+
+			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
+			{
+				atTest.Line("c = text[p];");
+				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(entered)};");
+			}
+
+			atTest.Line($"goto {Label(next)};");
+
+			return state;
+		}
+
+
+		if (settled)
+			_usesLoopExits = true;
+
 		var exit  = Reserve(out var atExit);
 		var loop  = Reserve(out var atLoop);
 		var after = Reserve(out var atAfter);
 		var entry = Reserve(out var atEntry);
-		var inner = Compile(body, after, FirstSets.Of(body, _graph).Or(following));
+
+		// What a turn is followed by: another turn, or what the repetition is followed
+		// by — unless there is no other turn to be followed by (§FollowSets, the same
+		// reasoning).
+		var inner = Compile(
+			body, after,
+			max == 1
+				? following
+				: new FollowSets.Continuation(
+					FirstSets.Of(body, _graph).Or(following.Plain),
+					FirstSets.Of(body, _graph).Or(following.Plain)));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count);");
+		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(loop)};");
 
-		if (min > 0 || max is not null)
+		if (settled || min > 0 || max is not null)
 		{
 			atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 			atLoop.Line("var repeating = entries[repeat];");
@@ -2418,7 +3341,25 @@ sealed partial class Machine
 		if (max is { } limit)
 			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
 
-		if (min == 0)
+		if (settled)
+		{
+			// The standing exit, and the note of where it stands. The Repeat entry's
+			// second field holds where the last completed turn ended, which is what makes
+			// every earlier LoopExit visibly stale; it is not a state and Layout's
+			// Resumable list must not think it is.
+			using (atLoop.Block(min == 0 ? "" : $"if (repeating.Value >= {min})"))
+			{
+				atLoop.Line(
+					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {exit}, p, call, atomic, " +
+					"repeat, lookahead, 0));");
+				atLoop.Line(
+					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
+					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
+					"repeating.LookaheadIndex, repeating.Value, p);");
+				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count{Traced});");
+			}
+		}
+		else if (min == 0)
 			PushRepeatExit(atLoop, exit);
 		else
 		{
@@ -2433,22 +3374,180 @@ sealed partial class Machine
 		// The count is only ever read to decide whether a bound has been reached. An
 		// unbounded repetition with nothing to reach has no such decision to make, and
 		// counting for a reader that does not exist costs a read and a write of the entry
-		// on every iteration.
+		// on every iteration. A settled repetition goes through here whatever its bounds:
+		// the standing exit's position is written by the loop head it is about to re-enter.
 		if (min > 0 || max is not null)
 		{
+			_usesTurns = true;
+
 			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 			atAfter.Line("var repeated = entries[repeat];");
 			atAfter.Line(
 				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
 				"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
-				"repeated.LookaheadIndex, repeated.Value + 1);");
+				"repeated.LookaheadIndex, repeated.Value + 1" + (settled ? ", repeated.RuleIndex" : "") + ");");
+
+			// The count rewritten above survives backtracking; this is what does not. A
+			// resume into this turn's own machinery pops it, and popping it takes the
+			// turn back out of the count before the body re-completes and counts again.
+			atAfter.Line(
+				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, " +
+				"lookahead, 0));");
 		}
 
 		atAfter.Line($"goto {Label(loop)};");
 
+		// Out through the count rather than through the standing exit, which is the one
+		// path that leaves it standing and valid. Marked spent, or a failure after the
+		// repetition would come back and end a run that has already ended.
+		if (settled && max is not null)
+		{
+			atExit.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+			atExit.Line("var closing = entries[repeat];");
+			atExit.Line(
+				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, closing.Position, " +
+				"closing.CallIndex, closing.AtomicIndex, closing.RepeatIndex, " +
+				"closing.LookaheadIndex, closing.Value, -1);");
+		}
+
 		LeaveRepeat(atExit, next);
 
+		// A repetition that may take nothing, met where its body cannot begin, takes
+		// nothing — and one character says so before the machinery is built, where the
+		// machinery is a Repeat entry, a way out, a failed probe and their unwinding.
+		// The same test a choice link makes before going into an alternative, kept for
+		// the same measured reason; unlike the settled form above, entering commits to
+		// nothing — every way back the general machinery keeps is still kept. The body
+		// must not match empty: taking nothing and matching nothing differ by exactly
+		// the records §10 tells apart, and only the first may be chosen here.
+		var barred = Decidable(body) is { } heads
+			? RangesTest(heads.Ranges)
+			: !FirstSets.Nullable(body, _graph)
+				? EntryTest(body)
+				: null;
+
+		if (min == 0 && barred is { } could && could != "true")
+		{
+			_usesChar = true;
+
+			var probed = Reserve(out var atProbe);
+
+			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
+			{
+				atProbe.Line("c = text[p];");
+				atProbe.Line($"if ({could}) goto {Label(entry)};");
+			}
+
+			atProbe.Line($"goto {Label(next)};");
+
+			return probed;
+		}
+
 		return entry;
+	}
+
+	/// <summary>
+	/// The test over <c>c</c> for whether a node could begin at the character standing
+	/// here — or null where that is not knowable as one test.
+	/// </summary>
+	/// <remarks>
+	/// Wider than <see cref="Decidable"/> on purpose: that one goes through a
+	/// <see cref="FirstSets.First"/>, and a Unicode category is a few hundred ranges no
+	/// rendering should spell out — where the same category as an element is one
+	/// classification call (<see cref="CSharpEmitter.Test"/>). So this walks the node
+	/// instead, to the first thing that must consume, and lets each leaf write the test
+	/// it already knows how to write. Sound in one direction only: the test may admit
+	/// more than the body would (a nullable head contributes alongside what follows it),
+	/// never less — a false positive builds machinery that was going to be built anyway.
+	/// </remarks>
+	string? EntryTest(Node node, HashSet<RuleSymbol>? seen = null)
+	{
+		switch (node)
+		{
+			case Node.Literal(var text) { IgnoreCase: false } when text.Length > 0:
+				return $"c == {CSharpEmitter.Char(text[0])}";
+
+			case Node.Element element:
+			{
+				var test = CSharpEmitter.Test(element);
+
+				return test == "false" ? null : test;
+			}
+
+			case Node.Capture(_, var captured):  return EntryTest(captured, seen);
+			case Node.Construct(var built, _):   return EntryTest(built, seen);
+			case Node.Atomic(var kept):          return EntryTest(kept, seen);
+			case Node.Marked(var kept, _):       return EntryTest(kept, seen);
+
+			case Node.Repeat(var repeated, var least, _):
+				return least > 0 ? EntryTest(repeated, seen) : null;
+
+			case Node.Call(var called, _):
+			{
+				seen ??= [];
+
+				if (!seen.Add(called) || !_graph.Bodies.TryGetValue(called, out var calledBody))
+					return null;
+
+				var inner = EntryTest(calledBody, seen);
+
+				seen.Remove(called);
+
+				return inner;
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var tests = new List<string>(alternatives.Count);
+
+				foreach (var alternative in alternatives)
+				{
+					if (EntryTest(alternative, seen) is not { } one)
+						return null;
+
+					if (one == "true")
+						return "true";
+
+					tests.Add(one);
+				}
+
+				return Joined(tests);
+			}
+
+			case Node.Sequence(var parts):
+			{
+				var tests = new List<string>();
+
+				foreach (var part in parts)
+				{
+					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard)
+						continue;
+
+					if (EntryTest(part, seen) is not { } head)
+						return null;
+
+					if (head == "true")
+						return "true";
+
+					tests.Add(head);
+
+					// A part that must consume settles what the sequence begins with;
+					// a nullable one and the next could each be what actually begins.
+					if (!FirstSets.Nullable(part, _graph))
+						break;
+				}
+
+				return tests.Count == 0 ? null : Joined(tests);
+			}
+
+			default:
+				return null;
+		}
+
+		static string Joined(List<string> tests) =>
+			tests.Count == 1
+				? tests[0]
+				: string.Join(" || ", tests.Select(static test => $"({test})"));
 	}
 
 	void LeaveRepeat(Writer writer, int next)
@@ -2469,7 +3568,7 @@ sealed partial class Machine
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
-		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count);");
+		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(next)};");
 	}
 
@@ -2630,6 +3729,97 @@ sealed partial class Machine
 	/// a cost of failing. The last character needs no test of its own: if every earlier one
 	/// matched and the whole did not, it is the one.
 	/// </remarks>
+	/// <summary>
+	/// The same for a run of them: move <c>p</c> to the deepest character any of these
+	/// still agreed with, knowing that none of them matched whole.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A failed literal's position is not a caret, it is a selector: <c>Fail:</c> keeps the
+	/// furthest failure and reports that one's expectation, so how far a literal got is what
+	/// decides whether the reader is told the one thing they almost wrote or every thing
+	/// that could have stood there. A run of alternatives left unsharpened reported the
+	/// start of the run — `"abcdef" | "abq"` against `abcdez` naming both, where five
+	/// characters into the first is plainly the better answer.
+	/// </para>
+	/// <para>
+	/// Written as the walk of a trie rather than as one <see cref="Sharpen"/> per text,
+	/// because the alternatives share their beginnings and so should share the reading of
+	/// them. On the failing branch only, like everything else here.
+	/// </para>
+	/// </remarks>
+	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays)
+	{
+		// Out of line, and that is a measurement rather than tidiness. Written into the
+		// recognizer, this cold walk sat between hot states and cost the URL corpus five
+		// per cent on inputs that never reach it — a method of ten thousand lines has
+		// nowhere to put anything without moving something else. A call on the failing
+		// branch costs nothing that is not already failing.
+		var method = $"Recognize_DotGram{_tag}_Sharpen" + _sharpens++;
+		var helper = new Writer(0);
+
+		helper.Line(
+			$"static int {method}(global::System.ReadOnlySpan<char> text, int p, " +
+			"ref string[]? expected)");
+
+		using (helper.Block(""))
+		{
+			var body = new Writer(0);
+
+			Deepest([.. Enumerable.Range(0, texts.Count)], 0, body);
+
+			helper.Write(body.ToString());
+			helper.Line("return p;");
+		}
+
+		_extra.Add(helper.ToString());
+
+		writer.Line($"p = {method}(text, p, ref expected);");
+
+		void Deepest(IReadOnlyList<int> here, int depth, Writer writer)
+		{
+			var branches = here
+				.Where(one => texts[one].Length > depth)
+				.GroupBy(one => texts[one][depth])
+				.ToList();
+
+			if (branches.Count == 0)
+				return;
+
+			var first = true;
+
+			foreach (var branch in branches)
+			{
+				// `p` moves as the walk descends, so every level reads the character it
+				// stands on and steps one — which is also why the room test is the same
+				// one at every level.
+				writer.Line(
+					$"{(first ? "if" : "else if")} ({Room(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
+
+				using (writer.Block(""))
+				{
+					writer.Line("p += 1;");
+
+					// And which of them are still agreeing, which is the other half of what
+					// a reader is told. Written only where the walk has actually narrowed
+					// the set: naming the same texts again would be one more assignment for
+					// nothing.
+					if (branch.Count() < here.Count)
+					{
+						var narrowed = DeclareExpected([.. branch.Select(one => displays[one])]);
+
+						_expectedUsed.Add(narrowed);
+						writer.Line($"expected = {narrowed};");
+					}
+
+					Deepest([.. branch], depth + 1, writer);
+				}
+
+				first = false;
+			}
+		}
+	}
+
 	static void Sharpen(Writer writer, string value)
 	{
 		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");

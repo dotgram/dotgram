@@ -26,10 +26,13 @@ then quietly mean nothing.
 | rebinding `namespace (A = B) { ... }` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, expression-scoped, `Expr with (A = B)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same, either side a parameterized rule §5.1 | ✓ | refused | ✗ | ✗ | ✗ |
+| the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a directive naming an expression rather than a rule §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same declaring its type, `as Name : @T` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| an expression on the right of a rebinding §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | what a refusal says was expected, first tier §0/§11 | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -53,11 +56,16 @@ then quietly mean nothing.
 | the same handing back a value of its own §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | direct left recursion §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | binding powers `<< n` `>> n` §4.3.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| indirect left recursion | ✓ | ✓ | refused | ✗ | ✗ |
+| indirect left recursion, through rules that only forward §4.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same where the tail captures | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same through several rules that recurse through each other | ✓ | ✓ | refused | ✗ | ✗ |
+| the same, through a rule that does something of its own | ✓ | ✓ | refused | ✗ | ✗ |
 | parameterized rules §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a numeric argument, `Digits(4)` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value parameter `n: int` given a number §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a value parameter given anything else §4.2 | ✓ | ✓ | refused | ✗ | ✗ |
+| a value parameter given a literal of its type §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value parameter's name read by the C# it was written in §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a value parameter given something the parse produces | ✓ | ✓ | refused | ✗ | ✗ |
 | a sequence result naming a parameter, `: item[]` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | one capture name over rules of one declared type §7.3 | — | — | ✓ | ✓ | ✓ |
 | the scalar form of it, `: item` §4.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -66,7 +74,8 @@ then quietly mean nothing.
 | the names `recover` supplies §8.2 | — | — | — | ✓ | ✓ |
 | offsets are `long`, extents are `int` §6.3 | — | — | — | ✓ | ✓ |
 | `recover` without `=>`, dropped and reported §8.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| a second `recover` in one rule, a stage each | ✓ | ✓ | refused | ✗ | ✗ |
+| a second `recover` in one rule, a plan each §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same in a rule read from a `TextReader` §6.3 | ✓ | ✓ | reported | — | — |
 | a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
 | C# recognizer calls emitted without generator resolution §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |
@@ -76,8 +85,8 @@ then quietly mean nothing.
 | a declared type found under the grammar's `@using` §7.3 | — | — | ✓ | ✓ | ✓ |
 | C# in `=>` and `when` emitted without generator resolution §7.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `#line` from the generated file back to the grammar §7.6 | — | — | ✓ | ✓ | ✓ |
-| `RecognitionResult<T>`, `Outcome`, `Diagnostic` §7.5 | — | — | — | ✗ | ✗ |
-| document repair, §6 of the engine plan | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `Match<T>` and its `Outcome` §7.5 | — | — | — | ✓ | ✓ |
+| an outcome for a failure past a commit point §8.2 | — | — | — | ✗ | ✗ |
 | leading and trailing `trivia` §4.5 | — | — | — | ✓ | ✓ |
 | `trivia` between operands and not between iterations §4.5 | — | — | ✓ | ✓ | ✓ |
 | a C# name as an argument of `@M(…)`, behind `@` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -91,7 +100,17 @@ then quietly mean nothing.
 | a repetition of something other than a rule §6.3 | — | — | ✓ | — | — |
 | `IEnumerable<string>` input §6.3 | — | — | — | ✓ | ✓ |
 | the §8.3 hook over a streamed parse | — | — | — | ✓ | ✓ |
-| incremental parsing | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+**Two things this table used to carry as rows are decisions rather than gaps**, and a
+row of crosses read as neither. **Repairing a document** — searching a broken input for
+the edit its author most likely meant — is out of scope by `syntax.md` §11, and by more
+than omission: it was tried and put down, and the engine plan's own section about it was
+removed rather than corrected. `recover` (§8.2) is not a smaller version of it; the two
+answer different questions, one about a document and one about the hundred-millionth
+record of a feed. **Incremental parsing** is not started, and has one known prerequisite
+rather than a design: the arena would have to record each entry's *size* instead of its
+position, so that a tail nothing touched stays valid when an edit shifts everything
+after it (`docs/next.md`, the Nitra reading).
 
 ## Backtracking, and where it stops
 
@@ -111,11 +130,24 @@ The inline form is `Start = ("xy" | "x") & 'y'`. Extracting the choice into `Nam
 not change its meaning, and a whole `parse` keeps alternatives available until the
 end-of-input condition is satisfied.
 
-**A grammar needing none of this compiles without the automaton at all.** No recursion, no
-backtracking anywhere, no construction deferred past a match — a rule proven to need none
-of the three compiles to a plain method, and where every publication qualifies, neither the
-arena nor the pooled parser is emitted. What follows in this section is about the grammars
-that do need it.
+**A publication needing none of this compiles without the automaton at all.** No
+recursion, no backtracking its proofs cannot discharge, no record a local cannot hold — a
+qualifying publication compiles to a plain method: captures as position locals, the one
+construction run after the whole-input check, a captured call to another such rule
+compiled as that rule's body in place. A choice that genuinely needs coming back to —
+`("http" | "https") & "s"` — is no longer disqualifying: its way back is three locals
+(the position, the next alternative, the site pending before it), and the method's
+failure path resumes the innermost open site before giving up — the engine's unwinding,
+without the engine. A repetition over such a choice would need one pending record per
+turn, which locals cannot hold, and keeps the arena. The question is asked per machine, of the rules it
+actually reaches — a recovery or a climb elsewhere in the grammar is some other machine's
+business — and where every publication of a machine qualifies, neither the arena nor the
+pooled parser is emitted for it. Inside the engine the same proofs shrink what is written:
+a possessive repetition is a loop with no entry, a one-character lookahead is its test, an
+atomic group over silent alternatives is a chain through one checkpoint local, and a
+captured call to a flat-valued rule is a site — the callee's body in place, its spans in
+slots of the site's own, its factory called at Accept, with no Call entry and no dispatch.
+What follows in this section is about what remains.
 
 `{ ... }` is the explicit exception. After an atomic group succeeds, alternatives made
 inside it are discarded; `{ "xy" | "x" } & 'y'` therefore fails on `xy`. A rule boundary
@@ -398,14 +430,13 @@ inner ones had collected before it began. No iterations is an empty array, never
 
 A repeated capture of **text** is a different thing and stays one: §10 binds a capture
 tighter than a quantifier, so `digits: ['0'..'9']+` is one capture repeated, and §7.3
-gives it the text joined — which it produces as the extent of the whole run.
+gives it the text joined. Each turn records an entry of its own and the value is those
+joined — taken as the extent of the whole run where the turns are adjacent, which is
+measured rather than assumed, so `(t: A+ & '-')+` answers `"1234"` and not `"12-34"`.
 
-Two things a capture can still be that are recognized and not built, `GRAM4006` rather
-than a silent drop:
-
-- a capture of *text* inside a repetition without being the whole of what repeats — the
-  text of the iterations could not be told from the text between them.
-- a capture inside a lookahead, which is a machine of its own that answers yes or no.
+One thing a capture can still be that is recognized and not built, `GRAM4006` rather
+than a silent drop: a capture inside a lookahead, which is a machine of its own that
+answers yes or no.
 
 And `GRAM4007`: one name captured twice with different types.
 
@@ -1320,9 +1351,15 @@ stage may itself be a rule with stages of its own. **Neither is built**: one `re
 rule is still refused, which is an implementation limit that this shape makes visible, and
 it will bite exactly when multi-stage feeds become worth writing.
 
-Nothing is emitted from any of this yet — no overloads, no diagnostic. The analysis is
-tested on its own, because one only exercised through the feature it gates is one nobody
-can tell is wrong.
+Both halves are built and emitting: `find` and `parse` take a `TextReader` where the
+analysis allows one, the driver reads stage by stage through the reused window, recovery
+steps over broken elements in the stream the way it does in memory, and a publication
+refused an overload is told why in a GRAM5001 information diagnostic. A spaced collection
+streams too — the driver skips the seam §4.5 weaves before each element it hands over,
+growing the window while the trivia may continue past it — and four thousand seamed
+records through a window that holds none of them for long is a pinned test. *`parse`
+reads from a reader* above has the mechanics; the analysis above is what the overloads
+rest on.
 
 ## What has been measured
 
@@ -1426,13 +1463,37 @@ has not applied since that generator was removed.
 what an editor used to pay per keystroke per grammar, and is why the pipeline was
 narrowed rather than left as it was.
 
-**Whole-grammar lowering**: a grammar every publication of which needs none of the arena's
-three uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
+**Flat lowering**: a machine every publication of which needs none of the arena's three
+uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
 *Backtracking, and where it stops* above. Measured on a grammar structurally identical to a
-repeated-record feed (`benchmarks/Flat.cs`, one added capture the only difference from the
-lowered version): 119 ns and zero allocation against 691 ns and 952 B through the shared
-engine. A grammar with even one rule that still needs the arena pays the whole cost for
-every rule in it — `docs/next.md` has the mechanism and what does not fit it yet.
+repeated-record feed (`benchmarks/Flat.cs`): 119 ns and zero allocation against 691 ns and
+952 B through the shared engine. The gate is per machine and per reachable subgraph, so a
+recovery or a climb elsewhere in the grammar no longer costs an unrelated publication its
+flat path, and a value no longer disqualifies one: captures lower to position locals and
+the construction runs after the whole-input check, deferred exactly as the engine defers
+it.
+
+**The document shape, across the 2026-08 series** (`benchmarks/Documents.cs`: four hundred
+key-value records, trivia at every seam, span values, a collection in reading order):
+287.5 µs and 3.14 MB per parse before the series, 19.3 µs and 46 KB after — fifteenfold in
+time, sixty-eightfold in allocation, and the 46 KB that remain are the result itself. The
+seam costs seven percent over the dense input, comments ten. What moved it, in order:
+machine-scoped lowering gates, a repeated capture recorded once instead of per character,
+valued publications lowered flat, captured calls compiled as sites, the trivia scanner
+asking one character for the whole choice and searching for its comment delimiter instead
+of testing it twice per character, and the give-back doors, checkpoints and locals the CFG
+work removed. On the notation grammar itself — a tower of recursive valued rules, which is
+the shape none of the flat work can reach — the hand-written-to-generated ratio stands
+between 1.3 and 1.7 depending on the corpus file, from about 3 before the series. The last
+step was two analysis fixes in one day (2026-08-27): a positive lookahead's demand became
+part of a sequence's first set, which un-poisoned every operand reachable from the inline
+C# expression and let the tower's optionals settle, and every repetition that may take
+nothing is now entered through one character, so the general machinery is built only where
+its body could actually begin. What remains is the completion ceremony — two thirds of the
+remaining trace, measured to its floor and pinned by two recorded experiments
+(`docs/next.md`: eager construction, and the RuleCapture fusion) as the price of honest
+backtracking — and one enumerated two-token shape, the optional `name:` probe reading a
+word the reference after it reads again.
 
 **Eager construction** — a rule proved `Committed && Deterministic` at every call site
 running its `=>` the moment it returns, rather than waiting for the parse to be accepted —

@@ -94,14 +94,26 @@ public sealed class FlatLoweringTests
 	}
 
 	[Fact]
-	public void An_ambiguous_choice_falls_back_to_the_shared_engine()
+	public void An_ambiguous_choice_lowers_with_its_way_back_in_locals()
 	{
 		// Shorter first, so the shorter one takes the position wherever the longer would
-		// have and nothing later can tell which was meant: the choice needs a resume point
-		// to come back for the other. Written the other way round it needs none and is
-		// lowered — `PrefixSettled` is what decides between the two orders, and `Silent`
-		// asks it now rather than refusing every choice that is not predictive.
+		// have and the choice needs coming back to. That used to be the arena's job and
+		// cost the whole engine; the checkpoint class holds the way back in three locals
+		// and resumes it from below `Fail:`, so the method stays flat.
 		const string grammar = "Start = \"a\" | \"ab\"\nparse Start";
+		var source = Emit(grammar);
+
+		Assert.DoesNotContain("private sealed class Parser", source);
+		Assert.Contains("way1 = p;", source);
+	}
+
+	[Fact]
+	public void But_a_repetition_over_one_still_falls_back_to_the_shared_engine()
+	{
+		// One set of locals holds one activation, and every turn of the repetition would
+		// need a pending way back of its own — so no checkpoint site may open under a
+		// repetition, and the choice keeps the arena.
+		const string grammar = "Start = (\"a\" | \"ab\")* & 'c'\nparse Start";
 
 		AssertNotLowered(Emit(grammar));
 	}

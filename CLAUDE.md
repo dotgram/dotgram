@@ -75,9 +75,14 @@ docs/
 	syntax.md             the language: notation and its bond with C#
 	implementation.md     engine plan
 src/
-	DotGram/              the whole product: one analyzer package, no runtime
+	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
+	DotGram.Parsers/      parsers for real formats, written in .gram and meant to ship.
+	                      Not teaching material: an example shows one feature, a parser
+	                      here answers whether the notation is enough for a whole
+	                      specification — and, being an ordinary project the generator
+	                      runs over, it is where a real symbol resolver is exercised
 examples/
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test

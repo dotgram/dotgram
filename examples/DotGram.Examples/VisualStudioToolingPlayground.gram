@@ -33,8 +33,7 @@ Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner
 
 // F12 on Raise should navigate from this standalone .gram file to the user method in
 // VisualStudioToolingPlayground.gram.cs. Hover should show Roslyn Quick Info.
-Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise(left, right))
-                   | value: Primary                                   => @(value)
+Power   : @decimal = value: Primary                                   => @(Raise(value, 1))
 
 // Put the caret after `Digits(` or inside its arguments and press Ctrl+Shift+Space.
 // Expected: parameterized-rule signature help shows n and keeps the active argument.

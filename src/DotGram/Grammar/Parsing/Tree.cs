@@ -64,6 +64,26 @@ public abstract record Decl : ILocated
 	public sealed record Publish(
 		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl;
 
+	/// <summary>
+	/// <c>context : @T</c> — the name a grammar's own state travels under.
+	/// </summary>
+	/// <remarks>
+	/// A name and a type and no body, which is what tells it from the rule it otherwise
+	/// looks like: `context : @T = …` declares a rule called `context`, and this does not.
+	/// </remarks>
+	public sealed record Context(TypeRef Type) : Decl;
+
+	/// <summary>
+	/// <c>state : @T</c> — the type every mark a <c>with state</c> site places is written
+	/// in.
+	/// </summary>
+	/// <remarks>
+	/// One type for all of them rather than one per concern: what tells two marks apart is
+	/// their value, read by the hook that cares, and a hook that cares about neither walks
+	/// past both. That is a deliberate limit and §7.8 states it.
+	/// </remarks>
+	public sealed record State(TypeRef Type) : Decl;
+
 	public sealed override string ToString() => Dump.Of(this);
 }
 
@@ -119,6 +139,17 @@ public abstract record Expr : ILocated
 	/// expression instead of a whole <see cref="Decl.Namespace"/> block.
 	/// </summary>
 	public sealed record With(Expr Operand, IReadOnlyList<Rebinding> Rebindings) : Expr;
+
+	/// <summary>
+	/// <c>Expression with state @(...)</c> — §7.8's mark, standing over one operand's
+	/// extent.
+	/// </summary>
+	/// <remarks>
+	/// The same first word as <see cref="With"/> and a different mechanism, which is why
+	/// it is qualified: <c>with (A = B)</c> replaces rules before anything runs, and this
+	/// leaves recognition untouched and is read by the hooks that name <c>parserState</c>.
+	/// </remarks>
+	public sealed record Marked(Expr Operand, Expr Value) : Expr;
 
 	public sealed override string ToString() => Dump.Of(this);
 }
@@ -252,6 +283,7 @@ static class Dump
 		Expr.Lookahead(_, var operand)      => [operand],
 		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
 		Expr.With(var operand, _)            => [operand],
+		Expr.Marked(var operand, var value)  => [operand, value],
 		Expr.Call(var target, var arguments) => [target, .. arguments],
 		_                                   => [],
 	};
@@ -297,6 +329,7 @@ static class Dump
 		},
 
 		Expr.With                                 => "With",
+		Expr.Marked                               => "Marked",
 
 		_ => expression.GetType().Name,
 	};

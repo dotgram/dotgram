@@ -42,6 +42,7 @@ public sealed partial class GrammarNormalizer
 	public const string ReservedCaptureName = "GRAM4012";
 	public const string UnbuiltCall         = "GRAM4013";
 	public const string AmbiguousExternal   = "GRAM4015";
+	public const string SharedPrefix        = "GRAM4016";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -102,6 +103,20 @@ public sealed partial class GrammarNormalizer
 		normalizer.ExtentValues();
 		normalizer.PassThrough();
 
+		// After the types — valuedness is what tells a collected thing from the inside
+		// of a lexeme — and after the sequence captures exist, so the implicit capture
+		// of a collection is inside the seam it gets here.
+		normalizer.SpaceLists();
+
+		// Before the results are computed from the captures, so that they are computed
+		// from the hoisted shape: a capture repeated is recorded once, around the loop,
+		// wherever the join of the turns is the extent of the repetition.
+		normalizer.HoistTextCaptures();
+
+		// After the pass-throughs exist and before the results are computed from the
+		// captures: a call to a rule that only forwards becomes the choice it forwarded.
+		normalizer.CollapseTransparent();
+
 		normalizer.ComputeResults();
 
 		// After the results: what a rebinding's replacement must be compatible with is the
@@ -130,11 +145,17 @@ public sealed partial class GrammarNormalizer
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
+			Context    = model.Context?.Name,
+			State      = model.State?.Name,
 		};
 	}
 
 	void Report(string id, string message, Location at) =>
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+
+	/// <summary>The same, for a grammar that is correct and will be slower than it reads.</summary>
+	void Warn(string id, string message, Location at) =>
+		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
 
 	// ── Nullability and the checks that need it ──────────────────────────────────
 
@@ -186,6 +207,7 @@ public sealed partial class GrammarNormalizer
 		Node.Guard                           => true,
 		Node.Lookahead                       => true,
 		Node.Atomic   (var body)             => IsNullable(body),
+		Node.Marked   (var body, _)          => IsNullable(body),
 		Node.Capture  (_, var body)          => IsNullable(body),
 		Node.Construct(var body, _)          => IsNullable(body),
 		Node.Repeat   (var body, var min, _) => min == 0 || IsNullable(body),
@@ -227,7 +249,10 @@ public sealed partial class GrammarNormalizer
 	{
 		foreach (var rule in _rules)
 		{
-			var alternatives = Alternatives(_bodies[rule]);
+			// An indirect recursion whose intermediaries only forward is made direct
+			// first, so the one rewrite below is the one rewrite it always was
+			// (GrammarNormalizer.Recursion.cs).
+			var alternatives = Unfolded(rule, Alternatives(_bodies[rule]));
 			var bases        = new List<Node>();
 			var tails        = new List<Node>();
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
@@ -511,6 +536,7 @@ public sealed partial class GrammarNormalizer
 	{
 		Node.Capture  (var captured, var body)  => captured == name || Writes(body, name),
 		Node.Atomic   (var body)                => Writes(body, name),
+		Node.Marked   (var body, _)             => Writes(body, name),
 		Node.Sequence (var nodes)               => nodes.Any(child => Writes(child, name)),
 		Node.Choice   (var nodes)               => nodes.All(child => Writes(child, name)),
 		Node.Construct(var built, _)            => Writes(built, name),

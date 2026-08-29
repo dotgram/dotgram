@@ -35,6 +35,25 @@ namespace DotGram.Examples;
 // than `*` and looser than unary minus, so -2^2 is -4 rather than 4 — the order Python
 // uses, and the reason `Power` sits below `Unary` and not above it.
 //
+// **`Power` has its `^` optional rather than a second alternative**, and that is worth a
+// paragraph because the obvious form is a trap:
+//
+//     Power = left: Primary & '^' & right: Unary | value: Primary        // do not
+//
+// Ordered choice tries the first alternative whole before the second, so `Primary` is
+// read twice — and `Primary` leads back here through its own parentheses, so the second
+// reading is of everything inside them, which reads twice again. Sixteen parentheses
+// deep took 30 ms that way and takes 0.05 ms this way. GRAM4016 says so, and says it
+// only where the operand leads back like this: two alternatives that share a beginning
+// leading nowhere is a factor of two, once, and nobody's problem.
+//
+// The two are not quite the same grammar, which is why the compiler reports rather than
+// rewrites. Two alternatives prefer any reading of the first over the second, so a
+// shared operand that can give back will give back to let the rest of the first fit —
+// which is how one splits the last segment off a path, and which an optional tail cannot
+// say. Here nothing turns on it: a `Primary` that gave back would leave digits before a
+// `^` that is not there.
+//
 // `: @decimal` is the whole of the arithmetic change: 1/8 is 0.125 here and 0 in the
 // int calculator, from the same grammar.
 //
@@ -71,8 +90,8 @@ namespace DotGram.Examples;
 	Unary   : @decimal = '-' & operand: Unary                             => @(-operand)
 	                   | value: Power                                     => @(value)
 
-	Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise(left, right))
-	                   | value: Primary                                   => @(value)
+	Power   : @decimal = left: Primary & ('^' & right: Unary)?
+	                   => @(right is { } exponent ? Raise(left, exponent) : left)
 
 	Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)
 	                   | digits: Number                                   => @(decimal.Parse(digits, CultureInfo.InvariantCulture))

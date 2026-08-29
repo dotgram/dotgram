@@ -150,10 +150,13 @@ public sealed class CSharpEmitterTests
 	{
 		// Three calls, one block. The value is what needs the block: it is materialized at
 		// the rule's own boundary, so the boundary has to be there to materialize it at.
+		// The trailing choice needs a way back ("q" continues into "qq"), which keeps the
+		// grammar on the engine; Name's two constructions keep it off the sited-call path
+		// — a site speaks one factory, and this rule deliberately has two.
 		var source = Emit(
 			"""
-			Start : @string = a: Name & ':' & b: Name & ':' & c: Name => @(a + b + c)
-			Name  : @string = t: ('a' | 'b') => @(t)
+			Start : @string = a: Name & ':' & b: Name & ':' & c: Name & ("q" | "qq") => @(a + b + c)
+			Name  : @string = t: 'a' => @(t) | t: 'b' => @(t)
 			parse Start
 			""");
 
@@ -163,6 +166,60 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(3, source.Split(["call Name"], StringSplitOptions.None).Length - 1);
 		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
 		Assert.Contains("Debug.Assert", source);
+	}
+
+	/// <summary>
+	/// A collection of a sited rule: each element is the callee's body compiled in
+	/// place, wrapped in one boundary capture, and the array is built at Accept by
+	/// walking the boundaries — no call, no completion, no rule capture per element.
+	/// </summary>
+	[Fact]
+	public void A_sited_collection_builds_its_elements_from_boundaries()
+	{
+		// Wrap's recursion keeps the grammar on the engine; Item's optional suffix
+		// exercises a part that some elements have and others do not.
+		const string grammar =
+			"""
+			Item : @string = '@' & t: ['a'..'z']+ & (s: '!')? => @(t + (s ?? ""))
+			List : @string[] = (i: Item)* => @(i)
+			Wrap : @int = '(' & e: Wrap & ')' => @(e + 1)
+			             | l: List => @(l.Length)
+			parse Wrap
+			""";
+
+		var source = Emit(grammar);
+
+		// No call to Item anywhere, and its factory is reached from the boundary walk
+		// rather than from a completed call. `l: List` is still an ordinary rule
+		// capture: List collects values, which is the shape a site does not take.
+		Assert.DoesNotContain("call Item", source);
+		Assert.Contains("Open = --captured", source);
+		// Two elements inside, and one added per bracket pair around them.
+		Assert.Equal(4, Invoke(grammar, "ParseWrap", "((@ab@cd!))").Value);
+		Assert.Equal(1, Invoke(grammar, "ParseWrap", "()").Value);
+	}
+
+	/// <summary>
+	/// Where nothing needs a way back, the same shape is not a shared block but three
+	/// inlined sites: each capture builds its value at Accept from locals of its own,
+	/// and no engine is rented for any of it.
+	/// </summary>
+	[Fact]
+	public void A_flat_valued_rule_is_compiled_where_it_is_captured()
+	{
+		const string grammar =
+			"""
+			Start : @string = a: Name & ':' & b: Name & ':' & c: Name => @(a + b + c)
+			Name  : @string = t: ('a' | 'b') => @(t)
+			parse Start
+			""";
+
+		var source = Emit(grammar);
+
+		Assert.DoesNotContain("call Name", source);
+		Assert.DoesNotContain("RentParser", source);
+		Assert.Equal(3, source.Split(["= Construct_Name("], StringSplitOptions.None).Length - 1);
+		Assert.Equal("aba", Invoke(grammar, "ParseStart", "a:b:a").Value);
 	}
 
 	[Fact]
@@ -216,12 +273,15 @@ public sealed class CSharpEmitterTests
 	public void But_one_that_begins_another_still_needs_it()
 	{
 		// Both match at the same place, the shorter is taken, and if what follows the choice
-		// then fails the longer has to be tried. That is a way back, and a way back is what
-		// the entry is.
+		// then fails the longer has to be tried. That is a way back — held in three locals
+		// now, not an arena entry: the checkpoint class keeps the position, the next
+		// alternative and the site that was pending before, and `Fail:` resumes it.
 		const string grammar = """Start = ("ab" | "abc") & 'c' """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
+		Assert.Contains("pending = 1;", source);
 		Assert.True(Run(grammar, "abc").Matched);
 	}
 
@@ -247,11 +307,13 @@ public sealed class CSharpEmitterTests
 		// The same pair the other way round. "http" is taken first, and coming back for the
 		// second alternative is the only thing that can ever match the extra character —
 		// docs/syntax.md §11 promises alternatives are never reordered, so this is a fact
-		// about the grammar as written and not one to optimize away.
+		// about the grammar as written and not one to optimize away. The way back is the
+		// checkpoint class's: locals and the dispatcher below `Fail:`, no arena.
 		const string grammar = """Start = ("http" | "https") & "://" """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
 		Assert.True(Run(grammar, "https://").Matched);
 		Assert.True(Run(grammar, "http://").Matched);
 	}
@@ -261,11 +323,12 @@ public sealed class CSharpEmitterTests
 	{
 		// Longer first, but 'b' is exactly the character "ab" went on with, so taking it and
 		// failing leaves "a" standing somewhere 'b' can begin: a real second reading, and
-		// the entry is what reaches it.
+		// the checkpoint site is what reaches it.
 		const string grammar = """Start = ("ab" | "a") & 'b' """;
+		var source = Emit(grammar + "\nparse Start");
 
-		Assert.Contains(
-			"entries.Add(new ParserEntry(ParserEntry.Choice", Emit(grammar + "\nparse Start"));
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Contains("way1 = p;", source);
 		Assert.True(Run(grammar, "ab").Matched);
 	}
 
@@ -284,6 +347,21 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Guard0(string b)", source);
 		Assert.DoesNotContain("string? a", source);
 	}
+
+	/// <summary>A guard may ask where it is, which is what a scope is recorded from.</summary>
+	/// <remarks>
+	/// §8.1 has always said the supplied names are in scope inside a <c>when</c>, and only
+	/// <c>parserText</c> was handed over. A guard runs before its rule is finished, so the
+	/// span is the rule from where it began to where the parse now stands — the same extent
+	/// <c>parserText</c> cuts, unread.
+	/// </remarks>
+	[Theory]
+	[InlineData("abc",  true)]
+	[InlineData("ab",   false)]
+	public void A_guard_may_ask_for_the_span_it_has_reached(string input, bool expected) =>
+		Assert.Equal(
+			expected,
+			Run("Start = ['a'..'z']+ & when @(parserSpan.Length > 2)", input).Matched);
 
 	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
@@ -304,7 +382,14 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void Construction_is_recorded_and_runs_only_after_acceptance()
 	{
-		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
+		// The choice needs a way back — "a" continues into "ab" — so the rule stays on
+		// the engine, where construction is an arena record resolved at Accept. Two
+		// alternatives construct, because the record answers which one ran: a rule with
+		// one factory writes no record at all.
+		var source = Emit(
+			"Start : @int = digits: ['0'..'9']+ & (\"a\" | \"ab\") => @int.Parse(digits)\n" +
+			"             | \"z\" => @(0)\n" +
+			"parse Start");
 
 		Assert.Contains("ParserEntry.Construct", source);
 		Assert.Contains("entries[call] = new ParserEntry(ParserEntry.Completed", source);
@@ -312,6 +397,37 @@ public sealed class CSharpEmitterTests
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
 			 source.LastIndexOf("[completedAt] = Construct_Start(", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// §10's difference between the capture that did not happen and the run of no turns,
+	/// kept by the flat form's sentinel where the engine kept it by a missing entry.
+	/// </summary>
+	[Fact]
+	public void A_lowered_optional_capture_still_tells_null_from_empty()
+	{
+		const string grammar = "Sign : @string = (s: '-')? & 'x' => @(s ?? \"none\")\nparse Sign";
+
+		Assert.DoesNotContain("RentParser", Emit(grammar));
+		Assert.Equal("none", Invoke(grammar, "ParseSign", "x").Value);
+		Assert.Equal("-", Invoke(grammar, "ParseSign", "-x").Value);
+	}
+
+	/// <summary>
+	/// The flat form keeps the same promise without the record: the factory call sits
+	/// after the whole-input check, so nothing the author wrote runs on a parse that
+	/// then fails.
+	/// </summary>
+	[Fact]
+	public void A_lowered_construction_still_runs_only_after_acceptance()
+	{
+		var source = Emit("Start : @int = digits: ['0'..'9']+ => @int.Parse(digits)\nparse Start");
+
+		Assert.DoesNotContain("ParserEntry.Construct", source);
+		Assert.DoesNotContain("RentParser", source);
+		Assert.True(
+			source.IndexOf("if (p != text.Length)", StringComparison.Ordinal) <
+			 source.IndexOf("value = Construct_Start(", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -363,7 +479,10 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserArena Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
-		Assert.Contains("var items = new string[count];", source);
+
+		// One repetition and nothing else: the array the materializer built is the
+		// result, handed back without being counted into a copy of itself.
+		Assert.Contains("item0 ?? new string[0];", source);
 		Assert.DoesNotContain("Recognize_Start(", source);
 
 		// No longer also `Assert.DoesNotContain("List<string>", source)`: every
@@ -765,13 +884,12 @@ public sealed class CSharpEmitterTests
 		// splits on — they arrive indented once and flat after that. The code still
 		// compiles, so nothing but this notices.
 		// In a namespace, so the depth every one of them sits at is two and not "whatever
-		// the class happened to be nested at". Deliberately not silent — the shorter literal
-		// is written first, so it takes the position wherever the longer would have and the
-		// choice needs a way back, which is what asks for the arena and the Parser below.
-		// The other order lowers, and the whole engine, Parser included, is what a silent
-		// grammar no longer pays for.
+		// the class happened to be nested at". Deliberately not silent — the repetition
+		// over an ambiguous choice keeps a way back per turn, which no checkpoint site
+		// can hold, so this grammar still asks for the arena and the Parser below. A
+		// silent grammar no longer pays for either.
 		var source = Assert.Single(GramCompiler.Compile(
-			"Start = (\"a\" | \"ab\") & 'c'\nparse Start",
+			"Start = ((\"a\" | \"ab\") & 'c')* & 'd'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);
@@ -948,6 +1066,37 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
+	public void A_second_recover_costs_a_parse_its_reader_overload()
+	{
+		// A whole parse runs every `recover` a rule marks (§8.2); a stream does not, and
+		// not for want of machinery — the driver steps over a bad element one repetition
+		// at a time, so a second one would be a `recover` that quietly does not happen.
+		// Said where the publication asked for the overload, rather than refusing the
+		// grammar: without a reader it parses exactly as it reads.
+		var result = GramCompiler.Compile(
+			"""
+			Row   : @string   = t: ['a'..'z']+ & eol => @(t)
+			Sheet : @string[] = "H" & eol & head: Row* recover eol => @("!" + parserText)
+			                  & "B" & eol & body: Row* recover eol => @("?" + parserText)
+			                  & eof
+			                  => @(head)
+
+			parse Sheet
+			""",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		var told = Assert.Single(result.Diagnostics);
+
+		Assert.Equal(Retention.NotStreamable, told.Id);
+		Assert.Equal(GramSeverity.Info,       told.Severity);
+		Assert.Contains("more than one repetition", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void And_is_told_so_where_it_asked()
 	{
 		// The alternative is what the author actually meets: a call that does not bind,
@@ -1071,6 +1220,62 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
 	}
 
+	// ── A rule that scans ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// An atomic, record-free rule compiles as a plain method, and its calls as calls.
+	/// </summary>
+	[Fact]
+	public void An_atomic_recordless_rule_compiles_as_a_scanner()
+	{
+		var source = Emit(
+			"trivia = { (' ' | \"//\" & [^ '\\n']*)* }" + '\n' +
+			"Start = 'a' & 'b'" + '\n' + "parse Start");
+
+		Assert.Contains("static int Scan_trivia(", source, StringComparison.Ordinal);
+		Assert.Contains("p = Scan_trivia(text, p);", source, StringComparison.Ordinal);
+
+		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
+		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The scanner's two shapes that are not the grammar written out literally: one
+	/// character deciding the whole choice, and a guarded scan as the search it is.
+	/// </summary>
+	[Fact]
+	public void A_scanner_asks_one_character_first_and_searches_for_its_delimiter()
+	{
+		const string grammar =
+			"""
+			namespace S
+			{
+				trivia = { (' ' | "/*" & (?!"*/" & any)* & "*/")* }
+
+				X : @string = t: ['a'..'z']+ => @(t)
+			}
+			parse S.X
+			""";
+
+		var source = Emit(grammar);
+
+		// Every alternative must begin with a character, so one test refuses them all —
+		// the commonest answer at a seam, where there is no trivia to skip.
+		Assert.Contains("if (!(c == ' ' || c == '/')) goto", source, StringComparison.Ordinal);
+
+		// `(?!"*/" & any)* & "*/"` is a search: no per-character loop, no rewind, and
+		// the delimiter read once instead of twice.
+		Assert.Contains("MemoryExtensions.IndexOf(text.Slice(p)", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("_scan:", source, StringComparison.Ordinal);
+
+		Assert.Equal("ab", Invoke(grammar, "ParseX", " /* c */ ab /**/ ").Value);
+		Assert.Equal("ab", Invoke(grammar, "ParseX", "ab").Value);
+
+		// An unterminated comment is not trivia: the scan gives the position back, and
+		// what is left does not parse.
+		Assert.False(Invoke(grammar, "ParseX", "ab /* ").Matched);
+	}
+
 	// ── A capture that can open before it closes ─────────────────────────
 
 	/// <summary>
@@ -1089,7 +1294,7 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("Start = text: ('a' & Start?)");
 
-		Assert.Contains("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.Contains("ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0", source);
 		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("var capture0 = 0;", source, StringComparison.Ordinal);
 	}
@@ -1101,30 +1306,241 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = text: ('a' & 'b')");
 
 		Assert.Contains("capture0 = p;", source);
-		Assert.DoesNotContain("ParserEntry.Capture, 0, p, call, atomic, repeat, lookahead, -1", source);
+		Assert.DoesNotContain("ParserEntry.CaptureOpen", source, StringComparison.Ordinal);
 	}
+
+	[Fact]
+	public void A_repetition_reopens_it_too_where_its_body_has_a_way_back_in()
+	{
+		// The hazard is the body's door, and a repetition is the plainest way to reach it
+		// twice: turn two runs the opening again before turn one is final. `Run+` has that
+		// door; `'b'` alone does not, so `('a' & 'b')+` below still keeps its variable and
+		// pays nothing — which is most captures.
+		var reopens = Emit("Run = 'a'+\nStart : @string = t: Run{2} => @(t)");
+
+		Assert.Contains("ParserEntry.CaptureOpen", reopens, StringComparison.Ordinal);
+		Assert.DoesNotContain("capture0 = p;", reopens, StringComparison.Ordinal);
+
+		Assert.DoesNotContain(
+			"ParserEntry.CaptureOpen", Emit("Start : @string = (t: 'a' & 'b')+ => @(t)"),
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>And wherever else the close can be reached a second time.</summary>
+	/// <remarks>
+	/// A repetition is one way and not the only one. The parse reads the same rule again
+	/// somewhere else, writes the variable there, and then a failure unwinds to a door
+	/// inside the first reading and closes it with the second one's start. Found by
+	/// `Math.Max(1, 2)` in the expression language, which threw out of the parser rather
+	/// than answering — the capture being a dotted name, and the door the `*` inside it.
+	/// </remarks>
+	[Fact]
+	public void And_wherever_a_second_reading_could_write_the_variable()
+	{
+		var source = Emit("Dotted = ['a'..'z']+ & ('.' & ['a'..'z']+)*\nStart = name: Dotted & '!'");
+
+		Assert.Contains("ParserEntry.CaptureOpen", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("capture0 = p;", source, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("Run = ['0'..'9']+\nStart : @string = t: Run{2} => @(t)", "1234", "1234")]
+	[InlineData("Start : @string = t: (['0'..'9']+){2} => @(t)",          "1234", "1234")]
+	public void And_the_start_it_reads_back_is_the_one_its_own_turn_wrote(
+		string grammar, string input, string expected) =>
+		// Both answered "" before the opening went into the arena: turn two had set the
+		// variable to where it began, its body failed, and the give-back door came back to
+		// turn one's close — which recorded a span starting after it ended.
+		Assert.Equal(expected, Run(grammar, input).Value);
+
+	[Theory]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-'){2} => @(t)",   "12-34-",    "1234")]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-')+ => @(t)",     "12-34-56-", "123456")]
+	[InlineData("D = ['0'..'9']\nStart : @string = (t: D+ & '-')+ => @(t)", "12-34-", "1234")]
+	public void A_repeated_text_capture_is_the_turns_joined_and_not_the_span_they_lie_in(
+		string grammar, string input, string expected) =>
+		// §10: repeated text is the text joined. The span from the first start to the last
+		// end is that only where the turns are adjacent — and the generator still takes it
+		// where they are, which is what the measurements are for.
+		Assert.Equal(expected, Run(grammar, input).Value);
+
+	/// <summary>A fold keeps naming its own loop when a pass rebuilds it.</summary>
+	/// <remarks>
+	/// `E` forwards to `P`, so collapsing the call to it rebuilds the sequence holding it —
+	/// and with it the repetition around it, which is the loop `P`'s fold named by
+	/// reference. Left unhanded, the layout stopped recognizing that loop as the fold's:
+	/// every capture in the tails came out a sequence, the fold's own operand went missing
+	/// from the factory, and the C# the *consumer* compiles named a parameter that was not
+	/// there. Found by `a[i]` in the expression language, where the index is an expression
+	/// and an expression leads back into the postfix chain.
+	/// </remarks>
+	[Fact]
+	public void A_capture_in_a_fold_stays_a_value_when_a_forwarder_below_it_collapses()
+	{
+		var source = Emit(
+			"""
+			C : @string = t: ['a'..'z']+ => @(t)
+			E : @string = e: P => @(e)
+			P : @string = t: P & '[' & m: E & ']' => @(t + m) | p: C => @(p)
+			parse E
+			""");
+
+		Assert.Contains("static string Construct_P_1(string t, string m)", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("string[] m", source, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_the_parse_it_emits_reads_the_chain() =>
+		Assert.Equal(
+			"abc",
+			Run(
+				"""
+				C : @string = t: ['a'..'z']+ => @(t)
+				Start : @string = e: P => @(e)
+				P : @string = t: P & '[' & m: Start & ']' => @(t + m) | p: C => @(p)
+				""",
+				"a[b][c]").Value);
+
+	/// <summary>Two shapes of the same choice, and the same answer about where it failed.</summary>
+	/// <remarks>
+	/// A failed literal's position is a selector rather than a caret: `Fail:` keeps the
+	/// furthest failure and reports that one's expectation. A run of literal alternatives
+	/// used to report the start of the run and name all of them, where the same choice
+	/// written one literal per rule named the one that got furthest — the same grammar,
+	/// two qualities of message, decided by which shape the author happened to write.
+	/// </remarks>
+	[Theory]
+	[InlineData("abcdezz", 5L, "Expected \"abcdefx\".")]
+	[InlineData("abqzzz",  3L, "Expected \"abqy\".")]
+	[InlineData("abczzzz", 3L, "Expected \"abcdefx\".")]
+	[InlineData("zbcdefx", 0L, "Expected \"abcdefx\" or \"abqy\".")]
+	public void A_run_of_literals_fails_where_the_same_choice_of_rules_does(
+		string input, long position, string message)
+	{
+		foreach (var grammar in new[]
+		{
+			"Start = \"abcdefx\" | \"abqy\"",
+			"A = \"abcdefx\"\nB = \"abqy\"\nStart = A | B",
+		})
+		{
+			var (_, _, error, at) = EmittedCode.Match(
+				EmittedCode.Compile(Emit(grammar + "\nparse Start")), "Grammar", "TryParseStart", input);
+
+			Assert.Equal(position, at);
+			Assert.Equal(message, error);
+		}
+	}
+
+	/// <summary>What a parse works out, handed over rather than kept in a static (§7.7).</summary>
+	/// <remarks>
+	/// Threaded to whatever names it and to nothing else, the way the supplied names of
+	/// §8.2 are: a grammar that declares a context and never uses it is compiled exactly as
+	/// one that declares none.
+	/// </remarks>
+	[Fact]
+	public void A_declared_context_reaches_whatever_names_it()
+	{
+		var source = Emit(
+			"""
+			context : @Names
+			Word = ['a'..'z']+
+			Start : @string = n: Word & when @(context.Seen(n)) => @(context.Count + n)
+			parse Start
+			""");
+
+		Assert.Contains("public static string ParseStart(string input, Names context)", source);
+		Assert.Contains("Names context, ref Failure failure", source);
+		Assert.Contains("Recognize_DotGram_Guard0(Names context, string n)", source);
+		Assert.Contains("Construct_Start(Names context, string n)", source);
+	}
+
+	[Fact]
+	public void And_a_grammar_that_declares_none_is_untouched() =>
+		Assert.DoesNotContain(
+			"context",
+			Emit(
+				"""
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_one_that_declares_it_without_naming_it_is_too() =>
+		// The publication takes no argument nobody asked for.
+		Assert.Contains(
+			"public static string ParseStart(string input)",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				"""));
+
+	// ── §7.8, the marks a parse places over an extent ────────────────────────────
+
+	[Fact]
+	public void A_factory_that_names_the_marks_is_handed_them()
+	{
+		var source = Emit(
+			"""
+			state : @Overflow
+			Value : @int = t: ['0'..'9']+ => @(Read(t, parserState))
+			Start : @int = "checked" & '(' & v: Value with state @(Overflow.Checked) & ')' => @(v)
+			parse Start
+			""");
+
+		Assert.Contains(
+			"Construct_Value(global::System.ReadOnlySpan<Overflow> parserState, string t)", source);
+		Assert.Contains("ParserEntry.StateSet, 0, p,", source);
+		Assert.Contains("ParserEntry.StateEnd, 0, p,", source);
+	}
+
+	[Fact]
+	public void And_one_that_does_not_is_not() =>
+		// The same rule the supplied names of §8.2 and `context` follow: what a hook does
+		// not name, it is not given.
+		Assert.DoesNotContain(
+			"parserState",
+			Emit(
+				"""
+				state : @Overflow
+				Value : @int = t: ['0'..'9']+ => @(int.Parse(t))
+				Start : @int = 'c' & v: Value with state @(Overflow.Checked) => @(v)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_a_grammar_that_places_none_carries_none_of_the_machinery() =>
+		Assert.DoesNotContain(
+			"ParserEntry.StateSet",
+			Emit(
+				"""
+				state : @Overflow
+				Start : @int = t: ['0'..'9']+ => @(int.Parse(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
 
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]
-	public void The_way_back_to_a_longer_alternative_is_written_past_what_already_matched()
+	public void The_way_back_to_a_longer_alternative_re_reads_it_from_its_start()
 	{
 		var source = Emit("Start = QhttpQ | QhttpsQNparse Start".Replace("Q", "\"").Replace("N", "\n"));
 
-		// The order of these two lines is the whole optimization. An arena entry records
-		// the position as it stands, so pushing after the advance means what resumes there
-		// resumes past the four characters `"http"` matched — and the state it names
-		// compares the fifth alone. Pushed before, it would resume at the start and compare
-		// `"https"` from its first character.
-		Assert.Matches(
-			@"p \+= 4;\s*entries\.Add\(new ParserEntry\(ParserEntry\.Choice,", source);
-
-		Assert.Matches(@"text\[p\] == 's'\)\s*\{\s*p \+= 1;", source);
-
-		// And the longer text is never compared as a text at all: it is not in the
-		// falling-through chain, because it begins with one tested above it, and where
-		// the way back names it only the one character it adds is read.
-		Assert.DoesNotContain("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
+		// The checkpoint class took this shape off the engine entirely: no arena entry,
+		// no dispatch, a plain method. What the engine's form had here and this one does
+		// not is the past-the-prefix resume — its way back was pushed after `"http"`
+		// advanced and compared the fifth character alone, where the retry rewinds to
+		// the site's start and compares `"https"` whole. That is a retry-path read of
+		// four extra characters against a straight-line path that no longer rents a
+		// parser; teaching `CompileLiterals` to chain into a retry label instead of an
+		// arena entry would restore it, and is recorded as the follow-up.
+		Assert.DoesNotContain("entries.Add(new ParserEntry(ParserEntry.Choice", source);
+		Assert.Matches(@"p = way1;\s*alt1 = 2;", source);
+		Assert.Contains("AsSpan(QhttpsQ)".Replace("Q", "\""), source, StringComparison.Ordinal);
 	}
 
 	// ── Position sharpening: the character that failed, not the operand's start ──

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -40,7 +41,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			$"ParserArena entries{InputParameter})"))
+			$"ParserArena entries{InputParameter}{ContextParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -81,6 +82,8 @@ sealed partial class Machine
 			}
 		}
 		file.Line("parser.LinkedUpTo = entries.Count;");
+
+		MarkChain(file);
 
 		// A transparent rule may have completed before a surrounding path backtracked and
 		// selected another derivation. Such completed entries can remain useful as history,
@@ -373,12 +376,26 @@ sealed partial class Machine
 
 				scalars.Add(memberIndex);
 
-				if (member.Rule is not null)
+				// A sited member has no completed call to point at — its value is built
+				// from the spans the site recorded, one pair per callee member.
+				if (SiteFor(offset, member) is { } sited)
+					for (var part = 0; part < sited.Members.Count; part++)
+					{
+						file.Line($"var captured{memberIndex}_{part}From = -1;");
+						file.Line($"var captured{memberIndex}_{part}To   = -1;");
+					}
+				else if (member.Rule is not null)
 					file.Line($"var captured{memberIndex}At = -1;");
 				else
 				{
 					file.Line($"var captured{memberIndex}From = -1;");
 					file.Line($"var captured{memberIndex}To   = -1;");
+
+					// A member a repetition repeats is measured as well as bounded: the
+					// pieces tell the span whether it is the text, and if it is not they
+					// are what the text is made of.
+					if (Joined(offset, member))
+						file.Line($"var captured{memberIndex}Length = 0;");
 				}
 			}
 
@@ -399,6 +416,33 @@ sealed partial class Machine
 						foreach (var memberIndex in scalars)
 						{
 							var member = members[memberIndex];
+
+							// A sited member collects per callee member: each of the
+							// site's slots is a case of its own, filled the way a text
+							// capture is.
+							if (SiteFor(offset, member) is { } sited)
+							{
+								for (var part = 0; part < sited.Members.Count; part++)
+								{
+									file.Line($"case {sited.Base + sited.Members[part].Slots[0]}:");
+
+									using (file.Indent())
+									{
+										using (file.Block(
+											"if (candidate.Kind == ParserEntry.Capture && " +
+											"candidate.CallIndex == completedAt)"))
+										{
+											file.Line($"if (captured{memberIndex}_{part}To < 0)");
+											file.Then($"captured{memberIndex}_{part}To = candidate.Value;");
+											file.Line($"captured{memberIndex}_{part}From = candidate.Position;");
+										}
+
+										file.Line("break;");
+									}
+								}
+
+								continue;
+							}
 
 							foreach (var slot in member.Slots)
 								file.Line($"case {offset + slot}:");
@@ -422,6 +466,11 @@ sealed partial class Machine
 										file.Line($"if (captured{memberIndex}To < 0)");
 										file.Then($"captured{memberIndex}To = candidate.Value;");
 										file.Line($"captured{memberIndex}From = candidate.Position;");
+
+										if (Joined(offset, member))
+											file.Line(
+												$"captured{memberIndex}Length += " +
+												"candidate.Value - candidate.Position;");
 									}
 
 								file.Line("break;");
@@ -438,6 +487,54 @@ sealed partial class Machine
 
 				if (member.Rule is not null)
 				{
+					// A sited member is the callee's one factory over the spans the site
+					// recorded — called here, deferred to Accept exactly as a completed
+					// call's would have been. A scalar site's witness is its first
+					// required span; a collection site's elements are counted and told
+					// apart by the boundary capture each one was wrapped in.
+					if (SiteFor(offset, member) is { } sited)
+					{
+						var arguments = new List<string>(sited.Members.Count);
+
+						for (var part = 0; part < sited.Members.Count; part++)
+							arguments.Add(
+								$"captured{memberIndex}_{part}From < 0 ? " +
+								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
+								$"text.Slice(captured{memberIndex}_{part}From, " +
+								$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From).ToString()");
+
+						var built = $"{_factories[sited.Callee][0].Method}({string.Join(", ", arguments)})";
+
+						if (member.IsSequence)
+						{
+							MaterializeSitedSequence(file, memberIndex, member, sited, built);
+
+							continue;
+						}
+
+						var witness = 0;
+
+						while (sited.Members[witness].IsOptional)
+							witness++;
+
+						if (member.IsOptional)
+							file.Line(
+								$"{_results.ValueOf(member.Rule)}? captured{memberIndex} = " +
+								$"captured{memberIndex}_{witness}From < 0 ? " +
+								$"default({_results.ValueOf(member.Rule)}?) : {built};");
+						else
+						{
+							file.Line(
+								"global::System.Diagnostics.Debug.Assert(" +
+								$"captured{memberIndex}_{witness}From >= 0);");
+							file.Line($"var captured{memberIndex} = {built};");
+						}
+
+						file.Line();
+
+						continue;
+					}
+
 					if (member.IsSequence)
 					{
 						var slots = new List<string>(member.Slots.Count);
@@ -517,11 +614,90 @@ sealed partial class Machine
 					continue;
 				}
 
+				// A span that arrives inside out is a generator bug, and the debug build
+				// says whose it is instead of throwing an index exception out of a line
+				// number nobody can read. Found the hard way: a reopened capture's start
+				// once survived backtracking in a local, and the report was
+				// ArgumentOutOfRangeException at generated line 34853.
+				file.Line("#if DEBUG");
 				file.Line(
-					$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
-					(member.IsOptional ? "null" : "string.Empty") + " : " +
-					$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
-					$"captured{memberIndex}From).ToString();");
+					$"if (captured{memberIndex}From >= 0 && captured{memberIndex}To < captured{memberIndex}From)");
+				file.Then(
+					"throw new global::System.InvalidOperationException(" +
+					$"\"DotGram invariant: capture '{Escape(member.Name)}' of rule " +
+					$"'{Escape(rule.Name)}' has its end before its start (\" + " +
+					$"captured{memberIndex}From.ToString() + \"..\" + captured{memberIndex}To.ToString() + " +
+					"\"). This is a generator defect; please report the grammar.\");");
+				file.Line("#endif");
+
+				if (!Joined(offset, member))
+				{
+					file.Line(
+						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
+						(member.IsOptional ? "null" : "string.Empty") + " : " +
+						$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
+						$"captured{memberIndex}From).ToString();");
+					file.Line();
+
+					continue;
+				}
+
+				// §10's join, and the span where the span is the join. Turns of a repetition
+				// that has nothing else in it are adjacent, and then the pieces measure
+				// exactly the distance between the first start and the last end — one slice
+				// and one string, which is what this cost before it was right. Where they do
+				// not tile, what stands between them is not part of the value, and the
+				// pieces are copied out in reading order instead. The walk runs backwards,
+				// so the buffer is filled from its end.
+				file.Line($"string{(member.IsOptional ? "?" : "")} captured{memberIndex};");
+				file.Line();
+				file.Line($"if (captured{memberIndex}From < 0)");
+				file.Then($"captured{memberIndex} = {(member.IsOptional ? "null" : "string.Empty")};");
+				file.Line(
+					$"else if (captured{memberIndex}To - captured{memberIndex}From == " +
+					$"captured{memberIndex}Length)");
+				file.Then(
+					$"captured{memberIndex} = " +
+					$"text.Slice(captured{memberIndex}From, captured{memberIndex}Length).ToString();");
+
+				using (file.Block("else"))
+				{
+					file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
+					file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
+					file.Line();
+
+					using (file.Block(
+						"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
+						"capturedAt = linkNexts[capturedAt])"))
+					{
+						file.Line("var candidate = entries[capturedAt];");
+						file.Line();
+						file.Line(
+							"if (candidate.Kind != ParserEntry.Capture || " +
+							"candidate.CallIndex != completedAt)");
+						file.Then("continue;");
+						file.Line();
+						file.Line(
+							"if (" +
+							string.Join(
+								" && ",
+								member.Slots.Select(slot => $"candidate.State != {offset + slot}")) +
+							")");
+						file.Then("continue;");
+						file.Line();
+						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
+						file.Line();
+						file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
+						file.Line(
+							$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
+							$"new global::System.Span<char>(captured{memberIndex}Chars, " +
+							$"captured{memberIndex}At, captured{memberIndex}Piece));");
+					}
+
+					file.Line();
+					file.Line($"captured{memberIndex} = new string(captured{memberIndex}Chars);");
+				}
+
 				file.Line();
 			}
 
@@ -534,6 +710,15 @@ sealed partial class Machine
 					file.Line(
 						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
 						(i + 1 < members.Count ? "," : ");"));
+		}
+		else if (factories.Count == 1)
+		{
+			// One factory means the question the Construct entry answered — which
+			// construction ran — has only one answer, so no entry was written and
+			// there is nothing to walk for.
+			file.Line(
+				$"{ValueInto(type, "completedAt")} = " +
+				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
 		}
 		else
 		{
@@ -559,39 +744,6 @@ sealed partial class Machine
 				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
 				{
 					var factory = factories[factoryIndex];
-					var arguments = new List<string>();
-
-					// Materialized only where the expression names it. It is the whole of
-					// what the rule matched, so building it for an expression that never
-					// looks at it doubles what a parse allocates — twice the string, for a
-					// rule whose value is the capture inside it.
-					if (CSharpEmitter.WantsText(factory))
-						arguments.Add(
-							"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
-
-					if (CSharpEmitter.Asks(factory, "parserSpan"))
-						arguments.Add(
-							"new SourceSpan(" +
-							"completed.Position, completed.Value - completed.Position)");
-
-					if (CSharpEmitter.Asks(factory, "parserInput"))
-						arguments.Add("parserInput");
-
-					foreach (var member in factory.Members)
-					{
-						if (member.Name == "parserText" || member.Name == factory.Accumulator)
-							continue;
-
-						for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
-							if (members[memberIndex].Name == member.Name)
-							{
-								arguments.Add(
-									!member.IsOptional && members[memberIndex] is { Rule: not null, IsOptional: true }
-										? $"({_results.ValueOf(members[memberIndex].Rule)})captured{memberIndex}!"
-										: $"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
-								break;
-							}
-					}
 
 					file.Line($"case {factoryIndex}:");
 
@@ -599,7 +751,7 @@ sealed partial class Machine
 					{
 						file.Line(
 							$"{ValueInto(type, "completedAt")} = " +
-							$"{factory.Method}({string.Join(", ", arguments)});");
+							$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))});");
 						file.Line("break;");
 					}
 				}
@@ -607,6 +759,301 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	/// <summary>
+	/// A collection built from sited elements: count the boundary captures, then walk the
+	/// chain once more — reverse write order, so each boundary arrives before the spans of
+	/// its own element and after the spans of the one that followed it in the input.
+	/// </summary>
+	void MaterializeSitedSequence(
+		Writer file, int memberIndex, ResultMember member, SitePlan sited, string built)
+	{
+		var element = _results.ValueOf(member.Rule);
+
+		for (var part = 0; part < sited.Members.Count; part++)
+		{
+			file.Line($"var captured{memberIndex}_{part}From = -1;");
+			file.Line($"var captured{memberIndex}_{part}To   = -1;");
+		}
+
+		file.Line($"var captured{memberIndex}Count = 0;");
+
+		using (file.Block(
+			$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+			$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
+		{
+			file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+			file.Line(
+				"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt && " +
+				$"candidate.State == {sited.Boundary}) captured{memberIndex}Count++;");
+		}
+
+		file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
+		file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
+		file.Line($"var captured{memberIndex}Open = -1;");
+
+		using (file.Block(
+			$"for (var capturedAt{memberIndex} = linkHeads[completedAt]; capturedAt{memberIndex} >= 0; " +
+			$"capturedAt{memberIndex} = linkNexts[capturedAt{memberIndex}])"))
+		{
+			file.Line($"var candidate = entries[capturedAt{memberIndex}];");
+			file.Line();
+			file.Line("if (candidate.Kind != ParserEntry.Capture || candidate.CallIndex != completedAt)");
+			file.Then("continue;");
+			file.Line();
+
+			using (file.Block("switch (candidate.State)"))
+			{
+				file.Line($"case {sited.Boundary}:");
+
+				using (file.Indent())
+				using (file.Block(""))
+				{
+					using (file.Block($"if (captured{memberIndex}Open >= 0)"))
+					{
+						file.Line($"captured{memberIndex}[captured{memberIndex}Open] = {built};");
+
+						for (var part = 0; part < sited.Members.Count; part++)
+						{
+							file.Line($"captured{memberIndex}_{part}From = -1;");
+							file.Line($"captured{memberIndex}_{part}To   = -1;");
+						}
+					}
+
+					file.Line($"captured{memberIndex}Open = --captured{memberIndex}Item;");
+					file.Line("break;");
+				}
+
+				for (var part = 0; part < sited.Members.Count; part++)
+				{
+					file.Line($"case {sited.Base + sited.Members[part].Slots[0]}:");
+
+					using (file.Indent())
+					{
+						file.Line($"captured{memberIndex}_{part}From = candidate.Position;");
+						file.Line($"captured{memberIndex}_{part}To   = candidate.Value;");
+						file.Line("break;");
+					}
+				}
+			}
+		}
+
+		file.Line($"if (captured{memberIndex}Open >= 0)");
+		file.Then($"captured{memberIndex}[captured{memberIndex}Open] = {built};");
+		file.Line($"global::System.Diagnostics.Debug.Assert(captured{memberIndex}Item == 0);");
+		file.Line();
+	}
+
+	/// <summary>
+	/// Where each arena slot's innermost mark is, worked out in one pass over what was
+	/// accepted (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Not incremental like the link tables above it. A guard that materializes mid-parse
+	/// does so over an arena the parse is still writing, and marks are the one thing here
+	/// whose meaning is where they stand relative to each other — so the whole of it is
+	/// walked, which is a pass over an array of ints and is what everything else in this
+	/// method already costs.
+	/// </para>
+	/// <para>
+	/// Then a factory that names <c>parserState</c> follows the chain from its own index
+	/// instead of scanning: `marks[at]` is the innermost mark standing over `at`, and
+	/// `marks[thatMark]` is the one enclosing it, all the way out.
+	/// </para>
+	/// </remarks>
+	void MarkChain(Writer file)
+	{
+		if (!UsesMarks)
+			return;
+
+		file.Line();
+		file.Line("var marks   = parser.MaterializationMarks();");
+		file.Line("var markTop = -1;");
+		file.Line("var markDeep = 0;");
+		file.Line("var markMost = 0;");
+		file.Line();
+
+		using (file.Block("for (var markAt = 0; markAt < entries.Count; markAt++)"))
+		{
+			file.Line("var marked = entries[markAt];");
+			file.Line();
+
+			using (file.Block("if (marked.Kind == ParserEntry.StateSet)"))
+			{
+				// Written before `markTop` moves, so the slot holds what encloses this mark
+				// rather than the mark itself — which is what makes one array enough.
+				file.Line("marks[markAt] = markTop;");
+				file.Line("markTop       = markAt;");
+				file.Line("if (++markDeep > markMost) markMost = markDeep;");
+				file.Line("continue;");
+			}
+
+			using (file.Block("if (marked.Kind == ParserEntry.StateEnd)"))
+			{
+				file.Line("global::System.Diagnostics.Debug.Assert(markTop >= 0);");
+				file.Line("markTop = marks[markTop];");
+				file.Line("markDeep--;");
+			}
+
+			file.Line();
+			file.Line("marks[markAt] = markTop;");
+		}
+
+		file.Line();
+		file.Line($"var markState = new {_graph.State}[markMost];");
+	}
+
+	/// <summary>
+	/// The marks standing over one arena slot, outermost first — what a factory that names
+	/// <c>parserState</c> is handed.
+	/// </summary>
+	/// <remarks>
+	/// Filled from the back, because following the chain gives the innermost first and a
+	/// hook reads the other way: it scans from the end for the nearest value of its own
+	/// concern, so the nearest has to be last. Written into one buffer held for the whole
+	/// walk rather than a fresh array each time — nothing outlives the call it is passed
+	/// to, which is what a span already says.
+	/// </remarks>
+	string MarksIn(Writer file, string at)
+	{
+		var name = $"marksAt{_markReads++}";
+
+		file.Line($"var {name}Count = 0;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"{name}Count++;");
+
+		file.Line($"var {name}Fill = {name}Count;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"markState[--{name}Fill] = {MarkValue($"entries[{name}Walk].State")};");
+
+		return $"new global::System.ReadOnlySpan<{_graph.State}>(markState, 0, {name}Count)";
+	}
+
+	int _markReads;
+
+	/// <summary>The C# a site's number stands for, as an expression over that number.</summary>
+	string MarkValue(string site)
+	{
+		var switched = new StringBuilder("(");
+
+		// A conditional chain rather than a switch expression: this is C# 8 ground (see
+		// .claude/rules/emitted-code.md), and the sites are few — one per `with state`
+		// written in the grammar, not one per place a mark is read.
+		for (var index = 0; index < _marks.Count; index++)
+			switched.Append(index + 1 < _marks.Count
+				? $"{site} == {index} ? {_marks[index]} : "
+				: _marks[index]);
+
+		return switched.Append(')').ToString();
+	}
+
+	/// <summary>
+	/// Everything a factory may be handed that is not one of its own captures, in the order
+	/// its parameters are written.
+	/// </summary>
+	/// <remarks>
+	/// One list, called from both places a factory is: the ordinary path below and the fold
+	/// above, which used to assemble its own and had drifted — it knew about the text and
+	/// the span and about none of the three added since. A factory's parameters are written
+	/// once, in <c>CSharpEmitter</c>, so what fills them has to be written once too or the
+	/// next name added is a call missing an argument in somebody else's build.
+	/// </remarks>
+	List<string> Supplied(Writer file, Factory factory, string at)
+	{
+		var arguments = new List<string>();
+
+		// Materialized only where the expression names it. It is the whole of what the
+		// rule matched, so building it for an expression that never looks at it doubles
+		// what a parse allocates — twice the string, for a rule whose value is the
+		// capture inside it.
+		if (CSharpEmitter.WantsText(factory))
+			arguments.Add(
+				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+
+		if (CSharpEmitter.Asks(factory, "parserSpan"))
+			arguments.Add(
+				"new SourceSpan(" +
+				"completed.Position, completed.Value - completed.Position)");
+
+		if (CSharpEmitter.Asks(factory, "parserInput"))
+			arguments.Add("parserInput");
+
+		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+			arguments.Add("context");
+
+		// The marks standing over this construction, outermost first. Built where it is
+		// asked for and nowhere else, the same as the text above it: a grammar that places
+		// marks and a factory that reads them are two different decisions.
+		//
+		// Gated on the declaration and not on whether anything places a mark: the parameter
+		// is, and the two have to agree. A grammar that declares a state and writes no
+		// `with state` hands over nothing, which is what an empty span says.
+		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
+
+		return arguments;
+	}
+
+	/// <summary>
+	/// A factory's arguments from the captures walked above — the same list whichever
+	/// branch asks for it.
+	/// </summary>
+	List<string> FactoryArguments(
+		Writer file, Factory factory, IReadOnlyList<ResultMember> members, string at)
+	{
+		var arguments = new List<string>();
+
+		// Materialized only where the expression names it. It is the whole of what the
+		// rule matched, so building it for an expression that never looks at it doubles
+		// what a parse allocates — twice the string, for a rule whose value is the
+		// capture inside it.
+		if (CSharpEmitter.WantsText(factory))
+			arguments.Add(
+				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+
+		if (CSharpEmitter.Asks(factory, "parserSpan"))
+			arguments.Add(
+				"new SourceSpan(" +
+				"completed.Position, completed.Value - completed.Position)");
+
+		if (CSharpEmitter.Asks(factory, "parserInput"))
+			arguments.Add("parserInput");
+
+		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+			arguments.Add("context");
+
+		// The marks standing over this construction, outermost first. Built where it is
+		// asked for and nowhere else, the same as the text above it: a grammar that places
+		// marks and a factory that reads them are two different decisions.
+		// Gated on the declaration and not on whether anything places a mark: the parameter
+		// is, and the two have to agree. A grammar that declares a state and writes no
+		// `with state` hands over nothing, which is what an empty span says.
+		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
+
+		foreach (var member in factory.Members)
+		{
+			if (member.Name == "parserText" || member.Name == factory.Accumulator)
+				continue;
+
+			for (var memberIndex = 0; memberIndex < members.Count; memberIndex++)
+				if (members[memberIndex].Name == member.Name)
+				{
+					arguments.Add(
+						!member.IsOptional && members[memberIndex] is { Rule: not null, IsOptional: true }
+							? $"({_results.ValueOf(members[memberIndex].Rule)})captured{memberIndex}!"
+							: $"captured{memberIndex}{(member.IsOptional ? "" : "!")}");
+					break;
+				}
+		}
+
+		return arguments;
 	}
 
 	void MaterializeFold(
@@ -636,16 +1083,7 @@ sealed partial class Machine
 					using (file.Indent())
 					using (file.Block(""))
 					{
-						var arguments = new List<string>();
-
-						if (CSharpEmitter.WantsText(factory))
-							arguments.Add(
-								"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
-
-						if (CSharpEmitter.Asks(factory, "parserSpan"))
-							arguments.Add(
-								"new SourceSpan(" +
-								"completed.Position, completed.Value - completed.Position)");
+						var arguments = Supplied(file, factory, "constructAt");
 
 						if (factory.Accumulator is not null)
 						{

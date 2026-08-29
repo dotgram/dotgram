@@ -25,12 +25,13 @@ namespace DotGram.Examples;
 //     spaced and commented freely (§4.5). One declaration, and no rule below it mentions
 //     whitespace.
 //
-//   * Only two repetitions write `trivia` out, and §4.5 says which two. A repetition of
-//     a sequence is spaced by itself — `('|' & ElemAlt)*`, `(',' & Type)* ` — because
-//     the turns are a seam between operands like any other. A repetition of one thing is
-//     a lexeme and is not, which is what keeps `['0'..'9']+` from reading `1 2` as one
-//     number — and what makes `(trivia & Declaration)*` say so, being a run of single
-//     things that newlines stand between.
+//   * No repetition writes `trivia` out, and §4.5 says why not. A repetition of a
+//     sequence is spaced by itself — `('|' & ElemAlt)*`, `(',' & Type)* ` — because
+//     the turns are a seam between operands like any other; a repetition of a valued
+//     rule is a collection, and collections are spaced the way operands are —
+//     `declarations: Declaration*` reads the newlines between declarations without
+//     naming them. What stays unspaced is the valueless run — the inside of a lexeme —
+//     which is what keeps `['0'..'9']+` from reading `1 2` as one number.
 //
 //   * `@(...)` holds C#, and finding its closing parenthesis means knowing C#'s own
 //     strings and comments. No grammar can do that, and this one does not try: `@CSharp`
@@ -58,7 +59,6 @@ namespace DotGram.Examples;
 		WordOrDigit  = [\p{L} | \p{Nd} | '_']
 
 		Identifier   = Word & WordOrDigit*
-		Name         = Identifier & ('.' & Identifier)*
 		Int          = ['0'..'9']+
 
 		Hex          = ['0'..'9' | 'a'..'f' | 'A'..'F']
@@ -82,29 +82,54 @@ namespace DotGram.Examples;
 	// keyword below is a plain string literal because of this line.
 	wordboundary = WordOrDigit
 
-	trivia = (Space | LineComment | BlockComment)*
+	// Atomic, and the braces are doing real work twice over. Semantically they say that
+	// what a comment swallowed stays swallowed: without them §11's ordered choice lets a
+	// failing parse re-read a comment's interior as syntax, one give-back at a time.
+	// Mechanically that same commitment is what lets every spaced list below keep a single
+	// way back instead of one per element, which is the difference between failing in
+	// milliseconds and failing in minutes.
+	trivia = { (Space | LineComment | BlockComment)* }
+
+	// Out here rather than in Lexical, deliberately: a qualified name is syntax made of
+	// identifier tokens, so `A . B` reads the way the hand-written parser has always read
+	// it — dots are punctuation, spaces around them are legal.
+	Name = Identifier & ('.' & Identifier)*
 
 	File : @GramFile
-		= (trivia & usings: Using)* & (trivia & declarations: Declaration)*
+		= usings: Using* & declarations: Declaration*
 		=> @(new GramFile(usings, declarations))
 
 	// `@using` and `using` mean the same thing: one is C#'s vocabulary, the other this
 	// language's own (§2).
 	Using : @GramUsing = '@'? & "using" & name: Name & ';' => @(new GramUsing(name))
 
+	// `context : @T` and `state : @T` before the rules, because a rule may be called
+	// either name: what tells a declaration from one is that a declaration stops at the
+	// type, and a rule goes on to `=`. Ordered choice asks that by trying.
 	Declaration : @GramDecl
-		= d: Namespace   => @(d)
+		= d: Supplied    => @(d)
+		| d: Namespace   => @(d)
 		| d: Publication => @(d)
 		| d: Rule        => @(d)
 
+	// §7.7 and §7.8. One shape, because they are one shape: a word, a colon, a type,
+	// and nothing after it.
+	Supplied : @GramDecl
+		= kind: ("context" | "state") & ':' & type: Type & ?!'='
+		=> @(new GramSupplied(kind, type))
+
 	Namespace : @GramDecl
 		= "namespace" & name: Identifier & With?
-		& '{' & (trivia & usings: Using)* & (trivia & declarations: Declaration)* & '}'
+		& '{' & usings: Using* & declarations: Declaration* & '}'
 		=> @(new GramNamespace(name, usings, declarations))
 
+	// What a directive names is an expression, not only a rule (§6) — one operand, so
+	// the `with` that may follow is the directive's own rather than the operand's, and
+	// the type is the third part a rule has, in the place that reads as the method's.
 	Publication : @GramDecl
-		= kind: ("parse" | "find") & rule: Name & With? & ("as" & alias: Identifier)?
-		=> @(new GramPublication(kind, rule, alias))
+		= kind: ("parse" | "find") & target: QuantifiedCore & With?
+		& ("as" & alias: Identifier & (':' & type: Type)?)?
+		=> @(new GramPublication(kind, target, alias, type))
 
 	Rule : @GramDecl
 		= name: Identifier & Parameters? & (':' & type: Type)? & '=' & body: Body
@@ -114,9 +139,14 @@ namespace DotGram.Examples;
 	Parameter      = Identifier & (':' & Type)?
 	Type : @string = text: (Reference & "[]"?) => @(text)
 
+	// §7.8's mark reuses the word and is told from a rebinding by the token after it:
+	// `(` opens a rebinding, and `state` can only be the other.
 	With           = "with" & Rebindings
+	Marking : @string = "with" & "state" & value: Value => @(value)
 	Rebindings     = '(' & (Rebinding & (',' & Rebinding)*)? & ')'
-	Rebinding      = Identifier & '=' & Identifier
+	// §5.1's other half: what replaces a rule may be any operand. The left stays an
+	// identifier — it opens what is being replaced, and opening is what a name is for.
+	Rebinding      = Identifier & '=' & QuantifiedCore
 
 	Body : @GramExpr
 		= first: Alternative & ('|' & rest: Alternative)*
@@ -138,9 +168,18 @@ namespace DotGram.Examples;
 
 	// `with` last, outermost of the three: `Number+ with (X = Y)` is `(Number+) with
 	// (X = Y)`, and the other reading needs parentheses.
+	// Both suffixes, repeated: they are different mechanisms on the same operand and
+	// either may want the other around it, so what is written first ends up innermost.
 	Quantified : @GramExpr
-		= body: Prefixed & quantifier: Quantifier? & recovery: Recovery? & rebound: With?
-		=> @(GramGrammar.Quantified(body, quantifier, recovery, rebound))
+		= body: QuantifiedCore & rebound: With* & mark: Marking*
+		=> @(GramGrammar.Marked(GramGrammar.Rebound(body, rebound), mark))
+
+	// Named because two other places take exactly this and stop short of the `with`: a
+	// directive's target and a rebinding's replacement, where a following `with` belongs
+	// to the thing around the operand rather than to the operand.
+	QuantifiedCore : @GramExpr
+		= body: Prefixed & quantifier: Quantifier? & recovery: Recovery?
+		=> @(GramGrammar.Quantified(body, quantifier, recovery))
 
 	Quantifier : @string
 		= text: ('?' | '*' | '+' | '{' & Count & (',' & Count?)? & '}')
@@ -163,19 +202,25 @@ namespace DotGram.Examples;
 		| text: String           => @(new GramLiteral(text, false))
 		| e: ElementSet          => @(e)
 		| cs: CsExpr             => @(new GramCSharp(cs))
-		| e: Call                => @(e)
-		| e: Reference           => @(e)
+		| e: RefOrCall           => @(e)
 		| '(' & body: Body & ')' => @(body)
 		| '{' & body: Body & '}' => @(new GramGroup(body, true))
 
-	Value : @string  = text: (CsExpr | Call | Reference) => @(text)
-	CsExpr : @string = text: @CSharp => @(text)
+	Value : @string  = text: (CsExpr | RefOrCall) => @(text)
+	// The lookahead is the recognizer's first set, said in the grammar: §7.1 gives an
+	// external no first set of its own, so without it every reference paid a
+	// speculative call into the C# scanner just to hear "no". The hand-written lexer
+	// makes the same two-character check before reading an expression.
+	CsExpr : @string = ?="@(" & text: @CSharp => @(text)
 
-	// Longest first: a call is a reference and then an argument list, so a bare reference
-	// tried first would take the name and leave the parenthesis behind.
-	Call : @GramExpr
-		= target: Reference & '(' & (first: Argument & (',' & rest: Argument)*)? & ')'
-		=> @(GramGrammar.Call(target, first, rest))
+	// One parse of the name, whatever follows it. Written `Call | Reference` this read
+	// every bare reference twice — once inside the failing `Call`, once as itself — and
+	// references are most of what a grammar is made of. The hand-written parser makes the
+	// same move under the name `ParseReferenceOrCall`; §11's ordered choice is not
+	// obliged to be spelled with the prefix shared.
+	RefOrCall : @GramExpr
+		= target: Reference & (open: '(' & (first: Argument & (',' & rest: Argument)*)? & ')')?
+		=> @(open is null ? target : GramGrammar.Call(target, first, rest))
 
 	Argument : @GramExpr = i: Int => @(new GramRef(i)) | a: Alternative => @(a)
 
@@ -203,9 +248,12 @@ public partial class GramGrammar
 
 	public sealed record GramNamespace(string Name, GramUsing[] Usings, GramDecl[] Declarations) : GramDecl;
 
-	public sealed record GramPublication(string Kind, string Rule, string? Alias) : GramDecl;
+	public sealed record GramPublication(string Kind, GramExpr Target, string? Alias, string? Type) : GramDecl;
 
 	public sealed record GramRule(string Name, string? Type, GramExpr Body) : GramDecl;
+
+	/// <summary>A `context : @T` or a `state : @T` — §7.7 and §7.8.</summary>
+	public sealed record GramSupplied(string Kind, string Type) : GramDecl;
 
 	public abstract record GramExpr;
 
@@ -215,6 +263,9 @@ public partial class GramGrammar
 
 	/// <summary>A quantifier, a <c>recover</c> or a <c>with</c> wrapped around an operand.</summary>
 	public sealed record GramQuantified(GramExpr Body, string? Quantifier, GramExpr? Recovery, bool Rebound) : GramExpr;
+
+	/// <summary>An operand under a `with state` mark (§7.8).</summary>
+	public sealed record GramMarked(GramExpr Body, string Value) : GramExpr;
 
 	public sealed record GramCapture(string Name, GramExpr Body) : GramExpr;
 
@@ -253,10 +304,27 @@ public partial class GramGrammar
 	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
 		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
 
-	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery, string? rebound) =>
-		quantifier is null && recovery is null && rebound is null
+	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
+		quantifier is null && recovery is null
 			? body
-			: new GramQuantified(body, quantifier, recovery, rebound is not null);
+			: new GramQuantified(body, quantifier, recovery, false);
+
+	/// <summary>The `with` suffixes that may follow an operand, where any do (§5.1).</summary>
+	public static GramExpr Rebound(GramExpr body, string? rebound) =>
+		string.IsNullOrEmpty(rebound)
+			? body
+			: body is GramQuantified quantified
+				? quantified with { Rebound = true }
+				: new GramQuantified(body, null, null, true);
+
+	/// <summary>The `with state` marks that may follow an operand, where any do (§7.8).</summary>
+	public static GramExpr Marked(GramExpr body, string[] mark)
+	{
+		foreach (var value in mark)
+			body = new GramMarked(body, value);
+
+		return body;
+	}
 
 	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest) =>
 		new GramCall(target, first is null ? [] : Joined(first, rest));

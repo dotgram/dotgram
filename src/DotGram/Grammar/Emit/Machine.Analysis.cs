@@ -79,27 +79,65 @@ sealed partial class Machine
 	/// was kept; that is on the C# it is trusting, same as every other guarantee §7.2 asks
 	/// for and does not check.
 	/// </para>
+	/// <para>
+	/// A rule that climbs precedence is refused wholesale: its states are re-entered with
+	/// binding powers, and the climb's bookkeeping is exactly the arena traffic silence
+	/// claims not to have. The refusal is the owning rule's, not the grammar's — one
+	/// <c>&lt;&lt;</c> anywhere used to cost every rule in the file its proofs, which is how
+	/// an optional two rules away from the climb was found renting a parser.
+	/// </para>
 	/// </remarks>
 	bool Silent(Node node, FirstSets.First following) =>
-		(_graph.Climbing.Count == 0 || !_owners.ContainsKey(node)) &&
+		!(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,
+
+			// One comparison against the character behind, no entry — its compile already
+			// routes failure through `_fail` like every other silent node.
+			Node.Behind                                => true,
+
+			// A lookahead over a silent body needs no entry either: the body writes
+			// nothing, so entering is a checkpoint local and leaving is putting the
+			// position back — both directions, since a negative lookahead's failure is
+			// its body succeeding. "Anything" for the body's own continuation: what
+			// follows the lookahead does not follow the body, which is rewound.
+			Node.Lookahead(_, var seen)                => SilentWithin(seen, FirstSets.First.All),
+
+			// A capture kept in locals writes nothing — sound only where nothing ever
+			// backtracks over it, which is what every other case here already proves,
+			// and only the flat-value rendering compiles it that way. A capture of a
+			// flat-valued call is the call's body compiled in place, silent when it is.
+			Node.Capture(_, var captured)              => _valuesInLocals &&
+			                                              (SiteCallee(node) is { } called
+			                                                  ? Silent(_graph.Bodies[called], following)
+			                                                  : Silent(captured, following)),
+
+			// The single construction a flat-value method runs at Accept, once the
+			// whole parse is decided — deferred construction kept, no entry written.
+			Node.Construct(var built, _)               => _valuesInLocals && Silent(built, following),
+
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
-			// Two ways a choice writes nothing. One character telling every alternative
+			// Three ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
 			// literals: `CompileLiterals` decides those where their texts differ and never
 			// comes back, so it writes no way back either — which `LiteralRun` is already
 			// the test for, since it admits a run only where every pair in it is settled.
-			// A choice it refuses, like `"http" | "https"` in that order, does need the
-			// arena and is refused here too.
+			// The third is the checkpoint class: a choice that does need coming back to,
+			// whose way back three locals hold — sound only where failure routes through
+			// `Fail:`, which is what <see cref="_checkpointsAllowed"/> stands for, and
+			// only in the valueless rendering, whose retries have no captures to unset.
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllSilent(alternatives, following, sequence: false) ||
 			                                              LiteralRun(
 			                                                  alternatives,
 			                                                  alternatives.Count - 1,
-			                                                  following) == alternatives.Count,
-			Node.Call(var rule, _)                     => CanInline(rule) &&
+			                                                  following) == alternatives.Count ||
+			                                              CheckpointSilent(alternatives, following),
+			// A scanner call is one method call that writes nothing; failing one already
+			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
+			Node.Call(var rule, _)                     => ScannerOf(rule) is not null ||
+			                                              CanInline(rule) &&
 			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
 			                                              Silent(called, following),
 
@@ -109,8 +147,76 @@ sealed partial class Machine
 			// the shape most path-like grammars are written in.
 			Node.Repeat repeat                         => SilentRepeat(repeat, following),
 
+			// An atomic group is first-match-commits, and that is a shape locals can hold:
+			// try each alternative in order through the give-back door, and the first that
+			// matches is final — nothing ever comes back, which is what "atomic" says.
+			// The alternatives may share prefixes freely; what each must be is silent.
+			// Not where the machine recovers: §8.2's discriminator rests on the commit
+			// marking the element owned, and that mark is the engine's.
+			Node.Atomic(var kept)                      => _recoveries.Count == 0 &&
+			                                              (kept is Node.Choice(var options)
+			                                              ? AllSilentWithin(options, following)
+			                                              : SilentWithin(kept, following)),
+
 			_                                          => false,
 		};
+
+	/// <summary>
+	/// Whether a choice neither of the first two ways admitted may still keep its way
+	/// back in locals — the checkpoint class. Asked last, so a run of literals or a
+	/// predicted choice keeps the form it always had. Answering yes marks the machine
+	/// as one whose failures can tie (<see cref="Ties"/>), which the emitted
+	/// <c>Failure</c> struct and the wrapper both need to know before a line of the
+	/// method is rendered.
+	/// </summary>
+	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	{
+		if (!_checkpointsAllowed || _valuesInLocals ||
+			!AllSilent(alternatives, following, sequence: false))
+			return false;
+
+		Ties = true;
+
+		return true;
+	}
+
+	/// <summary>
+	/// <see cref="Silent"/>, inside a construct whose failures leave by a door rather
+	/// than through <c>Fail:</c> — where a pending checkpoint site would be jumped past,
+	/// so none may open. The compile of each such construct puts the same flag down.
+	/// </summary>
+	bool SilentWithin(Node node, FirstSets.First following)
+	{
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
+
+		try
+		{
+			return Silent(node, following);
+		}
+		finally
+		{
+			_checkpointsAllowed = checkpoints;
+		}
+	}
+
+	/// <summary>The alternatives' half of <see cref="SilentWithin"/>.</summary>
+	bool AllSilentWithin(IReadOnlyList<Node> nodes, FirstSets.First following)
+	{
+		var checkpoints = _checkpointsAllowed;
+
+		_checkpointsAllowed = false;
+
+		try
+		{
+			return AllSilent(nodes, following, sequence: false);
+		}
+		finally
+		{
+			_checkpointsAllowed = checkpoints;
+		}
+	}
 
 	/// <summary>
 	/// Whether a repetition is a loop and nothing else — no entry, no count, no way back.
@@ -123,7 +229,7 @@ sealed partial class Machine
 	bool SilentRepeat(Node.Repeat repeat, FirstSets.First following) =>
 		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
 		Possessive(repeat.Body, following) &&
-		Silent(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
+		SilentWithin(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
 
 	/// <summary>
 	/// Every one of them, each followed by what follows it.
@@ -200,6 +306,9 @@ sealed partial class Machine
 			case Node.Atomic(var kept):
 				return 1 + Weight(kept, budget - 1);
 
+			case Node.Marked(var kept, _):
+				return 1 + Weight(kept, budget - 1);
+
 			case Node.Lookahead(_, var seen):
 				return 1 + Weight(seen, budget - 1);
 
@@ -241,6 +350,90 @@ sealed partial class Machine
 	/// and the general machinery stays.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether a repetition need never hand a completed turn back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Weaker than <see cref="Possessive"/>, deliberately. That one licenses compiling a
+	/// repetition as a plain loop with nothing recorded, so the body must match one way
+	/// only. This licenses removing just the repetition's own ways back — everything the
+	/// body records stays recorded — and for that the first sets suffice: an exit at a
+	/// completed turn's start would have the continuation begin where the turn began,
+	/// on a character the turn's first element read, and disjointness says it cannot.
+	/// </para>
+	/// <para>
+	/// A body that leads with the seam is compared past it. Both the turn and the
+	/// continuation begin by reading the same trivia, so the characters that decide are
+	/// the ones after it — <see cref="FollowSets.Continuation.AfterSeam"/>'s half. Two
+	/// more things must then hold: the continuation must not be able to start <em>inside</em>
+	/// what the seam consumed, which <see cref="Contained"/> bounds, and the rest of the
+	/// turn must consume — a turn that is all trivia decides nothing.
+	/// </para>
+	/// </remarks>
+	bool NeverGivesBack(Node.Repeat repeat, FollowSets.Continuation following)
+	{
+		var body = repeat.Body;
+
+		if (FirstSets.Nullable(body, _graph))
+			return false;
+
+		if (_seam is not null &&
+			body is Node.Sequence(var parts) && parts.Count > 1 &&
+			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, _seam))
+		{
+			var contained = Contained(_seam);
+			var rest      = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
+			var decides   = FirstSets.Of(rest, _graph);
+
+			return !FirstSets.Nullable(rest, _graph) &&
+				!decides.Overlaps(following.AfterSeam) &&
+				!following.AfterSeam.Overlaps(contained);
+		}
+
+		return !FirstSets.Of(body, _graph).Overlaps(following.Plain);
+	}
+
+	/// <summary>
+	/// The characters a continuation could meet by starting inside a span the seam
+	/// consumed, rather than after it.
+	/// </summary>
+	/// <remarks>
+	/// A star's shorter readings stop at unit boundaries, so what a boundary can stand
+	/// before is a unit's first character — as long as every unit is rigid. A unit that
+	/// can itself match several lengths, a comment with a body being the one that
+	/// matters, makes a boundary of every position it spans, and everything it can hold
+	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
+	/// the door §3's braces already give an author whose trivia holds comments.
+	/// </remarks>
+	FirstSets.First Contained(RuleSymbol seam)
+	{
+		if (!_graph.Bodies.TryGetValue(seam, out var body))
+			return FirstSets.First.All;
+
+		return body switch
+		{
+			Node.Atomic                 => FirstSets.First.None,
+			Node.Empty                  => FirstSets.First.None,
+			Node.Repeat(var unit, _, _) => Boundaries(unit),
+			_                           => FirstSets.First.All,
+		};
+	}
+
+	FirstSets.First Boundaries(Node unit) => unit switch
+	{
+		Node.Element                => FirstSets.Of(unit, _graph),
+		Node.Literal(var text)      => text.Length == 0
+			? FirstSets.First.None
+			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
+		Node.Choice(var alternatives) => alternatives.Aggregate(
+			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative))),
+		Node.Sequence(var sequenceParts) when sequenceParts.All(
+			static part => part is Node.Literal or Node.Element)
+			=> FirstSets.Of(unit, _graph),
+		_ => FirstSets.First.All,
+	};
+
 	bool Possessive(Node body, FirstSets.First following, HashSet<RuleSymbol>? seen = null) =>
 		following.IsKnown &&
 		!FirstSets.Nullable(body, _graph) &&
@@ -273,11 +466,12 @@ sealed partial class Machine
 	bool Deterministic(Node node, HashSet<RuleSymbol> seen, FirstSets.First following) =>
 		node switch
 		{
-			Node.Empty or Node.Guard or Node.Lookahead => true,
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
 			Node.Literal or Node.Element or Node.External => true,
 			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
 			Node.Construct(var body, _)                => Deterministic(body, seen, following),
 			Node.Atomic(var body)                      => Deterministic(body, seen, following),
+			Node.Marked(var body, _)                   => Deterministic(body, seen, following),
 			Node.Sequence(var parts)                   => AllDeterministic(parts, seen, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllDeterministic(
@@ -366,6 +560,13 @@ sealed partial class Machine
 			var first = FirstSets.Of(alternatives[i], _graph);
 
 			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[i], _graph))
+				return null;
+
+			// Knowable is not the same as worth writing down: a Unicode category is a few
+			// hundred ranges, exact and useful to the analyses, and a dispatch spelled out
+			// over them would be a page of comparisons where the alternative's own test is
+			// one call. The set stays precise; only the rendering declines.
+			if (first.Ranges.Count > Emitted)
 				return null;
 
 			firsts[i] = first;
@@ -529,7 +730,7 @@ sealed partial class Machine
 				ranges.Add(new CharRange(text[0], text[0]));
 			}
 
-		return new FirstSets.First(false, false, ranges);
+		return FirstSets.First.Chars(ranges);
 	}
 
 	/// <summary>
@@ -547,8 +748,21 @@ sealed partial class Machine
 	{
 		var first = FirstSets.Of(alternative, _graph);
 
-		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph) ? null : first;
+		return first.Anything || first.Nothing || first.Ranges.Count > Emitted ||
+			FirstSets.Nullable(alternative, _graph)
+				? null
+				: first;
 	}
+
+	/// <summary>
+	/// The widest first set a rendered test may be written from.
+	/// </summary>
+	/// <remarks>
+	/// Guards the two places an analysis result becomes source text — <see cref="Predictive"/>
+	/// and <see cref="Decidable"/> — and nothing else: an analysis that only compares sets is
+	/// better off exact whatever their size.
+	/// </remarks>
+	const int Emitted = 8;
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
 	static string RangesTest(IReadOnlyList<CharRange> ranges)

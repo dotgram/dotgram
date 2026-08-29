@@ -29,6 +29,8 @@ public sealed class GramParser
 	public const string ExpectedName        = "GRAM2004";
 	public const string InvalidCount        = "GRAM2005";
 	public const string NamespaceNeedsWith  = "GRAM2006";
+	public const string PublicationNeedsName = "GRAM2007";
+	public const string PublicationTypeOnRule = "GRAM2008";
 
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
@@ -144,6 +146,11 @@ public sealed class GramParser
 			var before      = _index;
 			var declaration = ParseDeclaration();
 
+			// Before the directive that lifted them, so the block reads in the order it
+			// was written: what the expression became, and then its publication.
+			declarations.AddRange(_lifted);
+			_lifted.Clear();
+
 			if (declaration is not null)
 				declarations.Add(declaration);
 
@@ -182,6 +189,15 @@ public sealed class GramParser
 		if (AtPublication())
 			return ParsePublication();
 
+		// `context : @T` and nothing after it. A body would have made it a rule called
+		// `context`, which stays perfectly writable — that is what `StartsRule` decides,
+		// and it is asked first.
+		if (AtKeyword("context") && Next.Kind == TokenKind.Colon && !StartsRule())
+			return ParseContext();
+
+		if (AtKeyword("state") && Next.Kind == TokenKind.Colon && !StartsRule())
+			return ParseState();
+
 		if (At(TokenKind.Identifier))
 			return ParseRule();
 
@@ -196,7 +212,38 @@ public sealed class GramParser
 	/// </summary>
 	bool StartsRule() =>
 		At(TokenKind.Identifier) &&
-		(Next.Kind is TokenKind.Equals or TokenKind.OpenParen || StartsTypedRule());
+		(Next.Kind is TokenKind.Equals || StartsParameterizedRule() || StartsTypedRule());
+
+	/// <summary>
+	/// Whether an identifier followed by <c>(</c> is a rule taking parameters rather than
+	/// a directive whose operand is parenthesized.
+	/// </summary>
+	/// <remarks>
+	/// The two are the same until the parenthesis closes — <c>parse (item) = item</c>
+	/// declares a rule called <c>parse</c>, and <c>parse ('a' | 'b') as Ab</c> publishes a
+	/// choice — so what settles it is the <c>=</c> or the <c>: Type</c> that a declaration
+	/// has after its parameters and a directive does not. Scanned to the matching
+	/// parenthesis, which is a bounded look and the only one this decision needs.
+	/// </remarks>
+	bool StartsParameterizedRule()
+	{
+		if (Next.Kind != TokenKind.OpenParen)
+			return false;
+
+		var at    = _index + 2;
+		var depth = 1;
+
+		while (at < _tokens.Count && depth > 0)
+		{
+			if (_tokens[at].Kind == TokenKind.OpenParen)  depth++;
+			if (_tokens[at].Kind == TokenKind.CloseParen) depth--;
+
+			at++;
+		}
+
+		return at < _tokens.Count &&
+			(_tokens[at].Kind is TokenKind.Equals or TokenKind.Colon);
+	}
 
 	/// <summary>
 	/// Whether the current identifier begins a typed rule rather than a capture left in
@@ -228,10 +275,25 @@ public sealed class GramParser
 		return _tokens[at].Kind == TokenKind.Equals;
 	}
 
+	/// <summary>
+	/// Whether a publication directive begins here rather than a rule that happens to be
+	/// called <c>parse</c> or <c>find</c>.
+	/// </summary>
+	/// <remarks>
+	/// What follows is an operand now and not only a name, so this asks whether one can
+	/// begin there — which is every token an expression may open with. <c>StartsRule</c>
+	/// still has the first word: <c>parse = 'x'</c> and <c>parse(item) = …</c> are a rule
+	/// named <c>parse</c>, because that is what an <c>=</c> or a parameter list after the
+	/// word means anywhere else in the language.
+	/// </remarks>
 	bool AtPublication() =>
 		!StartsRule() &&
 		(AtKeyword("parse") || AtKeyword("find")) &&
-		Next.Kind == TokenKind.Identifier;
+		Next.Kind is
+			TokenKind.Identifier or TokenKind.OpenParen or TokenKind.OpenBracket or
+			TokenKind.OpenBrace or TokenKind.At or
+			TokenKind.Character or TokenKind.String or
+			TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString;
 
 	/// <remarks>
 	/// `with` is required before the rebindings here (§5.1), matching the other two
@@ -270,6 +332,11 @@ public sealed class GramParser
 			var before      = _index;
 			var declaration = ParseDeclaration();
 
+			// Before the directive that lifted them, so the block reads in the order it
+			// was written: what the expression became, and then its publication.
+			declarations.AddRange(_lifted);
+			_lifted.Clear();
+
 			if (declaration is not null)
 				declarations.Add(declaration);
 
@@ -295,7 +362,12 @@ public sealed class GramParser
 
 			Expect(TokenKind.Equals);
 
-			var right = ExpectName();
+			// The other reference position (§5.1): what replaces a rule may be any
+			// operand, not only another rule's name. Lifted the same way a directive's
+			// target is — into a rule declared where the `with` is written, so it reads
+			// the trivia, the imports and the bindings that surround it.
+			var rightAt = Current.Position;
+			var right   = Substitute(left, ParseQuantifiedCore(rightAt), rightAt);
 
 			rebindings.Add(new Rebinding(left, right, From(start)));
 
@@ -308,16 +380,101 @@ public sealed class GramParser
 		return rebindings;
 	}
 
+	/// <summary>
+	/// <c>parse Rule</c>, and everywhere else the notation refers to a rule: one operand,
+	/// which may be any expression rather than only a name.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One operand, the same bound <c>recover</c>'s synchronization expression has (§8.2)
+	/// — so a choice needs brackets, and the <c>with</c> that may follow is the
+	/// directive's own rather than the operand's. Which keeps §5.1's two extents apart:
+	/// a publication's <c>with</c> composes on top of an enclosing namespace's, and an
+	/// expression's is applied before one, and only the parentheses say which was meant.
+	/// </para>
+	/// <para>
+	/// Anything but a bare name is lifted into a rule of its own, declared right here,
+	/// so everything after this reads a publication of a rule exactly as it always did.
+	/// Its name is the <c>as</c> the directive had to give — a rule has to be called
+	/// something, and the author naming the method has already chosen the word.
+	/// </para>
+	/// </remarks>
 	Decl ParsePublication()
 	{
 		var start      = Current.Position;
 		var word       = Take().Value!;
 		var kind       = word == "parse" ? PublishKind.Parse : PublishKind.Find;
-		var name       = ExpectQualifiedName();
+		var targetAt   = Current.Position;
+		var target     = ParseQuantifiedCore(targetAt);
 		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
 		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
+		var typeAt     = Current.Position;
 
-		return new Decl.Publish(kind, name, rebindings, alias) { At = From(start) };
+		// The third part a rule has, in the place it reads as the method's own: `parse
+		// … as Name : @T`. It belongs to the expression being lifted, so a directive
+		// that lifts nothing has nowhere to put it.
+		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
+
+		// A bare name is what this directive has always taken, and it still names the
+		// rule it publishes — including the method name derived from it where no `as`
+		// says otherwise.
+		if (target is Expr.Reference(false, var named, { Count: 0 }))
+		{
+			if (type is not null)
+				Report(
+					PublicationTypeOnRule,
+					$"'{named}' declares its own type where it is written; a type here belongs to " +
+					"an expression this directive would have to make a rule of.",
+					new Location(typeAt, Current.Position - typeAt));
+
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start) };
+		}
+
+		if (alias is null)
+		{
+			Report(
+				PublicationNeedsName,
+				$"'{word}' of anything but a rule's name needs 'as' to say what the method is " +
+				"called: there is no name here to make one from.",
+				new Location(targetAt, Current.Position - targetAt));
+
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start) };
+		}
+
+		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
+
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start) };
+	}
+
+	/// <summary>
+	/// Rules made for an expression written where a rule's name goes, waiting to be put
+	/// in the block being read — which only that block's own loop can do.
+	/// </summary>
+	readonly List<Decl> _lifted = [];
+
+	int _substitutions;
+
+	/// <summary>
+	/// The name a rebinding's replacement is known by: its own, where it is one, and
+	/// otherwise the name of a rule made for it here.
+	/// </summary>
+	/// <remarks>
+	/// Named after what it replaces, the way a specialization is named after what it
+	/// specializes — <c>Sep_With1</c> reads as "the Sep this <c>with</c> means". An
+	/// author who happens to have written that name gets the ordinary duplicate-rule
+	/// diagnostic, which is the same bargain every generated name in this compiler
+	/// makes.
+	/// </remarks>
+	string Substitute(string left, Expr replacement, int at)
+	{
+		if (replacement is Expr.Reference(false, var named, { Count: 0 }))
+			return named;
+
+		var name = left + "_With" + (++_substitutions).ToString(CultureInfo.InvariantCulture);
+
+		_lifted.Add(new Decl.Rule(name, [], null, replacement) { At = From(at) });
+
+		return name;
 	}
 
 	Decl ParseRule()
@@ -357,6 +514,28 @@ public sealed class GramParser
 		Expect(TokenKind.CloseParen);
 
 		return parameters;
+	}
+
+	/// <summary>The name a grammar's own state travels under (§7.7).</summary>
+	Decl.Context ParseContext()
+	{
+		var start = _index;
+
+		Take();                                   // `context`
+		Expect(TokenKind.Colon);
+
+		return new Decl.Context(ParseType()) { At = From(start) };
+	}
+
+	/// <summary>The one type every <c>with state</c> mark is written in (§7.8).</summary>
+	Decl.State ParseState()
+	{
+		var start = _index;
+
+		Take();                                   // `state`
+		Expect(TokenKind.Colon);
+
+		return new Decl.State(ParseType()) { At = From(start) };
 	}
 
 	TypeRef ParseType()
@@ -514,10 +693,19 @@ public sealed class GramParser
 	/// </summary>
 	Expr ParseWith(Expr operand, int start)
 	{
-		if (!TakeIfKeyword("with"))
-			return operand;
+		// A loop rather than one of each: the two are different mechanisms on the same
+		// operand and either may want the other around it, so what is written first is
+		// innermost and the reader is not asked to remember an order.
+		//
+		// One token apart, and unambiguously: a rebinding is always parenthesized, so `(`
+		// after `with` can only be one and the word `state` can only be the other. A rule
+		// named `state` is still rebindable — that is written `with (state = other)`.
+		while (TakeIfKeyword("with"))
+			operand = TakeIfKeyword("state")
+				? new Expr.Marked(operand, ParseValue()) { At = From(start) }
+				: new Expr.With(operand, ParseRebindings()) { At = From(start) };
 
-		return new Expr.With(operand, ParseRebindings()) { At = From(start) };
+		return operand;
 	}
 
 	/// <summary>

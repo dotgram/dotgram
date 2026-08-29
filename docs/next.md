@@ -2829,3 +2829,2898 @@ would be a wrong answer rather than a slower one.
 **What it cost to find.** Nothing in the corpus of hand-written tests had a text capture
 over a group in a rule that reaches itself, because nobody writes one on purpose. A grammar
 of the notation itself does, three times over, without trying.
+
+## Found: the exponential is a repetition giving back turns it need not
+
+`status.md` has said for a long time that "pathological backtracking remains possible".
+Measured, on the grammar of the notation itself reading a `.gram` that does not parse:
+
+| operands in the bad rule | time to say no |
+|---|---|
+| 3 | 22 ms |
+| 4 | 287 ms |
+| 5 | 2.3 s |
+| 6 | 65 s |
+
+About twelve times per operand, and success is instant either way. A parser for a language
+that takes a minute to report a syntax error is not one anybody can use, so this is not an
+academic worst case.
+
+**Where it is.** Counting what the trace reports, the hottest thing in the parse by a
+factor of two is *leaving a repetition* — 70,680 of them at four operands, against 28,272
+for the next thing down. Not calls, not literals: a repetition handing a turn back, the
+suffix being re-read, and the turns of the repetitions above it multiplying that.
+
+**Proved rather than argued.** Three atomic groups written into the grammar by hand —
+`{ ('|' & rest: Alternative)* }` and two like it — and the table above becomes 0.0 ms at
+every size, up to twelve operands. The exponential is *entirely* the give-back.
+
+### What did not work, and why it is worth knowing
+
+Memoizing failed calls — a rule that failed at a position cannot match there, so refuse the
+second arrival without running it — was built and measured: **2.6×**, and the exponential
+untouched. Two reasons, and the second is the one that matters.
+
+- Most of the search never crosses a call. The give-back happens inside one activation.
+- **This is not PEG.** In a PEG `*` is possessive and a rule has one result at a position,
+  which is what makes a memo table equivalent to the parse. Here a repetition gives turns
+  back, so a rule *succeeds in several ways* and is re-entered for the next one. "It failed
+  here" is sound; "it matched here, and this is how" is not a single fact, and a table of
+  failures alone cannot collapse a search over lengths.
+
+It was also not sound as written: a `Call` entry inside an atomic group whose commit has
+put out its ways back is taken off the arena without having completed, and reads as
+exhausted when it was cut short. Reverted rather than gated, because 2.6× on a pathological
+case does not pay for a branch on every call plus a condition nobody would remember.
+
+### The cure, and the one thing in the way
+
+`Possessive` already decides exactly this question — a repetition need never give a turn
+back when the body cannot be empty, its first set is disjoint from what follows, and it
+matches one way only — and it is *right* about these repetitions. It is simply never asked:
+its only two callers are `SilentRepeat`, which decides whether a repetition can be lowered
+to a plain loop, and `Deterministic`. A repetition with a capture in it can never be
+silent, so `('|' & rest: Alternative)*` is never even a candidate, and the general
+machinery writes a way back per turn regardless of what could have been proved.
+
+So `CompileRepeat` should ask, and where the answer is yes keep **one** way back alive
+instead of one per turn.
+
+### Built, measured, and taken out again — and what it ran into
+
+Built twice, because the first shape was wrong in a way worth writing down. One way back
+for the whole run, written straight after the `Repeat` entry so that its place is always
+`repeat + 1`: 104 tests went red and every capture inside a repetition came back empty. A
+way back **below** the turns is a way back that throws them away — coming back to it pops
+everything above it, which is precisely the entries those turns recorded. It has to stand
+where the last turn left off, above them.
+
+So: written per turn as before, and the one the turn before left put out, its place kept in
+the `Repeat` entry's own second field — which means nothing for that kind, and unlike a
+variable survives the backtracking this is about. That is correct: 1,020 tests green, and
+the emitted code does what it says.
+
+**It buys nothing yet, and costs 4-9%.** Measured against `HEAD` on all five URL inputs,
+three rounds, every one slower and all in the same direction — two extra arena writes per
+turn. And the sixty-five seconds are untouched, because the repetitions that matter are not
+found settled.
+
+**The wall is `following.IsKnown`.** Asked of every repetition in the grammar of the
+notation, the verdict is the same for all of the ones that cost anything:
+
+```text
+settled=False known=False nullable=False overlaps=True :: trivia & '|' & trivia & rest: Alternative
+settled=False known=False nullable=False overlaps=True :: trivia & '&' & trivia & rest: Operand
+settled=False known=False nullable=False overlaps=True :: trivia & ',' & trivia & rest: Argument
+```
+
+`overlaps=True` is not a finding there — an unknown continuation is "anything", which
+overlaps by definition. The one fact is `known=False`. A published rule's body is compiled
+with `FirstSets.First.All`, and unknown cascades down every rule it reaches, so the
+structural repetitions — exactly the ones that multiply — are never even candidates. What
+is settled today is the lexical layer, where the follow is known because the rule is
+reached from somewhere that fixed it.
+
+So the order is: **follow sets first**, then this. Reverted rather than left in, because a
+mechanism that costs five per cent and fires nowhere is a mechanism that will be measured
+once, wrongly, by whoever comes next. The shape is written down here and is half an hour to
+put back once the analysis can feed it.
+
+## Built: the exponential is dead
+
+Sixty-five seconds to refuse a six-operand rule; now 0.0 ms, flat through fourteen. Not a
+patch — five layers, each of independent worth, each proved before the next was started:
+
+1. **First sets got real characters** — a Unicode category is its ranges, a negation its
+   complement, a folded literal its foldings; ranges normalized so `Covers` is exact and
+   the follow fixed point stops on content rather than spelling.
+2. **Two one-line over-approximations fixed** — an optional told its body another turn
+   might follow (poisoning everything upstream of `@(...)`'s honest "anything"), and a
+   whole parse's body was compiled as though anything could follow it instead of the end
+   of input. After both, 44 of 52 rules in the self-hosting grammar know their follow.
+3. **The seam is withheld where the author's own trivia stands** — `trivia & trivia &
+   trivia` was one seam whose every split the search walked.
+4. **What follows is threaded as a pair** — as it stands, and past the seam. §4.5 heads
+   every spaced seam with the same trivia, so a turn and the continuation behind it are
+   told apart by what each reads *next*; compared plainly they overlap on the trivia
+   itself and the comparison says nothing. One composition (`FollowSets.Precedes`), used
+   by the fixed point and the compiler both, crossing namespaces the same way in both.
+5. **A settled repetition keeps one way back** — a `LoopExit` entry valid only while it is
+   the loop's latest (the `Repeat` entry's rule-index field holds where the last completed
+   turn ended); stale ones are popped past, never resumed. Soundness needs only the first
+   sets: an exit at a completed turn's start would have the continuation begin where the
+   turn began, on a character the turn read, and disjointness says it cannot. No
+   determinism demanded — that is `Possessive`'s stronger licence for silent lowering, and
+   the body's own machinery stays recorded here.
+
+The boundary found on the way matters as much as the mechanism. Trivia that can swallow
+multi-character units — comments — genuinely admits readings where a failing parse re-opens
+a comment's interior as syntax, one give-back at a time; §11 requires them, `Contained`
+detects them, and the proof honestly declines. The author's answer is one brace pair —
+`trivia = { … }` — which says "what a comment swallowed stays swallowed" and hands the
+proof back. §4.5 now recommends it; the self-hosting grammar wears it.
+
+Measured: the failure table flat at 0.0 ms through fourteen operands; the whole corpus
+still reads as trees (Url.gram in 2.8 ms warm); the URL benchmark's ratios to compiled
+Regex unchanged within noise, with the two-row validity gate agreeing. 1,031 tests green.
+
+## Built: a trace worth reading, and an invariant that names its rule
+
+`DOTGRAM_TRACE` now buys lines like these, on standard error, with nothing else to
+configure:
+
+```text
+.Gram call Using in File state=6 at 0 "^A = 'x' | 'y'\npa" arena=4
+.Gram stand exit in Using state=215 at 0 "^A = 'x' | 'y'\npa" arena=7
+.Gram resume exit state=215 at 0 "^A = 'x' | 'y'\npa" arena=6
+```
+
+The rule name is written into each emitted `Trace` call as a literal at generation time —
+knowable there and not at run time, where an engine's state numbers are shared by every
+rule it inlined; an inlined body traces as the rule it lives in. The input window rides
+along as a span, the caret marks the position, and `[Conditional]` removes calls and
+arguments alike when the symbol is off, so the parser's structure and its speed owe the
+trace nothing.
+
+The materializer's one load-bearing assumption — a text capture's span runs forward — is
+now a named check in debug builds: `capture 'text' of rule 'Name' has its end before its
+start (4..3)`, instead of `ArgumentOutOfRangeException` out of generated line 34853, which
+is what finding the reopened-capture bug actually cost.
+
+## Analyzed: the notation's own grammar, by its own analyses
+
+With first sets real and follow sets paired, the self-hosting grammar reads as a decision
+structure. 25 of its 38 repetitions prove settled; each of the 13 that do not is one of
+two honest things. Behind `@(...)`: the one unknowable first set, contained by design.
+Or a genuine ambiguity the language means: `TypeArgs?` against `<<` (`A << 1` must fail
+`<` as type arguments and come back — the hand parser spells the same fact LL(2)); the
+`?=`/`?!` prefix against the `?` quantifier; a capture name against a bare reference;
+keywords not being reserved, so `using` may open a rule as well as an import and only
+ordered choice plus `wordboundary` decides. §10's old "two tokens of lookahead" claim
+survives translation: what the hand parser buys with a second token, the notation buys
+with a way back the analysis correctly refuses to remove.
+
+Of the choices, the dispatchable ones dispatch and the rest are cheap trials in written
+order. One gap worth remembering: `Int | Identifier` is disjoint — digits against letters
+— but a category's six hundred ranges exceed the rendering budget, so no dispatcher is
+written even though the *other* alternative's test is one range. A dispatcher that tests
+the small set and falls to the large one would cover it; not built.
+
+## Built: an executable §11, and what it caught in its first minute
+
+`ReferenceInterpreter` is the semantics with no optimization at all: thirty lines of
+recursion per construct, every reading enumerated lazily in preference order. Its worth is
+being obviously right where the automaton is subtly right. `ReferenceDifferentialTests`
+compiles random grammars — seeded, guard-free, recursion-free, half of them spaced — and
+holds the automaton to agreement on random inputs; `Shrink` (also new, and kept this time)
+cuts any disagreement to its essence. The shrinker's own test caught the classic predicate
+mistake on its first run — GRAM2005 has five sites, and a predicate that names only the id
+converges on whichever is cheapest to reach — which is now the example its documentation
+teaches with.
+
+The fuzzer paid for itself in its first minute, twice:
+
+**A counted repetition counted a re-matched turn twice.** The count lives in the `Repeat`
+entry and is rewritten in place, and an in-place rewrite survives backtracking that the
+turn it counted does not: resume an alternative inside a completed turn, the body
+re-completes, the same turn counts again, and `X{2}` reads two of a thing the input held
+one of. As old as the engine — the commit this week started from accepts it — and invisible
+to every hand-written test, the regex differential, the corpus, and the mutation fuzzer,
+because none of them pair a bounded count with a body that can re-match. The fix follows
+the arena's own philosophy: a completed turn leaves a `TurnDone` entry, and popping it is
+what un-counts the turn, at the exact moment the parse abandons it.
+
+**A parser that compiles with a warning.** `var c` was declared on the compile-time flag,
+and the layout can drop every state that read it; the fuzzer found a grammar where it did,
+and `CS0219` in somebody else's build is a defect here. The declaration now asks the
+written bodies.
+
+## Built: the self-hosting differential, and the honest number it produced
+
+`SelfHostingTests` holds the two implementations of the notation to agreement — the
+hand-written `GramParser` and the generated `GramGrammar`, over every `.gram` in the
+snapshots — and they agree. That is the differential the self-hosting work was started
+for, and it lives in the tests because the benchmarks project deliberately references the
+generator as an analyzer and nothing else: the compiler's own front end is only
+measurable where both sides meet.
+
+The same test carries the cost of each side, as medians of individual parses:
+
+| grammar | hand-written | generated | ratio |
+|---|---|---|---|
+| Minimal.gram | 0.012 ms | 0.068 ms | 5.5 |
+| Csv.gram | 0.021 ms | 0.081 ms | 4.0 |
+| Feed.gram | 0.018 ms | 0.257 ms | 14 |
+| Url.gram | 0.038 ms | 2.18 ms | **57** |
+
+The work differs in kind — the hand parser builds the compiler's tree with positions and
+diagnostics, the generated one the example's records — so the ratio is a scale, not a
+verdict. But fifty-seven is not a scale disagreement; it is the next hunt, on the first
+genuinely realistic input the benchmarks have had: recursive, backtracking, 87 KB
+allocated per parse where the URL machine allocates 264 bytes.
+
+**The instrument itself had to be fixed first, and the lesson is worth the table.** The
+first version averaged fifty parses per round and reported the generated side at 140
+times the hand-written one. Individual parses told another story: 0.08 ms each, with two
+spikes of 79 ms — tiered compilation re-jitting the thirty-thousand-line engine method
+tens of calls in. A mean over a window holding that spike is the layout lottery again,
+relearned against the JIT; medians of individual parses are what survive it. The
+shrinker met the same enemy from the other side: a cost predicate sampled once let the
+shrink walk out through a single lucky-fast measurement, and "slow" had to become "even
+the fastest of three is slow".
+
+## Hunted: fifty-seven times became five, and where the rest lives
+
+The 57× on `Url.gram` fell to the instruments in an afternoon, and the kills are worth
+listing in order, because the order is the method.
+
+**What it was not.** Steps said 32,592 for the whole file at 2.5 ms — 76 ns a step against
+33 on a small prefix, so half the time was not in steps at all. Individual parses said
+0.08 ms with two 79 ms spikes — tiered compilation, not parsing — which killed the first
+instrument. And a minified input — comments stripped, 43% of the characters — cost the
+same 2.09 ms as the original, which killed the best hypothesis: the atomic trivia and its
+2,444 arena entries per parse were not the bill.
+
+**What it was: `Call | Reference`.** Every bare reference parsed `Reference` twice — once
+inside the failing `Call`, once as itself — and `Reference` contains `TypeArgs?`, which
+contains `Type`, which contains `Reference`. The double parse compounded through that
+nesting, and references are most of what a grammar is made of: 5,974 of 32,592 steps sat
+in `Reference` alone. Left-factoring one rule —
+
+```dotgram
+RefOrCall = target: Reference & (open: '(' & (Argument & (',' & Argument)*)? & ')')?
+          => @(open is null ? target : Call(target, first, rest))
+```
+
+— took the parse from 2.09 ms to 0.35 ms. Sixfold, from spelling one choice the way the
+hand-written parser always had (`ParseReferenceOrCall`). §11's ordered choice is not
+obliged to be written with the prefix shared, and the self-hosting grammar now teaches
+that too.
+
+A settled optional whose body one character decides also stopped paying the arena — a
+`Repeat` entry, a standing exit, a count and their unwinding became one comparison — which
+is worth a few percent here and applies wherever the proofs reach.
+
+| grammar | hand-written | generated | was | now |
+|---|---|---|---|---|
+| Csv.gram | 0.019 ms | 0.051 ms | 4.0 | **2.6** |
+| Feed.gram | 0.022 ms | 0.105 ms | 14 | **4.7** |
+| Minimal.gram | 0.014 ms | 0.061 ms | 5.5 | **4.3** |
+| Url.gram | 0.062 ms | 0.334 ms | 57 | **5.4** |
+
+**Where the rest lives.** 20,632 steps remain for `Url.gram`, and the shape of the residue
+is arena traffic per construct — enter/leave repeat, atomic enter/commit on every seam —
+where the hand parser pays a method call. Two directions are recorded rather than taken:
+teaching the normalizer to left-factor shared call prefixes itself, which constructions
+make hard in general and the measurement makes tempting; and a no-arena compilation for
+atomic, capture-free bodies — a lexeme-scanner mode, the flat path's little sibling —
+which would take the seam's cost to a hand-written skip loop's. Both are engine work with
+a proved instrument to hold them to.
+
+## Built: the scanner — no arena where nothing is remembered
+
+A rule that wears atomic braces and keeps no records now compiles as a plain method —
+checkpoints in locals, greedy loops, one `return` — and every call to it as a call:
+
+```csharp
+static int Scan_trivia(global::System.ReadOnlySpan<char> text, int pos)
+```
+
+The braces are the licence, not a hint. An atomic group commits its first reading, so a
+compilation that finds the first reading and nothing else — each choice committing the
+first alternative that matches, each repetition greedy — is §11 inside the braces, not an
+approximation of it. `Scannable` draws the fence: choices must be mutually exclusive
+(disjoint firsts, or leading literals neither of which begins the other), repetitions must
+sit at the tail where greed is final, or be settled against what follows, or be the
+guarded scan `(?!X & …)* & X`, which stops at the first `X` by construction. Captures
+never pass — a scanner has nowhere to put one.
+
+What it buys is the seam. Atomic trivia — §4.5's own recommendation — was applied 2,444
+times per parse of `Url.gram`, each application an atomic entry, a repeat entry, their
+unwinding and a commit walk. Now each is one call to a method that reads like the
+`SkipWhitespaceAndComments` anyone would write by hand. Steps fell from 20,632 to 9,440.
+
+| grammar | was (start of hunt) | after left-factoring | now |
+|---|---|---|---|
+| Csv.gram | 4.0 | 2.6 | **2.0** |
+| Feed.gram | 14 | 4.7 | **2.9** |
+| Minimal.gram | 5.5 | 4.3 | **2.7** |
+| Url.gram | **57** | 5.4 | **3.1** |
+
+The differential fuzzer now generates atomic comment-bearing trivia in a quarter of its
+grammars, so the scanner compilation sits under the same oracle as everything else. The
+snapshots did not change: no grammar in them has an atomic record-free rule, which is
+itself the honest note — this optimization is §4.5's advice paying for itself, and a
+grammar that ignores the advice keeps the machinery it asked for.
+
+## Design: the lexical layer — tokens without a token in sight
+
+Goal, per the standing target: a generated parser's decisions should cost what a
+hand-written parser's cost, or less. The hand-written one owes most of its speed to a
+lexer — the input linearized once, ~5x fewer items to decide over, decisions by a dense
+switch on a token kind. The generated engine re-derives "what stands here" structurally
+at every decision point: 27 recorded steps per token where the hand parser spends 3-5.
+This design closes that gap. It is a design, not work done.
+
+### Where tokens come from: the boundary that is already written
+
+No new syntax. The language already draws the line §4.5 recommends drawing: lexical
+rules live in a namespace with `trivia = none`, syntactic rules live where trivia is
+non-empty. So:
+
+- a **token rule** is a rule in a no-trivia namespace referenced from a spaced one —
+  `Identifier`, `Int`, `Char`, `String` in the grammar of the notation;
+- an **anonymous token** is a literal written directly in a spaced rule — `'&'`, `"=>"`,
+  `"namespace"`;
+- **trivia** is already the skip, and already compiles as a scanner.
+
+A grammar with no such boundary — `Url.gram`, every regex-like grammar, everything with
+`trivia = none` throughout — has no lexical layer, generates exactly what it generates
+today, and pays exactly nothing. That is the answer to the first question asked of this
+design: no memory appears anywhere, because the layer does not exist where it buys
+nothing.
+
+### What a token is at run time: three locals
+
+The hand-written lexer builds a `List<Token>` for the whole input up front. This design
+deliberately does not. A token at run time is a *kind* and an *end position* in locals —
+no array, no buffer, no runtime type, no allocation for any grammar, with or without the
+layer.
+
+Token-at-a-time works because of what this week built. A decision point that qualifies
+compiles as a **fused dispatch**: one call to `Scan_trivia`, one read of the token at
+`p` (a switch on the first character routing to the candidate token scanners), the kind
+into a local, then a switch over dense small integers — the jump table that
+character-level dispatch can never have. On the straight-line path every token is
+scanned exactly once, which is all the hand lexer's array achieves; the array would only
+pay under heavy re-visiting, and the settled-repetition proofs have already made
+re-visiting rare. Where backtracking does revisit, the token is re-scanned — positions
+are the only state, which is the arena's own philosophy. The hand lexer's list is the
+part we skip: «одинаков или лучше» — this is the «лучше».
+
+Bufferless is also what makes degradation graceful. There is no token stream to fall out
+of sync with, so a single grammar may freely mix token dispatch where the proofs hold
+and today's character machinery where they do not — down to individual decision points.
+And it is what keeps `find` and streaming untouched: nothing is tokenized ahead of the
+position.
+
+### Semantics: proof, not mode
+
+Tokenization classically changes a language — maximal munch, priority order. This design
+changes nothing: a decision point compiles as fused dispatch only where the analyses
+prove the dispatch equal to §11, and stays as today everywhere else. The proofs are this
+week's, composed: token rules must be `Scannable`-grade (atomic or deterministic — the
+commit licence), candidates at a decision point must be pairwise `Exclusive`, and
+keyword-versus-identifier exclusivity is exactly what §4.6's `wordboundary` already
+supplies — the boundary lookahead baked into a keyword's scanner is the proof that
+`"using"` and `usingFoo` cannot both match. The unsettled thirteen — `TypeArgs?` against
+`<<`, prefix against quantifier — stay character-level in v1 and become the two-token
+fusion of v2.
+
+### What gets better beyond speed
+
+Expected-sets become token names: "expected an identifier or '('" instead of a character
+class. The failure path reports over the same inventory the dispatch uses.
+
+### Staged, each stage measured
+
+1. **Inventory as a probe**: the boundary-crossing analysis alone, reported as emitted
+   comments — how many decision points of the notation's grammar qualify, before any
+   emission changes.
+2. **Fused dispatch** at qualifying choice points; oracle, corpus, self-hosting table
+   after each.
+3. **Keyword kinds**: anonymous-token literals interned, boundary baked.
+4. Targets for calling it done: Feed and Csv at or under 1.5x the hand-written parser,
+   Url.gram under 2x, URL benchmark and snapshots byte-identical for layerless grammars.
+5. **v2, separately argued**: two-token fusion for the LL(2) residue; the normalizer's
+   auto-left-factoring feeding the same dispatch.
+
+Rejected: the upfront token array with pooling. It allocates proportionally to input,
+complicates `find` and streaming, adds a runtime type — and buys only what bufferless
+already has on the straight-line path.
+
+## Stage 1 of the lexical layer: the inventory, and what it turned up
+
+The probe classified every choice point of the notation's grammar for token dispatch,
+before touching emission. Of twelve spaced choices: three route on exclusive tokens
+already (`"<<" | ">>"`, `"?=" | "?!"`, `"parse" | "find"`); one routes with a shared
+pair (the quantifier's class against `'{'`); four lead through spaced rules and need the
+look-through that stage 2 builds (`Declaration`'s three keywords against `Rule`'s
+identifier among them); four are blocked because a token rule cannot be committed against
+its follow — and the last group is not a weakness of the analysis. It is the finding.
+
+**The two implementations accept different languages, and the inventory found it.**
+`Identifier` refuses to commit because letters sit in its follow sets, and they sit there
+because §11 genuinely permits what a lexer never does: on `parse Xas y`, the identifier
+hands two characters back and the keyword `as` matches mid-word — §4.6's boundary guards
+only what follows a keyword, not what precedes it. Verified live: the generated parser
+accepts `parse Xas y` as `parse X as y`; the hand-written one refuses, because `Xas` is
+one token and always was. Pinned in `SelfHostingTests` so the resolution flips a test
+consciously.
+
+So "the same process" is not reachable by proofs alone — the processes implement
+different languages at exactly the points the proofs refuse. The v2 decision this forces
+is now concrete rather than speculative: whether the notation's semantics at the trivia
+boundary should become token semantics — maximal munch, no mid-word keywords — which is
+almost certainly what every author already believes it is. That is a language decision,
+§11-adjacent, and it is not taken here.
+
+The probe itself was temporary and is gone; what stage 2 needs of it — leading-token
+computation, exclusivity over tokens, scannability against a rule's follow — is specified
+by what the probe measured.
+
+## Built: §4.6 made symmetric — and made real
+
+The ruling: `Xas` is one lexeme. §11's backtracking could read `parse Xas y` as
+`parse X as y`, because the woven boundary guarded only what follows a keyword; a new
+`Node.Behind` — one comparison against `text[p - 1]`, woven by the normalizer, never
+written by an author — guards what precedes. The pinned divergence test flipped to an
+agreement test: both implementations now refuse, for the same reason a lexer always did.
+
+Two findings on the way, both worth their own lines:
+
+**§4.6 had never fired for the grammar shape its own example recommends.** `Continues`
+required the boundary's element to stand directly in the `wordboundary` body, and
+`wordboundary = WordOrDigit` names it through a rule — so the right-edge guard had been
+silently inert for the self-hosting grammar all along, and nothing said so. The decision
+now looks through reference chains and answers category membership at build time with the
+first-set machinery. The weave also ran eagerly against a body that might not be lowered
+yet; it lowers on demand now.
+
+**Symmetry exposed the scope.** The instant the guards actually fired, they fired inside
+lexical namespaces too, and the `'u'` of `'\uFFFF'` was told it cannot precede a hex
+digit. The rule that survives: a lexical namespace — one whose own trivia is empty —
+shields a `wordboundary` inherited from outside, because its literals are the parts of
+one lexeme; a namespace that declares boundary and empty trivia together keeps both,
+which is the scannerless keyword grammar (`SqlReadOnly`), and its `into_stock` tests are
+what caught the first, too-broad scoping.
+
+And the second ruling: dots are punctuation. `Name` moved from the lexical namespace to
+the spaced layer of the self-hosting grammar, so `using A . B;` reads as the hand-written
+parser always read it. `A.B:C` tokenizes as five things, not three.
+
+Symbols stay per-context — no maximal munch for them, by design: C's `a+++++b` is the
+cautionary tale, where a global lexer's greed commits `a ++ ++ + b` and the parser can
+never recover the valid `a++ + ++b`. Here the candidate set at each decision point is the
+context, and §11's give-back remains available exactly where word-lexeme rules do not
+apply. Self-hosting ratios held: 2.1/3.0/3.0/3.2.
+
+## Built: a rule that only forwards costs nothing
+
+Stage 2 opened with the trace, and the trace moved the target. The choice points the
+inventory catalogued were not the top of the bill — the top was the pass-through tower:
+`Operand : @T = o: Guard => @(o) | o: Quantified => @(o)`, a floor of the layered grammar
+that does nothing but forward, and cost a call frame, a completion, a rule capture, a
+pass-through construction and a return per operand. Work a hand-written parser does not
+do, which under the standing rule makes it a proof obligation.
+
+The proof is by identity, and the normalizer now discharges it: `CollapseTransparent`
+inlines every call to such a rule as the choice of its sources, distributing the capture
+over the branches — `e: Operand` becomes `(e: Guard | e: Quantified)` — ordered as
+written, values flowing from the producers they always flowed from. The rule stays in the
+graph for whatever reaches it by name; unreachable states are already the layout's to
+drop. One lesson cost an hour: the rewriter must preserve the identity of untouched
+subtrees, because everything before it keys facts by node reference — binding powers,
+sequence captures — and a wholesale clone orphaned the calculator's operators before the
+identity-preserving walk fixed it.
+
+Steps on `Url.gram`: 9,449 → 8,844. Modest — only `Operand` and `Declaration` are fully
+transparent in the notation's grammar; `Quantified` and `Prefixed` carry real factories
+and remain — but the feature is general, and every layered grammar stops paying rent on
+its transparent floors. Ratios: 2.1 / 2.9 / 2.8 / 3.1.
+
+Alongside it, the `a+++++b` pair went in as tests: the guarded grammar dies the death the
+C standard prescribes, the unguarded one reads `a++ + ++b` — both languages three lines
+apart, neither imposed.
+
+## Where the remaining 3x lives, measured to the entry
+
+After the collapse, the trace of `Url.gram` reads 8,844 steps, and the shape is no longer
+scattered: 907 valued-rule completions each pay the call ceremony — a `Call` entry, its
+`Completed` rewrite, a `RuleCapture`, a pass through `Return`, a `Construct` — about five
+arena entries apiece, roughly half of everything. That is the factory tower
+(`Quantified → Prefixed → Captured → Primary → RefOrCall → Reference`, ~six valued calls
+per operand), and its factories are real: they build the tree. The hand-written parser
+makes the same six calls and builds the same tree; what it does not do is write five
+records per call so that backtracking could unwind a construction it almost never
+unwinds. The rest of the residue is honest §11: `recover` against a rule named
+`recover` is ambiguous beyond any fixed lookahead, and the ways back that remain are the
+ones the semantics require.
+
+Two directions are designed, not started, in order:
+
+**Sound eager construction.** The unsound version was removed this week for keying on a
+static fact that did not imply acceptance. The sound key is dynamic and exact: at a
+call's completion, if no resumable entry lives above the call's own — an O(1) question
+for a counter of live ways back — then nothing can ever resume into its span, and the
+value can be built on the spot and the five records collapsed to none. A way back
+*below* the call may still rewind past it wholesale; that discards the built value
+(`Truncate` already knows how) and re-parses, paying only on the path that was already
+losing. The surgery is in the materialization protocol: a caller's capture must be able
+to hold a value directly, not only a completed call's index.
+
+**Two-token settledness.** `name: Identifier & ':'` against a bare reference is decided
+by the token after the word — ':' is provably not in `Primary`'s follow — and the same
+shape decides several of the remaining optionals. The fused test is a word-run scan, a
+seam skip, and one character. The generic analysis is the two-token fusion the lexical
+design already names as v2; the shapes are now enumerable from the trace.
+
+## Fixed: three facts asked at the wrong scope, and a capture asked per turn
+
+An outside review of the Minimal catalog — one snapshot holding every shape the
+generator compiles — found flat rules renting parsers: `Recognize_A_Whole`, a method
+whose own comment promises "no engine anywhere near it", opened with `RentParser`.
+Bisecting with minimal grammars found three separate places where a fact about one
+machine was asked of the whole graph:
+
+- **The flat gate in `CSharpEmitter`** required `graph.Recoveries.Count == 0 &&
+  graph.Climbing.Count == 0 && !Streaming(graph)` — graph-wide, so `Sheet`'s
+  `recover` and `Sum`'s `<<` cost `A = "a"` its flat path from three sections away.
+  Now `RecoversWithin`/`ClimbsWithin` ask the group's reachable subgraph, and
+  streaming is asked of the group's own publications.
+- **`Silent` in `Machine.Analysis`** opened with `_graph.Climbing.Count == 0 ||
+  !_owners.ContainsKey(node)` — one `<<` anywhere and every node of every rule lost
+  every proof, which is how `Maybe`'s settled optional two rules from the climb was
+  found compiling as a `Run` loop with a give-back entry. The refusal is now the
+  owning rule's: a climbing rule keeps the general machinery, everything else keeps
+  its proofs.
+- **A capture repeated recorded per turn.** §10 makes `t: ['a'..'z']+` one capture
+  repeated, and the machine compiled it as written: `Capture` + `TurnDone` + two
+  `Repeat` rewrites + a `LoopExit` refresh per character — O(n) arena for a value
+  defined to be the text joined, which for contiguous turns is the extent of the
+  loop. `HoistTextCaptures` in the normalizer now rewrites `(t: X)+` to `t: (X+)`
+  wherever the body is pure text and at least one turn is required (an optional keeps
+  the §10 null-versus-empty distinction and stays distributed; recovering repeats and
+  fold rules keep their node-keyed facts and are skipped). The freed loop then
+  compiles silent: `Text`'s engine body is now a capture local, a char loop with no
+  entries, and one `Capture` record.
+
+Csv arena writes 24 → 18 statically; the catalog's `A`–`F` are flat methods again;
+ratios (medians, same discipline): Csv 2.1, Feed 3.7, Minimal 2.4, Url 4.0.
+
+The review's larger direction stands on its own: the arena as fallback rather than
+default form, with lowering classes (direct / scanner / predicted / checkpoint /
+precedence / general) and captures decoupled from backtracking state — `[start, end)`
+locals unless a proof says backtracking can change the capture's identity. That is
+the valued-flat stage: `CanLower`'s `Silent` has no case for `Capture`/`Construct`,
+so every valued rule still enters the engine only to run a loop the proofs already
+made silent. The next stage teaches the flat writer captures-as-locals and direct
+construction, which by the review's own table takes the arena out of 21 of the
+catalog's 23 rules.
+
+## Built: valued flat lowering - captures in locals, construction at Accept
+
+The review's central principle - the arena is a fallback, not the default form of
+parser state - split into two independent questions: does parsing need backtracking
+state, and does the value need persistent derivation state. For most valued rules the
+answer to both is no, and the machinery to prove the first half already existed. What
+was missing was the second half: `CanLower` is `Silent`, and `Silent` had no case for
+a capture or a construction, so every valued rule entered the engine only to run a
+loop the proofs had already made silent, keep one capture, and write four arena
+entries of ceremony around it.
+
+`CanLowerValued` admits a valued publication to the flat path when the value adds
+nothing the arena is for: captures are spans of the input (no rule values, whose
+per-turn records are the point), none sits under a repetition of more than one turn
+(a local would keep only the last), and the construction is single and at the top, so
+Accept knows the factory without a record. The silence question is then `Silent`'s
+own, asked with `_valuesInLocals` on - the same flag the rendering compiles under, so
+analysis and compilation cannot disagree.
+
+Under the flag, a capture is two locals - `flat{slot}Start`/`End`, sentinel start for
+the §10 null-versus-empty distinction - and the construction compiles to nothing: the
+factory runs once, at Accept, after the whole-input check. Deferred construction is
+kept exactly, without an arena to defer into, and a new test pins the factory call
+textually after the length check. A give-back door now unsets the capture locals the
+abandoned turn set - the one thing arena unwinding used to do for them - which the
+optional-capture test caught on its first run ("" where null was meant).
+
+Silence itself grew three honest cases, engine-wide, not flat-specific: `Behind` (one
+comparison, already routed through `_fail`), a scanner call (one method call), and a
+lookahead over a silent body - compiled as a checkpoint local and a rewind through
+the same `GiveBack` door a possessive turn leaves by, in both directions, replacing
+the Lookahead entry and its RemoveRange wherever the body is silent. The rewind on
+the failing side is what keeps "a lookahead does not report how far it looked" true,
+and that test caught the first version leaving `p` mid-body.
+
+On the Minimal catalog this makes 12 valued rules plain methods with zero arena -
+Text, Number, Predicted, List, Counted, Maybe, Ahead, Not, Ci, Upper, Spaced.Pair,
+and the valueless A-F alongside - `Recognize_Text_Whole` now being a char loop, one
+`string` allocation, and a factory call, the review's target form for it verbatim.
+The engine remains for exactly what the review's own table kept it for: C/E/F (a way
+back - the checkpoint class, deferred), Committed (atomic commit), Alias, Either,
+Wrapped (rule values across calls - the next stage), Sum (climbing; direct recursion
+was considered and declined - a hand parser overflows the stack where the engine
+refuses cleanly), Sheet (recovery), AnyItem (a find is a prefix parse, unsettled by
+definition). The catalog file: 10,973 lines before the scoping fixes, 7,155 now.
+
+Not taken up yet, in order: rule values across calls (Alias's direct call of a flat
+callee, Either/Wrapped's predicted dispatch with the factory choice as a local
+tag); the checkpoint class for C/E/F/Committed; Sheet's collection materialization
+(the review's copy-on-return point) and pool retention.
+
+## Built: rule values across calls - sites, instances, and a tag for the choice
+
+The second half of valued flat lowering: a capture of another flat-valued rule's
+value. `FlatValued` is the structural predicate, memoized, and it serves root and
+callee alike: constructions that are the whole of the body - one at the top, or one
+per alternative - over captures that are spans of the input or, now, sites of
+further such rules. A site compiles the callee's body in place under an instance of
+its own (`flat{instance}_{slot}` - the same rule inlined twice may not share
+locals), and the capturing slot's sentinel doubles as "did this site run". The
+callee must share the caller's seam: a namespace crossing degrades continuations to
+"anything", which the silence proofs cannot survive, so the predicate refuses it.
+
+At Accept the factories run inner-sites-first - a child's instance id is above its
+parent's, so reverse order is dependency order - each guarded by its parent slot's
+sentinel, the root last. Where a rule is a choice of constructions, which
+alternative matched is a tag local (`flatWhich{instance}`) written as the
+alternative closes, and Accept switches on it; the switch sections are braced,
+because they share one declaration scope and every case names its captures the
+same. A member captured in more than one alternative reads the slot that ran,
+first written first - the chain the arena materializer resolves by entry presence.
+
+Deferred construction holds exactly as before: nothing runs until the whole parse
+is decided, and a site whose branch was not taken never constructs - the engine's
+per-need materialization, kept by a sentinel instead of a link walk.
+
+Alias, Either and Wrapped - the three catalog rules this stage was for - now
+compile to the review's target forms: Alias is '#', a digit loop, and
+`Construct_Number` feeding `Construct_Alias` at Accept; Either is a first-char
+switch, a tag, and a factory switch; Wrapped picks `value1` or `value2` by
+sentinel. The catalog file is 6,096 lines (10,973 three commits ago), and seven
+publications still rent a parser: C/E/F (a way back - the checkpoint class),
+Committed (atomic commit), Sum (climbing), Sheet (recovery), AnyItem (a find). The
+engine test that pinned "a valued rule has one shared block" keeps pinning it, on a
+grammar the flat path refuses; a new sibling pins the inline: three
+`Construct_Name` sites, no call, no parser.
+
+The notation's own grammar is unchanged by this - its machines are recursive and
+stay on the engine. Its path to the same benefit is the recorded direction: an
+engine machine calling a flat-valued rule as a method instead of a state, which is
+the sound remainder of the eager-construction idea.
+
+## Built: the atomic group joined the silent shapes
+
+`{ "ab" | "a" }` is first-match-commits, and that is a shape locals hold: try each
+alternative in order through the give-back door, and the first that matches is final
+- nothing ever comes back, which is what "atomic" says. No `Atomic` entry, no commit
+sweep putting out ways back, because none were written. The alternatives may share
+prefixes freely - prediction is what this shape never needed - and each one's
+captures are unset on the way through the door, the same discipline as a given-back
+turn. `Committed` compiles to the review's local-checkpoint form for it, verbatim.
+
+One refusal, caught by the semantic suite on first run: a machine that recovers
+keeps the engine's atomic commit, because §8.2's discriminator rests on the commit
+marking the element owned, and that mark is the engine's. The silence test and the
+compile branch ask the same predicate, recoveries included, so they cannot disagree.
+
+The catalog stands at 5,815 lines; six publications still rent a parser: C, E, F (a
+way back past the construct's edge - the deferred normalization family), Sum
+(climbing), Sheet (recovery), AnyItem (a find). The catalog's own section comments
+now describe the shapes that are actually emitted.
+
+## Fixed: two answers nobody needed to ask for
+
+Two of the review's P1 points, both of the same kind - work spent answering a
+question with one answer.
+
+A rule with one factory wrote a `Construct` entry per completion, and the
+materializer walked the link chain to find it - to learn which construction ran,
+when only one could have. The entry is now written only where the body is a choice
+of constructions, and the single-factory materializer calls its factory without
+looking. A fold keeps its entries: there each one is an iteration, not a choice.
+This is a quarter of the completion ceremony the factory-tower measurement charged
+half of everything to, and the ratios moved with it: Csv 1.9, Feed 3.3, Minimal
+2.2, Url 3.6 (from 2.0 / 3.6 / 2.4 / 3.9; two runs agreeing).
+
+`Construct_Sheet(string[] item0)` counted its one argument into a copy of itself.
+A §4.1 case 2 factory over exactly one repetition and nothing else now hands the
+array back - it was built fresh by the materializer for this construction and is
+shared with nobody.
+
+The pool retention threshold (the review's third P1 point) stays as it is until
+measured: with captures out of the arena the entry counts no longer scale with the
+input, and 4096 covers far more than it did when the number was picked.
+
+## Tried and declined: sound eager construction, measured to a net loss
+
+The dynamic version of eager construction - the one the earlier diary entry designed
+- was built in full and worked: a `wayBack` high-water mark over resumable entries
+(Choice, Run, LoopExit, Lookahead), maintained O(1) at every push, repaired
+conservatively at every resume ("the mark stands at the resume point"); at a valued
+completion with `wayBack <= call`, the span above the call was materialized through
+a bounded `Materialize_DotGram_Eager` and truncated to the Completed entry that owns
+the value, with a DEBUG invariant recomputing the precondition by scan. All 1,068
+tests and the differential fuzzer stayed green, the deferred-construction pins were
+flipped to the agreed weaker contract, and correctness of values held by
+construction: nothing from an abandoned derivation can survive a truncation.
+
+Measured Release-to-Release against its own baseline, medians, two runs agreeing:
+
+  Csv  1.93 -> 2.15    Feed 2.69 -> 2.94    Minimal 2.07 -> 2.40    Url 2.94 -> 3.40
+
+A ten-to-fifteen percent net loss, and the reason teaches something the step-count
+measurement hid: the factory tower's cost is the WRITING of Call/Completed/
+RuleCapture and the Return dispatch, not the existence of the records afterwards.
+Runtime collapse erases records that were already paid for, and charges for the
+erasure: a materializer invocation per completion, `Truncate` link bookkeeping on
+every unwind pop (the caches machinery, now on for every valued machine), and the
+cached Accept sweep scanning the whole arena where the owners-list walk had not.
+The only way to remove the ceremony's cost is to never write it - a compile-time
+decision, which is exactly what the flat-value sites already do outside the engine.
+
+Reverted per this project's own discipline (trie, left-factoring, mixed lowering:
+built, measured, declined). The revert keeps nothing dead. What stands after it:
+the deferred-construction contract is UNCHANGED - factories still run only at
+Accept - since the weakening was only ever the price of a win that did not appear.
+
+The direction that replaces it: compile-time inlining of flat-valued callees at
+engine call sites whose site continuation passes the same proofs the flat path
+asks (`FlatValued` callee, silent under the site's continuation) - writing no Call,
+no Completed, no RuleCapture, holding the span in locals and deferring the factory
+to Accept through the value-capture protocol. That needs the engine's capture
+protocol to accept a value that has no Completed entry, which is the same seam the
+eager build touched; the difference is that the decision is made once, at
+generation time, and costs the runtime nothing.
+
+## Built: sited calls - a captured call compiled as its callee's body
+
+The compile-time successor to the declined eager experiment. A captured call whose
+callee is the flat-value shape - one factory over captures that are spans of the
+input, with a required span to witness the site ran - compiles as the callee's body
+in place: its captures record into a run of slots the site owns (the same rule
+inlined twice may not share records), and the materializer builds the member by
+calling the callee's factory over those spans directly. No Call entry, no Completed
+rewrite, no RuleCapture, no dispatch - nothing written that was not already paid
+for, which is what the eager measurement demanded.
+
+No silence is asked. The site's captures are ordinary arena records and unwind like
+any others, so every call site of a qualifying rule qualifies, settled or not; and
+construction is untouched - the factory still runs at Accept, off the accepted
+derivation. Two exclusions carry the protocol they replace: a rule with a guard
+reads members mid-parse through the completed-call protocol, and a machine that
+recovers reads elements off it, so both keep the ceremony.
+
+Two bugs found by the example suite on first run, both worth remembering. Node is a
+record, and record equality is by value: `t: Line` written in two rules is one
+dictionary key unless the map is built over `NodeIdentity` - the same lesson
+CaptureLayout.cs already carries. And a rule every call of which became a site
+leaves its own states unreachable, whose capture local then trips CS0219 in the
+consumer's build - `UsesCapture` now checks the written states the way `UsesChar`
+does.
+
+Measured Release-to-Release: the corpus is flat (Csv 1.91, Feed 2.7, Minimal 2.10,
+Url 2.87 against 1.93 / 2.69 / 2.07 / 2.94) - and the reason is the notation's own
+shape, not the mechanism. Its valued leaf captures are collections: `usings:
+Using`, `declarations: Declaration`, `alternatives: Alternative` - sequence
+members, which V1 refuses because per-turn records need element boundaries the
+scalar walk does not have. The scalar case pays off where real grammars capture a
+lexeme-like rule once - Markdown's `text: Line` in Heading is the shape - and it is
+the foundation the sequence extension stands on.
+
+Next, in order: sited sequence members - wrap each element in one synthetic extent
+capture as the boundary (net minus two entries per element and no dispatch, against
+the three-plus-dispatch it replaces), walk the chain grouping parts between
+boundaries; then transparent-collapsed multi-slot members if the counts say so.
+
+## Built: sited collections - one boundary capture per element
+
+The sequence half of sited calls. A collection member whose element rule is the
+sited shape now sites too: each element is the callee's body compiled in place,
+wrapped in one synthetic boundary capture whose entries are what tell one element's
+spans from the next's. The materializer counts boundaries for the array's length,
+then walks the chain once - reverse write order, so a boundary arrives after the
+spans of its own element - closing each element as the next boundary appears and
+the last one after the walk.
+
+`Extent` also learned that a call to a valueless rule is text: `name: Name` in the
+notation is that shape, and refusing it kept several rules off the sited path for
+no reason. The flat renderer still gates such captures through `Silent`, which is
+what refuses the calls it cannot compile without an arena; a sited capture needs no
+such gate, since its records unwind like any other.
+
+Per element this trades three entries and two dispatcher passes (Call, its
+Completed rewrite, RuleCapture, the jump in and the return) for one - the boundary
+capture - plus whatever spans the element itself records, which it recorded before.
+
+Measured Release-to-Release, two runs agreeing: Csv 1.93 -> 1.88, Feed 2.69 ->
+2.62, Minimal 2.07 -> 2.08, Url 2.94 -> 2.88. Small, and honestly so: the corpus's
+sited collections are `usings` and `parts`, which the sample texts have few of. The
+shape it is for is a document of many small records - Markdown's blocks, a feed's
+rows - where the ceremony was three entries per record.
+
+## Built: the scanner stopped being the grammar written out
+
+A review of `Scan_trivia` named two things in it that were the automaton showing
+through rather than anything the shape required, and both had general answers.
+
+**One character for the whole choice.** Every alternative of a scan choice that must
+begin with a character is refused by one test over the union of their first sets,
+written before the chain. The scanner's commonest answer is "no trivia here" - it is
+called at every seam - and that answer used to cost a test per alternative: for the
+notation, a bounds check and a two-character span compare for `//`, then the same
+again for `/*`, after the whitespace class had already said no. Now the character
+says no to all of them at once, and the end of the input is the same test rather
+than a cascade through every alternative's own EOF check.
+
+**A guarded scan is a search.** `(?!L & any)* & L` was compiled as written: a turn
+that tests the delimiter, refuses, rewinds and consumes one character, and then, on
+the way out, the trailing literal testing the same delimiter the guard just proved.
+Two marks, a rewind and a double read per character of every comment. It is one
+search - `IndexOf` - and the runtime's is vectorized where that loop could not be.
+The pair was already judged as a pair by `Scannable`, so the fusion is the same
+judgement carried into emission: found is where the guard would first have held, not
+found is the literal failing after a scan to the end, which is the pair failing.
+
+Narrower than the general shape on purpose: only where the turn consumes `any`. A
+turn like `?!X & [^ '
+']` can also stop because its own test refused, which a search
+for X would run straight past, so that shape keeps the loop. `any` is a rule of the
+standard library rather than an element written in place, so the predicate follows
+calls - which is what made the first attempt silently not fire.
+
+Ratios, Release, two runs agreeing: Csv 1.88 -> 1.76, Feed 2.62 -> 2.40, Minimal
+2.08 -> 1.86, Url 2.88 -> 2.62. The largest single step since the exponential fix,
+and it is all in the seam: Url has no trivia at all and still moved, because the
+notation grammar that parses these files is what the corpus measures.
+
+Not taken: prefix dispatch merging `//` and `/*` under one `'/'` test. The front
+test already removed the negative path both were on, and what is left is one span
+compare per comment start. Same reason the trie was declined: measure a shape that
+exists first.
+
+## Built: the CFG stopped photographing the automaton
+
+The review's diagnosis - the generator optimizes the parsing operation but not the
+control-flow graph it leaves behind - taken in five pieces, each general.
+
+**A door for nothing.** The give-back door restores a position the failing body
+never moved: a repetition or optional whose body is one character (an element, a
+one-character literal, `Behind`) fails before `p++`, so `FailsWhereItBegan` routes
+its failure straight to the continuation - no `turn` local, no restore state, no
+trampoline. The identifier tail, the optional marker, and the silent atomic's
+alternatives all lose their `p = turn0; goto` blocks. A literal longer than one
+keeps the door, and not only for the obvious reason: its failure branch moves `p`
+to the character that did not fit, for the diagnostic.
+
+**A lookahead one character decides is its test and nothing else.** No local, no
+consuming, no rewinding: `?!W` is `if (p < length && W(text[p])) fail`, and `?=` the
+mirror image. §4.6 weaves one of these around every word literal, so every keyword
+boundary in every grammar was paying the checkpoint ceremony for one comparison.
+
+**Jump threading over the scanner.** Emission is compositional - a choice cannot
+know its taken-exit falls into the loop's back-edge - so the seams are threaded over
+the finished text: a jump to a label whose block is another jump goes where that one
+goes, a jump to the label it falls into disappears, an unreferenced label goes, and
+a jump left unreachable by a removed label goes with it (a branch of a two-line `if`
+recognized as conditional, whatever its own line says). Two passes to a fixpoint.
+`Scan_trivia`'s whitespace turn is one back-edge instead of two jumps; the block
+comment's success path is one jump; the EOF cascade is shorter by every label that
+did nothing.
+
+**One classification instead of five.** A multi-category element test called
+`GetUnicodeCategory(c)` once per category; the enum fits an int, so it is one call
+and one mask: `((1 << (int)GetUnicodeCategory(c)) & 0x...) != 0`. The notation's
+generated file holds 90 textual calls where it held about five hundred.
+
+**The pool held the previous document alive.** `Reset()` cleared the object table
+but not the typed ones, so a pooled parser kept references into the last parse's
+tree from a thread-static field until the next parse happened to overwrite them.
+The typed tables are now cleared with the rest, in the same `finally`.
+
+Ratios, Release, two runs agreeing: Csv 1.78, Feed ~2.3, Minimal 1.86, Url 2.52
+(from 1.76 / 2.40 / 1.86 / 2.62) - the gain is Url's, the rest is hygiene the
+corpus cannot see: fewer states, fewer jumps, no retention.
+
+Left open from the review, in order: the redundant bounds-and-reload at a choice's
+first alternative after the front test (the emission would have to carry "c holds
+text[p]" across the seam); partial FIRST dispatch for choices that are not fully
+disjoint - Primary's `'@'` deciding CsExpr against RefOrCall one character early;
+and the Return/Dispatch architecture itself, deliberately last.
+
+## Measured: the whole series, on the shape it was for
+
+The corpus's flat ratios kept saying the same thing: the notation grammar is a tower
+of recursive valued rules, and most of the series - hoisted captures, valued flat,
+sited calls, scanner work - lives elsewhere. So the benchmark that was missing got
+written: `Documents.cs`, four hundred key-value records with trivia at every seam,
+values that are spans, a collection collected in order. Three inputs of one length -
+dense, spaced, commented - tell the seam's cost from the record's.
+
+Against the state before the series (one worktree per side, same machine, same run):
+
+  dense      287.5 us -> 19.3 us      allocated  3.14 MB -> 46 KB
+  spaced     279.8 us -> 20.5 us
+  commented  276.9 us -> 21.2 us
+
+Fifteenfold in time, sixty-eight-fold in allocation, and the remaining 46 KB is the
+result itself. The seam now costs seven percent over dense and comments ten. The
+numbers went into benchmarks/README.md next to the URL ones, which measure the dense
+regex-shaped case this benchmark deliberately is not.
+
+Writing it also walked into a sharp edge worth remembering: `entries: Entry*` in a
+spaced grammar parses `a;b;` and silently refuses `a; b;` - §4.5 puts trivia between
+the operands of a sequence and not between the turns of a repetition, because
+`Word*` cannot be told from a list by looking, and the semantic tests pin exactly
+that. An attempt to widen the turn seam to called turns broke those pins and was
+reverted the same hour; the list spells its seam itself - `(trivia & entries:
+Entry)*` - the way the notation grammar always has. Whether the language should say
+something louder at that edge (a diagnostic for a called repetition in a spaced
+namespace with no seam in the turn?) is a language question, noted here and not
+decided.
+
+## Fixed: a collection of a valued rule is spaced
+
+The benchmark's natural grammar - `entries: Entry*` in a spaced namespace - parsed
+`a;b;` and silently refused `a; b;`, and the ruling was that a grammar must work the
+way it reads. The line that makes both halves keep their meaning is valuedness: a
+repetition of a rule that builds a value is the collection §4.1 case 2 gathers, and a
+grammar that separates its operands separates its collections the same way; a
+valueless operand is a fragment of text - `Digits = ['0'..'9']+`, `Name = Letter+` -
+and spacing its turns would make `1 2` one number. The first attempt drew the line at
+"any called turn" and broke exactly that: §4.5's own `Name = Letter+` example.
+
+Valuedness needs the types, so the seam is not woven in lowering but by `SpaceLists`,
+a normalizer pass after `ComputeTypes` and after `CollectSequences` (whose implicit
+capture must sit inside the seam, not around it), re-keying `recover` like every
+rewrite that replaces a repetition node. The old pins survive untouched - `Word*` and
+`W*` are valueless and stay lexeme-shaped - and a new pin runs the same four inputs
+through the captured, bare and hand-seamed spellings of one list.
+
+Two analyses had to learn what a seam is. `Undecided` (GRAM5002) saw the woven turn
+overlap the woven continuation on every space - one seam split two ways, not a choice
+the input decides - and now discounts the seam on both sides. And `StreamedParse`
+told the author to "give the repeated part its own rule" about a part that had one;
+it now says the true thing: a streamed parse does not yet skip trivia between the
+elements it hands over. Building that driver - the seam is already a stage shape the
+streaming emitter knows - is recorded as the follow-up.
+
+§4.5 in docs/syntax.md now states the rule as the language means it. The Documents
+benchmark reads the natural spelling and its numbers stand: dense 20.0 us, spaced
+19.8, commented 20.7, 46 KB - within the run-to-run spread of the hand-seamed form.
+
+## Built: a spaced collection streams, seams and all
+
+The follow-up the last entry recorded, closed. `Yields` and `StagesOf` now recognize
+the seamed turn `(trivia & item: Entry)*` that SpaceLists weaves - guarded by the
+rule's own trivia symbol, so a sequence turn that merely starts with some call is not
+mistaken for one - and the stage carries the seam rule. The driver skips it at the
+top of every turn, before the continuation probe and the element alike, with the
+same grow-the-window loop every other read uses; retention is measured past the
+seam, since the skip moves the window as it goes and only the element is ever held.
+The seam rule is registered like any staged rule and gets a recognizer under its own
+name - `Recognize_trivia` - whether or not it is scanner-shaped.
+
+The interim GRAM5001 text ("does not yet skip the trivia") lasted one commit, which
+is the good kind of diagnostic debt. A driver test pins the three claims that
+matter: the string and reader overloads agree on a spaced list, a broken element is
+stepped over across a seam, and four thousand seamed records read through a window
+that holds none of them for long.
+
+## Tried and declined: fusing RuleCapture into Completed
+
+The last mechanical squeeze on the completion ceremony looked free: a Completed
+entry already sits with its caller's index in CallIndex, its State field seemed dead
+once Return had read the continuation out of it, so the capturing slot could live
+there and the RuleCapture entry - one of the three per completion - would never be
+written. Built in full: claim as an in-place rewrite, member walks reading the
+completion itself, valued Calls linking at birth so the incremental pass cannot walk
+past a not-yet-completed call (a real find - RuleCapture never had the problem only
+because it was always born ahead of LinkedUpTo).
+
+Two walls, both instructive. First, the state renumbering pass: Layout rewrites the
+second argument of every resumable ParserEntry literal as a state id, and a slot
+sitting in that position was silently renumbered into garbage - the exact "silent
+corruption" its own comment warns about, met from the other side. Removable, and
+removed. Second, the real one: a completed call can be resumed INTO - a standing
+exit in its tail - and complete again, and the second Return reads the continuation
+out of State. The continuation is not dead after Return; it is dead only when
+nothing can resume into the span, which is a dynamic fact this session already
+declined to track once. The claim and the continuation both need the field, there
+is no other free field in ParserEntry, and encoding both means renumber-aware
+arithmetic in every reader.
+
+So the RuleCapture entry is not a duplicate answer after all: it is the claim as a
+separate, poppable record - unwinding it is what un-claims - and the Completed's
+State is the continuation for however many times the call completes. The same
+lesson eager construction taught about records and backtracking, met at the next
+record over. Reverted clean; the linked-at-birth insight goes with it, since only
+the fusion needed it.
+
+## Built: the checkpoint class - a way back in three locals
+
+The last valueless shapes renting a parser - C, E and F of the catalog - were choices
+that genuinely need coming back to: a shorter literal written first, or a continuation
+that can spend the character the longer alternative would have taken. What the arena
+held for such a choice is three facts, and for a choice no repetition stands over,
+three locals hold them: `way` is the position, `alt` the next alternative to try,
+`over` the site that was pending before this one opened. `pending` names the innermost
+open site, and the flat method's `Fail:` becomes the engine's unwinding without the
+engine: record the failure against the furthest seen - ties added, the same
+max-comparison RenderEngine makes - then resume the innermost site's next alternative,
+or close it and hand the failure to the site it opened over, until none is open and
+the method returns. Re-entry from an outer resume runs the site's entry again, which
+re-arms all three locals; the runtime nesting is a stack, flattened into per-site
+locals because one site activates at most once.
+
+Admission is `Silent`'s choice case grown a third clause, and the compile arm asks the
+same helper, so the two cannot disagree. The refusals are the flag `_checkpointsAllowed`
+going down inside every construct that routes failure around `Fail:` - a silent
+repetition's door, an atomic chain, a lookahead's rewind - and `Deterministic` already
+refuses the choice, so no silent repetition ever contains a site. The valued rendering
+refuses too, for now: a retry would have to unset the capture locals the abandoned
+attempt set, and no valued shape in the corpus asks for it yet.
+
+Two things came out better than planned. E compiles to the review's target form
+verbatim: try `"http"`, one shared `'s'` state, and the failing tail resumes `"https"`
+through the dispatcher. And GRAM's one documented diagnostic gap - a prefix-conflicted
+run under-reporting what it covers - closed itself: `"p" | "q" | "pr"` against `x` now
+says all three, because every alternative's failure is recorded the way the engine
+records it. The test that pinned the gap asked to be changed on purpose; it was.
+
+One thing is honestly worse, and recorded: the engine's form of `"http" | "https"`
+pushed its way back past the four matched characters and compared the fifth alone,
+where the checkpoint retry rewinds and compares `"https"` whole - a retry-path cost
+against a straight-line path that no longer rents a parser. Teaching `CompileLiterals`
+to chain into a retry label instead of an arena entry would restore it; follow-up.
+
+And the deferred "concatenation" - distributing E's tail into its alternatives,
+`"https" | "httpss"` - closes as subsumed: the checkpoint class covers the shapes it
+was invented for without touching expected-sets or failure positions.
+
+The catalog: 6,055 lines to 5,359, and the only publications still renting a parser
+are Sum (climbing), Sheet (recovery) and AnyItem (a find). All 1,076 tests green,
+the reference differential and the fuzzer included.
+
+## Built: the scanner's front test hands its character on
+
+The one redundancy the scanner review left open: after a choice's front test proved
+the position in bounds and read `c`, the first alternative asked both questions over
+again - its own bounds check, its own read of the same character. The emission now
+carries the invariant as a flag: true right after a front test, passed into every
+alternative (each begins where the test read), through what consumes nothing -
+`Behind`, a lookahead, `none` - and dropped at the first thing that moves. An element
+head and a one-character literal head become the bare comparison.
+
+Corpus, Release, two runs: 1.74/2.38/1.82/2.58 and 1.76/2.33/1.83/2.49 against
+1.72/2.30/1.87/2.50 before - noise, and recorded as such. The seam's answer was
+already one test; what this removes is two instructions per alternative behind it,
+which the corpus cannot see. Kept for the same reason the CFG cleanups were: the
+generated text stops re-deriving what the line above it just proved.
+
+## Measured: the pool's threshold was cutting off the documents that need it
+
+The review's third P1 point, held until measured; measured, and it bit. A pooled
+parser whose arena grew past 4,096 entries was let go, and the corpus never noticed -
+Csv 512, Feed 1,024, Minimal 2,048, Url exactly 4,096 - but an ordinary 12 KB grammar
+document sits just over the line, so every parse of it rebuilt the whole machinery
+from nothing: 1.13 ms and 3.8 MB per parse, of which the tree itself is 315 KB.
+
+Three policies, one binary each, alternated five rounds. Dropping (the status quo):
+1.13 ms, 3.8 MB. Trimming the tables back to the threshold and keeping the parser:
+1.33 ms, 3.75 MB - worse than dropping, because the trim is itself a large-object
+allocation per parse and throws away nearly everything anyway. Keeping the parser
+whole: 0.85 ms and 315 KB - a quarter of the time gone and twelve times less
+allocation, the remainder being the tree the parse exists to build.
+
+So the policy stays what it was - keep unless outsized - and the bound moves to where
+"outsized" actually is: 65,536 entries, a few retained megabytes for a thread whose
+documents are that size, with the drop kept for genuine pathology. The trim variant
+is recorded here so nobody builds it again hoping.
+
+## Measured: two more forms the machine does not need to change
+
+**The range comparison is already the subtracted form.** `c >= 'a' && c <= 'z'` as
+the emitter writes it compiles to `sub eax, 97; cmp eax, 25; jbe` - the exact code
+`(uint)(c - 'a') <= 'z' - 'a'` would ask for, because folding a double comparison
+into an unsigned subtract is a peephole RyuJIT has. A second range in the same test
+comes out branch-free (`setle`/`cmovl`). The generated file keeps the form a person
+reads; the disassembly is the same either way. Third entry in the "the JIT already
+does it" series, same method: `DOTNET_JitDisasm`, not an opinion.
+
+**ParserEntry's size is not on the critical path.** The packing question - nine int
+fields, forty bytes, would fewer be faster - answered by the cheap experiment first:
+two dummy fields *added*, +20% per entry, corpus measured three runs against three
+baseline runs. The ranges overlap completely (Csv 1.76-1.82 padded vs 1.74-1.77;
+Url 2.48-2.57 vs 2.40-2.58). If a fifth more traffic per entry is invisible, a
+third less cannot be visible either: at these arena sizes the entries live in cache
+and the stores forward. Packing is declined without being built - the padding proxy
+is the measurement - and the fields stay whole ints a debugger can read.
+
+## Built: a lookahead's demand is a first set, and it settled the tower
+
+The trace of Url.gram put 23% of all steps into fail/resume pairs, 128 of them - one
+per operand - resuming the exit of `Prefixed`'s optional `("?=" | "?!")?`. The
+optional's body begins with '?', nothing after it can, and it still compiled as the
+general machinery. The chain led to one line: `CsExpr = ?="@(" & text: @CSharp` has
+first set "anything", because `Following` skipped the lookahead as consuming nothing
+and then met the external, whose honest answer is All - and that one answer poisoned
+every first set the C# expression is reachable from, which is every operand of the
+notation. The `?="@("` guard had been added to spare the runtime the speculative
+scanner call; the analyses never heard about it.
+
+Now they do. `First.And` is intersection - the one asymmetry to `Or` is that
+"anything" is its identity, not its absorber - and `Following` holds a positive
+lookahead met before anything could consume as a constraint on what the rest begins
+with, dropped as soon as a part may have moved the position. `?="@(" & @CSharp`
+begins with '@', whatever the external would say for itself. No emission changed for
+any snapshot grammar; the notation's own optionals began to settle: 7,995 trace steps
+became 7,011.
+
+## Built: one character before the machinery, on every repetition that may take nothing
+
+What remained after the tower settled was honest ambiguity paying dishonest rent:
+`recovery: Recovery?` and `rebound: With?` stay unsettled because `recover` and
+`with` collide with an identifier at a rule boundary - the diary's own "`recover`
+against a rule named `recover`" - but the machinery ran at every operand, where even
+the first character did not match: a Repeat entry, a pushed way out, a failed probe,
+its dispatch, and the leave, to learn that '&' is not 'r'.
+
+The fix is the test a choice link has made since it was measured worth making: a
+repetition with `min == 0` whose body's first set is known is entered through one
+character. Outside the set, the body cannot begin, so the repetition takes nothing
+and the machinery is never built; inside it, everything is exactly as before - every
+way back the general form keeps is kept, because entering commits to nothing. The
+settled optional's char-test form stays what it was; this is its unsettled sibling.
+
+Url.gram's trace: 7,995 steps at the day's start, 7,011 after the first sets, 4,523
+now - fail/resume pairs 921 to 201 - and what remains is 62% completion ceremony,
+the measured floor. Corpus, Release, three runs: Csv 1.33, Feed 1.71, Minimal 1.38,
+Url 1.75, from 1.74 / 2.35 / 1.83 / 2.53 - the largest single step of the series,
+and the lexical design's own targets (Csv at or under 1.5, Url under 2) reached
+without a token in sight.
+
+## Built: the guard learned to read the body instead of the ranges
+
+The one repetition the entry guard could not cover was the one the trace said most
+operands walk into: `(name: Identifier & ':')?`, whose body begins with `\p{L}` -
+a few hundred ranges, which `Decidable` rightly refuses to spell out as comparisons.
+But the same category as an *element* is one classification call, so the guard now
+has a second source: `EntryTest` walks the body to the first thing that must
+consume and lets each leaf write the test it already knows how to write - an
+element's own test, a literal's first character, a choice's disjunction, a nullable
+head alongside what follows it. Sound in one direction only: it may admit more than
+the body would, never less. The compact `RangesTest` form is still preferred where
+the first set is small; the walk is the fallback for the sets no rendering should
+spell out.
+
+Url.gram's trace: 4,523 to 4,203; the day as a whole, 7,995 to 4,203. Corpus,
+Release, three runs: Csv 1.33, Feed 1.70, Minimal 1.34, Url 1.70. Two thirds of
+what remains is the completion ceremony; the enumerable residue is now exactly one
+shape - the `name:` probe reading a word that the reference after it reads again,
+which is the two-token fusion the lexical design names as v2.
+
+## Closed: the performance program, at the numbers it reached
+
+Opened by one sentence - the generated parser must do the same work a hand-written
+one does, or less - and closed here with the backlog empty, every item either built
+and measured in, or measured and declined with the number written down.
+
+Where it ended, corpus medians, Release, hand-written front end against the
+generated notation grammar: Csv 1.33, Feed 1.70, Minimal 1.34, Url 1.70 - from a
+flat ~3.1 at the series' start and 1.7-2.5 at this morning's. The document shape:
+19.3 us and 46 KB from 287.5 us and 3.14 MB. Url.gram's step trace: 7,995 this
+morning, 4,203 tonight, two thirds of it the completion ceremony whose floor two
+recorded experiments drew. The lexical design's own finish line - Feed and Csv at
+or under ~1.5, Url under 2 - crossed without building the token layer it thought
+that would take.
+
+The last day's ledger, for the record. Built: the checkpoint class (C/E/F flat,
+ways back in locals, the under-reporting gap closed as a side effect); the scanner's
+front test handing its character on; the pool keeping what it was built to keep
+(65,536-entry bound, a quarter of the parse and megabytes per call returned);
+lookahead-constrained first sets (one line of analysis un-poisoning every operand of
+the notation); the entry guard on may-take-nothing repetitions, with `EntryTest`
+reading the body where ranges are unwritable. Declined with measurement: trimming
+the pool instead of keeping it; ParserEntry packing (the padding proxy); the
+subtracted range form (the JIT's already); per-binding-power climbing entries (the
+guard it removes is one predictable compare of the class both proxies just measured
+invisible; Nitra needed it because its dispatch was dynamic - ours is an inline
+constant against a register). Closed by count: multi-slot sited members, with zero
+admitting shapes in the repository; partial FIRST dispatch, its target mass - 921
+fail/resume pairs - reduced to 137 by the two analysis fixes, below anything a
+dispatch could repay.
+
+One enumerable shape remains and is named in docs/status.md: the optional `name:`
+probe reads a word the reference after it reads again - the two-token fusion the
+lexical design calls v2, also reachable as the same hand-factoring `RefOrCall`
+already demonstrates. It is a direction with a design, not a debt: the program
+closes with the floor measured, the residue enumerated, and every claim in this
+file carrying the number that earned it.
+
+## Fixed: a replacement reached through a binding did not observe its siblings
+
+`parse Start with (A = B, Sep = Semi)` handed out a `B` still reading the unbound
+`Sep`. Two holes of one shape: the affected-set's forward reachability walked the
+graph as written, so `B` - reachable only through the binding - never entered the
+set and was never cloned; and a bound call landed on the plain replacement even
+where a clone of it existed. The walk now follows the binding edge, and a bound
+call lands on the replacement's clone. §5.1's own words decide the semantics -
+bindings resolve simultaneously over the whole call graph reached, and the
+replacement is part of that graph the moment the binding reaches it. Found by
+reading the machinery toward the parameterized-rebinding work, pinned by a
+semantic test, and every existing pin held - a bug, not a decision.
+
+## Built: a parameterized rule on either side of a rebinding
+
+The status table's one red row, closed. `with (A = B)` where `A` takes parameters
+used to be refused at Bind with "not supported yet", and the reason lived two passes
+later: by the time a binding is realized, §4.2 has already instantiated every call -
+`A('a')` is a call to a parameterless specialization, and a substitution keyed on
+`A` would find no call to touch.
+
+The meaning was never in question - a rebinding substitutes the rule and keeps every
+call's arguments - so the machinery now says exactly that. The binder admits a pair
+of the same signature (same parameter count, each parameter the same kind) and
+refuses a mismatch with a message that explains itself; every instantiation records
+what it is an instance of and of what arguments; and the specialization pass, on
+meeting a call to an instance of a bound rule, builds the replacement's
+instantiation for those same arguments and clones it under the site - so the
+replacement's body and the spliced arguments alike observe the same header's other
+bindings. The clone registers before its body is rewritten, which is what lets a
+recursive specialization resolve to itself instead of cloning for ever. §14's type
+check reads a parameterized rule's declared type where it is concrete C#, and skips
+`: item` deliberately: both sides receive the same argument, so they produce the
+same rule's value by construction.
+
+On the way in, a §5.1 bug that predates the feature: a replacement reached only
+through a binding was never in the forward-reachable set, so it was never cloned and
+`with (A = B, Sep = Semi)` handed out a `B` still reading the unbound `Sep` - fixed
+first, pinned separately.
+
+Ten new tests: signatures accepted and refused at Bind, the header reaching a
+parameterized call in a shared rule, a value argument carried, an argument observing
+its sibling bindings, `: item` handing its value through, and §14 firing on declared
+types. All 1,087 green; the old GRAM3009 pins survive as what they now are -
+signature mismatches.
+
+## Built: indirect left recursion, where the rules between only forward
+
+Next red row, and it splits in two. §4.3 refuses a rule that reaches itself through
+another because indirect recursion has arbitrarily many shapes - but one of those
+shapes is not arbitrary at all, and it is the one every expression grammar is
+written in:
+
+    Primary : @Expr = p: Call => @(p) | n: Number => @(n)
+    Call    : @Expr = target: Primary & '(' & args: Args & ')' => @Invoke(...)
+
+`Primary` only forwards, which is the identity `CollapseTransparent` already proves
+for the same shape: an alternative that is a captured call handed back unchanged
+means nothing the call does not mean. So the leading `Primary` is the choice of what
+it forwards, the alternative distributes over that choice - sound because calls are
+transparent to backtracking, so `(X | Y) & rest` and `X & rest | Y & rest` try the
+same readings in the same order - and what is left is `Call` calling itself leftmost.
+§4.3's own rewrite folds it from there. Nothing new happens at run time; this
+rewrites the grammar into a shape the language already had, and `7()()` folds left
+as it reads.
+
+The pass runs inside `RewriteLeftRecursion`, per rule, immediately before its
+alternatives are classified, and only where the forwarder's sources actually include
+the rule - so a layered grammar with no recursion in it is left node for node as it
+was. Types are not computed yet, so the declared ones stand in and must match
+exactly: a forwarder that widens is doing something after all. And a valueless alias
+under a capture is left alone - its own value is the text it matched (§4.1 case 4),
+and a source with a value of its own would put that value there instead.
+
+What stays refused, now with its reason written down rather than discovered: an
+intermediary that does anything of its own. Its operands and its `=>` would join the
+tail of the fold, so a step would have to apply two constructions in order against an
+accumulator that is itself the result of one - a staged fold, which neither the value
+machinery nor the arena has a shape for. Both halves are pinned: the postfix chain
+runs, the mutual `A = B - N | N` / `B = A + N | N` is refused, and the old
+`Other = Start | 'y'` pin survives unchanged as what it now is - an intermediary that
+is not only a name.
+
+## Built: a value parameter is the literal the call passed, wherever it is written
+
+Third red row, and it opened on a live bug. §4.2 says a value parameter is allowed
+anywhere a value is expected - a quantifier count, the arguments of `@Method`, inside
+`@(...)` - and only the count ever worked. The name written in C# was emitted as
+itself, so `Digits(n: int) : @int = ['0'..'9']{n} => @(n * 100)` produced a factory
+reading an `n` that does not exist: a compile error in somebody else's build, about a
+file they never wrote, with no diagnostic of ours anywhere near it.
+
+A specialization has one concrete argument, so what a value parameter stands for is
+known where the specialization is made and it is a piece of C# text. `Substituted`
+puts it where the name was written, identifier-aware rather than a string replace: a
+parameter called `n` does not rewrite the `n` of `name`, of `x.n`, of a comment, of a
+string, or of a character literal - and an interpolated string is read as what it is,
+text with code in its holes, so `$"{t}-{n} n"` becomes `$"{t}-{7} n"`. Verbatim
+strings, doubled quotes and doubled braces are all text.
+
+With that in place the feature is the same mechanism: a literal argument is a value,
+`Text(Expr)` already renders one as the C# it stands for, and the value is part of what
+a specialization is - `Mark(Word, '!')` and `Mark(Word, '?')` are two rules. What the
+literal is is C#'s to say, so the resolver is asked; a permissive one leaves the answer
+to the consumer's own compiler, which is where §7.4 puts every other question about the
+C# a grammar wrote.
+
+Two things the first attempt got wrong, both caught by the suite rather than by
+reading. A literal's kind comes from the parameter's declaration, not from the literal:
+the same `' '` is a piece of grammar where the parameter is a recognizer (JSON's
+`List(Value, ',')`, `Padded(Word, ' ')`) and a `char` where it is a value. And a number
+is a value whatever the declaration says, because `Digits(n) = ['0'..'9']{n}` is how
+§4.2's own example writes a count and `FixedWidthExample` is built on it.
+
+§4.2's table promised "a literal or a previously captured value". The second spelling
+cannot work and now says so: a specialization is made before anything runs, and a
+captured value exists only while it does. Refused with that reason, and the spec
+corrected rather than left promising it.
+
+## Built: a rule may recover in more than one place
+
+Fourth red row, and the machinery was already there. `_recoveryPlans` has been a list
+since there was one plan, every plan carries an id, and the arena has dispatched a
+recovery by that id all along - what was single was the *lookup*: `RecoveryIn` returned
+the first marked repetition in a rule and the emitter asked once. So the refusal said
+"the machine keeps one and would ignore a second", which was true of the lookup and not
+of the machine.
+
+`RecoveriesIn` returns them all, in the order the rule reads; the machine makes a plan
+per marked repetition; and the one thing that had to differ - the name of the factory a
+`recover`'s `=>` becomes - is settled by `RecoveryMethod(rule, index)` for both halves
+of the emitter at once. The first keeps the name it always had, so every grammar that
+had one recovery generates exactly the text it did.
+
+The stream is the exception, and it stays one - for a reason, not for want of
+machinery. The driver steps over a bad element as it hands the good ones back, reading
+one repetition at a time, so a second `recover` in a streamed rule would be one that
+quietly does not happen. That is not a refusal of the grammar, though, and it moved to
+where it belongs: `StreamedParse` now names it as a reason, so the publication is told
+it gets no reader overload (GRAM5001, Info) and parses whole exactly as it reads. The
+§8.2 check in the normalizer is gone; a §6.3 constraint belongs in §6.3's own analysis.
+
+Pinned by a parse that recovers twice in one rule and proves each rejection came
+through its own `=>` - `a,!b1b|c,?d2d` - and by the streamed publication being told
+why it has no reader.
+
+## Built: a match says which kind of answer it is, and §7.5 says what is built
+
+Fifth red row, and reading it found the row was arguing with two other sections.
+§7.5 sketched a `RecognitionResult<T>` that is `internal`, carries a `SourceSpan` and
+allocates a `Diagnostic`. Three of those four cannot be: an `internal` type cannot
+appear in the `public` signature a publication hands it back through (§6.1, CS0051,
+which is why `Match<T>` is public); a `SourceSpan` is int-based while an offset into
+the input is a `long` (§6.3), and it is emitted only for grammars that ask for one;
+and an allocated diagnostic per failure is what `Error`-built-on-demand exists not to
+be. The row was a sketch the implementation had outgrown in three places and not
+reached in one.
+
+The one it had not reached is real and is the whole point of the section: a failure
+that ran out of input is not a failure that met input which did not fit. A caller
+reading from a stream wants a longer read; one reading a document wants a message.
+`Match<T>` now carries `Outcome` — `Success | NoMatch | Starved` — with `IsSuccess`
+kept and derived from it, so the two can never disagree. §7.5 is rewritten to
+describe what exists, with the reasons, rather than what was drawn.
+
+Getting it exact and free took three attempts, and the two that were dropped are
+worth the lines. The first marked a local at every room check and adopted it in
+`Fail:` beside `Expected` — correct, and it cost Minimal 1.34 to 1.45 (measured
+against a stashed baseline, four runs each): two statements in the automaton's
+unwinding path, which every backtrack passes. The second made the local a position to
+drop the per-failure clear, and cost the same — so it was never the clear.
+
+The third asks the question the boundary actually asks. What the boundary wants is
+whether the *furthest* failure ran out, so nothing has to be threaded: a room check
+writes its own position straight into the failure record, and the boundary compares
+that with the furthest position. A room check somewhere the parse later got past does
+not match and says nothing. Nothing is adopted, nothing is cleared, `Fail:` is
+untouched — and only a test wanting more than one character writes at all, because a
+test wanting one can fail for want of room exactly at the end of the input, which the
+boundary reads off the position it already has. Minimal 1.28-1.32 against the
+baseline's 1.34-1.36; the other three inside their spread.
+
+`Error` — §7.5's fourth outcome, a failure past a commit point — is not there, and
+the row says so. It would need "the furthest failure stands past a commit that still
+holds", which the arena does not keep; a flag set where a commit happens would call
+an abandoned alternative's commit an error. An outcome that is sometimes wrong is
+worse than one a caller has to ask about another way.
+
+And a fourth thing the benchmarks caught after the tests were green: a grammar whose
+every test wants one character never writes the field at all, and a field nothing
+assigns is CS0649 — a warning, which in a build that treats warnings as errors is a
+broken compilation of a file the consumer did not write. `DotGram.Benchmarks` has four
+such grammars and said so. Suppressed at the field, with the reason on it, rather than
+gated: the gate would have to be decided before the machines render and the wrapper
+that reads it is written before them.
+
+## Read: the last two rows were decisions wearing a gap's clothes
+
+The status table's remaining crosses were `document repair` and `incremental parsing`,
+and going to build them found there was nothing to build.
+
+**Repair is out of scope and was already said to be, three times.** `syntax.md` §11
+lists it under "deliberately out of scope"; `implementation.md` §0 says it was tried
+and abandoned in favour of §8.2; and that plan's own preamble names "recovery as a
+search for the cheapest edit over a whole document" among the sections it *removed*
+rather than corrected. The table meanwhile pointed at "§6 of the engine plan" - a
+section that no longer exists, since the plan runs 0, 1, 3, 5, 7, 9, 10, 13. A row of
+crosses against a decision reads as a debt, and pointing it at a deleted section reads
+as a plan nobody kept.
+
+**Incremental parsing is unstarted, and the plan says that too** - its memo-table
+sketch is in the same removed list, taken out once it was clear it had never been
+reached. What it does have is one concrete prerequisite, from reading Nitra earlier
+this month: the arena would have to record each entry's size rather than its position,
+so a tail nothing touched survives an edit that shifts everything after it.
+
+So both moved out of the pipeline table and into a paragraph under it that says which
+they are: a decision with its reason, and a direction with its first step. The table
+is for constructs, and a construct that is not a construct does not belong in it. That
+is the whole change - and it is the honest end of the walk through that table, because
+every other row it carried is now either ✓ across the pipeline or a refusal with a
+message that explains itself.
+
+## Built: a directive names an expression, because a reference position takes one
+
+The ruling that opened this: an inline rule on the right of a rebinding would be
+another patch, and the question to ask instead is whether the language means "an
+expression may stand wherever a rule is referred to". Walking the parser answered how
+big that is. Of the eight places the notation requires a name, seven are *declarations*
+— a namespace, a rule, a parameter, an `as` — where the name is the point. The
+reference positions, where a rule is used rather than named, are exactly two: the right
+side of a rebinding, and the target of a publication. Everything else that could want an
+expression already takes one: call arguments, `recover`'s synchronization expression, a
+rule's body.
+
+So the rule is finite: **wherever the notation refers to a rule, one operand may
+stand.** One operand, the bound §8.2 already gives `recover`'s sync — so a choice needs
+brackets, and the `with` that may follow a directive is the directive's own rather than
+the operand's, which is what keeps §5.1's two extents apart (an expression's `with` is
+applied before a namespace's, a publication's composes on top of one, and only the
+parentheses say which was meant).
+
+The mechanism is a lift, in the parser: anything but a bare name becomes an ordinary
+rule declared right there, and the directive publishes it by name. Nothing after the
+front end changes — the binder, §5.1's specialization, the normalizer and the emitter
+all read a publication of a rule exactly as before, and the scope question the diary
+asked to settle first settles itself: the rule is declared where the directive is
+written, so it reads that namespace's trivia, imports and bindings, because that is
+what a rule written there would do. The name is the `as`, which a compound target now
+has to carry: an expression has no name to derive one from, and `parse ('a' | 'b')`
+alone is refused (GRAM2007) rather than given a name nobody wrote.
+
+Two things the parser had to learn. `parse` and `find` stay contextual keywords, so
+`AtPublication` had to admit every token an operand may open with rather than only an
+identifier. And `StartsRule` decided that an identifier followed by `(` is a rule with
+parameters — which `parse ('a' | 'b')` is not: the two are the same until the
+parenthesis closes, and what tells them apart is the `=` or the `: Type` a declaration
+has after its parameters. Scanned to the matching parenthesis, which is bounded and is
+the only look this decision needs.
+
+**And a limit worth stating rather than discovering.** The lifted rule is a rule, so
+§4.1 case 4 says what its value is — the extent it matched. `parse Padded(Word, '#')`
+answers with the text, not with what `Padded` builds, because a rule written that way
+would answer with the text too. That is the language being uniform rather than the
+feature being unfinished: an expression is published for what it recognizes. Reaching a
+*value* from a directive would need the lifted rule to declare a type, which is the next
+question and a separate one (`=>` without a declared type is GRAM4008, deliberately).
+
+## Built: the other half — a type on the directive, and an expression on the right of `with`
+
+The limit the first half ran into was that a lifted rule can only be what §4.1 makes of
+a rule with no declared type: its extent. So the directive got the third part a rule has,
+in the place that reads as the method's own — `parse … as Marked : @string`. With a type
+declared, a `=>` inside the expression is legal where it always is, and everything §4.1
+offers is reachable from a directive; without one it is refused where it always is
+(GRAM4008). A directive that names a rule has nowhere to put a type and says so
+(GRAM2008): that rule declared its own where it was written.
+
+And the second reference position, which is where this began: `with (Comma = (',' | ';'))`.
+The same lift, the same scope answer — a rule declared where the `with` is written, named
+after what it replaces (`Comma_With1`), so the substitution reads the trivia, the imports
+and the bindings that surround it. The left side stays a name: it identifies what is
+replaced, and identifying is what a name is for.
+
+Both reference positions now take an operand, which is the whole of what "an expression
+may stand wherever a rule is referred to" comes to in this notation — and the two
+diagnostics it needed are about naming, not about the rule. Nothing downstream of the
+parser knows any of it happened.
+
+## Built: the notation's own grammar caught up with the notation
+
+Today's syntax changes were made in the hand-written front end, and the grammar of the
+notation — written in itself, in `GramExample.cs` — still described the language as it
+was that morning: a directive's target was `Name`, a rebinding's replacement was
+`Identifier`. The self-hosting differential was green the whole time, which is the part
+worth noticing: it was green because the corpus contained no grammar using the new
+forms, so it was holding two implementations to a language both had already outgrown.
+That is the same shape of gap the lexical inventory found once before, when the two
+implementations turned out to accept different languages at `parse Xas y`.
+
+So the grammar learned the two forms, and gained the production the hand parser has
+implicitly: `QuantifiedCore` — an operand up to but not including a trailing `with` —
+which is exactly what a directive's target and a rebinding's replacement take, and why
+a `with` after either belongs to the thing around the operand. `Quantified` is now that
+plus the `with`, which is what it always was underneath.
+
+And a fifth file joined the corpus: `Notation.gram`, a catalog of what an author may
+*write*, as `Minimal.gram` is a catalog of what the generator *emits*. It uses the
+forms rather than describing them — a directive naming a call, one declaring the type
+of what it lifts, a rebinding replacing a rule with a choice, a recursion through a
+forwarder, a value parameter given a literal — so the differential reads them on every
+run. Checked by reverting half of the grammar's own `Publication` rule and watching the
+differential say `Notation.gram: the hand-written parser says yes, the generated one
+says no`. That is the test being a test.
+
+The fuzzer found something on the way in, and it was mine: `Text(Expr)` renders a
+character literal as `CharRange.Quote(text[0])`, and the value-parameter work started
+calling it on a call's arguments — where a mutated file can hold `''`. Normalization
+does not stop at the first diagnostic, so a grammar the lexer has already refused still
+reaches here, and an empty character literal threw. Answered rather than thrown on.
+
+## Found by writing an example: three defects, two fixed, one named
+
+Sitting down to write `SelectorExample` — postfix chains, `orders[2].lines.total(net)`,
+the shape indirect left recursion through a forwarder exists for — turned up three
+things in a row, which is what examples are for and why the repository keeps them.
+
+**The question collector never asked about a parameter's type.** `Bracketed(item,
+open: char, close: char)` failed the build with "the question collector did not foresee
+the type question for 'char'" — an internal defect reaching a consumer as CS8785. The
+collector walks a rule's declared type and its body and had never walked its
+parameters, because until today a value parameter could only be given a number and
+nothing asked the host about `int`. Every test that passes a value uses a resolver that
+answers everything, so nothing asked until a real build did. One line, and a reminder
+that the permissive resolver hides exactly this class.
+
+**Distributing an alternative shared its tail's nodes.** Unfolding builds one
+alternative per source and I kept the tail by reference, deliberately, so that
+identity-keyed facts — a `recover`, a binding power — would survive. That is the wrong
+half of §19's rule: a node standing in two alternatives has two owners, and whichever
+capture layout is computed second clobbers the first. The tail is copied now, node for
+node, through the same `CloneAndRewrite` a namespace clone uses, which carries those
+facts onto the copies rather than leaving them behind. No test caught it because every
+existing case has a tail that captures nothing.
+
+**And the one that is a design question, not a defect.** After unfolding, a capture
+written in the tail stands both inside the fold's loop and outside it — the alternative
+leading with the rule itself becomes the step, the others stay bases, and they are
+copies of one another. A capture under a fold loop is collected, because a step's `=>`
+needs that iteration's value rather than the last one's; a rule has one member per
+name; so the two spellings of `name` disagree about what it holds and GRAM4007 fires.
+
+That means the feature works for `Call = target: Primary & "()"` and not for `Member =
+target: Primary & '.' & name: Name` — which is the postfix chain it was built for. §4.3
+says so now, the status table has the row, and a test pins it so that fixing it changes
+a test on purpose. The example is parked rather than committed: an example whose
+grammar cannot be written is not an example.
+
+What a fix would have to decide: whether a name may be one member with two storages
+(scalar outside the loop, collected inside), or whether the unfolding should rename the
+step's captures and rewrite the `=>` that reads them — which is the author's own C#,
+and this project does not rewrite that.
+
+## Built: the selector example, and the five things it found on the way
+
+`examples/SelectorExample.cs` reads `orders[2].lines.total(net)` as the chain of steps
+it is — the postfix shape indirect left recursion through a forwarder exists for, and
+the one levels-as-rules cannot write. Writing it found five things, which is what
+examples are for and why this repository keeps whole parsers rather than snippets.
+
+**A parameter's type was never asked of the host.** `open: char` failed the build with
+"the question collector did not foresee the type question for 'char'" — an internal
+defect reaching a consumer as CS8785. The collector walks a rule's declared type and its
+body and had never walked its parameters, because until this week a value parameter
+could only be given a number. Every test that passes a value uses a resolver that
+answers everything, so nothing asked the host until a real build did.
+
+**Distributing an alternative shared its tail's nodes.** Kept by reference on purpose,
+to preserve identity-keyed facts — which is the wrong half of §19: a node in two
+alternatives has two owners, and the second capture layout clobbers the first. Copied
+now, through the same clone a namespace uses, which carries those facts onto the copies.
+
+**A capture in the tail is not a sequence to the author.** Unfolding puts a tail capture
+both inside the fold's loop and outside it, and a slot under a loop collects — so the
+two spellings disagreed and GRAM4007 refused the whole shape. But the machinery had
+already drawn this distinction and named it: a fold step's factory takes `int r`, not
+`int[] r`, and both the emitter and the materializer write `member.IsSequence &&
+factory.Accumulator is null`. What was missing was a word for it. `CaptureSlot.InFold`
+is that word and `Collects` is what the author sees; the merge compares that instead of
+the storage. `a.b.c` folds to `a[b][c]`, left-associatively.
+
+**A folded rule's body is not a choice.** `BuildByConstructor` and `PassThrough` read a
+rule's alternatives as "the choice, or the body" and guard on "one of them already
+constructs" — but §4.3 rewrote a folded body into a *sequence* of the bases and the
+loop, so the guard saw no construction where every alternative had one and wrapped the
+whole body in another. The fold machinery then met a Construct where it laid out a
+Sequence. Only reachable with a resolver that can find constructors, which is why no
+test and no probe had ever seen it: both passes skip folded rules now.
+
+**Two machines emitted one scanner twice.** A grammar with two publications has two
+machines in one class, and a scanner was named `Scan_trivia` in both — one method
+defined twice, in every spaced grammar publishing more than one thing. Tagged like every
+other name a machine emits.
+
+And one the example itself got wrong, which was worth the diagnostic it now has: a value
+parameter standing where an operand goes lowered to an element set with nothing in it,
+so the parse refused everything while naming a set the author never wrote. §4.2 says
+where a value may stand; an operand is not one of those places, and it says so now.
+
+The other limit the example met is real and is written into §4.3: several postfix rules
+each beginning with the forwarder stay recursive through *each other*, which no rewrite
+removes. One rule whose tail is a choice of steps is the same language and folds — which
+is how the example is written, and the paragraph explaining why is the part worth
+copying.
+
+## Built: DotGram.Parsers, and an expression language that speaks only ET
+
+A new project in `src/`, meant to be packaged: parsers for real formats, written in
+`.gram`. The line between it and `examples/` is what each answers. An example shows one
+feature and is written to be copied; a parser here answers whether the notation is
+enough for a whole specification. And because it is an ordinary project the generator
+runs over, it is the second place — after the examples — where a real Roslyn resolver is
+exercised at all, which is where three of last week's five defects lived.
+
+The first is a small language that compiles to a .NET expression tree, with parameters,
+a block, local variables and `return`. The ruling that shaped it: **every `=>` builds
+`System.Linq.Expressions` and nothing else** — no model of this project's own between
+the grammar and the API — so that what is proved is that a third-party API can be wired
+to a parser as it stands, rather than through a layer written to suit the parser.
+
+Two facts about the language decide the shape, and the first was measured rather than
+assumed: `=>` runs after the whole match, children before parents and, among siblings,
+**from the end of the text backwards** — the materializer walks the arena by descending
+index, and its own comment says why. So a use of `x` is constructed before the parameter
+that declares it, and no `=>` can resolve a name. `when`, on the other hand, runs
+*during* the match, in reading order. So the declarations are made by guards while
+reading and the uses are built afterwards against a table that is by then complete;
+twenty lines hold `ParameterExpression`s by name, which is the one thing the API has
+nowhere to keep.
+
+Guards run on readings the parse abandons, and that is not a footnote — the first run
+died twice on it. `int x` is also `in` and `t` while a repetition gives characters back,
+and a failed parse retries the parameter list. So a guard **answers** rather than
+throws: a word that is not a type is not a declaration, which sends the parse to the
+reading that is one. What it costs is written where the guard is: an abandoned reading
+leaves its name behind, and no block shadows.
+
+Two places where the grammar is shaped to the API rather than the other way round, both
+deliberate and both documented in the file: a local says its type (`int sum = …`, not
+`var`), because `Expression.Variable` wants one where the declaration is read; and a
+name means one thing for the whole lambda, because shadowing would need a scope entered
+and left around a *construction*, and construction is not where the reading is.
+
+Twenty tests, every one of which compiles the tree and calls it — a lambda that builds
+and answers wrongly is the failure a snapshot cannot see. The corpus is unmoved:
+Csv 1.53, Feed 1.75, Minimal 1.39, Notation 1.31, Url 1.71.
+
+## Fixed, on a reading: the helpers were the layer, spelled differently
+
+The intermediate model was taken out of the expression language, and the next reading
+found it still there — as static helpers. `Arithmetic(op, left, right)` and
+`Compare(op, …)` chose a factory by switching on the operator's *text*, and
+`TypeNamed(string)` chose a type the same way. Both put a decision one step away from
+where C# could see it: a factory that does not exist, or one handed the wrong type, is a
+C# error on the grammar's own line (§7.6) — unless a switch over strings turns it into a
+run-time exception in a library, which is the compiler kept out of work it can do.
+
+So the choices moved into the grammar, where they are alternatives:
+
+    Additive : @Expression
+        = left: Additive & '+' & right: Multiplicative => @(Expression.Add(left, right))
+        | left: Additive & '-' & right: Multiplicative => @(Expression.Subtract(left, right))
+
+    Type : @Type = "int" => @(typeof(int)) | "double" => @(typeof(double)) | …
+
+Which pays twice over. Every construction is now a named call the compiler checks. A
+word that is no type stops being a declaration by *not parsing*, so the guard no longer
+has to answer no about it — and the `int` that a backtracking repetition could read as
+`in` and `t` cannot arise at all, because `"int"` is a word literal with §4.6's boundary
+woven round it. And the numeric widening went with them: nothing widens on its own, so
+`x + 1.5` over an `int` and a `double` is refused by `Expression.Add` itself, in its own
+words. A language that speaks only this API has no place to put a conversion the API did
+not ask for.
+
+What is left in the host class is a list worth reading as exactly what it is — the
+things `System.Linq.Expressions` has nowhere to keep. A `ParameterExpression` is an
+identity, and nothing in the API maps a name to one. A `return` is a jump to a label
+that belongs to the block rather than to any statement in it. Four methods, and the
+grammar says the rest.
+
+1,144 tests green in both configurations.
+
+## Built: a constant says its type, and where the suffix had to go
+
+`1L`, `1m`, `1d`, `1.5m` — the C# suffixes, for the types this language has. One
+alternative each, each handing `Expression.Constant` a value of the type it already is,
+which is the same rule the rest of the grammar follows.
+
+Two things decided where they are written, and both are worth the lines they cost.
+
+**They are lexical.** Written in the spaced part of the grammar, `Digits & ['L' | 'l']`
+would put a seam between the number and the letter and read `1 L` as a constant — §4.5
+puts trivia between operands, and a suffix is not an operand of anything. So they live
+in the namespace whose trivia is none, with the digits captured and handed back alone:
+`decimal.Parse` reads a number, not a number and a letter.
+
+**And they are sets, not literals.** `"L"` after `1` would be refused by §4.6's own
+boundary — the weave asks that a word literal not continue a word, a digit is a word
+character, and so the guard that keeps `int` out of `internal` would keep `L` out of
+`1L`. A set is not a literal and carries no boundary. Which also leaves `m` and `L`
+perfectly good names, and there is a test for exactly that.
+
+One diagnostic on the way, and it was right: `text: Long` beside `text: Digits` is
+GRAM4007 — a capture of a rule that builds a value and a capture of plain text are two
+kinds of member, and §7.3 gives a rule one member per name. Two names, and the report
+said so in those words.
+
+## Built: the expression language reads C#'s expressions, and not a dialect of them
+
+The point of `DotGram.Parsers` is a parser someone would ship, and the measure of one
+here is that a reader who knows C# never has to ask how this language writes something.
+So the whole of C#'s precedence ladder is in the grammar now, in the spec's own order,
+with nothing skipped between a name and `?:`: the bitwise three between `&&` and `==`,
+the shifts between the comparisons and `+`, `??` and `?:` above `||`, and `+`, `~` and a
+cast beside the unary `-` and `!` that were already there. One rule per level, each
+calling the next, so the file reads top to bottom as the table reads.
+
+Two operators needed a lookahead rather than backtracking. `|` and `&` each begin a
+two-character operator one level out, and `>` begins a shift one level in, so `a || b`
+would be read as `a | (| b)` and `a >> b` as `a > (> b)` and only unwound afterwards.
+`?!'|'`, `?!'&'`, `?!'<'` and `?!'>'` say why instead of leaving it to §11 to discover.
+
+The literals went the same way — the forms C# has, not the ones that were convenient.
+Digit separators, an exponent, a real with nothing before the point, `u`/`U`, `l`/`L`
+and both orders of `ul`, `f`/`d`/`m`, the `0x` and `0b` prefixes with separators after
+them, `\a \b \f \v \x \u \U` beside the escapes already written, verbatim strings, and
+`null`. Two of them are worth the note:
+
+**The integer suffixes are one rule specialized three times.** `Unsigned(N)`,
+`SignedLong(N)` and `UnsignedLong(N)` take the digits they suffix as a parameter (§4.2),
+so `1UL`, `0xFFUL` and `0b1UL` are three call sites and not nine rules. This is the
+first parameterized rule in a parser meant to ship rather than in a test, and it is
+exactly the case §4.2 was written for.
+
+**An unsuffixed integer is an `int` where it fits and a `long` where it does not**,
+which is C#'s own rule, and the grammar says it as two readings of the same digits:
+`int.TryParse` asked in a `when` (§8.1) is what turns the first one down. No helper in
+the host class, and no widening decided anywhere but in the BCL.
+
+Three things are deliberately absent, and the file says so in its own header: `null` is
+an `object` because target typing is a second pass this file exists to do without;
+member access, calls and indexers need a name looked up in another assembly's metadata,
+which is a seam this has not been given yet and is the obvious next one to give it; and
+an assignment is a statement, never an expression.
+
+1,199 tests green in both configurations.
+
+## Found: two defects in how a repeated text capture is recorded
+
+Writing `\uXXXX` above wanted `t: Hex{4}`, and that reads as the empty string. The
+reduction has no rule call in it at all:
+
+```dotgram
+Digit = ['0'..'9']
+Start : @string = t: (Digit+){2} => @(t)        // on "1234", answers ""
+```
+
+**A capture's start is a local, and a local does not unwind.** The open compiles to
+`capture0 = p` and the close to an arena entry spanning `capture0..p`. Inside a counted
+repetition the next turn runs the open again *before* the previous turn's close is
+final: turn 2 sets `capture0 = 4`, its body fails, the give-back door re-enters the
+machine at turn 1's close — and the close writes `4..3`. The arena unwinds; the local
+does not. `Machine.Materialization.cs` already carries a comment about this family
+("a reopened capture's start once survived backtracking in a local") and a `#if DEBUG`
+guard against an inverted span, and the guard stays quiet here: the materializer takes
+the first start and the last end, which come out `4..4`, an empty slice rather than an
+inverted one.
+
+The mechanism for it exists — `_nestedCaptures` keeps the start in the arena instead of
+a variable — and is gated on `graph.Recursive` alone, which is one of the two ways a
+capture can be reopened before it closes. It looks incomplete for its own case too: the
+close marks the open finished by rewriting it in place, and unwinding does not undo a
+rewrite, so a door inside the capture would re-enter a close whose open no longer says
+it is open. An open entry and a close entry counted like brackets would answer both.
+
+**And the value of a repeated text capture is the extent, where §10 says it is the
+join.** `docs/syntax.md:1337` — "repeated text is the text joined":
+
+```dotgram
+Start : @string = (t: Digit+ & '-'){2} => @(t)  // on "12-34-", answers "12-34"
+```
+
+The extent is right exactly when consecutive turns are contiguous, which is the
+condition `HoistTextCaptures` checks before lifting a capture out of its repetition —
+and the materializer takes it unconditionally, for captures the hoist left where they
+were. Both defects live in the same place and a single change answers them: an open
+entry and a close entry per turn, and a value concatenated from the turns rather than
+sliced between the first and the last.
+
+Neither is in the way of anything shipped: the expression language writes `HexDigit{4}`
+for the four digits, which has no door inside it and so no way to reopen. Recorded here
+rather than fixed on the spot, because it changes the capture protocol in the arena.
+
+One smaller thing seen in the same dumps: for an exact count, the loop head emits its
+give-back door under the same condition as the jump that already left — `if (repeating
+.Value >= 2) goto S8;` and then `if (repeating.Value >= 2) { … }`. Dead, not wrong.
+
+## Fixed: a capture's start goes in the arena, and its turns are joined
+
+Both defects the expression language turned up, and they were one defect and one
+unbuilt feature.
+
+**The start.** A capture compiles to `capture{n} = p` at the opening and an arena entry
+spanning `capture{n}..p` at the close, and a variable is right for exactly as long as
+nothing opens the same capture in between. Recursion was known to do that and already
+kept its start in the arena. A repetition does it too, and that was not: turn two runs
+the opening before turn one is final, and a door inside turn one — a run to shorten, an
+alternative to resume — is a way back into turn one's close, which then reads a start the
+parse has given back. `t: (Digit+){2}` over `"1234"` answered `""`, with the entry
+recording 4..3.
+
+The protocol the recursive case used would not have carried it either. It marked an
+opening closed by rewriting it in place, and an in-place rewrite survives backtracking
+that the close which wrote it does not — the same trap `ParserEntry.TurnDone` exists to
+avoid. So the opening is now an entry of its own, `ParserEntry.CaptureOpen`, and a close
+finds its own by counting openings against closes the way brackets are counted. Both
+kinds unwind with everything above the door, so the count is always over a prefix that
+makes sense.
+
+**What it costs is nothing, once the question is asked exactly.** Answering "is this
+capture inside a repetition whose body can be re-entered" carelessly costs real time, and
+both careless answers were measured before they were replaced:
+
+- treating every call as leaving a door put `port: Digit+` over `Digit = ['0'..'9']` in
+  the arena, and a full URL a **fifth** slower. A call leaves whatever its callee leaves
+  and nothing of its own — the arena's `Call` entry is a frame to restore while unwinding,
+  never a state to resume at — so the question is settled per rule, from no rule leaving a
+  door, which terminates because a cycle has to pass a repetition or a choice to come back
+  round and either answers yes alone.
+- counting an optional as a repetition put `(':' & port: Digit+)?` there as well, for a
+  second turn that cannot happen: `X?` is how the model spells an optional. With both
+  narrowed, the URL round-robin is the baseline again — 104.7 / 278.9 / 107.3 / 175.9 /
+  55.7 against 103–107 / 284–288 / 110–115 / 173–181 / 52–54 over three runs a side.
+
+**The join was the other half, and it was a `GRAM4006` all along.** §10 gives a repeated
+text capture the text joined, and the materializer took the span from the first turn's
+start to the last turn's end — the same thing only where the turns are adjacent. That
+shape *was* refused, as "recognized and not built": a capture inside a repetition without
+being the whole of what repeats. Except the check looked only at the innermost repetition,
+so `(t: A+ & '-'){2}` walked past it and answered `"12-34"`, and whether it was refused at
+all turned on whether `HoistTextCaptures` had lifted the capture first.
+
+So it is built instead of refused. The pieces are measured while they are collected, and
+the span is taken only where the measurements say the pieces tile it — one slice and one
+string, which is what a contiguous capture cost before. Where they do not tile, the pieces
+are copied out in reading order. `GRAM4006` now means one thing, a capture inside a
+lookahead, and `(t: 'x' & 'y')+` is an ordinary grammar.
+
+1,206 tests green in both configurations, and the corpus snapshots carry the new protocol
+where a capture can be reopened — `Minimal` for a recursive one, and nothing in `Url`,
+which is the narrowing working.
+
+## Built: a block is an expression, and a name means what it means where it is written
+
+Two changes that turn out to be one, because the second is what the first needs.
+
+**`Expression.Block` is worth its last expression, so this language's block is too.**
+`{ int sum = x + y; sum * sum }` — no `return`, no label — and being an expression it
+stands wherever one does: `int doubled = { int half = x; half * 2 };`, or `1 + { int t =
+x; t * 2 }`. The rule reads the way the API does, which is the whole point of writing a
+language against a concrete API rather than around one.
+
+`return` stays, and does what C# does: leave the whole lambda, from however deep in. That
+means the label belongs to the lambda and not to a block — which is also the only place
+that *can* hold it, since a block is built before the blocks around it and so cannot know
+whether it is the outermost. `Returning` is the two lines that put it there.
+
+**And then a name has to mean what it means where it is written.** One block was one
+scope and a table by name was enough; nested blocks are not. C# forbids a nested local
+shadowing an enclosing one (CS0136), so "one meaning per lambda" was already C#'s rule
+for nesting — but two blocks *beside* each other may each declare a `t`, and those are
+two variables.
+
+So scopes are pairs of positions. A guard at the end of `Block` records the extent it
+read, a declaration records where its name was written, and a use asks which declaration
+of that name is visible where *it* is written: the innermost block holding the
+declaration must hold the use too, and the innermost such declaration wins.
+
+Recorded by position rather than pushed and popped, and the difference is backtracking. A
+guard runs on readings the parse abandons, so a stack would be left holding a scope
+nothing is inside — the same hazard that made `Declare` answer rather than throw. A
+position is the same fact however many times a reading writes it down, and an abandoned
+reading records an extent that no surviving name is written inside.
+
+Shadowing an enclosing block's name is accepted here where C# refuses it, and the nearer
+name wins. More permissive than C#, so no valid C# is read as something else, and the
+check C# makes is one this has no reason to make.
+
+**The notation needed one thing for this, and the spec already promised it.** §8.1 has
+always said the supplied names are in scope inside a `when`, and only `parserText` was
+ever handed over. A guard runs before its rule is finished, so `parserSpan` there is the
+rule from where it began to where the parse stands — the same extent `parserText` cuts,
+unread. That is the only way to record *where* something was read: a `=>` runs children
+before parents, so every name inside a block is built before the block is, and a scope
+recorded there arrives after the last thing that needed it.
+
+1,216 tests green in both configurations.
+
+## Built: the statement layer, and what measuring it found
+
+`if`/`else`, `while`, `do`, `for`, `switch`, `break`, `continue`, assignment, every
+compound assignment C# writes, and `++`/`--` in both positions. The expression language
+now names **54 of the 120** factories on `System.Linq.Expressions.Expression`, up from 33.
+
+**What the API allows was measured rather than assumed**, because the question — can an
+`if` or a loop be worth something? — has a real answer either way:
+
+| | |
+| --- | --- |
+| `Condition(int, int)` | `Int32`, and the branches must agree *exactly* |
+| `Condition(a, b, typeof(void))` | `Void`, and takes branches that agree on nothing |
+| `Loop(body, voidBreak)` | `Void` |
+| `Loop(body, intBreak)` | `Int32` — and the built loop ran and answered |
+| `Switch` with no default | refused: "Default body must be supplied if case bodies are not Void" |
+| `Throw(ex, typeof(int))` | `Int32` — a throw may stand where a value is wanted |
+
+So an `if` with an `else` is worth what its branches are worth, and is written that way:
+`int n = if (c) 1 else 2;`. A loop is not, and cannot be in a language shaped like C#: the
+type comes from the break label, so only a loop with no ordinary way out could have one —
+the ordinary way out would have to carry a value too, and C#'s `break` carries nothing.
+
+**Where the line between the grammar and the host is.** `Expression.Condition` is one
+factory with two answers, and which one a given `if` meant is not in the syntax — `if (c)
+a else b` reads the same whether its value is wanted or thrown away. That is a question
+about this API and not about the language, so the host answers it and the grammar stays
+the shape every language writes. The rule the file now states: the grammar carries what is
+general, the host carries what is specific to the thing it is pointed at. A grammar that
+carried `System.Linq.Expressions`' own distinctions would be a grammar for one API, and
+whether the notation can be pointed at somebody else's is the whole question this parser
+exists to answer.
+
+Same division for `break`: which loop it leaves is where it is written, which is the
+question a *name* asks, answered the same way — the guard records the loop's extent while
+the text is read, the jump looks its label up when it is built. A `switch` records an
+extent of its own, because a `break` in a case leaves the switch and not the loop, and
+there is a test that would answer 1 instead of 8 if it did not.
+
+### Found: two routes to one construct is what makes a parse exponential
+
+A `Block` reachable both as a statement and as a `Primary` is read once as each, at every
+level of a nest of them. So is an `if`. Measured, before anything was done about it:
+
+| | |
+| --- | --- |
+| `if … else if … else if … else` (three deep) | **1,646 ms** |
+| five nested braces | **428 ms** |
+| two braces inside an `if`'s branches | **never finished** |
+
+Giving each construct one route — `Control` and `Block` reachable only from `Statement`,
+and a `Value` rule naming them where a value position may hold one — takes all three to
+**under a millisecond**, and a repeat run shows the growth is linear in nesting: 191, 336,
+387, 471 µs for one to four `else if`s.
+
+The cost is that `1 + { … }` is no longer written: a block and an `if` stand where a value
+is *expected* — an initializer, a `return`, a branch, the last thing in a block — and not
+as an operand in the middle of one. That is a measurement rather than a taste.
+
+A second multiplier went the same way. Eleven assignment alternatives each began `target:
+Unary`, so each read a whole operand — possibly a whole block — before finding out it was
+not the one. The left side of an assignment in this language can only be a name, since
+there is no member access and no indexer, and eleven words is nothing.
+
+### And three defects of this parser's own
+
+**`TryParseLambda` does not forget the parse before it.** Every list the host keeps is
+keyed by position, so a second parse of a different text finds the first one's blocks at
+overlapping offsets and resolves names against them. `Parse` cleared what there was; the
+generated `TryParseLambda` is the parser and nothing else, and knows nothing about a parse
+beginning. `TryParse` beside it is the one to call, and `Begin` clears all six lists —
+three of which this change added and none of which the old `Parse` knew about.
+
+**A block's variables were read out of its assignments**, which was right while a
+declaration was the only thing that could assign, and stopped being right the moment `a =
+1;` was a statement: the same variable was collected twice and `Expression.Block` said so.
+They are the declarations the block holds now — the ones whose innermost block is this one
+— which is the scope machinery already there, asked a second question.
+
+**And a `return` beside a block's value put the value out.** `Returning` wrapped the body
+as `Block(body, Label(target, default))`, so a lambda that ends in an expression computed
+it and answered `default` instead. The label takes the body instead: control reaching the
+end of the body arrives at the label, and what it is worth there is what fell into it.
+
+1,247 tests green in both configurations.
+
+## Built: a type resolver in the host, and everything a name in metadata unlocks
+
+`Exception`, `Math.Max(x, 7)`, `s.Length`, `s.IndexOf("c")`, `new Exception(s).Message`,
+`new int[] { 10, 20 }[1]`, `o is string`, `o as string`, `try`/`catch`/`finally`, `throw`.
+The expression language now names **71 of the 120** factories on
+`System.Linq.Expressions.Expression`, up from 54.
+
+**The resolver is the host's and needed no seam.** The one reason it might have needed
+one — a position to report against — was already there: `parserSpan` reaches a `when`, and
+has since the scopes work. Type names come from the *parsed text*, not from the grammar,
+so `ISymbolResolver` (which the generator has for a grammar's own `@Name`) has nothing to
+say about them. What the host holds is a list of namespaces to look in, which is what a
+`using` is, and no grammar can carry one for an API it has not been pointed at yet.
+
+The keywords stay written as `typeof(int)`, where the C# compiler reads them. A name goes
+through a guard, which also settles the ambiguity C# needs a section of its own for:
+`(Foo)x` is a cast where `Foo` names a type and a parenthesized expression where it does
+not, and the guard answering no is what sends the parse to the other reading. A dotted
+name is greedy and gives a part back at a time, so `System.Math.Max` resolves whole and
+`s.Length` resolves not at all and is read as a name and a member of it.
+
+**Most of the rest is the API's own resolution.** `Expression.Call` takes a method by name
+and chooses the overload; `Expression.PropertyOrField` answers the same question for the
+other two. What is left in the host is what the API has no by-name form of: a constructor
+(`Expression.New` wants a `ConstructorInfo`), a static property or field (there is no
+static `PropertyOrField`), and the two places where the *operand's type* picks the factory
+— an array's `Length` is `ArrayLength` and its element is `ArrayIndex`, where every other
+type's are properties, and `string` calls its own indexer `Chars` rather than `Item`.
+
+That last one could not have been a guard, and finding out why is worth writing down: a
+guard runs while the text is read, and the operand of a left-recursive fold is not built
+until long after. So the only place that can ask an operand what it is, is a `=>`.
+
+### Found: two more generator defects, both by writing the grammar
+
+**A capture whose rule leads back into its own fold is emitted uncompilable.** Two lines:
+
+```dotgram
+Postfix : @Expression
+    = target: Postfix & '[' & index: Expression & ']' => @(Expression.ArrayIndex(target, index))
+    | p: Primary => @(p)
+```
+
+`Construct_Postfix_1(Expression[] index)` — the fold's own operand dropped from the
+signature, and the capture typed as a sequence. The `=>` then names `target`, which is not
+a parameter, and the *consumer's* build fails with CS0103 in a file they did not write.
+`index: Primary`, `index: Name`, `index: Dec` and `index: Arguments` are all fine in the
+same position; only the rule that reaches `Postfix` back is not. Worked around by writing
+the index through a list rule, the way `Arguments` already was — which reads better anyway,
+since an index is a list and a two-dimensional array now needs no second rule for it.
+
+**And the capture-start condition from earlier today was too narrow.** `Math.Max(1, 2)`
+threw `ArgumentOutOfRangeException` out of the parser. The condition said a capture keeps
+its start in a variable unless a *repetition* could reopen it; the general case has no
+repetition in it at all:
+
+> the close runs, the parse goes on, the same rule is read again somewhere else and writes
+> the variable, and then a failure unwinds to a door inside the first reading and runs its
+> close again — with a start belonging to the other reading.
+
+Here the capture was `name: TypeName` in the rule that resolves a dotted name, the door
+was the `*` inside `TypeName`, and the second reading was the same rule tried again inside
+`Math.Max`'s argument list. So the question is only whether the capture's *body* leaves a
+door — where it leaves none there is no way back into the close, which is still most
+captures, `port: Digit+` over a set of digits included.
+
+**What it costs, measured.** Six of Url's capture starts move into the arena. The URL
+round-robin, three runs a side: 110–113 / 288–291 / 114–117 / 175–179 / **62.2–62.6**
+against 103–107 / 284–288 / 110–115 / 173–181 / **52–54**. Two of the five are inside the
+noise, two are up about 3%, and the last — the input that fails and so backtracks hardest —
+is up 17%. That is the price, and it is the right way round: the defect it buys off threw
+an exception out of a shipped parser.
+
+1,263 tests green in both configurations.
+
+## Fixed: a fold stops naming its own loop when a pass rebuilds it
+
+The defect the last entry only worked around, and the reduction is three rules:
+
+```dotgram
+C : @string = t: ['a'..'z']+ => @(t)
+E : @string = e: P => @(e)
+P : @string = t: P & '[' & m: E & ']' => @(t + m) | p: C => @(p)
+parse E
+```
+
+`Construct_P_1(string[] m)` — the fold's own operand missing from the signature, and the
+capture typed as a sequence. The `=>` then names `t`, which is not a parameter, and the
+**consumer's** build fails with CS0103 in a file they never wrote.
+
+**`E` forwards to `P`, and that is the whole of it.** `CollapseTransparent` replaces the
+call to a forwarder, rebuilding the sequence that held it — and with it the repetition
+around that sequence, which is the loop `P`'s fold named by reference. `CaptureLayout`
+recognizes a fold's loop with `ReferenceEquals`, so from that moment it recognized nothing:
+every capture in the tails came out `IsSequence` with `InFold` false, and the accumulator
+went with it.
+
+The pass's own comment had the principle exactly right — "everything before this pass has
+already keyed facts by node reference … a clone of an untouched subtree would orphan them"
+— and rebuilt nodes without handing those facts on. `Carry`, which the recursion pass
+already had for binding powers and recoveries, now carries the fold's loop and the tail of
+each of its accumulators as well, and `Inline` calls it on everything it rebuilds. The
+climb's levels go the same way, for the same reason.
+
+Two tests: the factory keeps its operand, and `a[b][c]` reads to `abc`.
+
+`HoistTextCaptures` and `SpaceLists` were never bitten by this because both skip a rule
+that owns a fold outright. That is a guard against the same hazard, arrived at from the
+other side — and now the hazard itself is answered rather than avoided.
+
+### Not done: narrowing the capture-start condition back
+
+The other half of what was planned, and the measurement says leave it. What the widened
+condition costs is inherent to putting a start in the arena: one more entry per capture,
+and more to pop when a parse unwinds — which is why the input that costs most is the one
+that fails. The narrowings that are *sound* are small:
+
+- a capture at the head of its rule needs neither a variable nor an entry, because its
+  start is the rule's own and the call entry already holds it and already unwinds. Two of
+  Url's six moved captures are that shape — and a rule inlined at a call site (§7.3's
+  sited calls) compiles its body under the *caller's* call entry, where that reasoning is
+  wrong, so the narrowing needs the site interaction thought through before it is safe.
+- "this rule is entered at most once per parse" would cover the rest, and is exactly the
+  kind of whole-grammar reasoning that produced the defect this fixed. Entries are never
+  popped on success, so every door of an earlier activation stays live for the whole
+  parse; a second entry anywhere clobbers.
+
+Three of the five URL inputs are inside the noise or up ~3%. Chasing the fourth with an
+analysis of that kind, days after two capture defects that both came from reasoning of
+that kind, is the wrong trade. Written down here so the next person does not have to
+re-derive why.
+
+1,265 tests green in both configurations.
+
+## Built: generic types, invocation, initializers, and writing to what was read
+
+`Func<int, int> f` and `f(x)`, `int[] a` and `a.Length`, `new Exception() { Source = s }`,
+`new List<int>() { 10, 20, 30 }`, `a[1] = 7`, `e.Source = "set"`. **77 of the 120**
+factories, up from 71 — and two of the six close a gap rather than a counter: nothing
+could be written to but a name.
+
+**A generic type is named by arity in metadata** — `Func`2` — which is one more thing
+about the runtime than about the language, and so is the host's. The grammar reads a name,
+a `<`, some types and a `>`, which is what every language calls one. It asks nothing while
+reading, and could not: what a guard may look at is what the text said, and the arguments
+are types the `=>` has not built yet. It needs no guard either, since nothing else here is
+a name followed by `<`, a type and `>`.
+
+**Reading an element and writing one are two nodes**, and the API is right to keep them
+apart where C# does not: `ArrayIndex` answers with a value and cannot be assigned to,
+`ArrayAccess` answers with the element. Which `a[0]` means is decided by which side of the
+`=` it stands on — something the grammar knows and the API cannot, so the grammar says it
+by calling two rules.
+
+**And the parameters of a lambda are `Expression.Parameter` now**, where a block's locals
+stay `Expression.Variable`. The API makes the same node either way and keeps two names for
+it because a language does; this one reads them apart in two rules, so it can say so.
+
+### Found: eleven alternatives reading an index eleven times
+
+The same shape as the `else if` chain a few entries up, and it wanted the same discipline.
+Every compound assignment is an alternative of its own — that is the doctrine, one
+alternative per operator, each naming its factory — and each of the eleven began by
+reading the target. With an element as a target, the target contains an *expression*:
+
+| | |
+| --- | --- |
+| `a[0] = 1` | 1.6 ms |
+| `a[a[0]] = 1` | 5.0 ms |
+| `a[a[a[0]]] = 1` | 55 ms |
+| `a[a[a[a[0]]]] = 1` | **826 ms** |
+
+Reading the index in one alternative rather than eleven takes the last to **3.6 ms**. What
+it costs is that a compound assignment writes to a name or a member of one and not to an
+element: `a[1] += 7` is not written here, and is refused rather than misread.
+
+That is the second time this session that a cost turned out to be a construct readable
+more than one way, and both times the fix was to leave it one way. Worth stating as a rule
+of thumb for grammars in this notation: **ordered choice is cheap when the alternatives
+disagree early and expensive when they agree for a while**, and an alternative that reads a
+whole operand before testing one character is the expensive kind.
+
+1,271 tests green in both configurations.
+
+## Found, on being asked "826 ms?": the whole ladder was exponential
+
+The number was real — re-measured as a single parse, 904 ms, with the run's wall clock
+agreeing. But checking it found something much worse than the shape it was about.
+
+**A plain nested expression was exponential too.** `(((0 + 1) + 1) + 1)` and so on, no
+assignment, no index, nothing but parentheses and `+`:
+
+| depth | before | after |
+| --- | --- | --- |
+| 6 (50 chars) | 446 ms | 0.23 ms |
+| 7 (56 chars) | 1,822 ms | 0.29 ms |
+| 8 (62 chars) | 7,395 ms | 0.39 ms |
+| 9 (68 chars) | **29,977 ms** | **0.43 ms** |
+
+Factor 4.06 per level, settled. A sixty-eight-character expression took half a minute, and
+an eighty-character one would have taken a working day.
+
+**It was two rules.** `Conditional` and `Coalesce` are the only right-associative levels of
+the ladder, and both were written as two alternatives:
+
+```dotgram
+Conditional = test: Coalesce & '?' & then: Conditional & ':' & otherwise: Conditional
+            | c: Coalesce
+```
+
+The first reads its whole operand to look for a `?` that is almost never there; the second
+reads it again to hand it on. Each such rule doubles per level of nesting, and two of them
+multiply the cost of a parenthesis by four. Every level below them is left-recursive, and
+§4.3 folds those — a fold reads its operand once by construction, which is why the twelve
+levels that *are* folds never showed this and the two that are not showed all of it.
+
+Written with the tail optional instead — `test: Coalesce & ('?' & … )?` — the operand is
+read once and the same thirty seconds is 0.43 ms. What the host gains is a null test:
+`Chosen` answers the condition where no tail was written.
+
+Three more shapes were measured after it, and two of them had it too:
+
+| | before | after |
+| --- | --- | --- |
+| nested `new` (256 chars, nine deep) | 1,001 ms | 0.53 ms |
+| nested `if`/`else` branches | already linear | 0.68 ms |
+| nested indexed assignment | 10,373 ms | 4.09 ms |
+
+`new` was three alternatives reading `Type & Arguments` before diverging on what stood in
+the braces after them — the same mistake, factor 3. Now one alternative with the
+initializer optional, and the host chooses among `New`, `MemberInit` and `ListInit` by what
+was written.
+
+Nested indexed assignment is the one that is still not linear: 1.9 per level, because the
+alternative that writes to an element reads a whole index before testing the `=` after it.
+At nine deep that is 4 ms, so it is left as it is and written down here.
+
+### What this is really about
+
+Three times this session a cost turned out to be **an alternative that reads a whole
+operand before testing one character**, and each time the fix was to stop it: one route per
+construct, one reading of the target, one reading of the arguments. That is a rule of thumb
+for writing grammars in this notation, and it is already in the file above.
+
+It is also a missing generator feature, and the honest name for it is **left factoring**.
+`A = X & p | X & q` can read `X` once and choose after it; nothing in the notation stops
+the author writing the natural form, and nothing in the generator saves them from it. Every
+workaround above trades a factory named in the grammar for a null test in the host —
+`Chosen`, `Coalesced`, `Made` — which is precisely the trade a generator that factored the
+common head would not ask for. It belongs on the list beside the lexical layer.
+
+1,271 tests green in both configurations.
+
+## Built: GRAM4016, and the two shipped examples it caught in its first run
+
+The diagnostic the last entry asked for. Two alternatives that begin with the same
+operand, where that operand leads back to the rule holding them — the shape whose cost
+compounds per level of nesting rather than merely doubling once.
+
+**It found the trap in the repository's own examples before it found anything else.**
+`DecimalCalculatorExample` and `ExpressionTreeExample` both wrote
+
+```dotgram
+Power = left: Primary & '^' & right: Unary | value: Primary
+```
+
+and `Primary` leads back to `Power` through its parentheses. Measured on the shipped
+calculator, one parse each:
+
+| parentheses deep | before | after |
+| --- | --- | --- |
+| 11 (45 chars) | 1.9 ms | 0.029 ms |
+| 13 (53 chars) | 5.4 ms | 0.035 ms |
+| 16 (65 chars) | **29.6 ms** | **0.052 ms** |
+
+Doubling per level before, flat after — and these are examples written to be copied.
+
+**`docs/syntax.md` §4.3 taught the same shape**, in the paragraph explaining that
+associativity is which side the recursion is on. It still explains that, and now also
+explains why the left-recursive one costs nothing and the right-recursive one has to be
+written with the tail optional: a left-recursive rule is rewritten into a loop over its
+tails, so its head operand is read once however many alternatives there are; a
+right-recursive one has no such rewrite.
+
+### Why it reports rather than rewrites
+
+Because the two forms are not the same grammar, and the difference is sometimes the
+point. Two alternatives prefer every reading of the first over any reading of the second,
+so a shared operand that *can give back* will give back to let the rest of the first
+alternative fit. Measured, on `a/b/c`:
+
+| | |
+| --- | --- |
+| `d: Segments & '/' & f: Name \| d: Segments` | `dir=a/b file=c` |
+| `d: Segments & ('/' & f: Name)?` | `dir=a/b/c file=-` |
+
+That is how the last segment of a path is split off, and no optional tail says it — the
+notation has no lazy quantifier to ask for a shorter reading. So where the operand can
+give back, which form to write is a decision about meaning and only the author has it.
+
+Where the operand **cannot** give back it has one reading, the two orders hold the same
+one thing, and the rewrite is exact — which is also when the diagnostic says nothing,
+because there is nothing to weigh. It is why the emitter has always factored runs of
+literal alternatives and why doing the same to a rule call in general would be wrong.
+
+`Doors` moved out of `Machine` into `Grammar/Model` for this: whether something leaves a
+way back into the middle of itself is now asked by two very different questions — whether
+a capture may keep its start in a variable, and whether two alternatives mean the same as
+one with an optional tail — and one of them is asked while the grammar is still being
+checked.
+
+### Not built: factoring where it is safe
+
+Also planned, and dropped on the measurement rather than on the effort. Factoring is
+invisible exactly where the shared operand leaves no door — and something that leaves no
+door cannot be recursive, because going round a cycle has to pass a repetition or a
+choice, and either of those *is* a door. So the cases where factoring is safe are exactly
+the cases where the cost cannot compound: a constant factor, on a shape the emitter
+already factors when it is written as literals. The exponential cases are precisely the
+unsafe ones. Writing that down is worth more than the code would have been.
+
+1,275 tests green in both configurations.
+
+## Found: the choice of literals does not sharpen, and the position is a selector
+
+`Sharpen` moves `p` to the character of a literal that did not fit, on the branch where
+the comparison has already failed. Asked what it is for, the answer is not the caret. It
+is that `Fail:` keeps the **furthest** failure and reports that one's expectation, and
+sharpening is what lets a partial literal match count as having got somewhere.
+
+```dotgram
+A = "abcdef" & Tail
+B = "abq" & Tail
+Tail = ['0'..'9']+
+Start = A | B
+```
+
+| input | reported |
+| --- | --- |
+| `abcdez` | `at=5  Expected "abcdef"` — five characters in beats two |
+| `abqz` | `at=3  Expected ['0'..'9']` — that alternative got past its literal |
+| `zbcdef` | `at=0  Expected "abcdef" or "abq"` — neither got anywhere, so both are named |
+
+Without it the first line would be `at=0  Expected "abcdef" or "abq"`: everything that
+could have stood there, instead of the one the author almost wrote.
+
+**And the same grammar written as one rule does not get it.** A choice of literal
+alternatives is compiled by `LiteralGroup`/`CompileLiterals`, the shared-prefix form, and
+that path does not sharpen:
+
+```dotgram
+Start = "abcdef" & 'x' | "abq" & 'y'      // at=0  Expected "abcdefx" or "abqy"
+```
+
+So the quality of the message turns on which shape the author happened to write, in
+exactly the place — a choice between literals — where choosing between expectations is
+what the mechanism is for. The trie knows how far it got; it just does not say.
+
+Fixed in the entry below.
+
+## Fixed: a run of literals now fails where the same choice of rules does
+
+`SharpenAll` — the walk of a trie over the alternatives of a literal run, on the branch
+where all of them have failed. It moves to the deepest character any of them agreed with
+and names the ones still agreeing there, which is what the same choice written one literal
+per rule already reported. The two shapes now answer identically:
+
+| input | both shapes |
+| --- | --- |
+| `abcdezz` | `at=5  Expected "abcdefx"` |
+| `abqzzz` | `at=3  Expected "abqy"` |
+| `abczzzz` | `at=3  Expected "abcdefx"` |
+| `zbcdefx` | `at=0  Expected "abcdefx" or "abqy"` |
+
+The run used to report `at=0` and name both, for all four. That also closes the gap the
+code's own comment recorded — "nothing here narrows a subset the way a real trie would".
+
+**Two things came out of doing it, and both are the sort a measurement finds.**
+
+The position may only move where the failure goes to `Fail:`. A prefix conflict — `"p" |
+"q" | "pr"` — splits one grammar-level choice into several runs chained through `fail`, and
+the run jumped to reads from where this one started. Moving `p` there broke the `Filter`
+example outright, which is how it was found; the guard is `fail == Fail`, and the
+shared-prefix sharpen above it, which had the same hazard latent, now carries it too.
+
+And the walk goes out of line. Written into the recognizer it sat between hot states and
+cost the URL corpus five per cent on inputs that never reach it — a method of ten thousand
+lines has nowhere to put anything without moving something else. Six alternating runs
+against a worktree of the parent commit put the remaining cost at a few per cent on one
+input, the one that fails, which is the path the walk exists for. The first reading of
+"five per cent" was an ordering artefact: base always measured first, and the numbers drift
+upward through a session. Reversing the order took most of it away.
+
+1,279 tests green in both configurations.
+
+## Built: `context`, the state a parse works out and has nowhere to keep
+
+`ExpressionLanguage` had seven `[ThreadStatic]` fields and a `Begin()` to clear them. That
+is the shape a grammar falls into when a `when` needs to remember something: a static, and
+then a way to reset the static, and then the quiet knowledge that two parses on one thread
+must not overlap. It works and it is wrong, and it was written by the parser this notation
+is meant to make unnecessary.
+
+So a grammar may now declare what it needs to remember:
+
+```dotgram
+context : @Names
+```
+
+**The caller makes one and hands it over.** Every publication of a grammar that uses a
+context takes it as a second parameter, and it reaches whatever names it — a `when`, a
+`=>` — by exactly the rule the supplied names of §8.2 already follow: **a hook that does
+not name `context` is not passed it.** A grammar that declares one and never uses it emits
+the same code as a grammar that declares none, publications included. That was worth
+having: it means adding the declaration costs nothing until something reads it, and it
+means the test for "is this threaded correctly" is a `DoesNotContain`.
+
+Where it goes is fixed. After the `using` block, outside every namespace, once
+(`GRAM3013`, `GRAM3014`). A context inside a namespace would be a context for part of a
+parse and there is no such thing — the object the caller passes is passed to all of it.
+
+**The word was free because it had been given up.** `context` was this notation's keyword
+for what is now `namespace`, renamed earlier this session; the parser tells the two apart
+by what follows, so `context = 'x'` is still an ordinary rule called `context` and there is
+a test that says so.
+
+**What it deliberately is not** is somewhere to put state that has to be *undone*. Nothing
+here unwinds: a `when` runs on readings the parse goes on to abandon, and what it wrote
+stays written. What belongs here is what can be written twice without harm. The other half
+— a value that holds *while* something is being matched and is restored when the parse
+backs out of it — is the scoped state agreed next, and it is a different mechanism: a
+declared name whose value fits in an `int`, carried in the arena entry itself so that
+`Fail:` restores it the way it already restores `TurnDone`. `checked`/`unchecked` is what
+wants it.
+
+Six tests: the two refusals, the rule that is still a rule, the threading through
+publication, guard and factory, and the two that say a grammar without a context is
+untouched.
+
+## Built: `with state`, the other half of what a parse has to remember
+
+`context` (above) is state a parse accumulates and keeps. This is the other kind: state
+that holds **while** something is being read and is gone after it — `checked(...)`, "inside
+a loop", "inside a query". It was designed in conversation and the design changed twice
+under questioning, both times toward less machinery.
+
+**First sketch, mine:** declared names, one slot per name, a save-and-restore record in the
+arena per setting, restored by `Fail:` the way `TurnDone` is. **First correction, in
+conversation:** that is a variable-declaration mechanism inside the parser — scoping, name
+resolution, defaults, per-name diagnostics, and an answer owed for how it interacts with
+`namespace (...)` cloning. One array of marks that the hook itself inspects is a fraction
+of the work and puts the interpreting where the meaning already lives.
+
+That correction turned out to answer the question the declarations were introduced for. I
+had asked "how does a hook tell mark A from an unrelated mark B lying over it", and answered
+it with names. The hook answers it by itself: it reads back from the end for the nearest
+value of its own concern and walks past everything else. **Second correction:** and the type
+need not be `object` either — the grammar declares one type, every mark is of it, and what
+tells two concerns apart is their values. No boxing, no per-name table, one line of
+declaration.
+
+**What was kept from the first sketch is the one thing that made it cheap.** A mark is only
+ever read by a `=>`, and a `=>` runs at `Accept:`, over an arena that by then holds only
+what was accepted. So nothing has to be restored when a reading is abandoned — being gone
+*is* the restoration — and nothing is spent while the text is read. `Fail:` gained two
+entry kinds to step over and no work.
+
+```dotgram
+state : @Overflow
+
+Checked : @Expression = "checked" & '(' & e: Expression with state @(Overflow.Checked) & ')' => @(e)
+Additive : @Expression = … => @(Arithmetic.Add(left, right, parserState))
+```
+
+`with state`, chosen over `under`/`marked`/`in` after the alternatives were laid side by
+side: it joins the `with` family, where all three extents already mean "on this extent,
+something is different", and the qualifier answers the objection to reusing the bare word —
+a reader can tell at the site which mechanism is running. `ParseWith` became a loop, so the
+two compose in either order, and the notation's own grammar says so with `With* & Marking*`.
+
+**How it is built.** `Node.Marked(Body, Text)` — a node, not a fact keyed by node identity,
+because a fact carried by identity is a fact a rebuilding pass can drop, and this
+implementation has already had that defect once (`CollapseTransparent.Inline`, earlier this
+session). The node is transparent to every analysis and the ~25 sites that had to say so
+were found by hand: the switches over `Node` are not exhaustive — they have `_ =>` defaults
+— so the compiler said nothing, which is worth knowing about this codebase. What stands in
+for the compiler is a differential test: the same grammar with marks and without, run over
+inputs that succeed, that fail, and that fail after backtracking, agreeing on the answer,
+the value, the message and the position.
+
+Compiling a mark is two arena entries and no dispatch. Reading them is one pass over the
+accepted arena filling one `int[]`: at a `StateSet` the slot holds the mark enclosing it,
+and everywhere else the innermost mark standing over that slot. The two readings never meet
+— nothing else sits at a `StateSet`'s own index — so one array answers both "which mark is
+in force here" and "what encloses this mark", and a factory follows the chain instead of
+scanning. The span it is handed is a view of one buffer the walk reuses.
+
+**Three defects came out of it, one of them mine from the commit above.**
+
+`parserState` was not in `SuppliedNames`, so a factory naming it made the *rule* unbindable:
+the reference lowered to an unresolved element, and the whole call site compiled to a
+failure. The symptom was a truncated machine with no obvious cause, and a long bisect
+through the wrong suspects — the fast paths, the site optimization, the analyses — before
+printing the lowered graph, which said `v: [Value]` and gave it away in one line. Print the
+graph first.
+
+`Tree.Children` — "the one place traversal is defined" — had no case for the new node, so
+the binder never descended into a marked operand. Same symptom, same cause, found the same
+way. A new `Expr` case has exactly two obligations and this is one of them.
+
+And `Machine.Sites`'s `ComputeSitedValued` did not refuse a callee whose factory names
+`context`. A sited call's arguments are built from the spans the site recorded and nothing
+else, so such a callee emitted a call missing an argument — an error in the consumer's
+build, not in ours. That one shipped in the commit above and is fixed here alongside
+`parserState`, which would have fallen into the same hole.
+
+The notation's own grammar was two features behind — it never learned `context` either —
+and now reads both declarations, the mark, and a rule that happens to be called `context`
+or `state`. Seven cases assert that the hand-written parser and the generated one agree on
+all of it.
+
+1,344 tests green in both configurations, and the `checked(1 + unchecked(2 + 3) + 4)` case
+is one of them: one `Sum` rule, read one way, building two different trees.
+
+## Built: `checked` and `unchecked`, which is what `with state` was for
+
+The mark had tests and no user. Now it has one, and the first thing to say is that the
+grammar barely changed: two alternatives in `Primary` that place a mark, and eight `=>`
+that ask what they stand under. **85 of the 120** factories, up from 77 — the eight nodes
+`System.Linq.Expressions` has two of.
+
+```dotgram
+| "checked"   & '(' & inner: Expression with state @(Reading.Checked)   & ')' => @(inner)
+| "unchecked" & '(' & inner: Expression with state @(Reading.Unchecked) & ')' => @(inner)
+```
+
+`Additive` is still one rule with one alternative for `+`. What it builds now goes through
+the host — `ExpressionLanguage.Add(left, right, parserState)` — and the host picks the
+overload, which is exactly the division this class already ran on: the grammar says what a
+`+` is, in the word every language uses for it, and the host says what a `+` turns into
+here. A conditional written eight times into the notation would have put a C# question
+where a reader is looking for the shape of an expression.
+
+**The enum is `Reading`, not `Overflow`.** §7.8 says one type for the whole grammar and
+values for the concerns, so naming it after the only concern it has today would have
+invited the wrong second use. `Checked` reads back to the nearest value of *its* concern
+and walks past anything else, which is the idiom §7.8 documents and the shape a second
+concern will need.
+
+**What the design cost here was nothing measurable, and the reason is structural rather
+than lucky.** A mark makes `Silent` false on its operand, which pushes the surrounding
+publication off the flat rendering; the worry was that this grammar would pay for it. It
+does not — `ExpressionLanguage` emits one `Recognize_DotGram` and no flat method at all,
+and always did. There was nothing on that path to lose. Two `StateSet` sites in 24,872
+lines, and eight factories that read them.
+
+### Two defects, one of them a hole the previous commit dug
+
+**The fold assembled its own arguments.** `MaterializeFold` knew about the matched text and
+the span and about none of the three supplied names added since — `parserInput`, `context`,
+`parserState` — so a left-recursive rule whose factory named any of them emitted a call
+missing an argument. `Additive` is left-recursive, which is how it surfaced immediately.
+Both paths now call one `Supplied`, because a factory's parameters are written once in
+`CSharpEmitter` and what fills them has to be written once too.
+
+**A keyword was a keyword only by the order of alternatives.** `Postfix` reads
+`Name & Arguments` before `Primary` is reached, so `checked(x + 1)` was an invocation of
+something called `checked` and the failure surfaced in the host as "nothing named
+'checked'". Ordering had been enough until now because every other keyword's own reading is
+tried first where it can occur; a keyword followed by a parenthesized expression is
+indistinguishable from a call until something says the word is not a name. So `Name` now
+refuses a `Keyword`, which is what C# means by the word and what the grammar should have
+said from the start.
+
+That found a third thing worth knowing about the notation: **§4.6's woven word boundary
+does not reach inside a lookahead.** `?!Keyword` refused `checkedTotal` for beginning with
+`checked`. The boundary is written out in the rule instead — right either way, since what
+`Keyword` means is "one of these words, whole" — and whether the weaving should reach into
+a lookahead is left as a question for the notation rather than answered as a side effect of
+this.
+
+### And a message that read like a bug
+
+Chasing the above turned up `Expected '<' or '<'.` — not a mangled expectation but a
+duplicated one. A failure keeps everything recorded against the furthest position, and a
+language this size has several sites wanting the same character; the `<` that opens a type
+argument list is written in more than one rule. They were joined as they came. The message
+builder now names each thing once, which every generated parser gets. The test is a
+property — no term appears twice — rather than an assertion about the text, because *which*
+things are named at that position is §7.5's question and a separate one.
+
+1,356 tests green in both configurations.
+
+## Built: nested initializers, and what the remaining 32 factories turn out to be
+
+`MemberBind`, `ListBind` and `ElementInit` — the three the API keeps for an initializer
+that goes a level deeper than an assignment.
+
+```csharp
+new Holder() { Name = "a", Inner = { Count = 1 }, Items = { 5 } }
+new Dictionary<int, string>() { { 1, "one" }, { 2, "two" } }
+```
+
+The difference from an assignment is the whole point of the two nested forms: no `new`
+stands after the `=`, so the object the member already holds is the one initialized. And
+`ElementInit` exists because `Add` is not obliged to take one thing — a dictionary's takes
+two, which a list of values cannot describe.
+
+**One route, three answers, decided where the type is.** `Binding` reads `Word '='` once and
+then whichever of the three followed, for the reason `Primary`'s `new` already gives: three
+alternatives would read the name and the `=` three times over and the third reading holds a
+whole expression. Which one was written is which of the three fields is not null, and that
+question is answered in `Bound`, one step further in — a nested initializer is read against
+the *member's* type, and the member is not known where its braces are. The same deferral
+the outer initializer already made, made once more.
+
+**88 of the 120.**
+
+### And that is the ceiling, which is worth saying rather than counting toward
+
+The remaining 32 are not a backlog. Named, because "coverage" is only a claim if the gap is:
+
+* **Six are not nodes.** `GetActionType`, `GetDelegateType`, `GetFuncType`,
+  `TryGetActionType`, `TryGetFuncType`, `SymbolDocument` return a `Type` or a document, not
+  a tree.
+* **Eight are the by-kind entry points** — `MakeBinary`, `MakeUnary`, `MakeIndex`,
+  `MakeMemberAccess`, `MakeCatchBlock`, `MakeTry`, `MakeGoto`, `MakeDynamic`. They exist for
+  code that decides the node kind at run time; a grammar knows which node it means and names
+  it. Reaching them would mean the grammar had stopped saying what it read.
+* **Ten have no C# syntax to read.** `Power` and `PowerAssign` (C# has no `**`), `IsTrue`
+  and `IsFalse` (the operators a type defines, not something written), `Increment` and
+  `Decrement` (C#'s `++` is an assignment, which is `PreIncrementAssign`), `TypeEqual` (`is`
+  is `TypeIs`), `Unbox` (what a cast compiles to, not what anyone writes), `TryFault` (C#
+  has no fault handler), and `IfThenElse` — the void form, where a block here has a value,
+  so an `if`/`else` means `Condition` and `Chosen` says so.
+* **Three are debugging** — `DebugInfo`, `ClearDebugInfo`, `RuntimeVariables`.
+* **Two are the same node under another name.** `Expression.Equal` on two reference types
+  already compares references, so `ReferenceEqual` and `ReferenceNotEqual` would be a second
+  spelling rather than a second meaning.
+* **Three would need more language than this has.** `Dynamic` is a binder story of its own,
+  `Quote` wants a nested lambda standing where a value goes, and `Goto` wants labels —
+  which want a scope, the way a block's locals do, and that is a piece of design rather
+  than a factory. It is the one genuinely open item and it is parked on purpose.
+
+So the sweep is finished rather than paused. What the exercise was for is answered: a
+notation that reads as C# does, over an API it was not designed around, reaches everything
+that API has a syntax for — and the 657 lines of grammar it took say where the notation was
+thin, which is what `docs/next.md` above this line is mostly made of.
+
+1,362 tests green in both configurations.
+
+## And the thing the count could not see: an extension node
+
+Raised in conversation against the paragraph above, which was overstated. `System.Linq
+.Expressions` has a whole mechanism that is not one of the 120 and never could be, because
+it is reached by **deriving** rather than by calling: an extension node — a class of your
+own over `Expression` whose `NodeType` is `ExpressionType.Extension`, that says through
+`CanReduce`/`Reduce` how to become ordinary nodes when something finally asks. There is no
+`Expression.Extension(...)` to count. The count stands at 88 of 120 and the claim built on
+it did not.
+
+**Nothing has to be added for a grammar to reach it**, which is the interesting half. A
+`=>` is C#, a rule's `: @T` is a C# type, and a class over `Expression` is an `Expression`
+— so `=> @(new ClampExpression(value, low, high))` was always legal and nothing in the
+notation or the generator has an opinion about which side of the API a construction came
+from. That was worth proving rather than asserting, so
+`examples/DotGram.Examples/ExtensionNodeExample.cs` now does: a grammar reading
+`clamp(x, 0, 10)`, a node the API does not have, and four assertions in `ExampleTests` —
+that the tree holds the node rather than its expansion, that `Compile` is what expands it,
+that an `ExpressionVisitor` knowing nothing about clamping still rewrites inside one
+(`VisitChildren`, whose omission is the usual silent first bug), and that it composes with
+the nodes that do have factories.
+
+Which puts the real ceiling somewhere else than the count did: **the API's own factories
+are a floor, not a limit.** What a `=>` may build is any value of the type the rule
+declares, and an API that can be extended can be extended from a grammar without the
+grammar knowing that is what it is doing.
+
+One thing the example ran into is worth recording as a note about the examples project
+rather than about the notation: `DotGram.Examples` already declares an `Expression` — the
+record tree `ExpressionTreeExample` builds — and a name declared in a namespace beats one
+imported into it, so the API's has to be written out in full inside that namespace.
+`ExampleTests` takes the same collision the other way and aliases it.
+
+1,369 tests green in both configurations.
+
+## Considered: parser inheritance, and what a grammar library could be
+
+Raised in conversation and worked through rather than built. Nothing here is committed to;
+one question is left open on purpose and is marked as such.
+
+**The idea.** A host class inherits from a host that is itself a parser. The base has a
+grammar; the derived grammar includes it — spelled `using Base;`, the same word §5.1
+already has. Grammars could hang on interfaces too, and then a library is an ordinary
+assembly reference.
+
+### Why the `:` is load-bearing rather than decorative
+
+The first objection raised against it here was that a grammar is not self-contained: it
+names C#. The base's `=> @(Made(type, args))` and `@JsonObject` resolved in the *base's*
+assembly, and merged into a deriving compilation they must resolve there.
+
+Inheritance answers that, which is the whole point of the spelling. The generated code for
+the derived parser lands in a class that **inherits the base's members and nested types**,
+so `Made` resolves if it is `protected`, and `JsonObject` resolves if it is nested in the
+base class. The `:` is what carries the base's C# scope to where its own grammar's hooks
+are re-emitted.
+
+And the generator does not stand in the way: it writes `partial class {name}` with no
+`static` and no accessibility of its own (`CSharpEmitter`), so a host meant to be inherited
+is simply written non-static. **No generator change is needed for the inheritance itself to
+be legal C#** — only for the grammar to be merged.
+
+### Which gives two levels of library, and the notation says which is which
+
+An interface carries text but its members are not in the implementing class's scope; a base
+class carries both. So:
+
+* **a base class is a grammar with `=>`** — a parser somebody extends;
+* **an interface is a grammar without `=>`** — a recognizer somebody brings their own
+  constructions to.
+
+Arrived at twice from opposite ends: once from "the composable part of a grammar is the
+part that builds nothing", once from what each carrier can and cannot bring with it. Worth
+keeping, because it is a rule the mechanism enforces rather than one a document asks for.
+
+### Implementation: concatenation, and nothing new in the pipeline
+
+Wrap the imported grammar in a `namespace` named after its class, put the texts together,
+and run the existing pipeline. `Decl.Namespace`, `using`, rebinding and
+`SpecializeNamespaces` do inclusion and overriding **unchanged** — there is no new model
+concept in any of it.
+
+Three things already work for free, checked rather than assumed:
+
+* **`@using` of the base arrives.** `GrammarNormalizer.Imports` walks nested namespaces and
+  collects C# imports recursively, so a `@using System.Text;` inside the wrapper reaches the
+  generated file's head. Nothing has to be hoisted by hand.
+* **`trivia` stays the base's.** §4.5 takes it from where a rule is *declared*, so wrapping
+  is enough: a library written under `trivia = none` does not infect the grammar that
+  imports it.
+* **Overriding already has a form, and the diagnostic teaches it.** Redeclaring a name an
+  import provides is `GRAM3012`, whose message says in so many words: *if this means to
+  replace it rather than declare a new rule under the same name, say so with a rebinding
+  instead — `namespace (Name = ...)`*. So "override a base rule" is a rebinding, not a
+  redeclaration, and an author who reaches for the wrong one is told which is right.
+
+And two where it stops being textual:
+
+* **The base's publications would come along.** `parse X as Parse` inside the wrapper is
+  legal and would generate methods on the derived class that also hide the inherited ones
+  (CS0108). They have to be dropped — which is after parsing, so the merge is a small
+  transform on `GrammarFile` rather than on a string. No loss: the text is parsed anyway.
+* **Positions.** §7.6 maps a diagnostic's offset back into the `[Gram(...)]` literal as it
+  was spelled. Concatenation shifts every offset, so the merge has to carry a map from
+  merged offset to origin. This is the one genuinely non-trivial piece, and it is exactly
+  what the word "concatenation" hides.
+
+### Reading the base's grammar is the easy half
+
+`Host.From` already holds the `INamedTypeSymbol` — `ForAttributeWithMetadataName` hands it
+over because that provider is semantic anyway — so `type.BaseType.GetAttributes()` yields
+the base's grammar as a plain string **in the cheap stage**. No `CompilationProvider`, no
+incrementality lost: a string is equatable, the cache keys on it, and editing the base's
+grammar invalidates its derivatives exactly as it should.
+
+"The project is not compiled yet" is not an obstacle. Source symbols are complete long
+before emit, and `[Gram]`'s argument is a constant that Roslyn hands back the same way from
+source and from metadata.
+
+### Where it actually breaks: diagnostics, at one line
+
+`Host.From` keeps the literal token beside the decoded text, because a diagnostic carries an
+offset into the value and putting it where the author can see it means finding that place in
+the spelling:
+
+```csharp
+var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax && …
+```
+
+**`ApplicationSyntaxReference` is non-null only for an attribute written in source.** Read
+from metadata it is null. So:
+
+* **base in the same assembly** — the literal is there, offsets map, an error in the base's
+  rules is underlined where it was written, and the mechanism works untouched;
+* **base in a referenced assembly** — there is no token, nothing to map onto, and the
+  `#line` in an emitted `Construct_*` points into a file that may not be on the machine.
+
+Three consequences to decide before any of this is built:
+
+1. **Duplicates.** An error in the base's rules would be reported twice — once generating
+   the base, once generating each derivative, at the same place. A rule is needed: a
+   derivative reports what the merge caused and stays silent about what the base already
+   says for itself.
+2. **The live-editing cascade.** While `class Derived : Bas` is half typed, the base does
+   not resolve, the merged grammar is the derived one without its imports, and every rule
+   the base provided is suddenly undefined. Today a broken grammar breaks one class; here it
+   would break every derivative, continuously. The answer is probably to generate nothing
+   and say one thing when a base list is present and unresolved, rather than compile a
+   grammar known to be missing half of itself.
+3. **Cycles cannot happen.** C# forbids `A : B, B : A`, so inheritance gets termination for
+   free — which a named `using grammar Foo;` would not have.
+
+**So: same-assembly first.** It is the whole feature — composition, overriding, libraries
+within a solution — and it costs nothing in diagnostics, because everything still points at
+real source and no metadata is read. Cross-assembly is a second step whose price is not
+access to the data but that errors lose their place, and that is a decision rather than a
+detail.
+
+### Open: what `context` and `state` mean under a merge
+
+Left open deliberately.
+
+Both are root-only by construction — `GRAM3013` and `GRAM3015` refuse them inside a
+namespace, because a context for part of a parse is not a thing. So a base grammar that
+declares either **cannot be wrapped**, and the first library above the recognizer level
+walks straight into it. Two shapes were discussed:
+
+**Per-namespace.** Tempting, and not a new concept: §4.5 already scopes `trivia` by where a
+rule is declared. Argued against here on one ground — a publication's signature would then
+depend on the transitive set of reachable rules, so adding a rule inside a library would
+change every consumer's call site. And `state` per namespace would need one mark array per
+namespace and a slot index in the arena entry, which is the machinery §7.8 was designed to
+avoid.
+
+**Lifted and reconciled**, the merge pulling them out of the wrapper before binding — the
+same place the publications are dropped. Then the two behave differently, and the
+difference is forced rather than chosen:
+
+* `context` could reconcile by assignment: `DerivedState : BaseState`, one parameter of the
+  most derived type, the base's `@(context.…)` still compiling because it is a `BaseState`.
+  No variance problem, no signature churn.
+* `state` cannot. `ReadOnlySpan<T>` is invariant, so a span of a derived mark type will not
+  pass to a parameter of the base's. The rule would have to be exactly one state type
+  declared once along the chain — and that turns §7.8's "one type for the whole grammar"
+  from a convenience into a constraint on composition: a grammar meant to be a base would
+  have to declare its `state` as a reference type, since an enum cannot be extended by the
+  consumer who needs a concern of their own.
+
+Both directions are written down; neither is chosen.
+
+## Noted: `?.` is not the extension node to start with
+
+Offered against the example above and worth keeping so it is not re-derived. Null-conditional
+looks like the obvious first custom node in `ExpressionLanguage` and is not: `Postfix` is
+left recursive, so `a?.b.c` builds as `Member(Member(NullConditional(a), b), c)` — the node
+lands at the *bottom* of the chain while what it must short-circuit is the whole of it. One
+node does not do it; the rule's shape has to change so that the node wraps the chain rather
+than the operand. `foreach`, `using` and `lock` are the better first ones, because the
+extent of the node is exactly what the rule read.
+
+## Built: one `context` and one `state` for the whole assembly
+
+Taken now, on the strength of the entry above, and for one reason: it is the constraint that
+keeps a grammar includable in another later, and taking it before anything leans on it makes
+it a rule rather than a later change of one. `GRAM3017` and `GRAM3018`.
+
+**It is stricter than what will eventually be wanted**, which is one per inheritance chain —
+and a chain cannot be checked today because there is nothing to follow. So two parsers in one
+assembly that never meet are refused for a reason neither of them can see. That is the price,
+it was taken knowingly, and the message says *why* rather than only what: a context belongs
+to a whole parse, and a merged grammar could not say which of two it meant.
+
+**Checked apart from generation rather than folded into it.** A `Collect` in the pipeline that
+produces parsers would make every parser's output depend on every grammar in the project, and
+a keystroke in one would recompile all of them. This is a second `RegisterSourceOutput` that
+generates nothing and only says things, fed by the few grammars that declare anything — so it
+holds still while the rest of the project is edited. The grammar is already parsed in the
+cheap stage for its C# questions, so recording *where* the two declarations stand costs two
+offsets and a length each, and those are what the collected value is keyed on.
+
+**Said at every site rather than at all but one.** Which grammar the generator saw first is
+not something an author can know or act on, and whichever file they are looking at is where
+they need to be told. Placed inside the grammar text through the same path a binder
+diagnostic takes — `Report.Of(GramDiagnostic, …)` with the host's literal and offset — so it
+underlines the declaration and not the class.
+
+Five tests, and the one worth naming is `And_the_two_are_counted_apart`: a `context` in one
+grammar and a `state` in another is two of nothing, because they are two rules and not one.
+
+1,374 tests green in both configurations.

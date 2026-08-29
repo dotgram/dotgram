@@ -3,6 +3,7 @@ using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
 
@@ -142,6 +143,130 @@ public sealed class SemanticTests
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (trivia & A)*" + '\n' +
 			"A = ['a'..'z']", input));
+
+	// ── A settled repetition keeps one way back ─────────────────────────────
+
+	/// <summary>
+	/// Thinning removes the repetition's own exits and nothing else: the body's internal
+	/// machinery still finds a reading where a turn has to re-match shorter.
+	/// </summary>
+	/// <remarks>
+	/// `("ab" | "a")*` before `'b'` is settled — a turn starts with 'a', the continuation
+	/// with 'b' — so it keeps a single standing exit. On "aab" the parse still has to give
+	/// the last turn's longer alternative back and re-take it as "a" before the exit can
+	/// stand where 'b' is. That path goes through the body's own choice entries, which is
+	/// exactly what the thinning proof leaves in place.
+	/// </remarks>
+	[Theory]
+	[InlineData("b", true)]
+	[InlineData("ab", true)]
+	[InlineData("aab", true)]
+	[InlineData("abab", true)]
+	[InlineData("aa", false)]
+	public void A_settled_repetition_still_rematches_its_body(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"Start = (\"ab\" | \"a\")* & 'b'", input));
+
+	/// <summary>
+	/// §11 makes a comment's interior reachable by backtracking — and atomic trivia is how
+	/// an author says it is not.
+	/// </summary>
+	/// <remarks>
+	/// With `trivia = (' ' | Comment)*`, "x //y" parses as `'x' & 'y'`: the comment first
+	/// swallows "//y", the parse fails wanting 'y', and ordered choice hands characters
+	/// back until the 'y' inside the comment is syntax again. Legal, and exactly why the
+	/// thinning proof declines comment-bearing trivia. With `trivia = { … }` the author
+	/// commits what trivia swallowed, the reading disappears, and the proof applies.
+	/// </remarks>
+	[Theory]
+	[InlineData(false, "x //y", true)]
+	[InlineData(false, "x y", true)]
+	[InlineData(true, "x //y", false)]
+	[InlineData(true, "x y", true)]
+	public void A_comment_interior_is_syntax_until_the_trivia_is_atomic(
+		bool atomic, string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			(atomic
+				? "trivia = { (' ' | \"//\" & [^ '\\n']*)* }"
+				: "trivia = (' ' | \"//\" & [^ '\\n']*)*") + '\n' + "Start = 'x' & 'y'", input));
+
+	/// <summary>
+	/// A counted repetition does not count a turn twice when the turn re-matches.
+	/// </summary>
+	/// <remarks>
+	/// The count lives in the Repeat entry and is rewritten in place, and an in-place
+	/// rewrite survives backtracking that the turn it counted does not. Resuming the
+	/// second alternative inside a completed turn re-completed the body, counted the same
+	/// turn again, and `{2}` read two of a thing the input held one of. Found by the
+	/// differential fuzzer against the reference interpreter on its first run, and as old
+	/// as the engine: the commit this repository started this week at accepts it too.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", false)]
+	[InlineData("aa", true)]
+	[InlineData("ab", true)]
+	[InlineData("aaa", false)]
+	public void A_rematched_turn_is_counted_once(string input, bool expected) =>
+		Assert.Equal(expected, Matches(
+			"Start = ({ ['a'|'c'] } | 'a' | ('b' | 'a' | \"b\")){2}", input));
+
+	// ── Maximal munch is per-symbol, and expressible ───────────────────────
+
+	/// <summary>
+	/// C's `a+++++b`, both ways. The notation imposes no maximal munch on symbols, so
+	/// which language a grammar means is the grammar's to say.
+	/// </summary>
+	/// <remarks>
+	/// C's lexer is greedy: `a+++++b` lexes as `a ++ ++ + b` and no parse exists — the
+	/// standard's own famous corner. A grammar that means that writes the greed as a
+	/// guard, `'+' & ?!'+'`, exactly as published PEG grammars of C do; `a+++b` still
+	/// reads as `a++ + b`, and `a+++++b` dies the death the standard prescribes. A
+	/// grammar that leaves the guard off keeps §11's give-back, and `a+++++b` reads as
+	/// `a++ + ++b` — the reading C programmers wish they had. Both languages are three
+	/// lines apart, and neither is imposed.
+	/// </remarks>
+	[Theory]
+	[InlineData(true, "a+b", true)]
+	[InlineData(true, "a+++b", true)]
+	[InlineData(true, "a+++++b", false)]
+	[InlineData(true, "a++", true)]
+	[InlineData(false, "a+++++b", true)]
+	[InlineData(false, "a+++b", true)]
+	public void A_grammar_says_whether_plus_is_greedy(bool cLike, string input, bool expected)
+	{
+		var plus = cLike ? "Plus = '+' & ?!'+'" : "Plus = '+'";
+		var grammar =
+			"Start    = Operand & (Plus & Operand)*" + '\n' +
+			"Operand  = PlusPlus? & ['a'..'z'] & PlusPlus?" + '\n' +
+			"PlusPlus = \"++\"" + '\n' + plus;
+
+		Assert.Equal(expected, Matches(grammar, input));
+	}
+
+	// ── A rule that only forwards costs nothing ───────────────────────────
+
+	/// <summary>
+	/// A transparent tower still delivers its value, through however many floors.
+	/// </summary>
+	/// <remarks>
+	/// `Middle` and `Outer` only forward; the normalizer inlines the choice of their
+	/// sources at every call site, distributing the capture over the branches, so the
+	/// layers cost nothing at run time. What this test pins is that the collapse is
+	/// invisible: values, ordered choice and refusals are exactly what the written tower
+	/// means.
+	/// </remarks>
+	[Theory]
+	[InlineData("a", 1)]
+	[InlineData("b", 2)]
+	[InlineData("c", 3)]
+	public void A_transparent_tower_still_delivers(string input, int expected) =>
+		Assert.Equal(expected, Parsed(
+			"Start : @int = v: Outer => @(v)" + '\n' +
+			"Outer : @int = o: Middle => @(o) | o: C => @(o)" + '\n' +
+			"Middle : @int = m: A => @(m) | m: B => @(m)" + '\n' +
+			"A : @int = 'a' => @(1)" + '\n' +
+			"B : @int = 'b' => @(2)" + '\n' +
+			"C : @int = 'c' => @(3)", input).Value);
 
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
@@ -395,6 +520,271 @@ public sealed class SemanticTests
 		Assert.Equal(3, found.Cast<object>().Count());
 	}
 
+	/// <summary>Two alternatives beginning alike, where beginning twice compounds.</summary>
+	/// <remarks>
+	/// `Primary` leads back to `Power` through its parentheses, so reading it once for each
+	/// alternative doubles at every level of nesting. The shipped calculator example was
+	/// written this way: sixteen parentheses deep took 30 ms, and reading the operand once
+	/// takes 0.05 ms.
+	/// </remarks>
+	[Fact]
+	public void A_shared_beginning_that_leads_back_to_its_rule_is_reported() =>
+		Refused(
+			GrammarNormalizer.SharedPrefix,
+			"""
+			Power   : @int = left: Primary & '^' & right: Power => @(left + right)
+			               | value: Primary                    => @(value)
+			Primary : @int = '(' & inner: Power & ')'           => @(inner)
+			               | d: ['0'..'9']+                    => @(int.Parse(d))
+			""");
+
+	[Fact]
+	public void And_the_same_written_with_the_rest_optional_is_not() =>
+		Accepted(
+			"""
+			Power   : @int = left: Primary & ('^' & right: Power)? => @(left + (right ?? 0))
+			Primary : @int = '(' & inner: Power & ')'              => @(inner)
+			               | d: ['0'..'9']+                        => @(int.Parse(d))
+			""");
+
+	[Fact]
+	public void And_a_shared_beginning_that_leads_nowhere_back_is_not() =>
+		// Splitting the last segment off a path: two alternatives are the only way to say
+		// it, the operand gives back so the tail fits, and nothing here reads anything
+		// twice per level because nothing nests. Reporting this would be noise.
+		Accepted(
+			"""
+			Name     = ['a'..'z']+
+			Segments = Name & ('/' & Name)*
+			Start    = d: Segments & '/' & f: Name | d: Segments
+			""");
+
+	[Fact]
+	public void And_one_whose_beginning_cannot_give_back_is_not() =>
+		// A literal has one reading, so the two orders hold the same one thing and there is
+		// nothing to weigh — which is also why the emitter has always factored these.
+		Accepted("Start = \"ab\" & 'c' | \"ab\" & 'd'");
+
+	static void Accepted(string grammar)
+	{
+		var diagnostics = Compile(grammar).Diagnostics;
+
+		Assert.DoesNotContain(
+			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
+	}
+
+	// ── §7.8, the marks a parse places over an extent ────────────────────────────
+
+	/// <summary>
+	/// The property the whole design rests on: a mark changes nothing about what is read.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the parser rather than of the generated text, because that is the claim — a
+	/// comparison of sources fails on state numbering, which shifts the moment two states
+	/// are added and says nothing about what either parser does. So the same grammar is
+	/// compiled twice, with marks over it and without, and run over inputs that succeed,
+	/// that fail outright, and that fail after backtracking. The two must agree on all of
+	/// it: the answer, the value, the message and where the failure is reported.
+	/// </remarks>
+	[Theory]
+	[InlineData("1")]
+	[InlineData("1+2")]
+	[InlineData("1+2+3")]
+	[InlineData("")]
+	[InlineData("1+")]
+	[InlineData("+1")]
+	[InlineData("1+2x")]
+	public void A_mark_changes_nothing_about_what_is_read(string input)
+	{
+		const string Plain =
+			"""
+			Start : @string = left: Digit & ('+' & right: Start)? => @(left + ":" + right)
+			Digit : @string = t: ['0'..'9'] => @(t)
+			""";
+
+		const string Marked =
+			"""
+			state : @int
+			Start : @string = left: Digit with state @(1) & ('+' & right: Start)? => @(left + ":" + right)
+			Digit : @string = t: ['0'..'9'] => @(t)
+			""";
+
+		var plain  = Parsed(Plain,  input);
+		var marked = Parsed(Marked, input);
+
+		Assert.Equal(plain.IsSuccess, marked.IsSuccess);
+		Assert.Equal(plain.Value,     marked.Value);
+		Assert.Equal(plain.Error,     marked.Error);
+		Assert.Equal(plain.Position,  marked.Position);
+	}
+
+	/// <summary>Nested marks, and the nearest one winning — which is what `checked` needs.</summary>
+	/// <remarks>
+	/// One rule read in three places, under two marks, one mark and none. What it is handed
+	/// is what stands over it and nothing else, outermost first, so the last element is the
+	/// nearest — and that is the whole of how a hook tells `checked` from the `unchecked`
+	/// inside it.
+	/// </remarks>
+	[Fact]
+	public void The_marks_a_construction_stands_under_are_the_ones_over_it() =>
+		Assert.Equal(
+			"a1b2c-",
+			Built(
+				"""
+					state : @int
+					Start : @string
+						= (a: Item & b: Item with state @(2)) with state @(1) & c: Item
+						=> @(a + b + c)
+					Item : @string
+						= t: ['a'..'z']
+						=> @(t + (parserState.Length == 0
+							? "-"
+							: parserState[parserState.Length - 1].ToString()))
+					""",
+				"abc"));
+
+	[Fact]
+	public void A_mark_an_abandoned_reading_placed_is_not_one_the_accepted_reading_stands_under() =>
+		// Nothing unwinds a mark, because nothing has to: the entry recording it is taken
+		// away with everything else the abandoned reading wrote, and the walk that reads
+		// them runs over what is left. The first alternative here matches `ab`, marks it,
+		// and is then given back for want of the `!` — so the second alternative's `Item`
+		// must see no mark at all.
+		Assert.Equal(
+			"a-b-",
+			Built(
+				"""
+					state : @int
+					Start : @string
+						= (x: Item & y: Item) with state @(9) & '!' => @(x + y)
+						| p: Item & q: Item                        => @(p + q)
+					Item : @string
+						= t: ['a'..'z']
+						=> @(t + (parserState.Length == 0
+							? "-"
+							: parserState[parserState.Length - 1].ToString()))
+					""",
+				"ab"));
+
+	[Fact]
+	public void A_state_belongs_to_the_whole_grammar() =>
+		Refused(
+			GrammarBinder.StateNotAtRoot,
+			"""
+			namespace Inner
+			{
+				state : @int
+				A = 'x'
+			}
+			Start = Inner.A
+			""");
+
+	[Fact]
+	public void And_a_grammar_declares_one_type_for_all_of_them() =>
+		Refused(
+			GrammarBinder.DuplicateState,
+			"""
+			state : @int
+			state : @string
+			Start = 'x'
+			""");
+
+	[Fact]
+	public void And_state_is_still_an_ordinary_name_for_a_rule() =>
+		// The body is what tells the two apart, the same as `context` — and `with (state =
+		// other)` still rebinds this rule, because a rebinding is parenthesized and a mark
+		// is not.
+		Assert.Equal(
+			"xy",
+			Read(
+				Built(
+					"""
+					Start = a: state
+					state = "xy"
+					""",
+					"xy"),
+				"A"));
+
+	/// <summary>What all of this was built for, written out whole.</summary>
+	/// <remarks>
+	/// One <c>Sum</c> rule, read the same way everywhere, whose construction asks what it
+	/// stands under: `!` where overflow is checked and `+` where it is not. That is the
+	/// division §7.8 rests on — the mark cannot change what is read, and here nothing about
+	/// the reading differs; only the value built from it does.
+	/// <para>
+	/// `c(1+u(2+3)+4)` is the shape a pair of flags cancelling each other cannot express.
+	/// The inner mark does not turn the outer one off — it stands over its own protraction
+	/// and the outer one is in force again after it, which is what nesting means and what
+	/// an arena gives for nothing.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("1+2",           "(1+2)")]
+	[InlineData("c(1+2)",        "(1!2)")]
+	[InlineData("c(1+u(2+3)+4)", "(1!((2+3)!4))")]
+	[InlineData("u(c(1+2))",     "(1!2)")]
+	[InlineData("c(u(c(1+2)))",  "(1!2)")]
+	public void A_mark_is_how_one_rule_reads_two_ways(string input, string expected) =>
+		Assert.Equal(
+			expected,
+			Built(
+				"""
+				state : @int
+				Sum : @string
+					= left: Atom & ('+' & right: Sum)?
+					=> @(right == null
+						? left
+						: "(" + left +
+							(parserState.Length > 0 && parserState[parserState.Length - 1] == 1 ? "!" : "+") +
+							right + ")")
+				Atom : @string
+					= 'c' & '(' & e: Sum with state @(1) & ')' => @(e)
+					| 'u' & '(' & e: Sum with state @(0) & ')' => @(e)
+					| d: ['0'..'9']                            => @(d)
+				Start : @string = e: Sum => @(e)
+				""",
+				input));
+
+	// ── §7.7, the state a parse works out ───────────────────────────────────────
+
+	[Fact]
+	public void A_context_belongs_to_the_whole_grammar() =>
+		Refused(
+			GrammarBinder.ContextNotAtRoot,
+			"""
+			namespace Inner
+			{
+				context : @Names
+				A = 'x'
+			}
+			Start = Inner.A
+			""");
+
+	[Fact]
+	public void And_a_grammar_declares_one_of_them() =>
+		Refused(
+			GrammarBinder.DuplicateContext,
+			"""
+			context : @Names
+			context : @Other
+			Start = 'x'
+			""");
+
+	[Fact]
+	public void And_context_is_still_an_ordinary_name_for_a_rule() =>
+		// A body is what tells the two apart, so a grammar that had a rule called `context`
+		// before this existed still has one.
+		Assert.Equal(
+			"xy",
+			Read(
+				Built(
+					"""
+					Start = a: context
+					context = "xy"
+					""",
+					"xy"),
+				"A"));
+
 	static void Refused(string id, string grammar)
 	{
 		var diagnostics = Compile(grammar).Diagnostics;
@@ -556,11 +946,6 @@ public sealed class SemanticTests
 	/// </remarks>
 	[Theory]
 	[InlineData(GrammarNormalizer.LeftRecursion,   "A = B & 'x' | 'a'\nB = A & 'y' | 'b'\nStart = A")]
-	[InlineData(GrammarNormalizer.UnbuiltRecovery,
-		"Start = a: Row* recover eol => @(1) & b: Row* recover eol => @(2)\n"
-		+ "Row : @int = ['a'..'z']+ & eol => @(0)")]
-	[InlineData(GrammarNormalizer.UnbuiltCall,
-		"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')")]
 	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
 		"B(item) = item\nD = 'd'\nnamespace Ctx with (B = D) { }")]
 	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
@@ -667,6 +1052,61 @@ public sealed class SemanticTests
 		Assert.True(Matches(
 			"trivia = ' '*\nStart = Word & (trivia & Word)*\nWord = ['a'..'z']+",
 			"ab cd ef"));
+	}
+
+	/// <summary>
+	/// A repetition of a valued rule is a collection, and a grammar that separates its
+	/// operands separates its collections the same way (§4.5). Valuedness is the line:
+	/// `Word*` above stays a lexeme-shaped run because `Word` builds nothing, while
+	/// `Entry` here is the thing §4.1 case 2 gathers — and things are spaced.
+	/// </summary>
+	[Theory]
+	[InlineData("a;b;",     true)]
+	[InlineData("a; b;",    true)]
+	[InlineData(" a; b; ",  true)]
+	[InlineData("a ; b ;",  true)]
+	public void A_collection_of_a_valued_rule_is_spaced(string input, bool expected)
+	{
+		const string collected =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = (e: Entry)* & eof => @(e)";
+
+		Assert.Equal(expected, Spaced(collected, input));
+
+		// The bare form collects through §4.1 case 2's implicit capture and is the same
+		// list; the hand-written seam is the same list once more, not seamed twice.
+		const string bare =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = Entry* & eof";
+
+		Assert.Equal(expected, Spaced(bare, input));
+
+		const string manual =
+			"trivia = ' '*\n" +
+			"Entry : @string = t: ['a'..'z']+ & ';' => @(t)\n" +
+			"Start : @string[] = (trivia & e: Entry)* & eof => @(e)";
+
+		Assert.Equal(expected, Spaced(manual, input));
+	}
+
+	/// <summary>
+	/// Like <see cref="Matches"/>, but a spaced collection is told — accurately — that a
+	/// streamed parse does not yet skip trivia between elements, and that information is
+	/// not a defect of the grammar.
+	/// </summary>
+	static bool Spaced(string grammar, string input)
+	{
+		var result = Compile(grammar + "\nparse Start");
+
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			static diagnostic => diagnostic.Severity != GramSeverity.Info);
+
+		return EmittedCode.Match(
+			EmittedCode.Compile(Assert.Single(result.Sources).Text),
+			"Grammar", "TryParseStart", input).IsSuccess;
 	}
 
 	[Theory]
@@ -802,15 +1242,227 @@ public sealed class SemanticTests
 	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 
+	// ── Publishing an expression (§6) ───────────────────────────────────────────
+
 	[Fact]
-	public void A_parameter_declared_as_a_C_sharp_type_is_a_value_and_says_so() =>
-		// §4.2: a C# type makes the parameter a value, anything else makes it a recognizer.
-		// Only one value is built — a number — so a `pad: char` handed a literal used to be
-		// quietly taken as a recognizer instead, which is the declaration meaning one thing
-		// to the author and another to the compiler.
+	public void A_directive_publishes_whatever_expression_it_names()
+	{
+		// Where the notation refers to a rule, an expression may stand — a call, a
+		// choice, a repetition, anything an operand can be. A parameterized rule could
+		// not be reached from a directive at all before this.
+		var result = Compile("""
+			Word : @string = w: ['a'..'z']+ => @(w)
+			Padded(item, pad) = pad & item & pad
+
+			parse Padded(Word, '#') as Hashed
+			parse ('a' | 'b') as Ab
+			parse Word
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		// The lifted rule is a rule, so §4.1 case 4 says what its value is: the extent it
+		// matched. An expression is published for what it recognizes; a value still comes
+		// from a rule that declares a type and builds one.
+		Assert.Equal("#ab#", EmittedCode.Match(assembly, "Grammar", "TryHashed", "#ab#").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryHashed", "ab").IsSuccess);
+		Assert.Equal("b",    EmittedCode.Match(assembly, "Grammar", "TryAb", "b").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryAb", "c").IsSuccess);
+		Assert.Equal("ab",   EmittedCode.Match(assembly, "Grammar", "TryParseWord", "ab").Value);
+	}
+
+	[Fact]
+	public void And_the_rule_it_lifts_is_bound_where_the_directive_is_written()
+	{
+		// The expression is written inside the namespace, so it reads what that
+		// namespace reads — its own `trivia` here, not the outer one. Which is what a
+		// rule declared there would do, because that is what it becomes.
+		var result = Compile("""
+			trivia = ' '*
+			A = 'a'
+			B = 'b'
+
+			namespace Tight
+			{
+				trivia = none
+
+				parse (A & B) as Joined
+			}
+
+			parse (A & B) as Spaced
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryJoined", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryJoined", "a b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySpaced", "a b").IsSuccess);
+	}
+
+	[Fact]
+	public void A_directive_may_declare_the_type_of_what_it_lifts()
+	{
+		// The third part a rule has, in the place that reads as the method's own. It
+		// belongs to the expression being lifted, which is what makes a `=>` legal there
+		// — without a declared type a construction is refused (GRAM4008), and with one
+		// the directive reaches everything §4.1 offers, a value included.
+		var result = Compile("""
+			Word : @string = w: ['a'..'z']+ => @(w)
+			Padded(item, pad: char) : @string = t: item => @(t + pad)
+
+			parse (v: Padded(Word, '#') => @(v)) as Marked : @string
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab#", EmittedCode.Match(assembly, "Grammar", "TryMarked", "ab").Value);
+	}
+
+	[Fact]
+	public void But_not_of_a_rule_that_declares_its_own()
+	{
+		// Nothing is lifted when the target is a name, so a type here would have nowhere
+		// to go — and the rule it names has already said what it produces.
+		Assert.Contains(
+			GramParser.PublicationTypeOnRule,
+			Compile("Word : @string = w: ['a'..'z']+ => @(w)\nparse Word as W : @string")
+				.Diagnostics.Select(diagnostic => diagnostic.Id));
+	}
+
+	[Fact]
+	public void A_rebinding_replaces_a_rule_with_an_expression()
+	{
+		// §5.1's other reference position. What replaces a rule may be any operand, and
+		// it becomes a rule declared where the `with` is written — so the substitution
+		// reads what surrounds it, exactly as a rule written there would.
+		var result = Compile("""
+			Comma = ','
+			Item  = ['a'..'z']+
+			List  = Item & (Comma & Item)*
+
+			parse List with (Comma = (',' | ';')) as Loose
+			parse List as Tight
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a,b;c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a,b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b;c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b,c").IsSuccess);
+	}
+
+	// ── What a publication answers with (§7.5) ──────────────────────────────────
+
+	[Theory]
+	[InlineData("ab",  "Success")]
+	[InlineData("ax",  "NoMatch")]
+	[InlineData("a",   "Starved")]
+	[InlineData("",    "Starved")]
+	[InlineData("abc", "NoMatch")]
+	public void A_match_says_which_kind_of_answer_it_is(string input, string expected)
+	{
+		// §7.5: `IsSuccess` answers the question most callers ask; `Outcome` answers the
+		// one the two failures differ on. Input that ran out is not input that did not
+		// fit — a caller reading a stream wants a longer read, one reading a document
+		// wants a message — and both are exact: the furthest the parse followed is
+		// either the end of the input or a character that did not belong there.
+		var result = Compile("""
+			Start = "ab"
+			parse Start
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(expected, EmittedCode.Outcome(assembly, "Grammar", "TryParseStart", input));
+	}
+
+	[Fact]
+	public void And_IsSuccess_still_answers_what_it_always_did()
+	{
+		// Kept as it was, and now derived: one property is what the other says about
+		// success, so the two can never disagree.
+		var result = Compile("Start = \"ab\"\nparse Start");
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ax").IsSuccess);
+	}
+
+	[Fact]
+	public void A_parameter_declared_as_a_C_sharp_type_takes_a_literal_of_that_type()
+	{
+		// §4.2: a C# type makes the parameter a value, and a value is a literal. The
+		// specialization holds the one the call passed, so the C# the rule wrote reads
+		// it — which is what "a value is allowed anywhere a value is expected" says, and
+		// what used to emit a factory reading a name that does not exist.
+		var result = Compile("""
+			Padded(item, pad: char) : @string = t: item => @(t + pad)
+			Word   : @string = w: ['a'..'z']+ => @(w)
+			Marked : @string = m: Padded(Word, '!') => @(m)
+
+			parse Marked
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab!", EmittedCode.Match(assembly, "Grammar", "TryParseMarked", "ab").Value);
+	}
+
+	[Fact]
+	public void And_the_same_rule_specialized_twice_holds_two_values()
+	{
+		// The value is part of what a specialization is: two calls passing different
+		// literals are two rules, not one shared one holding whichever came last.
+		var result = Compile("""
+			Mark(item, m: char) : @string = t: item => @(t + m)
+			Word  : @string = w: ['a'..'z']+ => @(w)
+			Bang  : @string = b: Mark(Word, '!') => @(b)
+			Query : @string = q: Mark(Word, '?') => @(q)
+
+			parse Bang
+			parse Query
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab!", EmittedCode.Match(assembly, "Grammar", "TryParseBang",  "ab").Value);
+		Assert.Equal("ab?", EmittedCode.Match(assembly, "Grammar", "TryParseQuery", "ab").Value);
+	}
+
+	[Fact]
+	public void And_refuses_a_value_standing_where_a_recognizer_goes() =>
+		// The other half of the same silence: §4.2 allows a value where a value is
+		// expected, and an operand is not one of those places. It used to lower to an
+		// element set with nothing in it, so the parse refused everything while naming a
+		// set the author never wrote — found by writing `open & item & close` against
+		// `open: char` in an example.
 		Refused(
 			GrammarNormalizer.UnbuiltCall,
-			"Padded(item, pad: char) = item & pad\nWord = ['a'..'z']+\nStart = Padded(Word, ' ')");
+			"Bracketed(item, open: char) = open & item\nWord = ['a'..'z']+\nStart = Bracketed(Word, '[')");
+
+	[Fact]
+	public void And_refuses_a_rule_where_a_value_was_declared() =>
+		// The declaration says which kind the parameter is, and a rule is not a value —
+		// taken as a recognizer, it would be the declaration meaning one thing to the
+		// author and another to the compiler.
+		Refused(
+			GrammarNormalizer.UnbuiltCall,
+			"Padded(item, pad: char) = item & @(pad)\nWord = ['a'..'z']+\nSpace = ' '\nStart = Padded(Word, Space)");
 
 	[Fact]
 	public void A_number_still_reaches_a_parameter_that_declared_its_type() =>
@@ -1087,15 +1739,16 @@ public sealed class SemanticTests
 			Refusal("Start = 'a' & when @(false)", "a").Error);
 
 	[Fact]
-	public void A_prefix_conflicted_run_can_under_report_what_it_covers()
+	public void A_prefix_conflicted_run_reports_everything_it_covers()
 	{
-		// A known, accepted first-cut gap (Machine.cs's CompileLiterals doc comment):
-		// "p"/"pr" cannot share a merged run (one prefixes the other), so LiteralRun
-		// splits this into a "p"/"q" run chained into "pr" compiled on its own. Both
-		// fail at the same position, but the second overwrites the first's `expected`
-		// before either reaches the real Fail: — losing "p" and "q", keeping "pr". If
-		// this is ever fixed, this test should change on purpose, not by surprise.
-		Assert.Equal("Expected \"pr\".", Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
+		// This used to under-report — an accepted first-cut gap, whose test said it
+		// should change on purpose if ever fixed. The checkpoint class fixed it as a
+		// side effect: the choice now records every alternative's failure the way the
+		// engine's Fail: does, ties added rather than overwritten, so the "p"/"q" run
+		// and "pr" are both named.
+		Assert.Equal(
+			"Expected ['p'..'q'] or \"pr\".",
+			Refusal("""Start = "p" | "q" | "pr" """, "x").Error);
 	}
 
 	[Fact]
@@ -1248,8 +1901,11 @@ public sealed class SemanticTests
 		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
 
 	[Fact]
-	public void But_text_captured_around_something_else_is_still_refused() =>
-		Refused(GrammarNormalizer.UnbuiltCapture, "Start = (a: 'x' & 'y')+");
+	public void And_text_captured_around_something_else_is_the_turns_joined() =>
+		// This was refused while the value was the span the turns lie in — where `'y'`
+		// would have been swept in with them. Each turn records an entry of its own now,
+		// and §10's value is those joined, so the shape is an ordinary one.
+		Assert.Equal("xx", Read(Built("Start = (a: 'x' & 'y')+", "xyxy"), "A"));
 
 	[Fact]
 	public void Nor_is_one_inside_a_lookahead() =>
@@ -1753,16 +2409,39 @@ public sealed class SemanticTests
 				RoslynCSharpScanner.Instance)).File.ToString());
 
 	[Fact]
-	public void Only_one_repetition_of_a_rule_recovers() =>
-		// The second would be ignored, and a `recover` that is quietly not there is the
-		// failure recovery exists to prevent.
-		Refused(
-			GrammarNormalizer.UnbuiltRecovery,
-			"""
-			Row   = name: ['a'..'z']+ & eol
-			Start = rows: Row* recover eol => @(new Row("!" + parserText))
-			      & more: Row* recover eol => @(new Row("?" + text))
+	public void Every_repetition_of_a_rule_may_recover()
+	{
+		// Each marked repetition is its own: its own sync, its own `=>`, its own sequence
+		// for a rejection to arrive in, and its own plan in the arena — which has
+		// dispatched a recovery by plan since there was one plan. The two factories differ
+		// by name and by nothing else.
+		var result = Compile("""
+			Row   : @string = t: ['a'..'z']+ & eol => @(t)
+			Sheet : @string = "H" & eol & head: Row* recover eol => @("!" + parserText)
+			                & "B" & eol & body: Row* recover eol => @("?" + parserText)
+			                & eof
+			                => @(string.Join(",", head) + "|" + string.Join(",", body))
+
+			parse Sheet
 			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var source = result.Sources[0].Text;
+
+		Assert.Contains("Recognize_Sheet_Recover(",  source);
+		Assert.Contains("Recognize_Sheet_Recover2(", source);
+
+		var assembly = EmittedCode.Compile(source);
+
+		// A line that begins a Row and breaks in the middle of one is stepped over by the
+		// `recover` that owns that repetition, and each rejection is built by that
+		// repetition's own `=>` — which is the whole of what having two of them means.
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseSheet", "H\na\nb1b\nB\nc\nd2d\n");
+
+		Assert.True(match.IsSuccess, match.Error + " at " + match.Position);
+		Assert.Equal("a,!b1b|c,?d2d", match.Value);
+	}
 
 	[Fact]
 	public void A_recovery_that_builds_needs_a_sequence_to_build_into() =>
@@ -1792,13 +2471,127 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
 
 	[Fact]
-	public void Indirect_left_recursion_is_still_refused() =>
+	public void Indirect_left_recursion_through_a_rule_that_does_something_is_still_refused() =>
+		// `Other` is not only a name for what it forwards — one of its alternatives is a
+		// literal of its own — so unfolding it would put that literal, and whatever else
+		// an intermediary might carry, into the fold's tail. Refused, as §4.3 says.
 		Refused(
 			GrammarNormalizer.LeftRecursion,
 			"""
 			Start = Other & 'x'
 			Other = Start | 'y'
 			""");
+
+	[Fact]
+	public void And_the_tail_may_capture()
+	{
+		// The postfix chain every expression language is written as, which is what this
+		// feature is for. Unfolding turns one alternative into one per source, and the
+		// one leading with the rule itself becomes the fold's step while the others stay
+		// bases — so a capture written in the tail stands both inside the loop and
+		// outside it. What the two must agree on is what the author sees: a slot under a
+		// fold's loop collects because a step is applied once per iteration, and the
+		// step's `=>` is handed one of what it collected, which is a value either way.
+		var result = Compile("""
+			Word  : @string = w: ['a'..'z']+ => @(w)
+			Chain : @string = c: Step => @(c) | c: Word => @(c)
+			Step  : @string = head: Chain & '.' & tail: Word => @(head + "[" + tail + "]")
+
+			parse Chain
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		// Left-associative, because that is where the recursion is: `a.b.c` is `(a.b).c`.
+		Assert.Equal("a",       EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a").Value);
+		Assert.Equal("a[b]",    EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a.b").Value);
+		Assert.Equal("a[b][c]", EmittedCode.Match(assembly, "Grammar", "TryParseChain", "a.b.c").Value);
+	}
+
+	[Fact]
+	public void And_so_is_a_mutual_recursion_where_both_sides_build() =>
+		// The shape the general transform would need: `B`'s own operands and its `=>`
+		// would join `A`'s tail, so the fold would have to apply two constructions in
+		// order against an accumulator that is itself the result of one.
+		Refused(
+			GrammarNormalizer.LeftRecursion,
+			"""
+			N : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			A : @int = l: B & '-' & r: N => @(l - r) | v: N => @(v)
+			B : @int = l: A & '+' & r: N => @(l + r) | v: N => @(v)
+			""");
+
+	[Fact]
+	public void But_one_through_a_rule_that_only_forwards_is_made_direct()
+	{
+		// §4.3 over the layered shape every expression grammar is written in: `Call`
+		// reaches itself through `Primary`, and `Primary` only forwards — so the leading
+		// `Primary` is the choice of what it forwards, the alternative distributes over
+		// it, and what is left is the direct recursion §4.3 already folds. Left-
+		// associative, because that is where the recursion is: `7()()` is `(7())()`.
+		var result = Compile("""
+			Number  : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			Primary : @int = p: Call => @(p) | n: Number => @(n)
+			Call    : @int = target: Primary & "()" => @(target * 10)
+
+			parse Primary
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(7,   EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7").Value);
+		Assert.Equal(70,  EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7()").Value);
+		Assert.Equal(700, EmittedCode.Match(assembly, "Grammar", "TryParsePrimary", "7()()").Value);
+	}
+
+	[Fact]
+	public void The_forwarder_itself_still_parses_on_its_own()
+	{
+		// Unfolding rewrites the recursive rule's own alternatives; the forwarder stays
+		// in the grammar and means what it always did, publication included.
+		var result = Compile("""
+			Number  : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			Primary : @int = p: Call => @(p) | n: Number => @(n)
+			Call    : @int = target: Primary & "()" => @(target * 10)
+
+			parse Primary as Any
+			parse Call as Applied
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(70, EmittedCode.Match(assembly, "Grammar", "TryApplied", "7()").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryApplied", "7").IsSuccess);
+		Assert.Equal(7,  EmittedCode.Match(assembly, "Grammar", "TryAny", "7").Value);
+	}
+
+	[Fact]
+	public void A_valueless_alias_makes_a_valueless_recursion_direct()
+	{
+		// The same unfolding where nothing builds: `Term` is a name for `List` and
+		// `Word`, and `List` reaching itself through it is the loop it reads as.
+		var result = Compile("""
+			Word  = ['a'..'z']+
+			Term  = List | Word
+			List  = Term & ',' & Word
+
+			parse List
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a,b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a,b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseList", "a").IsSuccess);
+	}
 
 	// ── `when` guards (§8.1) ───────────────────────────────────────────────────
 
@@ -1962,6 +2755,158 @@ public sealed class SemanticTests
 
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "d").IsSuccess);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "b").IsSuccess);
+	}
+
+	[Fact]
+	public void A_parameterized_rule_may_be_rebound_to_one_of_the_same_signature()
+	{
+		// §5.1 over §4.2: the binding replaces the rule a call named and keeps the
+		// call's arguments — `A('a')` under `with (A = B)` is `B('a')`, and the plain
+		// publication still reads the unrebound instantiation beside it.
+		var result = Compile("""
+			A(x) = '<' & x & '>'
+			B(x) = '[' & x & ']'
+			Start = A('a')
+
+			parse Start with (A = B) as Swapped
+			parse Start as Plain
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[a]").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "<a>").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "<a>").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryPlain", "[a]").IsSuccess);
+	}
+
+	[Fact]
+	public void A_rebound_parameterized_call_keeps_its_value_argument()
+	{
+		// A value parameter (§4.2) travels the same way a recognizer one does: the
+		// replacement's specialization is built for the number the call already carried.
+		var result = Compile("""
+			D(n: int) = 'x'{n}
+			E(n: int) = 'y'{n}
+			Start = D(3)
+
+			parse Start with (D = E) as Swapped
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "yyy").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "xxx").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "yy").IsSuccess);
+	}
+
+	[Fact]
+	public void A_rebound_parameterized_argument_observes_its_sibling_bindings()
+	{
+		// The argument a call carried is spliced into the replacement's specialization,
+		// and the same header's other bindings reach it there — the simultaneity §5.1
+		// promises, through the instantiation.
+		var result = Compile("""
+			A(x)  = '<' & x & '>'
+			B(x)  = '[' & x & ']'
+			Inner = 'i'
+			Other = 'o'
+			Start = A(Inner)
+
+			parse Start with (A = B, Inner = Other) as Swapped
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[o]").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "[i]").IsSuccess);
+	}
+
+	[Fact]
+	public void A_namespace_header_reaches_a_parameterized_call_in_a_shared_rule()
+	{
+		// The same reach §5.1's own example shows for plain rules: `Mid` is declared
+		// outside the namespace and never mentions `Spaced`, and the call graph reached
+		// from inside still resolves its `List` through the binding.
+		var result = Compile("""
+			List(item, sep)   = item & (sep & item)*
+			Spaced(item, sep) = item & ((sep | ' ') & item)*
+			W   = ['a'..'z']+
+			Mid = List(W, ',')
+
+			namespace Ns with (List = Spaced)
+			{
+				parse Mid as Loose
+			}
+
+			parse Mid as Tight
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryLoose", "a b,c").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTight", "a b,c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b,c").IsSuccess);
+	}
+
+	[Fact]
+	public void An_item_typed_parameterized_rule_carries_its_value_through_a_rebinding()
+	{
+		// `: item` (§4.2): both sides produce whatever the argument produces, and the
+		// rebound instantiation hands the value back the same way the original did.
+		var result = Compile("""
+			Num : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			WrapA(item) : item = '<' & item & '>'
+			WrapB(item) : item = '[' & item & ']'
+			Start : @int = v: WrapA(Num) => @(v)
+
+			parse Start with (WrapA = WrapB) as Bracketed
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+		var match    = EmittedCode.Match(assembly, "Grammar", "TryBracketed", "[7]");
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(7, match.Value);
+	}
+
+	[Fact]
+	public void A_replacement_reached_through_a_binding_observes_its_sibling_bindings()
+	{
+		// §5.1: bindings in one header resolve simultaneously over the whole call graph
+		// reached — and the replacement itself, reached only through the binding, is part
+		// of that graph. `B` substituted for `A` must read `Sep` through the same header's
+		// `Sep = Semi`, not as written. It did not, until the reachability walk learned to
+		// follow the binding edge and a bound call learned to land on the replacement's
+		// clone.
+		var result = Compile("""
+			Semi  = ';'
+			Sep   = ','
+			B     = 'b' & Sep
+			A     = 'a'
+			Start = A & Sep
+
+			parse Start with (A = B, Sep = Semi) as Rebound
+			parse Start as Plain
+			""");
+
+		Assert.Empty(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryRebound", "b;;").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryRebound", "b,;").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "a,").IsSuccess);
 	}
 
 	[Fact]

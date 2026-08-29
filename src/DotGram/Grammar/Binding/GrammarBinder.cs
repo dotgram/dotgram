@@ -29,6 +29,24 @@ public sealed class GrammarBinder
 	public const string NamespaceBoundNameRedeclared = "GRAM3010";
 	public const string CircularRebinding     = "GRAM3011";
 	public const string ShadowsEnclosingRule      = "GRAM3012";
+	public const string ContextNotAtRoot          = "GRAM3013";
+	public const string DuplicateContext          = "GRAM3014";
+	public const string StateNotAtRoot            = "GRAM3015";
+	public const string DuplicateState            = "GRAM3016";
+
+	/// <summary>
+	/// One <c>context</c> and one <c>state</c> per assembly, not merely per grammar.
+	/// </summary>
+	/// <remarks>
+	/// Raised by the shell rather than here, because it is a question about every grammar in
+	/// a compilation and this half sees one. The ids live beside their per-grammar
+	/// counterparts all the same: it is the same rule asked over a wider extent, and an
+	/// author who looks one up will look for the other next to it.
+	/// </remarks>
+	public const string SharedContext             = "GRAM3017";
+
+	/// <inheritdoc cref="SharedContext"/>
+	public const string SharedState               = "GRAM3018";
 
 	/// <summary>
 	/// Rules every grammar has without declaring them. They live in a namespace outside
@@ -84,8 +102,15 @@ public sealed class GrammarBinder
 
 		return new GrammarModel(
 			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
-			binder._publications, binder._diagnostics);
+			binder._publications, binder._diagnostics)
+			{ Context = binder._context, State = binder._state };
 	}
+
+	/// <summary>What a parse works out and hands back, or null where none is (§7.7).</summary>
+	TypeRef? _context;
+
+	/// <summary>The type every <c>with state</c> mark is written in, or null (§7.8).</summary>
+	TypeRef? _state;
 
 	GrammarNamespace CreateStandardLibrary()
 	{
@@ -231,6 +256,55 @@ public sealed class GrammarBinder
 		{
 			switch (node)
 			{
+				// The name a grammar's own state travels under. One per grammar and at the
+				// top of it: a context declared inside a namespace would be a context for
+				// part of a parse, and there is no such thing — the object the caller hands
+				// over is handed to all of it.
+				case Decl.Context context:
+
+					if (ns.Parent?.Parent is not null)
+						Report(
+							ContextNotAtRoot,
+							"A 'context' belongs to the whole grammar, so it is declared outside every " +
+							"namespace. The one object a caller hands over is handed to all of it.",
+							context.At);
+
+					else if (_context is not null)
+						Report(
+							DuplicateContext,
+							"This grammar already declares a 'context'. One name, one type, one object " +
+							"for the parse.",
+							context.At);
+
+					else
+						_context = context.Type;
+
+					break;
+
+				// The same three rules, for the same reason: the marks a parse places are
+				// read by one walk over one arena, and a type for part of that would be a
+				// type for part of an answer.
+				case Decl.State state:
+
+					if (ns.Parent?.Parent is not null)
+						Report(
+							StateNotAtRoot,
+							"A 'state' belongs to the whole grammar, so it is declared outside every " +
+							"namespace. Every mark a 'with state' site places is written in the one type.",
+							state.At);
+
+					else if (_state is not null)
+						Report(
+							DuplicateState,
+							"This grammar already declares a 'state'. Two concerns are told apart by " +
+							"their values, read by the hook that cares — not by declaring a second type.",
+							state.At);
+
+					else
+						_state = state.Type;
+
+					break;
+
 				case Decl.Rule rule:
 					ResolveRule(rule, ns);
 					break;
@@ -354,28 +428,54 @@ public sealed class GrammarBinder
 			return null;
 		}
 
-		if (left.Declaration is { Params.Count: > 0 })
+		// A rebinding substitutes the rule and keeps every call's arguments, so the two
+		// sides must take the same arguments: the same count, each parameter the same
+		// kind — a value where a value was, a recognizer where a recognizer was. Names
+		// need not match; a call passes positionally (§4.2).
+		var leftParams  = left.Declaration?.Params ?? [];
+		var rightParams = right.Declaration?.Params ?? [];
+
+		if (leftParams.Count != rightParams.Count)
 		{
 			Report(
 				ParameterizedRebinding,
-				$"'{rebinding.Left}' cannot be bound: parameterized rules are not supported in a rebinding yet.",
+				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': it takes " +
+				$"{rightParams.Count} {(rightParams.Count == 1 ? "parameter" : "parameters")} " +
+				$"where '{rebinding.Left}' takes {leftParams.Count} — a rebinding substitutes " +
+				"the rule and keeps every call's arguments.",
 				rebinding.At);
 
 			return null;
 		}
 
-		if (right.Declaration is { Params.Count: > 0 })
-		{
-			Report(
-				ParameterizedRebinding,
-				$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameterized rules are not supported in a rebinding yet.",
-				rebinding.At);
+		for (var i = 0; i < leftParams.Count; i++)
+			if (IsValueParam(leftParams[i]) != IsValueParam(rightParams[i]))
+			{
+				Report(
+					ParameterizedRebinding,
+					$"'{rebinding.Right}' cannot replace '{rebinding.Left}': parameter " +
+					$"'{rightParams[i].Name}' is a " +
+					$"{(IsValueParam(rightParams[i]) ? "value" : "recognizer")} where " +
+					$"'{leftParams[i].Name}' is a " +
+					$"{(IsValueParam(leftParams[i]) ? "value" : "recognizer")} (§4.2).",
+					rebinding.At);
 
-			return null;
-		}
+				return null;
+			}
 
 		return new ResolvedRebinding(left, right, rebinding.At);
 	}
+
+	/// <summary>
+	/// §4.2's kind line: a parameter declared with a C# type is a value, anything else a
+	/// recognizer. The same reading <c>GrammarNormalizer</c> makes when a call passes one.
+	/// </summary>
+	static bool IsValueParam(Param parameter) =>
+		parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name));
+
+	static bool IsCSharpKeyword(string name) => name is
+		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
+		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
 
 	/// <summary>
 	/// Layers <paramref name="ownRebindings"/> over <paramref name="inherited"/>, chain-

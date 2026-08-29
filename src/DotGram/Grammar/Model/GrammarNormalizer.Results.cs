@@ -229,6 +229,12 @@ public sealed partial class GrammarNormalizer
 		{
 			var rule = pair.Key;
 
+			// A folded rule's body is the rewrite §4.3 made of it — the bases and the loop
+			// over the steps — and not a choice of alternatives. Its own `=>` is what the
+			// fold applies at each step, so there is nothing here to supply.
+			if (_folds.ContainsKey(rule))
+				continue;
+
 			if (pair.Value.IsSequence || !_types.TryGetValue(rule, out var type))
 				continue;
 
@@ -270,7 +276,14 @@ public sealed partial class GrammarNormalizer
 			if (!_types.TryGetValue(rule, out var type) ||
 				rule.Declaration?.Type is { IsSequence: true } ||
 				!_results.TryGetValue(rule, out var members) ||
-				members.Count == 0)
+				members.Count == 0 ||
+
+				// The same as the pass above: a folded rule's body is the rewrite and not
+				// a choice, so the "already says how to build its value" guard below would
+				// look at a sequence and see no construction where every alternative has
+				// one. Left alone, the whole body was wrapped in a construction and the
+				// fold's own machinery met a Construct where it laid out a Sequence.
+				_folds.ContainsKey(rule))
 			{
 				continue;
 			}
@@ -605,6 +618,13 @@ public sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
 			}
 
+			case Node.Marked(var body, var text):
+			{
+				var inner = Gather(body, element, ref taken);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
+			}
+
 			default:
 				return node;
 		}
@@ -692,7 +712,13 @@ public sealed partial class GrammarNormalizer
 					// rules agree when they declared the same type: `value: Object | value:
 					// Array` with both `: @JsonValue` is one member of that type, and is how
 					// a value that is one of several things gets written at all.
-					if (!SameValue(sharing[0], slot) || sharing[0].IsSequence != slot.IsSequence)
+					//
+					// What they must agree on is what the author sees, not how it is kept:
+					// a slot under a fold's loop collects because a step is applied once per
+					// iteration, and the step's `=>` is handed one of what it collected —
+					// which is what lets a name written in a tail stand in the bases too,
+					// where the same rule unfolded into several alternatives (§4.3).
+					if (!SameValue(sharing[0], slot) || sharing[0].Collects != slot.Collects)
 						Report(
 							CaptureTypeMismatch,
 							$"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +
@@ -754,6 +780,7 @@ public sealed partial class GrammarNormalizer
 		Node.Choice(var nodes)       => nodes.Any(HasCapture),
 		Node.Repeat(var body, _, _)  => HasCapture(body),
 		Node.Atomic(var body)        => HasCapture(body),
+		Node.Marked(var body, _)     => HasCapture(body),
 		Node.Construct(var built, _) => HasCapture(built),
 
 		// Not across a call — that is another rule's result — and not into a lookahead,

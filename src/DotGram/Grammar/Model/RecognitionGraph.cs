@@ -113,6 +113,31 @@ public abstract record Node
 		public override string ToString() => $"{{ {Body} }}";
 	}
 
+	/// <summary>
+	/// A mark standing over one operand's extent, read by the hooks inside it (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Transparent to recognition, and every analysis here treats it so: the text this
+	/// matches, where it may fail, what doors it leaves and what it retains are its body's,
+	/// unchanged. What it adds happens after the parse is accepted — the walk that runs the
+	/// <c>=&gt;</c> factories sees the mark opened and closed around them, and a factory
+	/// that names <c>parserState</c> is handed the marks in force where it stands.
+	/// </para>
+	/// <para>
+	/// A node rather than a fact keyed by which node: passes here rebuild the tree freely,
+	/// and a fact carried by identity is a fact a rebuild can drop — which is a defect this
+	/// implementation has already had once, in a pass that inlined transparent nodes. What
+	/// is structure cannot be dropped without the compiler saying so.
+	/// </para>
+	/// </remarks>
+	public sealed record Marked(Node Body, string Text) : Node
+	{
+		public override IEnumerable<Node> Children => [Body];
+
+		public override string ToString() => $"{Body} with state {Text}";
+	}
+
 	public sealed record Repeat(Node Body, int Min, int? Max) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];
@@ -140,6 +165,24 @@ public abstract record Node
 		public override IEnumerable<Node> Children => [Body];
 
 		public override string ToString() => $"{(IsPositive ? "?=" : "?!")}{Body}";
+	}
+
+	/// <summary>
+	/// Matches nothing, and only where the preceding input item, if any, is outside
+	/// <paramref name="Test"/>.
+	/// </summary>
+	/// <remarks>
+	/// §4.6's other half. The boundary lookahead keeps a word literal from being the
+	/// start of a longer word; this keeps it from being the <em>end</em> of one — the
+	/// reading backtracking otherwise finds, where an identifier hands characters back
+	/// and a keyword matches mid-word. Woven by the normalizer beside the lookahead and
+	/// never written by an author, which is why it needs no surface syntax. The test is
+	/// an element rather than a rule: one character of lookbehind is all §4.6 asks, and
+	/// all the engine emits — a single comparison against <c>text[p - 1]</c>.
+	/// </remarks>
+	public sealed record Behind(Element Test) : Node
+	{
+		public override string ToString() => $"?<!{Test}";
 	}
 
 	public sealed record Capture(string Name, Node Body) : Node
@@ -312,6 +355,37 @@ public sealed class RecognitionGraph(
 
 	/// <summary>The public API this grammar asked for — carried through unchanged (§6).</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
+
+	/// <summary>
+	/// The C# type a grammar's own state is declared as, or null where it declares none.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// `context : @T`. The caller makes one and hands it to a publication; every `=>` and
+	/// `when` that names `context` is passed it, and those that do not are not — the same
+	/// rule the supplied names of §8.2 follow, and for the same reason.
+	/// </para>
+	/// <para>
+	/// It is where a grammar keeps what the parse works out and the API has nowhere to
+	/// hold: a table of names, the labels a jump goes to. Before it, a host had to keep
+	/// that in a static field and make it thread-static to keep two parses apart — which
+	/// also made it the host's job to clear between them, and forgetting is silent.
+	/// </para>
+	/// </remarks>
+	public string? Context { get; init; }
+
+	/// <summary>
+	/// The C# type every <c>with state</c> mark is written in, or null where none is
+	/// declared (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// Marks are not variables and this is not their name: they are values of one type, laid
+	/// over an operand's extent, and a factory that names <c>parserState</c> is handed the
+	/// ones standing over it, outermost first. Which of them a hook means is the hook's to
+	/// decide — it scans from the end for the nearest value of its own concern, and walks
+	/// past everything belonging to another.
+	/// </remarks>
+	public string? State { get; init; }
 
 	public bool HasErrors => Diagnostics.Count > 0;
 

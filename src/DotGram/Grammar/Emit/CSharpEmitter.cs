@@ -70,13 +70,17 @@ public static partial class CSharpEmitter
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
 			// machine's own publications now — a sibling that cannot lower no longer costs
-			// this one its flat path (docs/next.md, "Future optimization gate").
+			// this one its flat path (docs/next.md, "Future optimization gate") — and of
+			// the rules this machine actually reaches: a recovery, a climb or a streamed
+			// read elsewhere in the grammar is some other machine's business.
 			var lowered = group.Publications.Count > 0 &&
-				graph.Recoveries.Count == 0 &&
-				graph.Climbing.Count == 0 &&
-				!Streaming(graph) &&
+				!RecoversWithin(graph, only) &&
+				!ClimbsWithin(graph, only) &&
+				!group.Publications.Any(publication => Streams(graph, publication)) &&
 				group.Publications.All(
-					publication => made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse));
+					publication =>
+						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
+						made.CanLowerValued(publication.Rule, publication.Kind == PublishKind.Parse));
 
 			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered));
 		}
@@ -122,7 +126,9 @@ public static partial class CSharpEmitter
 					graph.Climbing.ContainsKey(publication.Rule),
 					Streams(graph, publication),
 					compiled.Flat,
-					compiled.Machine.UsesInput);
+					compiled.Machine.Ties,
+					compiled.Machine.UsesInput,
+					compiled.Machine.UsesContext ? graph.Context : null);
 
 				file.Line();
 			}
@@ -147,13 +153,18 @@ public static partial class CSharpEmitter
 
 		if (machines.Count > 0)
 			foreach (var rule in graph.Rules)
-				if (RecoveryIn(graph, results, rule) is { } recoveryFound)
+			{
+				var recoveries = RecoveriesIn(graph, results, rule);
+
+				for (var found = 0; found < recoveries.Count; found++)
 				{
-					var (_, recovery, slot) = recoveryFound;
+					var (_, recovery, slot) = recoveries[found];
 
 					if (recovery.Factory is not null && slot >= 0)
-						EmitRecoveryFactory(file, results, rule, MethodOf(rule), recovery, graph, slot);
+						EmitRecoveryFactory(
+							file, results, rule, RecoveryMethod(rule, found), recovery, graph, slot);
 				}
+			}
 
 		var continuationProbes = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
 		var streamedParts = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
@@ -196,9 +207,12 @@ public static partial class CSharpEmitter
 				// What the repetition was told to do about a bad element, and where the
 				// parse may pick up again — compiled here rather than inside a machine,
 				// because in a stream it is the driver that steps over one.
+				// One, and one is all a streamed rule may mark: the driver steps over a
+				// bad element as it hands the good ones back, and it is reading one
+				// repetition at a time (GRAM4010, GrammarNormalizer.Checks.cs).
 				var found   = RecoveryIn(graph, results, publication.Rule);
 				var sync    = (string?)null;
-				var factory = MethodOf(publication.Rule) + "_Recover";
+				var factory = RecoveryMethod(publication.Rule, 0);
 
 				if (found is not null)
 					sync = streamedSyncs[publication.Rule].Name;
@@ -230,6 +244,8 @@ public static partial class CSharpEmitter
 
 		if (graph.Publications.Count > 0)
 		{
+			file.Write(OutcomeEnum);
+			file.Line();
 			file.Write(MatchStruct);
 			file.Line();
 		}
@@ -240,7 +256,8 @@ public static partial class CSharpEmitter
 				reach: graph.Recoveries.Count > 0 && Streaming(graph),
 				starved: Streaming(graph),
 				expected: true,
-				expectedMore: machines.Exists(static compiled => !compiled.Flat)));
+				expectedMore: machines.Exists(static compiled =>
+					!compiled.Flat || compiled.Machine.Ties)));
 			file.Line();
 		}
 
@@ -272,6 +289,7 @@ public static partial class CSharpEmitter
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
 				machines.Exists(static compiled => compiled.Machine.Caches),
+				machines.Exists(static compiled => compiled.Machine.UsesMarks),
 				tables));
 
 		while (scope.Count > 0)
@@ -332,59 +350,114 @@ public static partial class CSharpEmitter
 				if (!rendered.Add((publication.Rule, whole)))
 					continue;
 
-				// Under the name the caller uses, with no wrapper between. A lowered
-				// publication never has a value of its own — a value comes from a
-				// construction and `CanLower` is `Silent`, which has no case for one — so
-				// there is no `out` parameter to add and nothing for a wrapper to do.
-				file.Write(machine.RenderFlat(
-					publication.Rule,
-					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
-					whole));
+				// Under the name the caller uses, with no wrapper between: the valueless
+				// form has nothing for a wrapper to do, and the valued form carries the
+				// same `out` parameter the wrapper would otherwise have added.
+				var name = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
+
+				file.Write(machine.CanLower(publication.Rule, whole)
+					? machine.RenderFlat(publication.Rule, name, whole)
+					: machine.RenderFlatValued(publication.Rule, name, whole));
 				file.Line();
 			}
+
+			// The scanners the flat states call are methods of their own, the same as
+			// when the engine calls them.
+			var flatScanners = machine.RenderScanners();
+
+			if (flatScanners.Length > 0)
+				file.Write(flatScanners);
 		}
 
+
+
 		if (!compiled.Flat)
+
 		{
+
 			foreach (var publication in compiled.Publications)
+
 			{
+
 				machine.Register(publication.Rule, publication.Kind == PublishKind.Parse);
 
+
+
 				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication) ||
+
 					StagesOf(graph, publication.Rule) is not { } stages)
+
 					continue;
 
+
+
 				for (var stage = 0; stage < stages.Count; stage++)
+
 				{
-					if (stages[stage].Rule is { } stagedRule)
+
+					// The seam of a spaced collection is read by the driver between the
+					// elements it hands over, so it needs a recognizer under its own name.
+					if (stages[stage].Seam is { } seamRule)
 					{
-						streamedRules.Add(stagedRule);
-						machine.Register(stagedRule, whole: false);
+						streamedRules.Add(seamRule);
+						machine.Register(seamRule, whole: false);
 					}
-					else
+
+					if (stages[stage].Rule is { } stagedRule)
+
 					{
+
+						streamedRules.Add(stagedRule);
+
+						machine.Register(stagedRule, whole: false);
+
+					}
+
+					else
+
+					{
+
 						var part = WholeOf(publication.Rule) + "_Part" + stage;
+
 						var at = machine.Register(stages[stage].Node);
 
 						streamedParts[(publication.Rule, stage)] = (part, at);
 						mine.Add((part, at, Sync: false));
 					}
 
+
+
 					if (!stages[stage].Repeated || continuationProbes.ContainsKey((publication.Rule, stage)))
+
 						continue;
+
+
 
 					var suffix = new List<Node>(stages.Count - stage - 1);
 
+
+
 					for (var after = stage + 1; after < stages.Count; after++)
+
 						suffix.Add(stages[after].Node);
 
+
+
 					var continuation = suffix.Count switch
+
 					{
+
 						0 => new Node.Empty(),
+
 						1 => suffix[0],
+
 						_ => new Node.Sequence(suffix),
+
 					};
+
 					var probe = WholeOf(publication.Rule) + "_Continue" + stage;
+
+
 
 					var entry = machine.Register(continuation);
 
@@ -392,50 +465,98 @@ public static partial class CSharpEmitter
 					mine.Add((probe, entry, Sync: false));
 				}
 
+
+
 				if (RecoveryIn(graph, results, publication.Rule) is { } recoveryFound &&
+
 					!streamedSyncs.ContainsKey(publication.Rule))
+
 				{
+
 					var sync = WholeOf(publication.Rule) + "_Sync";
+
 					var at = machine.Register(recoveryFound.Recovery.Sync);
 
 					streamedSyncs[publication.Rule] = (sync, at);
 					mine.Add((sync, at, Sync: true));
 				}
+
 			}
 
+
+
 			file.Write(machine.RenderEngine(engine));
+
 			file.Line();
+
+			var scanners = machine.RenderScanners();
+
+			if (scanners.Length > 0)
+				file.Write(scanners);
+
+
 
 			var wrappers = new HashSet<(RuleSymbol Rule, bool Whole)>();
 
+
+
 			foreach (var publication in compiled.Publications)
+
 			{
+
 				var whole = publication.Kind == PublishKind.Parse;
 
+
+
 				if (!wrappers.Add((publication.Rule, whole)))
+
 					continue;
 
+
+
 				file.Write(machine.RenderWrapper(
+
 					publication.Rule,
+
 					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+
 					engine,
+
 					whole));
+
 				file.Line();
+
 			}
 
+
+
 			if (compiled.Publications.Count == 0)
+
 				foreach (var rule in graph.Rules)
+
 				{
+
 					file.Write(machine.RenderWrapper(rule, MethodOf(rule), engine, whole: false));
+
 					file.Line();
+
 				}
 
+
+
 			foreach (var rule in streamedRules)
+
 				if (wrappers.Add((rule, false)))
+
 				{
+
 					file.Write(machine.RenderWrapper(rule, MethodOf(rule), engine, whole: false));
+
 					file.Line();
+
 				}
+
+
 
 			foreach (var probe in mine)
 			{
@@ -451,8 +572,14 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool input)
+		bool ties, bool input, string? context)
 	{
+		// The grammar's own state (§7.7), where anything in this machine names it. The
+		// caller makes one and hands it over; a grammar that declares none, or declares one
+		// and never names it, is published exactly as it was before the name existed.
+		var takes = context is null ? "" : $", {context} context";
+		var gives = context is null ? "" : ", context";
+
 		var method = publication.MethodName;
 		var name   = publication.Rule.Name;
 		var built  = results.QualifiedOf(publication.Rule);
@@ -464,7 +591,7 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "");
+			(input ? ", input" : "") + gives;
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -478,7 +605,7 @@ public static partial class CSharpEmitter
 
 		if (publication.Kind == PublishKind.Find)
 		{
-			EmitFind(file, publication, method, name, value, match, hands, Recognized);
+			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes);
 
 			if (streams)
 			{
@@ -495,9 +622,9 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"public static {value} {method}(string input)"))
+		using (file.Block($"public static {value} {method}(string input{takes})"))
 		{
-			file.Line($"var match = Try{method}(input);");
+			file.Line($"var match = Try{method}(input{gives});");
 			file.Line();
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
@@ -508,7 +635,7 @@ public static partial class CSharpEmitter
 		file.Line();
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		using (file.Block($"public static {match} Try{method}(string input)"))
+		using (file.Block($"public static {match} Try{method}(string input{takes})"))
 		{
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
@@ -528,20 +655,26 @@ public static partial class CSharpEmitter
 				// a caller that only wants to know whether the input matched pays for
 				// none of it. `.NET`'s own `Group.Value` is the same bargain from the
 				// other side: it stores where a capture was and cuts the string on
-				// access. A flat, arena-free recognizer never reaches a tie at all
-				// (Machine.Flat.cs's own Fail:), so it has no second array to hand over.
+				// access. A flat recognizer without checkpoint sites never reaches a
+				// tie at all (Machine.Flat.cs's own Fail:), so it has no second array
+				// to hand over; one with them accumulates ties the way the engine does.
 				//
 				// The one thing chosen here rather than there is which literal stands in
 				// when nothing named what would have fit: only this end knows how far the
 				// input went, and both answers are literals, so choosing costs a branch
-				// and no allocation at all.
-				file.Line("var otherwise = failure.Position >= text.Length");
+				// and no allocation at all. The same test says which outcome this is
+				// (§7.5), which is why the two are read off one comparison.
+				file.Line("var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
+				file.Line();
+				file.Line("var otherwise = starved");
 				file.Then("? \"Expected more input.\"");
 				file.Then($": \"Input does not match '{name}'.\";");
 				file.Line();
 				file.Line(
-					$"return {match}.Failed(otherwise, failure.Position, failure.Expected, " +
-					(flat ? "null);" : "failure.ExpectedMore);"));
+					$"return {match}.Failed(" +
+					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
+					"otherwise, failure.Position, failure.Expected, " +
+					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
 			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
@@ -559,12 +692,13 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static void EmitFind(
 		Writer file, Publication publication, string method, string name,
-		string value, string match, string hands, Func<string, string, string> recognized)
+		string value, string match, string hands, Func<string, string, string> recognized,
+		string takes)
 	{
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input)"))
+			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
@@ -770,6 +904,18 @@ public static partial class CSharpEmitter
 		if (Asks(factory, "parserInput"))
 			parameters.Add("string parserInput");
 
+		// The grammar's own state (§7.7). What a `=>` gets is the object the caller handed
+		// over — the same one every hook sees, because nothing here copies it.
+		if (graph.Context is not null && Asks(factory, "context"))
+			parameters.Add($"{graph.Context} context");
+
+		// The marks standing over this construction, outermost first (§7.8). A span rather
+		// than an array because it is a view of a buffer the walk reuses: it is right for
+		// the length of the call and no longer, which is what a factory needs and all it
+		// may keep.
+		if (graph.State is not null && Asks(factory, "parserState"))
+			parameters.Add($"global::System.ReadOnlySpan<{graph.State}> parserState");
+
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
@@ -863,6 +1009,19 @@ public static partial class CSharpEmitter
 				var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
 
 				file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
+
+				// One repetition and nothing else means the array handed in already is the
+				// result, fresh from the materializer and shared with nobody: hand it back
+				// rather than counting it into a copy of itself.
+				if (factory.Members.Count == 1 && factory.Members[0].IsSequence)
+				{
+					var only = ResultTypes.ParameterOf(factory.Members[0]);
+
+					file.Line(head + " =>");
+					file.Line($"	{only} ?? new {element}[0];");
+
+					break;
+				}
 
 				using (file.Block(head))
 				{
@@ -962,7 +1121,8 @@ public static partial class CSharpEmitter
 			if (graph.Bodies.TryGetValue(rule, out var body))
 				foreach (var node in NodeWalk.Descendants(body))
 					if (node is Node.Construct { How: Construction.Expression { Text: var text } } &&
-						text.Contains("parserSpan"))
+						text.Contains("parserSpan") ||
+						node is Node.Guard { Text: var condition } && condition.Contains("parserSpan"))
 					{
 						return true;
 					}
@@ -972,7 +1132,31 @@ public static partial class CSharpEmitter
 
 	internal static bool Asks(Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
-		text.Contains(name);
+		(name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name));
+
+	/// <summary>Whether this C# names that identifier, rather than merely containing it.</summary>
+	/// <remarks>
+	/// The supplied names of §8.2 all begin with `parser`, and a substring test is enough
+	/// for them — that prefix is what it is for. A name the author chose has no such
+	/// protection: `context` is inside `contexts` and `myContext`, and taking either for
+	/// the name itself would put a parameter on a publication that does not need one.
+	/// </remarks>
+	internal static bool Names(string text, string name)
+	{
+		for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			var before = at == 0 || !Continues(text[at - 1]);
+			var after  = at + name.Length == text.Length || !Continues(text[at + name.Length]);
+
+			if (before && after)
+				return true;
+		}
+
+		return false;
+
+		static bool Continues(char c) => char.IsLetterOrDigit(c) || c == '_';
+	}
 
 	/// <summary>
 	/// The repetition of a rule that was marked <c>recover</c>, the slot its elements
@@ -981,31 +1165,69 @@ public static partial class CSharpEmitter
 	internal static (Node Repetition, Recovery Recovery, int Slot)? RecoveryIn(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		if (graph.Recoveries.Count == 0)
-			return null;
+		var found = RecoveriesIn(graph, results, rule);
+
+		return found.Count == 0 ? null : found[0];
+	}
+
+	/// <summary>
+	/// Every repetition of a rule that was marked <c>recover</c>, in the order the rule
+	/// reads, each with the slot its elements collect into and what it was told (§8.2).
+	/// </summary>
+	/// <remarks>
+	/// A rule may mark more than one: each is its own repetition with its own sync, its
+	/// own <c>=&gt;</c> and its own sequence to put a rejection in, and the arena has
+	/// dispatched a recovery by plan since there was one plan. What has to differ per
+	/// recovery is the name of the factory the grammar's <c>=&gt;</c> becomes, which
+	/// <see cref="RecoveryMethod"/> settles for both halves of the emitter at once.
+	/// </remarks>
+	internal static IReadOnlyList<(Node Repetition, Recovery Recovery, int Slot)> RecoveriesIn(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		if (graph.Recoveries.Count == 0 || !graph.Bodies.ContainsKey(rule))
+			return [];
 
 		var layout = LayoutOf(graph, results, rule);
+		var found  = new List<(Node, Recovery, int)>();
 
-		return Find(graph.Bodies[rule], -1);
+		Find(graph.Bodies[rule], -1);
+
+		return found;
 
 		// The capture is where a recovered element goes: the same sequence its successful
 		// siblings collect into. It may be either side of the quantifier — `rows: Row*` is
 		// `(rows: Row)*`, because a capture binds tighter (§10) — so both are looked at.
-		(Node, Recovery, int)? Find(Node node, int slot)
+		void Find(Node node, int slot)
 		{
 			if (node is Node.Repeat(var repeated, _, _) && graph.Recoveries.TryGetValue(node, out var recovery))
-				return (node, recovery, slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1);
+			{
+				found.Add((
+					node, recovery,
+					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1));
+
+				return;
+			}
 
 			if (node is Node.Capture(_, var captured))
-				return Find(captured, layout.SlotOf(node));
+			{
+				Find(captured, layout.SlotOf(node));
+
+				return;
+			}
 
 			foreach (var child in Children(node))
-				if (Find(child, -1) is { } found)
-					return found;
-
-			return null;
+				Find(child, -1);
 		}
 	}
+
+	/// <summary>
+	/// What the factory a <c>recover</c>'s <c>=&gt;</c> becomes is called. The first keeps
+	/// the name it always had, so a rule with one recovery — every rule that had one until
+	/// now — generates exactly the text it did.
+	/// </summary>
+	internal static string RecoveryMethod(RuleSymbol rule, int index) =>
+		MethodOf(rule) + "_Recover" +
+		(index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
 
 	static IEnumerable<Node> Children(Node node) => node switch
 	{
@@ -1014,6 +1236,7 @@ public static partial class CSharpEmitter
 		Node.Repeat(var body, _, _)  => [body],
 		Node.Construct(var body, _)  => [body],
 		Node.Atomic(var body)        => [body],
+		Node.Marked(var body, _)     => [body],
 		_                            => [],
 	};
 
@@ -1021,8 +1244,12 @@ public static partial class CSharpEmitter
 	/// What a broken element becomes: the C# the <c>recover</c> named, with the extent it
 	/// covered and where in the sequence it was.
 	/// </summary>
+	/// <param name="method">
+	/// The whole name, from <see cref="RecoveryMethod"/> — a rule may mark more than one
+	/// repetition, and two factories cannot share a name.
+	/// </param>
 	internal static void EmitRecoveryFactory(
-		Writer file, ResultTypes results, RuleSymbol rule, string owner, Recovery recovery,
+		Writer file, ResultTypes results, RuleSymbol rule, string method, Recovery recovery,
 		RecognitionGraph graph, int slot)
 	{
 		var element    = LayoutOf(graph, results, rule).Slots[slot].Rule;
@@ -1033,7 +1260,7 @@ public static partial class CSharpEmitter
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> makes of an element it could not read.</summary>");
 		file.Line(
-			$"static {results.ValueOf(element)} {owner}_Recover({string.Join(", ", parameters)}) =>");
+			$"static {results.ValueOf(element)} {method}({string.Join(", ", parameters)}) =>");
 		file.Line("\t" + recovery.Factory + ";");
 		file.Line();
 	}
@@ -1190,6 +1417,40 @@ public static partial class CSharpEmitter
 		}
 	}
 
+	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
+	/// <remarks>
+	/// Recoveries are keyed by node, so the reachable rules' bodies are walked for one.
+	/// A null <paramref name="only"/> is the single-machine case, where reachable means
+	/// the whole graph.
+	/// </remarks>
+	static bool RecoversWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only)
+	{
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		if (only is null)
+			return true;
+
+		foreach (var rule in only)
+		{
+			if (graph.Bodies.TryGetValue(rule, out var body) &&
+				NodeWalk.Descendants(body).Any(graph.Recoveries.ContainsKey))
+				return true;
+
+			if (graph.Trivia.TryGetValue(rule, out var trivia) &&
+				NodeWalk.Descendants(trivia).Any(graph.Recoveries.ContainsKey))
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>Whether anything <paramref name="only"/> reaches climbs precedence.</summary>
+	static bool ClimbsWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only) =>
+		only is null
+			? graph.Climbing.Count > 0
+			: graph.Climbing.Keys.Any(only.Contains);
+
 	/// <summary>
 	/// A rule's name as one C# identifier, unique across the grammar.
 	/// </summary>
@@ -1234,14 +1495,32 @@ public static partial class CSharpEmitter
 				? $"c == {Char(range.From)}"
 				: $"(c >= {Char(range.From)} && c <= {Char(range.To)})");
 
+		// `\p{Lu}` is the regular-expression spelling; the enum member is
+		// UppercaseLetter. `\p{L}` is not one category but five — and five categories
+		// used to be five classifications of the same character. The enum's values fit
+		// an int, so several categories are one classification and one mask test.
+		var categories = new List<string>();
+
 		foreach (var category in element.Categories)
-			// `\p{Lu}` is the regular-expression spelling; the enum member is
-			// UppercaseLetter. `\p{L}` is not one category but five, so a group expands
-			// into a test for each.
 			foreach (var name in UnicodeCategories.Expand(category))
-				tests.Add(
-					"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
-					$"global::System.Globalization.UnicodeCategory.{name}");
+				if (!categories.Contains(name))
+					categories.Add(name);
+
+		if (categories.Count == 1)
+			tests.Add(
+				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
+				$"global::System.Globalization.UnicodeCategory.{categories[0]}");
+		else if (categories.Count > 1)
+		{
+			var mask = 0;
+
+			foreach (var name in categories)
+				mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
+
+			tests.Add(
+				"((1 << (int)global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)) & " +
+				$"0x{mask:X}) != 0");
+		}
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
 		// that a range does, so it joins the set as one more test. Written as the grammar

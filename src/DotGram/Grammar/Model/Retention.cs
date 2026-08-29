@@ -330,9 +330,46 @@ public static class Retention
 	/// </para>
 	/// </remarks>
 	/// <summary>Whether this part is a repetition the driver could hand elements over from.</summary>
-	static bool Yields(Node part) => part is
-		Node.Repeat(Node.Capture(_, Node.Call), _, _) or
-		Node.Repeat(Node.Call, _, _);
+	/// <remarks>
+	/// The seamed turn of a spaced collection yields too: the driver reads the seam and
+	/// the element in turn, the same two reads the in-memory engine makes.
+	/// </remarks>
+	static bool Yields(Node part, RuleSymbol? seam)
+	{
+		if (part is
+			Node.Repeat(Node.Capture(_, Node.Call), _, _) or
+			Node.Repeat(Node.Call, _, _))
+			return true;
+
+		return seam is not null &&
+			part is Node.Repeat(
+				Node.Sequence([Node.Call(var lead, _), Node.Capture(_, Node.Call)]), _, _) &&
+			ReferenceEquals(lead, seam);
+	}
+
+	/// <summary>The seamed turn with the seam taken off — the element the window holds.</summary>
+	/// <remarks>
+	/// The seam is not part of what has to be held: the driver skips it before the
+	/// element, moving the window as it goes, so only the element bounds retention.
+	/// </remarks>
+	static Node PastSeam(Node element, RuleSymbol? seam) =>
+		seam is not null &&
+		element is Node.Sequence([Node.Call(var lead, _), var inner]) &&
+		ReferenceEquals(lead, seam)
+			? inner
+			: element;
+
+	/// <summary>How many repetitions under a node were marked <c>recover</c>.</summary>
+	static int Marked(Node node, RecognitionGraph graph)
+	{
+		var marked = 0;
+
+		foreach (var descendant in NodeWalk.Descendants(node))
+			if (graph.Recoveries.ContainsKey(descendant))
+				marked++;
+
+		return marked;
+	}
 
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
 	{
@@ -351,6 +388,14 @@ public static class Retention
 		if (body is Node.Construct(var built, _))
 			body = built;
 
+		// A rule may mark more than one repetition `recover` (§8.2), and a whole parse
+		// runs every one of them. A stream does not: the driver steps over a bad element
+		// as it hands the good ones back, and it is reading one repetition at a time, so
+		// the second `recover` would be one that quietly does not happen.
+		if (Marked(body, graph) > 1)
+			return $"'{rule.Name}' marks more than one repetition with 'recover', and a stream " +
+				"steps over a bad element one repetition at a time. Give the other its own rule.";
+
 		if (body is Node.Choice)
 			return $"'{rule.Name}' is a choice of alternatives, and which one is being read is " +
 				"not settled until it has been. A streamed parse reads its parts in order.";
@@ -359,6 +404,10 @@ public static class Retention
 			return reader;
 
 		var parts = graph.PartsOf(rule);
+		var seam  = graph.Trivia.TryGetValue(rule, out var seamNode) &&
+			seamNode is Node.Call(var seamRule, _)
+				? seamRule
+				: null;
 
 		// What the driver hands over is the elements of a repetition of a rule, because a
 		// rule is what has a recognizer of its own to call one element at a time. A
@@ -366,7 +415,7 @@ public static class Retention
 		// and there is nothing to yield between iterations. Said here rather than left to
 		// the emitter, which would otherwise write an iterator with no `yield` in it and
 		// leave the consumer's compiler to complain about a file they did not write.
-		if (!parts.Any(Yields))
+		if (!parts.Any(part => Yields(part, seam)))
 			return $"'{rule.Name}' has no repetition of a rule to hand over, so a streamed parse " +
 				"would have nothing to give the caller between reads. Give the repeated part its " +
 				"own rule (docs/syntax.md §6.3).";
@@ -378,7 +427,7 @@ public static class Retention
 			if (graph.Recoveries.ContainsKey(parts[i]))
 				continue;
 
-			if (!FirstSets.Undecided(parts, i, graph))
+			if (!FirstSets.Undecided(parts, i, graph, seam))
 				continue;
 
 			return $"in '{rule.Name}', the repetition '{parts[i]}' can begin with the same input as " +
@@ -397,7 +446,7 @@ public static class Retention
 		foreach (var part in parts)
 		{
 			var measured = part is Node.Repeat(var element, _, _)
-				? Extent(element, extents, consuming)
+				? Extent(PastSeam(element, seam), extents, consuming)
 				: Extent(part, extents, consuming);
 
 			if (measured == LineExtent.Beyond)
@@ -510,6 +559,7 @@ public static class Retention
 			Node.Capture  (_, var captured)  => [captured],
 			Node.Construct(var built, _)     => [built],
 			Node.Atomic   (var body)         => [body],
+			Node.Marked   (var body, _)      => [body],
 			_                                => (IEnumerable<Node>)[]
 		};
 	}
@@ -570,6 +620,7 @@ public static class Retention
 			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming);
 			case Node.Construct(var built, _)   : return Extent(built, rules, consuming);
 			case Node.Atomic   (var body)       : return Extent(body, rules, consuming);
+			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming);
 
 			case Node.Choice(var alternatives):
 			{
@@ -639,6 +690,7 @@ public static class Retention
 		Node.Literal(var text)                     => text.Length > 0,
 		Node.Repeat(var body, _, var max)          => max != 0 && Consumes(body, consuming),
 		Node.Atomic(var body)                      => Consumes(body, consuming),
+		Node.Marked(var body, _)                   => Consumes(body, consuming),
 		Node.Capture(_, var captured)              => Consumes(captured, consuming),
 		Node.Construct(var built, _)               => Consumes(built, consuming),
 		Node.Sequence(var parts)                   => Any(parts, consuming),

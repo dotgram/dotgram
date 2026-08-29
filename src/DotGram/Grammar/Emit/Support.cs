@@ -391,6 +391,45 @@ public static partial class CSharpEmitter
 		}
 		""";
 
+	/// <summary>The name a rule may not take, like <see cref="MatchType"/>.</summary>
+	internal const string OutcomeType = "Outcome";
+
+	/// <summary>
+	/// What kind of answer a publication gave (§7.5).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>IsSuccess</c> answers the question most callers ask and stays what it was; this
+	/// answers the one the two failures differ on. Both are exact: a match either
+	/// happened or did not, and a failure either ran out of input or met input that did
+	/// not fit — the same test the wrapper already chooses its message by, which is the
+	/// point. A windowed read asks the window instead, where the input may go on past
+	/// what is held.
+	/// </para>
+	/// <para>
+	/// §7.5 also names <c>Error</c> — a failure past a commit point (§8.2). It is not
+	/// here, and deliberately: the arena does not keep "the furthest failure stands past
+	/// a commit that still holds", and a flag set where a commit happens would call an
+	/// abandoned alternative's commit an error. An outcome that is sometimes wrong is
+	/// worse than one the caller has to ask about, so this says only what it knows (see
+	/// docs/next.md).
+	/// </para>
+	/// </remarks>
+	internal const string OutcomeEnum = """
+		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
+		public enum Outcome
+		{
+			/// <summary>The input matched, and <c>Value</c> holds what it built.</summary>
+			Success,
+
+			/// <summary>The input was there and did not fit.</summary>
+			NoMatch,
+
+			/// <summary>The input ran out where more was needed.</summary>
+			Starved,
+		}
+		""";
+
 	internal const string MatchStruct = """
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
@@ -408,11 +447,11 @@ public static partial class CSharpEmitter
 			private readonly string? _otherwise;
 
 			private Match(
-				bool isSuccess, T value, long position, int length,
+				Outcome outcome, T value, long position, int length,
 				string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
 				string? otherwise)
 			{
-				IsSuccess  = isSuccess;
+				Outcome    = outcome;
 				Value      = value;
 				Position   = position;
 				Length     = length;
@@ -422,7 +461,13 @@ public static partial class CSharpEmitter
 			}
 
 			/// <summary>Whether there is a value.</summary>
-			public bool IsSuccess { get; }
+			public bool IsSuccess { get { return Outcome == Outcome.Success; } }
+
+			/// <summary>
+			/// Which kind of answer this is: the value, input that did not fit, or input
+			/// that ran out (docs/syntax.md §7.5).
+			/// </summary>
+			public Outcome Outcome { get; }
 
 			/// <summary>What was recognized. Meaningless unless <c>IsSuccess</c>.</summary>
 			public T Value { get; }
@@ -473,6 +518,40 @@ public static partial class CSharpEmitter
 					if (expected == null || expected.Length == 0)
 						return _otherwise;
 
+					// Two sites may ask for the same thing — a literal written in two rules,
+					// or the `<` that opens a type argument list in more than one — and a
+					// reader is owed one mention of it rather than one per site. Copied
+					// rather than compacted where it stands: without a tie this array is the
+					// one the generator declared `static readonly`, and rewriting that would
+					// change what every later failure says.
+					if (expected.Length > 1)
+					{
+						var unique = new string[expected.Length];
+						var kept   = 0;
+
+						for (var i = 0; i < expected.Length; i++)
+						{
+							var seen = false;
+
+							for (var j = 0; j < kept; j++)
+								if (string.Equals(
+										unique[j], expected[i], global::System.StringComparison.Ordinal))
+								{
+									seen = true;
+									break;
+								}
+
+							if (!seen)
+								unique[kept++] = expected[i];
+						}
+
+						if (kept < expected.Length)
+						{
+							expected = new string[kept];
+							global::System.Array.Copy(unique, expected, kept);
+						}
+					}
+
 					if (expected.Length == 1)
 						return "Expected " + expected[0] + ".";
 
@@ -497,14 +576,14 @@ public static partial class CSharpEmitter
 
 			internal static Match<T> Success(T value, long position, int length)
 			{
-				return new Match<T>(true, value, position, length, null, null, null);
+				return new Match<T>(Outcome.Success, value, position, length, null, null, null);
 			}
 
 			internal static Match<T> Failed(
-				string otherwise, long position, string[]? expected,
+				Outcome outcome, string otherwise, long position, string[]? expected,
 				global::System.Collections.Generic.List<string[]>? tied)
 			{
-				return new Match<T>(false, default!, position, 0, expected, tied, otherwise);
+				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
 		}
 		""";
@@ -552,6 +631,36 @@ public static partial class CSharpEmitter
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+
+			/// <summary>
+			/// Where something wanted more input than remained, one past the position, or
+			/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
+			/// not fit" by (§7.5).
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// A position rather than a flag, and written straight here rather than
+			/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
+			/// is whether the <em>furthest</em> failure ran out, so a room check that
+			/// failed somewhere the parse later got past answers by not matching
+			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
+			/// the automaton's own unwinding is untouched — which is why this costs a
+			/// store on a failure path and nothing anywhere else.
+			/// </para>
+			/// <para>
+			/// One past, because a zeroed struct has to mean "nowhere" and zero is a
+			/// position. Only a test wanting more than one character writes it: one
+			/// wanting a single character can only fail for want of room at the very end
+			/// of the input, which the boundary reads off <c>Position</c> itself.
+			/// </para>
+			/// </remarks>
+			// A grammar whose every test wants one character never writes this — and a
+			// field nothing assigns is a warning in somebody else's build, which for a
+			// build that treats warnings as errors is a broken compilation of a file
+			// they did not write.
+			#pragma warning disable 0649
+			public int OutOfInput;
+			#pragma warning restore 0649
 			{{reach}}
 			{{starved}}
 			{{expected}}
@@ -638,6 +747,7 @@ public static partial class CSharpEmitter
 			/// time is never looked at.
 			/// </remarks>
 			int[] _owners = global::System.Array.Empty<int>();
+			/*MARK_FIELD*/
 			internal int LinkedUpTo;
 			int _valuesUsed;
 
@@ -666,6 +776,7 @@ public static partial class CSharpEmitter
 				if (_owners.Length < count)
 					global::System.Array.Resize(ref _owners, global::System.Math.Max(count, _owners.Length * 2));
 
+				/*MARK_RESIZE*/
 				_valuesUsed = count;
 
 				return _values;
@@ -676,6 +787,7 @@ public static partial class CSharpEmitter
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;
+			/*MARK_ACCESS*/
 
 			// Grown, not rebuilt: a link written for an index below `count` on an earlier,
 			// smaller call is still the answer for that index, and re-zeroing it would erase
@@ -698,6 +810,7 @@ public static partial class CSharpEmitter
 			{
 				Entries.Clear();
 				global::System.Array.Clear(_values, 0, _valuesUsed);
+				/*TYPED_RESET*/
 				/*CACHE_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
@@ -783,6 +896,64 @@ public static partial class CSharpEmitter
 			internal const int PendingRecovery = 12;
 			internal const int Run = 13;
 
+			/// <summary>
+			/// The one way out a settled repetition keeps standing, in place of a
+			/// <see cref="Choice"/> per turn.
+			/// </summary>
+			/// <remarks>
+			/// Valid only while it is the loop's latest: the <see cref="Repeat"/> entry it
+			/// points back to holds, in its rule-index field, where the last completed turn
+			/// ended, and an exit whose own position no longer matches is history — popped
+			/// past, never resumed. That is what turns a failure that used to resume one
+			/// exit per completed turn, re-reading the suffix each time, into one that
+			/// resumes a single exit and skips the rest.
+			/// </remarks>
+			internal const int LoopExit = 14;
+
+			/// <summary>
+			/// A completed turn of a counted repetition, standing where unwinding can see
+			/// it.
+			/// </summary>
+			/// <remarks>
+			/// The count in a <see cref="Repeat"/> entry is rewritten in place, and an
+			/// in-place rewrite survives backtracking that the turn it counted does not:
+			/// resume an alternative inside a completed turn and the body re-completes,
+			/// counting the same turn twice — <c>X{2}</c> read two of a thing the input
+			/// held one of. Popping this entry is what un-counts the turn, at the exact
+			/// moment the parse abandons it.
+			/// </remarks>
+			internal const int TurnDone = 15;
+
+			/// <summary>
+			/// Where a capture began, standing where unwinding can take it away again.
+			/// </summary>
+			/// <remarks>
+			/// A start kept in a variable is right for exactly as long as nothing opens the
+			/// same capture between the opening and the close. Two things do: a rule that
+			/// reaches itself, and a repetition whose next turn begins before a door inside
+			/// the turn before it has been passed. Both leave the variable holding a start
+			/// the parse has given back, and backtracking restores the arena and nothing
+			/// else — so the start goes in the arena, and the close finds its own by
+			/// counting these against the <see cref="Capture"/> entries that closed them,
+			/// the way brackets are counted. Marking an opening closed in place would not
+			/// do: an in-place rewrite survives backtracking that the close it recorded
+			/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
+			/// </remarks>
+			internal const int CaptureOpen = 16;
+
+			/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
+			/// <remarks>
+			/// Inert while the text is read: nothing dispatches on these and nothing restores
+			/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
+			/// it is why a mark needs no save-and-restore of its own. What reads them is the
+			/// walk that runs the factories once a derivation is accepted, over an arena that
+			/// by then holds only what was accepted (§7.8).
+			/// </remarks>
+			internal const int StateSet = 17;
+
+			/// <inheritdoc cref="StateSet"/>
+			internal const int StateEnd = 18;
+
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
 				int repeatIndex, int lookaheadIndex, int value, int ruleIndex = -1/*POWER_PARAMETER*/)
@@ -825,13 +996,21 @@ public static partial class CSharpEmitter
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
 		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
-		/// so one outsized input does not leave every thread holding its arena for ever.
+		/// so a truly outsized input does not leave every thread holding its arena for
+		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
+		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
+		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
+		/// being everything but the tree. Trimming the tables instead of dropping them
+		/// was tried and measured slower than either: the trim is itself large-object
+		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
+		/// megabytes — the working set of a parser whose documents are that size — and
+		/// anything past it is the pathology the letting-go is for.
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
-		const int KeptEntries = 4096;
+		const int KeptEntries = 65536;
 
 		static Parser Recycled()
 		{
@@ -851,12 +1030,44 @@ public static partial class CSharpEmitter
 				_spareParser = parser;
 		}
 
+		/// <summary>
+		/// One line per step of the automaton, on standard error, when the build defines
+		/// <c>DOTGRAM_TRACE</c> — nothing else to configure, and when it does not, the
+		/// calls are removed at their sites, arguments and all.
+		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
 		static void Trace(string action, int state, int position, int arena)
 		{
-			global::System.Diagnostics.Debug.WriteLine(
+			global::System.Console.Error.WriteLine(
 				".Gram " + action + " state=" + state.ToString() +
-				" position=" + position.ToString() + " arena=" + arena.ToString());
+				" at " + position.ToString() + " arena=" + arena.ToString());
+		}
+
+		/// <summary>
+		/// The same line with the rule it happened in and a window of the input around
+		/// the position, the caret marking the position itself.
+		/// </summary>
+		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		static void Trace(
+			string action, int state, int position, int arena,
+			global::System.ReadOnlySpan<char> text, string rule)
+		{
+			var from   = position > 16 ? position - 16 : 0;
+			var to     = position + 16 < text.Length ? position + 16 : text.Length;
+			var window =
+				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
+				"^" +
+				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
+
+			window = window
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				.Replace("\t", "\\t");
+
+			global::System.Console.Error.WriteLine(
+				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
+				" state=" + state.ToString() + " at " + position.ToString() +
+				" \"" + window + "\" arena=" + arena.ToString());
 		}
 		""";
 
@@ -878,11 +1089,13 @@ public static partial class CSharpEmitter
 	/// grown once.
 	/// </para>
 	/// </remarks>
-	internal static string ParserRuntime(bool powers, bool caches, IReadOnlyList<string> valueTypes)
+	internal static string ParserRuntime(
+		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
 		var access = new StringBuilder();
+		var reset  = new StringBuilder();
 
 		for (var i = 0; i < valueTypes.Count; i++)
 		{
@@ -893,11 +1106,18 @@ public static partial class CSharpEmitter
 			access.Append("internal ").Append(valueTypes[i]).Append("[] Materialization").Append(i)
 				.Append("() { return _values").Append(i).Append("; }\n");
 
+			// Cleared with the parser, not merely overwritten by the next parse: a pooled
+			// parser that kept a typed table full of the previous document's values was
+			// holding that document's whole tree alive from a thread-static field.
+			reset.Append("global::System.Array.Clear(_values").Append(i)
+				.Append(", 0, global::System.Math.Min(_valuesUsed, _values").Append(i).Append(".Length));");
+
 			if (i + 1 >= valueTypes.Count)
 				continue;
 
 			fields.Append('\n');
 			resize.Append('\n');
+			reset.Append('\n');
 		}
 
 		var runtime = ParserRuntimeTemplate
@@ -910,6 +1130,7 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "TYPED_FIELDS", fields.ToString(), valueTypes.Count > 0);
 		runtime = CacheRuntime(runtime, "TYPED_RESIZE", resize.ToString(), valueTypes.Count > 0);
 		runtime = CacheRuntime(runtime, "TYPED_ACCESS", access.ToString(), valueTypes.Count > 0);
+		runtime = CacheRuntime(runtime, "TYPED_RESET", reset.ToString(), valueTypes.Count > 0);
 
 		runtime = CacheRuntime(runtime, "CACHE_FIELD",
 			"bool[] _built = global::System.Array.Empty<bool>();", caches);
@@ -921,6 +1142,19 @@ public static partial class CSharpEmitter
 			"internal void Truncate(int count, ParserArena entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",
 			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
+
+		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
+		// it is the mark that encloses it, and everywhere else the innermost mark standing
+		// over it. Nothing else can sit at a `StateSet`'s own index, so the two readings
+		// never meet — and that is what turns "which marks are in force here" from a scan
+		// into following a chain. Not grown like the link tables: nothing is carried from
+		// one materialization to the next.
+		runtime = CacheRuntime(runtime, "MARK_FIELD",
+			"int[] _marks = global::System.Array.Empty<int>();", marks);
+		runtime = CacheRuntime(runtime, "MARK_RESIZE",
+			"if (_marks.Length < count)\n\tglobal::System.Array.Resize(ref _marks, global::System.Math.Max(count, _marks.Length * 2));", marks);
+		runtime = CacheRuntime(runtime, "MARK_ACCESS",
+			"internal int[] MaterializationMarks() { return _marks; }", marks);
 
 		return runtime;
 	}

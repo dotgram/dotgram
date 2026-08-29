@@ -355,9 +355,55 @@ public sealed class GramParserTests
 	[InlineData("= A",               GramParser.ExpectedDeclaration)]
 	[InlineData("A = B{x,",          GramParser.ExpectedToken)]
 	[InlineData("A = (B",            GramParser.ExpectedToken)]
+	[InlineData("A = 'a'\nparse ('a' | 'b')",  GramParser.PublicationNeedsName)]
+	[InlineData("A = 'a'\nfind 'a'+",          GramParser.PublicationNeedsName)]
 	public void Reports(string source, string expectedId)
 	{
 		Assert.Contains(expectedId, Diagnostics(source));
+	}
+
+	[Fact]
+	public void A_directive_publishes_an_expression_by_lifting_it_into_a_rule()
+	{
+		// §6 over §11's own principle: where the notation refers to a rule, an
+		// expression may stand. The rule it becomes is declared where the directive is
+		// written and named by the `as` the directive had to give, so everything after
+		// the parser reads a publication of a rule exactly as it always did.
+		var result = GramParser.Parse(
+			GramLexer.Tokenize("Word = ['a'..'z']+\nparse ('a' | 'b') as Ab", null));
+
+		Assert.Empty(result.Diagnostics);
+
+		var rules = result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name);
+
+		Assert.Equal(["Word", "Ab"], rules);
+		Assert.Equal("Ab", Assert.Single(result.File.Decls.OfType<Decl.Publish>()).RuleName);
+	}
+
+	[Fact]
+	public void And_a_bare_name_is_still_the_name_it_always_was()
+	{
+		// No rule is lifted and no `as` is needed: the directive names a rule, which is
+		// what it has always meant and what the method name is still derived from.
+		var result = GramParser.Parse(GramLexer.Tokenize("Word = ['a'..'z']+\nparse Word", null));
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Single(result.File.Decls.OfType<Decl.Rule>());
+		Assert.Null(Assert.Single(result.File.Decls.OfType<Decl.Publish>()).Alias);
+	}
+
+	[Fact]
+	public void And_a_rule_called_parse_is_still_a_rule()
+	{
+		// The word is contextual, and a parenthesis after it no longer settles it: a
+		// declaration has an `=` or a `: Type` past its parameters and a directive does
+		// not, which is the only thing that tells the two apart.
+		var result = GramParser.Parse(
+			GramLexer.Tokenize("parse(item) = item & ';'\nfind = 'f'\nStart = parse('a') & find", null));
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal(["parse", "find", "Start"], result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name));
+		Assert.Empty(result.File.Decls.OfType<Decl.Publish>());
 	}
 
 	[Fact]

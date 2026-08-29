@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 using DotGram.Examples;
+
+// The API's own namespace under a name of its own: this file already sees an
+// `Expression`, the examples' record tree, and importing the other would make every
+// existing mention of it ambiguous. `ExtensionNodeExample` explains the collision.
+using Linq = System.Linq.Expressions;
 
 using Xunit;
 
@@ -201,7 +206,7 @@ public sealed class ExampleTests
 	public void And_says_where_a_decimal_expression_stops_being_one()
 	{
 		Assert.Equal("1/8 = 0.125", DecimalCalculator.Explain("1/8"));
-		Assert.StartsWith("Expected ['-' | '(' | '0'..'9' | '(' | '0'..'9'].", DecimalCalculator.Explain("1/"));
+		Assert.StartsWith("Expected ['-' | '(' | '0'..'9'].", DecimalCalculator.Explain("1/"));
 	}
 
 	[Fact]
@@ -1145,4 +1150,93 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_a_missing_key_is_an_empty_node_rather_than_null() =>
 		Assert.Equal("", YamlLite.Read("a: 1\n")["b"]["c"].Value);
+
+	// ── Selectors: postfix chains, which is indirect left recursion ─────────────
+
+	[Theory]
+	[InlineData("orders",                     "orders")]
+	[InlineData("orders.total",               "orders|.total")]
+	[InlineData("orders[2]",                  "orders|[2]")]
+	[InlineData("total(net)",                 "total|(net)")]
+	[InlineData("orders[2].lines.total(net)", "orders|[2]|.lines|.total|(net)")]
+	public void A_selector_is_the_chain_of_steps_it_reads_as(string text, string expected) =>
+		// `Applied` reaches itself through `Selector`, which only forwards, so the
+		// recursion is made direct and folded — and the steps come back in the order they
+		// were written, because a fold is left-associative.
+		Assert.Equal(expected, string.Join("|", Selectors.Steps(Selectors.ParseSelector(text))));
+
+	[Fact]
+	public void And_reads_the_same_however_it_is_spaced() =>
+		// The steps are the same steps; their text is the extent each matched, and a seam
+		// sits inside a step rather than between the two operands of one (§4.5) — so the
+		// space after the dot belongs to `.b`, which is what "the text it matched" means.
+		Assert.Equal(
+			"a|. b|[1]",
+			string.Join("|", Selectors.Steps(Selectors.ParseSelector("a . b [1]"))));
+
+	[Fact]
+	public void And_writing_it_again_gives_back_what_was_read() =>
+		Assert.Equal("orders[2].lines", Selectors.Written(Selectors.ParseSelector("orders[2].lines")));
+
+	// ── A node the API does not have (ExtensionNodeExample) ──────────────────────
+
+	/// <summary>
+	/// The tree holds the node the grammar built, not what it becomes.
+	/// </summary>
+	/// <remarks>
+	/// The claim the example is for: a `=&gt;` may build any <c>Expression</c>, including
+	/// one `System.Linq.Expressions` has no factory for — because an extension node is
+	/// reached by deriving rather than by calling, and nothing in the notation or the
+	/// generator has an opinion about which of those a construction did.
+	/// </remarks>
+	[Fact]
+	public void A_construction_may_build_a_node_the_API_has_no_factory_for()
+	{
+		var tree = ClampedExample.Read("clamp(x, 0, 10)");
+
+		var clamp = Assert.IsType<ClampExpression>(tree.Body);
+
+		Assert.Equal(Linq.ExpressionType.Extension, clamp.NodeType);
+		Assert.True(clamp.CanReduce);
+		Assert.Equal("clamp(x, 0, 10)", clamp.ToString());
+	}
+
+	[Theory]
+	[InlineData(-5,  0)]
+	[InlineData(3,   3)]
+	[InlineData(15, 10)]
+	public void And_it_becomes_ordinary_nodes_where_something_asks(int argument, int expected) =>
+		// `Compile` is the something. Until it ran, nothing had expanded the node — and
+		// the test above is what says so.
+		Assert.Equal(
+			expected,
+			ClampedExample.Read("clamp(x, 0, 10)").Compile().DynamicInvoke(argument));
+
+	[Fact]
+	public void And_it_is_rewritten_like_any_other_node() =>
+		// What `VisitChildren` is for: a visitor that knows nothing about clamping still
+		// replaces the operands inside one, and gets a clamp back rather than a clamp that
+		// quietly kept what it had.
+		Assert.Equal(
+			"clamp(x, 1, 11)",
+			new Raise().Visit(ClampedExample.Read("clamp(x, 0, 10)").Body)!.ToString());
+
+	[Fact]
+	public void And_it_composes_with_the_nodes_that_do_have_factories() =>
+		Assert.Equal(
+			13,
+			ClampedExample.Read("clamp(x, 0, 10) + 3").Compile().DynamicInvoke(15));
+
+	/// <summary>Every constant one higher, which knows nothing about clamping.</summary>
+	sealed class Raise : Linq.ExpressionVisitor
+	{
+		protected override Linq.Expression VisitConstant(Linq.ConstantExpression node) =>
+			Linq.Expression.Constant((int)node.Value! + 1);
+	}
+
+	[Fact]
+	public void A_parameterized_rule_is_published_without_a_rule_to_wrap_it() =>
+		// `parse (b: Bracketed(Digits, '[', ']') => @(b)) as ParseSubscript : @string`:
+		// the directive names the expression, and the type is what makes the `=>` legal.
+		Assert.Equal("[42]", Selectors.ParseSubscript("[42]"));
 }

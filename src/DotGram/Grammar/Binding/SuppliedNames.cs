@@ -26,6 +26,6 @@ public static class SuppliedNames
 		[
 			"parserText", "parserPosition", "parserOrdinal",
 			"parserLine", "parserColumn",   "parserSpan", "parserMessage",
-			"parserInput",
+			"parserInput", "parserState",
 		];
 }

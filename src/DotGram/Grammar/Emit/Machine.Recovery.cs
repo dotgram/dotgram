@@ -20,7 +20,7 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	int CompileRecoveringRepeat(
-		Node.Repeat repeatNode, RecoveryPlan recovery, int next, FirstSets.First following)
+		Node.Repeat repeatNode, RecoveryPlan recovery, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
 
@@ -37,8 +37,11 @@ sealed partial class Machine
 		var asked     = Reserve(out var atAsked);
 		var after     = Reserve(out var atAfter);
 		var entry     = Reserve(out var atEntry);
-		var inner     = Compile(body, after, FirstSets.Of(body, _graph).Or(following));
-		var sync      = Compile(recovery.Recovery.Sync, synced, FirstSets.First.All);
+		var inner     = Compile(
+			body, after,
+			new FollowSets.Continuation(
+				FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All));
+		var sync      = Compile(recovery.Recovery.Sync, synced, FollowSets.Continuation.All);
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");

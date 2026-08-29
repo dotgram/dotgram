@@ -170,8 +170,17 @@ static class Questions
 			foreach (var declaration in declarations)
 				switch (declaration)
 				{
-					case Decl.Rule(_, _, var type, var body):
+					case Decl.Rule(_, var parameters, var type, var body):
 						Type(type);
+
+						// A parameter declared with a C# type is a value (§4.2), and that
+						// type is asked about like any other — by the check that what a
+						// call passes for it is one. Missed until an example declared one:
+						// every test that passes a value uses a resolver which answers
+						// everything, so nothing asked the host until a real build did.
+						foreach (var parameter in parameters)
+							Type(parameter.Type);
+
 						Walk(body);
 
 						// A rule's whole body being one bare @Name is §4.1 case 3 applied to a

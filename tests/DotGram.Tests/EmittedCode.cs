@@ -102,6 +102,18 @@ static class EmittedCode
 		return ((bool)Read("IsSuccess")!, Read("Value"), (string?)Read("Error"), (long)Read("Position")!);
 	}
 
+	/// <summary>
+	/// The same call, reading the <c>Outcome</c> the match carries (§7.5) by name — the
+	/// enum is generated, so there is no type here to compare against.
+	/// </summary>
+	public static string Outcome(Assembly assembly, string className, string method, string input)
+	{
+		var type  = assembly.GetType(className)!;
+		var match = type.GetMethod(method)!.Invoke(null, [input])!;
+
+		return match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString()!;
+	}
+
 	/// <summary>Calls a generated <c>find</c> method and reads the values it yields.</summary>
 	/// <param name="over">
 	/// Which overload to call: the whole input at once, or a reader read through a window

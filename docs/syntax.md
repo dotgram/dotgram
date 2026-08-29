@@ -469,6 +469,13 @@ current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
 `parser`, which is what that prefix is for — a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
+A `when` runs before its rule is finished, so the two that say what the rule matched say
+what it has matched **so far**: from where the rule began to where the parse stands. That
+is the same extent either way — `parserText` is the string of it and `parserSpan` is the
+two numbers — and it is what lets a guard record *where* something was read, which is the
+only thing a `=>` cannot do later. Construction runs children before parents, so anything
+written inside a construct is built before the construct is.
+
 There is no limit on the size of an expression, but there is a recommendation: once
 it stops reading at a glance it is better off as a named method in the partial class
 next door, where it has a debugger and refactoring. The generator neither declares nor
@@ -490,7 +497,7 @@ Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 | --- | --- | --- |
 | `item` | a recognizer; result type comes from the call site | a rule, a literal or a recognition expression |
 | `item: Row` | a recognizer constrained to produce `Row` | the same, but obliged to produce `Row` |
-| `n: int`, `t: @Tag` | a value | a literal or a previously captured value |
+| `n: int`, `t: @Tag` | a value | a literal, or a value this rule was handed itself |
 
 Which kind a parameter is follows from §2, with nothing new needed: **rules** live in
 the grammar namespace, **types** in C#'s. That settles an ambiguity otherwise
@@ -509,7 +516,17 @@ Name    = Lex(Identifier)        // : string
 ```
 
 A value parameter is allowed anywhere a value is expected: in a quantifier count
-(`{n}`), in the arguments of `@Method`, inside `@(...)`.
+(`{n}`), in the arguments of `@Method`, inside `@(...)`. It stands for the literal the
+call passed, put where the name was written — so `Padded(item, pad: char)` called as
+`Padded(Word, '!')` reads a `'!'` and hands `'!'` to the C# it wrote. Two calls passing
+different literals are two specializations, the same as two calls passing different
+recognizers.
+
+A number is a value whatever the parameter's declaration says, because a count is where
+one goes: `Digits(n) = ['0'..'9']{n}` needs no type on `n`, and only a value that
+reaches C# needs one. What a value **cannot** be is something the parse produces: a
+specialization is made before anything runs, and a captured value exists only while it
+does. Pass a literal, or capture the thing and hand it to the `=>`.
 
 A recognizer parameter never becomes a delegate — specialization means calling it
 costs exactly what calling the rule directly costs. A recursive parameterized call
@@ -549,12 +566,41 @@ what those shapes have meant since BNF.
 Sum   = left: Sum   & op: ['+' | '-'] & right: Product  => @Apply(left, op, right)
       | value: Product                                  => value
 
-Power = left: Unary & '^' & right: Power                => @Raise(left, right)
-      | value: Unary                                    => value
+Power = left: Unary & ('^' & right: Power)?             => @Raise(left, right)
 ```
 
 `1-2-3` groups as `(1-2)-3` and `2^3^2` as `2^(3^2)`, because that is how they are
 written.
+
+**The two are not written the same way, and the difference is the point.** `Sum`
+recurses on the left, and §4.3 rewrites a left-recursive rule into a loop over its tails
+— so the operand at the head is read once however many alternatives there are. `Power`
+recurses on the right, where there is no such rewrite, and the obvious form
+
+```dotgram
+Power = left: Unary & '^' & right: Power                => @Raise(left, right)
+      | value: Unary                                    => value                // no
+```
+
+reads `Unary` twice: once for an alternative that wants a `^` after it and once for the
+one that does not. That is a factor of two, and it *compounds* — `Unary` leads back to
+`Power` through the parentheses at the bottom of every expression grammar, so the second
+reading reads everything inside them twice again. Sixteen parentheses deep is thirty
+milliseconds written that way and a twentieth of one written as above. `GRAM4016` reports
+the shape, and reports it only where the shared operand leads back to the rule holding
+it, which is where the doubling compounds.
+
+The two are not the same grammar, which is why it is reported rather than rewritten. Two
+alternatives prefer every reading of the first over any reading of the second, so a shared
+operand that can give back will give back to let the rest of the first alternative fit:
+
+```dotgram
+Path = dir: Segments & '/' & file: Name | dir: Segments      // a/b/c is a/b and c
+```
+
+is how the last part of a path is split off, and no optional tail says it — written with
+one the `Segments` would take `a/b/c` and leave no file. So where the operand can give
+back, which form to write is a decision about meaning, and only the author has it.
 
 Associativity therefore belongs to an **alternative**, not to a rule — that is where
 the recursion is. A rule ends up with one because a level of precedence is a rule, and
@@ -574,9 +620,36 @@ tried and given back never ran at all.
 
 Three things are rejected when the grammar is built:
 
-- **indirect left recursion** — `A` reaching itself through `B` without consuming.
-  Direct recursion has one shape to rewrite and indirect has arbitrarily many, so it
-  is a diagnostic rather than a half-working transform.
+- **indirect left recursion** — `A` reaching itself through `B` without consuming —
+  **unless every rule between is only a name for what it forwards.** That case is made
+  direct and then rewritten like any other: a rule whose every alternative hands another
+  rule's value straight back (`Primary : @Expr = p: Call => @(p) | n: Number => @(n)`, or
+  a valueless `Term = List | Word`) means nothing those rules do not already mean, so a
+  leading call to it is the choice of what it forwards and the alternative distributes
+  over that choice. The layered shape every expression grammar is written in therefore
+  works as it reads, left-associatively:
+
+  ```dotgram
+  Primary : @Expr = p: Call => @(p) | n: Number => @(n)
+  Call    : @Expr = target: Primary & '(' & args: Args & ')' => @Invoke(target, args)
+  ```
+
+  An intermediary that does anything of its own is still refused. Its operands and its
+  own `=>` would join the tail of the fold, so a step would have to apply two
+  constructions in order against an accumulator that is itself the result of one —
+  arbitrarily many shapes, which is what this rejection has always been about.
+
+  **Every postfix step goes in one rule**, and that is not a style choice. Written as
+  several rules that each begin with the forwarder — `Member`, `Index`, `Apply` —
+  making each one's recursion direct leaves them recursive through *each other*, which
+  no rewrite removes and which is refused for the reason above. One rule whose tail is
+  a choice of steps is the same language and folds:
+
+  ```dotgram
+  Selector = s: Applied => @(s) | s: Root => @(s)
+  Applied  = target: Selector & step: Step => @(new Step(target, step))
+  Step     = t: ('.' & Name | Subscript | Arguments) => @(t)
+  ```
 - **a rule whose every alternative is left-recursive.** There is nothing to start from.
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one
@@ -664,21 +737,28 @@ trivia = Whitespace
 Pair    = Word & Word            // matches "ab cd"
 List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
+Entries = Entry*                 // Entry builds a value, so this is a list: "a; b;"
 ```
 
-**A repetition of a single operand gets nothing**, and that is the whole reason the
-insertion is not unconditional. A repetition is how a lexeme is written —
-`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
-number and `a b` one name in every grammar that ignores whitespace. A single operand has no
-seam inside a turn, so it has none between them either, and the two cases are told apart by
-the same rule rather than by an exception to it.
+**A repetition of a valued rule is a list, and lists are spaced.** `Entry*` in a rule
+declared `: @T[]` is the collection §4.1 case 2 gathers, and a grammar that separates its
+operands with trivia separates its collections the same way: `entries: Entry*` reads
+`a; b;` as readily as `a;b;`. Valuedness is what draws the line, and it is the author's
+own declaration doing the drawing: a rule that builds a value is a thing being collected,
+and things stand apart.
 
-An **optional** is left alone for the same reason: it has no second turn, so it has no seam.
+**A repetition of anything valueless gets nothing**, and that is what keeps lexemes
+whole. A repetition is how a lexeme is written —
+`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
+number and `a b` one name in every grammar that ignores whitespace. A valueless operand is
+a fragment of text rather than a thing, so its turns have no seam between them.
+
+An **optional** is left alone for a reason of its own: it has no second turn, so it has no seam.
 So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape —
 `(Whitespace | LineComment | BlockComment)*` — from being asked to space itself.
 
-What is left over is a spaced run of a single thing, which nothing can infer: `Word*` and
-`Digit*` have the same shape and only the author knows which is a list. So the author says
+What is left over is a spaced run of a single valueless thing, which nothing can infer:
+`Word*` and `Digit*` have the same shape and only the author knows which is a list. So the author says
 which, and `trivia` is an ordinary rule that may be named:
 
 ```dotgram
@@ -691,6 +771,20 @@ A run with a separator needs none of that, because the thing it repeats is a seq
 ```dotgram
 List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3"
 ```
+
+**Trivia that can swallow more than one character at a time — comments — is worth making
+atomic:**
+
+```dotgram
+trivia = { (Whitespace | LineComment | BlockComment)* }
+```
+
+The braces say that what a comment swallowed stays swallowed. Without them §11's ordered
+choice means a failing parse may re-read a comment's interior as syntax, one give-back at
+a time — legal, useless, and expensive. With them the engine can also prove that a spaced
+list never needs to hand a completed element back, which is the difference between a
+syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
+needs no braces: single characters leave nothing to re-read.
 
 This rule is narrower than it once was. It used to be "between the operands of a sequence
 and nowhere else", which spaced only a list's first turn — from the sequence around the
@@ -747,15 +841,26 @@ wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 ```
 
 Once it is not empty, every string literal **whose characters all fall in that class**
-picks up a `& ?!wordboundary`, so `"if"` no longer matches the start of `iffy`.
-Whether a literal qualifies is decided when the grammar is built: `"if"` gets the
-check, `"("` does not.
+is guarded on **both sides**: it may not be followed by a boundary character, and it may
+not be preceded by one. The first keeps `"if"` from matching the start of `iffy`; the
+second keeps it from matching the end of `stiff` — the reading backtracking would
+otherwise find, where an identifier hands characters back and a keyword matches
+mid-word. A word literal is a lexeme, and a lexeme is whole. Whether a literal qualifies
+is decided when the grammar is built: `"if"` gets the checks, `"("` does not.
 
 Same shape as `trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
 and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
-pays nothing; a language grammar pays one line.
+pays nothing; a language grammar pays one line. The boundary may name its class through
+another rule — `wordboundary = WordOrDigit` — and Unicode categories count as classes.
 
-The boundary check goes **before** the trivia insertion. The other order would ask
+**A lexical namespace shields it.** A namespace whose own `trivia` is empty (§4.5) does
+not inherit a `wordboundary` declared outside: its literals are the parts of one lexeme,
+not lexemes standing next to each other, and the `'u'` of an escape sequence must not be
+told it cannot precede a hex digit. A namespace that declares its own boundary beside its
+empty trivia keeps it — that is the scannerless keyword grammar, `SqlReadOnly` in the
+examples being one.
+
+The boundary checks go **before** the trivia insertion. The other order would ask
 whether a letter follows the whitespace rather than whether it follows the keyword.
 
 ---
@@ -841,11 +946,30 @@ namespace Ns2 with (B = D)
 D = 'd'
 ```
 
+**What replaces a rule may be any operand, not only another rule's name.** One operand,
+the same bound a directive's target has — so a choice needs brackets:
+
+```dotgram
+parse List with (Comma = (',' | ';')) as Loose
+```
+
+An expression here becomes a rule of its own, declared where the `with` is written and
+named after what it replaces, so the substitution reads the `trivia`, the imports and
+the bindings that surround it. The left side stays a name: it identifies what is being
+replaced, and identifying is what a name is for.
+
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
 `namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
-to a visible, parameterless rule.
+to a visible rule. A parameterized rule (§4.2) may replace and be replaced by one of
+the same signature — the same parameter count, each parameter the same kind, a value
+where a value was and a recognizer where a recognizer was — because a rebinding
+substitutes the rule and keeps every call's arguments: `A('a')` under `with (A = B)`
+is `B('a')`, and an argument the call carried resolves through the same header's
+other bindings, like everything else the binding reaches. Mismatched signatures are
+refused (`GRAM3009`): a call's arguments have to fit the replacement for the
+substitution to mean anything.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
 is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`
@@ -955,6 +1079,37 @@ whether the list is materialized or walked.
 Anything else is a consequence rather than a directive. Where a match may sit is the
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
+
+**What a directive names is an expression, not only a rule.** Wherever the notation
+refers to a rule, any operand may stand — the same bound `recover`'s synchronization
+expression has (§8.2), so a choice needs brackets and the `with` that may follow is the
+directive's own:
+
+```dotgram
+parse Padded(Word, ' ') as Spaced       // a parameterized rule, reachable at last
+parse ('a' | 'b')       as Ab
+find  ['0'..'9']+       as Numbers
+```
+
+An expression has no name to make a method name from, so `as` is required for anything
+but a bare name — `parse ('a' | 'b')` on its own is refused (`GRAM2007`) rather than
+given a name nobody wrote. What the expression becomes is an ordinary rule of that
+name, declared where the directive is written: it reads the `trivia`, the imports and
+the rebindings that surround it, exactly as a rule written in its place would, and
+everything after the front end sees a publication of a rule.
+
+Being an ordinary rule also settles its value — §4.1 case 4, the extent it matched — and
+lets it be given the third part a rule has, in the place that reads as the method's own:
+
+```dotgram
+parse (v: Padded(Word, '#') => @(v)) as Marked : @string
+```
+
+With a type declared, everything §4.1 offers is reachable from the directive, a `=>`
+included; without one a construction is refused where it always is (`GRAM4008`). The
+type belongs to the expression being lifted, so a directive that names a rule has
+nowhere to put one and says so (`GRAM2008`) — that rule declared its own type where it
+was written.
 
 ### 6.1 The result
 
@@ -1276,18 +1431,33 @@ The generator does not turn an unknown name into a partial-method contract.
 ### 7.5 Recognition outcomes
 
 Inside the language an outcome is an ordinary value, never an exception. The type is
-emitted by the generator into the assembly itself, `internal` like everything else
-(§6.2):
+emitted by the generator into the assembly itself:
 
 ```csharp
-readonly struct RecognitionResult<T>
+public readonly struct Match<T>
 {
-    public Outcome     Outcome    { get; }   // Success | NoMatch | Error
-    public T?          Value      { get; }
-    public SourceSpan  Span       { get; }
-    public Diagnostic? Diagnostic { get; }
+    public bool    IsSuccess { get; }   // Outcome == Outcome.Success
+    public Outcome Outcome   { get; }   // Success | NoMatch | Starved
+    public T       Value     { get; }
+    public long    Position  { get; }
+    public int     Length    { get; }
+    public string? Error     { get; }
 }
 ```
+
+`public`, unlike the support types of §6.2, because a published method hands it back
+and an `internal` type cannot appear in a `public` signature (§6.1). `Position` is a
+`long` because an input may be larger than an `int` can index (§6.3), and `Length` an
+`int` because an extent is into a buffer. `Error` is built where it is asked for
+rather than where the match failed, so a caller who only wants to know whether the
+input matched pays nothing for the words.
+
+**`Outcome` says which kind of answer this is, and the two failures differ.**
+`NoMatch` is input that was there and did not fit; `Starved` is input that ran out
+where more was needed — the answer a caller reading from a stream acts on differently
+from the one reading a finished document. Both are exact: the furthest position the
+parse reached is either the end of the input, or a place where something wanted more
+characters than remained.
 
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is
@@ -1301,6 +1471,126 @@ is not a convenience but a condition of the seam working at all: `=> @Add(l, r)`
 checked by C#'s type system, and when the types do not agree the error must appear on
 the grammar's line rather than in a machine-written file. The same goes for
 breakpoints and for "go to definition" in both directions.
+
+### 7.7 What a parse works out and the API has nowhere to keep
+
+Some grammars need somewhere to put what the reading works out: a table of names, the
+label a jump goes to, whatever the language being read means by scope. A `=>` cannot hold
+it — it runs after the whole match — and a `when` that writes into a static field has made
+that field global, which is a bug waiting for the second thread and the second parse.
+
+So a grammar may declare one:
+
+```dotgram
+context : @Names
+```
+
+The type is a C# name this notation never resolves. It is written into the generated
+signature and checked where it is written, exactly as a rule's own `: @T` is.
+
+**The caller makes one and hands it over**, and every publication of that grammar takes it:
+
+```csharp
+var names = new Names();
+var tree  = Grammar.ParseLambda(text, names);
+```
+
+**`context` is then a name a `=>` and a `when` may use**, like the supplied names of §8.2
+and under the same rule: a hook that does not name it is not passed it, so a grammar that
+declares a context and never uses it is compiled exactly as one that declares none, and
+its publications take no extra argument.
+
+```dotgram
+Local = type: Type & name: Word & when @(context.Declare(type, name, parserSpan)) & …
+Name : @Expression = n: Word => @(context.Named(n, parserSpan))
+```
+
+Reading and writing are on either side of the match, which is what the two hook kinds are
+for: a `when` runs while the text is read, in the order it is written, and a `=>` runs
+afterwards, against what the guards have by then recorded.
+
+**One per grammar, and outside every namespace.** A context declared inside one would be a
+context for part of a parse, and there is no such thing: the object a caller hands over is
+handed to all of it (`GRAM3013`, `GRAM3014`).
+
+**And one per assembly** (`GRAM3017`). Wider than it has to be today, and taken deliberately:
+a grammar that one day includes another can have only one context between them, and refusing
+the second now is a rule rather than a later change of one. Two parsers in one assembly that
+never meet are refused for a reason neither can see — that is what the message says, and it
+is the price of the constraint being there before anything leans on it.
+
+**What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
+a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
+That is why what belongs here is what can be written down more than once without harm — a
+position, a declaration keyed by where it was read — and why a grammar that needs "this
+holds while that is being matched" is asking for something this is not.
+
+### 7.8 What holds while something is being read
+
+§7.7's context is state a parse *accumulates*: written once, still written at the end. The
+other kind is state that holds **while** one thing is being read and is gone after it —
+what C# means by `checked(...)`, what a language means by "inside a loop", "inside a query".
+
+A grammar marks the extent:
+
+```dotgram
+state : @Overflow
+
+Checked   : @Expression = "checked"   & '(' & e: Expression with state @(Overflow.Checked)   & ')' => @(e)
+Unchecked : @Expression = "unchecked" & '(' & e: Expression with state @(Overflow.Unchecked) & ')' => @(e)
+```
+
+and the construction that cares reads what it stands under:
+
+```dotgram
+Additive : @Expression
+	= left: Multiplicative & ('+' & right: Multiplicative)*
+	=> @(Arithmetic.Add(left, right, parserState))
+```
+
+`Additive` is one rule. **The mark changes nothing about what is read** — the same
+characters, the same route, the same failures in the same places. What differs is which
+`Expression.Add*` the host calls, and that is decided after the parse, where the value is
+built:
+
+```csharp
+static Expression Add(Expression left, Expression right, ReadOnlySpan<Overflow> state)
+{
+	for (var i = state.Length - 1; i >= 0; i--)
+	{
+		if (state[i] == Overflow.Checked)   return Expression.AddChecked(left, right);
+		if (state[i] == Overflow.Unchecked) break;
+	}
+
+	return Expression.Add(left, right);
+}
+```
+
+**`parserState` is the marks standing over that construction, outermost first**, so the
+last is the nearest. Named like the supplied names of §8.2 and given by the same rule: a
+hook that does not name it is not passed it, and a grammar that places no mark hands an
+empty span to one that does.
+
+**One type for all of them, declared once, outside every namespace** (`GRAM3015`,
+`GRAM3016`), and one per assembly (`GRAM3018`) — for the reason §7.7 gives about its own.
+Which mark a hook means is the hook's to decide — it reads back for the
+nearest value of its own concern and walks past everything belonging to another, which is
+why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit
+this sets is real and worth stating plainly: **two unrelated concerns must be different
+values, not different declarations.** An enum per concern, all of them in the one type the
+grammar declares.
+
+**Nesting is what a mark is for.** `checked(a + unchecked(b + c) + d)` is not two flags
+cancelling: the inner mark stands over its own protraction and the outer one is in force
+again after it. That falls out of where the marks are kept — in the arena, in order — and
+so does the other half: **an abandoned reading's marks are abandoned with it.** Nothing
+unwinds them, because being gone is the whole of what unwinding owes them, and the walk
+that reads them runs over what was accepted.
+
+`with state` and §5.1's `with (...)` share a word and no mechanism, which is why this one is
+qualified. A rebinding replaces rules before anything runs and is visible to the grammar; a
+mark leaves the grammar alone and is visible only to hooks. A rule named `state` stays
+ordinary and stays rebindable — `with (state = other)` is parenthesized and this is not.
 
 ---
 
@@ -1338,7 +1628,7 @@ Feed : FeedItem[] = Header
                   & Trailer & eof
 ```
 
-`recover` marks one repetition and says three things about it:
+`recover` marks a repetition and says three things about it:
 
 1. **Inside it, consuming and then failing is an error, not a non-match.** That is the
    commit point, and it is what makes "this record is malformed" expressible at all:
@@ -1382,6 +1672,20 @@ An iteration matches `H16` and fails on `':'` having consumed four characters. T
 a healthy backtrack, not a broken address. Marking the repetition is how an author says
 which reading applies, and it changes nothing outside the repetition it is written on —
 a rule still means one thing everywhere it is called.
+
+**A rule may mark as many repetitions as it has**, each with its own synchronization
+expression, its own `=>` and its own sequence for a rejection to arrive in:
+
+```dotgram
+Sheet = "H" & eol & head: Row* recover eol => @(Bad("head", parserText))
+      & "B" & eol & body: Row* recover eol => @(Bad("body", parserText))
+      & eof
+```
+
+The one exception is a parse read from a `TextReader` (§6.3): the driver steps over a
+bad element as it hands the good ones back, one repetition at a time, so a rule that
+marks two is told it gets no reader overload (`GRAM5001`) rather than silently
+recovering in one place only. Read whole, it recovers in both.
 
 **The synchronization expression is one operand, so a choice needs brackets.**
 

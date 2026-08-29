@@ -353,5 +353,5 @@ sealed partial class Machine
 	/// makes a rewrite happen at all — and found by trying to take a `Trace` call out of one.
 	/// </remarks>
 	static readonly HashSet<string> Resumable =
-		["Choice", "Call", "Lookahead", "Completed", "Dead", "Run", "PendingRecovery", "Atomic", "Repeat"];
+		["Choice", "Call", "Lookahead", "Completed", "Dead", "Run", "PendingRecovery", "LoopExit"];
 }

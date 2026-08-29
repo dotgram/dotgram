@@ -229,6 +229,27 @@ public sealed class GrammarModel(
 	/// <summary>The public API this grammar asked for, in declaration order.</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 
+	/// <summary>
+	/// The declared type of the grammar's own state, or null where it declares none.
+	/// </summary>
+	/// <remarks>
+	/// What a `context : @T` says. The type is a C# name this half never resolves — it is
+	/// written into the generated signature and checked where it is written, the same as a
+	/// rule's own `: @T`.
+	/// </remarks>
+	public TypeRef? Context { get; init; }
+
+	/// <summary>
+	/// The type every mark a <c>with state</c> site places is written in, or null where the
+	/// grammar declares none.
+	/// </summary>
+	/// <remarks>
+	/// What a `state : @T` says, resolved no further here than <see cref="Context"/> is.
+	/// One type for all of them: what tells two marks apart is their value, read by the hook
+	/// that cares (§7.8).
+	/// </remarks>
+	public TypeRef? State { get; init; }
+
 	/// <summary>The `trivia` each namespace sees — §4.5, resolved once per namespace.</summary>
 	public IReadOnlyDictionary<GrammarNamespace, RuleSymbol> Trivia { get; } = trivia;
 

@@ -12,10 +12,13 @@ public sealed partial class GrammarNormalizer
 {
 	void Check()
 	{
+		var doors = Doors.ByRule(_rules, _bodies);
+
 		foreach (var rule in _rules)
 		{
 			CheckRepetitions  (_bodies[rule], rule);
-			CheckCaptures     (_bodies[rule], rule, repeated: null);
+			CheckCaptures     (_bodies[rule], rule);
+			CheckSharedPrefixes(rule, doors);
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
 			CheckRecovery     (rule);
@@ -24,27 +27,6 @@ public sealed partial class GrammarNormalizer
 		CheckTrivia();
 	}
 
-	/// <summary>
-	/// What a capture under a repetition is allowed to be, and what it is not yet.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A repeated capture of a rule that builds is a sequence of values (§7.3), and where
-	/// it sits under the repetition does not matter: every iteration appends where its
-	/// value is built, and an abandoned attempt truncates back to the length it pushed.
-	/// </para>
-	/// <para>
-	/// A repeated capture of <b>text</b> is not that. §10 binds a capture tighter than a
-	/// quantifier, so <c>scheme: ['a'..'z']+</c> is a capture repeated, and §7.3 gives it
-	/// the text joined — which is the extent from the first iteration to the last, and is
-	/// exactly that only when the capture is the whole of what repeats. Written around
-	/// something else, the text between the iterations would be swept in with them.
-	/// </para>
-	/// <para>
-	/// Inside a lookahead a capture belongs to a machine of its own that answers yes or no
-	/// and hands nothing back.
-	/// </para>
-	/// </remarks>
 	/// <summary>
 	/// A <c>=&gt;</c> builds the rule's value, so it has to be somewhere that is the
 	/// rule's value and there has to be a type for it to build.
@@ -123,13 +105,127 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// One <c>recover</c> per rule, for now.
+	/// As many <c>recover</c>s per rule as it marks repetitions — except in a stream.
 	/// </summary>
 	/// <remarks>
-	/// The machine keeps one recovering repetition and would ignore a second — and a
-	/// <c>recover</c> that is quietly not there is exactly the failure recovery exists to
-	/// prevent. Two of them is a rule that wants splitting in two anyway.
+	/// Each marked repetition is its own: its own sync, its own <c>=&gt;</c>, its own
+	/// sequence for a rejection to arrive in, and its own plan in the arena, which has
+	/// dispatched a recovery by plan since there was one plan. A streamed parse is the
+	/// exception, and not for want of machinery: the driver steps over a bad element as
+	/// it hands the good ones back, reading one repetition at a time, so a second
+	/// <c>recover</c> in the rule it streams would be one that quietly does not happen —
+	/// exactly the failure recovery exists to prevent.
 	/// </remarks>
+	/// <summary>
+	/// Alternatives that begin with the same operand, where beginning twice compounds.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Ordered choice tries an alternative whole before the next one, so two alternatives
+	/// that begin alike read that beginning twice. On its own that is a factor of two and
+	/// nobody's problem. It compounds where the shared operand leads back to the rule
+	/// holding it: then the doubling is per level of nesting, and a short text takes longer
+	/// to read than there is time. Written as one alternative with the rest optional, the
+	/// operand is read once.
+	/// </para>
+	/// <para>
+	/// **The two are not the same grammar**, which is why this reports rather than rewrites.
+	/// Two alternatives prefer every reading of the first over any reading of the second, so
+	/// a shared operand that can give back will give back to let the rest of the first
+	/// alternative fit — `Segments & '/' & Name | Segments` is how the last part of a path
+	/// is split off, and an optional tail cannot say it. Where the operand cannot give back
+	/// it has one reading, the two orders hold the same one thing, and the rewrite is exact
+	/// — which is also when this says nothing, because there is nothing to weigh.
+	/// </para>
+	/// </remarks>
+	void CheckSharedPrefixes(RuleSymbol rule, IReadOnlyDictionary<RuleSymbol, bool> doors)
+	{
+		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
+		{
+			if (node is not Node.Choice(var alternatives))
+				continue;
+
+			for (var i = 1; i < alternatives.Count; i++)
+			{
+				if (Leading(alternatives[i - 1]) is not { } one ||
+					Leading(alternatives[i]) is not { } other ||
+					!SameShape(one, other) ||
+					!Doors.LeavesOne(one, doors) ||
+					!Reaches(one, rule))
+					continue;
+
+				Warn(
+					SharedPrefix,
+					$"Two alternatives of '{rule.Name}' begin with the same operand, and that operand " +
+					$"leads back to '{rule.Name}'. Ordered choice reads it once for each of them, so the " +
+					"reading doubles at every level of nesting and a short text can take longer to read " +
+					"than there is time. Written as one alternative with the rest of the longer one " +
+					"optional, it is read once. That is a different grammar where the operand can give " +
+					"back — two alternatives prefer a shorter reading of it that lets the rest fit, and " +
+					"an optional tail prefers the longer reading — so this is a choice rather than a fix.",
+					rule.Declaration!.At);
+
+				return;
+			}
+		}
+	}
+
+	/// <summary>The operand an alternative begins with, past whatever builds its value.</summary>
+	static Node? Leading(Node alternative)
+	{
+		var body = alternative is Node.Construct(var built, _) ? built : alternative;
+
+		return body is Node.Sequence(var parts) ? parts.Count > 0 ? parts[0] : null : body;
+	}
+
+	/// <summary>The same operand written twice, whatever the two captures of it are called.</summary>
+	/// <remarks>
+	/// The names may differ and usually do — the alternatives mean different things by it —
+	/// and what is read twice is the same either way.
+	/// </remarks>
+	static bool SameShape(Node one, Node other) =>
+		(one, other) switch
+		{
+			(Node.Capture(_, var a), Node.Capture(_, var b))       => SameShape(a, b),
+			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) => a == b,
+			(Node.Literal a, Node.Literal b)                       => a == b,
+			(Node.Atomic(var a), Node.Atomic(var b))               => SameShape(a, b),
+
+			// The marks themselves are not compared: a mark changes nothing about what is
+			// read, so two alternatives that differ only in one really do share a prefix.
+			(Node.Marked(var a, _), Node.Marked(var b, _))         => SameShape(a, b),
+
+			_                                                      => false,
+		};
+
+	/// <summary>Whether reading this can reach that rule again, so the cost compounds.</summary>
+	bool Reaches(Node from, RuleSymbol rule)
+	{
+		var pending = new Stack<RuleSymbol>();
+		var walked  = new HashSet<RuleSymbol>();
+
+		foreach (var node in NodeWalk.Descendants(from))
+			if (node is Node.Call(var called, _))
+				pending.Push(called);
+
+		while (pending.Count > 0)
+		{
+			var at = pending.Pop();
+
+			if (at == rule)
+				return true;
+
+			if (!walked.Add(at) || !_bodies.TryGetValue(at, out var body))
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Call(var called, _))
+					pending.Push(called);
+		}
+
+		return false;
+	}
+
 	void CheckRecovery(RuleSymbol rule)
 	{
 		var found = 0;
@@ -137,13 +233,6 @@ public sealed partial class GrammarNormalizer
 		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
 			if (_recoveries.ContainsKey(node))
 				found++;
-
-		if (found > 1)
-			Report(
-				UnbuiltRecovery,
-				$"'{rule.Name}' marks {found} repetitions with 'recover' and only one may be marked. " +
-				"Give the other its own rule.",
-				rule.Declaration!.At);
 
 		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
 			if (_recoveries.TryGetValue(node, out var recovery) && recovery.Factory is not null)
@@ -181,9 +270,6 @@ public sealed partial class GrammarNormalizer
 			rule.Declaration!.At);
 	}
 
-	bool IsFoldLoop(RuleSymbol rule, Node node) =>
-		_folds.TryGetValue(rule, out var fold) && ReferenceEquals(fold.Loop, node);
-
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
 	static IReadOnlyList<Node> Alternatives(Node body) =>
 		body is Node.Choice(var alternatives) ? alternatives : [body];
@@ -198,12 +284,24 @@ public sealed partial class GrammarNormalizer
 				yield return found;
 	}
 
-	void CheckCaptures(Node node, RuleSymbol rule, Node? repeated, bool inLookahead = false)
+	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>
+	/// <remarks>
+	/// <para>
+	/// A capture under a repetition used to be the other: text captured somewhere that was
+	/// not the whole of what repeats was refused, because the value was the span from the
+	/// first turn to the last and anything else in the loop lay inside it. The turns are
+	/// joined now, so the shape is ordinary — and it was never refused as widely as it
+	/// read, since the check looked only at the innermost repetition.
+	/// </para>
+	/// <para>
+	/// Inside a lookahead a capture belongs to a machine of its own that answers yes or no
+	/// and hands nothing back, and that is still not built.
+	/// </para>
+	/// </remarks>
+	void CheckCaptures(Node node, RuleSymbol rule, bool inLookahead = false)
 	{
-		if (node is Node.Capture(var name, var captured))
+		if (node is Node.Capture(var name, _))
 		{
-			var collects = captured is Node.Call(var called, _) && BuildsValue(called);
-
 			// The supplied names of §7.3 and §8.2 become parameters of the method a `=>`
 			// turns into, so a capture of the same name wants a parameter that is already
 			// taken. The prefix makes that unlikely; this is what happens when an author
@@ -219,32 +317,24 @@ public sealed partial class GrammarNormalizer
 					"with 'parser', which is what that prefix is for.",
 					rule.Declaration!.At);
 
+			// A capture inside a repetition that is not the whole of what repeats used to be
+			// refused here, on the grounds that the text of the turns could not be told from
+			// the text between them. It can: each turn records an entry of its own, and §10's
+			// value is those joined rather than the span they lie in. The refusal was also
+			// never quite the rule it read as — it looked only at the innermost repetition,
+			// so `(t: A+ & '-'){2}` passed it and answered with the dashes in.
 			if (inLookahead)
 				Report(
 					UnbuiltCapture,
 					$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
 					"a lookahead consumes nothing and answers only whether it matched.",
 					rule.Declaration!.At);
-
-			else if (repeated is not null && !collects && !ReferenceEquals(repeated, node))
-				Report(
-					UnbuiltCapture,
-					$"'{name}' captures text inside a repetition in '{rule.Name}' without being the whole of " +
-					"what repeats, which is not built yet: the text of the iterations cannot be told from " +
-					"the text between them. Move the quantifier inside the capture.",
-					rule.Declaration!.At);
 		}
-
-		// The fold loop is the generator's, not the author's: a capture under it is
-		// consumed by the fold on the iteration that wrote it (§4.3).
-		var inside = node is Node.Repeat(var body, _, not 1) && !IsFoldLoop(rule, node)
-			? body
-			: repeated;
 
 		var lookings = inLookahead || node is Node.Lookahead;
 
 		foreach (var child in node.Children)
-			CheckCaptures(child, rule, inside, lookings);
+			CheckCaptures(child, rule, lookings);
 	}
 
 	void CheckRepetitions(Node node, RuleSymbol rule)
@@ -305,6 +395,7 @@ public sealed partial class GrammarNormalizer
 			case Node.Capture  (_, var captured):    return Reaches(captured, target, seen);
 			case Node.Construct(var built, _):       return Reaches(built, target, seen);
 			case Node.Atomic   (var atomic):         return Reaches(atomic, target, seen);
+			case Node.Marked   (var marked, _):      return Reaches(marked, target, seen);
 			case Node.Repeat   (var repeated, _, _): return Reaches(repeated, target, seen);
 			case Node.Lookahead(_, var ahead):       return Reaches(ahead, target, seen);
 
