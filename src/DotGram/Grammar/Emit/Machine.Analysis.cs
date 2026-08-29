@@ -434,116 +434,12 @@ sealed partial class Machine
 		_ => FirstSets.First.All,
 	};
 
-	bool Possessive(Node body, FirstSets.First following, Asked? asked = null) =>
-		following.IsKnown &&
-		!FirstSets.Nullable(body, _graph) &&
-		!FirstSets.Of(body, _graph).Overlaps(following) &&
-		Deterministic(body, asked ?? [], FirstSets.Of(body, _graph).Or(following));
-
 	/// <summary>
-	/// Whether a node has at most one match at any position — one length, not a choice of
-	/// them.
+	/// Whether a repetition of this body may run to its end and never be asked to give a
+	/// turn back — asked of the model, which is where the question lives now.
 	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Alternatives settle it when one character tells them apart, which is what
-	/// <see cref="Predictive"/> already decides.
-	/// </para>
-	/// <para>
-	/// A repetition settles it exactly when it is possessive. Where a repetition stops is
-	/// otherwise a choice — the very choice this is asking about — but a possessive one
-	/// cannot stop anywhere but where the input stopped it, so it has the one length. That
-	/// is why this needs to know what follows: possessiveness is a fact about a repetition
-	/// in a place, not about a repetition.
-	/// </para>
-	/// <para>
-	/// An external recognizer is a leaf here for the same reason it is one for
-	/// <see cref="Silent"/>: whatever it decided, it decided once. This is what lets a
-	/// repetition of one — <c>@Token*</c> — be shown possessive instead of kept as the
-	/// general machinery by default.
-	/// </para>
-	/// </remarks>
-	bool Deterministic(Node node, Asked asked, FirstSets.First following) =>
-		node switch
-		{
-			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
-			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture(_, var body)                  => Deterministic(body, asked, following),
-			Node.Construct(var body, _)                => Deterministic(body, asked, following),
-			Node.Atomic(var body)                      => Deterministic(body, asked, following),
-			Node.Marked(var body, _)                   => Deterministic(body, asked, following),
-			Node.Sequence(var parts)                   => AllDeterministic(parts, asked, following),
-			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllDeterministic(
-			                                                  alternatives, asked, following, sequence: false),
-			Node.Repeat(var body, _, _)                => Possessive(body, following, asked),
-			Node.Call(var rule, _)                     => Deterministic(rule, asked, following),
-			_                                          => false,
-		};
-
-	/// <summary>
-	/// Whether a call is to something determinate, guarded against calling round in a ring.
-	/// </summary>
-	/// <remarks>
-	/// The guard is the path down, not everything met on the way: a rule taken off again on
-	/// the way out, so that meeting it twice in two places is not mistaken for recursion.
-	/// <c>Pair = Atom &amp; Atom</c> is determinate and was being called anything but, which
-	/// cost the repetitions around it their proof. The same mistake was made and corrected in
-	/// <see cref="FirstSets"/>, and it was not corrected here.
-	/// </remarks>
-	bool Deterministic(RuleSymbol rule, Asked asked, FirstSets.First following)
-	{
-		// Met again on the way down, and followed by the same thing: the question is the one
-		// already being answered, so it is assumed answered yes and the walk goes on. If the
-		// rest of the walk agrees, the assumption held and the answer stands; if anything in
-		// it says no, this says no with it, and the assumption is discarded along with the
-		// path that made it. Assuming yes and checking is how "never more than one" is proved
-		// of a cycle at all — the opposite assumption proves nothing, which is what saying no
-		// here did: a rule that could reach itself was never determinate, and nothing built
-		// out of one could be either.
-		//
-		// Followed by something else, it is a different question about the same rule, and
-		// this walk has no answer to it yet. Saying no is the old answer and is the honest
-		// one: what makes a repetition possessive is what comes after it, so a rule proved
-		// determinate in one place is not thereby determinate in another.
-		if (asked.TryGetValue(rule, out var already))
-			return FirstSets.Same(already, following);
-
-		asked[rule] = following;
-
-		var settled = _graph.Bodies.TryGetValue(rule, out var called) &&
-			Deterministic(called, asked, following);
-
-		asked.Remove(rule);
-
-		return settled;
-	}
-
-	/// <summary>Which rules the walk is inside, and what followed each where it went in.</summary>
-	/// <remarks>
-	/// The path down rather than everything met on the way, the same as the set it replaces:
-	/// a rule is taken off again on the way out, so meeting it twice in two places is not
-	/// mistaken for recursion.
-	/// </remarks>
-	sealed class Asked : Dictionary<RuleSymbol, FirstSets.First>;
-
-	bool AllDeterministic(
-		IReadOnlyList<Node> nodes, Asked asked, FirstSets.First following,
-		bool sequence = true)
-	{
-		var after = following;
-
-		for (var i = nodes.Count - 1; i >= 0; i--)
-		{
-			if (!Deterministic(nodes[i], asked, after))
-				return false;
-
-			if (sequence)
-				after = Precedes(nodes[i], after);
-		}
-
-		return true;
-	}
+	bool Possessive(Node body, FirstSets.First following) =>
+		Determinism.Possessive(body, following, _graph, Emitted);
 
 	/// <summary>
 	/// The character tests that decide a choice outright, or null where the input does not.
@@ -573,37 +469,13 @@ sealed partial class Machine
 	/// </remarks>
 	string[]? Predictive(IReadOnlyList<Node> alternatives)
 	{
-		if (alternatives.Count < 2)
+		if (!Determinism.Distinguishable(alternatives, _graph, Emitted))
 			return null;
 
-		var firsts = new FirstSets.First[alternatives.Count];
+		var tests = new string[alternatives.Count];
 
 		for (var i = 0; i < alternatives.Count; i++)
-		{
-			var first = FirstSets.Of(alternatives[i], _graph);
-
-			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[i], _graph))
-				return null;
-
-			// Knowable is not the same as worth writing down: a Unicode category is a few
-			// hundred ranges, exact and useful to the analyses, and a dispatch spelled out
-			// over them would be a page of comparisons where the alternative's own test is
-			// one call. The set stays precise; only the rendering declines.
-			if (first.Ranges.Count > Emitted)
-				return null;
-
-			firsts[i] = first;
-		}
-
-		for (var i = 0; i < firsts.Length; i++)
-			for (var j = i + 1; j < firsts.Length; j++)
-				if (firsts[i].Overlaps(firsts[j]))
-					return null;
-
-		var tests = new string[firsts.Length];
-
-		for (var i = 0; i < firsts.Length; i++)
-			tests[i] = RangesTest(firsts[i].Ranges);
+			tests[i] = RangesTest(FirstSets.Of(alternatives[i], _graph).Ranges);
 
 		return tests;
 	}
