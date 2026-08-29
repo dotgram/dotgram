@@ -70,7 +70,13 @@ public sealed partial class GrammarNormalizer
 	/// Asked one thing only: whether one C# type fits into another, which is what §4.1
 	/// case 2 needs and nothing here can work out for itself.
 	/// </param>
-	public static RecognitionGraph Normalize(GrammarModel model, ISymbolResolver? resolver = null)
+	/// <param name="scanner">
+	/// Asked which names each embedded C# expression uses. Optional, and where it is absent
+	/// the emitter falls back to searching the spelling — which is what it used to do
+	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
+	/// </param>
+	public static RecognitionGraph Normalize(
+		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -153,7 +159,50 @@ public sealed partial class GrammarNormalizer
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
 			Context    = model.Context?.Name,
 			State      = model.State?.Name,
+			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 		};
+	}
+
+	/// <summary>
+	/// Which names each embedded expression uses, keyed by the expression itself.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// By text and not by node, which is what makes it immune to the rebuilds everything
+	/// else here has to be careful about: two guards spelled the same use the same names,
+	/// so a clone, a splice or a specialization needs no transfer at all. Built at the end
+	/// of normalization, when every substitution has already happened and the text a node
+	/// holds is the text that will be emitted.
+	/// </para>
+	/// <para>
+	/// An expression the scanner cannot parse is left out rather than recorded as using
+	/// nothing, so a reader can tell "asks for none of them" from "could not be asked".
+	/// </para>
+	/// </remarks>
+	static IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames(
+		IEnumerable<Node> bodies, ICSharpScanner? scanner)
+	{
+		var names = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
+		if (scanner is null)
+			return names;
+
+		foreach (var body in bodies)
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				var text = node switch
+				{
+					Node.Guard(var condition)                                  => condition,
+					Node.Construct(_, Construction.Expression(var built, _))   => built,
+					Node.Marked(_, var mark)                                   => mark,
+					_                                                          => null,
+				};
+
+				if (text is not null && !names.ContainsKey(text) && scanner.FreeNames(text) is { } free)
+					names[text] = free;
+			}
+
+		return names;
 	}
 
 	void Report(string id, string message, Location at) =>

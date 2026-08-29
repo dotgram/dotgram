@@ -282,7 +282,7 @@ sealed partial class Machine
 				foreach (var node in NodeWalk.Descendants(checking))
 				{
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
-						built.Contains("parserInput"))
+						CSharpEmitter.Uses(graph, built, "parserInput"))
 					{
 						UsesInput = true;
 					}
@@ -292,7 +292,7 @@ sealed partial class Machine
 					// it comes off the arena the flat rendering exists not to have.
 					if (graph.State is not null &&
 						node is Node.Construct { How: Construction.Expression { Text: var reading } } &&
-						reading.Contains("parserState"))
+						CSharpEmitter.Uses(graph, reading, "parserState"))
 					{
 						ReadsState = true;
 					}
@@ -302,9 +302,9 @@ sealed partial class Machine
 					// writes into.
 					if (graph.Context is not null &&
 						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
-							CSharpEmitter.Names(asked, "context") ||
+							CSharpEmitter.Uses(graph, asked, "context") ||
 						node is Node.Guard { Text: var condition } &&
-							CSharpEmitter.Names(condition, "context")))
+							CSharpEmitter.Uses(graph, condition, "context")))
 					{
 						UsesContext = true;
 					}
@@ -1876,7 +1876,7 @@ sealed partial class Machine
 				// A guard runs at every position the rule reaches it, and what the rule has
 				// matched so far is a string built to run it. Built only where the condition
 				// names it — most conditions ask about the captures, not about the run.
-				if (node is Node.Guard { Text: var guardText } && guardText.Contains("parserText"))
+				if (node is Node.Guard { Text: var guardText } && CSharpEmitter.Uses(_graph, guardText, "parserText"))
 				{
 					parameters.Add("string parserText");
 					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
@@ -1886,7 +1886,7 @@ sealed partial class Machine
 				// is the rule from where it began to where the parse now stands — which is
 				// what "the current rule's span" can mean at a point that is not the end,
 				// and the only thing here that says *where* rather than *what*.
-				if (node is Node.Guard { Text: var spanning } && spanning.Contains("parserSpan"))
+				if (node is Node.Guard { Text: var spanning } && CSharpEmitter.Uses(_graph, spanning, "parserSpan"))
 				{
 					parameters.Add("SourceSpan parserSpan");
 					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
@@ -1897,7 +1897,7 @@ sealed partial class Machine
 				// is the only moment a grammar has in the order it is written.
 				if (node is Node.Guard { Text: var stateful } &&
 					_graph.ContextOf(rule) is { } contract &&
-					CSharpEmitter.Names(stateful, "context"))
+					CSharpEmitter.Uses(_graph, stateful, "context"))
 				{
 					// Typed by this rule's own contract, not the effective type — see the
 					// factory's own parameters for why. The argument is the same object

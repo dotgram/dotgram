@@ -972,19 +972,19 @@ sealed partial class Machine
 		// rule matched, so building it for an expression that never looks at it doubles
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
-		if (CSharpEmitter.WantsText(factory))
+		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(
 				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
 
-		if (CSharpEmitter.Asks(factory, "parserSpan"))
+		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
 			arguments.Add(
 				"new SourceSpan(" +
 				"completed.Position, completed.Value - completed.Position)");
 
-		if (CSharpEmitter.Asks(factory, "parserInput"))
+		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
 
-		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+		if (_graph.Context is not null && CSharpEmitter.Asks(_graph, factory, "context"))
 			arguments.Add("context");
 
 		// The marks standing over this construction, outermost first. Built where it is
@@ -994,7 +994,7 @@ sealed partial class Machine
 		// Gated on the declaration and not on whether anything places a mark: the parameter
 		// is, and the two have to agree. A grammar that declares a state and writes no
 		// `with state` hands over nothing, which is what an empty span says.
-		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
 			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
 
 		return arguments;
@@ -1013,19 +1013,19 @@ sealed partial class Machine
 		// rule matched, so building it for an expression that never looks at it doubles
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
-		if (CSharpEmitter.WantsText(factory))
+		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(
 				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
 
-		if (CSharpEmitter.Asks(factory, "parserSpan"))
+		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
 			arguments.Add(
 				"new SourceSpan(" +
 				"completed.Position, completed.Value - completed.Position)");
 
-		if (CSharpEmitter.Asks(factory, "parserInput"))
+		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
 
-		if (_graph.Context is not null && CSharpEmitter.Asks(factory, "context"))
+		if (_graph.Context is not null && CSharpEmitter.Asks(_graph, factory, "context"))
 			arguments.Add("context");
 
 		// The marks standing over this construction, outermost first. Built where it is
@@ -1034,7 +1034,7 @@ sealed partial class Machine
 		// Gated on the declaration and not on whether anything places a mark: the parameter
 		// is, and the two have to agree. A grammar that declares a state and writes no
 		// `with state` hands over nothing, which is what an empty span says.
-		if (_graph.State is not null && CSharpEmitter.Asks(factory, "parserState"))
+		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
 			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
 
 		foreach (var member in factory.Members)

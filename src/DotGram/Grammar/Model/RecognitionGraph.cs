@@ -372,6 +372,17 @@ public sealed class RecognitionGraph(
 	/// also made it the host's job to clear between them, and forgetting is silent.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Which names each embedded C# expression uses, keyed by the expression itself.
+	/// </summary>
+	/// <remarks>
+	/// Empty where no scanner was supplied, and missing an entry for an expression that
+	/// would not parse — both of which mean "ask the spelling instead", which is what
+	/// everything did before there was a syntax tree to ask.
+	/// </remarks>
+	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
+		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
 	public string? Context { get; init; }
 
 	/// <summary>

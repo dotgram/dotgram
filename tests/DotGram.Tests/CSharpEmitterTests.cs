@@ -1616,6 +1616,64 @@ public sealed class CSharpEmitterTests
 				"""),
 			StringComparison.Ordinal);
 
+	// ── What an expression asks for, from its syntax (§8.2) ─────────────────────
+
+	/// <summary>
+	/// A supplied name inside a string literal is text, and asks for nothing.
+	/// </summary>
+	/// <remarks>
+	/// It used to ask. `parserInput` found by substring set `UsesInput`, and
+	/// `CanLowerValued` opens with `if (UsesInput || …) return false` — so quoting a name
+	/// in a message decided which rendering the grammar got. The signature is the visible
+	/// half; the rendering was the half nobody would have looked for.
+	/// </remarks>
+	[Fact]
+	public void A_supplied_name_inside_a_literal_asks_for_nothing()
+	{
+		var source = Emit(
+			"""
+			Start : @string = t: ['a'..'z']+ => @(Log("parserInput") + t + "parserSpan")
+			parse Start
+			""");
+
+		Assert.DoesNotContain("string parserInput", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("SourceSpan parserSpan", source, StringComparison.Ordinal);
+
+		// And it still reaches the rendering a grammar of this shape should get, which is
+		// the half the false positive was quietly taking away.
+		Assert.Contains("out string value)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And a member of that name is a member.</summary>
+	/// <remarks>
+	/// The other direction: the boundary test counted anything that is not a letter, digit
+	/// or underscore as a boundary, so a dot before the name read as the start of one.
+	/// </remarks>
+	[Fact]
+	public void And_a_member_of_that_name_is_not_the_name() =>
+		Assert.DoesNotContain(
+			"Names context",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(Other.context + t)
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void And_the_name_written_as_itself_is_still_asked_for() =>
+		// The point of the exercise is precision, not silence.
+		Assert.Contains(
+			"Names context",
+			Emit(
+				"""
+				context : @Names
+				Start : @string = t: ['a'..'z']+ => @(context.Say(t))
+				parse Start
+				"""),
+			StringComparison.Ordinal);
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

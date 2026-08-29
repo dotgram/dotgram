@@ -899,10 +899,10 @@ public static partial class CSharpEmitter
 		// C# on this side. What it saves is not a parameter: the text is the whole of what
 		// the rule matched, built as a string on every construction, and most expressions
 		// want the captures inside rather than the run around them.
-		if (WantsText(factory))
+		if (WantsText(graph, factory))
 			parameters.Add("string parserText");
 
-		if (Asks(factory, "parserSpan"))
+		if (Asks(graph, factory, "parserSpan"))
 			parameters.Add("SourceSpan parserSpan");
 
 		// The whole input, for a construction that wants to keep where it matched and cut
@@ -910,7 +910,7 @@ public static partial class CSharpEmitter
 		// over anything the parse did not itself produce, and that is the point of it: a
 		// value built from this outlives the parse holding the input alive, which is a
 		// bargain only the author of the grammar can strike.
-		if (Asks(factory, "parserInput"))
+		if (Asks(graph, factory, "parserInput"))
 			parameters.Add("string parserInput");
 
 		// The grammar's own state (§7.7), typed by the contract *this rule's* grammar
@@ -919,14 +919,14 @@ public static partial class CSharpEmitter
 		// to whoever wrote the code. A rule included from another grammar goes on meaning
 		// what it meant, and the call upcasts on its own (docs/next.md, "Decided: `context`
 		// is a contract").
-		if (graph.ContextOf(rule) is { } contract && Asks(factory, "context"))
+		if (graph.ContextOf(rule) is { } contract && Asks(graph, factory, "context"))
 			parameters.Add($"{contract} context");
 
 		// The marks standing over this construction, outermost first (§7.8). A span rather
 		// than an array because it is a view of a buffer the walk reuses: it is right for
 		// the length of the call and no longer, which is what a factory needs and all it
 		// may keep.
-		if (graph.State is not null && Asks(factory, "parserState"))
+		if (graph.State is not null && Asks(graph, factory, "parserState"))
 			parameters.Add($"global::System.ReadOnlySpan<{graph.State}> parserState");
 
 		// A fold step is handed the value built so far under the name it captured the
@@ -1103,9 +1103,13 @@ public static partial class CSharpEmitter
 	/// §7.3 matched a constructor against the supplied names as well as the captures. It
 	/// does not today, so this arm is insurance rather than a feature.
 	/// </remarks>
-	internal static bool WantsText(Machine.Factory factory)
+	internal static bool WantsText(Machine.Factory factory) => WantsText(null, factory);
+
+	/// <inheritdoc cref="WantsText(Machine.Factory)"/>
+	internal static bool WantsText(RecognitionGraph? graph, Machine.Factory factory)
 	{
-		if (Asks(factory, "parserText"))
+		if (factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
+			Uses(graph, text, "parserText"))
 			return true;
 
 		foreach (var member in factory.Members)
@@ -1145,7 +1149,32 @@ public static partial class CSharpEmitter
 
 	internal static bool Asks(Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
-		(name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name));
+		Uses(null, text, name);
+
+	/// <summary>Whether an embedded expression asks the parser for that name.</summary>
+	/// <remarks>
+	/// <para>
+	/// From the syntax where a graph has it — a name is what the C# parser calls a name,
+	/// which is neither text inside a literal nor the member half of a member access.
+	/// </para>
+	/// <para>
+	/// The spelling is the fallback, and only that: it is what this did always, and it was
+	/// wrong in both directions. `@(Log("parserInput"))` claimed the whole input and so
+	/// refused the grammar its flat rendering; `@(other.context)` claimed the context,
+	/// because a dot is not an identifier character. A graph built without a scanner, or an
+	/// expression that would not parse, still gets the old answer — which is over-eager
+	/// rather than absent, and so adds a parameter rather than dropping one.
+	/// </para>
+	/// </remarks>
+	internal static bool Uses(RecognitionGraph? graph, string text, string name) =>
+		graph is not null && graph.FreeNames.TryGetValue(text, out var free)
+			? free.Contains(name)
+			: name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name);
+
+	/// <summary>The same, for a factory whose graph is in hand.</summary>
+	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name) =>
+		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
+		Uses(graph, text, name);
 
 	/// <summary>Whether this C# names that identifier, rather than merely containing it.</summary>
 	/// <remarks>

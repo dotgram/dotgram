@@ -144,7 +144,7 @@ static class Renderings
 	/// </remarks>
 	public static IEnumerable<string> Wants(Machine.Factory factory, RecognitionGraph graph)
 	{
-		if (CSharpEmitter.WantsText(factory))
+		if (CSharpEmitter.WantsText(graph, factory))
 			yield return "parserText";
 
 		foreach (var name in Supplied)
@@ -160,7 +160,7 @@ static class Renderings
 			if (name == "parserState" && graph.State is null)
 				continue;
 
-			if (CSharpEmitter.Asks(factory, name))
+			if (CSharpEmitter.Asks(graph, factory, name))
 				yield return name;
 		}
 	}

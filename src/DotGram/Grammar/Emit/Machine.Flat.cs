@@ -515,7 +515,7 @@ sealed partial class Machine
 		// It was missing, and the two halves disagreed in silence: the publication passed a
 		// context the recognizer did not take, and the recognizer called a factory without
 		// the one it did.
-		if (UsesContext && CSharpEmitter.Asks(factory, "context"))
+		if (UsesContext && CSharpEmitter.Asks(_graph, factory, "context"))
 			arguments.Add("context");
 
 		for (var index = 0; index < factory.Members.Count; index++)
