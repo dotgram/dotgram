@@ -128,7 +128,9 @@ public static class Determinism
 
 		for (var at = nodes.Count - 1; at >= 0; at--)
 		{
-			if (!Of(nodes[at], asked, after, graph))
+			var settled = sequence ? PastWoven(nodes, at, after, asked, graph) : null;
+
+			if (!(settled ?? Of(nodes[at], asked, after, graph)))
 				return false;
 
 			if (sequence)
@@ -136,6 +138,58 @@ public static class Determinism
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// A repetition whose turn and whose continuation both open by reading the same trivia,
+	/// answered on what stands after it — or null where that is not the shape.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §4.5 weaves <c>trivia</c> between every pair of operands, so a repetition written
+	/// <c>(',' &amp; Type)*</c> is lowered with one at the head of each turn and another
+	/// standing after the loop. <c>trivia</c> is nullable, so its own characters join the
+	/// first set of everything it leads, and the ordinary test then sees the turn and the
+	/// continuation beginning alike and concludes the loop might give a turn back. On a
+	/// grammar that follows §4.5's own recommendation that is nearly every loop there is.
+	/// </para>
+	/// <para>
+	/// They do not begin alike. <c>trivia</c> is an atomic group: it commits its first
+	/// reading and never gives it back, so the same run of it is consumed whether the loop
+	/// takes another turn or stops, and what decides between them is what stands after it —
+	/// here a <c>','</c> against a <c>'&gt;'</c>, which share nothing. So the comparison is
+	/// made there, and only where both sides really do open with a call to the same atomic
+	/// rule.
+	/// </para>
+	/// <para>
+	/// Only the comparison moves. Whether the turn can match nothing, and whether the turn
+	/// is itself determinate, are asked of the whole turn as before: what the trivia settles
+	/// is where one turn ends and the next begins, not what happens inside one.
+	/// </para>
+	/// </remarks>
+	static bool? PastWoven(
+		IReadOnlyList<Node> nodes, int at, FirstSets.First following, Asked asked, RecognitionGraph graph)
+	{
+		if (nodes[at] is not Node.Repeat(Node.Sequence(var turn) body, _, _) ||
+			turn.Count < 2 ||
+			turn[0] is not Node.Call(var woven, { Count: 0 }) ||
+			at + 1 >= nodes.Count ||
+			nodes[at + 1] is not Node.Call(var next, { Count: 0 }) ||
+			!ReferenceEquals(next, woven) ||
+			!graph.Bodies.TryGetValue(woven, out var read) ||
+			read is not Node.Atomic)
+			return null;
+
+		var past = new Node.Sequence([.. turn.Skip(1)]);
+		var rest = following;
+
+		for (var back = nodes.Count - 1; back > at + 1; back--)
+			rest = FirstSets.Precedes(nodes[back], rest, graph);
+
+		return following.IsKnown &&
+			!FirstSets.Nullable(body, graph) &&
+			!FirstSets.Of(past, graph).Overlaps(rest) &&
+			Of(body, asked, FirstSets.Of(body, graph).Or(following), graph);
 	}
 
 	/// <summary>Whether one character tells every alternative from every other.</summary>

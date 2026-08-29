@@ -6646,3 +6646,53 @@ the honest shape of it: these widen what can be proved rather than what happens 
 
 The number the exercise was for is still owed. What it took to get this far is written down
 so the next attempt starts from the chain rather than from the beginning.
+
+## Built: the comparison is made past the trivia both sides read
+
+The chain the previous entry left open — `Reference → TypeArgs → Type → Reference` — had one
+more link, and bisection named it exactly. A cut-down grammar folds; add `trivia` and it stops;
+take the inner repetition out of `TypeArgs` and it folds again:
+
+```dotgram
+TypeArgs = '<' & Type & (',' & Type)* & '>'   // not proved
+TypeArgs = '<' & Type & '>'                   // proved
+```
+
+§4.5 weaves `trivia` between every pair of operands, so the loop is lowered with one at the
+head of each turn and another standing after the loop:
+
+```text
+Sequence '<', trivia, Type, trivia,
+  Repeat 0..*  Sequence  trivia, ',', trivia, Type
+  trivia, '>'
+```
+
+`trivia` is nullable, so its characters join the first set of everything it leads, and the
+ordinary test sees a turn beginning with whitespace and a continuation beginning with
+whitespace and concludes the loop might give a turn back. On a grammar that follows §4.5's own
+recommendation that is nearly every loop there is.
+
+They do not begin alike. `trivia` is an atomic group — it commits its first reading and never
+gives it back — so the same run of it is consumed whether the loop takes another turn or
+stops, and what decides between them is what stands after it: a `','` against a `'>'`, which
+share nothing. So the comparison is made there, and only where both sides really do open with
+a call to the same atomic rule. Only the comparison moves: whether a turn can match nothing,
+and whether a turn is determinate in itself, are asked of the whole turn as before.
+
+### And the link after that one
+
+The notation's `Reference` is still not proved, and the shape is now named: a repetition that
+*ends* its rule.
+
+```text
+Name = Identifier & trivia & (trivia & '.' & trivia & Identifier)*
+```
+
+There is no node after the loop to read the shared trivia from — what follows is the caller's,
+and the caller weaves a `trivia` there that this rule cannot see. The argument is the same and
+the structure is not available: it needs follow sets computed *past* the trivia, which is a
+second flavour of `FOLLOW` and a design rather than a line.
+
+The corpus is unchanged by this — 782,412 bytes of expression language, the same as before it,
+against 783,053 with the fold off — which is what a sharper proof looks like when the thing it
+newly proves is not on the path anything took.
