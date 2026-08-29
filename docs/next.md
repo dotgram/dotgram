@@ -5767,3 +5767,45 @@ Nothing reads any of this yet. What it unblocks, in order: the merge on `Grammar
 diagnostics rules — duplicates, and an unresolved base list.
 
 1,384 tests green in both configurations.
+
+## Built: `IncludedAs`, and a report that was being dropped
+
+The second piece: a host may say what name another grammar includes it under, where that
+should not be its class's own — `JsonGrammarBase` wanting to be `using Json;`.
+
+**A property on `[Gram]` rather than a second attribute.** The marker attributes are emitted
+into *every* consumer's assembly, so a new type is a type everybody carries, including
+everybody who never touches inheritance. A property costs nothing at the type level and
+works for both forms `[Gram]` already has — the empty constructor for a `.gram` file and the
+one taking text.
+
+**Not called `Namespace`.** That word was carefully separated once already: `GramCompilerOptions
+.Namespace` and the emitter's `@namespace` are the *generated code's* C# namespace, and the
+`context` → `namespace` rename settled on "`GrammarNamespace`, never bare `Namespace`" to
+keep the senses apart. `IncludedAs` also names the thing exactly: it means something only
+when another grammar includes this one, and it is what they write.
+
+The name has to be one identifier — a grammar is included by being wrapped in a namespace,
+and a dotted name would mean nesting, which is written in the grammar itself. `GRAM0005`,
+said at the host, before the splice can turn it into a parse error in a text nobody wrote.
+
+### Two defects it turned up, and the second was silent
+
+**A named argument would have taken every inline diagnostic's placement with it.** A
+diagnostic in a grammar written inside an attribute is placed by searching the literal's
+spelling, and the search matched `Arguments is [{ Expression: LiteralExpressionSyntax }]` —
+*exactly one* argument. Writing `IncludedAs = "…"` beside the grammar makes two, the pattern
+stops matching, `Literal` becomes null, and every squiggle silently falls back to the class.
+Now it takes the first positional argument instead. The test asserts the placement rather
+than the reading, because the reading would have gone on working.
+
+**And the first stage's reports were being dropped.** `Compile` starts a fresh builder and
+never carried `grammar.Reports` forward. It had never shown, because every report `Asked`
+made until now came with an early return — no text, and the branch above hands those on. The
+first report that could stand beside a grammar which reads perfectly well went missing, and
+was found only because it was looked for. `Compile` now seeds its builder with what came
+before it.
+
+Nothing reads `IncludedName` yet either.
+
+1,390 tests green in both configurations.

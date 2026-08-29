@@ -52,6 +52,15 @@ static class Diagnostics
 		isEnabledByDefault: true,
 		description:        "Which file a grammar comes from must be unambiguous, not decided silently by order.");
 
+	public static readonly DiagnosticDescriptor InvalidIncludedName = new(
+		id:                 "GRAM0005",
+		title:              "The name a grammar is included under is not an identifier",
+		messageFormat:      "'{0}' cannot be included as '{1}'; that has to be one identifier",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "A grammar is included by being wrapped in a namespace, and a namespace is named by an identifier. A dotted name would mean nesting, which is written in the grammar itself.");
+
 	/// <summary>
 	/// The descriptor for an id, made once and kept.
 	/// </summary>

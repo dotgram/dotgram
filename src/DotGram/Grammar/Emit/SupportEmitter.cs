@@ -67,6 +67,19 @@ public static class SupportEmitter
 				public GramAttribute(string source) => Source = source;
 
 				public string? Source { get; }
+
+				/// <summary>
+				/// The name another grammar includes this one under, where that should not
+				/// be the class's own.
+				/// </summary>
+				/// <remarks>
+				/// One identifier, and not a namespace of the generated code — that is
+				/// decided by where the host class is declared. This is the name written
+				/// after `using` in a grammar that includes this one, and it defaults to
+				/// the host's own so that following the `:` from the including class lands
+				/// on the answer.
+				/// </remarks>
+				public string? IncludedAs { get; set; }
 			}
 
 			/// <summary>

@@ -258,6 +258,68 @@ public sealed class GeneratorDriverTests
 
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
+	// ── The name a grammar is included under ────────────────────────────────────
+
+	/// <summary>
+	/// A named argument beside the grammar does not stop the grammar from being found in
+	/// its own spelling.
+	/// </summary>
+	/// <remarks>
+	/// The trap this arrangement sets: a diagnostic in an inline grammar is placed by
+	/// searching the attribute's literal, and the search used to require the attribute to
+	/// have exactly one argument. Writing a second one would have taken every diagnostic's
+	/// placement with it, silently — so this asserts the placement rather than the reading.
+	/// </remarks>
+	[Fact]
+	public void A_grammar_beside_a_named_argument_is_still_placed_where_it_was_written()
+	{
+		var error = Assert.Single(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Start = missing", IncludedAs = "Lexical")]
+				public partial class Grammar { }
+				""")
+				.Diagnostics
+				.Where(diagnostic => diagnostic.Id == "GRAM3002")
+				.ToArray());
+
+		var at = error.Location.GetMappedLineSpan();
+
+		// The first line of the source above, at the column `missing` is written — inside
+		// the literal, not at the class and not at the start of the attribute.
+		Assert.Equal("GeneratorDriverTest.cs", at.Path);
+		Assert.Equal(0,  at.StartLinePosition.Line);
+		Assert.Equal(23, at.StartLinePosition.Character);
+	}
+
+	[Theory]
+	[InlineData("a.b")]
+	[InlineData("")]
+	[InlineData("1st")]
+	[InlineData("has space")]
+	public void A_name_that_is_not_an_identifier_is_refused(string name) =>
+		// A grammar is included by being wrapped in a namespace, and a namespace is named
+		// by an identifier. Said at the host, before the splice can turn it into a parse
+		// error in a text nobody wrote.
+		AssertDiagnostic(
+			"GRAM0005",
+			RunGenerator(
+				$$"""
+				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "{{name}}")]
+				public partial class Grammar { }
+				"""));
+
+	[Fact]
+	public void And_a_name_that_is_one_is_not() =>
+		Assert.DoesNotContain(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "Lexical")]
+				public partial class Grammar { }
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Id == "GRAM0005");
+
 	// ── One `context` and one `state` for the assembly (GRAM3017, GRAM3018) ──────
 
 	/// <summary>

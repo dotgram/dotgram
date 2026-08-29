@@ -395,6 +395,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
 		}
 
+		// Said before the grammar is read, because it is about the host rather than about
+		// the grammar, and because a name that cannot be a namespace would otherwise reach
+		// the splice and come back as a parse error in a text nobody wrote.
+		if (host.IncludedAs is { } included && !IsIdentifier(included))
+			reports.Add(Report.Of(
+				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
+
 		if (!TryResolveGrammar(reports, host, files, out var text, out var path))
 			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
 
@@ -426,6 +433,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var host    = grammar.Host;
 		var reports = ImmutableArray.CreateBuilder<Report>();
 
+		// What the first stage had to say, carried rather than dropped. Every report it
+		// used to make came with an early return — no text, so the branch above hands them
+		// on — and the first one that could stand beside a grammar that reads perfectly
+		// well went silently missing until it was looked for.
+		reports.AddRange(grammar.Reports.Items);
+
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
@@ -452,6 +465,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
 			Values(reports));
+	}
+
+	/// <summary>One identifier, which is all a namespace can be named by.</summary>
+	static bool IsIdentifier(string name)
+	{
+		if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] == '_'))
+			return false;
+
+		for (var at = 1; at < name.Length; at++)
+			if (!(char.IsLetterOrDigit(name[at]) || name[at] == '_'))
+				return false;
+
+		return true;
 	}
 
 	static EquatableArray<Report> Values(ImmutableArray<Report>.Builder reports) =>
@@ -559,8 +585,21 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		Location? Location,
 		string?   Literal    = null,
-		int       LiteralAt  = 0)
+		int       LiteralAt  = 0,
+		string?   IncludedAs = null)
 	{
+		/// <summary>
+		/// The name a grammar including this one writes after <c>using</c>.
+		/// </summary>
+		/// <remarks>
+		/// The host's own name unless the attribute said otherwise, so that following the
+		/// <c>:</c> from an including class lands on the answer. Not the C# namespace of
+		/// the generated code, which is decided by where the host is declared — the two
+		/// senses of the word were separated on purpose (docs/next.md, the `context` to
+		/// `namespace` rename) and are kept apart here by not using it.
+		/// </remarks>
+		public string IncludedName => IncludedAs ?? SimpleName;
+
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
 		/// </summary>
@@ -620,12 +659,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
 
+			var includedAs = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
+				.Value.Value as string;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
 			// that knows where the escapes and the indentation went.
+			// The first positional argument and not the only one: a named argument beside it
+			// is legal — `[Gram("…", IncludedAs = "Json")]` — and requiring exactly one
+			// would quietly stop finding the spelling the moment somebody wrote one, taking
+			// every diagnostic's placement with it.
 			var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
-				syntax.ArgumentList?.Arguments is [{ Expression: LiteralExpressionSyntax spelled }]
+				syntax.ArgumentList?.Arguments.FirstOrDefault(
+					static argument => argument.NameEquals is null) is
+						{ Expression: LiteralExpressionSyntax spelled }
 					? spelled.Token
 					: default;
 
@@ -655,8 +704,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
-				Literal:   written == default ? null : written.Text,
-				LiteralAt: written == default ? 0    : written.SpanStart);
+				Literal:    written == default ? null : written.Text,
+				LiteralAt:  written == default ? 0    : written.SpanStart,
+				IncludedAs: includedAs);
 		}
 	}
 }

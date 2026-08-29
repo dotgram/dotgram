@@ -9,3 +9,4 @@ GRAM0001 | DotGram | Error | The generator encountered an internal error
 GRAM0002 | DotGram | Error | A class hosting a grammar must be partial
 GRAM0003 | DotGram | Error | No grammar file for a [Gram] class
 GRAM0004 | DotGram | Error | More than one grammar file matches
+GRAM0005 | DotGram | Error | The name a grammar is included under is not an identifier
