@@ -87,7 +87,7 @@ sealed partial class Machine
 	/// an optional two rules away from the climb was found renting a parser.
 	/// </para>
 	/// </remarks>
-	bool Silent(Node node, FirstSets.First following) =>
+	bool Silent(Node node, FollowSets.Continuation following) =>
 		!(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{
@@ -102,7 +102,7 @@ sealed partial class Machine
 			// position back — both directions, since a negative lookahead's failure is
 			// its body succeeding. "Anything" for the body's own continuation: what
 			// follows the lookahead does not follow the body, which is rewound.
-			Node.Lookahead(_, var seen)                => SilentWithin(seen, FirstSets.First.All),
+			Node.Lookahead(_, var seen)                => SilentWithin(seen, FollowSets.Continuation.All),
 
 			// A capture kept in locals writes nothing — sound only where nothing ever
 			// backtracks over it, which is what every other case here already proves,
@@ -132,7 +132,7 @@ sealed partial class Machine
 			                                              LiteralRun(
 			                                                  alternatives,
 			                                                  alternatives.Count - 1,
-			                                                  following) == alternatives.Count ||
+			                                                  following.Plain) == alternatives.Count ||
 			                                              CheckpointSilent(alternatives, following),
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
@@ -169,7 +169,7 @@ sealed partial class Machine
 	/// <c>Failure</c> struct and the wrapper both need to know before a line of the
 	/// method is rendered.
 	/// </summary>
-	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 	{
 		if (!_checkpointsAllowed || _valuesInLocals ||
 			!AllSilent(alternatives, following, sequence: false))
@@ -185,7 +185,7 @@ sealed partial class Machine
 	/// than through <c>Fail:</c> — where a pending checkpoint site would be jumped past,
 	/// so none may open. The compile of each such construct puts the same flag down.
 	/// </summary>
-	bool SilentWithin(Node node, FirstSets.First following)
+	bool SilentWithin(Node node, FollowSets.Continuation following)
 	{
 		var checkpoints = _checkpointsAllowed;
 
@@ -202,7 +202,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>The alternatives' half of <see cref="SilentWithin"/>.</summary>
-	bool AllSilentWithin(IReadOnlyList<Node> nodes, FirstSets.First following)
+	bool AllSilentWithin(IReadOnlyList<Node> nodes, FollowSets.Continuation following)
 	{
 		var checkpoints = _checkpointsAllowed;
 
@@ -226,10 +226,13 @@ sealed partial class Machine
 	/// thing around it writes nothing, and at the point of compiling it, to decide what to
 	/// write. Different answers would mean jumping past entries that were made after all.
 	/// </remarks>
-	bool SilentRepeat(Node.Repeat repeat, FirstSets.First following) =>
+	bool SilentRepeat(Node.Repeat repeat, FollowSets.Continuation following) =>
 		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
 		Possessive(repeat.Body, following) &&
-		SilentWithin(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
+		SilentWithin(
+			repeat.Body,
+			following.Or(new FollowSets.Continuation(
+				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
 
 	/// <summary>
 	/// Every one of them, each followed by what follows it.
@@ -239,7 +242,7 @@ sealed partial class Machine
 	/// same nodes: a part of a sequence is followed by the rest of the sequence, and an
 	/// alternative of a choice is followed by whatever the choice is.
 	/// </remarks>
-	bool AllSilent(IReadOnlyList<Node> nodes, FirstSets.First following, bool sequence = true)
+	bool AllSilent(IReadOnlyList<Node> nodes, FollowSets.Continuation following, bool sequence = true)
 	{
 		var after = following;
 
@@ -249,7 +252,7 @@ sealed partial class Machine
 				return false;
 
 			if (sequence)
-				after = Precedes(nodes[i], after);
+				after = FollowSets.Precedes(nodes[i], after, _graph, _seam);
 		}
 
 		return true;
@@ -438,9 +441,8 @@ sealed partial class Machine
 	/// Whether a repetition of this body may run to its end and never be asked to give a
 	/// turn back — asked of the model, which is where the question lives now.
 	/// </summary>
-	bool Possessive(Node body, FirstSets.First following) =>
-		Determinism.Possessive(
-			body, new FollowSets.Continuation(following, following), _graph, _seam);
+	bool Possessive(Node body, FollowSets.Continuation following) =>
+		Determinism.Possessive(body, following, _graph, _seam);
 
 	/// <summary>
 	/// The character tests that decide a choice outright, or null where the input does not.

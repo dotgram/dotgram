@@ -581,7 +581,9 @@ sealed partial class Machine
 
 		try
 		{
-			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+			return Silent(
+				BodyOf(rule, whole),
+				whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 		}
 		finally
 		{
@@ -1460,7 +1462,7 @@ sealed partial class Machine
 				// compiled below as it always was, and only a choice that does need
 				// coming back to is given its doors.
 				if (LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
-					CheckpointSilent(alternatives, following.Plain))
+					CheckpointSilent(alternatives, following))
 					return CompileCheckpointChoice(alternatives, next, following);
 
 				var last   = alternatives.Count - 1;
@@ -2141,8 +2143,8 @@ sealed partial class Machine
 				// mark only the engine's commit writes — so the two agree.
 				if (_recoveries.Count == 0 &&
 					(body is Node.Choice(var options)
-						? AllSilent(options, following.Plain, sequence: false)
-						: Silent(body, following.Plain)))
+						? AllSilent(options, following, sequence: false)
+						: Silent(body, following)))
 				{
 					// No pending site may open inside: the chain's doors are where a
 					// failure goes here, and a way back they jumped past would stand
@@ -2268,7 +2270,7 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if (SilentRepeat(repeat, following.Plain))
+				if (SilentRepeat(repeat, following))
 					return CompileSilentRepeat(repeat, next, following);
 
 				return RunTest(repeat.Body) is { } runTest
@@ -2303,7 +2305,7 @@ sealed partial class Machine
 				// A silent body needs no entry: entering is a checkpoint local, leaving is
 				// putting the position back — the same door a possessive turn leaves by.
 				// The same test `Silent`'s own Lookahead case asks, so the two agree.
-				if (Silent(body, FirstSets.First.All))
+				if (Silent(body, FollowSets.Continuation.All))
 				{
 					// A body one character decides needs no checkpoint either: the
 					// lookahead is its test and nothing else — no local, no consuming,

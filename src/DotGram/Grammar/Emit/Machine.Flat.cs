@@ -199,7 +199,9 @@ sealed partial class Machine
 
 		try
 		{
-			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
+			return Silent(
+				BodyOf(rule, whole),
+				whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 		}
 		finally
 		{
