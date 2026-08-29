@@ -344,6 +344,19 @@ public sealed class RecognitionGraph(
 	public IReadOnlyList<RuleSymbol>             Rules       { get; } = rules;
 	public IReadOnlyDictionary<RuleSymbol, Node> Bodies      { get; } = bodies;
 	public IReadOnlyDictionary<RuleSymbol, bool> Nullable    { get; } = nullable;
+
+	/// <summary>
+	/// The same answer as a function, for the node walk that asks it.
+	/// </summary>
+	/// <remarks>
+	/// Held rather than made at each call: <see cref="FirstSets.Nullable(Node, RecognitionGraph)"/>
+	/// runs inside the emitter's analysis loops, and a closure per call there would be one
+	/// allocation for every node of every rule.
+	/// </remarks>
+	internal Func<RuleSymbol, bool> RuleIsNullable =>
+		_ruleIsNullable ??= called => Nullable.TryGetValue(called, out var yes) && yes;
+
+	Func<RuleSymbol, bool>? _ruleIsNullable;
 	public IReadOnlyList<GramDiagnostic>         Diagnostics { get; } = diagnostics;
 
 	/// <summary>

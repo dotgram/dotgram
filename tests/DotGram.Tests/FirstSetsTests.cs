@@ -129,6 +129,45 @@ public sealed class FirstSetsTests
 		Assert.True(follow.Overlaps(FirstSets.First.Chars([new CharRange(';', ';')])));
 	}
 
+	// ── Nullability ───────────────────────────────────────────────────────────────────
+
+	/// <summary>A repetition is nullable when its body is, not only when it may be skipped.</summary>
+	/// <remarks>
+	/// This used to be answered in two places, and this is the case they disagreed on: the
+	/// normalizer looked inside the body, the copy here stopped at <c>min == 0</c>. A
+	/// repetition of exactly one is the shape that separates them — it is not refused the way
+	/// a nullable body under <c>*</c> or <c>+</c> is, since it cannot spin.
+	/// </remarks>
+	[Fact]
+	public void A_repetition_of_exactly_one_is_nullable_when_its_body_is()
+	{
+		const string Grammar = "A = B{1,1}\nB = none\nStart = A";
+
+		var graph = Graph(Grammar);
+		var body  = graph.Bodies[graph.Rules.First(rule => rule.Name == "A")];
+
+		// If normalization ever folds this away the test stops testing what it names.
+		Assert.IsType<Node.Repeat>(body);
+		Assert.Equal(1, ((Node.Repeat)body).Min);
+
+		Assert.True(FirstSets.Nullable(body, graph));
+	}
+
+	/// <summary>A lookbehind consumes nothing.</summary>
+	/// <remarks>
+	/// The other half of the disagreement, the other way round: the normalizer's copy had no
+	/// case for it and fell through to "consumes", which would have made a sequence starting
+	/// with one opaque to the left-recursion walk. Nothing writes a lookbehind directly — it
+	/// comes from lowering a word lexeme, where a consuming literal follows it — so this asks
+	/// the node, which is what the walk sees.
+	/// </remarks>
+	[Fact]
+	public void A_lookbehind_is_nullable() =>
+		Assert.True(
+			FirstSets.Nullable(
+				new Node.Behind(new Node.Element(false, [new CharRange('a', 'z')], [], [])),
+				_ => false));
+
 	static RecognitionGraph Graph(string text) =>
 		GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(

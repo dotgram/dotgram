@@ -710,34 +710,56 @@ public static class FirstSets
 	static readonly Dictionary<char, First> _folded = [];
 
 	/// <summary>Whether a node can match without consuming anything.</summary>
-	public static bool Nullable(Node node, RecognitionGraph graph) => node switch
+	public static bool Nullable(Node node, RecognitionGraph graph) => Nullable(node, graph.RuleIsNullable);
+
+	/// <summary>
+	/// The same question where the answer for a rule is not settled yet.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Which is the normalizer's case: it computes rule nullability as a fixed point, so
+	/// while that is running the answer for a call has to come from the estimate rather than
+	/// from a graph that does not exist. That is the only thing the two callers differ in,
+	/// and it used to be the reason there were two of this function — with the two drifting
+	/// apart in both directions. One did not look inside a repetition, so <c>A+</c> over a
+	/// nullable <c>A</c> was called consuming; the other did not know <c>Behind</c>, so a
+	/// lookbehind was too. Each was right where the other was wrong, which is what a second
+	/// copy of a definition is for.
+	/// </para>
+	/// <para>
+	/// So the shape of a node is answered here, once, and who can answer for a rule is the
+	/// parameter.
+	/// </para>
+	/// </remarks>
+	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule) => node switch
 	{
 		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
-		Node.Literal(var text)                     => text.Length == 0,
-		Node.Repeat(_, var min, _)                 => min == 0,
-		Node.Atomic(var body)                      => Nullable(body, graph),
-		Node.Marked(var body, _)                   => Nullable(body, graph),
-		Node.Capture(_, var captured)              => Nullable(captured, graph),
-		Node.Construct(var built, _)               => Nullable(built,    graph),
-		Node.Sequence(var parts)                   => All(parts, graph),
-		Node.Choice(var alternatives)              => Any(alternatives, graph),
-		Node.Call(var called, _)                   => graph.Nullable.TryGetValue(called, out var yes) && yes,
-		_                                          => false,
+		Node.Literal(var text)                       => text.Length == 0,
+		Node.Element                                 => false,
+		Node.Atomic(var body)                        => Nullable(body,     rule),
+		Node.Marked(var body, _)                     => Nullable(body,     rule),
+		Node.Capture(_, var captured)                => Nullable(captured, rule),
+		Node.Construct(var built, _)                 => Nullable(built,    rule),
+		Node.Repeat(var body, var min, _)            => min == 0 || Nullable(body, rule),
+		Node.Sequence(var parts)                     => All(parts,        rule),
+		Node.Choice(var alternatives)                => Any(alternatives, rule),
+		Node.Call(var called, _)                     => rule(called),
+		_                                            => false,
 	};
 
-	static bool All(IReadOnlyList<Node> nodes, RecognitionGraph graph)
+	static bool All(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule)
 	{
 		foreach (var node in nodes)
-			if (!Nullable(node, graph))
+			if (!Nullable(node, rule))
 				return false;
 
 		return true;
 	}
 
-	static bool Any(IReadOnlyList<Node> nodes, RecognitionGraph graph)
+	static bool Any(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule)
 	{
 		foreach (var node in nodes)
-			if (Nullable(node, graph))
+			if (Nullable(node, rule))
 				return true;
 
 		return false;
