@@ -319,11 +319,11 @@ public static class FirstSets
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
 	public static First Following(
 		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam = null) =>
-		Following(parts, from, graph, seam, []);
+		Following(parts, from, graph, seam, ByRule(graph));
 
 	static First Following(
 		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam,
-		HashSet<RuleSymbol> seen)
+		IReadOnlyDictionary<RuleSymbol, First> byRule)
 	{
 		var ranges  = new List<CharRange>();
 		var nothing = true;
@@ -344,14 +344,14 @@ public static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
-				Of(expected, graph, seen) is { IsKnown: true } ahead)
+				Of(expected, graph, byRule) is { IsKnown: true } ahead)
 			{
 				expects = expects is { } held ? held.And(ahead) : ahead;
 
 				continue;
 			}
 
-			var first = Of(parts[i], graph, seen);
+			var first = Of(parts[i], graph, byRule);
 
 			if (expects is { } bound)
 				first = first.And(bound);
@@ -379,7 +379,89 @@ public static class FirstSets
 	}
 
 	/// <summary>What a node can begin with.</summary>
-	public static First Of(Node node, RecognitionGraph graph) => Of(node, graph, []);
+	public static First Of(Node node, RecognitionGraph graph) => Of(node, graph, ByRule(graph));
+
+	/// <summary>
+	/// What each rule can begin with, as the least set that satisfies every rule at once.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A grammar's rules call each other and themselves, so this is not a walk: it is the
+	/// least fixed point of the same kind of equations <c>Nullable</c> and <c>FOLLOW</c> are
+	/// already solved as. Every rule starts at nothing and grows until nothing grows, which
+	/// settles because the step only ever adds and there are finitely many characters to add.
+	/// </para>
+	/// <para>
+	/// What it replaces answered "anything" on re-entering a rule already being walked. That
+	/// is sound, and it is Top — and Top at the head of a rule is Top for everything that
+	/// contains it. <c>A = B | 'a'</c> with <c>B = A | 'b'</c> has the perfectly ordinary
+	/// answer <c>{a, b}</c> and used to have none, and every proof that rests on knowing
+	/// what something begins with was that much weaker for it.
+	/// </para>
+	/// <para>
+	/// A rule with no body — a built-in, an external recognizer — stays "anything", which is
+	/// the honest answer: what it accepts is the host's knowledge and not the grammar's.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyDictionary<RuleSymbol, First> ByRule(RecognitionGraph graph)
+	{
+		if (graph.FirstByRule is { } settled)
+			return settled;
+
+		var estimates = new Dictionary<RuleSymbol, First>();
+
+		foreach (var rule in graph.Rules)
+			estimates[rule] = graph.Bodies.ContainsKey(rule) ? First.None : First.All;
+
+		// Set before the loop, so a rule reached while its own answer is still being worked
+		// out reads the estimate rather than starting the walk again.
+		graph.FirstByRule = estimates;
+
+		// No round limit: the step is monotone over a finite lattice, so it settles. A bound
+		// here would be an admission that the argument is not believed.
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			foreach (var rule in graph.Rules)
+			{
+				if (!graph.Bodies.TryGetValue(rule, out var body))
+					continue;
+
+				var next = Of(body, graph, estimates);
+
+				if (Same(next, estimates[rule]))
+					continue;
+
+				estimates[rule] = next;
+				changed         = true;
+			}
+		}
+
+		return estimates;
+	}
+
+	/// <summary>Whether two sets are the same set.</summary>
+	/// <remarks>
+	/// Written out because <see cref="First"/> is a record whose ranges are a list, so its
+	/// own equality compares that list by reference — never equal here, and the loop above
+	/// would never have stopped. <see cref="First.Normalized"/> sorts and merges, so equal
+	/// sets really do have equal sequences.
+	/// </remarks>
+	static bool Same(First one, First other)
+	{
+		if (one.Anything != other.Anything || one.Nothing != other.Nothing || one.Ends != other.Ends)
+			return false;
+
+		if (one.Ranges.Count != other.Ranges.Count)
+			return false;
+
+		for (var at = 0; at < one.Ranges.Count; at++)
+			if (one.Ranges[at] != other.Ranges[at])
+				return false;
+
+		return true;
+	}
 
 	/// <summary>
 	/// An element's characters, callable before a graph exists.
@@ -408,7 +490,7 @@ public static class FirstSets
 		return First.Chars(element.IsNegated ? Complement(known) : known);
 	}
 
-	static First Of(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	static First Of(Node node, RecognitionGraph graph, IReadOnlyDictionary<RuleSymbol, First> byRule)
 	{
 		switch (node)
 		{
@@ -452,29 +534,23 @@ public static class FirstSets
 			case Node.Behind:
 				return First.None;
 
-			case Node.Capture  (_,  var captured): return Of(captured, graph, seen);
-			case Node.Construct(var built, _):     return Of(built,    graph, seen);
-			case Node.Atomic   (var body):         return Of(body,     graph, seen);
-			case Node.Marked   (var body, _):      return Of(body,     graph, seen);
-			case Node.Repeat   (var body, _, _):   return Of(body,     graph, seen);
+			case Node.Capture  (_,  var captured): return Of(captured, graph, byRule);
+			case Node.Construct(var built, _):     return Of(built,    graph, byRule);
+			case Node.Atomic   (var body):         return Of(body,     graph, byRule);
+			case Node.Marked   (var body, _):      return Of(body,     graph, byRule);
+			case Node.Repeat   (var body, _, _):   return Of(body,     graph, byRule);
 
 			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
 			// down — not one met and left somewhere else. Kept as the path rather than as
 			// everything visited, so that two alternatives calling the same rule do not make
 			// the second one unknowable: it was the first that used the name up.
+			// Read off the fixed point rather than walked into. A rule that reaches itself
+			// used to answer "anything" — the walk had to stop somewhere and Top is the safe
+			// place to stop — and that is the answer that poisoned everything below it: one
+			// recursive rule at the head of a grammar made every set containing it
+			// unknowable, and with it every proof that rests on knowing.
 			case Node.Call(var called, _):
-			{
-				if (!seen.Add(called))
-					return First.All;
-
-				var first = graph.Bodies.TryGetValue(called, out var body2)
-					? Of(body2, graph, seen)
-					: First.All;
-
-				seen.Remove(called);
-
-				return first;
-			}
+				return byRule.TryGetValue(called, out var settledFor) ? settledFor : First.All;
 
 			case Node.Choice(var alternatives):
 			{
@@ -483,7 +559,7 @@ public static class FirstSets
 
 				foreach (var alternative in alternatives)
 				{
-					var first = Of(alternative, graph, seen);
+					var first = Of(alternative, graph, byRule);
 
 					if (first.Anything)
 						return First.All;
@@ -499,7 +575,7 @@ public static class FirstSets
 			}
 
 			case Node.Sequence(var parts):
-				return Following(parts, 0, graph, null, seen);
+				return Following(parts, 0, graph, null, byRule);
 
 			default:
 				return First.All;

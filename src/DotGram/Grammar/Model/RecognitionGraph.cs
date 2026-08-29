@@ -383,6 +383,16 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 
+	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
+	/// <remarks>
+	/// Held here because it is a fact about this graph that costs a fixed point to find, and
+	/// set once by <see cref="FirstSets"/> the first time anything asks. Set before that
+	/// fixed point finishes, on purpose: a rule reached while its own answer is still being
+	/// worked out has to read the estimate rather than start the walk again, which is the
+	/// whole difference between a fixed point and the recursion it replaces.
+	/// </remarks>
+	internal IReadOnlyDictionary<RuleSymbol, FirstSets.First>? FirstByRule { get; set; }
+
 	public string? Context { get; init; }
 
 	/// <summary>

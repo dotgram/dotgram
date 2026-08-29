@@ -809,6 +809,52 @@ public sealed class SemanticTests
 				""",
 				input));
 
+	// ── FIRST through recursion (§4.3) ──────────────────────────────────────────
+
+	static FirstSets.First FirstOf(string grammar, string rule)
+	{
+		var graph = Normalized(grammar);
+
+		return FirstSets.Of(graph.Bodies[graph.Rules.First(one => one.Name == rule)], graph);
+	}
+
+	/// <summary>
+	/// Two rules that reach each other have the set they plainly have.
+	/// </summary>
+	/// <remarks>
+	/// The walk this replaced had to stop somewhere and stopped at "anything", which is
+	/// sound and is Top — and Top at the head of a rule is Top for everything containing it.
+	/// A fixed point has no such place to stop: every rule starts at nothing and grows.
+	/// </remarks>
+	[Fact]
+	public void A_rule_that_reaches_itself_still_has_a_first_set()
+	{
+		var first = FirstOf("A = B | 'a'\nB = A | 'b'\nStart = A", "A");
+
+		Assert.True(first.IsKnown, "the set is known rather than 'anything'");
+		Assert.True(first.Overlaps(FirstSets.First.Chars([new CharRange('a', 'a')])));
+		Assert.True(first.Overlaps(FirstSets.First.Chars([new CharRange('b', 'b')])));
+
+		// And nothing else got in on the way round.
+		Assert.False(first.Overlaps(FirstSets.First.Chars([new CharRange('c', 'c')])));
+	}
+
+	[Fact]
+	public void And_a_directly_recursive_rule_too() =>
+		// `Sum = Sum '+' Term | Term` is rewritten to a fold before this sees it, but the
+		// shape a reader writes is the shape that used to answer "anything".
+		Assert.True(FirstOf("A = A & 'x' | 'a'\nStart = A", "A").IsKnown);
+
+	/// <summary>An external recognizer is still "anything", and honestly so.</summary>
+	/// <remarks>
+	/// What it accepts is the host's knowledge. A fixed point makes recursion knowable; it
+	/// does not make a C# predicate knowable, and claiming otherwise would be the unsound
+	/// direction.
+	/// </remarks>
+	[Fact]
+	public void And_a_rule_with_no_body_is_anything() =>
+		Assert.False(FirstOf("A = [@Digit] & 'x'\nStart = A", "A").IsKnown);
+
 	// ── Which context a rule was written against (§7.7) ─────────────────────────
 
 	static RecognitionGraph Normalized(string grammar) =>
