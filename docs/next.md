@@ -5724,3 +5724,46 @@ Five tests, and the one worth naming is `And_the_two_are_counted_apart`: a `cont
 grammar and a `state` in another is two of nothing, because they are two rules and not one.
 
 1,374 tests green in both configurations.
+
+## Built: the position map, which is the half inheritance rests on
+
+The first piece of the entry above, on its own and provable on its own: joining grammars
+into the one text they are compiled as, and taking a position in that text back apart.
+
+**The including grammar goes first and is not moved.** Asked in conversation as
+prepend-or-append, and the answer is diagnostic rather than aesthetic. A diagnostic in a
+grammar written inside an attribute is placed by *searching* the literal's spelling for the
+text — a C# string knows how to turn its spelling into a value and not the other way round.
+So the text an author is actually editing keeps offsets `0..N`, its diagnostics land exactly
+where they landed before any of this existed, and only what follows needs translating.
+Putting the included grammars first would shift the one text somebody reads in order to
+serve the order of a file nobody reads.
+
+**What is included is wrapped in a namespace and not indented.** The wrapper is what hides
+its rules until a `using` asks for them (§5.1) and what keeps its `trivia` its own (§4.5).
+Indenting would read better and is refused: it would shift every position on every line, and
+the translation is only exact while a segment's bytes are the segment's bytes. The braces
+stand on lines of their own instead.
+
+**The wrapper's own characters belong to no grammar** and are left out of the map rather
+than attributed to one, so a position landing in them is answered "nowhere" — which is what
+`ILineMap` asks for over a guess.
+
+`ILineMap.TryMap(position, out file, out line, out column)` turned out to be exactly the
+right seam already: it answers *which file*, so a composite of it is all a segment map has
+to be. `SplicedLineMap` holds `(Start, Length, Map)` and delegates after translating;
+`GrammarSplice.Join` produces the text and the map **in one call**, because they are one
+fact said two ways and working them out separately is how they come to disagree.
+
+The two tests that matter are the last two, and they are end to end rather than about the
+map: a grammar including another **compiles** — its `using Base;` reaching declarations that
+come after it in the file, which works because the binder declares everything before it
+resolves anything — and an error inside what was included comes back as line 1, column 8 of
+`Base.gram` rather than as somewhere in the joined text. That last one is what would catch a
+boundary off by anything at all.
+
+Nothing reads any of this yet. What it unblocks, in order: the merge on `GrammarFile`
+(dropping the base's publications), reading the base's `[Gram]` in `Host.From`, and the two
+diagnostics rules — duplicates, and an unresolved base list.
+
+1,384 tests green in both configurations.
