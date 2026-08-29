@@ -223,7 +223,7 @@ public sealed partial class GrammarNormalizer
 
 		// The whole condition. Reading it once instead of once per alternative is the same
 		// reading only where there was one reading to begin with.
-		return Determinism.Of(head, after, graph, int.MaxValue)
+		return Determinism.Of(head, after, graph)
 			? new Node.Sequence([head, new Node.Choice(tails)])
 			: null;
 	}
