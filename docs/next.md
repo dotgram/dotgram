@@ -6530,15 +6530,19 @@ expected. The shape is the whole of what a reader needs next, so the message now
 rule lowered underneath it. It used to say only that a construction somewhere had no factory,
 and the shape was reachable only by building something that would not build.
 
-### And a fragility found and not acted on
+### And a wrong conclusion, corrected
 
-The suite cannot run while a grammar in `DotGram.Parsers` fails to generate: the test project
-references it, so a generator defect in one grammar takes down every test — including the
-ones that would diagnose it. The reference is not incidental; `tests/DotGram.Tests/Parsers/`
-holds real tests of those parsers, and they need the generated API.
+This entry first recorded a second finding: that the suite cannot run while a grammar in
+`DotGram.Parsers` fails to generate, and that separating the tests which need a consumer's
+generated code from the ones which need only the compiler would fix it.
 
-The fix would be a layout change — the tests that need a consumer's *generated code* in one
-project, the ones that only need the compiler in another — and that is a decision about the
-repository rather than a defect to fix quietly. Recorded here, not taken. What is taken is
-the half that removes the need: with the shape in the defect report, the common case no
-longer needs a run at all.
+There is nothing to fix. A project that does not build does not build for what depends on it,
+and the test project depends on the parsers because it tests them. That is a build working,
+not a repository with a flaw in it, and the proposal to split the tests over it was reaching
+for a change in the layout to make up for a mistake in method.
+
+The mistake was mine and is worth the line: told that the compiler had broken on a real
+grammar, I kept trying to diagnose it through a suite that could not run, rather than
+reproducing the break on a grammar that stands on its own. The dump above earns its place for
+the same reason it was written — it puts the shape where it is read — and not as a way around
+a build.
