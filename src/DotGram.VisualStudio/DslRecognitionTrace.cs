@@ -35,6 +35,23 @@ internal sealed class DslRecognitionResult(
 }
 
 /// <summary>
+/// Supplies recognition facts which cannot be derived from a normalized grammar alone.
+/// Implementations describe tooling-safe behavior; they must not invoke generated parser
+/// methods or consumer code.
+/// </summary>
+internal interface IDslRecognitionContract
+{
+	bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted);
+
+	bool TryMatchExternal(
+		Node.External external,
+		RuleSymbol owner,
+		string input,
+		int position,
+		out int end);
+}
+
+/// <summary>
 /// Interprets the normalized recognition model for editor tooling without executing
 /// generated or user code. The successful derivation carries the source extents of every
 /// rule and capture that participated in it.
@@ -44,7 +61,8 @@ internal static class DslRecognitionTrace
 	public static DslRecognitionResult Recognize(
 		RecognitionGraph graph,
 		Publication publication,
-		string input)
+		string input,
+		IDslRecognitionContract? contract = null)
 	{
 		if (graph is null)       throw new ArgumentNullException(nameof(graph));
 		if (publication is null) throw new ArgumentNullException(nameof(publication));
@@ -53,7 +71,7 @@ internal static class DslRecognitionTrace
 		if (publication.Kind != DotGram.Grammar.Parsing.PublishKind.Parse)
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
-		var matcher = new Matcher(graph, input);
+		var matcher = new Matcher(graph, input, contract);
 		var candidates = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
 			? matcher.Whole(publication.Rule, trivia).ToArray()
 			: matcher.Rule(publication.Rule, 0).ToArray();
@@ -82,7 +100,10 @@ internal static class DslRecognitionTrace
 			matcher.Expected);
 	}
 
-	sealed class Matcher(RecognitionGraph graph, string input)
+	sealed class Matcher(
+		RecognitionGraph graph,
+		string input,
+		IDslRecognitionContract? contract)
 	{
 		readonly HashSet<(RuleSymbol Rule, int Position)> _active = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
@@ -254,8 +275,28 @@ internal static class DslRecognitionTrace
 						yield return match;
 					yield break;
 
-				case Node.Guard or Node.External:
-					Unsupported = true;
+				case Node.Guard guard:
+					if (contract is null ||
+						!contract.TryEvaluateGuard(guard, owner, position, out var accepted))
+					{
+						Unsupported = true;
+						yield break;
+					}
+
+					if (accepted)
+						yield return Match.Empty(position);
+					yield break;
+
+				case Node.External external:
+					if (contract is null ||
+						!contract.TryMatchExternal(external, owner, input, position, out var end) ||
+						end < position || end > input.Length)
+					{
+						Unsupported = true;
+						yield break;
+					}
+
+					yield return Match.Empty(end);
 					yield break;
 			}
 		}

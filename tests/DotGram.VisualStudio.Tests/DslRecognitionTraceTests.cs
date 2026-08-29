@@ -1,5 +1,6 @@
 using System.Linq;
 
+using DotGram.Generation;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
@@ -123,6 +124,68 @@ public sealed class DslRecognitionTraceTests
 	[Fact]
 	public void DoesNotGuessWhenRecognitionRequiresUserCode()
 	{
+		var (graph, publication) = ExternalGraph();
+
+		var result = DslRecognitionTrace.Recognize(graph, publication, "anything");
+
+		Assert.Equal(DslRecognitionStatus.Unsupported, result.Status);
+	}
+
+	[Fact]
+	public void UsesToolingContractForGuardsWithoutExecutingUserCode()
+	{
+		var (graph, publication) = Compile("""
+			parse Start
+			Start = when @(Allowed) & value: ['a'..'z']+
+			""");
+		var accepted = DslRecognitionTrace.Recognize(
+			graph,
+			publication,
+			"word",
+			new Contract(guard: true));
+		var rejected = DslRecognitionTrace.Recognize(
+			graph,
+			publication,
+			"word",
+			new Contract(guard: false));
+
+		Assert.Equal(DslRecognitionStatus.Success, accepted.Status);
+		Assert.Contains(accepted.Extents, extent => extent.Capture == "value");
+		Assert.Equal(DslRecognitionStatus.Failure, rejected.Status);
+	}
+
+	[Fact]
+	public void UsesToolingContractForExternalRecognizerExtent()
+	{
+		var (graph, publication) = ExternalGraph();
+
+		var result = DslRecognitionTrace.Recognize(
+			graph,
+			publication,
+			"name",
+			new Contract(externalEnd: 4));
+
+		Assert.Equal(DslRecognitionStatus.Success, result.Status);
+		Assert.Contains(result.Extents, extent =>
+			extent.Rule.Name == "Start" && extent.Position == 0 && extent.Length == 4);
+	}
+
+	[Fact]
+	public void RejectsInvalidExternalExtentFromToolingContract()
+	{
+		var (graph, publication) = ExternalGraph();
+
+		var result = DslRecognitionTrace.Recognize(
+			graph,
+			publication,
+			"name",
+			new Contract(externalEnd: 5));
+
+		Assert.Equal(DslRecognitionStatus.Unsupported, result.Status);
+	}
+
+	static (RecognitionGraph Graph, Publication Publication) ExternalGraph()
+	{
 		var rule = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);
 		var graph = new RecognitionGraph(
 			[rule],
@@ -145,14 +208,32 @@ public sealed class DslRecognitionTraceTests
 			new System.Collections.Generic.Dictionary<RuleSymbol, RuleSymbol>(),
 			[]);
 
-		var result = DslRecognitionTrace.Recognize(graph, publication, "anything");
+		return (graph, publication);
+	}
 
-		Assert.Equal(DslRecognitionStatus.Unsupported, result.Status);
+	sealed class Contract(bool? guard = null, int? externalEnd = null) : IDslRecognitionContract
+	{
+		public bool TryEvaluateGuard(Node.Guard guardNode, RuleSymbol owner, int position, out bool accepted)
+		{
+			accepted = guard.GetValueOrDefault();
+			return guard.HasValue;
+		}
+
+		public bool TryMatchExternal(
+			Node.External external,
+			RuleSymbol owner,
+			string input,
+			int position,
+			out int end)
+		{
+			end = externalEnd.GetValueOrDefault();
+			return externalEnd.HasValue;
+		}
 	}
 
 	static (RecognitionGraph Graph, Publication Publication) Compile(string source)
 	{
-		var parsed = GramParser.Parse(GramLexer.Tokenize(source));
+		var parsed = GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance));
 		var model  = GrammarBinder.Bind(parsed.File);
 		var graph  = GrammarNormalizer.Normalize(model);
 

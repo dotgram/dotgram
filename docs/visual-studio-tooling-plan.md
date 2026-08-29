@@ -59,8 +59,11 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [ ] Define a shared recognition trace for classifying arbitrary DSL input.
   - [x] Trace pure normalized recognition nodes with rule/capture extents, ordered
     backtracking, atomic groups, lookahead, repetition, calls, and whole-parse trivia.
+  - [x] Define a non-executing contract for guard decisions and external-recognizer
+    extents, including bounds validation and an unsupported fallback.
   - [ ] Add guarded/external recognition through a non-executing tooling contract and
-    prove parity against generated parsers on the bounded corpus.
+    prove parity against generated parsers on the bounded corpus. The remaining work is
+    descriptor-backed contract population and the parity corpus.
 - [x] Classify and diagnose string arguments routed through user-marked parameters in
   Visual Studio.
 - [x] Cache language discovery per Roslyn compilation and normalized DSL preparation
