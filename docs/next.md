@@ -6145,3 +6145,106 @@ fail has not been seen to do anything**, and the way to see it is to make the th
 guards against, not to reason that it would.
 
 1,456 tests green in both configurations.
+
+## Decided: `context` is a contract, and inheritance refines it
+
+Settled in conversation, and it overturns what was written above — under "Considered: parser
+inheritance" the open question was recorded as a choice between scoping `context` per
+namespace or lifting it and reconciling by assignment, with `state` unable to follow because
+`ReadOnlySpan<T>` is invariant. The answer is neither: **`context` and `state` do not compose
+the same way at all**, and treating them as one thing was the mistake.
+
+### The rule
+
+> A grammar declares the contract its own semantic code requires. A derived grammar may
+> strengthen the effective type, provided that type satisfies every inherited contract and is
+> visible where the derived grammar compiles. **Inherited semantic code stays statically bound
+> to the contract it was written under.**
+
+So a declaration in a derived grammar does not create a second context. It refines the
+inherited one, and the parts of a composed grammar legitimately see one object through
+different static contracts:
+
+```text
+                     the object: DerivedContext
+                              |
+              +---------------+---------------+
+       base rules see                  derived rules see
+        BaseContext                     DerivedContext
+```
+
+Which is ordinary subtyping — virtual dispatch works, new members are invisible to the base,
+and nothing about it is special to this notation.
+
+### Why the last clause is the load-bearing one
+
+If base rules were recompiled against the derived type, **inheriting a grammar would change
+what already-written C# means**. The example that raised it would not actually have flipped —
+`context.Resolve(name)` with `name` a `string` picks `Resolve(string)` over an added
+`Resolve(object)` either way, an exact match being the better one. What does flip:
+
+* `new`-hiding — a derived `new bool Resolve(string)` takes a statically-derived call outright;
+* an overload better by conversion, `Resolve(ReadOnlySpan<char>)` beside `Resolve(string)`;
+* an extension method applicable to the derived type and not the base;
+* optional parameters, `params`, generic inference.
+
+So the principle holds more strongly than the example showed, and it is what settles the
+design.
+
+### And it overturns `GRAM3017`
+
+A base and a derived host in one assembly both declare a `context`. Today that is an error —
+the one taken deliberately as forward-compatible, on the reasoning that a constraint taken
+early is a rule rather than a later change of one. This design is what it was being kept
+compatible *with*, and it wants the opposite: not one per assembly, and not even one per
+chain, but **an effective type satisfying every inherited contract**. A condition rather than
+a prohibition. `GRAM3017` and `GRAM3018` are rewritten when the check exists.
+
+The early constraint was not wasted: it means no existing grammar has two, so nothing breaks
+when the rule changes shape.
+
+### `state` does not follow, and the reason is not the variance
+
+`ReadOnlySpan<T>` being invariant is the mechanical reason a derived mark type cannot be
+handed where a base one is expected. The real reason is underneath it: **a context is one
+object flowing down, and a mark is a heterogeneous stack of values from several authors.**
+Different shapes compose differently.
+
+So `state` stays invariant across composition — one type, declared once along the chain — and
+§7.8's existing note gains weight: a grammar meant to be inherited declares its `state` as a
+reference type, because a consumer cannot extend an enum to add a concern of their own. Named
+channels or a heterogeneous mark model would be a separate design and are not this one.
+
+### Four things this needs that were not in the proposal
+
+1. **The contract type must be visible where the derived grammar compiles.** An emitted
+   `BaseGuard(…, BaseContext context)` does not compile if `BaseContext` is `internal` to
+   another assembly. Within one assembly it is nothing; for a library it is a rule, and the
+   same rule as the one that makes `@JsonObject` resolve — what a library grammar names in
+   its C# has to be reachable from where it is re-emitted.
+2. **"Interface" means two different things here.** A contract that is an interface —
+   `context : @INameContext` — is exactly right, and is what makes several inherited
+   contracts satisfiable by one type. An interface *carrying a grammar* is a different thing
+   and cannot have `=>` at all, because its members are not in the implementing class's
+   scope. They will be conflated if not separated in writing.
+3. **The scoping becomes asymmetric.** `context` is per-rule; `state` stays per-graph. Two
+   scoping rules in one model, accepted rather than stumbled into.
+4. **The check has a seam already.** `ISymbolResolver.IsAssignable(from, to)` exists for §4.1
+   — "assignability is inheritance, interfaces and conversions, none of which a grammar can
+   see". Nothing new is needed and `Grammar/` stays free of Roslyn.
+
+### Order
+
+1. `ContextOf(rule)` in the model — the contract by where a rule came from. The splice
+   already knows which segment each rule was read from.
+2. Signatures by contract: a guard and a factory take their origin's type, a publication
+   takes the effective one, and the calls upcast on their own.
+3. The refinement check through `IsAssignable`, and `GRAM3017` rewritten from a prohibition
+   into a condition.
+4. `state` invariant, with a diagnostic saying so.
+
+**One thing about (1) and (2):** the contract has to survive `with` specialization, cloning,
+inlining, the flat rendering and sites — which is exactly the class of "do not forget this on
+a rebuild" that got a registry two commits ago and a per-rendering table one commit before
+that. The place to put it now exists, and so does the kind of test that will not let it be
+forgotten.
