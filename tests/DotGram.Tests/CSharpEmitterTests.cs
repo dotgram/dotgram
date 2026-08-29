@@ -528,7 +528,12 @@ public sealed class CSharpEmitterTests
 
 		// No `parserText`: the condition asks about the capture, so the run around it is
 		// never built. What the guard reads out of the arena is the capture and nothing else.
-		Assert.Contains("Recognize_DotGram_Guard0(string? value)", source);
+		//
+		// And not `string?`: the two alternatives share their leading operand, so the fold
+		// reads it once in front of them and the capture is written on every path that
+		// reaches the guard. It used to be optional because the guard's own alternative was
+		// one of two places it could have been written.
+		Assert.Contains("Recognize_DotGram_Guard0(string value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
 		Assert.DoesNotContain("bool[] _built", source);
 		Assert.DoesNotContain("Recognize_Start(", source);

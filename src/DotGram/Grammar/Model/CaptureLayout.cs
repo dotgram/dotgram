@@ -61,6 +61,7 @@ public sealed class CaptureLayout
 	readonly Dictionary<Node, int> _slotOf = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, int> _before = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, int> _after  = new(NodeIdentity.Instance);
+	readonly Dictionary<Node, Node> _shared = new(NodeIdentity.Instance);
 
 	CaptureLayout()
 	{
@@ -87,6 +88,17 @@ public sealed class CaptureLayout
 	/// the ones written after it, and nothing of its own is among them.
 	/// </summary>
 	public int After(Node node) => _after.TryGetValue(node, out var count) ? count : 0;
+
+	/// <summary>
+	/// The operand a left-factored alternative shares with its siblings, or null where it
+	/// shares none.
+	/// </summary>
+	/// <remarks>
+	/// What a <c>=&gt;</c> may name is what its own alternative captured, and after a fold
+	/// part of that alternative is the head standing in front of the choice. Asking the tail
+	/// alone would call the head's captures a sibling's and hand them over as optional.
+	/// </remarks>
+	public Node? SharedHead(Node node) => _shared.TryGetValue(node, out var head) ? head : null;
 
 	/// <param name="buildsValue">Whether a rule has a value of its own rather than text.</param>
 	/// <summary>Every slot that collects rather than holds.</summary>
@@ -157,11 +169,29 @@ public sealed class CaptureLayout
 				break;
 
 			case Node.Sequence(var nodes):
+			{
+				// Where a left-factored alternative starts, which is the head it shares and
+				// not the tail that tells it from its siblings. The `=>` on a tail may name
+				// what the head captured, so the range it is given has to begin here.
+				var start = _slots.Count;
 
 				foreach (var child in nodes)
 					Walk(child, buildsValue, repeated, inFold);
 
+				if (nodes.Count > 1 && nodes[^1] is Node.Choice(var behind))
+				{
+					var head = nodes.Count == 2 ? nodes[0] : new Node.Sequence([.. nodes.Take(nodes.Count - 1)]);
+
+					foreach (var one in behind)
+						if (one is Node.Construct)
+						{
+							_before[one] = start;
+							_shared[one] = head;
+						}
+				}
+
 				break;
+			}
 
 			case Node.Atomic(var body):
 
@@ -296,14 +326,57 @@ public sealed record Fold(Node Loop, IReadOnlyDictionary<Node, string> Accumulat
 	public static IReadOnlyList<Node> Of(Node body, Fold? fold)
 	{
 		if (fold is null)
-			return body is Node.Choice(var alternatives) ? alternatives : [body];
+		{
+			if (body is not Node.Choice(var alternatives))
+				return Shared(body) ?? [body];
 
-		var offered = new List<Node>();
+			var offered = new List<Node>();
+
+			foreach (var alternative in alternatives)
+				offered.AddRange(Shared(alternative) ?? [alternative]);
+
+			return offered;
+		}
+
+		var steps = new List<Node>();
 
 		// The rewrite made the body a sequence of the bases and the loop over the tails.
 		foreach (var part in ((Node.Sequence)body).Nodes)
-			offered.AddRange(Of(part is Node.Repeat(var repeated, _, _) ? repeated : part, null));
+			steps.AddRange(Of(part is Node.Repeat(var repeated, _, _) ? repeated : part, null));
 
-		return offered;
+		return steps;
+	}
+
+	/// <summary>
+	/// The alternatives behind a head the compiler folded out of them, or null where this is
+	/// not one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Left-factoring reads a shared leading operand once and puts what followed it in each
+	/// alternative behind it, so an alternative of the rule ends up inside a sequence rather
+	/// than at the top of the body. What is offered has to follow it there: these are still
+	/// the rule's alternatives, and a <c>=&gt;</c> on one still builds the rule's value.
+	/// </para>
+	/// <para>
+	/// The shape says so by itself and needs no marker. A construction is refused anywhere
+	/// but on an alternative of the rule, and that is checked before anything is folded — so
+	/// a choice of constructions sitting at the end of a sequence is not something an author
+	/// can have written. Where a fold moved no construction there is nothing to find here,
+	/// and nothing needs one.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyList<Node>? Shared(Node alternative)
+	{
+		if (alternative is not Node.Sequence(var parts) ||
+			parts.Count == 0 ||
+			parts[^1] is not Node.Choice(var behind))
+			return null;
+
+		foreach (var one in behind)
+			if (one is not Node.Construct)
+				return null;
+
+		return behind;
 	}
 }

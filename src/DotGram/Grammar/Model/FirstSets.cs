@@ -709,6 +709,25 @@ public static class FirstSets
 
 	static readonly Dictionary<char, First> _folded = [];
 
+	/// <summary>
+	/// What must begin the input where a node begins, given what must begin it where the
+	/// node ends.
+	/// </summary>
+	/// <remarks>
+	/// A node that must consume something answers for itself. One that may match nothing
+	/// leaves the question to what comes after it as well as to itself, so the two are taken
+	/// together — the direction that admits too much, and so proves too little, rather than
+	/// the one that proves something false.
+	/// </remarks>
+	public static First Precedes(Node node, First after, RecognitionGraph graph)
+	{
+		var first = Of(node, graph);
+
+		return first.Nothing      ? after :
+			Nullable(node, graph) ? first.Or(after) :
+			first;
+	}
+
 	/// <summary>Whether a node can match without consuming anything.</summary>
 	public static bool Nullable(Node node, RecognitionGraph graph) => Nullable(node, graph.RuleIsNullable);
 

@@ -978,11 +978,17 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
+	/// <remarks>
+	/// The two alternatives name the operand differently, which is what keeps them two: a
+	/// fold that shared it would have to drop one of the names along with the slot it was
+	/// written to, so it declines. Reading the operand twice is what this test is about, and
+	/// the test below is about not having to.
+	/// </remarks>
 	[Fact]
 	public void A_cached_guard_value_is_discarded_with_its_derivation()
 	{
 		var type = Build("""
-			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | again: Number & when @(again == 1) => @(again)\nNumber : @int = '1' => @Built()\nparse Start")]
 			public partial class BacktrackedGuardValue
 			{
 				public static int Calls;
@@ -992,6 +998,30 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
 		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
+	}
+
+	/// <summary>And the same grammar with the operand shared reads it once.</summary>
+	/// <remarks>
+	/// The same two alternatives, naming the operand the same thing. `Number` has one
+	/// reading, so which of them matches cannot turn on how much of it was read, and the
+	/// fold puts it in front of both. What the author wrote is unchanged; what runs is one
+	/// derivation instead of two, and the factory the abandoned one had already called
+	/// is not called again.
+	/// </remarks>
+	[Fact]
+	public void And_a_shared_operand_is_read_once()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = value: Number & when @(value == 1) & 'x' => @(value) | value: Number & when @(value == 1) => @(value)\nNumber : @int = '1' => @Built()\nparse Start")]
+			public partial class SharedGuardValue
+			{
+				public static int Calls;
+				static int Built() { Calls++; return 1; }
+			}
+			""").GetType("SharedGuardValue")!;
+
+		Assert.Equal(1, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
+		Assert.Equal(1, type.GetField("Calls")!.GetValue(null));
 	}
 
 	[Fact]

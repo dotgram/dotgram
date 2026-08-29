@@ -819,7 +819,11 @@ public static partial class CSharpEmitter
 					visible.Add(member with
 					{
 						Slots      = mine,
-						IsOptional = !GrammarNormalizer.Writes(node, member.Name),
+						// The head a fold shares stands in front of this alternative and is
+						// as much a part of it as the tail is.
+						IsOptional = !GrammarNormalizer.Writes(node, member.Name) &&
+							(layout.SharedHead(node) is not { } head ||
+								!GrammarNormalizer.Writes(head, member.Name)),
 					});
 			}
 

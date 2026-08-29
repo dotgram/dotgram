@@ -2043,6 +2043,51 @@ public sealed class SemanticTests
 	// ── Captures, and the value they build (§7.3) ───────────────────────────────
 
 	/// <summary>Compiles and runs as <see cref="Matches"/> does, and hands back the value.</summary>
+	// ── A shared leading operand, folded only where the fold is invisible ────────
+
+	/// <summary>An operand that can give back is not shared, because sharing it would show.</summary>
+	/// <remarks>
+	/// The whole condition on left-factoring, from the side that says no. Two alternatives
+	/// prefer a shorter reading of the operand that lets a tail fit; one alternative with the
+	/// operand in front prefers the operand’s own reading and then chooses. On <c>xxy</c>
+	/// the spelled-out form gives back to <c>x</c> so that <c>"xy"</c> fits and the first
+	/// alternative wins; a folded form would take <c>xx</c> and fall to the second. Same text
+	/// consumed, different alternative matched, different <c>=&gt;</c> run — which is why the
+	/// fold is refused here and <c>GRAM4016</c> is left to say so.
+	/// </remarks>
+	[Fact]
+	public void An_operand_that_can_give_back_is_not_shared() =>
+		Assert.Equal(
+			"first:x",
+			Built(
+				"""
+				Chunk = 'x'+
+				Start : @string
+					= a: Chunk & "xy" => @("first:" + a)
+					| a: Chunk & "y"  => @("second:" + a)
+				""",
+				"xxy"));
+
+	/// <summary>And one that cannot is, with nothing to show for it but the reading saved.</summary>
+	/// <remarks>
+	/// <c>"ab"</c> has one reading, so which alternative matches cannot turn on how much of
+	/// it was read. Both spellings answer the same thing, which is the point: the fold is
+	/// admitted exactly where it cannot be seen. That it happened is visible only in the work
+	/// — <c>GeneratorDriverTests.And_a_shared_operand_is_read_once</c> counts it.
+	/// </remarks>
+	[Fact]
+	public void And_one_that_cannot_is_shared() =>
+		Assert.Equal(
+			"second:ab",
+			Built(
+				"""
+				Word = "ab"
+				Start : @string
+					= a: Word & "cd" => @("first:" + a)
+					| a: Word & "ce" => @("second:" + a)
+				""",
+				"abce"));
+
 	static object? Built(string grammar, string input)
 	{
 		var (isSuccess, value, _, _) = Parsed(grammar, input);

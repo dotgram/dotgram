@@ -6428,3 +6428,72 @@ grammar that declares a context but never names it in a hook generates code that
 context at all — so the test that proves the two contracts coexist had to make both halves
 use theirs. It does, and one generated file now carries `IWords context` and
 `IReading context` in different signatures, which is the design in one line.
+
+## Built: a shared leading operand is read once
+
+The author who writes `A & X | A & Y` writes the same language as the author who writes
+`A & (X | Y)` and gets a different parser: every alternative after the first reads `A` again,
+and the doubling compounds through nesting. Making the author write for the machine is what a
+generator exists to avoid, so the compiler folds it.
+
+**Only where the fold cannot be seen.** The two spellings are the same grammar exactly when
+`A` has one reading where it stands, and the difference where it does not is not a subtlety
+about speed. Measured on the parser rather than argued:
+
+```dotgram
+Chunk = 'x'+
+Start : @string = a: Chunk & "xy" => @("first:" + a) | a: Chunk & "y" => @("second:" + a)
+```
+
+on `xxy` gives `first:x` spelled out and `factored:xx/y` folded — the same text consumed, a
+different alternative matched, a different `=>` run. `'x'+` can give back, so the alternatives
+prefer a shorter reading of it that lets a tail fit and the folded form prefers its own. With
+`Word = "ab"` in place of `Chunk` both spellings answer identically, because there was one
+reading to prefer.
+
+So the whole condition is `Determinism`: the shared operand must have at most one match where
+it stands. Where the proof does not reach, nothing is folded and `GRAM4016` is left to tell
+the author, whose choice it then is — the diagnostic is unchanged and still fires where it
+fired.
+
+### Where it had to go, and what that cost
+
+Not in the emitter, though that is where the continuation the proof needs is already threaded.
+Capture slots are numbered per node in source order, and the numbering is load-bearing —
+"everything written since this point" has to be a contiguous suffix. A fold drops a duplicate
+capture and renumbers, so it has to happen before the results are computed, which is the
+normalizer.
+
+And after the checks, not before. A `=>` is refused anywhere but on an alternative of the
+rule, and the folded shape puts one behind a shared head. The author may not write that and
+the compiler may — so the grammar is checked as written, then folded, then the results are
+computed again.
+
+Three things had to learn to follow an alternative there, and each is one place:
+
+* `Fold.Of`, which says what a rule's alternatives are, and so which constructions get
+  factories. It looks through a sequence ending in a choice of constructions — a shape no
+  author can have written, since that is what the check just refused, so no marker is needed
+  to tell the compiler's fold from a hand-written one.
+* `CaptureLayout`, which gives each alternative the range of slots its `=>` may name. A folded
+  alternative begins at the head it shares, not at the tail that tells it from its siblings.
+* The optionality of a member, which asked whether *this alternative* writes it. The head
+  standing in front is as much a part of the alternative as the tail, and without that a
+  capture written on every path came out nullable.
+
+### What it does not do yet
+
+Two things are left out rather than reasoned about carelessly: a rule rewritten for left
+recursion, whose loop is held by node identity that a rewrite would break, and a grammar with
+a recovery, which is a decision about a shape this moves.
+
+And the case that motivated the whole thing is not covered. `Call | Reference`, where `Call`'s
+body *begins with* a call to `Reference`, is not two alternatives with a shared leading
+operand — it is one alternative whose prefix is the other alternative, one call down. Seeing
+it means looking through a call, and folding it means putting a rule's body behind a head
+while the rule itself stays for its other callers. That is the next step and it is the one
+that pays: the corpus is byte-identical today, and the fold fires only where a grammar spells
+the sharing out.
+
+What is built is the proof, the place, and the three things that had to follow an alternative
+into it.

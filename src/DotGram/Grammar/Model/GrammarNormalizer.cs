@@ -143,6 +143,11 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Check();
 
+		// After the checks, because the grammar is checked as it was written and the fold
+		// makes a shape the author may not: a construction after a head shared with its
+		// neighbours. Before the two below, which only read what binding recorded.
+		normalizer.Factor();
+
 		// Last, and reading only what binding recorded: which contract each grammar in the
 		// composition declared, and whether one type can be seen through all of them.
 		normalizer.ReconcileContexts();

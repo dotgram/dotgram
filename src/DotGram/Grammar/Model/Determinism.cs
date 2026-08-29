@@ -110,7 +110,7 @@ public static class Determinism
 				return false;
 
 			if (sequence)
-				after = Precedes(nodes[at], after, graph);
+				after = FirstSets.Precedes(nodes[at], after, graph);
 		}
 
 		return true;
@@ -160,19 +160,6 @@ public static class Determinism
 					return false;
 
 		return true;
-	}
-
-	/// <summary>
-	/// What must begin the input where a node begins, given what must begin it where the
-	/// node ends.
-	/// </summary>
-	static FirstSets.First Precedes(Node node, FirstSets.First after, RecognitionGraph graph)
-	{
-		var first = FirstSets.Of(node, graph);
-
-		return first.Nothing                    ? after :
-			FirstSets.Nullable(node, graph) ? first.Or(after) :
-			first;
 	}
 
 	/// <summary>Which rules the walk is inside, and what followed each where it went in.</summary>
