@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
+using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
 
@@ -100,4 +102,85 @@ public sealed class RenderingTests
 			"No decision",
 			Assert.Throws<InvalidOperationException>(
 				() => Reason(Enum.Parse(Rendering, "Flat"), "parserSomethingNew")).Message);
+
+	// ── What an arena entry's second field means ────────────────────────────────
+
+	static readonly Type Layout =
+		typeof(GrammarBinder).Assembly.GetType("DotGram.Grammar.Emit.Machine")!;
+
+	static bool MeansAState(string kind)
+	{
+		try
+		{
+			return (bool)Layout
+				.GetMethod("MeansAState", BindingFlags.NonPublic | BindingFlags.Static)!
+				.Invoke(null, [kind])!;
+		}
+		catch (TargetInvocationException raised)
+		{
+			throw raised.InnerException!;
+		}
+	}
+
+	/// <summary>Every kind of arena entry there is, read out of the emitted code itself.</summary>
+	/// <remarks>
+	/// From a checked-in snapshot rather than from a list written here, which is the whole
+	/// point: a kind added to the engine appears in the snapshot on the next run, and this
+	/// then asks whether anybody decided what its second field means.
+	/// </remarks>
+	public static TheoryData<string> Kinds()
+	{
+		var emitted = File.ReadAllText(
+			Path.Combine(SolutionRoot(), "tests", "Snapshots", "Url.gram.g.cs"));
+
+		var data = new TheoryData<string>();
+
+		foreach (Match found in Regex.Matches(emitted, @"internal const int (\w+)\s*=\s*\d+;"))
+			data.Add(found.Groups[1].Value);
+
+		Assert.NotEmpty(data);
+
+		return data;
+	}
+
+	/// <summary>
+	/// Layout rewrites an entry's second field where it is a state, and must not where it
+	/// is not.
+	/// </summary>
+	/// <remarks>
+	/// This has already been a silent corruption once: a capture slot that happened to equal
+	/// a collapsed state's number came back as that state's, the value it named was never
+	/// built, and a construction was handed a null. It was guarded by a list of the eight
+	/// kinds that are states, which said nothing about the other ten — so a kind added later
+	/// was undecided by default, in whichever direction the next reader assumed. Two kinds
+	/// were added this week.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Kinds))]
+	public void Every_kind_of_entry_says_what_its_second_field_is(string kind) =>
+		MeansAState(kind);
+
+	/// <summary>And a kind nobody decided about is an error, not a guess either way.</summary>
+	/// <remarks>
+	/// Which is what the theory above rests on: it asserts a decision exists by asking for
+	/// one, so the asking has to be what fails. Verified by taking an entry out, which turns
+	/// out to break generation itself — loudly, but as a downstream compile error in the
+	/// consumer rather than as a sentence naming the kind. Hence both: the throw says which,
+	/// and the theory says that every kind reaches it.
+	/// </remarks>
+	[Fact]
+	public void A_kind_nobody_decided_about_is_refused_loudly() =>
+		Assert.Contains(
+			"No decision",
+			Assert.Throws<InvalidOperationException>(() => MeansAState("SomethingNew")).Message);
+
+	static string SolutionRoot()
+	{
+		var at = AppContext.BaseDirectory;
+
+		while (at is not null && !File.Exists(Path.Combine(at, "DotGram.slnx")))
+			at = Path.GetDirectoryName(at);
+
+		return at ?? throw new InvalidOperationException("No solution root above the test binary.");
+	}
 }

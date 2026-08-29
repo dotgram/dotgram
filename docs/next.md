@@ -6069,3 +6069,44 @@ And one that the refusal did not take the feature with it: a chain of `with` sit
 not come back still finds its order, which is what the ordering was written for.
 
 1,436 tests green in both configurations.
+
+## Fixed: the one dangerous half of layout reading its own output
+
+The review wants `Machine.Layout` to stop recovering a control-flow graph by regex over the
+C# it just wrote. That is right and it is not what was done here — 85 `goto` sites and 43
+arena pushes is a mechanical change at exactly the scale where a mechanical change in a code
+generator goes quietly wrong, and it should be one deliberate piece of work rather than a
+follow-on.
+
+**What was done is the part that is actually dangerous**, which is not `goto S(\d+)` — that
+pattern is unambiguous and cannot mean anything else. It is the other regex:
+
+```
+new ParserEntry\(ParserEntry\.(\w+), (\d+),
+```
+
+whose second capture means **different things for different kinds**. Layout rewrites it as a
+state number, and reading a capture slot or a factory as one has already been a silent
+corruption once: a slot that happened to equal a collapsed state's number came back as that
+state's, the value it named was never built, and a construction was handed a null.
+
+It was guarded by a list of the eight kinds that *are* states, which **said nothing about
+the other ten**. A kind added later was undecided by default, in whichever direction the next
+reader assumed — and two kinds were added this week.
+
+Now every kind has an entry saying what its second field is: a state, a slot, a choice of
+factory or recovery or `with state` site, or nothing numbered at all. `MeansAState` throws
+for a kind nobody has decided about. The same shape as `Renderings.cs` two entries above,
+for the same reason and against the same defect class.
+
+**The test reads the kinds out of the emitted code**, from a checked-in snapshot rather than
+from a list written beside it — so a kind added to the engine appears there on the next run
+and is then asked about. Taking an entry out was tried: it breaks generation itself, loudly,
+but as a downstream compile error in the consumer rather than as a sentence naming the kind.
+So both are asserted — the throw says which kind, and the theory says every kind reaches it.
+
+The larger change stays on the list, and its shape is the review's: `StateBlock` carrying
+text plus typed edges, recorded where a jump is written rather than recovered from how it
+was spelled.
+
+1,455 tests green in both configurations.
