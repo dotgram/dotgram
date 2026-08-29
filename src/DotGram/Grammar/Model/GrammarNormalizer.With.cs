@@ -154,27 +154,20 @@ public sealed partial class GrammarNormalizer
 			reaches[group.Key] = reached;
 		}
 
-		// Transitively, then look for a pair that reaches both ways. The graphs here have as
-		// many nodes as the grammar has rules containing a `with`, which is a handful — so
-		// closing it over itself is clearer than a strongly-connected-components walk and
-		// costs nothing that can be measured.
-		for (var changed = true; changed;)
-		{
-			changed = false;
-
-			foreach (var pair in reaches)
-				foreach (var onward in pair.Value.ToArray())
-					if (reaches.TryGetValue(onward, out var beyond))
-						foreach (var further in beyond)
-							if (further != pair.Key && pair.Value.Add(further))
-								changed = true;
-		}
+		// Two rules reach each other exactly when they share a strongly connected component,
+		// which is what a component *is* — so the question is asked of one rather than
+		// worked out by closing the relation over itself. This closure was written by hand
+		// two days before `CallGraph` existed and was the fourth walk over these edges,
+		// which is the duplication that made the shared one worth having.
+		var cycles = new CallGraph(
+			reaches.Keys,
+			rule => reaches.TryGetValue(rule, out var onward) ? onward : []);
 
 		var refused = false;
 
 		foreach (var group in groups)
 			foreach (var other in reaches[group.Key])
-				if (reaches[other].Contains(group.Key) &&
+				if (cycles.Together(group.Key, other) &&
 					string.CompareOrdinal(group.Key.Name, other.Name) < 0)
 				{
 					refused = true;

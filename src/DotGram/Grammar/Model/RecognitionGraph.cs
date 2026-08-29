@@ -486,52 +486,37 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> Recursive => field ??= FindRecursive();
 
+	/// <summary>
+	/// Which rule calls which, worked out once for everything that asks.
+	/// </summary>
+	/// <remarks>
+	/// Internal because it is a fact about this graph rather than part of what a grammar
+	/// means, and shared because the alternative is what was here before: the same edges
+	/// rebuilt by whoever needed them, each with its own idea of what a cycle is.
+	/// </remarks>
+	internal CallGraph Calls => field ??= new CallGraph(Rules, Called);
+
+	IEnumerable<RuleSymbol> Called(RuleSymbol rule)
+	{
+		if (!Bodies.TryGetValue(rule, out var body))
+			yield break;
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Call(var target, _))
+				yield return target;
+	}
+
 	HashSet<RuleSymbol> FindRecursive()
 	{
-		var calls = new Dictionary<RuleSymbol, List<RuleSymbol>>();
-
-		foreach (var rule in Rules)
-		{
-			var called = new List<RuleSymbol>();
-
-			if (Bodies.TryGetValue(rule, out var body))
-				foreach (var node in NodeWalk.Descendants(body))
-					if (node is Node.Call(var target, _) && !called.Contains(target))
-						called.Add(target);
-
-			calls[rule] = called;
-		}
-
 		var recursive = new HashSet<RuleSymbol>();
 
-		// Reachability from each rule to itself. Quadratic in the number of rules and run
-		// once per grammar, which is nothing beside what it saves at every call site.
+		// A component of more than one rule is a cycle by construction, and a rule that
+		// calls itself is one a component of a single rule cannot show. That is the whole
+		// of it — where this used to walk from every rule looking for a way back to itself,
+		// which is the same answer worked out once per rule instead of once per grammar.
 		foreach (var rule in Rules)
-		{
-			var seen    = new HashSet<RuleSymbol>();
-			var pending = new Stack<RuleSymbol>();
-
-			foreach (var target in calls[rule])
-				pending.Push(target);
-
-			while (pending.Count > 0)
-			{
-				var at = pending.Pop();
-
-				if (ReferenceEquals(at, rule))
-				{
-					recursive.Add(rule);
-
-					break;
-				}
-
-				if (!seen.Add(at) || !calls.TryGetValue(at, out var next))
-					continue;
-
-				foreach (var target in next)
-					pending.Push(target);
-			}
-		}
+			if (Calls.Recurses(rule))
+				recursive.Add(rule);
 
 		return recursive;
 	}
