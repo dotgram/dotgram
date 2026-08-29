@@ -6742,3 +6742,48 @@ the grammar does not say so, so nothing can prove it. `wordboundary` exists and 
 That is the lexical layer, named in the memory of this project long ago and not yet built: a
 rule that is a token, read once and to its end. The fold is waiting on the notation, not on the
 analysis, and that is a better place for it to be waiting.
+
+## Found: the notation already says it, and two grammars here did not
+
+The last entry concluded that left-factoring was waiting on a lexical layer. It was not. The
+notation has said the thing all along: an atomic group commits its first reading, and
+`Determinism` answers `true` for one outright. So a rule that spells a lexeme can say it is
+read once, and where it does, everything above it follows.
+
+Written unfolded — `Call | Reference` rather than the hand-written `RefOrCall` — and with
+`Name` and `Reference` wearing braces, the notation's own `Primary` comes out as:
+
+```text
+Sequence
+  Capture 'target' → Call Reference
+  Choice
+    Construct => (GramGrammar.Call(target, first, rest))   ← '(' … ')'
+    Construct => (target)                                  ← nothing
+```
+
+Which is `RefOrCall`, written by the compiler. Without the braces it does not fold; with them
+it does. That is the number the exercise was for, and it took two pairs of braces rather than
+a lexical layer.
+
+### The diagnostic that was built, measured, and thrown away
+
+A warning was written to say so: where a fold is declined and the operand is a rule that
+recognizes text and builds nothing, name it. It fired on exactly three rules in the whole
+repository — `FilterExample.Name`, `ExpressionLanguage.Dec`, `ExpressionLanguage.TypeName` —
+which is precise rather than noisy, and the first two took the braces and were better for it.
+
+The third broke two tests. `TypeName = Word & ('.' & Word)*` is *supposed* to give characters
+back: a dotted name is a type only as far as it resolves, and the rest is member access. So
+the advice was wrong on one real grammar in three, and being a warning in a repository that
+treats warnings as errors, it failed the build of the grammar whose author was right.
+
+It is not a diagnostic, then. The two rules are structurally identical to the one that must
+not change; what separates them is what the author meant, which the compiler cannot see. The
+guidance went into §4.5 beside the one about `trivia`, with the counter-example beside it.
+
+### What the braces bought
+
+`DecRun` alone: the generated expression language went from 782,412 bytes to 768,650 — 1.8%,
+for saying what the grammar already meant. `FilterExample.Name` likewise.
+
+`TypeName` is left alone, and now has a comment saying why.

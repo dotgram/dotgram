@@ -167,6 +167,9 @@ namespace DotGram.Parsers;
 
 		// A type's name, dotted. Lexical for the same reason a suffix is: `System . Text`
 		// would be captured with the spaces in it, and nothing is named that.
+		// No braces, deliberately: a dotted name is a type only as far as it resolves, and
+		// what is left is member access, so this one has to be able to hand a trailing dotted
+		// word back. The lexeme rules around it wear them (§4.5) and this one must not.
 		TypeName = Word & ('.' & Word)*
 
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
@@ -178,7 +181,7 @@ namespace DotGram.Parsers;
 		// A separator stands between digits and is no part of the value, so every rule
 		// below hands back the digits with them taken out: `long.Parse` reads a number,
 		// not a number and an underscore.
-		DecRun = Digit    & ('_'* & Digit)*
+		DecRun = { Digit  & ('_'* & Digit)* }
 		HexRun = HexDigit & ('_'* & HexDigit)*
 		BinRun = BinDigit & ('_'* & BinDigit)*
 
