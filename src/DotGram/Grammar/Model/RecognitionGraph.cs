@@ -375,6 +375,37 @@ public sealed class RecognitionGraph(
 	public string? Context { get; init; }
 
 	/// <summary>
+	/// The <c>context</c> contract a rule's own code was written against, or null.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Context"/> is the effective type — what a publication takes and what the
+	/// caller hands over. This is the type the rule's own <c>when</c> and <c>=&gt;</c> see it
+	/// through, which is whatever the grammar that declared the rule named. They differ only
+	/// where one grammar includes another: the included rules keep the contract they were
+	/// compiled against, and the including grammar may strengthen the effective type without
+	/// changing what they mean (docs/next.md, "Decided: `context` is a contract").
+	/// </para>
+	/// <para>
+	/// Derived from where the rule was declared rather than recorded against the rule, which
+	/// is what makes it survive every clone: specialization keeps a clone in its original's
+	/// namespace — all four places that make one do — so there is nothing here to hand on and
+	/// nothing to forget handing on.
+	/// </para>
+	/// </remarks>
+	public string? ContextOf(RuleSymbol rule)
+	{
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		for (var ns = rule.Namespace; ns is not null; ns = ns.Parent)
+			if (ns.Context is { } declared)
+				return declared.Name;
+
+		return Context;
+	}
+
+	/// <summary>
 	/// The C# type every <c>with state</c> mark is written in, or null where none is
 	/// declared (§7.8).
 	/// </summary>

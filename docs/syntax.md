@@ -1510,9 +1510,11 @@ Reading and writing are on either side of the match, which is what the two hook 
 for: a `when` runs while the text is read, in the order it is written, and a `=>` runs
 afterwards, against what the guards have by then recorded.
 
-**One per grammar, and outside every namespace.** A context declared inside one would be a
-context for part of a parse, and there is no such thing: the object a caller hands over is
-handed to all of it (`GRAM3013`, `GRAM3014`).
+**One per grammar** (`GRAM3014`), and the one at the top of a file is the one a caller
+supplies. A grammar included in another (§5.1) may declare its own, and that is a *contract*
+rather than a second object: the rules written there see the caller's object through the type
+their own grammar named, and an including grammar may strengthen the type for its own rules
+without changing what the included ones were compiled against.
 
 **And one per assembly** (`GRAM3017`). Wider than it has to be today, and taken deliberately:
 a grammar that one day includes another can have only one context between them, and refusing

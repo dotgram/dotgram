@@ -809,20 +809,139 @@ public sealed class SemanticTests
 				""",
 				input));
 
-	// ── §7.7, the state a parse works out ───────────────────────────────────────
+	// ── Which context a rule was written against (§7.7) ─────────────────────────
 
+	static RecognitionGraph Normalized(string grammar) =>
+		GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(
+				DotGram.Grammar.Parsing.GramParser.Parse(
+					DotGram.Grammar.Parsing.GramLexer.Tokenize(
+						grammar, RoslynCSharpScanner.Instance)).File!));
+
+	static string? ContextOf(RecognitionGraph graph, string rule) =>
+		graph.ContextOf(graph.Rules.First(one => one.Name == rule));
+
+	/// <summary>
+	/// A rule is bound to the contract its own grammar named, and the root's is the
+	/// effective one.
+	/// </summary>
+	/// <remarks>
+	/// The two are the same until one grammar includes another, which is why they were one
+	/// thing until they could not be. What a publication takes is the root's — the object
+	/// the caller hands over — and what a rule's `when` and `=&gt;` see it through is the
+	/// contract of the grammar that wrote them.
+	/// </remarks>
 	[Fact]
-	public void A_context_belongs_to_the_whole_grammar() =>
-		Refused(
-			GrammarBinder.ContextNotAtRoot,
+	public void A_rule_is_bound_to_the_context_its_own_grammar_declared()
+	{
+		var graph = Normalized(
 			"""
+			context : @Outer
 			namespace Inner
 			{
 				context : @Names
 				A = 'x'
 			}
-			Start = Inner.A
+			Start = a: Inner.A
 			""");
+
+		Assert.Equal("Outer", graph.Context);
+		Assert.Equal("Names", ContextOf(graph, "A"));
+		Assert.Equal("Outer", ContextOf(graph, "Start"));
+	}
+
+	[Fact]
+	public void And_a_grammar_that_declares_one_binds_every_rule_to_it() =>
+		// Where nothing is included there is one contract and it is the effective type, which
+		// is the shape everything written before this had.
+		Assert.Equal(
+			"Names",
+			ContextOf(
+				Normalized("context : @Names\nA = 'x'\nStart = a: A"),
+				"A"));
+
+	[Fact]
+	public void And_a_grammar_that_declares_none_binds_every_rule_to_nothing() =>
+		Assert.Null(ContextOf(Normalized("A = 'x'\nStart = a: A"), "A"));
+
+	/// <summary>A specialized clone keeps the contract of the rule it was cloned from.</summary>
+	/// <remarks>
+	/// Which is the part that could have gone wrong and does not, because the contract is
+	/// derived from where a rule was declared rather than recorded against the rule: every
+	/// place that makes a clone keeps it in its original's namespace, so there is nothing to
+	/// hand on. The same fact recorded per rule would have been a fifth thing for `Carry` to
+	/// forget.
+	/// </remarks>
+	[Fact]
+	public void And_a_clone_made_by_a_rebinding_keeps_it()
+	{
+		var graph = Normalized(
+			"""
+			namespace Inner
+			{
+				context : @Names
+				Sep = ','
+				List = 'a' & Sep & 'b'
+			}
+			namespace Other with (Inner.Sep = Semi)
+			{
+				Start = Inner.List
+			}
+			Semi = ';'
+			""");
+
+		// Every rule that came from `Inner`, clone or original, sees `Names`.
+		Assert.All(
+			graph.Rules.Where(rule => rule.Name.Contains("List", StringComparison.Ordinal)),
+			rule => Assert.Equal("Names", graph.ContextOf(rule)));
+	}
+
+	// ── §7.7, the state a parse works out ───────────────────────────────────────
+
+	/// <summary>
+	/// A <c>context</c> inside a namespace is that grammar's own contract, not a second
+	/// object and not an error.
+	/// </summary>
+	/// <remarks>
+	/// It used to be `GRAM3013`, refused on the reasoning that a context for part of a parse
+	/// is not a thing. It is one, and the reasoning confused two: the caller hands over one
+	/// object for the whole parse, and the *type it is seen through* belongs to whoever wrote
+	/// the code — which is what lets a grammar be included in another and keep meaning what
+	/// it meant (docs/next.md, "Decided: `context` is a contract").
+	/// </remarks>
+	[Fact]
+	public void A_context_inside_a_namespace_is_that_grammar_own_contract() =>
+		Assert.Empty(
+			Compile(
+				"""
+				namespace Inner
+				{
+					context : @Names
+					A = 'x'
+				}
+				Start = Inner.A
+				parse Start
+				""")
+				.Diagnostics);
+
+	[Fact]
+	public void And_the_one_at_the_top_is_the_one_a_caller_supplies() =>
+		// Two contracts, and the effective type — what the publication takes — is the root's.
+		Assert.Contains(
+			"ParseStart(string input, Outer context)",
+			Compile(
+				"""
+				context : @Outer
+				namespace Inner
+				{
+					context : @Names
+					A : @string = t: 'x' => @(context.Seen(t))
+				}
+				Start : @string = a: Inner.A => @(a)
+				parse Start
+				""")
+				.Sources[0].Text,
+			StringComparison.Ordinal);
 
 	[Fact]
 	public void And_a_grammar_declares_one_of_them() =>

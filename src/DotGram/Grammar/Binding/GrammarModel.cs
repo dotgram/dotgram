@@ -54,6 +54,20 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 	public IReadOnlyList<ResolvedRebinding> OwnRebindings => _ownRebindings;
 
 	/// <summary>
+	/// The <c>context</c> the rules declared here were written against, or null.
+	/// </summary>
+	/// <remarks>
+	/// The contract, not the object. One grammar including another puts it in a namespace of
+	/// its own, and the rules in there were written against whatever contract *that* grammar
+	/// declared — which the caller's object satisfies by being assignable to it, and which
+	/// the including grammar may strengthen for its own rules without changing what the
+	/// included ones were compiled against (docs/next.md, "Decided: `context` is a
+	/// contract"). Null anywhere no grammar declared one, including in the global namespace
+	/// of a grammar that declares none at all.
+	/// </remarks>
+	public TypeRef? Context { get; internal set; }
+
+	/// <summary>
 	/// The layered environment this namespace and everything lexically inside it sees: the
 	/// parent's <see cref="Rebindings"/>, overridden key-by-key by
 	/// <see cref="OwnRebindings"/> (§11).

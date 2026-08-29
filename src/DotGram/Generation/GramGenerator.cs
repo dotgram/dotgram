@@ -381,7 +381,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var declared = None;
 
 			// The root and nowhere else, which is where both are allowed to stand at all
-			// (GRAM3013, GRAM3015) — so there is nothing to walk into.
+			// (GRAM3015 for `state`; a `context` in a namespace is that grammar's own
+			// contract and is not the effective one) — so there is nothing to walk into.
 			foreach (var declaration in file.Decls)
 				if (declaration is DotGram.Grammar.Parsing.Decl.Context)
 					declared = declared with
