@@ -51,14 +51,7 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var rule in _rules)
 		{
-			// Two rules whose shape is held by node identity elsewhere: a left-recursive one,
-			// rewritten into a loop that `Fold.Loop` and its accumulators name; and a
-			// climbing one, whose binding powers are keyed by the nodes that carry them. A
-			// rewrite replaces those nodes and the naming stops finding what it named. Left
-			// out rather than rebuilt carelessly.
-			if (_folds.ContainsKey(rule) ||
-				_climbing.ContainsKey(rule) ||
-				!_bodies.TryGetValue(rule, out var body) ||
+			if (!_bodies.TryGetValue(rule, out var body) ||
 				!follow.TryGetValue(rule, out var after))
 				continue;
 
@@ -309,39 +302,39 @@ public sealed partial class GrammarNormalizer
 				// a body and saves nothing, so an inline that does not lead to a shared
 				// operand is put back.
 				if (Inlined(new Node.Choice(inner), owner) is Node.Choice(var opened) &&
-					Share(opened, following, graph) is var wider &&
+					Share(opened, following, graph, owner) is var wider &&
 					(wider is not Node.Choice(var kept) || kept.Count < opened.Count))
-					return wider;
+					return Instead(node, wider);
 
-				return Share(inner, following, graph);
+				return Instead(node, Share(inner, following, graph, owner));
 			}
 
 			case Node.Sequence(var parts):
 			{
 				var inner = Each(parts, following, graph, owner);
 
-				return inner is null ? node : new Node.Sequence(inner);
+				return inner is null ? node : Instead(node, new Node.Sequence(inner));
 			}
 
 			case Node.Capture(var name, var body):
 			{
 				var inner = Folded(body, following, graph, owner);
 
-				return ReferenceEquals(inner, body) ? node : new Node.Capture(name, inner);
+				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Capture(name, inner));
 			}
 
 			case Node.Construct(var body, var how):
 			{
 				var inner = Folded(body, following, graph, owner);
 
-				return ReferenceEquals(inner, body) ? node : new Node.Construct(inner, how);
+				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Construct(inner, how));
 			}
 
 			case Node.Atomic(var body):
 			{
 				var inner = Folded(body, following, graph, owner);
 
-				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
+				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Atomic(inner));
 			}
 
 			case Node.Repeat(var body, var min, var max):
@@ -349,7 +342,7 @@ public sealed partial class GrammarNormalizer
 				// A turn is followed by another turn or by what follows the repetition.
 				var inner = Folded(body, FirstSets.Of(body, graph).Or(following), graph, owner);
 
-				return ReferenceEquals(inner, body) ? node : new Node.Repeat(inner, min, max);
+				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Repeat(inner, min, max));
 			}
 
 			// Left alone rather than walked into. A mark stands over an extent and a
@@ -359,16 +352,32 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// One node in place of another, with everything recorded against the first handed to
+	/// the second.
+	/// </summary>
+	/// <remarks>
+	/// Which is what <see cref="Carry"/> is for, and why this pass may run over a rule whose
+	/// shape something else names by node identity: a binding power, a fold's loop, a
+	/// recovery. Rebuilding a node without this is how those come to name nothing.
+	/// </remarks>
+	Node Instead(Node from, Node to)
+	{
+		Carry(from, to);
+
+		return to;
+	}
+
+	/// <summary>
 	/// The alternatives with every run of them that shares a determinate leading operand
 	/// replaced by one alternative that reads it once.
 	/// </summary>
-	Node Share(IReadOnlyList<Node> alternatives, FirstSets.First following, RecognitionGraph graph)
+	Node Share(IReadOnlyList<Node> alternatives, FirstSets.First following, RecognitionGraph graph, RuleSymbol owner)
 	{
 		List<Node>? folded = null;
 
 		for (var at = 0; at < alternatives.Count; at++)
 		{
-			var last = Run(alternatives, at);
+			var last = Run(alternatives, at, owner);
 
 			if (last > at && Sharing(alternatives, at, last, following, graph) is { } one)
 			{
@@ -389,19 +398,22 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>How far a run of alternatives sharing one leading operand reaches.</summary>
-	int Run(IReadOnlyList<Node> alternatives, int from)
+	int Run(IReadOnlyList<Node> alternatives, int from, RuleSymbol owner)
 	{
-		if (!Splits(alternatives[from], out _, out var head, out _) || !Movable(head))
+		if (Spoken(alternatives[from], owner) ||
+			!Splits(alternatives[from], out _, out var head, out _) ||
+			!Movable(head))
 			return from;
 
 		var last = from;
 
 		for (var at = from + 1; at < alternatives.Count; at++)
 		{
-			if (!Splits(alternatives[at], out _, out var other, out _) ||
+			if (Spoken(alternatives[at], owner) ||
+				!Splits(alternatives[at], out _, out var other, out _) ||
 				!Movable(other) ||
 				!SameShape(head, other) ||
-				!string.Equals(Named(head), Named(other), StringComparison.Ordinal))
+				!Renamable(alternatives[at], Named(head)))
 				break;
 
 			last = at;
@@ -420,12 +432,18 @@ public sealed partial class GrammarNormalizer
 	{
 		var tails = new List<Node>(last - from + 1);
 		var after = FirstSets.First.None;
+		var named = Named(Head(alternatives[from]));
 
 		for (var at = from; at <= last; at++)
 		{
-			Splits(alternatives[at], out var how, out _, out var tail);
+			Splits(alternatives[at], out var how, out var mine, out var tail);
 
 			var rest = tail ?? new Node.Empty();
+
+			// Its own name is about to stop existing, and what it did with it was hand it
+			// back, so it hands back the one that survives instead.
+			if (!string.Equals(Named(mine), named, StringComparison.Ordinal))
+				how = new Construction.Expression("(" + named + ")");
 
 			// What follows the shared operand in this alternative is this tail, and past it
 			// whatever follows the choice, where the tail can match nothing.
@@ -441,6 +459,22 @@ public sealed partial class GrammarNormalizer
 			? new Node.Sequence([head, new Node.Choice(tails)])
 			: null;
 	}
+
+	/// <summary>
+	/// Whether something outside this pass names this node, and would be talking about
+	/// nothing if two alternatives became one.
+	/// </summary>
+	/// <remarks>
+	/// A rebuild is a bookkeeping problem and <see cref="Instead"/> answers it. This is the
+	/// other kind: an alternative of a climbing rule carries a binding power, and a step of a
+	/// left-recursive fold carries the name of the accumulator it takes — facts about *that*
+	/// alternative, which folding a run of them into one would not move but destroy. So those
+	/// are left where they are, and the rest of the rule is still walked.
+	/// </remarks>
+	bool Spoken(Node alternative, RuleSymbol owner) =>
+		_climbing.TryGetValue(owner, out var levels) && levels.ContainsKey(alternative) ||
+		_folds.TryGetValue(owner, out var fold) &&
+			(fold.Accumulators.ContainsKey(alternative) || ReferenceEquals(fold.Loop, alternative));
 
 	/// <summary>An alternative as its leading operand and what comes after it.</summary>
 	static bool Splits(Node alternative, out Construction? how, out Node head, out Node? tail)
@@ -483,13 +517,40 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The name the operand is captured under, or the empty string for none.</summary>
-	/// <remarks>
-	/// One of a run's operands survives and the rest are dropped, so what they are called has
-	/// to be the same thing: otherwise a name would lose the slot it was written to.
-	/// Different names for one operand are a fold this declines rather than one it cannot
-	/// have.
-	/// </remarks>
 	static string Named(Node head) => head is Node.Capture(var name, _) ? name : "";
+
+	/// <summary>
+	/// Whether an alternative can live with the run's operand being called something else.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One operand survives a fold and the rest are dropped, so the name the survivor is
+	/// captured under is the name everything in the run will see. An alternative that already
+	/// uses that name has nothing to do. One that uses another has to be rewritten, and this
+	/// pass rewrites exactly the case it can be sure of: an alternative that does nothing with
+	/// the operand but hand it straight back, whose whole `=&gt;` is that one name.
+	/// </para>
+	/// <para>
+	/// Anything else names its own capture inside C# the author wrote — <c>@(f(b))</c> — and
+	/// renaming it would mean editing that text. Declined rather than attempted: an author's
+	/// expression is not this pass's to rewrite.
+	/// </para>
+	/// </remarks>
+	bool Renamable(Node alternative, string name) =>
+		string.Equals(Named(Head(alternative)), name, StringComparison.Ordinal) ||
+		HandsBack(alternative);
+
+	static Node Head(Node alternative)
+	{
+		Splits(alternative, out _, out var head, out _);
+
+		return head;
+	}
+
+	/// <summary>Whether an alternative is the operand and a `=&gt;` that hands it back.</summary>
+	static bool HandsBack(Node alternative) =>
+		alternative is Node.Construct(Node.Capture(var name, _), Construction.Expression(var text, _)) &&
+		string.Equals(Handed(text), name, StringComparison.Ordinal);
 
 	/// <summary>
 	/// Whether an operand may be the one that survives, which is to say whether dropping the

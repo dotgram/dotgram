@@ -58,7 +58,12 @@ public static class Determinism
 			Node.Literal or Node.Element or Node.External => true,
 			Node.Capture  (_, var body)   => Of(body, asked, following, graph),
 			Node.Construct(var body, _)   => Of(body, asked, following, graph),
-			Node.Atomic   (var body)      => Of(body, asked, following, graph),
+			// An atomic group commits its first reading and never gives one back, which is
+			// what "at most one match" says. Looking inside asked a harder question than the
+			// braces already answer, and answered it badly wherever the body was a choice or
+			// a star — which is every trivia written the way §4.5 recommends, and so nearly
+			// every grammar.
+			Node.Atomic                   => true,
 			Node.Marked   (var body, _)   => Of(body, asked, following, graph),
 			Node.Sequence (var parts)     => All(parts, asked, following, graph),
 			Node.Choice   (var options)   => Distinguishable(options, graph) &&
@@ -70,24 +75,47 @@ public static class Determinism
 
 	/// <summary>Whether a call is to something determinate, guarded against calling round.</summary>
 	/// <remarks>
-	/// Met again on the way down, and followed by the same thing: the question is the one
-	/// already being answered, so it is assumed answered yes and the walk goes on. If the
-	/// rest agrees the assumption held; if anything says no this says no with it, and the
-	/// assumption goes with the path that made it. Assuming yes and checking is how "never
-	/// more than one" is proved of a cycle at all.
+	/// <para>
+	/// Met again on the way down, followed by the same thing: the question is the one already
+	/// being answered, so it is assumed answered yes and the walk goes on. If the rest agrees
+	/// the assumption held; if anything says no this says no with it, and the assumption goes
+	/// with the path that made it. Assuming yes and checking is how "never more than one" is
+	/// proved of a cycle at all.
+	/// </para>
+	/// <para>
+	/// Followed by something else, it is a different question about the same rule, and it is
+	/// asked. It used to be refused instead, and that refusal is what a real grammar runs
+	/// into: a reference whose type arguments are optional reaches itself through them under
+	/// a continuation of their own — <c>Reference</c>, <c>TypeArgs</c>, <c>Type</c>,
+	/// <c>Reference</c> — so the one question that mattered was the one being declined.
+	/// </para>
+	/// <para>
+	/// It terminates for the reason the same-question case does: a pair is put on the path
+	/// before it is walked and taken off after, so no pair is entered twice on one path, and
+	/// there are finitely many — a continuation is a union of the grammar's own first sets
+	/// and there are finitely many of those.
+	/// </para>
 	/// </remarks>
 	static bool Of(
 		RuleSymbol rule, Asked asked, FirstSets.First following, RecognitionGraph graph)
 	{
 		if (asked.TryGetValue(rule, out var already))
-			return FirstSets.Same(already, following);
+		{
+			foreach (var seen in already)
+				if (FirstSets.Same(seen, following))
+					return true;
+		}
+		else
+		{
+			asked[rule] = already = [];
+		}
 
-		asked[rule] = following;
+		already.Add(following);
 
 		var settled = graph.Bodies.TryGetValue(rule, out var body) &&
 			Of(body, asked, following, graph);
 
-		asked.Remove(rule);
+		already.RemoveAt(already.Count - 1);
 
 		return settled;
 	}
@@ -167,10 +195,12 @@ public static class Determinism
 		return true;
 	}
 
-	/// <summary>Which rules the walk is inside, and what followed each where it went in.</summary>
+	/// <summary>Which rules the walk is inside, and under what continuations.</summary>
 	/// <remarks>
-	/// The path down rather than everything met on the way: a rule is taken off again on
-	/// the way out, so meeting it twice in two places is not mistaken for recursion.
+	/// The path down rather than everything met on the way: a rule is taken off again on the
+	/// way out, so meeting it twice in two places is not mistaken for recursion. More than one
+	/// continuation per rule, because a rule reached again under a different one is a
+	/// different question and gets asked.
 	/// </remarks>
-	sealed class Asked : Dictionary<RuleSymbol, FirstSets.First>;
+	sealed class Asked : Dictionary<RuleSymbol, List<FirstSets.First>>;
 }

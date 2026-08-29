@@ -6599,3 +6599,50 @@ driver test counts what is actually saved, with a `when` rather than a `=>` — 
 deferred to acceptance, so a factory runs once however many readings were tried and thrown
 away, while a guard runs while the text is read. Two readings become one, and the longer
 alternative still wins where it fits.
+
+## Built: four widenings of what the fold can reach, and the measurement that did not close
+
+Set out to answer one question with a number — write the notation's own grammar the way §11
+does not oblige anyone to avoid, `Call | Reference` instead of the hand-written `RefOrCall`,
+and see whether the compiler now gives back what the author gave up an afternoon to. It does
+not, yet. Four things were in the way; three of them are gone.
+
+**A rebuild must carry what a node carried.** The pass refused to run on a left-recursive or
+a climbing rule at all, because their shape is named elsewhere by node identity. That is two
+different problems wearing one coat. Rebuilding a node is bookkeeping and `Carry` — the
+registry written for exactly this — answers it, so every rebuild here goes through it now.
+Folding *alternatives* of such a rule is not bookkeeping: an alternative of a climbing rule
+carries a binding power and a step of a fold carries its accumulator's name, facts about that
+alternative which folding a run of them into one would destroy rather than move. So those
+alternatives are refused one at a time, and the rest of the rule is walked.
+
+**A name that is only handed back can be renamed.** One operand survives a fold and the rest
+are dropped, so the survivor's name is what everything in the run will see. An alternative
+that uses another name has to be rewritten, and the case that can be rewritten with certainty
+is the one whose whole `=>` is that name. Anything else names its capture inside C# the author
+wrote, and renaming it would mean editing that text — declined, not attempted.
+
+**A rule reached under a different continuation is a question, not a refusal.** It used to be
+answered no on the grounds that the walk had no answer yet, and that refusal is exactly what a
+real grammar runs into: a reference whose type arguments are optional reaches itself through
+them under a continuation of their own. It is asked now. The walk still terminates for the
+reason the same-question case does — a pair goes on the path before it is walked and comes off
+after, and there are finitely many.
+
+**An atomic group has one reading because that is what atomic means.** `Determinism` looked
+inside the braces, which asks a harder question than the braces already answer, and answered
+it badly wherever the body was a choice or a star. That is every `trivia` written the way §4.5
+recommends — `trivia = { (Space | LineComment | BlockComment)* }` — and so nearly every
+grammar. `Name = Identifier & ('.' & Identifier)*` went from unprovable to determinate on this
+one line.
+
+### Where it still stops
+
+`Reference` in the notation's grammar is still not proved to have one reading, through
+`Reference → TypeArgs → Type → Reference`. Two of the links in that chain were the two
+findings above; at least one more is in there. The corpus barely moves — 782,412 bytes of
+expression language against 782,408 before these four and 783,053 with the pass off — which is
+the honest shape of it: these widen what can be proved rather than what happens to be there.
+
+The number the exercise was for is still owed. What it took to get this far is written down
+so the next attempt starts from the chain rather than from the beginning.
