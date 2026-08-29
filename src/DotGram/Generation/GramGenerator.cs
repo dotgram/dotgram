@@ -36,7 +36,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 	public const string AskedStage    = "Asked";
 	public const string AnsweredStage = "Answered";
 	public const string CompiledStage = "Compiled";
-	public const string SharedStage   = "Shared";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
@@ -99,103 +98,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.WithTrackingName(CompiledStage),
 			static (production, parser) => parser.Deliver(production));
 
-		// One `context` and one `state` for the whole assembly, checked apart from the
-		// generation above rather than folded into it: a `Collect` in that pipeline would
-		// make every parser's output depend on every grammar, and a keystroke in one would
-		// recompile all of them. Here nothing is generated — only said — and the collected
-		// value is the few grammars that declare anything, so it holds still while the rest
-		// of the project is edited.
-		context.RegisterSourceOutput(
-			asked
-				.Where(static grammar => grammar.Declares.Any)
-				.Collect()
-				.WithTrackingName(SharedStage),
-			static (production, declaring) => DeliverShared(production, declaring));
-	}
-
-	/// <summary>
-	/// Says so where two grammars in one assembly both declare a <c>context</c> or a
-	/// <c>state</c>.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Taken now, before anything depends on it, because it is the constraint that keeps a
-	/// grammar includable in another later (docs/next.md, "Considered: parser inheritance").
-	/// A merged grammar can have only one of each — a context is one object handed to the
-	/// whole parse, and a mark is one type for all of them — and an assembly is the widest
-	/// extent this can be asked over without a base-class relationship to follow.
-	/// </para>
-	/// <para>
-	/// It is stricter than the rule that will eventually be wanted, which is one per
-	/// inheritance chain: two parsers in one assembly that never meet are refused here for a
-	/// reason neither of them can see. That is the price of taking it early, and the message
-	/// says why rather than only what.
-	/// </para>
-	/// <para>
-	/// Reported at every site rather than at all but one. There is no first among them —
-	/// which grammar the generator saw first is not something an author can know or act on —
-	/// and whichever file they are looking at is where they need to be told.
-	/// </para>
-	/// </remarks>
-	static void DeliverShared(SourceProductionContext production, ImmutableArray<Grammar> declaring)
-	{
-		Say(
-			DotGram.Grammar.Binding.GrammarBinder.SharedContext,
-			"context",
-			static grammar => grammar.Declares.ContextAt,
-			static grammar => grammar.Declares.ContextLength);
-
-		Say(
-			DotGram.Grammar.Binding.GrammarBinder.SharedState,
-			"state",
-			static grammar => grammar.Declares.StateAt,
-			static grammar => grammar.Declares.StateLength);
-
-		void Say(string id, string word, Func<Grammar, int> at, Func<Grammar, int> length)
-		{
-			var declared = declaring.Where(grammar => at(grammar) >= 0).ToArray();
-
-			if (declared.Length < 2)
-				return;
-
-			// Named in a fixed order, so the message does not change with the order the
-			// generator happened to see them in.
-			var named = declared
-				.Select(static grammar => grammar.Host.ClassName)
-				.OrderBy(static name => name, StringComparer.Ordinal)
-				.ToArray();
-
-			foreach (var grammar in declared)
-			{
-				var others = string.Join(
-					", ", named.Where(name => name != grammar.Host.ClassName));
-
-				var diagnostic = new GramDiagnostic(
-					id,
-					$"'{grammar.Host.ClassName}' declares a '{word}' and so does {others}. An " +
-					$"assembly has at most one, so that one grammar can be included in another: a " +
-					$"'{word}' belongs to a whole parse, and a merged grammar could not say which " +
-					$"of two it meant.",
-					at(grammar),
-					length(grammar),
-					GramSeverity.Error);
-
-				new Parser(
-					null,
-					null,
-					new EquatableArray<Report>(
-					[
-						Report.Of(
-							diagnostic,
-							grammar.Path,
-							grammar.Text ?? "",
-							grammar.Host.Location,
-							grammar.Host.Literal,
-							grammar.Host.LiteralAt),
-					]))
-					.Deliver(production);
-			}
-		}
 	}
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
@@ -213,7 +115,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		catch (Exception exception) when (Recoverable(exception))
 		{
 			return Failed(
-				new Grammar(host, null, null, default, default, default, Declared.None),
+				new Grammar(host, null, null, default, default, default),
 				"reading and analyzing the grammar",
 				exception);
 		}
@@ -337,8 +239,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Question> Questions,
 		EquatableArray<Answer>   Answers,
 		EquatableArray<Report>   Reports,
-		Declared                 Declares = default,
-		EquatableArray<Piece>    Pieces   = default);
+		EquatableArray<Piece>    Pieces = default);
 
 	/// <summary>
 	/// One grammar inside the joined text, and everything needed to put a position in it
@@ -360,48 +261,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Location? Location);
 
 	/// <summary>
-	/// Where a grammar declares a <c>context</c> and a <c>state</c>, or -1 for neither.
-	/// </summary>
-	/// <remarks>
-	/// Kept as offsets rather than as the declarations themselves because this is a cache
-	/// key: two ints and a length say everything the check needs and nothing that changes
-	/// when something else in the file does.
-	/// </remarks>
-	readonly record struct Declared(int ContextAt, int ContextLength, int StateAt, int StateLength)
-	{
-		public static readonly Declared None = new(-1, 0, -1, 0);
-
-		public bool Any => ContextAt >= 0 || StateAt >= 0;
-
-		public static Declared Of(DotGram.Grammar.Parsing.GrammarFile? file)
-		{
-			if (file is null)
-				return None;
-
-			var declared = None;
-
-			// The root and nowhere else, which is where both are allowed to stand at all
-			// (GRAM3015 for `state`; a `context` in a namespace is that grammar's own
-			// contract and is not the effective one) — so there is nothing to walk into.
-			foreach (var declaration in file.Decls)
-				if (declaration is DotGram.Grammar.Parsing.Decl.Context)
-					declared = declared with
-					{
-						ContextAt     = declaration.At.Position,
-						ContextLength = declaration.At.Length,
-					};
-				else if (declaration is DotGram.Grammar.Parsing.Decl.State)
-					declared = declared with
-					{
-						StateAt     = declaration.At.Position,
-						StateLength = declaration.At.Length,
-					};
-
-			return declared;
-		}
-	}
-
-	/// <summary>
 	/// Stage one: find the grammar and work out what it needs to know about the host's C#.
 	/// No compilation, so this is cached on the grammar text and the host alone.
 	/// </summary>
@@ -413,7 +272,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		{
 			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.Location, host.ClassName));
 
-			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
+			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
 		// Said before the grammar is read, because it is about the host rather than about
@@ -424,7 +283,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
 
 		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
-			return new Grammar(host, null, null, default, default, Values(reports), Declared.None);
+			return new Grammar(host, null, null, default, default, Values(reports));
 
 		// What the host inherits, joined onto the end of its own — which is where it goes
 		// so that the text somebody is editing keeps the offsets it always had
@@ -481,7 +340,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			new EquatableArray<Question>(Questions.Of(parsed)),
 			default,
 			Values(reports),
-			Declared.Of(parsed),
 			new EquatableArray<Piece>(pieces.ToImmutable()));
 	}
 

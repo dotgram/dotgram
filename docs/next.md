@@ -6382,3 +6382,49 @@ the regex it replaces: a regex that misses an edge is visibly a regex, and a gra
 one is trusted. Doing it properly means the emitter's writing layer records edges as it
 writes, at every site, which is a change to how code is emitted rather than to how it is read
 afterwards.
+
+## Built: the context contract checked, and the state claim with it
+
+Steps 3 and 4 of "Decided: `context` is a contract". They are one change rather than two:
+both checks stop being about an assembly and start being about a composition, and doing only
+one of them would leave `state` guarded by a rule the other half had just abandoned.
+
+**The context.** Every namespace's declaration is a contract its own rules were compiled
+against. The effective type is the root's where there is one — the grammar being compiled is
+the one whose caller supplies the object — and otherwise the first inherited contract that
+satisfies all the others. That type has to be assignable to every contract underneath it,
+asked through `ISymbolResolver.IsAssignable`, which is the seam §4.1 already had.
+
+**The state.** The same walk, the opposite condition: every declaration must name the same
+type. What an included grammar declares is a claim, not a contract of its own.
+
+### What this replaces, and how the numbers were handled
+
+The design entry above says `GRAM3017` and `GRAM3018` are *rewritten*. They are retired
+instead, and the new checks are `GRAM3019` and `GRAM3020`. The reason is written in this
+repository already, next to `GRAM3013`: an id that changes meaning is worse than a gap,
+because a suppression written against the old one silently applies to the new. That applies
+here more strongly than it did there — the old rule and the new one are about the same
+declaration, so a suppression aimed at the old would land squarely on the new.
+
+`GRAM3015` goes with them, and it was the one actually blocking something. It refused a
+`state` inside a namespace, which is exactly where an included grammar's declaration lands —
+so a grammar that used `with state` could not be inherited at all. Refusing the place was the
+wrong shape for a rule about the type.
+
+### What it found
+
+A defect neither the design nor the review had in view. The generator collects, from the
+grammar text alone, every question it will ask the host, answers them in one Roslyn stage,
+and then the pure half may only ask what has already been answered — that is what keeps the
+expensive part of generation out of the per-keystroke path. `Questions.Of` had never looked
+at a `context` declaration, so the first real refinement check threw `GRAM0001` with the
+collector's own message: it "did not foresee the type question". The declarations are
+collected now, and every ordered pairing of contracts is asked for — both ways round, since
+which of them is the effective one is what the answers decide.
+
+Two smaller things the tests found: `using` comes before `context` in a grammar file, and a
+grammar that declares a context but never names it in a hook generates code that mentions no
+context at all — so the test that proves the two contracts coexist had to make both halves
+use theirs. It does, and one generated file now carries `IWords context` and
+`IReading context` in different signatures, which is the design in one line.

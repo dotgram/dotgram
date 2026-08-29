@@ -1516,11 +1516,17 @@ rather than a second object: the rules written there see the caller's object thr
 their own grammar named, and an including grammar may strengthen the type for its own rules
 without changing what the included ones were compiled against.
 
-**And one per assembly** (`GRAM3017`). Wider than it has to be today, and taken deliberately:
-a grammar that one day includes another can have only one context between them, and refusing
-the second now is a rule rather than a later change of one. Two parsers in one assembly that
-never meet are refused for a reason neither can see — that is what the message says, and it
-is the price of the constraint being there before anything leans on it.
+**And what is handed over has to satisfy every contract along the way** (`GRAM3019`). One
+object flows down, and the parts of a composed grammar see it through as many static types as
+there are grammars in it — the base’s rules through what the base declared, the including
+grammar’s through what it declared. The type actually supplied is the one at the top of the
+file, and it has to be assignable to every contract underneath it. Which is ordinary
+subtyping: virtual dispatch works, new members are invisible to the grammar that did not
+declare them, and inherited semantic code keeps meaning what it meant when it was written.
+
+Where the top of the file declares none, the effective type is the contract that satisfies
+all the others — the most derived of what was inherited. Where no single one does, there is
+no object to hand over and the grammar has to say which type it means.
 
 **What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
 a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
@@ -1574,8 +1580,15 @@ last is the nearest. Named like the supplied names of §8.2 and given by the sam
 hook that does not name it is not passed it, and a grammar that places no mark hands an
 empty span to one that does.
 
-**One type for all of them, declared once, outside every namespace** (`GRAM3015`,
-`GRAM3016`), and one per assembly (`GRAM3018`) — for the reason §7.7 gives about its own.
+**One type for all of them** (`GRAM3016`, `GRAM3020`). A grammar included in another may
+declare it too, and what that declares is a claim to be the *same* type rather than a
+contract of its own — which is where `state` parts company with §7.7’s `context`, and the
+reason is not the variance that makes it mechanically impossible. A context is one object
+flowing down; a mark is a heterogeneous stack of values placed by several authors and read as
+one span, and a span admits exactly one element type.
+
+Which is why a grammar meant to be inherited declares its `state` as a reference type: a
+consumer cannot extend an enum to add a concern of their own.
 Which mark a hook means is the hook's to decide — it reads back for the
 nearest value of its own concern and walks past everything belonging to another, which is
 why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit

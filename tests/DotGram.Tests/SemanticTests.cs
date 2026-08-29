@@ -284,6 +284,12 @@ public sealed class SemanticTests
 		grammar,
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
+	/// <summary>The graph itself, where what a test asks about is not a diagnostic.</summary>
+	static RecognitionGraph Graph(string grammar) =>
+		GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(
+				GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
+
 	/// <summary>The one diagnostic a grammar must be refused with.</summary>
 	// ── One mistake, one message about it ────────────────────────────────────────
 
@@ -730,11 +736,37 @@ public sealed class SemanticTests
 					""",
 				"ab"));
 
+	/// <summary>One mark type for a whole parse, wherever the declarations stand.</summary>
+	/// <remarks>
+	/// It used to be the place that was refused: a <c>state</c> inside a namespace was
+	/// <c>GRAM3015</c>, on the reasoning that a state for part of a parse is not a thing. The
+	/// reasoning is right and the refusal was in the wrong place — an included grammar is put
+	/// in a namespace of its own, so refusing the place made a grammar that uses
+	/// <c>with state</c> impossible to inherit. What it declares is a claim to be the same
+	/// type, and that is what is checked.
+	/// </remarks>
 	[Fact]
-	public void A_state_belongs_to_the_whole_grammar() =>
+	public void A_state_belongs_to_the_whole_grammar()
+	{
+		// The same type twice is one type, and says nothing.
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				state : @int
+				namespace Inner
+				{
+					state : @int
+					A = 'x'
+				}
+				Start = Inner.A
+				""").Diagnostics,
+			diagnostic => diagnostic.Id == GrammarBinder.StateNotInvariant);
+
+		// A second type is a second type for part of one answer.
 		Refused(
-			GrammarBinder.StateNotAtRoot,
+			GrammarBinder.StateNotInvariant,
 			"""
+			state : @string
 			namespace Inner
 			{
 				state : @int
@@ -742,6 +774,22 @@ public sealed class SemanticTests
 			}
 			Start = Inner.A
 			""");
+	}
+
+	/// <summary>And where only the included grammar declares one, that one is it.</summary>
+	[Fact]
+	public void And_an_included_grammar_may_be_the_only_one_that_declares_it() =>
+		Assert.Equal(
+			"int",
+			Graph(
+				"""
+				namespace Inner
+				{
+					state : @int
+					A = 'x'
+				}
+				Start = Inner.A
+				""").State);
 
 	[Fact]
 	public void And_a_grammar_declares_one_type_for_all_of_them() =>

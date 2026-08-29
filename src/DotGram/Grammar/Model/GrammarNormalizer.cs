@@ -143,6 +143,11 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Check();
 
+		// Last, and reading only what binding recorded: which contract each grammar in the
+		// composition declared, and whether one type can be seen through all of them.
+		normalizer.ReconcileContexts();
+		normalizer.ReconcileState();
+
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,
@@ -159,8 +164,8 @@ public sealed partial class GrammarNormalizer
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
-			Context    = model.Context?.Name,
-			State      = model.State?.Name,
+			Context    = (normalizer._context ?? model.Context)?.Name,
+			State      = (normalizer._state ?? model.State)?.Name,
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 		};
 	}

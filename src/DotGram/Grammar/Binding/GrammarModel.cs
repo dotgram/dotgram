@@ -68,6 +68,17 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 	public TypeRef? Context { get; internal set; }
 
 	/// <summary>
+	/// The <c>state</c> declared here, or null.
+	/// </summary>
+	/// <remarks>
+	/// Recorded per namespace the same way <see cref="Context"/> is, and reconciled the
+	/// opposite way: a composed grammar has one mark type, not one per grammar, so what this
+	/// holds is a claim to be checked against the rest rather than a contract of its own
+	/// (docs/next.md, "Decided: `context` is a contract").
+	/// </remarks>
+	public TypeRef? State { get; internal set; }
+
+	/// <summary>
 	/// The layered environment this namespace and everything lexically inside it sees: the
 	/// parent's <see cref="Rebindings"/>, overridden key-by-key by
 	/// <see cref="OwnRebindings"/> (§11).
