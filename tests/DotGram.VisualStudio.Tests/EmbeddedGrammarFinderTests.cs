@@ -61,6 +61,34 @@ public sealed class EmbeddedGrammarFinderTests
 		Assert.Equal("\\\"a\\\"", source.Substring(span.Start, span.Length));
 	}
 
+	[Fact]
+	public void AcceptsNamedArgumentsAndSplicesEmbeddedBaseGrammars()
+	{
+		var source = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string text) : System.Attribute
+				{
+					public string IncludedAs { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			class Base;
+
+			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			class Parser : Base;
+			""";
+
+		var grammars = Find(source);
+		var derived = Assert.Single(
+			grammars,
+			grammar => grammar.Text.StartsWith("using", StringComparison.Ordinal));
+
+		Assert.StartsWith(derived.Text, derived.AnalysisText, StringComparison.Ordinal);
+		Assert.Contains("namespace Lexical\n{\nWord = ['a'..'z']+", derived.AnalysisText, StringComparison.Ordinal);
+	}
+
 	static EmbeddedGrammar[] Find(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(source);

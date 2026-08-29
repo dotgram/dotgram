@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using DotGram.Grammar;
+
 using Microsoft.CodeAnalysis;
 
 namespace DotGram.VisualStudio;
@@ -44,15 +46,58 @@ public static class DslGrammarSourceResolver
 		if (language is null)
 			throw new ArgumentNullException(nameof(language));
 
-		if (language.SourceKind == DslGrammarSourceKind.Embedded)
+		var own = await ResolvePartAsync(
+			project,
+			language.SourceKind,
+			language.GrammarSource,
+			cancellationToken).ConfigureAwait(false);
+		if (own.Kind != DslGrammarResolutionKind.Resolved || own.Text is null)
+			return own;
+
+		var included = new List<GrammarSplice.Part>(language.IncludedGrammars.Count);
+		var candidates = new List<TextDocument>(own.Candidates);
+		foreach (var part in language.IncludedGrammars)
+		{
+			var resolved = await ResolvePartAsync(
+				project,
+				part.SourceKind,
+				part.GrammarSource,
+				cancellationToken).ConfigureAwait(false);
+			candidates.AddRange(resolved.Candidates);
+
+			if (resolved.Kind != DslGrammarResolutionKind.Resolved || resolved.Text is null)
+				return new DslGrammarResolution(
+					resolved.Kind,
+					null,
+					null,
+					candidates);
+
+			included.Add(new GrammarSplice.Part(resolved.Text, part.Name, null));
+		}
+
+		var joined = GrammarSplice.Join(new GrammarSplice.Part(own.Text, null, null), included);
+		return new DslGrammarResolution(
+			DslGrammarResolutionKind.Resolved,
+			joined.Text,
+			own.Document,
+			candidates);
+	}
+
+	static async Task<DslGrammarResolution> ResolvePartAsync(
+		Project project,
+		DslGrammarSourceKind sourceKind,
+		string grammarSource,
+		CancellationToken cancellationToken)
+	{
+		if (sourceKind == DslGrammarSourceKind.Embedded)
 			return new DslGrammarResolution(
 				DslGrammarResolutionKind.Resolved,
-				language.GrammarSource,
+				grammarSource,
 				null,
 				Array.Empty<TextDocument>());
 
 		var candidates = project.AdditionalDocuments
-			.Where(document => document.FilePath is { } path && Matches(path, language.GrammarSource))
+			.Where(document => document.FilePath is { } path && Matches(path, grammarSource))
 			.ToArray();
 
 		if (candidates.Length == 0)

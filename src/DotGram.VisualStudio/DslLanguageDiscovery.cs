@@ -21,13 +21,24 @@ public sealed class DslClassificationDefinition(string target, string role, Attr
 	public AttributeData Attribute { get; } = attribute;
 }
 
+public sealed class DslIncludedGrammarDefinition(
+	string name,
+	DslGrammarSourceKind sourceKind,
+	string grammarSource)
+{
+	public string Name { get; } = name;
+	public DslGrammarSourceKind SourceKind { get; } = sourceKind;
+	public string GrammarSource { get; } = grammarSource;
+}
+
 public sealed class DslLanguageDefinition(
 	string id,
 	INamedTypeSymbol parserType,
 	DslGrammarSourceKind sourceKind,
 	string grammarSource,
 	IReadOnlyList<string> extensions,
-	IReadOnlyList<DslClassificationDefinition> classifications)
+	IReadOnlyList<DslClassificationDefinition> classifications,
+	IReadOnlyList<DslIncludedGrammarDefinition>? includedGrammars = null)
 {
 	public string Id { get; } = id;
 	public INamedTypeSymbol ParserType { get; } = parserType;
@@ -37,6 +48,8 @@ public sealed class DslLanguageDefinition(
 	public string GrammarSource { get; } = grammarSource;
 	public IReadOnlyList<string> Extensions { get; } = extensions;
 	public IReadOnlyList<DslClassificationDefinition> Classifications { get; } = classifications;
+	public IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars { get; } =
+		includedGrammars ?? Array.Empty<DslIncludedGrammarDefinition>();
 }
 
 public sealed class DslAttributeCarrier(
@@ -135,7 +148,8 @@ public static class DslLanguageDiscovery
 				grammar.Value.Kind,
 				grammar.Value.Source,
 				Extensions(languageAttribute),
-				classifications));
+				classifications,
+				IncludedGrammars(type)));
 		}
 
 		var carriers = new List<DslAttributeCarrier>();
@@ -170,6 +184,33 @@ public static class DslLanguageDiscovery
 			: (DslGrammarSourceKind.Embedded, source);
 	}
 
+	static IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars(INamedTypeSymbol parserType)
+	{
+		var included = new List<DslIncludedGrammarDefinition>();
+
+		for (var current = parserType.BaseType; current is not null; current = current.BaseType)
+		{
+			var attribute = current.GetAttributes().FirstOrDefault(IsGramAttribute);
+			if (attribute is null || Grammar(current, attribute) is not { } grammar)
+				continue;
+
+			var name = attribute.NamedArguments
+				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
+				.Value.Value as string ?? current.Name;
+			if (!IsIdentifier(name))
+				continue;
+
+			included.Add(new DslIncludedGrammarDefinition(name, grammar.Kind, grammar.Source));
+		}
+
+		return included;
+	}
+
+	static bool IsIdentifier(string value) =>
+		value.Length > 0 &&
+		(value[0] == '_' || char.IsLetter(value[0])) &&
+		value.Skip(1).All(static character => character == '_' || char.IsLetterOrDigit(character));
+
 	static IReadOnlyList<string> Extensions(AttributeData attribute)
 	{
 		var value = attribute.NamedArguments
@@ -202,7 +243,8 @@ public static class DslLanguageDiscovery
 		attribute.AttributeConstructor?.Parameters.Length is 0 or 1 &&
 		(attribute.AttributeConstructor.Parameters.Length == 0 ||
 			IsString(attribute.AttributeConstructor.Parameters[0].Type)) &&
-		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false);
+		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false) &&
+		HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true);
 
 	static bool IsLanguageAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageAttribute) &&

@@ -80,6 +80,34 @@ public sealed class DslGrammarSourceResolverTests
 		Assert.Equal(2, resolution.Candidates.Count);
 	}
 
+	[Fact]
+	public async Task JoinsInheritedGrammarUnderItsIncludedName()
+	{
+		var project = Project();
+		var language = new DslLanguageDefinition(
+			"derived",
+			null!,
+			DslGrammarSourceKind.Embedded,
+			"using Lexical;\nStart = Word\nparse Start",
+			[],
+			[],
+			[new DslIncludedGrammarDefinition(
+				"Lexical",
+				DslGrammarSourceKind.Embedded,
+				"Word = ['a'..'z']+")]);
+
+		var resolution = await DslGrammarSourceResolver.ResolveAsync(
+			project,
+			language,
+			TestContext.Current.CancellationToken);
+
+		Assert.Equal(DslGrammarResolutionKind.Resolved, resolution.Kind);
+		Assert.Equal(
+			"using Lexical;\nStart = Word\nparse Start\n\n" +
+			"namespace Lexical\n{\nWord = ['a'..'z']+\n}\n",
+			resolution.Text);
+	}
+
 	static Project Project() =>
 		new AdhocWorkspace().AddProject("Dsl", LanguageNames.CSharp);
 

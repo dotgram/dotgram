@@ -113,7 +113,7 @@ public static class EmbeddedGrammarService
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var document        = GramLanguageService.Analyze(grammar.Text);
+			var document        = GramLanguageService.Analyze(grammar.AnalysisText);
 			var classifications = new List<HostClassification>(document.Classifications.Count);
 			var diagnostics     = new List<HostDiagnostic>(document.Diagnostics.Count);
 			var symbols         = new List<HostSymbolOccurrence>(document.Symbols.Count);
@@ -148,6 +148,9 @@ public static class EmbeddedGrammarService
 
 			foreach (var diagnostic in document.Diagnostics)
 			{
+				if (diagnostic.Position > grammar.Text.Length)
+					continue;
+
 				var exact = grammar.SourceMap.TryMap(diagnostic.Position, diagnostic.Length, out var span);
 
 				diagnostics.Add(new HostDiagnostic(

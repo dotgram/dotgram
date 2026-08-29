@@ -3,17 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using DotGram.Grammar;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotGram.VisualStudio;
 
 /// <summary>One grammar string proven by Roslyn to belong to <c>DotGram.GramAttribute</c>.</summary>
-public sealed class EmbeddedGrammar(string text, SyntaxToken token, CSharpStringMap sourceMap)
+public sealed class EmbeddedGrammar(
+	string text,
+	SyntaxToken token,
+	CSharpStringMap sourceMap,
+	string? analysisText = null)
 {
 	public string          Text      { get; } = text;
 	public SyntaxToken     Token     { get; } = token;
 	public CSharpStringMap SourceMap { get; } = sourceMap;
+	public string AnalysisText { get; } = analysisText ?? text;
 }
 
 /// <summary>Finds embedded grammars by attribute identity rather than source spelling.</summary>
@@ -37,11 +44,19 @@ public static class EmbeddedGrammarFinder
 			cancellationToken.ThrowIfCancellationRequested();
 
 			if (!IsGramAttribute(model, attribute, cancellationToken) ||
-				attribute.ArgumentList?.Arguments is not [{ Expression: LiteralExpressionSyntax literal }] ||
+				attribute.ArgumentList?.Arguments.FirstOrDefault(
+					static argument => argument.NameEquals is null) is not
+						{ Expression: LiteralExpressionSyntax literal } ||
 				!CSharpStringMap.TryCreate(literal.Token, out var map))
 				continue;
 
-			grammars.Add(new EmbeddedGrammar(literal.Token.ValueText, literal.Token, map!));
+			var own = literal.Token.ValueText;
+			var included = IncludedGrammars(model, attribute, cancellationToken);
+			var analysisText = included.Count == 0
+				? own
+				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included).Text;
+
+			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText));
 		}
 
 		return grammars;
@@ -57,6 +72,36 @@ public static class EmbeddedGrammarFinder
 
 		return actual?.ToDisplayString() == GramAttribute && IsAttribute(actual);
 	}
+
+	static IReadOnlyList<GrammarSplice.Part> IncludedGrammars(
+		SemanticModel model,
+		AttributeSyntax attribute,
+		CancellationToken cancellationToken)
+	{
+		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
+			model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
+			return Array.Empty<GrammarSplice.Part>();
+
+		var included = new List<GrammarSplice.Part>();
+		for (var current = type.BaseType; current is not null; current = current.BaseType)
+		{
+			var grammar = current.GetAttributes().FirstOrDefault(static candidate =>
+				candidate.AttributeClass?.ToDisplayString() == GramAttribute);
+			if (grammar?.ConstructorArguments is not [{ Value: string source }] || IsFile(source))
+				continue;
+
+			var name = grammar.NamedArguments
+				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
+				.Value.Value as string ?? current.Name;
+			included.Add(new GrammarSplice.Part(source, name, null));
+		}
+
+		return included;
+	}
+
+	static bool IsFile(string source) =>
+		source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
+		source.IndexOf('\r') < 0 && source.IndexOf('\n') < 0;
 
 	static bool IsAttribute(ITypeSymbol type)
 	{

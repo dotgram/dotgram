@@ -154,7 +154,6 @@ public sealed class GramLanguageServiceTests
 
 		Assert.Empty(document.Diagnostics);
 		Assert.Contains(("namespace", GramSyntaxKind.Keyword), classified);
-		Assert.DoesNotContain(("context", GramSyntaxKind.Keyword), classified);
 		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Start"));
@@ -166,6 +165,24 @@ public sealed class GramLanguageServiceTests
 		Assert.All(@namespace.Children, symbol =>
 			Assert.True(@namespace.Position <= symbol.Position &&
 				symbol.Position + symbol.Length <= @namespace.Position + @namespace.Length));
+	}
+
+	[Fact]
+	public void ClassifiesContextAndStateDeclarationsAsKeywords()
+	{
+		const string source =
+			"context : @System.Object\n" +
+			"state : @System.Int32\n" +
+			"Start = wordboundary\n" +
+			"parse Start";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Contains(("context", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("state", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("wordboundary", GramSyntaxKind.Keyword), classified);
 	}
 
 	[Fact]

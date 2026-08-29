@@ -144,6 +144,26 @@ public sealed class DslLanguageDiscoveryTests
 		Assert.Equal("SyntaxAttribute", Assert.Single(catalog.AttributeCarriers).AttributeType.Name);
 	}
 
+	[Fact]
+	public void DiscoversInheritedGrammarSourcesAndIncludedNames()
+	{
+		var catalog = Discover(Support + """
+
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			class BaseParser;
+
+			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			[DotGram.GramLanguage("derived")]
+			class DerivedParser : BaseParser;
+			""");
+
+		var language = Assert.Single(catalog.Languages);
+		var included = Assert.Single(language.IncludedGrammars);
+		Assert.Equal("Lexical", included.Name);
+		Assert.Equal(DslGrammarSourceKind.Embedded, included.SourceKind);
+		Assert.Equal("Word = ['a'..'z']+", included.GrammarSource);
+	}
+
 	static DslLanguageCatalog Discover(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(

@@ -175,6 +175,41 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
+	public async Task RoutesInputThroughAParserWithAnInheritedGrammar()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = SupportEmitter.Attributes + """
+
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			class LexicalParser;
+
+			[DotGram.Gram("using Lexical;\nStart = name: Word\nparse Start")]
+			[DotGram.GramLanguage("derived")]
+			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
+			class DerivedParser : LexicalParser
+			{
+				public static string ParseStart(string input) => input;
+			}
+
+			static class Example
+			{
+				static void Test() => DerivedParser.ParseStart("customer");
+			}
+			""";
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		var classification = Assert.Single(result.Classifications);
+		Assert.Equal("Variable", classification.Role);
+		Assert.Equal("customer", text.ToString(classification.Span));
+	}
+
+	[Fact]
 	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;

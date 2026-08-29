@@ -69,8 +69,9 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 {
 	static readonly string[] BuiltIns =
 	[
-		"any", "none", "eol", "eof", "trivia", "KeywordBoundary",
+		"any", "none", "eol", "eof", "trivia", "wordboundary",
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
+		"context", "state",
 	];
 
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
@@ -215,7 +216,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		"eol"             => "DotGram built-in rule: matches an end of line",
 		"eof"             => "DotGram built-in rule: matches the end of input",
 		"trivia"          => "DotGram built-in rule: matches grammar trivia",
-		"KeywordBoundary" => "DotGram built-in keyword-boundary rule",
+		"wordboundary" => "DotGram built-in word-boundary rule",
 		_                  => $"DotGram keyword: {name}",
 	};
 }
