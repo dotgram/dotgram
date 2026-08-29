@@ -596,9 +596,14 @@ public static partial class CSharpEmitter
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
 		// refused a stream (Retention, GRAM5001).
+		//
+		// The context is handed over here as everywhere else. It is the caller's object and
+		// says nothing about how much input is held, so a window changes nothing about it —
+		// unlike the input itself, which a window by definition does not have. Leaving it
+		// out was a recognizer called with one argument short, in generated code.
 		var streamedHands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", null!" : "");
+			(input ? ", null!" : "") + gives;
 
 		string Recognized(string from, string to) =>
 			built is null ? $"input.Substring({from}, {to})" : "recognized";
@@ -611,7 +616,8 @@ public static partial class CSharpEmitter
 			{
 				file.Line();
 
-				EmitStreamingFind(file, publication, method, name, match, streamedHands, built is not null);
+				EmitStreamingFind(
+					file, publication, method, name, match, streamedHands, built is not null, takes);
 			}
 
 			return;

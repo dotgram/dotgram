@@ -216,4 +216,75 @@ public sealed class SpliceTests
 		Assert.Equal(1, line);
 		Assert.Equal(8, column);
 	}
+
+	// ── The grammar's own state, through every way a parser is rendered ──────────
+
+	/// <summary>
+	/// A supplied name has to reach every rendering, not only the one it was built in.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// `context` was threaded through the general engine and nowhere else, and the two
+	/// halves disagreed in silence: a publication passed a context the flat recognizer did
+	/// not take, and that recognizer called a factory without the one it did. A valid
+	/// grammar produced C# that does not compile — which is the worst shape a generator
+	/// defect takes, because the error lands in a file nobody wrote.
+	/// </para>
+	/// <para>
+	/// Written as a corpus over the shapes that pick a rendering, rather than as one test
+	/// per rendering: what has to hold is that the choice of rendering is invisible, and a
+	/// test that names one rendering stops being about that.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	// Flat-valued: one construction over a text capture, no recursion, no recovery.
+	[InlineData(
+		"context : @C\nValue : @int = d: ['0'..'9']+ => @(context.Count + d.Length)\nparse Value",
+		"out int value, C context)")]
+	// Flat and valueless, with a guard that names it — no factory anywhere. Written with
+	// no capture in it, because a capture is what `Silent` refuses outside the
+	// values-in-locals rendering, and with one this is the engine again.
+	[InlineData(
+		"context : @C\nValue = ['0'..'9']+ & when @(context.Ok())\nparse Value",
+		"ref Failure failure, C context)")]
+	// The general engine: left recursion puts it there.
+	[InlineData(
+		"context : @C\nSum : @int = l: Sum & '+' & r: D => @(context.Add(l, r)) | d: D => @(d)\n" +
+			"D : @int = t: ['0'..'9'] => @(t.Length)\nparse Sum",
+		"static int Recognize_DotGram(")]
+	// A captured call to a flat-valued rule, compiled where the call was.
+	[InlineData(
+		"context : @C\nOuter : @int = v: Value & '!' => @(v)\n" +
+			"Value : @int = d: ['0'..'9']+ => @(context.Count + d.Length)\nparse Outer",
+		"Construct_Value(context,")]
+	// A publication that also streams, which is a second recognizer over a window.
+	[InlineData(
+		"context : @C\nStart = ['0'..'9']+ & when @(context.Ok())\nfind Start",
+		"global::System.IO.TextReader")]
+	public void The_grammar_own_state_reaches_every_rendering(string grammar, string shape)
+	{
+		var emitted = Emitted(grammar);
+
+		// That the corpus still covers what it says it covers: four grammars that all
+		// compile prove nothing if three of them quietly took the same path.
+		Assert.Contains(shape, emitted, StringComparison.Ordinal);
+
+		// And that it compiles, which is the whole of what the defect broke —
+		// `EmittedCode.Compile` fails on a warning, let alone on a missing argument.
+		EmittedCode.Compile(emitted, className: "Grammar");
+	}
+
+	static string Emitted(string grammar)
+	{
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.Empty(result.Diagnostics);
+
+		// The host half a grammar with a `context` needs, written here because the
+		// generated code names it and nothing else supplies it.
+		return "public class C { public int Count; public bool Ok() => true; public bool Ok(string s) => true; " +
+			"public int Add(int a, int b) => a + b; }\n" + result.Sources[0].Text;
+	}
 }

@@ -5858,3 +5858,59 @@ every location the parser reports, which is a change to make deliberately rather
 side effect of this.
 
 1,395 tests green in both configurations.
+
+## Fixed: `context` reached the engine and nothing else
+
+Found by an external review of `d744de9`, reproduced exactly as described, and worse than
+described in one respect. A grammar as ordinary as
+
+```dotgram
+context : @C
+Value : @int = d: ['0'..'9']+ => @(context.Count + d.Length)
+parse Value
+```
+
+emitted this:
+
+```csharp
+public static int ParseValue(string input, C context)                        // takes it
+static int Construct_Value(C context, string d) => …                         // wants it
+static int Recognize_Value_Whole(…, ref Failure failure, out int value)      // has neither
+    …
+    value = Construct_Value(captured0_0);                                    // CS7036
+```
+
+**A valid grammar produced C# that does not compile** — the worst shape a generator defect
+takes, because the error lands in a file nobody wrote. Two breaks, not one: the publication
+handed a context to a recognizer whose signature did not have it, *and* that recognizer
+called a factory without the one it did.
+
+The streamed `find` was the same story a second time. `streamedHands` left the context out
+where it carefully passed `null!` for the input, and the reasoning behind that turns out to
+be exactly why the context should have stayed: a window has no whole input, and that is a
+fact about the input. A context is the caller's object and says nothing about how much text
+is held.
+
+Fixed by threading rather than by refusing, which is the right answer and was the reviewer's:
+`context` needs no arena. `RenderFlat` and `RenderFlatValued` take it, `EmitFlatFactoryCall`
+passes it, and the streamed `find` and its sequence-of-lines overload hand it on.
+
+### Why the tests did not have it
+
+The corpus tested `context` against the engine, because that is where it was built. The
+tests now go the other way round: one grammar per *rendering* — flat-valued, flat and
+valueless, the engine, a call compiled in place, a stream — each pinned to a shape only that
+rendering emits, and each compiled. Pinning the shape is the part that matters: five
+grammars that all compile prove nothing if four of them quietly took the same path, and the
+first draft of this test had exactly that problem — a capture makes a valueless rule
+non-flat, so the case written to cover flat-and-valueless was the engine again.
+
+**This is the fourth time the same defect class has been found this session** — `parserState`
+missing from `SuppliedNames`, the fold materializer assembling its own arguments, sited
+callees not refusing a `context`, and now this. Every one is a supplied name that reached
+one rendering and not another. The review is right that the answer is not another `if`: what
+is wanted is one place that says which requirements a rendering can meet, with the
+renderings consuming it rather than each carrying its own list of what it forbids. Recorded
+as the next architectural piece rather than done here.
+
+1,400 tests green in both configurations.
