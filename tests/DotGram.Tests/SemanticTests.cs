@@ -573,6 +573,70 @@ public sealed class SemanticTests
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
 
+	// ── A `with` cycle, which has no order (GRAM4017) ───────────────────────────
+
+	/// <summary>
+	/// Two rules whose `with` sites reach each other are refused rather than ordered.
+	/// </summary>
+	/// <remarks>
+	/// A `with` rebinds what a rule actually resolves to, so `R2 = R1 with (C = D)` has to
+	/// be specialized after whatever `R1`'s own `with` did to it. Where each wants the other
+	/// first there is no such order, and the pass used to settle it by whichever rule the
+	/// loop reached first — document order. Moving a rule in the file changed what the
+	/// parser did.
+	/// </remarks>
+	[Fact]
+	public void Two_rules_whose_with_sites_reach_each_other_are_refused() =>
+		Refused(
+			GrammarNormalizer.CircularWith,
+			"""
+			A = B with (X = Y)
+			B = A with (X = Z)
+			X = 'x'
+			Y = 'y'
+			Z = 'z'
+			Start = A
+			""");
+
+	/// <summary>And the answer does not depend on which of them is written first.</summary>
+	/// <remarks>
+	/// The test the defect deserved: not "is it refused" but "is the same thing said either
+	/// way round". A pass that settles a cycle by document order passes the first assertion
+	/// and fails this one.
+	/// </remarks>
+	[Fact]
+	public void And_it_is_refused_whichever_of_them_is_written_first()
+	{
+		const string Tail =
+			"""
+			X = 'x'
+			Y = 'y'
+			Z = 'z'
+			Start = A
+			""";
+
+		Refused(GrammarNormalizer.CircularWith, "A = B with (X = Y)\nB = A with (X = Z)\n" + Tail);
+		Refused(GrammarNormalizer.CircularWith, "B = A with (X = Z)\nA = B with (X = Y)\n" + Tail);
+	}
+
+	[Fact]
+	public void And_a_chain_that_does_not_come_back_is_not_a_cycle() =>
+		// `C` reaches `B`, and nothing reaches `C`. There is an order and the pass finds it,
+		// which is what the ordering was written for in the first place — the refusal must
+		// not take the feature with it.
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				B = X with (X = Y)
+				C = B with (X = Z)
+				X = 'x'
+				Y = 'y'
+				Z = 'z'
+				Start = C
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.CircularWith);
+
 	// ── §7.8, the marks a parse places over an extent ────────────────────────────
 
 	/// <summary>

@@ -44,6 +44,12 @@ public sealed partial class GrammarNormalizer
 	public const string AmbiguousExternal   = "GRAM4015";
 	public const string SharedPrefix        = "GRAM4016";
 
+	/// <summary>
+	/// Two rules whose <c>with</c> sites reach each other, which has no order to be
+	/// specialized in.
+	/// </summary>
+	public const string CircularWith        = "GRAM4017";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];

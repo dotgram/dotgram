@@ -6028,3 +6028,44 @@ measurement was made. What is claimed is that the overflow is gone.
 Snapshots moved and the diff is nothing but the room checks.
 
 1,433 tests green in both configurations.
+
+## Fixed: a `with` cycle answered by document order
+
+The oldest of the review's findings, and the comment warning about it had been sitting in
+`GrammarNormalizer.With.cs` for some time:
+
+> A cycle between two with-bearing rules … has no order that satisfies both.
+
+What settled it was `visited` — a rule met twice simply stopped waiting for the other's
+splice. Which of the two gave up depended on which the loop reached first, and that is the
+order the rules are written in. **Moving a rule in the file changed what the parser did**,
+silently, and nothing would ever have caught it: both orders compile, both produce a
+parser, and the two parsers differ.
+
+Refused now, `GRAM4017`, before the ordering runs — because a cycle is precisely what has no
+order to run in.
+
+**Refused rather than settled**, which is the reviewer's recommendation and the right one:
+settling it means choosing what the notation means, and nobody has. The shape that would
+answer it is a specialization keyed by (rule, bindings) with memoization and a placeholder
+symbol standing in before the body exists — which turns sequencing side effects over
+`_bodies` into ordinary graph construction, and is a piece of design rather than a fix.
+
+**A rule reaching only itself is not this** and is not refused: there is one thing to do and
+one order to do it in. What has no order is two.
+
+The detection closes the reach relation over itself rather than walking strongly-connected
+components. The graph has as many nodes as the grammar has rules containing a `with` — a
+handful — so the clearer of the two costs nothing measurable.
+
+### The test the defect deserved
+
+Not "is it refused". The pass that settles a cycle by document order passes that. The one
+that matters is **that the same thing is said either way round**: the same two rules, written
+`A` first and then `B` first, and both refused. A test asserting only the first order is a
+test the old behaviour also passes half the time.
+
+And one that the refusal did not take the feature with it: a chain of `with` sites that does
+not come back still finds its order, which is what the ordering was written for.
+
+1,436 tests green in both configurations.
