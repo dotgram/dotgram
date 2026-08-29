@@ -170,22 +170,60 @@ public sealed partial class GrammarNormalizer
 		if (ReferenceEquals(from, to))
 			return;
 
-		if (_bounds.TryGetValue(from, out var bound))
-			_bounds[to] = bound;
-
-		if (_powers.TryGetValue(from, out var power))
-			_powers[to] = power;
-
-		if (_recoveries.TryGetValue(from, out var recovery))
-			_recoveries[to] = recovery;
-
-		foreach (var rule in _folds.Keys.ToList())
-			_folds[rule] = Moved(_folds[rule], from, to);
-
-		foreach (var rule in _climbing.Keys.ToList())
-			if (_climbing[rule].TryGetValue(from, out var level))
-				_climbing[rule] = Alongside(_climbing[rule], to, level);
+		foreach (var annotation in Annotations)
+			annotation.Move(from, to);
 	}
+
+	/// <summary>
+	/// Everything recorded against which node, and how each of them follows a rebuild.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A list rather than a run of <c>if</c>s in <see cref="Carry"/>, because the run was
+	/// the defect: what it cost when the fold was left out of it is written above, and
+	/// nothing about that run said a fourth table had been added and a fifth had not. Adding
+	/// one here is the only place it has to be said, and a test asks whether every table
+	/// keyed by a node is in this list.
+	/// </para>
+	/// <para>
+	/// Built once, on demand, and holding the tables themselves as well as the move: what
+	/// the test compares is <em>which</em> tables are registered against which fields exist,
+	/// and a delegate alone cannot be asked what it closed over.
+	/// </para>
+	/// </remarks>
+	internal IReadOnlyList<(object Table, Action<Node, Node> Move)> Annotations =>
+		_annotations ??=
+		[
+			Moving(_bounds),
+			Moving(_powers),
+			Moving(_recoveries),
+
+			// Keyed by rule rather than by node, and named here all the same: the *values*
+			// name nodes, so a rebuild has to reach into them. That is why the list holds a
+			// move rather than a dictionary.
+			(_folds, (from, to) =>
+			{
+				foreach (var rule in _folds.Keys.ToList())
+					_folds[rule] = Moved(_folds[rule], from, to);
+			}),
+
+			(_climbing, (from, to) =>
+			{
+				foreach (var rule in _climbing.Keys.ToList())
+					if (_climbing[rule].TryGetValue(from, out var level))
+						_climbing[rule] = Alongside(_climbing[rule], to, level);
+			}),
+		];
+
+	IReadOnlyList<(object Table, Action<Node, Node> Move)>? _annotations;
+
+	/// <summary>One table keyed by node, and the move that follows a rebuild through it.</summary>
+	static (object, Action<Node, Node>) Moving<T>(Dictionary<Node, T> table) =>
+		(table, (from, to) =>
+		{
+			if (table.TryGetValue(from, out var found))
+				table[to] = found;
+		});
 
 	/// <summary>A fold naming the node that replaced one of the two kinds it names.</summary>
 	static Fold Moved(Fold fold, Node from, Node to)

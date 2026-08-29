@@ -6110,3 +6110,38 @@ text plus typed edges, recorded where a jump is written rather than recovered fr
 was spelled.
 
 1,455 tests green in both configurations.
+
+## Fixed: a fourth table keyed by a node could be forgotten
+
+The third instance this session of one shape of defect, and the third fix of the same
+shape. Passes here record what they work out against the node they worked it out on, by
+reference; a pass that rebuilds a node has to hand those on, and `Carry` did it as a run of
+`if`s. The fold was once left out of that run, and `Recursion.cs`'s own remarks say what it
+cost — C# the *consumer* could not compile, in a file they never wrote.
+
+Nothing about a run of `if`s says a fourth table has been added and a fifth has not. `Carry`
+now walks a list; adding a table is one line in one place; and a test asks, by reflection,
+whether every field of the shape `Dictionary<Node, …>` is in that list.
+
+The two tables keyed by *rule* whose values name nodes — `_folds`, `_climbing` — are in the
+list too, and are why it holds a move rather than a dictionary. The reflection cannot demand
+them, and the list can carry them.
+
+### The first version of this test was worthless, which is worth writing down
+
+It built the normalizer with `FormatterServices.GetUninitializedObject`, so no field
+initializer ran, so **every field was null and so was every registered table**. "Is this null
+among those nulls" is true of anything. It passed, and it would have passed with nothing
+registered at all.
+
+Then the check that it caught a missing table was itself wrong twice over: the probe field
+it was supposed to add never got added, because the pattern it matched on omitted a
+`readonly`, and the run that "passed" was a run against unmodified source. Two green results
+in a row, both meaningless.
+
+What settled it was printing what the reflection actually found — three names, then four
+once the field really existed — and only then asserting. **A test that has not been seen to
+fail has not been seen to do anything**, and the way to see it is to make the thing it
+guards against, not to reason that it would.
+
+1,456 tests green in both configurations.

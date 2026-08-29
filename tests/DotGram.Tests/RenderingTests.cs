@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 
 using Xunit;
 
@@ -174,6 +176,10 @@ public sealed class RenderingTests
 			"No decision",
 			Assert.Throws<InvalidOperationException>(() => MeansAState("SomethingNew")).Message);
 
+	static DotGram.Grammar.Parsing.GrammarFile Parsed(string grammar) =>
+		DotGram.Grammar.Parsing.GramParser.Parse(
+			DotGram.Grammar.Parsing.GramLexer.Tokenize(grammar)).File!;
+
 	static string SolutionRoot()
 	{
 		var at = AppContext.BaseDirectory;
@@ -182,5 +188,70 @@ public sealed class RenderingTests
 			at = Path.GetDirectoryName(at);
 
 		return at ?? throw new InvalidOperationException("No solution root above the test binary.");
+	}
+
+	// ── What a rebuilt node has to carry with it ────────────────────────────────
+
+	/// <summary>
+	/// Every table keyed by which node is one a rebuild hands on.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Passes here record what they worked out against the node they worked it out on, by
+	/// reference, and a pass that rebuilds a node has to hand those on or the fact is left
+	/// naming a node no body holds. The fold went unhanded for a long time, and what it cost
+	/// is in `GrammarNormalizer.Recursion`'s own remarks: C# the *consumer* could not
+	/// compile, in a file they never wrote.
+	/// </para>
+	/// <para>
+	/// So the question is not whether the three known tables are carried — they are, and
+	/// were before this. It is whether a fourth could be added without being. Reflection
+	/// finds every field of the shape and the registry says which are handled; a table
+	/// declared and not registered fails here.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Every_table_keyed_by_a_node_is_carried_through_a_rebuild()
+	{
+		var normalizer = typeof(GrammarNormalizer);
+		var node       = typeof(GrammarNormalizer).Assembly.GetType("DotGram.Grammar.Model.Node")!;
+
+		var declared = normalizer
+			.GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+			.Where(field =>
+				field.FieldType.IsGenericType &&
+				field.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>) &&
+				field.FieldType.GetGenericArguments()[0] == node)
+			.ToArray();
+
+		Assert.NotEmpty(declared);
+
+		// A real instance, built through the private constructor, because the field
+		// initializers are what make the tables distinct objects. The first version of this
+		// used an uninitialized one and was worthless: every field was null, the registry
+		// was a list of nulls, and "is this null among those nulls" is true of anything.
+		var instance = (GrammarNormalizer)Activator.CreateInstance(
+			normalizer,
+			BindingFlags.NonPublic | BindingFlags.Instance,
+			binder: null,
+			[GrammarBinder.Bind(Parsed("Start = 'a'")), null],
+			culture: null)!;
+
+		// `Item1`, not `Table`: a tuple's element names live in the compiler and not in the
+		// metadata, and the list holds value tuples, which is why the cast below is the
+		// non-generic one — an `IEnumerable<ValueTuple<…>>` is not an `IEnumerable<object>`.
+		var registered = ((System.Collections.IEnumerable)normalizer
+			.GetProperty("Annotations", BindingFlags.NonPublic | BindingFlags.Instance)!
+			.GetValue(instance)!)
+			.Cast<object>()
+			.Select(entry => entry.GetType().GetField("Item1")!.GetValue(entry))
+			.ToArray();
+
+		Assert.All(
+			declared,
+			field => Assert.Contains(
+				field.GetValue(instance),
+				registered,
+				ReferenceEqualityComparer.Instance));
 	}
 }
