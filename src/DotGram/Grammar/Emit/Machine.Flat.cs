@@ -261,9 +261,11 @@ sealed partial class Machine
 
 		foreach (var factory in factories)
 		{
-			if (CSharpEmitter.WantsText(factory) ||
-				CSharpEmitter.Asks(factory, "parserSpan") ||
-				CSharpEmitter.Asks(factory, "parserInput") ||
+			// What this rendering can hand a construction is said once, in `Renderings.cs`,
+			// and read here rather than listed again. The list is what kept going out of
+			// date: a name added to the signature and not to one of these was a call short
+			// an argument, in somebody else's build.
+			if (!Renderings.Supplies(Renderings.Rendering.Flat, factory, _graph) ||
 				factory.Accumulator is not null)
 				return false;
 

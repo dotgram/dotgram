@@ -524,7 +524,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;
@@ -680,7 +680,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;
@@ -1029,7 +1029,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;
@@ -1757,7 +1757,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (p + 2 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
 					{
 						p += 2;
 						goto Return;

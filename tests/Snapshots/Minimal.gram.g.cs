@@ -1077,7 +1077,7 @@ namespace DotGram.Snapshots
 			string[]? expected = null;
 
 			{
-				if (p + 4 > text.Length)
+				if (text.Length - p < 4)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1129,7 +1129,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 5 > text.Length)
+				if (text.Length - p < 5)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1163,7 +1163,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 3 > text.Length)
+				if (text.Length - p < 3)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1195,7 +1195,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 4 > text.Length)
+				if (text.Length - p < 4)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1254,17 +1254,17 @@ namespace DotGram.Snapshots
 			string[]? expected = null;
 
 			{
-				if (p + 5 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
+				if (text.Length - p >= 5 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 5), global::System.MemoryExtensions.AsSpan("https")))
 				{
 					p += 5;
 					goto Accept;
 				}
-				if (p + 4 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
+				if (text.Length - p >= 4 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 4), global::System.MemoryExtensions.AsSpan("http")))
 				{
 					p += 4;
 					goto Accept;
 				}
-				if (p + 3 <= text.Length && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
+				if (text.Length - p >= 3 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("ftp")))
 				{
 					p += 3;
 					goto Accept;
@@ -1301,7 +1301,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 5 > text.Length)
+				if (text.Length - p < 5)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1354,7 +1354,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 4 > text.Length)
+				if (text.Length - p < 4)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1423,7 +1423,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 4 > text.Length)
+				if (text.Length - p < 4)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1474,7 +1474,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 5 > text.Length)
+				if (text.Length - p < 5)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1779,7 +1779,7 @@ namespace DotGram.Snapshots
 
 			S13:
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1804,7 +1804,7 @@ namespace DotGram.Snapshots
 
 			S12:
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1824,7 +1824,7 @@ namespace DotGram.Snapshots
 
 			S11:
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -1889,7 +1889,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -2101,7 +2101,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -2199,7 +2199,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -2301,7 +2301,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -3633,7 +3633,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -3762,7 +3762,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 2 > text.Length)
+				if (text.Length - p < 2)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -3836,7 +3836,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if (p + 3 > text.Length)
+				if (text.Length - p < 3)
 				{
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
@@ -3902,7 +3902,7 @@ namespace DotGram.Snapshots
 			p += 1;
 			goto L0_turn;
 			L3_or: ;
-			if (p + 2 > text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("//")))
+			if (text.Length - p < 2 || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("//")))
 				goto L1_done;
 			p += 2;
 			L6_turn:

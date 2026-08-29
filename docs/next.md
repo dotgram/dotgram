@@ -5975,3 +5975,56 @@ Splitting it into `architecture.md` / `design-notes/` / `backlog.md` is the revi
 suggestion and is not done here — 5,900 lines of prose to sort is a decision, not a tidy-up.
 
 1,400 tests green in both configurations.
+
+## Built: one place that says what each rendering can hand over
+
+The review's central architectural point, taken. Four times in one week the same defect
+appeared — a name the language supplies to a `=>` threaded through the rendering it was
+built in and silently absent from the rest — and each time it was fixed where it was found.
+`Renderings.cs` is the place that stops the fifth being found the same way.
+
+**It is a table, not a capability system.** For every supplied name and every rendering —
+the engine, the flat method, the call compiled in place — one entry: either the rendering
+hands it over, or a sentence saying why it refuses. `ComputeFlatValued` and
+`ComputeSitedValued` read it instead of each listing forbidden names, which is where the
+lists kept going out of date.
+
+**A missing pair throws rather than defaulting to "no".** That is the whole design. A
+default would make an oversight look like a decision, which is precisely how this went
+wrong: nobody ever decided the flat rendering could not supply a `context` — it was simply
+never asked, and the generated call went one argument short.
+
+**And the test asks for the decision rather than for the behaviour.** There already *was* a
+test that `context` works; it passed while three renderings could not hand it over, because
+it only ever ran the engine. This one enumerates every name against every rendering — thirty
+pairs — and asserts that each is answered. Verified by removing one entry: the pair that
+disappears is `(Flat, context)`, which is the P0 itself, and the failure names it.
+
+The refusals are written as sentences an author of this compiler can act on, and asserted to
+be sentences: "a flat rendering keeps no record of where the rule began", not `false`.
+
+## Fixed: a room check that could overflow
+
+`p + count > text.Length` is the obvious spelling and is wrong at the edge. A span may hold
+`int.MaxValue` characters, so a position near the end plus a literal's length wraps
+negative, the check passes, and what should have been an ordinary refusal to match becomes
+an exception out of a slice. Four gigabytes of input to reach, and still a wrong answer
+rather than a slow one.
+
+Asked the other way round — `text.Length - p` against the count — it cannot overflow: both
+sides are non-negative and the difference is between them.
+
+**Signed, deliberately, where the single-character form beside it is unsigned.** That form
+is unsigned because it is then the same comparison the indexer's own bounds check makes,
+which is the measured reason it was written that way. Here unsigned would be wrong: were `p`
+ever past the end, `text.Length - p` is negative and casting it to `uint` makes it enormous
+— the check would report room where there is none, which is the one direction a room check
+may not fail in.
+
+The review suggested the change partly for range-check elimination. That half is not
+claimed: this project's own gate says measure in a parser and expect noise, and no
+measurement was made. What is claimed is that the overflow is gone.
+
+Snapshots moved and the diff is nothing but the room checks.
+
+1,433 tests green in both configurations.

@@ -1523,6 +1523,35 @@ public sealed class CSharpEmitterTests
 				"""),
 			StringComparison.Ordinal);
 
+	/// <summary>A room check cannot overflow, whatever the input's size.</summary>
+	/// <remarks>
+	/// `p + count > text.Length` is the obvious spelling and is wrong at the edge: a span
+	/// may hold `int.MaxValue` characters, so a position near the end plus a literal's
+	/// length wraps negative, the check passes, and an ordinary refusal to match becomes an
+	/// exception out of a slice. Asked the other way round — `text.Length - p` against the
+	/// count — it cannot overflow, because both sides are non-negative and the difference is
+	/// between them. Pinned as a generated-code test rather than left to a comment: the
+	/// input that would demonstrate it is four gigabytes.
+	/// </remarks>
+	[Fact]
+	public void A_room_check_is_asked_so_that_it_cannot_overflow()
+	{
+		var source = Emit(
+			"""
+			Start = "https" | "http" | 'x'
+			parse Start
+			""");
+
+		Assert.Contains("text.Length - p", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("p + 5 >", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("p + 5 <=", source, StringComparison.Ordinal);
+
+		// One character keeps the unsigned form — either way up, whichever the site wants —
+		// which is the comparison the indexer's own bounds check makes and the whole reason
+		// it is written that way. Nothing about that changes here.
+		Assert.Contains("(uint)p", source, StringComparison.Ordinal);
+	}
+
 	// ── A literal a later alternative continues ─────────────────────────────────
 
 	[Fact]

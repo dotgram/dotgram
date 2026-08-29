@@ -3683,10 +3683,36 @@ sealed partial class Machine
 	/// forward or is restored from one — and were it ever to be, the unsigned form refuses
 	/// where the signed one would have read out of bounds.
 	/// </remarks>
-	static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"p + {count} > text.Length";
+	/// <remarks>
+	/// <para>
+	/// More than one is asked the other way round — <c>text.Length - p</c> against the
+	/// count, rather than <c>p + count</c> against the length. Two reasons, and the first is
+	/// not a nicety.
+	/// </para>
+	/// <para>
+	/// <c>p + count</c> can overflow. A span may hold <c>int.MaxValue</c> characters, so a
+	/// position near the end plus a literal's length wraps negative, the check passes, and
+	/// what was an ordinary refusal to match becomes an exception out of a slice. It takes a
+	/// four-gigabyte input to reach and it is still a wrong answer rather than a slow one.
+	/// Subtracting cannot overflow: both sides are non-negative and the difference is
+	/// between them.
+	/// </para>
+	/// <para>
+	/// Signed, and deliberately, where the single-character form above is unsigned. There
+	/// the unsigned comparison is the same one the indexer's own bounds check makes, which
+	/// is the whole point of writing it that way. Here it would be wrong: were <c>p</c> ever
+	/// past the end, <c>text.Length - p</c> is negative, and casting that to
+	/// <c>uint</c> makes it enormous — the check would report room where there is none,
+	/// which is the one direction a room check may not fail in.
+	/// </para>
+	/// </remarks>
+	static string Short(int count) =>
+		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
-	static string Room(int count) => count == 1 ? "(uint)p < (uint)text.Length" : $"p + {count} <= text.Length";
+	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
+	static string Room(int count) =>
+		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
 	/// <remarks>
