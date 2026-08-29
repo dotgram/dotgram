@@ -434,11 +434,11 @@ sealed partial class Machine
 		_ => FirstSets.First.All,
 	};
 
-	bool Possessive(Node body, FirstSets.First following, HashSet<RuleSymbol>? seen = null) =>
+	bool Possessive(Node body, FirstSets.First following, Asked? asked = null) =>
 		following.IsKnown &&
 		!FirstSets.Nullable(body, _graph) &&
 		!FirstSets.Of(body, _graph).Overlaps(following) &&
-		Deterministic(body, seen ?? [], FirstSets.Of(body, _graph).Or(following));
+		Deterministic(body, asked ?? [], FirstSets.Of(body, _graph).Or(following));
 
 	/// <summary>
 	/// Whether a node has at most one match at any position — one length, not a choice of
@@ -463,21 +463,21 @@ sealed partial class Machine
 	/// general machinery by default.
 	/// </para>
 	/// </remarks>
-	bool Deterministic(Node node, HashSet<RuleSymbol> seen, FirstSets.First following) =>
+	bool Deterministic(Node node, Asked asked, FirstSets.First following) =>
 		node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
 			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture(_, var body)                  => Deterministic(body, seen, following),
-			Node.Construct(var body, _)                => Deterministic(body, seen, following),
-			Node.Atomic(var body)                      => Deterministic(body, seen, following),
-			Node.Marked(var body, _)                   => Deterministic(body, seen, following),
-			Node.Sequence(var parts)                   => AllDeterministic(parts, seen, following),
+			Node.Capture(_, var body)                  => Deterministic(body, asked, following),
+			Node.Construct(var body, _)                => Deterministic(body, asked, following),
+			Node.Atomic(var body)                      => Deterministic(body, asked, following),
+			Node.Marked(var body, _)                   => Deterministic(body, asked, following),
+			Node.Sequence(var parts)                   => AllDeterministic(parts, asked, following),
 			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
 			                                              AllDeterministic(
-			                                                  alternatives, seen, following, sequence: false),
-			Node.Repeat(var body, _, _)                => Possessive(body, following, seen),
-			Node.Call(var rule, _)                     => Deterministic(rule, seen, following),
+			                                                  alternatives, asked, following, sequence: false),
+			Node.Repeat(var body, _, _)                => Possessive(body, following, asked),
+			Node.Call(var rule, _)                     => Deterministic(rule, asked, following),
 			_                                          => false,
 		};
 
@@ -491,28 +491,51 @@ sealed partial class Machine
 	/// cost the repetitions around it their proof. The same mistake was made and corrected in
 	/// <see cref="FirstSets"/>, and it was not corrected here.
 	/// </remarks>
-	bool Deterministic(RuleSymbol rule, HashSet<RuleSymbol> seen, FirstSets.First following)
+	bool Deterministic(RuleSymbol rule, Asked asked, FirstSets.First following)
 	{
-		if (!seen.Add(rule))
-			return false;
+		// Met again on the way down, and followed by the same thing: the question is the one
+		// already being answered, so it is assumed answered yes and the walk goes on. If the
+		// rest of the walk agrees, the assumption held and the answer stands; if anything in
+		// it says no, this says no with it, and the assumption is discarded along with the
+		// path that made it. Assuming yes and checking is how "never more than one" is proved
+		// of a cycle at all — the opposite assumption proves nothing, which is what saying no
+		// here did: a rule that could reach itself was never determinate, and nothing built
+		// out of one could be either.
+		//
+		// Followed by something else, it is a different question about the same rule, and
+		// this walk has no answer to it yet. Saying no is the old answer and is the honest
+		// one: what makes a repetition possessive is what comes after it, so a rule proved
+		// determinate in one place is not thereby determinate in another.
+		if (asked.TryGetValue(rule, out var already))
+			return FirstSets.Same(already, following);
+
+		asked[rule] = following;
 
 		var settled = _graph.Bodies.TryGetValue(rule, out var called) &&
-			Deterministic(called, seen, following);
+			Deterministic(called, asked, following);
 
-		seen.Remove(rule);
+		asked.Remove(rule);
 
 		return settled;
 	}
 
+	/// <summary>Which rules the walk is inside, and what followed each where it went in.</summary>
+	/// <remarks>
+	/// The path down rather than everything met on the way, the same as the set it replaces:
+	/// a rule is taken off again on the way out, so meeting it twice in two places is not
+	/// mistaken for recursion.
+	/// </remarks>
+	sealed class Asked : Dictionary<RuleSymbol, FirstSets.First>;
+
 	bool AllDeterministic(
-		IReadOnlyList<Node> nodes, HashSet<RuleSymbol> seen, FirstSets.First following,
+		IReadOnlyList<Node> nodes, Asked asked, FirstSets.First following,
 		bool sequence = true)
 	{
 		var after = following;
 
 		for (var i = nodes.Count - 1; i >= 0; i--)
 		{
-			if (!Deterministic(nodes[i], seen, after))
+			if (!Deterministic(nodes[i], asked, after))
 				return false;
 
 			if (sequence)

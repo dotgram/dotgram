@@ -448,7 +448,7 @@ public static class FirstSets
 	/// would never have stopped. <see cref="First.Normalized"/> sorts and merges, so equal
 	/// sets really do have equal sequences.
 	/// </remarks>
-	static bool Same(First one, First other)
+	public static bool Same(First one, First other)
 	{
 		if (one.Anything != other.Anything || one.Nothing != other.Nothing || one.Ends != other.Ends)
 			return false;
