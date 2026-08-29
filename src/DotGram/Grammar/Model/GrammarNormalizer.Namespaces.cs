@@ -291,7 +291,7 @@ public sealed partial class GrammarNormalizer
 			_rules.Add(clone);
 
 			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
-			// rewritten the same way as any other node, so a `namespace (trivia = none)`
+			// rewritten the same way as any other node, so a `namespace N with (trivia = none)`
 			// binding reaches it exactly like any other call.
 			if (_trivia.TryGetValue(rule, out var trivia))
 				_trivia[clone] = CloneAndRewrite(trivia, targets, cloneMap, siteName);

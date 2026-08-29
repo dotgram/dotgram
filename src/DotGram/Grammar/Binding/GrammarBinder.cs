@@ -134,7 +134,7 @@ public sealed class GrammarBinder
 	static string ShadowsMessage(string name) =>
 		$"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
 		$"this means to replace it rather than declare a new rule under the same name, say " +
-		$"so with a rebinding instead: 'namespace ({name} = ...)' (§5.1).";
+		$"so with a rebinding instead: 'namespace Name with ({name} = ...) {{ ... }}' (§5.1).";
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
@@ -152,7 +152,7 @@ public sealed class GrammarBinder
 							$"'{rule.Name}' is already defined in this namespace; put one of them in a nested namespace to shadow the other.",
 							node.At);
 
-					// A nested namespace is one parenthesis away from a header that would have
+					// A nested namespace is one `with (...)` away from a header that would have
 					// meant this as a replacement rather than a new declaration (§5.1) — a
 					// declaration always means a new rule, and a rebinding is the only way to
 					// replace one, so silently landing on an enclosing namespace's own rule is

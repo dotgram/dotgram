@@ -1,20 +1,28 @@
-# Unified parser handoff
+# Engineering diary
 
-This is an internal engineering handoff, not public product documentation. It records
-the current implementation, the decisions behind it, known gaps, and a safe order for
-continuing the work on another machine. Public guarantees belong in `syntax.md` and
-`status.md` only after the old and new generators have the same semantics.
+**This file is a diary, not a description of the compiler.** It is written newest last,
+each entry recording what was built or found and — the part worth keeping — *why the
+alternatives were not taken*. An entry is true of the day it was written and is left alone
+afterwards, because a design note that gets edited to match the code stops being a record
+of the decision and becomes a worse copy of the code.
+
+So: **nothing here is authoritative about the present.**
+
+| For | Read |
+| --- | --- |
+| what the language is | [`syntax.md`](syntax.md) — a specification, present tense |
+| what the compiler does today | [`status.md`](status.md) — the report |
+| why it is that way | this file, and `git log` |
+
+The sections between here and the first `## Built:` entry are the oldest of all — they
+were the handoff this file began as, and they describe an engine of some ninety commits
+ago. They are kept because the reasoning in them is still the reasoning, and read as
+history. Where one of them names a file (`Region.cs`) or a number (887 tests) that no
+longer exists, that is the point: the entry below it says what happened to it.
 
 ## Read this first
 
-Work is on `main`. The current direction is a private nested parser object executing one
-shared generated automaton. Recognition records an all-integer derivation arena;
-user-visible values and `=>` calls are materialized only after the parse has been
-accepted. Recursive rules use explicit frames rather than the C# call stack.
-
-The checkout was clean before this handoff was written. Which commit that was is not
-recorded here: it went stale within the day and said nothing `git log` does not say
-better.
+The conventions below are the one part of the old handoff that is still operational.
 
 ## Repository conventions and verification
 
@@ -37,8 +45,9 @@ better.
 - Before committing, run `git diff --check`, verify line endings and BOM policy, and
   inspect generated snapshot changes rather than accepting them mechanically.
 
-Current baseline: the build succeeds with no warnings or errors. The runner discovers
-887 tests and all 887 pass. The stray-character recovery regression is fixed: a broken
+Baseline **as of the day this was written**, kept for the shape of the report rather than
+for the number — `status.md` is where the current one lives: the build succeeded with no
+warnings or errors, and the runner discovered 887 tests, all passing. The stray-character recovery regression is fixed: a broken
 expression now produces the lexer error and one parser synchronization diagnostic, while
 rules following the broken declaration are still bound and checked.
 
@@ -5912,5 +5921,57 @@ one rendering and not another. The review is right that the answer is not anothe
 is wanted is one place that says which requirements a rendering can meet, with the
 renderings consuming it rather than each carrying its own list of what it forbids. Recorded
 as the next architectural piece rather than done here.
+
+1,400 tests green in both configurations.
+
+## Fixed: the documentation, and what checking it found
+
+Prompted by the same review. Each claim was checked against the compiler before anything
+was written, which was worth doing: two of them were right, one was right about a bigger
+problem than it named, and one thing nobody had noticed was worse than any of them.
+
+**A diagnostic recommending syntax the compiler refuses.** `GRAM3012` told an author to
+write `namespace (B = ...)` — and `ParseNamespace` has a diagnostic of its very own,
+`NamespaceNeedsWith`, for exactly that mistake. The message also put the *rule's* name
+where the *namespace's* goes. Now: `namespace Name with (B = ...) { ... }`.
+
+**And that turned out to be systematic.** The `context` → `namespace` rename made the name
+mandatory; the prose did not follow. Eleven places wrote the unnamed form — eight in
+`syntax.md`, one in `README.md`, one in `examples/README.md`, and the header comment of
+`LocaleNumberExample`, whose own grammar twenty lines below writes it correctly. All fixed.
+
+**§5 contradicted itself, and its own example is refused.** Line 891 said "a rule of the
+same name shadows the outer one" and the example said `B = 'd' // shadowing: a new,
+unrelated rule named B`. Compiled, that example is `GRAM3012 Error` — and §5's own account
+five hundred lines further down describes the refusal correctly. The early passage and the
+example now say what the compiler does and why: a declaration always means a *new* rule,
+which is almost never what was wanted and cannot be seen locally.
+
+**README on indirect left recursion.** It said flatly not built; `GrammarNormalizer
+.Recursion` rewrites the one shape of it that is not arbitrary. `status.md` had both — the
+table said it works, a paragraph three hundred lines later said "Refused: indirect left
+recursion". Both now say the same thing, which is the precise thing: through rules that only
+forward, yes; through a chain that recurses through itself, or a rule that does something of
+its own, refused. The second `recover` claim in README was simply stale and is gone.
+
+**`CSharpEmitter`'s own header** said "Publications share one state-machine method" thirty-six
+lines above the code saying "One machine per published rule". It now also says that a
+publication needing none of the three things the arena is for reaches no machine at all.
+
+**And the one nobody named: `status.md` did not know about this session at all.** No row for
+`context`, none for `state`, none for inheritance. That is not historical drift, it is drift
+made this week, by me, feature by feature. Nine rows added, including the one that says a
+base in a referenced assembly does *not* work — which is the kind of row a status table
+exists for.
+
+`next.md` itself is renamed in spirit rather than in path: its header now says it is a
+diary, newest last, authoritative about nothing present, with a table pointing at
+`syntax.md` for the language and `status.md` for the compiler. The old handoff sections are
+kept and labelled as what they are — an engine ninety commits ago — because the reasoning in
+them is still the reasoning. The baseline of 887 tests is left standing and dated rather
+than corrected: an entry edited to match the code stops being a record of a decision.
+
+Splitting it into `architecture.md` / `design-notes/` / `backlog.md` is the reviewer's
+suggestion and is not done here — 5,900 lines of prose to sort is a decision, not a tidy-up.
 
 1,400 tests green in both configurations.

@@ -887,9 +887,10 @@ namespace Syntax
 
 The top of a file is an implicit global namespace. The `{ }` after `namespace Name` is
 a block of declarations, not an expression; in expression position braces mean a
-repetition count and nothing else (§3.3). An inner namespace sees the outer one; a rule
-of the same name shadows the outer one; the qualified name `Namespace.Rule` is available
-from outside.
+repetition count and nothing else (§3.3). An inner namespace sees the outer one; the
+qualified name `Namespace.Rule` is available from outside. Declaring a rule whose name
+already resolves outside is refused rather than taken as shadowing — replacing a rule is
+what a rebinding is for, and the rule is stated where the two are told apart below.
 
 `using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
@@ -934,8 +935,8 @@ A = B
 
 namespace Ns
 {
-    B = 'd'                 // shadowing: a new, unrelated rule named B
-    E = A                   // E -> outer A -> outer B -> 'c'
+    B = 'd'                 // GRAM3012: 'B' already resolves out here, and a
+    E = A                   // declaration would be a second, unrelated rule
 }
 
 namespace Ns2 with (B = D)
@@ -961,7 +962,7 @@ replaced, and identifying is what a name is for.
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
-`namespace with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
+`namespace Name with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
 to a visible rule. A parameterized rule (§4.2) may replace and be replaced by one of
 the same signature — the same parameter count, each parameter the same kind, a value
 where a value was and a recognizer where a recognizer was — because a rebinding
@@ -972,12 +973,12 @@ refused (`GRAM3009`): a call's arguments have to fit the replacement for the
 substitution to mean anything.
 
 Bindings in one header resolve simultaneously, against the namespace the header itself
-is written in: `namespace with (A = B, B = C)` sends a call to `A` all the way to `C`
+is written in: `namespace Name with (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested namespace inherits its enclosing
 one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
-`namespace with (trivia = none)` reuses an already-written rule under different
+`namespace Name with (trivia = none)` reuses an already-written rule under different
 whitespace handling — the same substitution as any other binding, and a different
 mechanism from shadowing `trivia` locally (§4.5), which affects only what the block
 itself declares.
@@ -995,7 +996,7 @@ points over one `Number` rule is the shape this exists for. Reach for shadowing 
 ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
 different for the rest of the file or block from that point on, with nothing shared
 reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
-grammar is exactly that, and wrapping the entire file in `namespace with (trivia =
+grammar is exactly that, and wrapping the entire file in `namespace Name with (trivia =
 none) { ... }` for it adds a block with nothing on the other side of the substitution
 to contrast against.
 
@@ -1022,7 +1023,7 @@ header once more than one call needs the same rebinding, or the substitution is 
 a name of its own.
 
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
-wrapped in a `namespace with (...)` block just to reach it:
+wrapped in a `namespace Name with (...)` block just to reach it:
 
 ```dotgram
 parse Number with (Point = Comma) as Evaluate
@@ -1031,11 +1032,11 @@ parse Number with (Point = Comma) as Evaluate
 is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
 block, no name for the substitution beyond the publication's own. A publication's own
 `with` is the more locally written of the two extents, so it composes on top of an
-enclosing `namespace with (...)`'s own rebinding of the same rule rather than instead
+enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
 of it.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
-`namespace with (A = B) { ... }` is a substitution, written where a reader expects one;
+`namespace Name with (A = B) { ... }` is a substitution, written where a reader expects one;
 a declaration with the same name sitting in the body, with no header entry for it, is
 an error. A declaration always means a new rule; a rebinding is the only way to replace
 one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
@@ -1043,7 +1044,7 @@ an enclosing *grammar* scope, or through that namespace's own `using` import, is
 refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
 shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
-is shadowing at the top level of a file, where there is no `namespace with (...)`
+is shadowing at the top level of a file, where there is no `namespace Name with (...)`
 header nearby to have meant instead.
 
 ---

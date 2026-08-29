@@ -2914,7 +2914,7 @@ public sealed class SemanticTests
 	{
 		// §22 test 12: `namespace { trivia = none }` is lexical and has no effect on `Pair`,
 		// declared outside it and merely published from inside — `LexicalPair` behaves
-		// exactly like `DefaultPair`. `namespace (trivia = none) { ... }` is a rebinding and
+		// exactly like `DefaultPair`. `namespace N with (trivia = none) { ... }` is a rebinding and
 		// does reach `Pair` — `NamespacePair` rejects the space `DefaultPair` accepts.
 		var result = Compile("""
 			trivia = ' '*
@@ -2984,7 +2984,7 @@ public sealed class SemanticTests
 		// The question that started this feature: `parse Sum with (trivia = none) as
 		// Evaluate` alongside the ordinary, whitespace-tolerant publication of the same
 		// rule — one directive, no block, no name for the substitution beyond the
-		// publication's own. Mirrors what `namespace (trivia = none) { parse ... }`
+		// publication's own. Mirrors what `namespace N with (trivia = none) { parse ... }`
 		// already proved elsewhere, through the publication's own header instead.
 		var result = Compile("""
 			trivia = ' '*

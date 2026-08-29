@@ -14,9 +14,12 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Publications share one state-machine method; their recognizers are thin entry
-/// wrappers selecting a label and the expected result. Every recognizer has the same external
-/// shape: take the input and a position and return the new position or -1.
+/// One machine per published rule — `parse R` and `find R` share one, two publications of
+/// different rules get one each — and their recognizers are thin entry wrappers selecting a
+/// label and the expected result. Every recognizer has the same external shape: take the
+/// input and a position and return the new position or -1. Not every publication reaches a
+/// machine at all: one needing none of the three things the arena is for is rendered as an
+/// ordinary method instead (<see cref="Machine.CanLower"/>, <c>Machine.Flat.cs</c>).
 /// </para>
 /// <para>
 /// What this file is responsible for is everything around the machines — the published
