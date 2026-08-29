@@ -6248,3 +6248,95 @@ inlining, the flat rendering and sites — which is exactly the class of "do not
 a rebuild" that got a registry two commits ago and a per-rendering table one commit before
 that. The place to put it now exists, and so does the kind of test that will not let it be
 forgotten.
+
+## Assessed: the second architecture review, and what it found that is a defect
+
+A review of `d744de9` against the whole backend. Eight commits have landed since, so five of
+its findings were already answered — recorded here because a review's value is partly in
+which of its points survive contact:
+
+* **the `with` cycle settled by mutation order** — refused now, `GRAM4017`, and the exact
+  comment the review quotes as its red flag is gone;
+* **`Carry` transferring node annotations by hand** — a registry, with a test that every
+  `Dictionary<Node, …>` field is in it;
+* **the hardcoded `Resumable` kinds inside layout** — one decision per kind, throwing for an
+  undecided one, with the kinds read out of the emitted code;
+* **`context`/`state` left deliberately open** — the design is decided and two of its four
+  steps are built;
+* **the scanner's signed room checks** — asked so they cannot overflow.
+
+The core of its first finding stands untouched: layout still recovers a control-flow graph by
+regex over the C# it just wrote. Only the dangerous half — an entry's second field meaning
+different things for different kinds — was closed.
+
+### The strongest finding is not debt
+
+**Embedded C# is analysed by string search, and it is wrong in both directions.** Verified
+rather than accepted:
+
+```dotgram
+Start : @string = t: ['a'..'z']+ => @(Log("parserInput") + t)
+```
+
+emits a factory taking `string parserInput` and sets `UsesInput` — and `CanLowerValued`
+opens with `if (UsesInput || …) return false`, so **a string literal decides which rendering
+a grammar gets**. The other direction is exact by reading: `Names` treats anything that is
+not a letter, digit or underscore as a boundary, so `Other.context` — a member access —
+counts as naming the `context`.
+
+This is not an approximation inside an optimization. It is spelling deciding a signature and
+a compilation strategy. And Roslyn is already in hand: `ICSharpScanner` is called on every
+`@(...)` to find where it ends, so the free names can come from the same pass that is
+already made.
+
+### Where the review's order is changed
+
+It puts the typed CFG first. Free names go first here instead: the CFG is a large refactor
+bought for reliability, and this is a defect with a reproduction.
+
+### Where it is argued with
+
+**`recover` as a structural node.** There is a measurement from this week: `Node.Marked` took
+about twenty-five sites and the compiler helped at none of them, because the switches over
+`Node` carry `_ =>` defaults. It paid for `Marked` because a mark is transparent to
+everything; `Recovery` is not, so every site is a decision rather than a line. The registry
+and its test are cheaper and already stand.
+
+**A `StreamStage` IR.** The complaint is right — `Yields()` recognizes shapes rather than
+meaning — but normalizing into one canonical shape before the question is asked is cheaper
+than an IR with a single consumer.
+
+**And one where the review is right about something it could not have known:** the `with`
+cycle check written two days ago closes the reach relation over itself by hand, which is the
+fourth ad-hoc walk over the call graph. That is exactly the duplication its "SCC as a central
+primitive" predicts.
+
+### The line worth keeping
+
+The most useful thing in the review is not a finding, it is a boundary:
+
+| decides | may be a heuristic |
+| --- | --- |
+| what the language means | no |
+| whether backtracking can be removed | only by proof |
+| whether something can stream | proof, or a stated conservative limit |
+| which rendering is *legal* | proof |
+| which rendering is *cheaper* | yes |
+| inline or call | yes |
+| unroll 8, 16 or 24 | yes |
+
+`Unrollable = 24` and `Emitted = 8` are fine **because** they choose between implementations
+already proved equivalent. What is not fine is a heuristic on the other side of that line —
+which is precisely where the string search sits.
+
+`Weight()` should be called what it is, an estimate of emitted size, and kept away from the
+analyses that have to be exact.
+
+### Order taken
+
+1. Free names through Roslyn, replacing `.Contains` and the boundary scanner.
+2. `FIRST` as a least fixed point — recursion answers `Top` today, which cuts the proof power
+   of everything below it, and `Nullable` and `FOLLOW` already have the shape.
+3. One `CallGraph` with SCC, and the four hand-written walks folded into it.
+4. The typed CFG, for the engine and the scanner at once, or it will be written twice.
+5. The unified analysis layer, after 2 and 3, which are half of it.
