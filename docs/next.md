@@ -5809,3 +5809,52 @@ before it.
 Nothing reads `IncludedName` yet either.
 
 1,390 tests green in both configurations.
+
+## Built: a host inherits its base's grammar
+
+The pieces joined up. `class Reader : Lexemes` and `using Lexemes;` in the derived grammar,
+and what comes out is one parser built from both — same assembly, which is the case that
+costs nothing in diagnostics.
+
+**Reading the chain is in the cheap stage and adds no dependency.**
+`ForAttributeWithMetadataName` hands over the target's symbol because that provider is
+semantic anyway, so walking `BaseType` and reading a constant off each costs nothing extra
+and loses no caching. Matched **by display name** rather than by symbol: `[Gram]` is emitted
+into every assembly separately and on purpose, so a base compiled elsewhere carries *its*
+assembly's `DotGram.GramAttribute` and the two are not the same type. What they share is
+what they are called. A base with no grammar is walked past rather than stopping the walk.
+
+**The joining is in the cheap stage too**, where the additional files are; the placing is in
+the third, where the diagnostics are. `Piece` is what travels between them, and both the
+`#line` map and the squiggle are built from the same one — working out which grammar a
+position came from twice, from two sets of numbers, is how the two come to disagree.
+
+`TryResolveGrammar` stopped taking a `Host` and started taking a source, a name and a place
+to report at. A base's grammar is then found the way any grammar is, by the same code, and
+its "no such file" is reported against the class that declares it rather than the one that
+inherited it. A base whose grammar cannot be found is left out and the rest still compiles;
+what it was going to provide comes back as ordinary undefined names.
+
+### The regression the splice tests should have caught and did not
+
+`Join` appended the newline that keeps a grammar from running into the wrapper **whether or
+not there was a wrapper**. One character makes the end of the text a different place, and a
+rule that failed at the end of the input is reported there — so every host that inherits
+nothing was quietly told its last token ran one character longer. Caught by an existing
+generator test rather than by the eight tests written for the splice, because the example
+they used happened to end with a newline already. The theory now has a case that does not.
+
+**Joining one grammar has to be that grammar, to the character.**
+
+### And a pre-existing imprecision, seen because inheritance put text after a grammar
+
+`GramParser.From(start)` measures to the beginning of the *next* token rather than to the
+end of this one, so a construct with anything after it takes the trailing whitespace into
+its span. True of every location in every grammar and nothing to do with joining — it had
+simply never shown, because a grammar's last token has nothing after it and the tests that
+assert on exact spans use last tokens. An error in an inherited grammar has a wrapper's
+brace after it, and there it shows. Left alone: the fix is one line and its blast radius is
+every location the parser reports, which is a change to make deliberately rather than as a
+side effect of this.
+
+1,395 tests green in both configurations.

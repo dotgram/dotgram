@@ -258,6 +258,116 @@ public sealed class GeneratorDriverTests
 
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
+	// ── A host inheriting a grammar ─────────────────────────────────────────────
+
+	/// <summary>
+	/// A host inherits its base's grammar, and reaches it by the name the base is included
+	/// under.
+	/// </summary>
+	/// <remarks>
+	/// The whole arrangement: the base's rules arrive wrapped in a namespace, the derived
+	/// grammar's <c>using</c> imports them, and what comes out is one parser built from
+	/// both. Nothing in the derived grammar says where <c>Word</c> came from except that
+	/// <c>using</c>, and nothing in C# says it except the <c>:</c>.
+	/// </remarks>
+	[Fact]
+	public void A_host_inherits_the_grammar_of_the_class_it_derives_from()
+	{
+		var assembly = EmittedCode.Compile(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Word = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nStart : @string = w: Word => @(w)\nparse Start")]
+				public partial class Reader : Lexemes { }
+				""")
+				.Results
+				.SelectMany(result => result.GeneratedSources)
+				.Single(source => source.HintName.StartsWith("Reader", StringComparison.Ordinal))
+				.SourceText
+				.ToString(),
+			className: "Reader");
+
+		Assert.Equal(
+			"abc",
+			EmittedCode.Match(assembly, "Reader", "TryParseStart", "abc").Value);
+	}
+
+	[Fact]
+	public void And_the_name_it_is_reached_by_is_the_one_the_base_gave_itself()
+	{
+		var result = RunGenerator(
+			"""
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			public partial class VeryLongBaseName { }
+
+			[DotGram.Gram("using Lexical;\nStart = w: Word\nparse Start")]
+			public partial class Reader : VeryLongBaseName { }
+			""");
+
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+	}
+
+	[Fact]
+	public void And_a_base_that_declares_no_grammar_is_walked_past() =>
+		// A class may sit between two that have one for reasons of its own.
+		Assert.DoesNotContain(
+			RunGenerator(
+				"""
+				[DotGram.Gram("Word = ['a'..'z']+")]
+				public partial class Lexemes { }
+
+				public partial class Between : Lexemes { }
+
+				[DotGram.Gram("using Lexemes;\nStart = w: Word\nparse Start")]
+				public partial class Reader : Between { }
+				""")
+				.Diagnostics,
+			diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+
+	/// <summary>An error in the base's grammar is underlined in the base's grammar.</summary>
+	/// <remarks>
+	/// What the position map is for, asked of the generator rather than of the map: the
+	/// derived host is what was being generated, and the squiggle has to land on the line
+	/// the base's author wrote — which for a base in the same assembly is a line that
+	/// exists.
+	/// </remarks>
+	[Fact]
+	public void And_an_error_in_what_was_inherited_is_underlined_where_it_was_written()
+	{
+		var source =
+			"[DotGram.Gram(\"\"\"\n" +
+			"	Word = Nonexistent\n" +
+			"	\"\"\")]\n" +
+			"public partial class Lexemes { }\n" +
+			"\n" +
+			"[DotGram.Gram(\"using Lexemes;\\nStart = w: Word\\nparse Start\")]\n" +
+			"public partial class Reader : Lexemes { }";
+
+		// Twice: once generating the base, once generating what inherited it. Both are
+		// placed on the same characters, which is the base's own grammar.
+		var reported = RunGenerator(source)
+			.Diagnostics
+			.Where(diagnostic => diagnostic.Id == "GRAM3002")
+			.ToArray();
+
+		Assert.Equal(2, reported.Length);
+
+		// Where it starts, and not how far it runs: a span reaches to the beginning of the
+		// next token rather than to the end of this one — `GramParser.From` — so a
+		// construct with anything after it takes the whitespace with it. That is true of
+		// every location in every grammar and has nothing to do with joining; what this
+		// asks is that the squiggle begins on the word the base's author wrote.
+		foreach (var diagnostic in reported)
+			Assert.StartsWith(
+				"Nonexistent",
+				source.Substring(diagnostic.Location.SourceSpan.Start),
+				StringComparison.Ordinal);
+	}
+
 	// ── The name a grammar is included under ────────────────────────────────────
 
 	/// <summary>

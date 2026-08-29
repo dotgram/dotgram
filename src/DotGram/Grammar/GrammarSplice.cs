@@ -55,9 +55,12 @@ public static class GrammarSplice
 		var text     = new StringBuilder(own.Text);
 		var segments = new List<SplicedLineMap.Segment> { new(0, own.Text.Length, own.Map) };
 
-		// Appended, so nothing above it moves. A grammar whose last line has no terminator
-		// would otherwise run into the wrapper that follows.
-		if (own.Text.Length > 0 && own.Text[own.Text.Length - 1] != '\n')
+		// Only where something follows. Appended, so nothing above it moves — a grammar
+		// whose last line has no terminator would otherwise run into the wrapper. With
+		// nothing to wrap there is nothing to run into, and joining one grammar has to be
+		// that grammar to the character: one more makes the end of the text a different
+		// place, and a rule that failed at the end of the input is reported there.
+		if (included.Count > 0 && own.Text.Length > 0 && own.Text[own.Text.Length - 1] != '\n')
 			text.Append('\n');
 
 		foreach (var part in included)

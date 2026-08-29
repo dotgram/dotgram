@@ -113,14 +113,25 @@ public sealed class SpliceTests
 		Assert.Equal("Base.gram", file);
 	}
 
-	[Fact]
-	public void And_including_nothing_changes_nothing()
+	/// <summary>Joining one grammar has to be that grammar, to the character.</summary>
+	/// <remarks>
+	/// The second case is what the first version of this got wrong and this test did not
+	/// catch: the newline that keeps a grammar from running into the wrapper was appended
+	/// whether or not there was a wrapper, and the example here happened to end with one
+	/// already. One character makes the end of the text a different place, and a rule that
+	/// failed at the end of the input is reported there — so a host inheriting nothing was
+	/// quietly told its last token ran one character longer.
+	/// </remarks>
+	[Theory]
+	[InlineData("using Base;\nStart = a: Base.Word\n")]
+	[InlineData("Start = Missing")]
+	public void And_including_nothing_changes_nothing(string alone)
 	{
 		var (text, map) = GrammarSplice.Join(
-			new GrammarSplice.Part(Own, null, new GrammarLineMap(Own, "Derived.gram")), []);
+			new GrammarSplice.Part(alone, null, new GrammarLineMap(alone, "Derived.gram")), []);
 
-		Assert.Equal(Own, text);
-		Assert.Equal(Own.Length, Assert.Single(map.Segments).Length);
+		Assert.Equal(alone, text);
+		Assert.Equal(alone.Length, Assert.Single(map.Segments).Length);
 	}
 
 	[Fact]
