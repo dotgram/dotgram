@@ -239,7 +239,7 @@ sealed partial class Machine
 					}
 				}
 				else if (node is Node.Construct)
-					_constructs[node] = IndexOf(factories, node);
+					_constructs[node] = IndexOf(factories, node, rule);
 			}
 
 			_captures += layout.Slots.Count;
@@ -409,13 +409,13 @@ sealed partial class Machine
 		IReadOnlyList<ResultMember> Members,
 		string? Accumulator = null);
 
-	static int IndexOf(IReadOnlyList<Factory> factories, Node construct)
+	static int IndexOf(IReadOnlyList<Factory> factories, Node construct, RuleSymbol rule)
 	{
 		for (var i = 0; i < factories.Count; i++)
 			if (ReferenceEquals(factories[i].Of, construct))
 				return i;
 
-		throw new InvalidOperationException("A construction has no factory.");
+		throw new InvalidOperationException($"A construction in '{rule.Name}' has no factory.");
 	}
 
 	/// <summary>
@@ -1740,7 +1740,7 @@ sealed partial class Machine
 
 						var tagged = Reserve(out var atTag);
 
-						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node)};");
+						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node, owner)};");
 						atTag.Line($"goto {Label(next)};");
 
 						return Compile(body, tagged, following);
