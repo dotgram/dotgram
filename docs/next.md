@@ -6913,8 +6913,23 @@ different defects: a state recorded and not recovered is the one that would have
 a state recovered and not recorded means the record is no longer the whole graph. Both were
 watched to fail before this was written down.
 
-Nothing in the output moved: the corpus is byte-identical and the recorded graph is not read
-by anything yet. That is the point of the step. What it is for is what comes next — the graph
-is the substrate for the things a local emitter cannot do: merging blocks that are the same
-body to the same successor (77 of 1442 in `Rfc3986`), removing a check or a read that every
-path in has already made, and getting under the threshold the entry above measures.
+Then layout was moved onto it. What is written at all, what order it is written in, and which
+states the dispatch has a case for are now decided from the recorded edges rather than from
+reading the text; the corpus is byte-identical through both steps, which is what says the two
+graphs were the same graph.
+
+`Tail`, `JumpOnly` and `Named` still read the text, and deliberately. Each needs where in a
+body something stands, which a list of edges does not carry — and each fails in a direction
+worth having: miss one and a jump is not dropped or a signpost is not collapsed, which is
+larger output and not wrong output, while the one under-reporting failure there is names a
+label that is not written, which the C# compiler refuses. That is a different class from the
+one this closed.
+
+`Redirect` still rewrites the text, and `Verify` now covers it too: the recorded side is
+resolved and the recovered side is read after redirection, so a rewrite that failed to happen
+shows up as the two disagreeing.
+
+What the graph is for is what comes next — the things a local emitter cannot do: merging
+blocks that are the same body to the same successor (77 of 1442 in `Rfc3986`), removing a
+check or a read that every path in has already made, and getting under the threshold the entry
+above measures.

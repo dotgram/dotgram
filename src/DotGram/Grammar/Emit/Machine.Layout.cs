@@ -120,18 +120,17 @@ sealed partial class Machine
 
 			reachable[index] = true;
 
-			foreach (Match match in Gotos.Matches(_bodies[index]))
-				pending.Push(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+			// What the sites that wrote this state said about where it can go. Only a
+			// resumable kind was ever recorded as a resume: the others name a capture slot
+			// or a factory, and there is nothing here to mistake one for the other.
+			var edges = Recorded(index);
 
-			foreach (Match match in Resumes.Matches(_bodies[index]))
+			foreach (var target in edges.Jumps)
+				pending.Push(Resolved(target));
+
+			foreach (var target in edges.Resumes)
 			{
-				// Only a resumable kind names a state there. The others name a capture slot
-				// or a factory, and reading one as a state kept whatever state happened to
-				// share its number alive — text nothing could reach.
-				if (!MeansAState(match.Groups[1].Value))
-					continue;
-
-				var resumed = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+				var resumed = Resolved(target);
 
 				_resumed.Add(resumed);
 				pending.Push(resumed);
@@ -170,18 +169,14 @@ sealed partial class Machine
 				// it can reach is a chain of its own, started once this one runs out.
 				var tail = Tail(_bodies[at]) is { } ends ? Resolved(ends) : (int?)null;
 
-				foreach (Match match in Gotos.Matches(_bodies[at]))
-				{
-					var target = Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+				var edges = Recorded(at);
 
-					if (target != tail)
+				foreach (var jump in edges.Jumps)
+					if (Resolved(jump) is var target && target != tail)
 						waiting.Push(target);
-				}
 
-				foreach (Match match in Resumes.Matches(_bodies[at]))
-					if (MeansAState(match.Groups[1].Value))
-						waiting.Push(
-							Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)));
+				foreach (var resume in edges.Resumes)
+					waiting.Push(Resolved(resume));
 
 				at = tail is { } onward ? onward - First : -1;
 			}

@@ -87,12 +87,18 @@ sealed partial class Machine
 	{
 		for (var i = 0; i < _states.Count; i++)
 		{
-			var recorded = _edges.TryGetValue(_states[i], out var edges) ? edges : new Edges();
-
-			Agree(i, "jumps to", Settled(recorded.Jumps), Recovered(_bodies[i], Gotos, 1));
-			Agree(i, "resumes at", Settled(recorded.Resumes), Resumable(_bodies[i]));
+			Agree(i, "jumps to", Settled(Recorded(i).Jumps), Recovered(_bodies[i], Gotos, 1));
+			Agree(i, "resumes at", Settled(Recorded(i).Resumes), Resumable(_bodies[i]));
 		}
 	}
+
+	/// <summary>What the state at an index recorded, which is nothing where it wrote nothing.</summary>
+	Edges Recorded(int index) =>
+		index >= 0 && index < _states.Count && _edges.TryGetValue(_states[index], out var edges)
+			? edges
+			: None;
+
+	static readonly Edges None = new();
 
 	/// <summary>The states a set of recorded targets really names, once collapsed.</summary>
 	HashSet<int> Settled(List<int> states)
