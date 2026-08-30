@@ -16,8 +16,11 @@ From a grammar, .Gram can generate:
 * error recovery for record-oriented input;
 * compile-time diagnostics that point back into the grammar.
 
-It is intended for the point where a regular expression has become difficult to maintain,
-or a hand-written parser has become difficult to trust.
+Anything with a grammar is in scope: data formats and feeds, configuration files, wire
+protocols, query and filter languages, template and markup syntaxes, and small languages of
+your own — including ones that compile straight to `System.Linq.Expressions` or to your own
+types. Replacing a regular expression that has become hard to maintain, or a hand-written
+parser that has become hard to trust, is one use among those rather than the boundary.
 
 ## Getting started
 
