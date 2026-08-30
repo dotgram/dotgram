@@ -1,3 +1,5 @@
+*[Русский](README.ru.md)*
+
 # .Gram
 
 A typed grammar notation for .NET, compiled to C# by a source generator.
