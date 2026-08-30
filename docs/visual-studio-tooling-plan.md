@@ -87,7 +87,9 @@ The detailed design and explicit deferrals are in
   complete composed grammar source, and publication entry bindings.
 - [x] Discover metadata v1 through Roslyn in source and referenced assemblies without
   loading consumer code.
-- Discover user-created DSLs in parser API and attribute string arguments.
+- [x] Route generated parser API string arguments from referenced assemblies through
+  metadata v1, including exact entries for parse and try-parse methods.
+- Discover user-created DSLs in referenced user-marker attribute arguments.
 - Reuse the editor-neutral service from an LSP/VS Code adapter.
 
 ## Validation rules

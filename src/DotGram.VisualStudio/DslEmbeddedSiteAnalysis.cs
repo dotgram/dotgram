@@ -140,7 +140,10 @@ internal static class DslEmbeddedSiteAnalysis
 					SymbolEqualityComparer.Default.Equals(language.ParserType, method.ContainingType);
 				var publications = generatedApi
 					? candidate.Publications.Where(publication =>
-						method!.Name == publication.MethodName || method.Name == "Try" + publication.MethodName).ToArray()
+						EntryRule(language, method!) is { } descriptorEntry
+							? publication.Rule.Name == descriptorEntry
+							: method!.Name == publication.MethodName ||
+								method.Name == "Try" + publication.MethodName).ToArray()
 					: markedLanguages.Contains(language) && candidate.Publications.Count == 1
 						? candidate.Publications
 						: [];
@@ -190,6 +193,17 @@ internal static class DslEmbeddedSiteAnalysis
 		}
 
 		return new DslEmbeddedSiteResult(classifications, diagnostics, sites);
+	}
+
+	static string? EntryRule(DslLanguageDefinition language, IMethodSymbol method)
+	{
+		if (language.Entries.TryGetValue(method.Name, out var entry))
+			return entry;
+
+		return method.Name.StartsWith("Try", StringComparison.Ordinal) &&
+			language.Entries.TryGetValue(method.Name.Substring(3), out entry)
+				? entry
+				: null;
 	}
 
 	internal static DslPreparedLanguage? Prepare(

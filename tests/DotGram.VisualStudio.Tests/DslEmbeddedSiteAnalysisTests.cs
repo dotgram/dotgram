@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -209,6 +210,54 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		Assert.Equal("customer", text.ToString(classification.Span));
 	}
 
+	[Theory]
+	[InlineData("ParseStart")]
+	[InlineData("TryParseStart")]
+	public async Task UsesDescriptorFromReferencedAssemblyForGeneratedApi(string method)
+	{
+		const string grammar =
+			"trivia = ' '*\n" +
+			"Keyword = \"let\"\n" +
+			"Identifier = ['a'..'z']+\n" +
+			"Start = Keyword & ' ' & name: Identifier\n" +
+			"parse Start as ParseStart";
+		var sourcePayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("ParseStart\tParse\tStart"));
+		var reference = Reference(SupportEmitter.Attributes + $$"""
+
+			[DotGram.GramLanguage("package.filter")]
+			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
+			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
+			[DotGram.GramLanguageDescriptor(1, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			public class PackagedParser
+			{
+				public static string ParseStart(string input) => input;
+				public static string TryParseStart(string input) => input;
+			}
+			""");
+		var source = $$"""
+			class Consumer
+			{
+				static void Test() => PackagedParser.{{method}}("let customer");
+			}
+			""";
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(source, reference);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal("Start", Assert.Single(result.Sites).EntryRule);
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "customer") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
 	[Fact]
 	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
@@ -249,7 +298,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		Assert.NotSame(first, changed);
 	}
 
-	static Document Document(string source)
+	static Document Document(string source, params MetadataReference[] references)
 	{
 		var workspace = new AdhocWorkspace();
 		var project = workspace.AddProject(ProjectInfo.Create(
@@ -263,9 +312,38 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			metadataReferences:
 			[
 				MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+				.. references,
 			]));
 
 		return workspace.AddDocument(project.Id, "DslHost.cs", SourceText.From(source));
+	}
+
+	static PortableExecutableReference Reference(string source)
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var compilation = CSharpCompilation.Create(
+			"DslPackage",
+			[CSharpSyntaxTree.ParseText(
+				source,
+				CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+				cancellationToken: cancellationToken)],
+			[
+				MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+				MetadataReference.CreateFromFile(typeof(System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute).Assembly.Location),
+			],
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		using var stream = new MemoryStream();
+		var emitted = compilation.Emit(stream, cancellationToken: cancellationToken);
+		Assert.True(emitted.Success, string.Join("\n", emitted.Diagnostics));
+
+		return MetadataReference.CreateFromImage(stream.ToArray());
+	}
+
+	static string Hash(string value)
+	{
+		using var sha = System.Security.Cryptography.SHA256.Create();
+		return string.Concat(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value))
+			.Select(static item => item.ToString("x2")));
 	}
 
 	static string Source(string value) => SupportEmitter.Attributes + $$""""
