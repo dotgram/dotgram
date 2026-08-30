@@ -36,12 +36,118 @@ public static class Determinism
 		Of(node, [], following, graph, seam);
 
 	/// <summary>
-	/// Whether a repetition of this body may run to its end and never be asked to give a
-	/// turn back.
+	/// Whether a repetition can be run to its end and never asked to give any of it back.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A repetition normally leaves one resume point per turn, because a later failure may
+	/// mean it went one turn too far. Two facts together say it never did.
+	/// </para>
+	/// <para>
+	/// The first is that what follows cannot begin with what the body begins with. Every
+	/// place the repetition could stop short is a place a turn began, so the character there
+	/// is one the body starts with; the continuation would have to start with that same
+	/// character and, by disjointness, cannot. The second is that the body matches in one way
+	/// only. Without it the first is not enough: a body that can match two lengths can end
+	/// the repetition somewhere no turn ever began, and nothing has been said about the
+	/// character there. <c>("ab" | "a")*</c> against <c>aab</c> is that case, and it is why
+	/// the length has to be settled before the first sets are allowed to decide anything.
+	/// </para>
+	/// <para>
+	/// Both are asked of what is known here. An unknown first set is "anything", which
+	/// overlaps; an unknown continuation is nothing, which proves nothing; either answers no,
+	/// and the general machinery stays.
+	/// </para>
+	/// </remarks>
 	public static bool Possessive(
 		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
 		Possessive(body, [], following, graph, seam);
+
+	/// <summary>
+	/// Whether a repetition need never hand a completed turn back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Weaker than <see cref="Possessive"/>, deliberately. That one licenses compiling a
+	/// repetition as a plain loop with nothing recorded, so the body must match one way
+	/// only. This licenses removing just the repetition's own ways back — everything the
+	/// body records stays recorded — and for that the first sets suffice: an exit at a
+	/// completed turn's start would have the continuation begin where the turn began,
+	/// on a character the turn's first element read, and disjointness says it cannot.
+	/// </para>
+	/// <para>
+	/// A body that leads with the seam is compared past it. Both the turn and the
+	/// continuation begin by reading the same trivia, so the characters that decide are
+	/// the ones after it — <see cref="FollowSets.Continuation.AfterSeam"/>'s half. Two
+	/// more things must then hold: the continuation must not be able to start <em>inside</em>
+	/// what the seam consumed, which <see cref="Contained"/> bounds, and the rest of the
+	/// turn must consume — a turn that is all trivia decides nothing.
+	/// </para>
+	/// </remarks>
+	public static bool NeverGivesBack(
+		Node.Repeat repeat, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		var body = repeat.Body;
+
+		if (FirstSets.Nullable(body, graph))
+			return false;
+
+		if (seam is not null &&
+			body is Node.Sequence(var parts) && parts.Count > 1 &&
+			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
+		{
+			var contained = Contained(seam, graph);
+			var rest      = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
+			var decides   = FirstSets.Of(rest, graph);
+
+			return !FirstSets.Nullable(rest, graph) &&
+				!decides.Overlaps(following.AfterSeam) &&
+				!following.AfterSeam.Overlaps(contained);
+		}
+
+		return !FirstSets.Of(body, graph).Overlaps(following.Plain);
+	}
+
+	/// <summary>
+	/// The characters a continuation could meet by starting inside a span the seam
+	/// consumed, rather than after it.
+	/// </summary>
+	/// <remarks>
+	/// A star's shorter readings stop at unit boundaries, so what a boundary can stand
+	/// before is a unit's first character — as long as every unit is rigid. A unit that
+	/// can itself match several lengths, a comment with a body being the one that
+	/// matters, makes a boundary of every position it spans, and everything it can hold
+	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
+	/// the door §3's braces already give an author whose trivia holds comments.
+	/// </remarks>
+	static FirstSets.First Contained(RuleSymbol seam, RecognitionGraph graph)
+	{
+		if (!graph.Bodies.TryGetValue(seam, out var body))
+			return FirstSets.First.All;
+
+		return body switch
+		{
+			Node.Atomic                 => FirstSets.First.None,
+			Node.Empty                  => FirstSets.First.None,
+			Node.Repeat(var unit, _, _) => Boundaries(unit, graph),
+			_                           => FirstSets.First.All,
+		};
+	}
+
+	static FirstSets.First Boundaries(Node unit, RecognitionGraph graph) => unit switch
+	{
+		Node.Element                => FirstSets.Of(unit, graph),
+		Node.Literal(var text)      => text.Length == 0
+			? FirstSets.First.None
+			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
+		Node.Choice(var alternatives) => alternatives.Aggregate(
+			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative, graph))),
+		Node.Sequence(var sequenceParts) when sequenceParts.All(
+			static part => part is Node.Literal or Node.Element)
+			=> FirstSets.Of(unit, graph),
+		_ => FirstSets.First.All,
+	};
+
 
 	static bool Possessive(
 		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>

@@ -3294,7 +3294,7 @@ sealed partial class Machine
 		// three of them in a row are eight readings of the same failure. The mechanism
 		// already handles a bounded loop — the count-exit marks the standing exit spent —
 		// so nothing excludes them.
-		var settled = NeverGivesBack(repeatNode, following);
+		var settled = Determinism.NeverGivesBack(repeatNode, following, _graph, _seam);
 
 		// A settled optional whose body one character decides needs no arena at all. The
 		// character says whether the body is entered; entered, it must finish, because
