@@ -817,13 +817,6 @@ TypeName = Word & ('.' & Word)*      // no braces: a dotted name is a type only 
 the compiler can see that the reading is unsettled, and cannot see whether that was the
 intention.
 
-This rule is narrower than it once was. It used to be "between the operands of a sequence
-and nowhere else", which spaced only a list's first turn — from the sequence around the
-repetition — and refused a space to the left of the second and every later separator:
-silently, and only from the third item on. It went unnoticed in this document, in the
-README, and in two of the examples until a grammar of this notation was written in it
-(`examples/DotGram.Examples/GramExample.cs`).
-
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
 ```dotgram

@@ -120,7 +120,5 @@ Not reused, and listed so that a suppression written against one is recognizable
 | `GRAM3018` | One `state` per assembly. Replaced by `GRAM3020`, likewise. |
 | `GRAM4004` | Retired before release. |
 
-`GRAM0001` is the one deliberate reuse. It reported two assemblies both publishing, a check
-that no longer exists, and was taken up again by the shell for the generator failing — on the
-grounds that a number nobody had seen in the wild was worth less than `GRAM0001` reading as
-"something went wrong before the grammar was reached".
+`GRAM0001` is the one number that has been used twice. It reported a check that no longer
+exists, and now reports the generator itself failing.
