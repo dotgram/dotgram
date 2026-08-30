@@ -46,21 +46,6 @@ sealed partial class Machine
 			first;
 	}
 
-	int WeightOfAll(IReadOnlyList<Node> nodes, int budget)
-	{
-		var total = 0;
-
-		foreach (var node in nodes)
-		{
-			total += Weight(node, budget - total);
-
-			if (total > budget)
-				break;
-		}
-
-		return total;
-	}
-
 	/// <summary>
 	/// Whether a node writes nothing into the arena, so that its failure is nobody's business
 	/// but its own.
@@ -227,7 +212,11 @@ sealed partial class Machine
 	/// write. Different answers would mean jumping past entries that were made after all.
 	/// </remarks>
 	bool SilentRepeat(Node.Repeat repeat, FollowSets.Continuation following) =>
-		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
+		// One estimate and two proofs, and the order is not an accident: the estimate only
+		// chooses between two shapes that both mean the repetition, and the proofs are what
+		// say the silent one is available at all. Too heavy to unroll answers no here and
+		// the general machinery stays, which is the safe direction for a guess to fail in.
+		Unrolls(repeat) &&
 		Possessive(repeat.Body, following) &&
 		SilentWithin(
 			repeat.Body,
@@ -256,77 +245,6 @@ sealed partial class Machine
 		}
 
 		return true;
-	}
-
-	/// <summary>
-	/// How much a repetition may be written out one after another rather than looped, counted
-	/// in the states the turns would come to.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Unrolling is what removes the count, and with it the last thing the arena was holding
-	/// for a repetition that needs it for nothing else. Generated size is not a cost this
-	/// project minimizes, but it is not unbounded either, and it does not add — it multiplies.
-	/// <c>(H16 &amp; ':'){6}</c> is six copies of <c>H16</c>, each of which is
-	/// <c>Hex{1,4}</c>, and the rule that holds it has nine alternatives; counting turns
-	/// alone would call each of those small and arrive at hundreds of copies of one character
-	/// test.
-	/// </para>
-	/// <para>
-	/// So the budget is turns times what a turn weighs, and a turn weighs what it will
-	/// actually be written as — through the calls that are compiled in place, and through the
-	/// repetitions inside it, which multiply in their turn.
-	/// </para>
-	/// </remarks>
-	const int Unrollable = 24;
-
-	/// <summary>
-	/// About how many states a node will come to, stopping once that is more than is being
-	/// asked about.
-	/// </summary>
-	int Weight(Node node, int budget)
-	{
-		if (budget <= 0)
-			return 1;
-
-		switch (node)
-		{
-			case Node.Empty:
-				return 0;
-
-			case Node.Sequence(var parts):
-				return WeightOfAll(parts, budget);
-
-			case Node.Choice(var alternatives):
-				return WeightOfAll(alternatives, budget);
-
-			case Node.Capture(_, var captured):
-				return 1 + Weight(captured, budget - 1);
-
-			case Node.Construct(var built, _):
-				return 1 + Weight(built, budget - 1);
-
-			case Node.Atomic(var kept):
-				return 1 + Weight(kept, budget - 1);
-
-			case Node.Marked(var kept, _):
-				return 1 + Weight(kept, budget - 1);
-
-			case Node.Lookahead(_, var seen):
-				return 1 + Weight(seen, budget - 1);
-
-			// An unbounded one is written once and gone round, so what it weighs is a turn
-			// and the going round; a bounded one is written out as many times as it is
-			// allowed to happen.
-			case Node.Repeat(var body, _, var max):
-				return (max ?? 2) * Weight(body, budget);
-
-			case Node.Call(var rule, _) when CanInline(rule) && _graph.Bodies.TryGetValue(rule, out var called):
-				return Weight(called, budget);
-
-			default:
-				return 1;
-		}
 	}
 
 	/// <summary>
@@ -543,16 +461,6 @@ sealed partial class Machine
 				? null
 				: first;
 	}
-
-	/// <summary>
-	/// The widest first set a rendered test may be written from.
-	/// </summary>
-	/// <remarks>
-	/// Guards the two places an analysis result becomes source text — <see cref="Predictive"/>
-	/// and <see cref="Decidable"/> — and nothing else: an analysis that only compares sets is
-	/// better off exact whatever their size.
-	/// </remarks>
-	const int Emitted = 8;
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
 	static string RangesTest(IReadOnlyList<CharRange> ranges)
