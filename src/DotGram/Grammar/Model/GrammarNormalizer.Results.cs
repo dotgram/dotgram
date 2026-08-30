@@ -72,6 +72,12 @@ public sealed partial class GrammarNormalizer
 			if (rule.Declaration.Params.Any(one => one.Name == type.Name))
 				continue;
 
+			// A specialization has answered this already, against the rules it actually
+			// calls rather than the ones its namespace names (§5.1). Looking the name up
+			// again here would undo that.
+			if (_produces.ContainsKey(rule))
+				continue;
+
 			// §4.1 case 3: `A : B` says A's value is B's. Recorded the same way and
 			// resolved with the rest — a rule named in type position is a rule whose type
 			// this one takes.

@@ -6819,3 +6819,39 @@ alone.
 
 The differential against the hand-written parser passed throughout, on both spellings, which is
 what makes the comparison worth anything.
+
+## Built: a rebinding may change a type, which is what a `with` on a publication is for
+
+`parse Sum with (Value = IntNumber) as EvaluateInt` beside `parse Sum with (Value =
+DecimalNumber) as EvaluateDecimal` — one grammar, two calculators, one working in `int` and
+one in `decimal`. The syntax was already there (`Notation.gram` publishes `parse List with
+(Sep = …) as Loose`). What was not there was the type following.
+
+**Three things stood in the way, and the first was a defect of the worst kind here.**
+
+A rule declared `Sum : Value` — §4.1 case 3, "my value is `Value`'s" — resolved that name
+through its own namespace, so a specialization made for `Value = DecimalNumber` kept the
+original `Value`'s `int` while its body built a `decimal`. No diagnostic, and the consumer's
+build failed with `CS0266: Cannot implicitly convert type 'decimal' to 'int'` about code they
+did not write. The clone resolves it against what the specialization actually put in that
+rule's place now; every clone is allocated before any body is cloned, so the replacement's own
+clone is already in the map.
+
+**The question collector had never paired two declared types.** It crosses declared types with
+sequence element types (§4.1 case 2) and nothing else, so the assignability question the
+rebinding check asks — is what replaces this compatible with what it replaces — reached the
+pure half unanswered and threw. Every declared type is now crossed with every other, which is
+the same superset that file already takes everywhere else.
+
+**And the check itself refused the feature.** `'DecimalNumber' cannot replace 'Value': expected
+a result compatible with 'int', found 'decimal'` — correct about a replacement that has to fit
+somewhere fixed, and wrong here, because nothing was expecting the old type. A capture is where
+a rule's value lands, and where every landing belongs to a rule declared `: Value`, they are
+all following `Value` and follow it to the replacement too. Where one of them captures into a
+declared C# type, or into a sequence, or hands it to a constructor, something *is* expecting
+that type and the check stands.
+
+`examples/DotGram.Examples/TwoCalculatorsExample.cs` is the whole of it: four arithmetic rules
+whose `=>` bodies name no type, one rule that says what a number is, and two publications. The
+tests hold it to `7/2` being `3` in one and `3.5` in the other, and to the `int` calculator
+refusing `1.5` outright.
