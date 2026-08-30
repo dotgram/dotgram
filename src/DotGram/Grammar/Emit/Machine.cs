@@ -927,13 +927,49 @@ sealed partial class Machine
 
 					// Only the states something can actually arrive at through the dispatch,
 					// which is far from all of them: see `Dispatched`.
-					foreach (var state in Dispatched())
-						file.Line($"case {state}: goto {Label(Resolved(state))};");
+					if (!Divided)
+					{
+						foreach (var state in Dispatched())
+							file.Line($"case {state}: goto {Label(Resolved(state))};");
+					}
+					else
+					{
+						// Written in more than one method, so the dispatch calls the one a
+						// state is written in rather than jumping to it. What comes back is
+						// where to go on from, which is this same dispatch again — except a
+						// failure, which carries what it was expecting and must not go
+						// through the case below that clears it.
+						var cases = Dispatching();
+
+						for (var part = 0; part < _parts.Count; part++)
+						{
+							var any = false;
+
+							foreach (var one in cases)
+								if (one.Value == part)
+								{
+									file.Line($"case {one.Key}:");
+
+									any = true;
+								}
+
+							if (!any)
+								continue;
+
+							using (file.Indent())
+							{
+								file.Line($"state = {name}_Part{part}(text, ref failure);");
+								file.Line($"if (state == {Fail}) goto Fail;");
+								file.Line("goto Dispatch;");
+							}
+						}
+					}
 
 					file.Line("default: expected = null; goto Fail;");
 				}
 
-				RenderStates(file, dispatched: true);
+				if (!Divided)
+					RenderStates(file, dispatched: true);
 
 				file.Line();
 				file.Line("Return:");
@@ -1228,6 +1264,38 @@ sealed partial class Machine
 				file.Line();
 				file.Line("return -1;");
 
+				// Local functions, so that the C# compiler writes the frame carrying what
+				// crosses between them and every state goes on naming the same variables.
+				// `text` is the one thing that cannot be carried in it — a ref struct is not
+				// a field of anything — so it is handed over instead.
+				if (Divided)
+				{
+					for (var part = 0; part < _parts.Count; part++)
+					{
+						file.Line();
+
+						using (file.Block(
+							$"int {name}_Part{part}(global::System.ReadOnlySpan<char> text, " +
+							$"ref {CSharpEmitter.FailureType} failure)"))
+						{
+							var into = Dispatching();
+
+							using (file.Block("switch (state)"))
+								foreach (var one in into)
+									if (one.Value == part)
+										file.Line($"case {one.Key}: goto {Label(Resolved(one.Key))};");
+
+							file.Line("goto Leave;");
+
+							RenderStates(file, dispatched: true, part);
+
+							file.Line();
+							file.Line("Leave:");
+							file.Line("return state;");
+						}
+					}
+				}
+
 			}
 
 			file.Line("finally");
@@ -1255,8 +1323,10 @@ sealed partial class Machine
 	/// Whether a dispatch is written above these states, and so names some of them from
 	/// outside. True for the engine; false for a lowered recognizer, which has none.
 	/// </param>
-	void RenderStates(Writer file, bool dispatched)
+	void RenderStates(Writer file, bool dispatched, int part = -1)
 	{
+		var order = part < 0 ? _order : _parts[part];
+
 		// Which labels anything still names, once the jumps this method is about to drop are
 		// gone. A state reached only by falling into it from the one above needs no label,
 		// and writing one is a label C# warns about and a consumer's build may refuse. The
@@ -1275,19 +1345,32 @@ sealed partial class Machine
 		foreach (var state in _namedOutside)
 			named.Add(Resolved(state));
 
-		for (var written = 0; written < _order.Count; written++)
+		// A part is entered at its own label, and the jump that used to name it is a
+		// departure now — so nothing inside the text names it any more, and the chain the
+		// layout threaded runs across the cut where the jump was dropped for being the next
+		// line. Both leave a state the dispatch jumps to with no label to jump to.
+		if (Divided)
+			foreach (var one in Dispatching())
+				named.Add(Resolved(one.Key));
+
+		for (var written = 0; written < order.Count; written++)
 		{
-			var i    = _order[written];
+			var i    = order[written];
 			var body = _bodies[i];
 
 			// Chained: what this state ends by jumping to is the state written next, so the
-			// jump is the line after it either way.
-			if (written + 1 < _order.Count &&
+			// jump is the line after it either way. Within the part it is written in: the
+			// state after the last of one part is the first of the next, and the jump
+			// between them is a departure rather than a line that can be dropped.
+			if (written + 1 < order.Count &&
 				Tail(body) is { } onward &&
-				onward == _order[written + 1] + First)
+				onward == order[written + 1] + First)
 			{
 				body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
 			}
+
+			if (part >= 0)
+				body = Departing(body, i);
 
 			file.Line();
 

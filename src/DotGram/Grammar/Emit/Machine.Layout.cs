@@ -178,6 +178,7 @@ sealed partial class Machine
 		_written = reachable;
 
 		Verify();
+		PlanParts();
 	}
 
 	/// <summary>

@@ -26,6 +26,28 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	/// <summary>
+	/// How many basic blocks a recognizer may be estimated to hold before it is written in
+	/// more than one method.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The limit it is set under is the compiler's below: past about two thousand blocks
+	/// RyuJIT compiles a method the way it compiles one on its first call and leaves it that
+	/// way. That number is measured — two grammar shapes crossing within 2% of each other on
+	/// blocks while differing by 57% on size — and it is measured for two shapes, not proved
+	/// for all of them. A third could cross a little lower.
+	/// </para>
+	/// <para>
+	/// So a quarter under it, and not because a quarter is precise. Aiming at the line would
+	/// be fitting a recognizer to a number that moves: the grammar is the consumer's and one
+	/// rule added to it shifts the count, with nothing said out loud when it goes over —
+	/// only a parse that quietly runs several times slower. The margin is what keeps that
+	/// from being a thing anyone has to think about.
+	/// </para>
+	/// </remarks>
+	const int Budget = 1500;
+
+	/// <summary>
 	/// How many ranges a character class may be written out as comparisons before it is
 	/// read from a table instead.
 	/// </summary>

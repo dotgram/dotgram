@@ -7044,3 +7044,54 @@ tables (`Url`: 6534 lines to 6804) while its IL shrank, which is the trade being
 
 What it does not do is close the threshold: 3291 against ~2000. It changes what closing it
 takes — two parts rather than three for `Uri`, and with margin instead of on the line.
+
+## Built: a recognizer too big for the compiler below it is written in several methods
+
+The limit is per method, so the answer is more methods. They are local functions, which the
+C# compiler gives a method of their own — and so a budget of their own — while writing the
+frame that carries what crosses between them. Nothing about the states changed: they go on
+naming the same variables, which are the enclosing method's now rather than their own.
+
+    Rfc3986.Recognize_DotGram_Uri     one method   3291 blocks   MinOpts
+                                      driver        344 blocks   FullOpts
+                                      part 0       1114 blocks   FullOpts
+                                      part 1       1244 blocks   FullOpts
+                                      part 2        936 blocks   FullOpts
+
+    parse   951 ns -> 344 ns          nothing in the run switched to MinOpts
+
+Two and a half times, and three and a half against where this began. The whole of it is the
+compiler below being willing to look at the method at all.
+
+**Two things cannot be captured, and both were found by the compiler rather than by
+thinking.** A `ReadOnlySpan<char>` is a ref struct and is not a field of any frame, so `text`
+is handed to each part instead. A `ref` parameter cannot be captured either, so `failure`
+goes the same way. Everything else — the position, the arena indices, the turn counters, the
+capture slots — the frame carries.
+
+**Where the cut falls matters more than where the budget wants it.** Control reaches the
+dispatch about four times in a whole parse — measured, on a URL — so a crossing that goes
+through it costs nothing worth counting. A `goto` that crosses is another matter: those run
+per character. So the budget says roughly where to divide and the cut then moves to where the
+fewest jumps cross it. They are never zero: the layout threads states into chains and the
+chains are woven, so the cleanest cut in `Rfc3986` still has 59 jumps across it. It is fast
+anyway, which says those jumps are not the ones being taken.
+
+**Two defects on the way, and the first is the one worth writing down.** The dispatch answers
+to what an arena entry says, and what it says is not always where control ends up: a state
+that does nothing but jump somewhere is collapsed, and its old number still has to be
+answered. Keying the new dispatch by the resolved state lost the case for every collapsed one
+— 78 tests, all of them a parse refusing input it should accept. The second was quieter and
+louder at once: a chain the layout threaded across a cut has its jump dropped for being the
+next line, and the next line is in another method now, so the state it named lost the only
+thing that named it — and the C# compiler said `No such label`.
+
+**What it costs.** A build without optimization gets slower, and by about what it gains with
+one: the `Url` benchmark in the test suite went from 2.87 times a hand-written parser to
+5.51. In a Debug build the extra call and the second dispatch are paid and nothing is
+optimized in return. Whether to divide only where the consumer's compilation is optimized is
+a question this leaves open — the emitted-code rules already allow a method body to differ
+between Debug and Release, since nothing observable does.
+
+**And one method is still over.** `ExpressionLanguage`'s materializer is 2004 blocks and is
+not a recognizer, so nothing divides it. That is the next one of these.
