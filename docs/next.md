@@ -6787,3 +6787,35 @@ guidance went into §4.5 beside the one about `trivia`, with the counter-example
 for saying what the grammar already meant. `FilterExample.Name` likewise.
 
 `TypeName` is left alone, and now has a comment saying why.
+
+## Measured: the notation written the natural way, against the notation written by hand
+
+The question the whole factoring program was for, put to the instrument that answers it —
+`SelfHostingTests.And_this_is_what_each_costs`, the hand-written front end against the
+generated one, medians of sixty parses per file, three runs each way.
+
+`GramExample`'s grammar was rewritten to the spelling §11 does not oblige anyone to avoid:
+`Invocation | Reference` in place of the hand-factored `RefOrCall`, with braces on `Name` and
+`Reference` saying they are read once. The compiler folds it — `Primary` comes out with one
+read of `Reference` and a choice of what may follow.
+
+| file | hand-factored, generated | spelled out, generated |
+| --- | --- | --- |
+| Csv.gram | 0.035 ms | 0.033 ms |
+| Feed.gram | 0.060 ms | 0.060 ms |
+| Minimal.gram | 0.161 ms | 0.162 ms |
+| Notation.gram | 0.062 ms | 0.062 ms |
+| Url.gram | 0.170 ms | 0.170 ms |
+
+The same, within the noise of the runs themselves. Which is the answer: **the author no longer
+has to know the trick.** Written the way it reads, the grammar gets the parser the hand-factored
+one got.
+
+**And the change was reverted anyway.** Generated code went from 283,084 bytes to 293,145 —
+3.6% more, the atomic groups carrying commit machinery this shape does not otherwise need. Same
+time, more code, so there was nothing to take. The example keeps the hand-written form and its
+comment now says what the alternative costs, which is more use to a reader than either spelling
+alone.
+
+The differential against the hand-written parser passed throughout, on both spellings, which is
+what makes the comparison worth anything.

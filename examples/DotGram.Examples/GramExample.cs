@@ -218,6 +218,13 @@ namespace DotGram.Examples;
 	// references are most of what a grammar is made of. The hand-written parser makes the
 	// same move under the name `ParseReferenceOrCall`; §11's ordered choice is not
 	// obliged to be spelled with the prefix shared.
+	//
+	// It no longer has to be written this way. Spelled out as `Call | Reference`, with
+	// braces on `Name` and `Reference` saying they are read once (§4.5), the compiler
+	// shares the operand itself and reads the name once. Measured against this: the same
+	// time on every file of the corpus, and 3.6% more generated code, the atomic groups
+	// carrying machinery this shape does not otherwise need. So it stays written by hand
+	// here — the choice is now which of two readable spellings, not whether to know a trick.
 	RefOrCall : @GramExpr
 		= target: Reference & (open: '(' & (first: Argument & (',' & rest: Argument)*)? & ')')?
 		=> @(open is null ? target : GramGrammar.Call(target, first, rest))
