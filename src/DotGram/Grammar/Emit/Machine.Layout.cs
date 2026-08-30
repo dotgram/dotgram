@@ -63,35 +63,22 @@ sealed partial class Machine
 		_bodies = new string[_states.Count];
 		_resumed.Clear();
 
+		_raw = new string[_states.Count];
+
 		for (var i = 0; i < _states.Count; i++)
 		{
-			_bodies[i]   = _states[i].ToString();
+			_raw[i]      = _states[i].ToString();
+			_bodies[i]   = _raw[i];
 			signposts[i] = JumpOnly(_bodies[i]);
 		}
 
-		// Follow each chain of signposts to its end. The guard is against a grammar whose
-		// states point round in a circle, which nothing should produce and which would
-		// otherwise not terminate.
-		_resolved = new int[_states.Count];
+		Rewrite(Resolve(signposts));
 
-		for (var i = 0; i < _states.Count; i++)
-		{
-			var at    = i + First;
-			var steps = 0;
-
-			while (at - First is var index and >= 0 &&
-				index < signposts.Length &&
-				signposts[index] is { } onward &&
-				steps++ <= signposts.Length)
-			{
-				at = onward;
-			}
-
-			_resolved[i] = at;
-		}
-
-		for (var i = 0; i < _bodies.Length; i++)
-			_bodies[i] = Redirect(_bodies[i]);
+		// Collapsing one state into another can leave two more saying the same thing, so
+		// this runs until it stops finding any. It converges because a state is only ever
+		// pointed at an earlier one.
+		while (Merge(signposts))
+			Rewrite(Resolve(signposts));
 
 		// What is left is what can still be got to. A rule compiled into every one of its
 		// callers is called from nowhere, and its own copy — entry, body and all — is text
@@ -191,6 +178,127 @@ sealed partial class Machine
 		_written = reachable;
 
 		Verify();
+	}
+
+	/// <summary>
+	/// Points every state that does exactly what an earlier one does at that earlier one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Compilation writes a rule's shape wherever the rule is used, so the same few lines
+	/// come out over and over with only the states around them differing. Once redirection
+	/// has been over the bodies those differences are gone as well, and what is left is the
+	/// same block written many times. A state cannot know that: it is written by whichever
+	/// site needed it, and no site can see the others. It takes the whole table at once, and
+	/// this is the first thing here that is an optimization rather than a tidying.
+	/// </para>
+	/// <para>
+	/// Two conditions, and the second is the one that is easy to miss. The bodies have to be
+	/// the same text, which after redirection means they do the same thing — every state
+	/// either names is the state it really is, and everything else was already literal. And
+	/// the body has to end by jumping somewhere, because a body that can fall out of itself
+	/// does not say where it goes: what follows it is a matter of layout, two states that
+	/// read the same can be laid out before different things, and merging them would send
+	/// one of them somewhere it never went.
+	/// </para>
+	/// </remarks>
+	bool Merge(int?[] signposts)
+	{
+		var first  = new Dictionary<string, int>(StringComparer.Ordinal);
+		var merged = false;
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			// A signpost is on its way somewhere else already.
+			if (signposts[i] is not null || Tail(_bodies[i]) is null)
+				continue;
+
+			if (first.TryGetValue(_bodies[i], out var same))
+			{
+				signposts[i] = same + First;
+				merged       = true;
+			}
+			else
+			{
+				first.Add(_bodies[i], i);
+			}
+		}
+
+		return merged;
+	}
+
+	/// <summary>
+	/// Follows each chain of signposts to its end, so that every state says where it really
+	/// is.
+	/// </summary>
+	/// <remarks>
+	/// The guard is against a grammar whose states point round in a circle, which nothing
+	/// should produce and which would otherwise not terminate.
+	/// </remarks>
+	HashSet<int> Resolve(int?[] signposts)
+	{
+		var before = _resolved;
+
+		_resolved = new int[_states.Count];
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			var at    = i + First;
+			var steps = 0;
+
+			while (at - First is var index and >= 0 &&
+				index < signposts.Length &&
+				signposts[index] is { } onward &&
+				steps++ <= signposts.Length)
+			{
+				at = onward;
+			}
+
+			_resolved[i] = at;
+		}
+
+		var moved = new HashSet<int>();
+
+		for (var i = 0; i < _resolved.Length; i++)
+			if (i >= before.Length || before[i] != _resolved[i])
+				moved.Add(i + First);
+
+		return moved;
+	}
+
+	/// <summary>What each state was written as, before any of it was redirected.</summary>
+	string[] _raw = [];
+
+	/// <summary>
+	/// The bodies that name a state which has moved, written again to name where it moved to.
+	/// </summary>
+	/// <remarks>
+	/// Redirection is two passes of a regular expression over a body, and merging asks for it
+	/// again every time it collapses anything — so doing it to every body each round is most
+	/// of the cost of merging and almost all of it is wasted. What a body names is recorded,
+	/// so the ones that have to be written again can be asked for by name.
+	/// </remarks>
+	void Rewrite(HashSet<int> moved)
+	{
+		for (var i = 0; i < _states.Count; i++)
+			if (Names(i, moved))
+				_bodies[i] = Redirect(_raw[i]);
+	}
+
+	/// <summary>Whether a state names any of them.</summary>
+	bool Names(int index, HashSet<int> moved)
+	{
+		var edges = Recorded(index);
+
+		foreach (var jump in edges.Jumps)
+			if (moved.Contains(jump))
+				return true;
+
+		foreach (var resume in edges.Resumes)
+			if (moved.Contains(resume))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>

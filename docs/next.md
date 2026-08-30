@@ -6933,3 +6933,44 @@ What the graph is for is what comes next — the things a local emitter cannot d
 blocks that are the same body to the same successor (77 of 1442 in `Rfc3986`), removing a
 check or a read that every path in has already made, and getting under the threshold the entry
 above measures.
+
+## Built: two states that do the same thing are one state
+
+Compilation writes a rule's shape wherever the rule is used, so the table it leaves holds the
+same few lines over and over with only the states around them differing. Once redirection has
+been over the bodies those differences are gone too, and what is left is one block written
+many times. No site can see that: each is written by whoever needed it. It takes the whole
+table at once, which is what the recorded graph is for, and it is the first thing in layout
+that is an optimization rather than a tidying.
+
+The criterion is two conditions and the second is the one that is easy to miss. The bodies
+have to be the same text, which after redirection means they do the same thing. And the body
+has to end by jumping somewhere — a body that can fall out of itself does not say where it
+goes, two states that read the same can be laid out before different things, and merging them
+would send one of them somewhere it never went. That guard does not fire on anything here:
+bodies are compiled continuation-passing and end with a jump, and layout only drops that jump
+later. It stays because the reasoning is not obvious and the next emitter to write a body that
+falls through would not think of it.
+
+    Url snapshot        427 states -> 254        9875 lines -> 6534
+    Rfc3986             1442 states -> 1205      63423 bytes of IL -> 47463
+
+Every behavioural test was green through the change; only the three snapshots moved, which is
+what says the parsers do the same thing and only the text of them is smaller.
+
+**It converges in one round.** Collapsing one state into another can leave two more identical,
+so it runs to a fixed point — but capped at one round the output is byte-for-byte what it is
+uncapped, on every grammar here. The loop stays for the case that is not here yet; it costs
+one more pass that finds nothing.
+
+**What it cost, and what it bought.** Redirection is two passes of a regular expression over a
+body, and doing that to every body each round was most of the cost of merging. The recorded
+graph says what a body names, so only the bodies naming a state that has moved are written
+again. After that the generator does more work and the consumer's build is faster anyway:
+3669 ms to 3076 ms for `DotGram.Parsers`, because the C# compiler is handed a quarter less
+code than it was.
+
+**What it did not buy, yet.** `Rfc3986` is now well under the 60000-byte threshold the entry
+above measures, and the JIT still switches it to MinOpts — so a second one of that mechanism's
+limits is binding, and the parse time is unchanged. Which limit, and what it would take to get
+under it, is the next question rather than an answered one.

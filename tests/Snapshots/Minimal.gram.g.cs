@@ -2106,14 +2106,14 @@ namespace DotGram.Snapshots
 					failure.Starved = true;
 					failure.OutOfInput = p + 1;
 					expected = Recognize_DotGram_Ahead_Expected1;
-					goto S19;
+					goto S10;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
 				{
 					if (text[p] == 'a')
 						p += 1;
 					expected = Recognize_DotGram_Ahead_Expected1;
-					goto S19;
+					goto S10;
 				}
 				p += 2;
 			}
@@ -2166,7 +2166,7 @@ namespace DotGram.Snapshots
 				goto Accept;
 			}
 
-			S19:
+			S10:
 			{
 				p = turn0;
 				goto Fail;
@@ -3075,9 +3075,9 @@ namespace DotGram.Snapshots
 					case 21: goto S21;
 					case 30: goto S30;
 					case 33: goto S33;
-					case 39: goto S39;
-					case 43: goto S43;
-					case 44: goto S44;
+					case 39: goto S10;
+					case 43: goto S10;
+					case 44: goto S29;
 					default: expected = null; goto Fail;
 				}
 
@@ -3190,6 +3190,7 @@ namespace DotGram.Snapshots
 					Trace("rule capture", 1, p, entries.Count, text, "Row");
 				}
 
+				S29:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -3313,6 +3314,7 @@ namespace DotGram.Snapshots
 					Trace("leave repeat", 10, p, entries.Count, text, "Sheet");
 				}
 
+				S10:
 				{
 					turn0 = p;
 				}
@@ -3336,78 +3338,6 @@ namespace DotGram.Snapshots
 				S7:
 				{
 					p = turn0;
-					goto Return;
-				}
-
-				S39:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Sheet_Expected1;
-						goto S36;
-					}
-					p++;
-				}
-
-				{
-					p = turn0;
-					expected = Recognize_DotGram_Sheet_Expected0;
-					goto Fail;
-				}
-
-				S36:
-				{
-					p = turn0;
-					goto Return;
-				}
-
-				S43:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Sheet_Expected1;
-						goto S40;
-					}
-					p++;
-				}
-
-				{
-					p = turn0;
-					expected = Recognize_DotGram_Sheet_Expected0;
-					goto Fail;
-				}
-
-				S40:
-				{
-					p = turn0;
-					goto Return;
-				}
-
-				S44:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Sheet_Expected2;
-						goto Fail;
-					}
-					if (text[p] != ';')
-					{
-						expected = Recognize_DotGram_Sheet_Expected2;
-						goto Fail;
-					}
-					p += 1;
 					goto Return;
 				}
 

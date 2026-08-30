@@ -63,7 +63,7 @@ namespace DotGram.Snapshots
 					case 4: goto S29;
 					case 5: goto S36;
 					case 6: goto S41;
-					case 7: goto S45;
+					case 7: goto S12;
 					case 8: goto S46;
 					case 9: goto S9;
 					case 10: goto S10;
@@ -98,10 +98,10 @@ namespace DotGram.Snapshots
 					case 39: goto S39;
 					case 40: goto S40;
 					case 41: goto S41;
-					case 42: goto S42;
-					case 43: goto S43;
-					case 44: goto S44;
-					case 45: goto S45;
+					case 42: goto S9;
+					case 43: goto S10;
+					case 44: goto S11;
+					case 45: goto S12;
 					case 46: goto S46;
 					default: expected = null; goto Fail;
 				}
@@ -451,36 +451,6 @@ namespace DotGram.Snapshots
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 4, p, call, atomic, repeat, lookahead, 0));
 					Trace("open capture", 4, p, entries.Count, text, "Amount");
 					goto S40;
-				}
-
-				S42:
-				{
-					p = turn0;
-					goto Return;
-				}
-
-				S43:
-				{
-					p = turn0;
-					expected = Recognize_DotGram_Expected0;
-					goto Fail;
-				}
-
-				S44:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						expected = Recognize_DotGram_Expected1;
-						goto S42;
-					}
-					p++;
-					goto S43;
-				}
-
-				S45:
-				{
-					turn0 = p;
-					goto S44;
 				}
 
 				S46:
