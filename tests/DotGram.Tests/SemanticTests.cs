@@ -23,7 +23,28 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class SemanticTests
 {
-	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
+	/// <summary>
+	/// A name whose type arguments and whose invocation are both optional reads every way it
+	/// can begin, and the compiler survives compiling it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The shape a grammar of a programming language always has, and the one that has broken
+	/// the most: `Call` begins with a `Reference` and stands beside a bare `Reference`, and a
+	/// `Reference` ends with an optional `&lt;…&gt;` whose first character also begins other
+	/// things. `Type` reaches back to `Reference`, so the whole of it is a cycle with two
+	/// optionals in it — which is where the analyses that decide what may be folded, lowered
+	/// or read without a way back all have to agree.
+	/// </para>
+	/// <para>
+	/// The inputs are the readings that separate them. `x` takes neither optional; `x&lt;y&gt;`
+	/// takes the type arguments; `x&lt;` and `x&lt;&lt;` and `x&lt;&lt;1` offer a `&lt;` that
+	/// is not the start of any; `x()` takes the invocation and not the arguments; `x&lt;y&gt;()`
+	/// takes both. It asserts only that nothing throws — the grammar compiles and the parse
+	/// runs — because what it is guarding against is a compiler defect rather than a wrong
+	/// answer, and every one it has caught has been one.
+	/// </para>
+	/// </remarks>
 	[Theory]
 	[InlineData("x")]
 	[InlineData("x<y>")]
@@ -32,7 +53,7 @@ public sealed class SemanticTests
 	[InlineData("x<<1")]
 	[InlineData("x()")]
 	[InlineData("x<y>()")]
-	public void TEMPORARY_probe(string input)
+	public void A_name_with_optional_arguments_reads_every_way_it_can(string input)
 	{
 		var grammar =
 			"trivia = none" + '\n' +

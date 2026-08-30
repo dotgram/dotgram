@@ -332,6 +332,7 @@ written against it, with no test framework anywhere near them.
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | the language: the notation and its bond with C# |
 | [`docs/implementation.md`](docs/implementation.md) | the engine: how it executes the language |
+| [`docs/diagnostics.md`](docs/diagnostics.md) | every message it can report, and what to do about it |
 | [`docs/status.md`](docs/status.md) | what actually works, feature by pipeline stage |
 
 Nothing decided in the second is a decision about the first. The second describes how
