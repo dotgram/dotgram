@@ -2,13 +2,23 @@
 
 # .Gram
 
-A typed grammar notation for .NET, compiled to C# by a source generator.
+A source generator that compiles a grammar into a C# parser.
 
-Every format you read has a definition. Usually it lives in three places at once: a
-regular expression, a hand-written reader, and a paragraph in a wiki that stopped being
-true. **.Gram makes the grammar the one place it lives.** You write what the format *is*;
-the parser, its result types, its error messages and its streaming overloads are generated
-from that, and cannot disagree with it.
+You write the format once, as rules. From that one file the generator produces:
+
+- the parser, as ordinary C# in your own assembly — no runtime library is referenced;
+- the result types the captures imply, so a match comes back as `row.Symbol` rather than
+  as `match.Groups[3].Value`;
+- `Parse`, `TryParse` and `Find` methods, with failures that carry a position and say what
+  was expected there;
+- overloads that read from a `TextReader` without holding the input, where the grammar
+  permits it;
+- compile-time errors in your build for what the grammar gets wrong, at the character in
+  the grammar that is wrong.
+
+It is aimed at the formats a program actually has to read — feeds, configuration,
+protocols, query and expression languages — and at the point where a regular expression
+has stopped being readable or a hand-written reader has stopped being trustworthy.
 
 ```dotgram
 Row = "R" & '|' & symbol: Text & '|' & qty: Digit+ & eol
