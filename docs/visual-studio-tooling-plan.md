@@ -89,7 +89,8 @@ The detailed design and explicit deferrals are in
   loading consumer code.
 - [x] Route generated parser API string arguments from referenced assemblies through
   metadata v1, including exact entries for parse and try-parse methods.
-- Discover user-created DSLs in referenced user-marker attribute arguments.
+- [x] Discover user-created DSLs through referenced marker attributes, both on library
+  API parameters and on consumer-owned parameters.
 - Reuse the editor-neutral service from an LSP/VS Code adapter.
 
 ## Validation rules

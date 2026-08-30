@@ -258,6 +258,59 @@ public sealed class DslEmbeddedSiteAnalysisTests
 				.Select(item => (item.Role, text.ToString(item.Span))));
 	}
 
+	[Theory]
+	[InlineData("static void Test() => new PackagedQuery(\"let customer\");")]
+	[InlineData("static void Test() => Execute(\"let customer\"); static void Execute([Filter] string text) { }")]
+	public async Task UsesReferencedLanguageMarkerAttribute(string consumerMember)
+	{
+		const string grammar =
+			"trivia = ' '*\n" +
+			"Keyword = \"let\"\n" +
+			"Identifier = ['a'..'z']+\n" +
+			"Start = Keyword & ' ' & name: Identifier\n" +
+			"parse Start";
+		var sourcePayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("ParseStart\tParse\tStart"));
+		var reference = Reference(SupportEmitter.Attributes + $$"""
+
+			[System.AttributeUsage(System.AttributeTargets.Parameter)]
+			public sealed class FilterAttribute : System.Attribute;
+
+			[DotGram.GramLanguage("package.filter")]
+			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
+			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
+			[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
+			[DotGram.GramLanguageDescriptor(1, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			public class PackagedParser;
+
+			public sealed class PackagedQuery
+			{
+				public PackagedQuery([Filter] string text) { }
+			}
+			""");
+		var source = $$"""
+			class Consumer
+			{
+				{{consumerMember}}
+			}
+			""";
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(source, reference);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal("Start", Assert.Single(result.Sites).EntryRule);
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "customer") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
 	[Fact]
 	public async Task IgnoresArgumentsForUnmarkedStringParameters()
 	{
