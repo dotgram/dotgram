@@ -33,7 +33,7 @@ namespace DotGram.Examples;
 	Digits = ['0'..'9']+
 
 	IntNumber     : @int     = d: Digits                     => @int.Parse(d)
-	DecimalNumber : @decimal = d: (Digits & ('.' & Digits)?) => @(DotGram.Examples.TwoCalculators.Decimal(d))
+	DecimalNumber : @decimal = d: (Digits & ('.' & Digits)?) => @(Decimal(d))
 
 	// The rule the two publications disagree about. What it says here is what
 	// `EvaluateInt` gets; `EvaluateDecimal` never calls it.
