@@ -17,6 +17,49 @@ that thing is what the notation already means in C# or in .NET regular expressio
 
 ---
 
+## Contents
+
+- [1. The file and the host class](#1-the-file-and-the-host-class)
+- [2. Two vocabularies: `@` and its absence](#2-two-vocabularies--and-its-absence)
+- [3. Recognition expressions](#3-recognition-expressions)
+  - [3.1 Elementary](#31-elementary)
+  - [3.2 Composition](#32-composition)
+  - [3.3 Quantifiers — postfix, as in regular expressions](#33-quantifiers--postfix-as-in-regular-expressions)
+  - [3.4 Lookahead](#34-lookahead)
+  - [3.5 Capture](#35-capture)
+  - [3.6 Guard](#36-guard)
+  - [3.7 Construction](#37-construction)
+  - [3.8 Operator precedence](#38-operator-precedence)
+- [4. Rules](#4-rules)
+  - [4.1 A rule's result](#41-a-rules-result)
+  - [4.2 Parameters](#42-parameters)
+  - [4.3 Precedence and associativity](#43-precedence-and-associativity)
+  - [4.4 Rule separator](#44-rule-separator)
+  - [4.5 Trivia — insignificant whitespace and comments](#45-trivia--insignificant-whitespace-and-comments)
+  - [4.6 Keyword boundaries](#46-keyword-boundaries)
+- [5. Namespaces](#5-namespaces)
+  - [5.1 Rebinding](#51-rebinding)
+- [6. Publication](#6-publication)
+  - [6.1 The result](#61-the-result)
+  - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
+  - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
+- [7. The bond with C#](#7-the-bond-with-c)
+  - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
+  - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
+  - [7.3 Captures and building the result](#73-captures-and-building-the-result)
+  - [7.4 C# stays C#](#74-c-stays-c)
+  - [7.5 Recognition outcomes](#75-recognition-outcomes)
+  - [7.6 Mapping positions back](#76-mapping-positions-back)
+  - [7.7 What a parse works out and the API has nowhere to keep](#77-what-a-parse-works-out-and-the-api-has-nowhere-to-keep)
+  - [7.8 What holds while something is being read](#78-what-holds-while-something-is-being-read)
+- [8. Failure, recovery and streaming](#8-failure-recovery-and-streaming)
+  - [8.1 Recognition failure and C# exceptions](#81-recognition-failure-and-c-exceptions)
+  - [8.2 `recover` — a repetition that survives a bad element](#82-recover--a-repetition-that-survives-a-bad-element)
+  - [8.3 What a parse hands back](#83-what-a-parse-hands-back)
+- [9. A complete example](#9-a-complete-example)
+- [10. The grammar of `.gram` itself](#10-the-grammar-of-gram-itself)
+- [11. Deliberately out of scope](#11-deliberately-out-of-scope)
+
 ## 1. The file and the host class
 
 A grammar lives in a `*.gram` file beside a partial class:
