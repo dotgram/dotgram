@@ -86,16 +86,6 @@ using DotGram;
 
 	Digits = ['0'..'9']+
 
-	IntNumber
-		: @int
-		= d: Digits
-		=> @int.Parse(d)
-
-	DoubleNumber
-		: @double
-		= d: (Digits & ('.' & Digits)?)
-		=> @double.Parse(d, CultureInfo.InvariantCulture)
-
 	Value
 		: @int
 		= d: Digits
@@ -128,6 +118,16 @@ using DotGram;
 			=> @(value)
 		| value: Value
 			=> @(value)
+
+	IntNumber
+		: @int
+		= d: Digits
+		=> @int.Parse(d)
+
+	DoubleNumber
+		: @double
+		= d: (Digits & ('.' & Digits)?)
+		=> @double.Parse(d, CultureInfo.InvariantCulture)
 
 	parse Sum with (Value = IntNumber)    as EvaluateInt
 	parse Sum with (Value = DoubleNumber) as EvaluateDouble

@@ -32,9 +32,6 @@ namespace DotGram.Examples;
 
 	Digits = ['0'..'9']+
 
-	IntNumber     : @int     = d: Digits                     => @int.Parse(d)
-	DoubleNumber  : @double = d: (Digits & ('.' & Digits)?) => @(Double(d))
-
 	// The rule the two publications disagree about. What it says here is what
 	// `EvaluateInt` gets; `EvaluateDouble` never calls it.
 	Value : @int = d: Digits => @int.Parse(d)
@@ -50,6 +47,11 @@ namespace DotGram.Examples;
 
 	Primary : Value = '(' & inner: Sum & ')'                           => @(inner)
 	                | value: Value                                     => @(value)
+
+	// Kept beside the publications that name them, which is the only place either is
+	// mentioned.
+	IntNumber    : @int    = d: Digits                     => @int.Parse(d)
+	DoubleNumber : @double = d: (Digits & ('.' & Digits)?) => @(Double(d))
 
 	parse Sum with (Value = IntNumber)     as EvaluateInt
 	parse Sum with (Value = DoubleNumber)  as EvaluateDouble
