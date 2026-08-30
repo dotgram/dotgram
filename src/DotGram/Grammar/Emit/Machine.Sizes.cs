@@ -25,6 +25,28 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 sealed partial class Machine
 {
+	/// <summary>
+	/// How many ranges a character class may be written out as comparisons before it is
+	/// read from a table instead.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A class written out costs two comparisons per range and a branch between each, and
+	/// the branches are what the compiler below counts: past about two thousand basic
+	/// blocks in one method RyuJIT stops optimizing it altogether. A class read from a
+	/// table costs one bounds test and one load, whatever the class contains.
+	/// </para>
+	/// <para>
+	/// Two, then, would already pay in branches — and would lose in the small: a class of
+	/// two ranges is four comparisons on values already in registers, against a load from
+	/// memory that may not be in cache, and the tests that matter most are the ones run per
+	/// character. Three is where the branch count starts to dominate and the load is
+	/// amortized over enough comparisons to be worth taking. It is an estimate, and both
+	/// shapes mean the same set.
+	/// </para>
+	/// </remarks>
+	const int Tabulated = 3;
+
 	/// <summary>Whether a repetition is small enough to write out rather than loop.</summary>
 	bool Unrolls(Node.Repeat repeat) =>
 		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable;

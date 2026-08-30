@@ -288,7 +288,7 @@ sealed partial class Machine
 		var tests = new string[alternatives.Count];
 
 		for (var i = 0; i < alternatives.Count; i++)
-			tests[i] = RangesTest(FirstSets.Of(alternatives[i], _graph).Ranges);
+			tests[i] = RangesTest(FirstSets.Of(alternatives[i], _graph).Ranges, Tabulate);
 
 		return tests;
 	}
@@ -463,8 +463,12 @@ sealed partial class Machine
 	}
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
-	static string RangesTest(IReadOnlyList<CharRange> ranges)
+	static string RangesTest(
+		IReadOnlyList<CharRange> ranges, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
+		if (tabulate?.Invoke(ranges) is { } table)
+			return TableTest(table);
+
 		var tests = new string[ranges.Count];
 
 		for (var i = 0; i < ranges.Count; i++)
@@ -490,7 +494,7 @@ sealed partial class Machine
 		{
 			case Node.Element element:
 			{
-				var test = CSharpEmitter.Test(element);
+				var test = CSharpEmitter.Test(element, Tabulate);
 
 				return test == "false" ? null : test;
 			}

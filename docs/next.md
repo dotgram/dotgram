@@ -6974,3 +6974,73 @@ code than it was.
 above measures, and the JIT still switches it to MinOpts — so a second one of that mechanism's
 limits is binding, and the parse time is unchanged. Which limit, and what it would take to get
 under it, is the next question rather than an answered one.
+
+## Measured: what the JIT gives up on is branches, not size
+
+The entry above left the wrong number to aim at. `Rfc3986` was brought well under the
+60000-byte threshold and RyuJIT went on refusing to optimize it, so a second limit was
+binding and it was worth finding out which rather than guessing.
+
+A harness generates grammars of a given size, compiles each, loads it and runs it hot, and
+reads the counts back out of the IL — size, instructions, references to locals, and basic
+blocks — beside what the JIT decided to do with it. Two shapes: a flat one and a recursive
+one that compiles through the arena, which is the engine the real parsers use.
+
+    flat    G44  IL 24923  instrs 11607  lvRefs 4102  blocks 1981   optimized
+            G45  IL 25511  instrs 11884  lvRefs 4199  blocks 2028   MinOpts
+    arena  R120  IL 39171  instrs 16344  lvRefs 7268  blocks 1986   optimized
+           R122  IL 39894  instrs 16656  lvRefs 7394  blocks 2022   MinOpts
+
+The two shapes differ by 57% in IL and 41% in instructions at the point they cross, and
+agree on basic blocks to within 2%. Nothing else is even close to its documented limit —
+instructions 11884 of 20000, references 4199 of 8000, locals 9 of 2000, size 25511 of 60000.
+The count that binds is basic blocks. RyuJIT's own limit is 5000 of its blocks against the
+~2000 IL leaders counted here, so it makes about two and a half of its own per leader; that
+ratio is inferred, and the crossing itself is measured.
+
+It is not about instrumentation. With tiering off, 9649 methods in the same run compile at
+FullOpts and exactly one is switched to MinOpts — the one where all the work happens.
+
+Where the real parsers stand, on the same counter:
+
+    Rfc3986.Recognize_DotGram_Uri            blocks 3918   x2.0 over
+    ExpressionLanguage.Recognize_DotGram     blocks 4486   x2.2 over
+    Rfc3986.Recognize_DotGram_UriReference   blocks 7755   x3.9 over
+
+So the thing to cut is branches, and the two ways to cut them are fewer branches per state
+and fewer states per method. Only the second is certain to be enough.
+
+## Built: a character class wider than two ranges is read from a table
+
+A class was written out as comparisons — `(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+|| …` — and every `||` and `&&` in it is a branch. `Recognize_DotGram_Uri` held 1232 of
+them. Read from a table the class is one test whatever it contains:
+
+    if (!(c <= 127 && Recognize_DotGram_Uri_Class3[c] != 0))
+
+Only for a class that is entirely ASCII, which is what makes the table 128 bytes and the
+guard one comparison; a Unicode category or an inverted class keeps the comparisons. A plain
+`byte[]` rather than a span over a literal, because the span form leans on RVA lowering and
+netstandard2.0 is the floor this emits for. One table per distinct class — `Rfc3986` declares
+twelve.
+
+**Three ranges is where it starts to pay, and that was measured rather than reasoned.** Two
+would already win on branches and loses anyway — a narrow class is comparisons on values
+already in registers against a load that may not be in cache:
+
+    threshold 2   blocks 3344
+    threshold 3   blocks 3291
+    threshold 4   blocks 3835
+
+    branch operators in one method   1232 -> 501
+    Rfc3986.Recognize_DotGram_Uri    3918 -> 3291 blocks   (-16%)
+    Rfc3986.…_UriReference           7755 -> 6518
+    ExpressionLanguage               4486 -> 4275
+    parse                            1226 -> 951 ns        (-22%)
+
+The parse got faster without crossing the threshold at all — it is still MinOpts, and fewer
+comparisons per character is worth that much on its own. The generated file grew by the
+tables (`Url`: 6534 lines to 6804) while its IL shrank, which is the trade being made.
+
+What it does not do is close the threshold: 3291 against ~2000. It changes what closing it
+takes — two parts rather than three for `Uri`, and with margin instead of on the line.

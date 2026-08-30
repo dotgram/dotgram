@@ -73,6 +73,16 @@ sealed partial class Machine
 	/// <summary>One name per distinct set, so the same list is not written out twice.</summary>
 	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
 	int _expectedCount;
+
+	/// <summary>The character classes read from a table rather than written out.</summary>
+	readonly List<(string Name, string Declaration)> _classes = [];
+
+	/// <summary>The same set of ranges asked for twice is the same table.</summary>
+	readonly Dictionary<string, string> _classesByRanges = new(StringComparer.Ordinal);
+
+	readonly HashSet<string> _classesUsed = [];
+
+	int _classCount;
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
@@ -479,6 +489,10 @@ sealed partial class Machine
 
 			foreach (var (name, declaration) in _expected)
 				if (_expectedUsed.Contains(name))
+					kept.Add(declaration);
+
+			foreach (var (name, declaration) in _classes)
+				if (_classesUsed.Contains(name))
 					kept.Add(declaration);
 
 			return kept;
@@ -1429,7 +1443,7 @@ sealed partial class Machine
 			case Node.Element element:
 			{
 				var state     = Reserve(out var writer);
-				var test      = CSharpEmitter.Test(element);
+				var test      = CSharpEmitter.Test(element, Tabulate);
 				var arrayName = DeclareExpected([node.ToString()]);
 
 				if (test == "false")
@@ -1564,7 +1578,7 @@ sealed partial class Machine
 							// though what is accepted would not. Left, with the trap named
 							// (docs/next.md).
 							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(writer, Skipped(begins, target))};");
+								writer.Line($"if (!({RangesTest(begins.Ranges, Tabulate)})) goto {Label(writer, Skipped(begins, target))};");
 
 							// The second is read knowing the first did not fire, where there
 							// was a first: `c` is in this alternative's own set by then, so
@@ -1576,11 +1590,11 @@ sealed partial class Machine
 							if (rest is { } after)
 							{
 								if (mine is not { } known)
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(writer, first)};");
+									writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
 								else if (!known.Overlaps(after))
 									writer.Line($"goto {Label(writer, first)};");     // always fires
 								else if (!after.Covers(known))               // never fires: not written
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(writer, first)};");
+									writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
 							}
 						}
 					}
@@ -2318,7 +2332,7 @@ sealed partial class Machine
 				using (writer.Block("if (p > 0)"))
 				{
 					writer.Line("c = text[p - 1];");
-					writer.Line($"if ({CSharpEmitter.Test(boundary)})");
+					writer.Line($"if ({CSharpEmitter.Test(boundary, Tabulate)})");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
@@ -3340,7 +3354,7 @@ sealed partial class Machine
 			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atTest.Line("c = text[p];");
-				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(atTest, entered)};");
+				atTest.Line($"if ({RangesTest(begins.Ranges, Tabulate)}) goto {Label(atTest, entered)};");
 			}
 
 			atTest.Line($"goto {Label(atTest, next)};");
@@ -3464,7 +3478,7 @@ sealed partial class Machine
 		// must not match empty: taking nothing and matching nothing differ by exactly
 		// the records §10 tells apart, and only the first may be chosen here.
 		var barred = Decidable(body) is { } heads
-			? RangesTest(heads.Ranges)
+			? RangesTest(heads.Ranges, Tabulate)
 			: !FirstSets.Nullable(body, _graph)
 				? EntryTest(body)
 				: null;
@@ -3512,7 +3526,7 @@ sealed partial class Machine
 
 			case Node.Element element:
 			{
-				var test = CSharpEmitter.Test(element);
+				var test = CSharpEmitter.Test(element, Tabulate);
 
 				return test == "false" ? null : test;
 			}
@@ -3950,6 +3964,60 @@ sealed partial class Machine
 	/// other per-occurrence `Reserve`, and for the same reason: two occurrences of `'a'`
 	/// in different places are two different things that can fail.
 	/// </remarks>
+	/// <summary>
+	/// The table a character class is read from, or null where it is written out instead.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only for a class that is entirely ASCII, which is what makes the table 128 bytes and
+	/// the guard one comparison. A class reaching past that would need either a table too
+	/// large to be worth it or a second test for the tail, and the classes that do — a
+	/// Unicode category, an inverted class — are not the ones that cost the most branches.
+	/// </para>
+	/// <para>
+	/// A plain array rather than a <c>ReadOnlySpan&lt;byte&gt;</c> over a literal: the span
+	/// form is the one that costs no allocation, but it leans on the RVA lowering, and the
+	/// floor this emits for (§netstandard2.0) is not where that can be relied on. One
+	/// array per distinct class, built once.
+	/// </para>
+	/// </remarks>
+	string? Tabulate(IReadOnlyList<CharRange> ranges)
+	{
+		if (ranges.Count < Tabulated)
+			return null;
+
+		var table = new byte[128];
+
+		foreach (var range in ranges)
+		{
+			if (range.To > 127)
+				return null;
+
+			for (int c = range.From; c <= range.To; c++)
+				table[c] = 1;
+		}
+
+		var items = string.Join(",", table);
+
+		if (_classesByRanges.TryGetValue(items, out var already))
+		{
+			_classesUsed.Add(already);
+
+			return already;
+		}
+
+		var name = $"Recognize_DotGram{_tag}_Class" + _classCount++;
+
+		_classesByRanges[items] = name;
+		_classesUsed.Add(name);
+		_classes.Add((name, $"static readonly byte[] {name} = {{ {items} }};"));
+
+		return name;
+	}
+
+	/// <summary>The test a tabulated class is, over <c>c</c>.</summary>
+	static string TableTest(string name) => $"c <= 127 && {name}[c] != 0";
+
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
 		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));

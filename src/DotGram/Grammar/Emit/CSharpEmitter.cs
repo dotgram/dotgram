@@ -1532,9 +1532,20 @@ public static partial class CSharpEmitter
 	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
 	static string WholeOf(RuleSymbol rule) => MethodOf(rule) + "_Whole";
 
-	internal static string Test(Node.Element element)
+	internal static string Test(Node.Element element, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
 		var tests = new List<string>();
+
+		// A class of any width is one test when it is read from a table, and the caller
+		// that can declare one says so by handing the means to. Only where there is
+		// nothing else in the element: a Unicode category is not in the table, and an
+		// inversion is about what the table does not hold.
+		if (tabulate is not null &&
+			element is { IsNegated: false, Categories.Count: 0, References.Count: 0 } &&
+			tabulate(element.Ranges) is { } table)
+		{
+			return $"c <= 127 && {table}[c] != 0";
+		}
 
 		foreach (var range in element.Ranges)
 			tests.Add(range.IsSingle
