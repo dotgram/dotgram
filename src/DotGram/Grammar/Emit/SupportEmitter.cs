@@ -182,11 +182,22 @@ public static class SupportEmitter
 					EntriesPayload = entriesPayload;
 				}
 
+				public GramLanguageDescriptorAttribute(
+					int formatVersion,
+					string languageId,
+					string grammarHash,
+					string sourcePayload,
+					string entriesPayload,
+					string classificationsPayload)
+					: this(formatVersion, languageId, grammarHash, sourcePayload, entriesPayload) =>
+					ClassificationsPayload = classificationsPayload;
+
 				public int FormatVersion { get; }
 				public string LanguageId { get; }
 				public string GrammarHash { get; }
 				public string SourcePayload { get; }
 				public string EntriesPayload { get; }
+				public string? ClassificationsPayload { get; }
 			}
 
 		}

@@ -189,6 +189,31 @@ public sealed class DslLanguageDiscoveryTests
 	}
 
 	[Fact]
+	public void ReadsClassificationsFromVersionTwoDescriptor()
+	{
+		const string grammar = "Keyword = \"let\"\nStart = name: Keyword\nparse Start as Read";
+		var sourcePayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart"));
+		var classificationsPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("Keyword\tKeyword\nStart.name\tVariable"));
+		var catalog = Discover(Support + $$"""
+
+			[DotGram.GramLanguage("referenced")]
+			[DotGram.GramLanguageDescriptor(2, "referenced", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}", "{{classificationsPayload}}")]
+			partial class Parser;
+			""");
+
+		var language = Assert.Single(catalog.Languages);
+		Assert.Equal(2, language.DescriptorFormatVersion);
+		Assert.Equal(
+			new[] { ("Keyword", "Keyword"), ("Start.name", "Variable") },
+			language.Classifications.Select(item => (item.Target, item.Role)));
+		Assert.All(language.Classifications, item => Assert.Null(item.Attribute));
+	}
+
+	[Fact]
 	public void DiscoversDescriptorFromReferencedAssemblyWithoutLoadingIt()
 	{
 		const string grammar = "Start = 'x'\nparse Start as Read";

@@ -34,7 +34,7 @@ public static class DslClassificationDiagnostics
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			if (!language.Classifications.Any(definition =>
-				definition.Attribute.ApplicationSyntaxReference?.SyntaxTree == root.SyntaxTree))
+				definition.Attribute?.ApplicationSyntaxReference?.SyntaxTree == root.SyntaxTree))
 				continue;
 
 			var resolution = await DslGrammarSourceResolver.ResolveAsync(
@@ -47,7 +47,7 @@ public static class DslClassificationDiagnostics
 			var binding = DslClassificationBinder.Bind(language, resolution.Text);
 			foreach (var diagnostic in binding.Diagnostics)
 			{
-				var syntaxReference = diagnostic.Definition.Attribute.ApplicationSyntaxReference;
+				var syntaxReference = diagnostic.Definition.Attribute?.ApplicationSyntaxReference;
 				if (syntaxReference?.SyntaxTree != root.SyntaxTree ||
 					await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false) is not AttributeSyntax syntax)
 					continue;

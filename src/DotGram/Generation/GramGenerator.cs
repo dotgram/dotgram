@@ -370,6 +370,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			LanguageId     = host.LanguageId,
 			LanguageSource = host.LanguageId is null ? null : text,
+			LanguageClassifications = host.LanguageId is null ? null : host.LanguageClassifications,
 
 			// §7.6. A grammar that is its own file maps onto itself; one written into an
 			// attribute maps into the C# file holding it, which has to be searched for
@@ -631,6 +632,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      IsPartial,
 		string?   Source,
 		string?   LanguageId,
+		string    LanguageClassifications,
 		Location? Location,
 		string?   Literal    = null,
 		int       LiteralAt  = 0,
@@ -715,6 +717,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static candidate =>
 					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramLanguageAttribute")
 				?.ConstructorArguments.FirstOrDefault().Value as string;
+			var classifications = string.Join("\n", type.GetAttributes()
+				.Where(static candidate =>
+					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramClassifyAttribute")
+				.Select(Classification)
+				.Where(static value => value is not null));
 
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
@@ -755,6 +762,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				IsPartial: isPartial,
 				Source:    source,
 				LanguageId: languageId,
+				LanguageClassifications: classifications,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
@@ -762,6 +770,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 				LiteralAt:  written == default ? 0    : written.SpanStart,
 				IncludedAs: includedAs,
 				Includes:   new EquatableArray<Included>(Inherited(type)));
+		}
+
+		static string? Classification(AttributeData attribute)
+		{
+			if (attribute.ConstructorArguments is not
+				[
+					{ Value: string target },
+					{ Kind: TypedConstantKind.Enum, Value: not null } role,
+				])
+				return null;
+
+			var field = role.Type?.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(candidate =>
+				candidate.HasConstantValue && Equals(candidate.ConstantValue, role.Value));
+			return field is null ? null : target + "\t" + field.Name;
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

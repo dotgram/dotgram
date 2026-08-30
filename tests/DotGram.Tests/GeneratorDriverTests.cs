@@ -70,11 +70,12 @@ public sealed class GeneratorDriverTests
 			RunGenerator(
 				"[DotGram.Gram(\"Start = 'x'\\nparse Start as Read\")]\n" +
 				"[DotGram.GramLanguage(\"com.example.test\")]\n" +
+				"[DotGram.GramClassify(\"Start\", DotGram.GramClassification.Keyword)]\n" +
 				"public partial class Parser;"),
 			"Parser.g.cs");
 
 		Assert.Contains(
-			"[global::DotGram.GramLanguageDescriptorAttribute(1, \"com.example.test\"",
+			"[global::DotGram.GramLanguageDescriptorAttribute(2, \"com.example.test\"",
 			source,
 			StringComparison.Ordinal);
 		Assert.Contains(
@@ -84,6 +85,10 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain("__DotGramLanguageSource", source, StringComparison.Ordinal);
 		Assert.Contains(
 			Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart")),
+			source,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Start\tKeyword")),
 			source,
 			StringComparison.Ordinal);
 	}

@@ -16,11 +16,11 @@ public enum DslGrammarSourceKind
 	File,
 }
 
-public sealed class DslClassificationDefinition(string target, string role, AttributeData attribute)
+public sealed class DslClassificationDefinition(string target, string role, AttributeData? attribute)
 {
 	public string Target { get; } = target;
 	public string Role { get; } = role;
-	public AttributeData Attribute { get; } = attribute;
+	public AttributeData? Attribute { get; } = attribute;
 }
 
 public sealed class DslIncludedGrammarDefinition(
@@ -167,6 +167,8 @@ public static class DslLanguageDiscovery
 				.Where(static item => item is not null)
 				.Cast<DslClassificationDefinition>()
 				.ToArray();
+			if (classifications.Length == 0 && descriptor is not null)
+				classifications = descriptor.Classifications.ToArray();
 
 			languages.Add(new DslLanguageDefinition(
 				id,
@@ -202,26 +204,28 @@ public static class DslLanguageDiscovery
 		string languageId,
 		string grammarHash,
 		string source,
-		IReadOnlyDictionary<string, string> entries)
+		IReadOnlyDictionary<string, string> entries,
+		IReadOnlyList<DslClassificationDefinition> classifications)
 	{
 		public int FormatVersion { get; } = formatVersion;
 		public string LanguageId { get; } = languageId;
 		public string GrammarHash { get; } = grammarHash;
 		public string Source { get; } = source;
 		public IReadOnlyDictionary<string, string> Entries { get; } = entries;
+		public IReadOnlyList<DslClassificationDefinition> Classifications { get; } = classifications;
 	}
 
 	static GeneratedDescriptor? Descriptor(INamedTypeSymbol type)
 	{
 		var attribute = type.GetAttributes().FirstOrDefault(IsDescriptorAttribute);
-		if (attribute?.ConstructorArguments is not
-			[
-				{ Value: 1 },
-				{ Value: string languageId },
-				{ Value: string hash },
-				{ Value: string sourcePayload },
-				{ Value: string entriesPayload },
-			])
+		if (attribute?.ConstructorArguments is not { } arguments ||
+			arguments.Length is not (5 or 6) ||
+			arguments[0].Value is not int formatVersion ||
+			formatVersion != arguments.Length - 4 ||
+			arguments[1].Value is not string languageId ||
+			arguments[2].Value is not string hash ||
+			arguments[3].Value is not string sourcePayload ||
+			arguments[4].Value is not string entriesPayload)
 			return null;
 
 		if (!TryBase64(sourcePayload, out var source) ||
@@ -237,7 +241,22 @@ public static class DslLanguageDiscovery
 				entries[fields[0]] = fields[2];
 		}
 
-		return new GeneratedDescriptor(1, languageId, hash, source, entries);
+		var classifications = new List<DslClassificationDefinition>();
+		if (formatVersion == 2)
+		{
+			if (arguments[5].Value is not string classificationsPayload ||
+				!TryBase64(classificationsPayload, out var classificationText))
+				return null;
+
+			foreach (var line in classificationText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+			{
+				var fields = line.Split('\t');
+				if (fields.Length == 2 && fields[0].Length > 0 && ClassificationMembers.Contains(fields[1]))
+					classifications.Add(new DslClassificationDefinition(fields[0], fields[1], null));
+			}
+		}
+
+		return new GeneratedDescriptor(formatVersion, languageId, hash, source, entries, classifications);
 	}
 
 	static bool TryBase64(string payload, out string value)
@@ -373,14 +392,11 @@ public static class DslLanguageDiscovery
 
 	static bool IsDescriptorAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
-		attribute.AttributeConstructor?.Parameters is
-		[
-			{ Type.SpecialType: SpecialType.System_Int32 },
-			{ Type.SpecialType: SpecialType.System_String },
-			{ Type.SpecialType: SpecialType.System_String },
-			{ Type.SpecialType: SpecialType.System_String },
-			{ Type.SpecialType: SpecialType.System_String },
-		];
+		attribute.AttributeConstructor?.Parameters is { } parameters &&
+		parameters.Length is 5 or 6 &&
+		parameters[0].Type.SpecialType == SpecialType.System_Int32 &&
+		parameters.Skip(1).All(static parameter =>
+			parameter.Type.SpecialType == SpecialType.System_String);
 
 	static bool IsClassification(ITypeSymbol type) =>
 		type.TypeKind == TypeKind.Enum &&

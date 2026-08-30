@@ -67,6 +67,9 @@ public sealed class GramCompilerOptions
 	/// <summary>The complete grammar source stored in a generated language descriptor.</summary>
 	public string? LanguageSource { get; set; }
 
+	/// <summary>Semantic classification mappings stored in a generated language descriptor.</summary>
+	public string? LanguageClassifications { get; set; }
+
 	/// <summary>
 	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
 	/// that accepts everything, which is right for tests of the grammar side and wrong

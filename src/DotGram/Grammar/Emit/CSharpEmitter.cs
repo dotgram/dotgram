@@ -51,7 +51,8 @@ public static partial class CSharpEmitter
 		string? @namespace = null,
 		ILineMap? lines = null,
 		string? languageId = null,
-		string? languageSource = null)
+		string? languageSource = null,
+		string? languageClassifications = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -126,7 +127,11 @@ public static partial class CSharpEmitter
 		for (var i = 0; i < classParts.Length; i++)
 		{
 			if (i == classParts.Length - 1 && languageId is not null && languageSource is not null)
-				file.Line(LanguageDescriptorAttribute(graph, languageId, languageSource));
+				file.Line(LanguageDescriptorAttribute(
+					graph,
+					languageId,
+					languageSource,
+					languageClassifications ?? ""));
 
 			scope.Push(file.Block($"partial class {classParts[i]}"));
 		}
@@ -316,10 +321,11 @@ public static partial class CSharpEmitter
 	static string LanguageDescriptorAttribute(
 		RecognitionGraph graph,
 		string languageId,
-		string source) =>
+		string source,
+		string classifications) =>
 		"[global::DotGram.GramLanguageDescriptorAttribute(" +
-		$"1, \"{EscapeString(languageId)}\", \"{Hash(source)}\", " +
-		$"\"{Base64(source)}\", \"{Base64(Entries(graph))}\")]";
+		$"2, \"{EscapeString(languageId)}\", \"{Hash(source)}\", " +
+		$"\"{Base64(source)}\", \"{Base64(Entries(graph))}\", \"{Base64(classifications)}\")]";
 
 	static string Entries(RecognitionGraph graph) => string.Join(
 		"\n",

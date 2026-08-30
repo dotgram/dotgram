@@ -224,12 +224,12 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var sourcePayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
 		var entriesPayload = Convert.ToBase64String(
 			System.Text.Encoding.UTF8.GetBytes("ParseStart\tParse\tStart"));
+		var classificationsPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("Keyword\tKeyword\nStart.name\tVariable"));
 		var reference = Reference(SupportEmitter.Attributes + $$"""
 
 			[DotGram.GramLanguage("package.filter")]
-			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
-			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-			[DotGram.GramLanguageDescriptor(1, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			[DotGram.GramLanguageDescriptor(2, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}", "{{classificationsPayload}}")]
 			public class PackagedParser
 			{
 				public static string ParseStart(string input) => input;

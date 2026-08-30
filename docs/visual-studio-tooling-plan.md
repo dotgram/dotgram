@@ -91,6 +91,8 @@ The detailed design and explicit deferrals are in
   metadata v1, including exact entries for parse and try-parse methods.
 - [x] Discover user-created DSLs through referenced marker attributes, both on library
   API parameters and on consumer-owned parameters.
+- [x] Emit semantic classification mappings in metadata format v2, while retaining
+  metadata v1 discovery compatibility.
 - Reuse the editor-neutral service from an LSP/VS Code adapter.
 
 ## Validation rules
