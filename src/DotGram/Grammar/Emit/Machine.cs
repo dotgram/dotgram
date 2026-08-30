@@ -366,7 +366,7 @@ sealed partial class Machine
 			// and a block for the second saying of it. What the trace loses is the root
 			// entry, which is not reached from a call site; that one is written once at the
 			// top of the method instead.
-			entry.Line($"goto {Label(body)};");
+			entry.Line($"goto {Label(entry, body)};");
 		}
 	}
 
@@ -1302,7 +1302,7 @@ sealed partial class Machine
 			var state = Reserve(out var writer);
 
 			writer.Line($"if ({level} < power) {{ expected = null; goto Fail; }}");
-			writer.Line($"goto {Label(inner)};");
+			writer.Line($"goto {Label(writer, inner)};");
 
 			return state;
 		}
@@ -1364,7 +1364,7 @@ sealed partial class Machine
 					}
 
 					writer.Line($"p += {value.Length};");
-					writer.Line($"goto {Label(next)};");
+					writer.Line($"goto {Label(writer, next)};");
 
 					return state;
 				}
@@ -1421,7 +1421,7 @@ sealed partial class Machine
 				}
 
 				writer.Line($"p += {value.Length};");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -1460,7 +1460,7 @@ sealed partial class Machine
 				}
 
 				writer.Line("p++;");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -1564,7 +1564,7 @@ sealed partial class Machine
 							// though what is accepted would not. Left, with the trap named
 							// (docs/next.md).
 							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(Skipped(begins, target))};");
+								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(writer, Skipped(begins, target))};");
 
 							// The second is read knowing the first did not fire, where there
 							// was a first: `c` is in this alternative's own set by then, so
@@ -1576,20 +1576,20 @@ sealed partial class Machine
 							if (rest is { } after)
 							{
 								if (mine is not { } known)
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(writer, first)};");
 								else if (!known.Overlaps(after))
-									writer.Line($"goto {Label(first)};");     // always fires
+									writer.Line($"goto {Label(writer, first)};");     // always fires
 								else if (!after.Covers(known))               // never fires: not written
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
+									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(writer, first)};");
 							}
 						}
 					}
 
 					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, " +
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
-					writer.Line($"goto {Label(first)};");
+					writer.Line($"goto {Label(writer, first)};");
 
 					if (mine is not null)
 						_dispatchers[state] = (mine, target);
@@ -1632,7 +1632,7 @@ sealed partial class Machine
 						var siteState = Reserve(out var atSiteOpen);
 
 						atSiteOpen.Line($"flat{parent}_{slot}Start = p;");
-						atSiteOpen.Line($"goto {Label(siteBody)};");
+						atSiteOpen.Line($"goto {Label(atSiteOpen, siteBody)};");
 
 						return siteState;
 					}
@@ -1644,10 +1644,10 @@ sealed partial class Machine
 					var flatState = Reserve(out var atFlatOpen);
 
 					atFlatOpen.Line($"flat{_flatInstance}_{slot}Start = p;");
-					atFlatOpen.Line($"goto {Label(flatInner)};");
+					atFlatOpen.Line($"goto {Label(atFlatOpen, flatInner)};");
 
 					atFlatClose.Line($"flat{_flatInstance}_{slot}End = p;");
-					atFlatClose.Line($"goto {Label(next)};");
+					atFlatClose.Line($"goto {Label(atFlatClose, next)};");
 
 					return flatState;
 				}
@@ -1672,7 +1672,7 @@ sealed partial class Machine
 				{
 					_usesCompleted = true;
 
-					writer.Line($"goto {Label(inner)};");
+					writer.Line($"goto {Label(writer, inner)};");
 
 					// The entry to record is the one the call just turned into, and `Return`
 					// has its index in hand at the moment it turns it. Searching back for it
@@ -1690,7 +1690,7 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count{Traced});");
-					atClose.Line($"goto {Label(next)};");
+					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
 				}
@@ -1708,7 +1708,7 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
 						"call, atomic, repeat, lookahead, 0));");
 					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
-					writer.Line($"goto {Label(inner)};");
+					writer.Line($"goto {Label(writer, inner)};");
 
 					atClose.Line("var closed  = 0;");
 					atClose.Line("var openedAt = entries.Count - 1;");
@@ -1743,19 +1743,19 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
 						"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
-					atClose.Line($"goto {Label(next)};");
+					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
 				}
 
 				writer.Line($"capture{slot} = p;");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
 				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
 			}
@@ -1780,7 +1780,7 @@ sealed partial class Machine
 						var tagged = Reserve(out var atTag);
 
 						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node, owner)};");
-						atTag.Line($"goto {Label(next)};");
+						atTag.Line($"goto {Label(atTag, next)};");
 
 						return Compile(body, tagged, following);
 					}
@@ -1802,12 +1802,12 @@ sealed partial class Machine
 				var inner   = Compile(body, close, following);
 				var state   = Reserve(out var writer);
 
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
 			}
@@ -1838,7 +1838,7 @@ sealed partial class Machine
 						atScan.Line("p = scanned;");
 					}
 
-					atScan.Line($"goto {Label(next)};");
+					atScan.Line($"goto {Label(atScan, next)};");
 
 					return scanned;
 				}
@@ -1871,14 +1871,14 @@ sealed partial class Machine
 
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, " +
+					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
 					$"lookahead, 0, {ValueRule(rule)}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
 				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(_entries[rule])};");
+				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;
 			}
@@ -1894,7 +1894,7 @@ sealed partial class Machine
 				writer.Line(hasValue
 					? $"if (!{method}(text, ref p, out _)) {{ expected = null; goto Fail; }}"
 					: $"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -2131,7 +2131,7 @@ sealed partial class Machine
 				}
 
 				writer.Line($"if (!{method}({string.Join(", ", arguments)})) {{ expected = null; goto Fail; }}");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -2152,13 +2152,13 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.StateSet, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atOpen.Line($"Trace(\"set state\", {site}, p, entries.Count{Traced});");
-				atOpen.Line($"goto {Label(inner)};");
+				atOpen.Line($"goto {Label(atOpen, inner)};");
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.StateEnd, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atClose.Line($"Trace(\"end state\", {site}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return opened;
 			}
@@ -2225,7 +2225,7 @@ sealed partial class Machine
 
 					if (doors)
 						atEnter.Line($"turn{mine} = p;");
-					atEnter.Line($"goto {Label(target)};");
+					atEnter.Line($"goto {Label(atEnter, target)};");
 
 					_depth = mine;
 					_checkpointsAllowed = checkpoints;
@@ -2241,7 +2241,7 @@ sealed partial class Machine
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
 				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
 				atCommit.Line("var boundary = entries[atomic];");
@@ -2288,7 +2288,7 @@ sealed partial class Machine
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
 				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count{Traced});");
-				atCommit.Line($"goto {Label(next)};");
+				atCommit.Line($"goto {Label(atCommit, next)};");
 
 				return state;
 			}
@@ -2323,7 +2323,7 @@ sealed partial class Machine
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -2367,7 +2367,7 @@ sealed partial class Machine
 							}
 						}
 
-						atAsk.Line($"goto {Label(next)};");
+						atAsk.Line($"goto {Label(atAsk, next)};");
 
 						return predicate;
 					}
@@ -2399,7 +2399,7 @@ sealed partial class Machine
 						var flatState = Reserve(out var atFlatEnter);
 
 						atFlatEnter.Line($"{start} = p;");
-						atFlatEnter.Line($"goto {Label(flatInner)};");
+						atFlatEnter.Line($"goto {Label(atFlatEnter, flatInner)};");
 
 						_depth = mine;
 						_checkpointsAllowed = checkpoints;
@@ -2424,7 +2424,7 @@ sealed partial class Machine
 					var entered = Reserve(out var atEnter);
 
 					atEnter.Line($"{begun} = p;");
-					atEnter.Line($"goto {Label(refused)};");
+					atEnter.Line($"goto {Label(atEnter, refused)};");
 
 					atMatched.Line($"p = {begun};");
 					EmitTerminalFailure(atMatched, _fail, arrayName);
@@ -2440,11 +2440,11 @@ sealed partial class Machine
 
 				writer.Line("var lookaheadIndex = entries.Count;");
 				writer.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
 				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 				atSuccess.Line("var looked = entries[lookahead];");
@@ -2458,7 +2458,7 @@ sealed partial class Machine
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
 				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count{Traced});");
-				atSuccess.Line($"goto {(isPositive ? Label(next) : "Fail")};");
+				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
 				return state;
 			}
@@ -2499,11 +2499,11 @@ sealed partial class Machine
 
 		writer.Line("var lookaheadIndex = entries.Count;");
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
 		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(inner)};");
+		writer.Line($"goto {Label(writer, inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atSuccess.Line("var seenTo = p;");
@@ -2521,7 +2521,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
 			"repeat, lookahead, seenTo));");
 		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
-		atSuccess.Line($"goto {Label(next)};");
+		atSuccess.Line($"goto {Label(atSuccess, next)};");
 
 		return state;
 	}
@@ -2559,11 +2559,11 @@ sealed partial class Machine
 
 		writer.Line("var lookaheadIndex = entries.Count;");
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
 		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(inner)};");
+		writer.Line($"goto {Label(writer, inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atMatched.Line("var looked = entries[lookahead];");
@@ -2629,7 +2629,7 @@ sealed partial class Machine
 			using (writer.Block($"if ({string.Join(" && ", tests)})"))
 			{
 				writer.Line($"p += {rest.Length};");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 			}
 		}
 
@@ -2801,12 +2801,12 @@ sealed partial class Machine
 					var carry = CompileCarries(text.Length, carries, displays, next, fail);
 
 					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
 					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count{Traced});");
 				}
 
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 			}
 
 			if (settled)
@@ -2838,7 +2838,7 @@ sealed partial class Machine
 
 				SharpenAll(writer, texts, displays);
 
-				writer.Line($"goto {Label(fail)};");
+				writer.Line($"goto {Label(writer, fail)};");
 			}
 			else
 				EmitTerminalFailure(writer, fail, arrayName);
@@ -2888,7 +2888,7 @@ sealed partial class Machine
 
 			atRetry.Line($"p = way{id};");
 			atRetry.Line($"alt{id} = {at + 1};");
-			atRetry.Line($"goto {Label(entries[at])};");
+			atRetry.Line($"goto {Label(atRetry, entries[at])};");
 
 			retries[at - 1] = retry;
 			_roots.Add(retry);
@@ -2903,7 +2903,7 @@ sealed partial class Machine
 		writer.Line($"alt{id} = 1;");
 		writer.Line($"over{id} = pending;");
 		writer.Line($"pending = {id};");
-		writer.Line($"goto {Label(entries[0])};");
+		writer.Line($"goto {Label(writer, entries[0])};");
 
 		return state;
 	}
@@ -2948,8 +2948,8 @@ sealed partial class Machine
 
 		for (var i = 0; i < targets.Length; i++)
 			writer.Line(advanced[i]
-				? $"if ({tests[i]}) {{ p++; goto {Label(targets[i])}; }}"
-				: $"if ({tests[i]}) goto {Label(targets[i])};");
+				? $"if ({tests[i]}) {{ p++; goto {Label(writer, targets[i])}; }}"
+				: $"if ({tests[i]}) goto {Label(writer, targets[i])};");
 
 		EmitTerminalFailure(writer, _fail, arrayName);
 
@@ -3144,11 +3144,11 @@ sealed partial class Machine
 
 		writer.Line($"if (p > {floor})");
 		writer.Then(
-			$"entries.Add(new ParserEntry(ParserEntry.Run, {next}, {floor}, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
 
 		writer.Line($"Trace(\"run\", {next}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"goto {Label(writer, next)};");
 
 		return state;
 	}
@@ -3218,7 +3218,7 @@ sealed partial class Machine
 			foreach (var local in resetLocals)
 				writer.Line($"{local} = -1;");
 
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"goto {Label(writer, next)};");
 
 		_turns.Add((depth, state));
 
@@ -3275,7 +3275,7 @@ sealed partial class Machine
 
 			if (!direct)
 				atLoop.Line($"turn{mine} = p;");
-			atLoop.Line($"goto {Label(inner)};");
+			atLoop.Line($"goto {Label(atLoop, inner)};");
 
 			target = loop;
 		}
@@ -3293,7 +3293,7 @@ sealed partial class Machine
 
 				if (!direct)
 					atBegan.Line($"turn{mine} = p;");
-				atBegan.Line($"goto {Label(target)};");
+				atBegan.Line($"goto {Label(atBegan, target)};");
 
 				target = began;
 			}
@@ -3340,10 +3340,10 @@ sealed partial class Machine
 			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atTest.Line("c = text[p];");
-				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(entered)};");
+				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(atTest, entered)};");
 			}
 
-			atTest.Line($"goto {Label(next)};");
+			atTest.Line($"goto {Label(atTest, next)};");
 
 			return state;
 		}
@@ -3372,7 +3372,7 @@ sealed partial class Machine
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
 		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count{Traced});");
-		atEntry.Line($"goto {Label(loop)};");
+		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		if (settled || min > 0 || max is not null)
 		{
@@ -3382,7 +3382,7 @@ sealed partial class Machine
 		}
 
 		if (max is { } limit)
-			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
+			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(atLoop, exit)};");
 
 		if (settled)
 		{
@@ -3393,7 +3393,7 @@ sealed partial class Machine
 			using (atLoop.Block(min == 0 ? "" : $"if (repeating.Value >= {min})"))
 			{
 				atLoop.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {exit}, p, call, atomic, " +
+					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {Resuming(atLoop, exit)}, p, call, atomic, " +
 					"repeat, lookahead, 0));");
 				atLoop.Line(
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
@@ -3408,11 +3408,11 @@ sealed partial class Machine
 		{
 			atLoop.Line($"if (repeating.Value >= {min})");
 			atLoop.Then(
-				$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, " +
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, exit)}, p, call, atomic, repeat, " +
 				"lookahead, 0));");
 		}
 
-		atLoop.Line($"goto {Label(inner)};");
+		atLoop.Line($"goto {Label(atLoop, inner)};");
 
 		// The count is only ever read to decide whether a bound has been reached. An
 		// unbounded repetition with nothing to reach has no such decision to make, and
@@ -3438,7 +3438,7 @@ sealed partial class Machine
 				"lookahead, 0));");
 		}
 
-		atAfter.Line($"goto {Label(loop)};");
+		atAfter.Line($"goto {Label(atAfter, loop)};");
 
 		// Out through the count rather than through the standing exit, which is the one
 		// path that leaves it standing and valid. Marked spent, or a failure after the
@@ -3478,10 +3478,10 @@ sealed partial class Machine
 			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atProbe.Line("c = text[p];");
-				atProbe.Line($"if ({could}) goto {Label(entry)};");
+				atProbe.Line($"if ({could}) goto {Label(atProbe, entry)};");
 			}
 
-			atProbe.Line($"goto {Label(next)};");
+			atProbe.Line($"goto {Label(atProbe, next)};");
 
 			return probed;
 		}
@@ -3612,7 +3612,7 @@ sealed partial class Machine
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
 		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"goto {Label(writer, next)};");
 	}
 
 	int ValueRule(RuleSymbol rule) =>
@@ -3917,6 +3917,7 @@ sealed partial class Machine
 	{
 		writer = new Writer(0);
 		_states.Add(writer);
+		_edges.Add(writer, new Edges());
 
 		return _states.Count - 1 + First;
 	}
@@ -4012,7 +4013,7 @@ sealed partial class Machine
 		_expectedUsed.Add(arrayName);
 
 		writer.Line($"expected = {arrayName};");
-		writer.Line($"goto {Label(fail)};");
+		writer.Line($"goto {Label(writer, fail)};");
 	}
 
 	/// <summary>
@@ -4022,15 +4023,15 @@ sealed partial class Machine
 	/// last terminal test set: `Fail:` cannot otherwise tell a stale value from one that
 	/// belongs to this failure.
 	/// </summary>
-	static void EmitFailure(Writer writer, int fail)
+	void EmitFailure(Writer writer, int fail)
 	{
 		writer.Line("expected = null;");
-		writer.Line($"goto {Label(fail)};");
+		writer.Line($"goto {Label(writer, fail)};");
 	}
 
-	static void PushRepeatExit(Writer writer, int exit) =>
+	void PushRepeatExit(Writer writer, int exit) =>
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
+			$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, exit)}, p, call, atomic, repeat, lookahead, 0));");
 
 	static string Label(int state) => state switch
 	{

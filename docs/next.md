@@ -6855,3 +6855,66 @@ that type and the check stands.
 whose `=>` bodies name no type, one rule that says what a number is, and two publications. The
 tests hold it to `7/2` being `3` in one and `3.5` in the other, and to the `int` calculator
 refusing `1.5` outright.
+
+## Measured: the parser's own method is too big for the compiler below it to optimize
+
+The question was narrow — does RyuJIT already remove the bounds checks and character reads
+that a block repeats after its predecessors have done them? `Rfc3986` writes 1706 bounds
+checks and 1801 reads of `text[p]` against 1364 advances of `p`, so at least 342 checks and
+437 reads are made at a position that has not moved.
+
+The answer is that it removes nothing, for a reason that is worth more than the question.
+
+    Recognize_DotGram_Uri ... [Instrumented Tier0,       IL size=63423]
+    Recognize_DotGram_Uri ... [Instrumented Tier0,       IL size=63423]
+    Recognize_DotGram_Uri ... [Tier-0 switched MinOpts,  IL size=63423]
+
+The method is compiled three times and, on the attempt to promote it, the JIT switches it to
+MinOpts: no common-subexpression elimination, no bounds-check elimination, no assertion
+propagation. The threshold is 60000 bytes of IL, and the recognizer is 5.7% past it.
+`ExpressionLanguage`'s is 95267 bytes, 59% past. In the same run 59 methods reach Tier1 and
+exactly one is switched to MinOpts — the one where all of the work happens.
+
+What that costs, measured on the same engine and the same emission style under the threshold
+(the `Links` recognizer of `examples/UrlExample.cs`, 9869 bytes of IL): 566-589 ns/parse as
+compiled, 3311-3341 ns/parse with the JIT forced to MinOpts. The whole workload is in that
+comparison, not the recognizer alone, so the factor for the recognizer by itself is smaller —
+but it is a factor, not a margin.
+
+This makes the size of an emitted method a first-order constraint rather than a matter of
+taste, and it puts a step in the middle of it: a recognizer under the threshold is optimized
+and one over it is not. `Rfc3986` needs 5.7% removed. It is also a candidate explanation for
+the residue against a hand-written parser that `Url.gram` still shows — a hand-written parser
+is small enough to be optimized, and this one is not.
+
+## Built: the state graph is recorded where it is written, and held against the one read back
+
+`Machine.Layout` needed to know where each state can go and recovered it by reading the
+finished text back with two regular expressions — `goto S(\d+);` and the second field of a
+`ParserEntry`. That made every jump's spelling load-bearing, and the two halves fail
+differently when one drifts.
+
+A missed `goto` leaves its target judged unreachable and so unwritten, and the jump then names
+a label that is not there: the C# compiler says so. A missed resume leaves the state out of
+the dispatch instead. The block is written, the code compiles, and a parse that should have
+resumed there falls to the default and refuses input it ought to accept. Written out as a
+plain readability edit — naming the second argument, `ParserEntry.Choice, state: 41` — the
+whole solution still built and the parsers were silently wrong.
+
+So the edge is now recorded by the same call that writes the text. `Label(at, state)` returns
+the label and says that `at` can jump there; `Resuming(at, state)` returns the state and says
+that `at` can put it in the arena. There is no second spelling to keep in step, because the
+recording and the text come out of one call.
+
+Both graphs exist for now, and `Verify` holds them against each other at the end of
+`PlanLayout` — which every rendering that uses the state table goes through, the general
+engine and both flat ones. It says which way they differ, because the two directions are
+different defects: a state recorded and not recovered is the one that would have shipped, and
+a state recovered and not recorded means the record is no longer the whole graph. Both were
+watched to fail before this was written down.
+
+Nothing in the output moved: the corpus is byte-identical and the recorded graph is not read
+by anything yet. That is the point of the step. What it is for is what comes next — the graph
+is the substrate for the things a local emitter cannot do: merging blocks that are the same
+body to the same successor (77 of 1442 in `Rfc3986`), removing a check or a read that every
+path in has already made, and getting under the threshold the entry above measures.

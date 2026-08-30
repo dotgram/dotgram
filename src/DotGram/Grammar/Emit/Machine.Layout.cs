@@ -194,6 +194,8 @@ sealed partial class Machine
 				_order.Add(i);
 
 		_written = reachable;
+
+		Verify();
 	}
 
 	/// <summary>
