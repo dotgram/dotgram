@@ -140,6 +140,39 @@ sealed partial class Machine
 	/// </remarks>
 	bool _checkpointsAllowed;
 
+	/// <summary>
+	/// Whatever the compilation modes are now, put back on the way out of the block.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="_checkpointsAllowed"/> and <see cref="_valuesInLocals"/> are the mode the
+	/// compiler is in, and the analyses read them because what may be lowered depends on what
+	/// the compiler is about to do. Entering a shape that changes the mode therefore means
+	/// putting the old one back, and the sites that do it by hand had written it three ways:
+	/// saving and restoring, restoring to a constant, and not restoring at all.
+	/// </para>
+	/// <para>
+	/// Restoring to a constant is the one that can be wrong — it says "false afterwards"
+	/// rather than "as it was", and would silently change the mode for everything after it if
+	/// the block were ever entered with the flag already up. Nothing enters these from inside
+	/// a compilation today, so it is a trap rather than a defect; this closes it, and closes
+	/// the one that did not restore on the way out of an exception at the same time.
+	/// </para>
+	/// </remarks>
+	Modes Keeping() => new(this);
+
+	readonly ref struct Modes(Machine machine)
+	{
+		readonly bool _checkpointsAllowed = machine._checkpointsAllowed;
+		readonly bool _valuesInLocals     = machine._valuesInLocals;
+
+		public void Dispose()
+		{
+			machine._checkpointsAllowed = _checkpointsAllowed;
+			machine._valuesInLocals     = _valuesInLocals;
+		}
+	}
+
 	/// <summary>A choice compiled with its way back in locals — one per static site.</summary>
 	/// <param name="Id">The site's number, which its locals are named under.</param>
 	/// <param name="Count">How many alternatives it has.</param>
@@ -577,18 +610,13 @@ sealed partial class Machine
 	/// </remarks>
 	public bool CanLower(RuleSymbol rule, bool whole)
 	{
+		using var modes = Keeping();
+
 		_checkpointsAllowed = true;
 
-		try
-		{
-			return Silent(
-				BodyOf(rule, whole),
-				whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
-		}
-		finally
-		{
-			_checkpointsAllowed = false;
-		}
+		return Silent(
+			BodyOf(rule, whole),
+			whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 	}
 
 	public int Register(Node node)

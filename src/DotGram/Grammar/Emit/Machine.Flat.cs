@@ -32,11 +32,14 @@ sealed partial class Machine
 		_namedOutside.Clear();
 		_checkpointIds      = 0;
 		_seam               = FollowSets.SeamOf(rule, _graph);
-		_checkpointsAllowed = true;
+		int entry;
 
-		var entry = Compile(BodyOf(rule, whole), Accept, seed);
+		using (var modes = Keeping())
+		{
+			_checkpointsAllowed = true;
 
-		_checkpointsAllowed = false;
+			entry = Compile(BodyOf(rule, whole), Accept, seed);
+		}
 
 		_roots.Add(entry);
 
@@ -195,18 +198,13 @@ sealed partial class Machine
 		if (UsesInput || ReadsState || !FlatValued(rule))
 			return false;
 
+		using var modes = Keeping();
+
 		_valuesInLocals = true;
 
-		try
-		{
-			return Silent(
-				BodyOf(rule, whole),
-				whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
-		}
-		finally
-		{
-			_valuesInLocals = false;
-		}
+		return Silent(
+			BodyOf(rule, whole),
+			whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 	}
 
 	/// <summary>
