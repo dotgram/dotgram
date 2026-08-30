@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 
 using DotGram.Grammar.Emit;
@@ -164,6 +165,60 @@ public sealed class DslLanguageDiscoveryTests
 		Assert.Equal("Word = ['a'..'z']+", included.GrammarSource);
 	}
 
+	[Fact]
+	public void ReadsVersionedGeneratedDescriptorWithoutTheOriginalGramAttribute()
+	{
+		const string grammar = "Start = 'x'\nparse Start as Read";
+		var sourcePayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart"));
+		var catalog = Discover(Support + $$"""
+
+			[DotGram.GramLanguage("referenced")]
+			[DotGram.GramLanguageDescriptor(1, "referenced", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			partial class Parser;
+			""");
+
+		var language = Assert.Single(catalog.Languages);
+		Assert.Equal(DslGrammarSourceKind.Embedded, language.SourceKind);
+		Assert.Equal("Start = 'x'\nparse Start as Read", language.GrammarSource);
+		Assert.Equal(1, language.DescriptorFormatVersion);
+		Assert.Equal(Hash(grammar), language.GrammarHash);
+		Assert.Equal("Start", language.Entries["Read"]);
+	}
+
+	[Fact]
+	public void DiscoversDescriptorFromReferencedAssemblyWithoutLoadingIt()
+	{
+		const string grammar = "Start = 'x'\nparse Start as Read";
+		var sourcePayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart"));
+		var reference = Reference(Support + $$"""
+
+			[DotGram.GramLanguage("package.language")]
+			[DotGram.GramLanguageDescriptor(1, "package.language", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			public class PackagedParser;
+			""");
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var compilation = CSharpCompilation.Create(
+			"Consumer",
+			[CSharpSyntaxTree.ParseText("class Consumer;", cancellationToken: cancellationToken)],
+			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location), reference]);
+		var package = Assert.IsAssignableFrom<IAssemblySymbol>(compilation.GetAssemblyOrModuleSymbol(reference));
+		var parser = package.GlobalNamespace.GetTypeMembers("PackagedParser").Single();
+		Assert.Contains(parser.GetAttributes(), attribute =>
+			attribute.AttributeClass?.Name == "GramLanguageDescriptorAttribute");
+
+		var language = Assert.Single(DslLanguageDiscovery.Discover(compilation, cancellationToken).Languages);
+
+		Assert.Equal("package.language", language.Id);
+		Assert.Equal("PackagedParser", language.ParserType.Name);
+		Assert.Equal("Start = 'x'\nparse Start as Read", language.GrammarSource);
+	}
+
 	static DslLanguageCatalog Discover(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(
@@ -175,6 +230,33 @@ public sealed class DslLanguageDiscoveryTests
 			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]);
 
 		return DslLanguageDiscovery.Discover(compilation);
+	}
+
+	static PortableExecutableReference Reference(string source)
+	{
+		var tree = CSharpSyntaxTree.ParseText(
+			source,
+			CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview));
+		var compilation = CSharpCompilation.Create(
+			"Package",
+			[tree],
+			[
+				MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
+				MetadataReference.CreateFromFile(typeof(System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute).Assembly.Location),
+			],
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		using var stream = new MemoryStream();
+		var emitted = compilation.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+		Assert.True(emitted.Success, string.Join("\n", emitted.Diagnostics));
+
+		return MetadataReference.CreateFromImage(stream.ToArray());
+	}
+
+	static string Hash(string value)
+	{
+		using var sha = System.Security.Cryptography.SHA256.Create();
+		return string.Concat(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value))
+			.Select(static item => item.ToString("x2")));
 	}
 
 	[Fact]

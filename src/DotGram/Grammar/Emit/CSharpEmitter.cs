@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
 using DotGram.Grammar.Binding;
@@ -45,7 +46,12 @@ public static partial class CSharpEmitter
 	/// emits none, which is right for a caller with no file to point at.
 	/// </param>
 	public static string Emit(
-		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null)
+		RecognitionGraph graph,
+		string className,
+		string? @namespace = null,
+		ILineMap? lines = null,
+		string? languageId = null,
+		string? languageSource = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -116,8 +122,14 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		foreach (var name in className.Split('.'))
-			scope.Push(file.Block($"partial class {name}"));
+		var classParts = className.Split('.');
+		for (var i = 0; i < classParts.Length; i++)
+		{
+			if (i == classParts.Length - 1 && languageId is not null && languageSource is not null)
+				file.Line(LanguageDescriptorAttribute(graph, languageId, languageSource));
+
+			scope.Push(file.Block($"partial class {classParts[i]}"));
+		}
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)
@@ -300,6 +312,37 @@ public static partial class CSharpEmitter
 
 		return file.ToString();
 	}
+
+	static string LanguageDescriptorAttribute(
+		RecognitionGraph graph,
+		string languageId,
+		string source) =>
+		"[global::DotGram.GramLanguageDescriptorAttribute(" +
+		$"1, \"{EscapeString(languageId)}\", \"{Hash(source)}\", " +
+		$"\"{Base64(source)}\", \"{Base64(Entries(graph))}\")]";
+
+	static string Entries(RecognitionGraph graph) => string.Join(
+		"\n",
+		graph.Publications.Select(publication =>
+			publication.MethodName + "\t" + publication.Kind + "\t" + publication.Rule.Name));
+
+	static string Base64(string value) =>
+		Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+
+	static string Hash(string value)
+	{
+		using var sha = SHA256.Create();
+		var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
+		var text = new StringBuilder(bytes.Length * 2);
+
+		foreach (var item in bytes)
+			text.Append(item.ToString("x2"));
+
+		return text.ToString();
+	}
+
+	static string EscapeString(string value) =>
+		value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
 	/// <summary>
 	/// One directive (docs/syntax.md §6). <c>parse</c> makes an asserting method and an

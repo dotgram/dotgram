@@ -163,6 +163,32 @@ public static class SupportEmitter
 				public global::System.Type Marker { get; }
 			}
 
+			/// <summary>Locates the versioned language descriptor carried by a generated parser.</summary>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramLanguageDescriptorAttribute : global::System.Attribute
+			{
+				public GramLanguageDescriptorAttribute(
+					int formatVersion,
+					string languageId,
+					string grammarHash,
+					string sourcePayload,
+					string entriesPayload)
+				{
+					FormatVersion = formatVersion;
+					LanguageId    = languageId;
+					GrammarHash   = grammarHash;
+					SourcePayload  = sourcePayload;
+					EntriesPayload = entriesPayload;
+				}
+
+				public int FormatVersion { get; }
+				public string LanguageId { get; }
+				public string GrammarHash { get; }
+				public string SourcePayload { get; }
+				public string EntriesPayload { get; }
+			}
+
 		}
 		""";
 }

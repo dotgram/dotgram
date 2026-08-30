@@ -82,7 +82,13 @@ public static class GramCompiler
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				$"{options.ClassName}.gram.g.cs",
-				CSharpEmitter.Emit(graph, options.ClassName, options.Namespace, options.LineMap)));
+				CSharpEmitter.Emit(
+					graph,
+					options.ClassName,
+					options.Namespace,
+					options.LineMap,
+					options.LanguageId,
+					options.LanguageSource)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

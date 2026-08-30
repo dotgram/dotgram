@@ -61,6 +61,12 @@ public sealed class GramCompilerOptions
 	/// <summary>Its namespace; null for the global one.</summary>
 	public string? Namespace { get; set; }
 
+	/// <summary>Stable generated-language id; null emits no language descriptor.</summary>
+	public string? LanguageId { get; set; }
+
+	/// <summary>The complete grammar source stored in a generated language descriptor.</summary>
+	public string? LanguageSource { get; set; }
+
 	/// <summary>
 	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
 	/// that accepts everything, which is right for tests of the grammar side and wrong

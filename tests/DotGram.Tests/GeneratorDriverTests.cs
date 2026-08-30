@@ -63,6 +63,31 @@ public sealed class GeneratorDriverTests
 		Assert.Empty(errors);
 	}
 
+	[Fact]
+	public void A_named_language_carries_a_versioned_discovery_descriptor()
+	{
+		var source = GetGeneratedSource(
+			RunGenerator(
+				"[DotGram.Gram(\"Start = 'x'\\nparse Start as Read\")]\n" +
+				"[DotGram.GramLanguage(\"com.example.test\")]\n" +
+				"public partial class Parser;"),
+			"Parser.g.cs");
+
+		Assert.Contains(
+			"[global::DotGram.GramLanguageDescriptorAttribute(1, \"com.example.test\"",
+			source,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Start = 'x'\nparse Start as Read")),
+			source,
+			StringComparison.Ordinal);
+		Assert.DoesNotContain("__DotGramLanguageSource", source, StringComparison.Ordinal);
+		Assert.Contains(
+			Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart")),
+			source,
+			StringComparison.Ordinal);
+	}
+
 	// ── The host class (§1) ──────────────────────────────────────────────────────
 
 	const string Digits = "Digits = ['0'..'9']+\nparse Digits";

@@ -368,6 +368,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Namespace      = host.Namespace,
 			SymbolResolver = new AnsweredSymbolResolver(grammar.Answers.Items),
 			CSharpScanner  = RoslynCSharpScanner.Instance,
+			LanguageId     = host.LanguageId,
+			LanguageSource = host.LanguageId is null ? null : text,
 
 			// §7.6. A grammar that is its own file maps onto itself; one written into an
 			// attribute maps into the C# file holding it, which has to be searched for
@@ -628,6 +630,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string    HintName,
 		bool      IsPartial,
 		string?   Source,
+		string?   LanguageId,
 		Location? Location,
 		string?   Literal    = null,
 		int       LiteralAt  = 0,
@@ -708,6 +711,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var includedAs = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
 				.Value.Value as string;
+			var languageId = type.GetAttributes()
+				.FirstOrDefault(static candidate =>
+					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramLanguageAttribute")
+				?.ConstructorArguments.FirstOrDefault().Value as string;
 
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
@@ -747,6 +754,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_'),
 				IsPartial: isPartial,
 				Source:    source,
+				LanguageId: languageId,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),

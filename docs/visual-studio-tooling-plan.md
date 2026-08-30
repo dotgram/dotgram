@@ -83,7 +83,10 @@ The detailed design and explicit deferrals are in
 
 ## Later milestones
 
-- Define and emit versioned generated-language discovery metadata.
+- [x] Define and emit metadata format v1 with language id, SHA-256 grammar hash,
+  complete composed grammar source, and publication entry bindings.
+- [x] Discover metadata v1 through Roslyn in source and referenced assemblies without
+  loading consumer code.
 - Discover user-created DSLs in parser API and attribute string arguments.
 - Reuse the editor-neutral service from an LSP/VS Code adapter.
 

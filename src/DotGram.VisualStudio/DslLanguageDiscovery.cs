@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 
 using Microsoft.CodeAnalysis;
@@ -38,7 +40,10 @@ public sealed class DslLanguageDefinition(
 	string grammarSource,
 	IReadOnlyList<string> extensions,
 	IReadOnlyList<DslClassificationDefinition> classifications,
-	IReadOnlyList<DslIncludedGrammarDefinition>? includedGrammars = null)
+	IReadOnlyList<DslIncludedGrammarDefinition>? includedGrammars = null,
+	int descriptorFormatVersion = 0,
+	string? grammarHash = null,
+	IReadOnlyDictionary<string, string>? entries = null)
 {
 	public string Id { get; } = id;
 	public INamedTypeSymbol ParserType { get; } = parserType;
@@ -50,6 +55,10 @@ public sealed class DslLanguageDefinition(
 	public IReadOnlyList<DslClassificationDefinition> Classifications { get; } = classifications;
 	public IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars { get; } =
 		includedGrammars ?? Array.Empty<DslIncludedGrammarDefinition>();
+	public int DescriptorFormatVersion { get; } = descriptorFormatVersion;
+	public string? GrammarHash { get; } = grammarHash;
+	public IReadOnlyDictionary<string, string> Entries { get; } =
+		entries ?? new Dictionary<string, string>();
 }
 
 public sealed class DslAttributeCarrier(
@@ -82,6 +91,7 @@ public static class DslLanguageDiscovery
 	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
 	const string Classification                = "DotGram.GramClassification";
 	const string LanguageMarkerAttribute       = "DotGram.GramLanguageMarkerAttribute";
+	const string LanguageDescriptorAttribute   = "DotGram.GramLanguageDescriptorAttribute";
 
 	static readonly string[] ClassificationMembers =
 	[
@@ -117,7 +127,14 @@ public static class DslLanguageDiscovery
 		CancellationToken cancellationToken)
 	{
 
-		var types = Types(compilation.Assembly.GlobalNamespace, cancellationToken).ToArray();
+		var assemblies = new List<IAssemblySymbol> { compilation.Assembly };
+		assemblies.AddRange(compilation.References
+			.Select(compilation.GetAssemblyOrModuleSymbol)
+			.OfType<IAssemblySymbol>()
+			.Where(HasDescriptorMarker));
+		var types = assemblies
+			.SelectMany(assembly => Types(assembly.GlobalNamespace, cancellationToken))
+			.ToArray();
 		var languages = new List<DslLanguageDefinition>();
 
 		foreach (var type in types)
@@ -126,12 +143,21 @@ public static class DslLanguageDiscovery
 
 			var languageAttribute = type.GetAttributes().FirstOrDefault(IsLanguageAttribute);
 			var grammarAttribute  = type.GetAttributes().FirstOrDefault(IsGramAttribute);
-			if (languageAttribute is null || grammarAttribute is null ||
+			var descriptor = Descriptor(type);
+			if (languageAttribute is null || grammarAttribute is null && descriptor is null ||
 				languageAttribute.ConstructorArguments is not [{ Value: string id }] ||
 				string.IsNullOrWhiteSpace(id))
 				continue;
+			if (descriptor is not null && descriptor.LanguageId != id)
+				descriptor = null;
+			if (grammarAttribute is null && descriptor is null)
+				continue;
 
-			var grammar = Grammar(type, grammarAttribute);
+			var grammar = grammarAttribute is not null
+				? Grammar(type, grammarAttribute)
+				: descriptor is { } generated
+					? (DslGrammarSourceKind.Embedded, generated.Source)
+					: null;
 			if (grammar is null)
 				continue;
 
@@ -149,7 +175,10 @@ public static class DslLanguageDiscovery
 				grammar.Value.Source,
 				Extensions(languageAttribute),
 				classifications,
-				IncludedGrammars(type)));
+				grammarAttribute is null ? [] : IncludedGrammars(type),
+				descriptor?.FormatVersion ?? 0,
+				descriptor?.GrammarHash,
+				descriptor?.Entries));
 		}
 
 		var carriers = new List<DslAttributeCarrier>();
@@ -167,6 +196,80 @@ public static class DslLanguageDiscovery
 
 		return new DslLanguageCatalog(languages, carriers);
 	}
+
+	sealed class GeneratedDescriptor(
+		int formatVersion,
+		string languageId,
+		string grammarHash,
+		string source,
+		IReadOnlyDictionary<string, string> entries)
+	{
+		public int FormatVersion { get; } = formatVersion;
+		public string LanguageId { get; } = languageId;
+		public string GrammarHash { get; } = grammarHash;
+		public string Source { get; } = source;
+		public IReadOnlyDictionary<string, string> Entries { get; } = entries;
+	}
+
+	static GeneratedDescriptor? Descriptor(INamedTypeSymbol type)
+	{
+		var attribute = type.GetAttributes().FirstOrDefault(IsDescriptorAttribute);
+		if (attribute?.ConstructorArguments is not
+			[
+				{ Value: 1 },
+				{ Value: string languageId },
+				{ Value: string hash },
+				{ Value: string sourcePayload },
+				{ Value: string entriesPayload },
+			])
+			return null;
+
+		if (!TryBase64(sourcePayload, out var source) ||
+			!TryBase64(entriesPayload, out var entryText) ||
+			!string.Equals(Hash(source), hash, StringComparison.Ordinal))
+			return null;
+
+		var entries = new Dictionary<string, string>(StringComparer.Ordinal);
+		foreach (var line in entryText.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+		{
+			var fields = line.Split('\t');
+			if (fields.Length == 3)
+				entries[fields[0]] = fields[2];
+		}
+
+		return new GeneratedDescriptor(1, languageId, hash, source, entries);
+	}
+
+	static bool TryBase64(string payload, out string value)
+	{
+		try
+		{
+			value = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+			return true;
+		}
+		catch (FormatException)
+		{
+			value = "";
+			return false;
+		}
+	}
+
+	static string Hash(string value)
+	{
+		using var sha = SHA256.Create();
+		var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
+		var text = new StringBuilder(bytes.Length * 2);
+
+		foreach (var item in bytes)
+			text.Append(item.ToString("x2"));
+
+		return text.ToString();
+	}
+
+	static bool HasDescriptorMarker(IAssemblySymbol assembly) =>
+		assembly.GlobalNamespace.GetNamespaceMembers()
+			.FirstOrDefault(static item => item.Name == "DotGram")?
+			.GetTypeMembers("GramLanguageDescriptorAttribute").Length > 0;
 
 	static (DslGrammarSourceKind Kind, string Source)? Grammar(
 		INamedTypeSymbol parserType,
@@ -267,6 +370,17 @@ public static class DslLanguageDiscovery
 		attribute.AttributeClass is { } type &&
 		HasConstructor(type, "System.Type") &&
 		HasProperty(type, "Marker", "System.Type", writable: false);
+
+	static bool IsDescriptorAttribute(AttributeData attribute) =>
+		IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
+		attribute.AttributeConstructor?.Parameters is
+		[
+			{ Type.SpecialType: SpecialType.System_Int32 },
+			{ Type.SpecialType: SpecialType.System_String },
+			{ Type.SpecialType: SpecialType.System_String },
+			{ Type.SpecialType: SpecialType.System_String },
+			{ Type.SpecialType: SpecialType.System_String },
+		];
 
 	static bool IsClassification(ITypeSymbol type) =>
 		type.TypeKind == TypeKind.Enum &&
