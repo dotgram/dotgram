@@ -186,23 +186,23 @@ public sealed class ExampleTests
 	[Theory]
 	[InlineData("1+2*3",     "7")]
 	[InlineData("(1+2)*3",   "9")]
-	[InlineData("7/2",       "3.5")]  // and this one in decimal, from the same four rules
-	[InlineData("1.5*2",     "3.0")]
-	public void And_a_decimal_one_beside_it(string expression, string expected) =>
+	[InlineData("7/2",       "3.5")]  // and this one in double, from the same four rules
+	[InlineData("1.5*2",     "3")]    // double, so no trailing zero where decimal would keep one
+	public void And_a_double_one_beside_it(string expression, string expected) =>
 		Assert.Equal(
 			expected,
-			TwoCalculators.EvaluateDecimal(expression).ToString(CultureInfo.InvariantCulture));
+			TwoCalculators.EvaluateDouble(expression).ToString(CultureInfo.InvariantCulture));
 
 	/// <summary>And the two really are two types, not one with a conversion.</summary>
 	[Fact]
 	public void And_each_hands_back_its_own_type()
 	{
 		Assert.IsType<int>(TwoCalculators.EvaluateInt("1"));
-		Assert.IsType<decimal>(TwoCalculators.EvaluateDecimal("1"));
+		Assert.IsType<double>(TwoCalculators.EvaluateDouble("1"));
 
 		// The int one has never heard of a decimal point: `Value` is `IntNumber` there.
 		Assert.False(TwoCalculators.TryEvaluateInt("1.5").IsSuccess);
-		Assert.True(TwoCalculators.TryEvaluateDecimal("1.5").IsSuccess);
+		Assert.True(TwoCalculators.TryEvaluateDouble("1.5").IsSuccess);
 	}
 
 	[Fact]
