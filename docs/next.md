@@ -7814,3 +7814,92 @@ that deferred construction costs on the same grammar.
 
 The proposal in the entry above was made on a ratio without a curve beside it. The ratio
 was right and the conclusion drawn from it was not.
+
+## Profiled properly: it is the recognizer writing the arena, not the materializer reading
+## it — and how three profiling modes disagreed
+
+The value machinery is 69% of the self-hosting gap (two entries above, measured by
+stripping every value out of the grammar and timing what was left). This entry finds where
+inside it, and the finding is the opposite of what the first profile said.
+
+### Three modes, and only one of them to be believed
+
+A **sampling** profiler cannot see inside this engine at all: a generated parser is a few
+very large methods with `goto` between their states, so there are no frames to attribute
+to and the answer comes back as "Recognize 97%". That is what sent the last two entries
+looking for other instruments.
+
+**LineByLine** sees inside, and lies about what it sees. It instruments every line, which
+turns off inlining, so the run took 14.3 ms a parse against 0.135 unprofiled — **106x** —
+and the overhead lands on whatever executes the most lines. It reported
+`Materialize_DotGram` at 42% and `ParserEntry.get_Kind` at 7% over 7.9 million calls; the
+second is a field read that does not exist in a release build, and the first is the
+biggest method in the file paying a probe per line executed.
+
+**Sampling with `Reporter.exe`** is the one to believe, and the check is that it barely
+distorts: 250,000 parses in 35,642 ms is 142 us each, against 135–137 unprofiled. What it
+cannot do is look inside a method; what it can do is say which method, without lying about
+the proportions.
+
+    Reporter.exe report samp.dtp --pattern=all.xml --save-to=report.xml
+
+with `<Patterns><Pattern>.*</Pattern></Patterns>`. `Reporter.exe` sits in the dotTrace
+installation directory, not in the `dottrace` CLI, and an earlier attempt here concluded
+the snapshot was unreadable without the GUI after finding only storage-level types in
+`JetBrains.Profiler.Snapshot.dll`.
+
+### What it says
+
+    Recognize_DotGram_Part0    11,500   32.3%   own
+    Recognize_DotGram_Part1     8,446   23.7%
+    Materialize_DotGram         3,080    8.6%   (13.1% with its subtree)
+    ParserArena.Add             1,652    4.6%
+    Scan_trivia                 1,141    3.2%
+    Recognize_DotGram own       1,128    3.2%
+    ParserEntry..ctor             943    2.6%
+    StelemRef_Helper+StelemRef  1,284    3.6%
+    ClearWithReferences+Reset     765    2.1%
+
+**Materialization is 13%, not 42%.** Recognition is about 70%, and the two parts of the
+state machine are 56% of the parse between them.
+
+That is consistent with the stripped-grammar experiment rather than against it. Values
+cost 83 of the 137 microseconds; materialization is only about 18 of those, so the other
+65 are the arena entries the recognizer writes *because* there are values — the
+`Completed` rewrite and the `RuleCapture` per valued call. **The expensive half of
+deferred construction is recording the derivation, not replaying it.**
+
+### Four hypotheses measured and dropped on the way
+
+Each was plausible and each is now closed by a number rather than by an argument.
+
+  * **The struct copy.** `ParserEntry` is nine ints and the arena's indexer hands it back
+    by value, so every read copies 36 bytes to look at one or two fields — the engine's own
+    comment in `ArenaCost` calls this "the interesting one". `ArenaCost` now runs at two
+    scales, the URL's 172 reads and the self-hosted grammar's 9,972 over a hundred-kilobyte
+    array, and reading in place is within 2% at both. A copy inside the cache is not a cost.
+  * **The pointer chase.** The materializer follows `capturedAt = linkNexts[capturedAt]`,
+    a dependent load per hop that nothing can prefetch. Two new rows read the same entries
+    swept and chained: the chain is not the slower one at either scale.
+  * **The tables cleared between parses.** `Reset` does six `Array.Clear`s and a scalar
+    loop writing −1 into two link tables. Timed at the real arena size it is 3 us of 125,
+    and the profile agrees at 2.1%.
+  * **The factories.** Every `Construct_*` and record constructor together is under 2%.
+    What a `=>` builds is not what deferred construction costs.
+
+### And one that is new
+
+`StelemRef` and its helper are **3.6%** — the covariant store check the CLR runs on every
+write into a reference array. The materializer writes `values[...] = parser` into an
+`object?[]` used as a "already built" marker, and each of the per-type tables takes stores
+of a type the JIT cannot prove exact. Small, but it is pure ceremony and nobody had
+counted it.
+
+### Where this points
+
+At the recognizer, which is where the time is and not where the last three entries were
+looking. Two counts from the line-by-line run are still exact whatever its timings were
+worth: **3,152 arena appends** and **1,367 entries into the two parts** per parse of a
+3,053-character file. The parts are this session's answer to the JIT's block limit, and
+every crossing between them is a return to the driver and a switch over 321 states — a
+cost that grammar pays for a rendering decision made about a different grammar.
