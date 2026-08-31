@@ -216,10 +216,13 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 
 sealed class EmbeddedGrammarBufferAnalysis
 {
+	const int AnalysisDelayMilliseconds = 200;
+
 	readonly ITextBuffer                _buffer;
 	readonly VisualStudioWorkspace      _workspace;
 	readonly ITextDocumentFactoryService _documents;
 	readonly object                     _gate = new();
+	readonly SemaphoreSlim              _analysisGate = new(1, 1);
 	readonly DslEmbeddedSiteCache       _dslCache = new();
 
 	CancellationTokenSource?          _cancellation;
@@ -475,7 +478,28 @@ sealed class EmbeddedGrammarBufferAnalysis
 			cancellationToken = _cancellation.Token;
 		}
 
-		_ = Task.Run(() => AnalyzeAsync(snapshot, cancellationToken), cancellationToken);
+		_ = Task.Run(() => AnalyzeScheduledAsync(snapshot, cancellationToken));
+	}
+
+	async Task AnalyzeScheduledAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
+			await _analysisGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				_analysisGate.Release();
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
 	}
 
 	async Task AnalyzeAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
