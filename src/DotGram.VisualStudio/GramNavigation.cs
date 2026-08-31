@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -105,10 +106,29 @@ sealed class EmbeddedGramNavigableSymbolSource(
 					item.Span.Length,
 					item.DefinitionSpan.Start));
 
+		// Returning null here lets the default C# provider treat the containing string
+		// literal as one large navigable symbol. Claim positions inside an embedded
+		// grammar even while its semantic spans are being refreshed after an edit.
+		if (analysis.TryGet(snapshot, out var classifications, out _) &&
+			classifications.Any(item => item.GrammarSpan.Contains(position)))
+			return Task.FromResult<INavigableSymbol?>(new NonNavigableSymbol(
+				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0)));
+
 		return Task.FromResult<INavigableSymbol?>(null);
 	}
 
 	public void Dispose()
+	{
+	}
+}
+
+sealed class NonNavigableSymbol(SnapshotSpan symbolSpan) : INavigableSymbol
+{
+	public SnapshotSpan SymbolSpan => symbolSpan;
+
+	public IEnumerable<INavigableRelationship> Relationships => Array.Empty<INavigableRelationship>();
+
+	public void Navigate(INavigableRelationship relationship)
 	{
 	}
 }
