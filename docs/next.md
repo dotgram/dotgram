@@ -7310,14 +7310,23 @@ ask of braces and stopped asking.
 
 Found while widening `GRAM4016` to the flat case: with the wider check, nine of fourteen
 sites were the trivia §4.5 weaves between operands — which an author cannot factor out and
-which the old `Reaches` condition had excluded by accident — and of the rest, `FilterExample`'s
-`Expr` was reported only because a braced `Name` was said to leave a door. With the braces
-answering for themselves the compiler folds it and there is nothing to report.
+which the old `Reaches` condition had excluded by accident — and of the rest,
+`FilterExample`'s `Expr` was reported only because a braced `Name` was said to leave a door.
 
-The corpus is byte-identical: no grammar here has a capture inside an atomic group that this
-newly lets live in a variable, and the fold's own condition is `Determinism` rather than this.
-It is a predicate corrected against its own definition, and what exercises it is the wider
-check, which is not landed yet.
+**What it changes is not what the commit that made it said.** It said the compiler then folds
+that operand and there is nothing left to report. It does not: the fold's own condition is
+`Determinism`, not this, and the fold still declines. What the corrected predicate does is let
+a capture inside the braces live in a variable — `FilterExample`'s parser loses an arena
+entry, a trace call and a backward scan of the arena at every close of `Name`, and goes from
+3433 lines to 3408. The five snapshot grammars are byte-identical.
+
+So with the wider check landed, that site would go quiet while the operand is still read three
+times. The check asks `Doors` and the fold asks `Determinism`, and the two are not the same
+question — which is the thing to settle before the wider check lands, rather than after.
+
+Not measured: what the capture moving out of the arena is worth in time. A harness over
+`Filter` swung between 3.5 and 21 microseconds on the same build across processes, six times
+over, so it says nothing in either direction and no number from it is reported here.
 
 ## Built: the JSON example reads its digits once
 
