@@ -195,6 +195,8 @@ sealed partial class Machine
 		// certain about.
 		file.Line();
 
+		var parts = MaterializeParts();
+
 		using (file.Block(cached
 			? "for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"
 			: "for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)"))
@@ -209,13 +211,117 @@ sealed partial class Machine
 				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
-				foreach (var rule in _rules)
-					if (ValueRule(rule) >= 0)
+			{
+				if (parts.Count == 1)
+				{
+					foreach (var rule in parts[0])
 						MaterializeRule(file, rule);
+				}
+				else
+				{
+					for (var part = 0; part < parts.Count; part++)
+					{
+						foreach (var rule in parts[part])
+							file.Line($"case {_ruleIds[rule]}:");
+
+						using (file.Indent())
+						{
+							file.Line($"Materialize_DotGram{_tag}_Part{part}(text, completedAt);");
+							file.Line("break;");
+						}
+					}
+				}
+			}
 
 			if (cached)
 				file.Line("built[completedAt] = true;");
 		}
+
+		// Local functions, for the same reason the recognizer is written in them
+		// (Machine.Parts.cs): the compiler below stops optimizing a method past about two
+		// thousand basic blocks, the limit is per method, and `ExpressionLanguage`'s
+		// materializer was past it on its own. The C# compiler writes the frame that
+		// carries the tables and the arena into each part; the span cannot be a field of
+		// any frame and is handed over instead.
+		if (parts.Count > 1)
+			for (var part = 0; part < parts.Count; part++)
+			{
+				file.Line();
+
+				using (file.Block(
+					$"void Materialize_DotGram{_tag}_Part{part}(" +
+					"global::System.ReadOnlySpan<char> text, int completedAt)"))
+				{
+					file.Line("var completed = entries[completedAt];");
+					file.Line();
+
+					using (file.Block("switch (completed.RuleIndex)"))
+						foreach (var rule in parts[part])
+							MaterializeRule(file, rule);
+				}
+			}
+	}
+
+	/// <summary>
+	/// The value rules, in as few groups as will each keep its cases inside the budget.
+	/// </summary>
+	/// <remarks>
+	/// Estimated the way the recognizer's states are — each rule's cases rendered once to
+	/// count what branches — and divided evenly for the same reason `PlanParts` divides
+	/// evenly: filling to the budget leaves the last group nearly empty and the rest on the
+	/// line. One group is the common case and is written exactly as it always was.
+	/// </remarks>
+	List<List<RuleSymbol>> MaterializeParts()
+	{
+		var rules = new List<RuleSymbol>();
+		var costs = new List<int>();
+		var whole = 0;
+
+		foreach (var rule in _rules)
+		{
+			if (ValueRule(rule) < 0)
+				continue;
+
+			var rendered = new Writer(0);
+
+			MaterializeRule(rendered, rule);
+
+			var cost = Branches(rendered.ToString());
+
+			rules.Add(rule);
+			costs.Add(cost);
+
+			whole += cost;
+		}
+
+		if (whole <= Budget || rules.Count < 2)
+			return [rules];
+
+		var parts   = new List<List<RuleSymbol>>();
+		var count   = (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10);
+		var each    = whole / count + 1;
+		var current = new List<RuleSymbol>();
+		var carried = 0;
+
+		for (var at = 0; at < rules.Count; at++)
+		{
+			if (current.Count > 0 && carried + costs[at] > each)
+			{
+				parts.Add(current);
+
+				current = [];
+				carried = 0;
+			}
+
+			current.Add(rules[at]);
+
+			carried += costs[at];
+		}
+
+		if (current.Count > 0)
+			parts.Add(current);
+
+		return parts;
 	}
 
 	bool IsExtent(RuleSymbol rule) =>

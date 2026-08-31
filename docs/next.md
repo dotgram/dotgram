@@ -7152,3 +7152,28 @@ two characters deep — and they are now the ones where the sets really do overl
 Not measured: what this is worth in wall-clock for ET. `Parse` returns a LINQ expression tree
 and building it dominates the call, so the parse cannot be timed through the public surface as
 `Rfc3986`'s can. The event count is what changed and what is reported.
+
+## Built: the materializer is divided the way the recognizer is, and the estimator learned
+## the shape it was blind to
+
+The entry on dividing recognizers ended with the one method still over the line:
+`ExpressionLanguage`'s materializer, 2004 basic blocks, not a recognizer and so not divided
+by anything. It is now — the same way, local functions the C# compiler writes the frame for,
+each part a switch over its share of the value rules, the driver's switch calling the part a
+rule's case lives in. The case bodies move verbatim: every `continue` in them belongs to an
+inner loop of its own, which was checked before anything was moved, not assumed.
+
+The estimator was the actual work. `Branches` counted `if`, `goto`, `case` and the short
+circuits — the shapes a recognizer is made of — and read the materializer at half its real
+size (1073 against 2004 measured), because a materializer is made of the shapes it did not
+count: 181 `for` loops, three blocks each; 79 conditional expressions, two arms each; 352
+`break`s. Counting those it reads 2126 against 2004, and the split fired.
+
+    Materialize_DotGram      2004 blocks, MinOpts   ->   driver + 938 + 1008, all FullOpts
+
+With that, nothing in a run of either real parser compiles at MinOpts any more — the count
+of methods the JIT gives up on, across `Rfc3986` and `ExpressionLanguage` both, is zero.
+
+The recognizers' own cuts did not move under the widened estimator — the corpus is
+byte-identical and the suite green without a snapshot touched. That is luck as much as
+stability: the estimates all grew, and the cuts happened to land in the same gaps.

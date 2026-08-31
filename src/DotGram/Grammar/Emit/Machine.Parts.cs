@@ -290,13 +290,17 @@ sealed partial class Machine
 	/// A basic block begins after every branch and at every place one can land, so counting
 	/// what branches counts the blocks near enough: an <c>if</c>, each <c>&amp;&amp;</c> and
 	/// <c>||</c> inside one — every short circuit is a branch of its own — every
-	/// <c>goto</c>, and every <c>case</c> of a dispatch.
+	/// <c>goto</c>, every <c>case</c> of a dispatch, every <c>break</c>, a loop for the
+	/// three blocks its condition and its step are, and a conditional expression for the
+	/// two arms it is.
 	/// </para>
 	/// <para>
-	/// Held against the real thing it reads 3348 against 3918 measured for <c>Rfc3986</c>'s
-	/// <c>Uri</c>, 6654 against 6518, and 4932 against 4275 for <c>ExpressionLanguage</c> —
-	/// within 2% twice and 15% high once. High is the direction that costs nothing: it
-	/// divides a little sooner than it had to, which is where the budget already sits.
+	/// Held against the real thing over both shapes there are: the recognizers, which are
+	/// <c>if</c>/<c>goto</c>/<c>case</c>, read 3348 against 3918 measured, 6654 against
+	/// 6518, 4932 against 4275; the materializer, which is loops and conditional
+	/// expressions and read half its real count until those were counted, reads 2126
+	/// against 2004. Within 15% either way, and mostly high — the direction that costs
+	/// nothing, because it divides a little sooner than it had to.
 	/// </para>
 	/// </remarks>
 	static int Branches(string body)
@@ -313,9 +317,25 @@ sealed partial class Machine
 
 					break;
 
+				// The two arms it chooses between. ` ? ` and not `?`, so that a nullable
+				// annotation or a `??` in the same text says nothing here.
+				case '?' when i > 0 && body[i - 1] == ' ' &&
+					i + 1 < body.Length && body[i + 1] == ' ':
+					branches += 2;
+
+					break;
+
+				// Condition, body, step: what falls out of a loop's shape however it runs.
+				case 'f' when Word(body, i, "for ("):
+				case 'w' when Word(body, i, "while ("):
+					branches += 3;
+
+					break;
+
 				case 'i' when Word(body, i, "if ("):
 				case 'g' when Word(body, i, "goto "):
 				case 'c' when Word(body, i, "case "):
+				case 'b' when Word(body, i, "break;"):
 					branches++;
 
 					break;
