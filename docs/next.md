@@ -7563,3 +7563,75 @@ writing a guard, not a cost of the choice, and the deferred ternary factory is t
 spelling for whoever refuses to pay it.
 
 1511/1511 green, snapshots untouched.
+
+## Measured: what a valued rule boundary costs, and the hypothesis it killed
+
+The self-hosting gap is the project's own criterion and the one number it is behind on, so
+it was the thing to attack next. Attacking it began with a wrong guess, and the value of
+writing this down is which measurement killed it.
+
+### What the trace said, and what I read into it
+
+`GramGrammar` reading `Url.gram` — 3,053 characters, the worst of the corpus:
+
+    call            1020        fail             118
+    return          1017        resume            61
+    rule capture    1014
+
+One arena write per input character, and almost no backtracking: 118 failures in 4,453
+events. And the calls are concentrated — `QuantifiedCore`, `Primary`, `Prefixed`,
+`Captured` and `Quantified` are called 128 to 130 times each, which is one operand walking
+a chain of five rules that each read an optional decoration and, when it is absent, hand
+the body on unchanged. 650 of the 1,020 calls.
+
+So: frame traffic, and the fix is to collapse the chain. That was the hypothesis.
+
+### Why neither existing mechanism collapses it
+
+Worth recording, because it is not what I first thought. `ExecutionPlan.CompiledInPlace`
+refuses a rule that declares a type, has results, or holds a `Construct` — all five do, so
+recursion never even comes into it. `SitedValued` refuses on two counts: every member must
+be a span of the input (`member.Rule is not null` returns false, and each link's value is
+built from the next link's value), and the callee must be outside every cycle (`Primary`
+leads back through `'(' & Body & ')'`). The chain is exactly the shape both passes exclude.
+
+### The measurement
+
+`CallCost` has priced a rule boundary since the first proofs, and what it prices is a
+*valueless* one: its `Letter` writes a `Call` entry that its own return takes straight back
+off the arena and leaves no `RuleCapture`. Every rule in a grammar that builds anything is
+the other kind. So a valued row was added, and the two read against each other:
+
+    compiled in place            648 ns    104 B
+    called                       840 ns    104 B     ->  4.8 ns a boundary
+    called and valued          1,823 ns  1,408 B     ->   29 ns a boundary
+
+Six times, and 29 ns is the one a grammar is made of.
+
+Against the gap: `GramGrammar` writes 1,014 rule captures on that file, so its valued
+boundaries are about **30 of the 113 microseconds** it is behind. A quarter — not the
+answer. Collapsing the five-rule chain to one would take four fifths of the chain's share,
+about 15 us, or **13% of the gap**. A large refactor of two normalization passes for 13%
+is not the thing to do next, and without this number it would have been done.
+
+Where the other three quarters are is not established. What is ruled out: materialization
+(the profile puts 97% of the time inside `Recognize`), and allocation — the generated
+parser allocates **26 KB against the hand-written parser's 64 KB** on the same file, two
+and a half times better while being nearly seven times slower.
+
+### And the standing instrument understates the gap
+
+`SelfHostingTests` reports 3.48x on this file. Warmed properly and run for three seconds a
+side, it is **132 us against 19.4 us — 6.8x**. The test does 60 parses with no warm-up, and
+cold start costs the hand-written side proportionally more, which compresses the ratio.
+The test is a differential first and a timer second, so this is not a bug in it; but 3.5x
+is not the number, and the memory of "2-3x" was formed from readings like it.
+
+### One methodology note, because it nearly shipped
+
+The valued row was first written `Letter : @string = ['a'..'z'] | '!' & Letter`, which is
+not a valued rule: a rule that captures nothing is worth the text it matched (§4.1 case 4),
+the declaration is dropped, and it normalizes to the valueless row character for character.
+It benchmarked at 803 ns against 856 — *faster* than the row it was supposed to be slower
+than, and with identical allocation, which is what said to go and compare the normalized
+shapes. A capture is what makes a rule valued.
