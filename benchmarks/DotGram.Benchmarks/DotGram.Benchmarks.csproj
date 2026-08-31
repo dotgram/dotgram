@@ -29,6 +29,23 @@
 		     the compiler itself costs is measured from the tests, which reference both. -->
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+		<!-- And one ordinary reference, to the shipping parsers. This is the exception the
+		     paragraph above does not cover, and it is a different case: DotGram.Parsers is
+		     not the compiler, it is a consumer of it, so referencing it drags no Roslyn in
+		     and this project stays a consumer.
+
+		     Referenced rather than copied, which is the opposite of what Urls.cs does with
+		     the example beside it, and for a reason that does not apply there.
+		     ExpressionLanguage is sixteen hundred lines of grammar and hand-written half,
+		     and it ships: a copy of it here would be a second copy of a shipped artifact to
+		     keep in step, and it would drift silently, where a URL grammar of forty lines
+		     will not. The other half of the argument for copying — that the parser under
+		     test should be the one this compilation produces — costs nothing here either,
+		     because the generator's emission does not vary with the referencing project's
+		     target framework. What DotGram.Parsers was built with and what would be
+		     generated here are the same C#. -->
+		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
 	</ItemGroup>
 
 </Project>
