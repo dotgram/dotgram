@@ -7761,3 +7761,56 @@ fails rather than anything about what was typed.
 That is the shape this session already found and fixed once in `ExpressionLanguage`, on a
 different grammar and a different cause. Worth its own look: an editor parsing an
 incomplete file pays it on every keystroke.
+
+## Measured and dropped: refusal is a constant factor of three, not a growth
+
+The previous entry found that one trailing character costs the self-hosted parser 2.9x a
+whole successful parse, and proposed it as the next thing to fix — "an editor parsing an
+incomplete file pays it on every keystroke". Measured properly, it is not worth engine
+work, and the measurement that says so is the one the proposal should have carried.
+
+### Where it comes from
+
+A trace of the refused parse against the accepted one:
+
+    accepted    1020 call   1017 return   1014 rule capture
+    refused     1243 call   4707 return   4441 rule capture
+
+More returns than calls, because after `Accept:` fails on the leftover character the
+unwinder lands on a resume point inside the already-read file and walks the return path
+again. Where it lands is concentrated: 66 of the resumes are one state, the exit of the
+optional in
+
+    Captured = (name: Identifier & ':')? & body: Primary
+
+— one live "or there is no name here" per operand in the file. `Determinism.NeverGivesBack`
+is asked about it and answers no, correctly: FIRST of the body is letters and so is
+FIRST(`Primary`), so no single character tells the two readings apart. What would tell
+them apart is that the body ends in `':'` and nothing that could follow `Captured`
+consumes one — a fact about what a construct *ends* with, which needs a LAST set this
+compiler does not compute.
+
+### What it is worth, and why that closes it
+
+Committing that one optional by hand — `{ (name: Identifier & ':')? }`, which the notation
+already offers — takes the refusal from 205 us to 152, **26%**. So the cost is real and
+spread over several optionals rather than concentrated in one.
+
+But the shape settles it. The same file repeated, accepted and refused:
+
+     3,053 chars     131 us     393 us     3.0x     129 ns a character
+     6,107           264        781        3.0x     128
+     9,161           392      1,229        3.1x     134
+    12,215           554      1,666        3.0x     136
+
+**Linear**, flat per character across a fourfold range, and the ratio does not move. The
+66 resume points do not compound: each is visited once and the work stays proportional to
+the input. This is a bounded constant of three, not the doubling-per-level that
+`ExpressionLanguage` had and that was worth a night.
+
+So it is not the next thing. An author who minds it has the braces today, at a measured
+26% for one of them, and a LAST-set analysis to shave a linear 3x sits well behind the 69%
+that deferred construction costs on the same grammar.
+
+The proposal in the entry above was made on a ratio without a curve beside it. The ratio
+was right and the conclusion drawn from it was not.
