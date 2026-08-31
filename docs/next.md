@@ -7095,3 +7095,60 @@ between Debug and Release, since nothing observable does.
 
 **And one method is still over.** `ExpressionLanguage`'s materializer is 2004 blocks and is
 not a recognizer, so nothing divides it. That is the next one of these.
+
+## Measured: what a parser spends its time on is not the same question in two grammars
+
+`Rfc3986` reads a URL in 20 traced steps. `ExpressionLanguage` reads
+`(int x, int y) => (x + y) * 3 - x / 5 + y * (7 - x)` in 1516 — thirty steps a character
+against a third of one. The two are not the same engine doing more of the same work.
+
+    Rfc3986        20 events, 0 failures
+    ET           1516 events: fail 228, push choice 177, resume 176   (38% backtracking)
+                             return 125, rule capture 124, open capture 121
+
+A first pass at this read the static count of emission sites instead and concluded the
+opposite — that ET's arena is mostly captures. At run time it is mostly ways back. A count of
+what is written is a fact about size; only running it says what it does.
+
+**The abandoned attempts are shallow.** Of ET's failures, 33% consumed nothing before failing
+and 49% consumed one character: 82% are settled inside two characters. That is not ambiguity,
+it is prefix overlap — the kind a decision procedure removes.
+
+**And they were not being decided at all.** `Assignment` has twelve alternatives, eleven of
+which begin with a `Name`, and `Name` begins with `Word`, and `Word` begins with `[\p{L} |
+'_']`. `Determinism.Distinguishable` said no, and its own comment said why:
+
+> Knowable is not the same as worth writing down: a Unicode category is a few hundred ranges,
+> exact and useful to the analyses, and a dispatch spelled out over them would be a page of
+> comparisons where the alternative's own test is one call. The set stays precise; only the
+> rendering declines.
+
+The proof was never the problem. `Rfc3986` has no categories at all — every set narrow, every
+choice decided, no backtracking whatever. ET is built on identifiers, and an identifier begins
+with a category, so prediction switched itself off exactly where it was needed.
+
+## Built: a set too wide to write out is held as its bounds and searched
+
+Three renderings now, and the widest set has one too: comparisons while there are few enough
+to read, the ASCII table from the entry above while the set fits in it, and a searched array
+of bounds for everything else. A hundred ranges is seven steps of binary search, on a path
+taken once per alternative rather than once per character.
+
+With that, the width limit inside `Distinguishable` had nothing left to protect and is gone —
+the proof was always over the exact sets. `ExpressionLanguage` now declares five arrays of
+bounds and calls the search from thirty places that used to try an alternative and take it
+back.
+
+    ET, the same input     events   1516 -> 1160   (-23%)
+                           ways back 581 ->  397   (-32%)
+                           failures  228 ->  149   (-35%)
+
+    Rfc3986                unchanged, and expected to be: no categories, nothing was declining
+
+A third of the backtracking, from removing a rendering concession rather than proving anything
+new. The remaining failures are the ones the ceiling above says are worth chasing — one and
+two characters deep — and they are now the ones where the sets really do overlap.
+
+Not measured: what this is worth in wall-clock for ET. `Parse` returns a LINQ expression tree
+and building it dominates the call, so the parse cannot be timed through the public surface as
+`Rfc3986`'s can. The event count is what changed and what is reported.

@@ -65,7 +65,7 @@ sealed partial class Machine
 
 			var rule = pair.Key;
 
-			var scan  = new ScanWriter(_graph, Tabulate);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate));
 			var inner = scan.Render(body);
 
 			file.Line($"/// <summary><c>{rule.Name}</c>, recognized with nothing written down.</summary>");
@@ -265,7 +265,10 @@ sealed partial class Machine
 	/// The checkpoint emitter. Every node's code either falls through with <c>p</c>
 	/// advanced past it, or jumps to its fail label with <c>p</c> exactly where it was.
 	/// </summary>
-	sealed class ScanWriter(RecognitionGraph graph, Func<IReadOnlyList<CharRange>, string?> tabulate)
+	sealed class ScanWriter(
+		RecognitionGraph graph,
+		Func<IReadOnlyList<CharRange>, string?> tabulate,
+		Func<IReadOnlyList<CharRange>, string> ranges)
 	{
 		int _labels;
 		int _marks;
@@ -672,7 +675,7 @@ sealed partial class Machine
 		string? FrontTest(IReadOnlyList<Node> alternatives) =>
 			Front(alternatives) is { Anything: false, Nothing: false, Ends: false } union &&
 			union.Ranges.Count is > 0 and <= Emitted
-				? RangesTest(union.Ranges, tabulate)
+				? ranges(union.Ranges)
 				: null;
 
 		int Mark()

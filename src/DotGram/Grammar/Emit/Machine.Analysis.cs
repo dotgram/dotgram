@@ -282,7 +282,7 @@ sealed partial class Machine
 	/// </remarks>
 	string[]? Predictive(IReadOnlyList<Node> alternatives)
 	{
-		if (!Determinism.Distinguishable(alternatives, _graph, Emitted))
+		if (!Determinism.Distinguishable(alternatives, _graph))
 			return null;
 
 		var tests = new string[alternatives.Count];
@@ -456,18 +456,26 @@ sealed partial class Machine
 	{
 		var first = FirstSets.Of(alternative, _graph);
 
-		return first.Anything || first.Nothing || first.Ranges.Count > Emitted ||
-			FirstSets.Nullable(alternative, _graph)
-				? null
-				: first;
+		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph)
+			? null
+			: first;
 	}
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
-	static string RangesTest(
+	/// <remarks>
+	/// Three shapes and the widest set has one too: comparisons while there are few enough
+	/// to read, a table while the set stays inside ASCII, and a searched array of bounds for
+	/// everything else — which is what a Unicode category is, and what used to be rendered
+	/// as nothing at all.
+	/// </remarks>
+	string RangesTest(
 		IReadOnlyList<CharRange> ranges, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
 		if (tabulate?.Invoke(ranges) is { } table)
 			return TableTest(table);
+
+		if (ranges.Count > Emitted)
+			return $"{Search}({Wide(ranges)}, c)";
 
 		var tests = new string[ranges.Count];
 

@@ -4098,6 +4098,83 @@ sealed partial class Machine
 		return name;
 	}
 
+	/// <summary>
+	/// The name of an array holding a set's ranges, for a set too wide to write out and too
+	/// wide to tabulate.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A Unicode category is a few hundred ranges. Written out it is a page of comparisons,
+	/// which is why the analyses declined to render one at all and every alternative
+	/// beginning with an identifier went unpredicted — the set was exact and the spelling was
+	/// the problem. Held as bounds and searched, any set is one call however wide it is.
+	/// </para>
+	/// <para>
+	/// Bounds in pairs and a binary search over them: a hundred ranges is seven steps, on a
+	/// path that is taken once per alternative rather than once per character. The table is
+	/// still the better answer where the set fits in it, and this is what the ones that do
+	/// not get instead of nothing.
+	/// </para>
+	/// </remarks>
+	string Wide(IReadOnlyList<CharRange> ranges)
+	{
+		var bounds = new List<string>(ranges.Count * 2);
+
+		foreach (var range in ranges)
+		{
+			bounds.Add(CSharpEmitter.Char(range.From));
+			bounds.Add(CSharpEmitter.Char(range.To));
+		}
+
+		var items = string.Join(", ", bounds);
+
+		if (_setsByRanges.TryGetValue(items, out var already))
+		{
+			_classesUsed.Add(already);
+
+			return already;
+		}
+
+		var name = $"Recognize_DotGram{_tag}_Set" + _setCount++;
+
+		_setsByRanges[items] = name;
+		_classesUsed.Add(name);
+		_classes.Add((name, $"static readonly char[] {name} = {{ {items} }};"));
+
+		if (_classesUsed.Add(Search))
+			_classes.Add((Search, SearchMethod));
+
+		return name;
+	}
+
+	string Search => $"Recognize_DotGram{_tag}_In";
+
+	/// <summary>Whether a character stands in one of a set's ranges.</summary>
+	string SearchMethod =>
+		$"static bool {Search}(char[] set, char c)\n" +
+		"{\n" +
+		"\tvar low  = 0;\n" +
+		"\tvar high = set.Length / 2 - 1;\n" +
+		"\n" +
+		"\twhile (low <= high)\n" +
+		"\t{\n" +
+		"\t\tvar mid = (low + high) / 2;\n" +
+		"\n" +
+		"\t\tif (c < set[mid * 2])\n" +
+		"\t\t\thigh = mid - 1;\n" +
+		"\t\telse if (c > set[mid * 2 + 1])\n" +
+		"\t\t\tlow = mid + 1;\n" +
+		"\t\telse\n" +
+		"\t\t\treturn true;\n" +
+		"\t}\n" +
+		"\n" +
+		"\treturn false;\n" +
+		"}";
+
+	readonly Dictionary<string, string> _setsByRanges = new(StringComparer.Ordinal);
+
+	int _setCount;
+
 	/// <summary>The test a tabulated class is, over <c>c</c>.</summary>
 	static string TableTest(string name) => $"c <= 127 && {name}[c] != 0";
 

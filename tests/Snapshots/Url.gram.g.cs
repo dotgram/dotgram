@@ -516,7 +516,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c <= 127 && Recognize_DotGram_Class7[c] != 0) { state = 804; goto Leave; }
+							if (c <= 127 && Recognize_DotGram_Class8[c] != 0) { state = 804; goto Leave; }
 						}
 					}
 
@@ -531,11 +531,13 @@ namespace DotGram.Snapshots
 						{
 							c = text[p];
 							if (!(c == '[')) { state = 140; goto Leave; }
+							goto S798;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 140, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 140, p, entries.Count, text, "Authority");
 					}
 
+					S798:
 					{
 						if ((uint)p >= (uint)text.Length)
 						{
@@ -1625,7 +1627,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) { state = 169; goto Leave; }
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 577, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 577, p, entries.Count, text, "Authority");
@@ -1923,7 +1925,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) { state = 169; goto Leave; }
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 480, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 480, p, entries.Count, text, "Authority");
@@ -2381,7 +2383,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) { state = 169; goto Leave; }
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 383, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 383, p, entries.Count, text, "Authority");
@@ -2839,7 +2841,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) { state = 169; goto Leave; }
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 290, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 290, p, entries.Count, text, "Authority");
@@ -3289,7 +3291,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) goto S169;
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S169;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 208, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 208, p, entries.Count, text, "Authority");
@@ -3597,7 +3599,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) goto S169;
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S169;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 169, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 169, p, entries.Count, text, "Authority");
@@ -6092,9 +6094,11 @@ namespace DotGram.Snapshots
 
 		static readonly byte[] Recognize_DotGram_Class5 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
 
-		static readonly byte[] Recognize_DotGram_Class6 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] Recognize_DotGram_Class6 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
 
-		static readonly byte[] Recognize_DotGram_Class7 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class7 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+		static readonly byte[] Recognize_DotGram_Class8 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome

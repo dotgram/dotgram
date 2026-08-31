@@ -282,19 +282,7 @@ public static class Determinism
 	/// say "anything" where they are unsure, and two of those overlap, so an alternative
 	/// this cannot read gives up rather than claims something false.
 	/// </remarks>
-	public static bool Distinguishable(IReadOnlyList<Node> alternatives, RecognitionGraph graph) =>
-		Distinguishable(alternatives, graph, int.MaxValue);
-
-	/// <param name="spelled">
-	/// The widest first set the answer may be written out from. A cap on what a rendering
-	/// will spell, and a caller that only compares sets passes none: a Unicode category is a
-	/// few hundred ranges, exact and useful to a proof, and a page of comparisons where the
-	/// alternative's own test is one call. It used to sit inside the proof, so a choice this
-	/// could tell apart was called undecidable because writing the decision down would have
-	/// been long — a fact about C# deciding a fact about the grammar.
-	/// </param>
-	public static bool Distinguishable(
-		IReadOnlyList<Node> alternatives, RecognitionGraph graph, int spelled)
+	public static bool Distinguishable(IReadOnlyList<Node> alternatives, RecognitionGraph graph)
 	{
 		if (alternatives is null)
 			throw new ArgumentNullException(nameof(alternatives));
@@ -312,13 +300,6 @@ public static class Determinism
 			var first = FirstSets.Of(alternatives[at], graph);
 
 			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[at], graph))
-				return false;
-
-			// Knowable is not the same as worth writing down: a Unicode category is a few
-			// hundred ranges, exact and useful to the analyses, and a dispatch spelled out
-			// over them would be a page of comparisons where the alternative's own test is
-			// one call. The set stays precise; only the rendering declines.
-			if (first.Ranges.Count > spelled)
 				return false;
 
 			firsts[at] = first;

@@ -47,11 +47,18 @@ public sealed class DeterminismTests
 	/// How wide a first set is says nothing about whether it decides anything.
 	/// </summary>
 	/// <remarks>
-	/// The cap is a fact about what a rendering will spell out — a Unicode category is a few
-	/// hundred ranges, and a dispatch written over them is a page of comparisons where the
-	/// alternative's own test is one call. It used to sit inside the proof, so a choice that
-	/// one character plainly settles was called undecidable because writing the decision down
-	/// would have been long.
+	/// <para>
+	/// The proof is over the sets themselves, which are exact: a Unicode category is a few
+	/// hundred ranges and every one of them is known. What used to sit inside the proof was a
+	/// fact about the rendering — a dispatch written over a few hundred ranges is a page of
+	/// comparisons — so a choice that one character plainly settles was called undecidable
+	/// because writing the decision down would have been long.
+	/// </para>
+	/// <para>
+	/// It is not written down that way any more: a set too wide to read is held as its bounds
+	/// and searched, which is one call however wide it is. The rendering no longer declines,
+	/// so the proof no longer has to be asked how long its answer would be.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void A_category_beside_a_range_is_told_apart_however_long_the_answer_is()
@@ -64,10 +71,6 @@ public sealed class DeterminismTests
 		var body  = (Node.Choice)Body(graph, "Item");
 
 		Assert.True(Determinism.Distinguishable(body.Nodes, graph));
-
-		// And the caller that has to write it out still declines, which is the whole reason
-		// the two are separate questions.
-		Assert.False(Determinism.Distinguishable(body.Nodes, graph, 8));
 	}
 
 	static FollowSets.Continuation Ends(char c)
