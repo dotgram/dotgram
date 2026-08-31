@@ -7635,3 +7635,69 @@ the declaration is dropped, and it normalizes to the valueless row character for
 It benchmarked at 803 ns against 856 — *faster* than the row it was supposed to be slower
 than, and with identical allocation, which is what said to go and compare the normalized
 shapes. A capture is what makes a rule valued.
+
+## Measured: the self-hosting gap is deferred construction, and the entry above got it wrong
+
+### The correction first
+
+The entry above says "materialization, which the profile puts at 3% against `Recognize`'s
+97%". That is a misreading of my own profile and it is wrong. `Materialize_DotGram` is
+called from *inside* `Recognize_DotGram`, at `Accept:` — so `Recognize`'s 97% contains
+materialization rather than excluding it, and the 29% the same profile gave `Materialize`
+was the number to read. Subtracting one from the other was arithmetic on nested
+quantities.
+
+### What the decomposition says
+
+A profile could not settle it, so an experiment did. Three parsers over the same
+`Url.gram`, in one process, each warmed and run for four seconds:
+
+    hand         17 us     63,680 B      GramParser + GramLexer
+    bare         54 us      2,024 B      the same grammar, every value stripped out
+    generated   137 us     25,976 B      GramGrammar as it stands
+
+`bare` is `GramExample`'s grammar with no declared types, no captures and no factories —
+the same language recognized, nothing built. It is a decomposition tool and not a
+competitor: the hand-written parser builds a tree, so only the third row is a fair
+comparison to it.
+
+    values cost   83 us    69% of the gap
+    engine costs  37 us    31% of the gap
+    whole gap    120 us    ~8x
+
+Stable across three runs (67–70% / 30–33%). **Deferred construction is 61% of what the
+generated parser spends** — 83 of 137 microseconds — and the hand-written parser pays none
+of it, because it builds its tree as it recognizes rather than recording an arena and
+replaying it.
+
+That is the architecture's central claim (implementation.md §3, "Nothing is built while
+matching") priced on a real grammar for the first time. It buys resumability: a step tried
+and given back never ran its factory. On this grammar, which backtracks 118 times in 4,453
+events, almost nothing is given back — so almost all of it is paid for nothing.
+
+### The miniature already predicted it
+
+`CallCost`'s new valued row, from the entry above: 840 ns valueless against 1,823 ns
+valued over the same forty letters, so values are 54% of the valued parse. The self-hosted
+grammar says 61%. A four-rule benchmark and a two-hundred-line grammar agree to within
+seven points, which is the best evidence either of them is measuring what it says.
+
+### Where this points, and what already exists for it
+
+Not the forwarding chain — that was the previous entry's hypothesis and it is worth 13%.
+The target is the value machinery, and the engine already has two answers aimed at exactly
+it, both currently too narrow:
+
+  * `Machine.Sites` compiles a *valued* call in place where the callee's value is built
+    from spans of the input alone. Every member must be a span (`member.Rule is not null`
+    refuses), and the callee must be outside every cycle.
+  * the flat rendering (`_valuesInLocals`) keeps captures in locals and runs one factory
+    at `Accept`, with no arena at all.
+
+`GramExample`'s rules fail both on the same point: each rule's value is built from the
+*next rule's value*, not from text. Widening a site to admit a member that is another
+rule's value — the callee's own site, nested — is the shape to investigate, and 69% is
+what is behind it.
+
+Not started here. The measurement is the deliverable, and it moved the target twice: from
+the forwarding chain to the value machinery, and from a profile reading to an experiment.
