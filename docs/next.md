@@ -8259,3 +8259,50 @@ then all of the other. Repeatability went from ±15% to ±0.8% on the shortest i
 
 So the option stays for a grammar that turns out to want it, and the two grammars measured
 here are not it.
+
+## Measured: the full suite after the division change, and what it can and cannot say
+
+### `ExpressionBenchmarks`, which is where the change lands
+
+    input                            before      after     times   allocation
+    six deep                       80,280 ns   40,630 ns    2.0x   unchanged
+    six deep, refused              76,982      16,700       4.6x   unchanged
+    four deep, refused             54,515      11,520       4.7x   unchanged
+    four deep                      52,231      23,101       2.3x   unchanged
+    two deep, refused              35,383       6,956       5.1x   unchanged
+    two parameters, parenthesized  28,522       9,264       3.1x   unchanged
+    two deep                       28,197      10,348       2.7x   unchanged
+    a block, through Assignment    24,976       8,478       2.9x   unchanged
+    Math.Max, through NamedType    24,175       9,270       2.6x   unchanged
+    the operator ladder            13,941       4,244       3.3x   unchanged
+    a member read                  10,895       3,119       3.5x   unchanged
+    the floor                       7,970       2,297       3.5x   unchanged
+
+**Two to five times, and the allocation column is the control.** Byte for byte the same
+at every input — 1.16, 1.59, 1.8, 2.59, 2.82 KB and the rest — so the two builds do the
+same work and record the same derivation. What changed is only how the emitted C# was
+compiled, which is what a division is.
+
+Refusal is now cheaper than acceptance at every depth (6.96 against 10.35, 11.52 against
+23.10, 16.70 against 40.63), which is the right way round: a refused input is one
+character shorter and reads one operand less.
+
+### What the full run cannot say
+
+Everything in it moved down between eight and thirty per cent, including `Regex`,
+`RegexOptions.Compiled` and the BCL's own `File.ReadLines` — none of which this repository
+touched. That is the machine, and the third time this session it has moved by more than
+the effect being looked for.
+
+So the URL numbers are read as ratios, and they hold: `.Gram` against
+`RegexOptions.Compiled` is 2.66 / 1.78 / 1.22 / 2.72 / 2.49 against the previous run's
+2.49 / 1.81 / 1.26 / 2.92 / 2.32, scattered both ways within a few per cent. Which is
+what should happen — the URL grammar is under the divide threshold, so its generated code
+is unchanged, and an unchanged parser measuring the same is the check that the threshold
+did its job.
+
+And one honest gap: `Settlements`, the only benchmarked grammar that did change (four
+parts to twenty-two), shows its `WideFeedBenchmarks` rows down 8.5 to 18.3% at the small
+sizes — inside the same band the untouched `Regex` rows moved by. **That improvement
+cannot be claimed from this run.** Separating it wants the two builds interleaved on one
+machine state, the way `ExpressionBenchmarks` was measured, and that was not done.
