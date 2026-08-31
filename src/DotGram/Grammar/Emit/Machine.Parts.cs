@@ -116,10 +116,15 @@ sealed partial class Machine
 		for (var i = 0; i < _order.Count; i++)
 			prefix[i + 1] = prefix[i] + Branches(_bodies[_order[i]]);
 
-		// A tenth under the budget, because the cut moves to where it is cleanest and that
-		// costs a little either way. Dividing to the budget exactly and then moving the cut
-		// is how a part ends up over it.
-		var parts    = (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10);
+		// A tenth under the part size, because the cut moves to where it is cleanest and
+		// that costs a little either way. Dividing to the size exactly and then moving the
+		// cut is how a part ends up over it.
+		//
+		// The size, not the budget: whether to divide at all and how large a part should be
+		// are two questions, and using one number for both is what made a machine only just
+		// over the budget come out in two parts — the worst arrangement there is, slower
+		// than one part and slower than many. See <see cref="Part"/>.
+		var parts    = (whole + Part * 9 / 10 - 1) / (Part * 9 / 10);
 		var crossing = Crossings();
 		var cuts     = new List<int>();
 

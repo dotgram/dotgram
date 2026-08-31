@@ -48,6 +48,34 @@ sealed partial class Machine
 	const int Budget = 1500;
 
 	/// <summary>
+	/// How large a part is aimed to be, once <see cref="Budget"/> has said to divide.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A separate number because it answers a separate question, and the two were one for
+	/// as long as dividing meant cutting into pieces of <see cref="Budget"/>: a machine
+	/// only just over it came out in two, which every measurement calls the worst
+	/// arrangement — slower than leaving it whole and slower than cutting it small.
+	/// </para>
+	/// <para>
+	/// Measured on a grammar of a fixed hot core and a ballast grown from nothing to four
+	/// hundred cold rules, timing an input that touches only the core. Undivided, the hot
+	/// path holds at 379 and 545 ns while the machine is small and then falls off — 2,199
+	/// ns once the ballast is fifty rules, 3,423 at four hundred. Divided into parts this
+	/// size it is 519, 593, 586, 591, 555, 575: **flat, whatever the grammar is**. That
+	/// flatness is the property being bought. A part of this size holds in registers, and
+	/// what a crossing costs does not grow with how many there are.
+	/// </para>
+	/// <para>
+	/// And the asymmetry is why it is small rather than careful. Dividing a machine that
+	/// did not need it costs about a quarter; leaving one undivided that needed it costs
+	/// four times over. So the number errs towards dividing, and the threshold above errs
+	/// the same way.
+	/// </para>
+	/// </remarks>
+	const int Part = 150;
+
+	/// <summary>
 	/// The count past which the compiler below gives up, as measured — the line the budget
 	/// stands a quarter under.
 	/// </summary>

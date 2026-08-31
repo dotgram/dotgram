@@ -196,49 +196,110 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3:
-					case 91:
-					case 95:
-					case 104:
-					case 141:
-					case 179:
-					case 239:
+					case 256:
 					case 260:
-					case 366:
-					case 383:
-					case 437:
-					case 463:
-					case 480:
-					case 534:
-					case 560:
-					case 577:
-					case 631:
-					case 658:
-					case 712:
-					case 728:
 					case 782:
 					case 800:
 						state = Recognize_DotGram_Part0(text, ref failure);
 						if (state == 2) goto Fail;
 						goto Dispatch;
-					case 24:
-					case 29:
-					case 44:
-					case 49:
-					case 65:
-					case 69:
-					case 83:
-					case 105:
-					case 108:
-					case 140:
-					case 153:
-					case 169:
-					case 191:
+					case 91:
+					case 95:
+					case 104:
+					case 141:
+					case 170:
+					case 179:
+					case 232:
+					case 235:
+					case 239:
+					case 253:
+					case 254:
+					case 257:
+						state = Recognize_DotGram_Part1(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 227:
+					case 228:
+					case 233:
+					case 236:
+					case 658:
+					case 712:
+					case 728:
+						state = Recognize_DotGram_Part2(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 534:
+					case 549:
+					case 577:
+					case 631:
+					case 657:
+						state = Recognize_DotGram_Part3(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 438:
+					case 452:
+					case 480:
+					case 560:
+					case 575:
+						state = Recognize_DotGram_Part4(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 383:
+					case 437:
+					case 449:
+					case 463:
+					case 478:
+						state = Recognize_DotGram_Part5(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 355:
+					case 366:
+					case 381:
+						state = Recognize_DotGram_Part6(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 190:
 					case 208:
 					case 273:
 					case 290:
+						state = Recognize_DotGram_Part7(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 153:
+					case 169:
+					case 191:
+					case 194:
+						state = Recognize_DotGram_Part8(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 107:
+					case 108:
+					case 140:
+						state = Recognize_DotGram_Part9(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 105:
+					case 109:
 					case 801:
 					case 804:
-						state = Recognize_DotGram_Part1(text, ref failure);
+						state = Recognize_DotGram_Part10(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 24:
+					case 29:
+					case 43:
+					case 64:
+					case 83:
+						state = Recognize_DotGram_Part11(text, ref failure);
+						if (state == 2) goto Fail;
+						goto Dispatch;
+					case 44:
+					case 45:
+					case 49:
+					case 65:
+					case 68:
+					case 69:
+						state = Recognize_DotGram_Part12(text, ref failure);
 						if (state == 2) goto Fail;
 						goto Dispatch;
 					default: expected = null; goto Fail;
@@ -400,25 +461,8 @@ namespace DotGram.Snapshots
 					switch (state)
 					{
 						case 3: goto S89;
-						case 91: goto S91;
-						case 95: goto S95;
-						case 104: goto S104;
-						case 141: goto S141;
-						case 179: goto S179;
-						case 239: goto S239;
+						case 256: goto S256;
 						case 260: goto S260;
-						case 366: goto S366;
-						case 383: goto S383;
-						case 437: goto S437;
-						case 463: goto S463;
-						case 480: goto S480;
-						case 534: goto S534;
-						case 560: goto S560;
-						case 577: goto S577;
-						case 631: goto S631;
-						case 658: goto S658;
-						case 712: goto S712;
-						case 728: goto S728;
 						case 782: goto S782;
 						case 800: goto S800;
 					}
@@ -558,7 +602,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S728;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 728; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 728, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 728, p, entries.Count, text, "Authority");
@@ -718,7 +762,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
 							if (!((c >= '0' && c <= '9'))) goto S260;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
@@ -751,13 +795,13 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected2;
-							goto S257;
+							{ state = 257; goto Leave; }
 						}
 						c = text[p];
 						if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0))
 						{
 							expected = Recognize_DotGram_Expected2;
-							goto S257;
+							{ state = 257; goto Leave; }
 						}
 						p++;
 					}
@@ -772,16 +816,40 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected2;
-							goto S254;
+							{ state = 254; goto Leave; }
 						}
 						c = text[p];
 						if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0))
 						{
 							expected = Recognize_DotGram_Expected2;
-							goto S254;
+							{ state = 254; goto Leave; }
 						}
 						p++;
+						{ state = 253; goto Leave; }
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part1(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 91: goto S91;
+						case 95: goto S95;
+						case 104: goto S104;
+						case 141: goto S141;
+						case 170: goto S170;
+						case 179: goto S179;
+						case 232: goto S232;
+						case 235: goto S235;
+						case 239: goto S239;
+						case 253: goto S253;
+						case 254: goto S254;
+						case 257: goto S257;
+					}
+					goto Leave;
 
 					S253:
 					{
@@ -1105,7 +1173,7 @@ namespace DotGram.Snapshots
 					S257:
 					{
 						p = turn0;
-						goto S256;
+						{ state = 256; goto Leave; }
 					}
 
 					S239:
@@ -1134,13 +1202,13 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected15;
-							goto S236;
+							{ state = 236; goto Leave; }
 						}
 						c = text[p];
 						if (!(((c >= '0' && c <= '9'))))
 						{
 							expected = Recognize_DotGram_Expected15;
-							goto S236;
+							{ state = 236; goto Leave; }
 						}
 						p++;
 					}
@@ -1155,13 +1223,13 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected15;
-							goto S233;
+							{ state = 233; goto Leave; }
 						}
 						c = text[p];
 						if (!(((c >= '0' && c <= '9'))))
 						{
 							expected = Recognize_DotGram_Expected15;
-							goto S233;
+							{ state = 233; goto Leave; }
 						}
 						p++;
 					}
@@ -1208,16 +1276,35 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected15;
-							goto S228;
+							{ state = 228; goto Leave; }
 						}
 						c = text[p];
 						if (!(((c >= '0' && c <= '9'))))
 						{
 							expected = Recognize_DotGram_Expected15;
-							goto S228;
+							{ state = 228; goto Leave; }
 						}
 						p++;
+						{ state = 227; goto Leave; }
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part2(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 227: goto S227;
+						case 228: goto S228;
+						case 233: goto S233;
+						case 236: goto S236;
+						case 658: goto S658;
+						case 712: goto S712;
+						case 728: goto S728;
+					}
+					goto Leave;
 
 					S227:
 					{
@@ -1377,16 +1464,16 @@ namespace DotGram.Snapshots
 						{
 							failure.Starved = true;
 							expected = Recognize_DotGram_Expected15;
-							goto S170;
+							{ state = 170; goto Leave; }
 						}
 						c = text[p];
 						if (!(((c >= '0' && c <= '9'))))
 						{
 							expected = Recognize_DotGram_Expected15;
-							goto S170;
+							{ state = 170; goto Leave; }
 						}
 						p++;
-						goto S141;
+						{ state = 141; goto Leave; }
 					}
 
 					S212:
@@ -1422,13 +1509,13 @@ namespace DotGram.Snapshots
 					S233:
 					{
 						p = turn0;
-						goto S232;
+						{ state = 232; goto Leave; }
 					}
 
 					S236:
 					{
 						p = turn0;
-						goto S235;
+						{ state = 235; goto Leave; }
 					}
 
 					S728:
@@ -1614,12 +1701,12 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
-							if (!((c >= '0' && c <= '9'))) goto S260;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
+							if (!((c >= '0' && c <= '9'))) { state = 260; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 689, p, entries.Count, text, "Authority");
-						goto S260;
+						{ state = 260; goto Leave; }
 					}
 
 					S658:
@@ -1631,8 +1718,26 @@ namespace DotGram.Snapshots
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 577, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 577, p, entries.Count, text, "Authority");
+						{ state = 657; goto Leave; }
 					}
 
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part3(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 534: goto S534;
+						case 549: goto S549;
+						case 577: goto S577;
+						case 631: goto S631;
+						case 657: goto S657;
+					}
+					goto Leave;
+
+					S657:
 					{
 						if ((uint)p < (uint)text.Length)
 						{
@@ -1814,12 +1919,12 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
-							if (!((c >= '0' && c <= '9'))) goto S260;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
+							if (!((c >= '0' && c <= '9'))) { state = 260; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 608, p, entries.Count, text, "Authority");
-						goto S260;
+						{ state = 260; goto Leave; }
 					}
 
 					S656:
@@ -1935,7 +2040,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S575;
+							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) { state = 575; goto Leave; }
 						}
 					}
 
@@ -2112,13 +2217,29 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
-							if (!((c >= '0' && c <= '9'))) goto S260;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
+							if (!((c >= '0' && c <= '9'))) { state = 260; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 511, p, entries.Count, text, "Authority");
-						goto S260;
+						{ state = 260; goto Leave; }
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part4(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 438: goto S438;
+						case 452: goto S452;
+						case 480: goto S480;
+						case 560: goto S560;
+						case 575: goto S575;
+					}
+					goto Leave;
 
 					S575:
 					{
@@ -2206,13 +2327,13 @@ namespace DotGram.Snapshots
 							goto S550;
 						}
 						p++;
-						goto S549;
+						{ state = 549; goto Leave; }
 					}
 
 					S550:
 					{
 						p = turn0;
-						goto S549;
+						{ state = 549; goto Leave; }
 					}
 
 					S553:
@@ -2393,7 +2514,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S478;
+							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) { state = 478; goto Leave; }
 						}
 					}
 
@@ -2428,7 +2549,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 						var repeating = entries[repeat];
 						global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
-						if (repeating.Value >= 2) goto S437;
+						if (repeating.Value >= 2) { state = 437; goto Leave; }
 						if (repeating.Value >= 2)
 							entries.Add(new ParserEntry(ParserEntry.Choice, 437, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -2451,8 +2572,26 @@ namespace DotGram.Snapshots
 
 					{
 						turn0 = p;
+						{ state = 449; goto Leave; }
 					}
 
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part5(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 383: goto S383;
+						case 437: goto S437;
+						case 449: goto S449;
+						case 463: goto S463;
+						case 478: goto S478;
+					}
+					goto Leave;
+
+					S449:
 					{
 						if ((uint)p >= (uint)text.Length)
 						{
@@ -2533,7 +2672,7 @@ namespace DotGram.Snapshots
 						var repeated = entries[repeat];
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, repeated.LookaheadIndex, repeated.Value + 1);
 						entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, lookahead, 0));
-						goto S438;
+						{ state = 438; goto Leave; }
 					}
 
 					S442:
@@ -2570,12 +2709,12 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
-							if (!((c >= '0' && c <= '9'))) goto S260;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
+							if (!((c >= '0' && c <= '9'))) { state = 260; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 414, p, entries.Count, text, "Authority");
-						goto S260;
+						{ state = 260; goto Leave; }
 					}
 
 					S478:
@@ -2664,13 +2803,13 @@ namespace DotGram.Snapshots
 							goto S453;
 						}
 						p++;
-						goto S452;
+						{ state = 452; goto Leave; }
 					}
 
 					S453:
 					{
 						p = turn0;
-						goto S452;
+						{ state = 452; goto Leave; }
 					}
 
 					S456:
@@ -2851,9 +2990,24 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S381;
+							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) { state = 381; goto Leave; }
 						}
+						{ state = 355; goto Leave; }
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part6(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 355: goto S355;
+						case 366: goto S366;
+						case 381: goto S381;
+					}
+					goto Leave;
 
 					S355:
 					{
@@ -2973,12 +3127,12 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) goto S239;
-							if (!((c >= '0' && c <= '9'))) goto S260;
+							if (!(c <= 127 && Recognize_DotGram_Class3[c] != 0)) { state = 239; goto Leave; }
+							if (!((c >= '0' && c <= '9'))) { state = 260; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 239, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 321, p, entries.Count, text, "Authority");
-						goto S260;
+						{ state = 260; goto Leave; }
 					}
 
 					S345:
@@ -3261,28 +3415,14 @@ namespace DotGram.Snapshots
 					return state;
 				}
 
-				int Recognize_DotGram_Part1(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				int Recognize_DotGram_Part7(global::System.ReadOnlySpan<char> text, ref Failure failure)
 				{
 					switch (state)
 					{
-						case 24: goto S24;
-						case 29: goto S29;
-						case 44: goto S44;
-						case 49: goto S49;
-						case 65: goto S65;
-						case 69: goto S69;
-						case 83: goto S83;
-						case 105: goto S105;
-						case 108: goto S108;
-						case 140: goto S140;
-						case 153: goto S153;
-						case 169: goto S169;
-						case 191: goto S191;
+						case 190: goto S190;
 						case 208: goto S208;
 						case 273: goto S273;
 						case 290: goto S290;
-						case 801: goto S801;
-						case 804: goto S804;
 					}
 					goto Leave;
 
@@ -3291,7 +3431,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S169;
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 208, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 208, p, entries.Count, text, "Authority");
@@ -3599,7 +3739,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S169;
+							if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) { state = 169; goto Leave; }
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 169, p, call, atomic, repeat, lookahead, 0));
 						Trace("push choice", 169, p, entries.Count, text, "Authority");
@@ -3638,7 +3778,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S194;
+							if (c <= 127 && Recognize_DotGram_Class3[c] != 0) { state = 194; goto Leave; }
 						}
 					}
 
@@ -3739,6 +3879,21 @@ namespace DotGram.Snapshots
 						p = turn0;
 						goto S186;
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part8(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 153: goto S153;
+						case 169: goto S169;
+						case 191: goto S191;
+						case 194: goto S194;
+					}
+					goto Leave;
 
 					S194:
 					{
@@ -3888,7 +4043,7 @@ namespace DotGram.Snapshots
 						repeat = previousRepeat;
 						lookahead = finished.LookaheadIndex;
 						Trace("leave repeat", 190, p, entries.Count, text, "Authority");
-						goto S190;
+						{ state = 190; goto Leave; }
 					}
 
 					S169:
@@ -4177,6 +4332,20 @@ namespace DotGram.Snapshots
 						Trace("leave repeat", 152, p, entries.Count, text, "Authority");
 						goto S152;
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part9(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 107: goto S107;
+						case 108: goto S108;
+						case 140: goto S140;
+					}
+					goto Leave;
 
 					S140:
 					{
@@ -4497,7 +4666,7 @@ namespace DotGram.Snapshots
 							{ state = 2; goto Leave; }
 						}
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class0[c] != 0) goto S109;
+						if (c <= 127 && Recognize_DotGram_Class0[c] != 0) { state = 109; goto Leave; }
 						if (c <= 127 && Recognize_DotGram_Class1[c] != 0) goto S110;
 						if (c == '%') goto S113;
 						expected = Recognize_DotGram_Expected17;
@@ -4580,6 +4749,21 @@ namespace DotGram.Snapshots
 						goto S107;
 					}
 
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part10(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 105: goto S105;
+						case 109: goto S109;
+						case 801: goto S801;
+						case 804: goto S804;
+					}
+					goto Leave;
+
 					S109:
 					{
 						if ((uint)p >= (uint)text.Length)
@@ -4595,7 +4779,7 @@ namespace DotGram.Snapshots
 							{ state = 2; goto Leave; }
 						}
 						p++;
-						goto S107;
+						{ state = 107; goto Leave; }
 					}
 
 					S105:
@@ -4948,6 +5132,22 @@ namespace DotGram.Snapshots
 						{ state = 800; goto Leave; }
 					}
 
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part11(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 24: goto S24;
+						case 29: goto S29;
+						case 43: goto S43;
+						case 64: goto S64;
+						case 83: goto S83;
+					}
+					goto Leave;
+
 					S83:
 					{
 						var capturedCall = completedCall;
@@ -4966,7 +5166,7 @@ namespace DotGram.Snapshots
 						if ((uint)p < (uint)text.Length)
 						{
 							c = text[p];
-							if (c == '/') goto S68;
+							if (c == '/') { state = 68; goto Leave; }
 						}
 					}
 
@@ -5269,7 +5469,25 @@ namespace DotGram.Snapshots
 						entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 						repeat = repeatIndex;
 						Trace("enter repeat", 45, p, entries.Count, text, "Url");
+						{ state = 45; goto Leave; }
 					}
+
+					Leave:
+					return state;
+				}
+
+				int Recognize_DotGram_Part12(global::System.ReadOnlySpan<char> text, ref Failure failure)
+				{
+					switch (state)
+					{
+						case 44: goto S44;
+						case 45: goto S45;
+						case 49: goto S49;
+						case 65: goto S65;
+						case 68: goto S68;
+						case 69: goto S69;
+					}
+					goto Leave;
 
 					S45:
 					{
@@ -5504,7 +5722,7 @@ namespace DotGram.Snapshots
 						repeat = previousRepeat;
 						lookahead = finished.LookaheadIndex;
 						Trace("leave repeat", 43, p, entries.Count, text, "Url");
-						goto S43;
+						{ state = 43; goto Leave; }
 					}
 
 					S68:
@@ -5683,7 +5901,7 @@ namespace DotGram.Snapshots
 						repeat = previousRepeat;
 						lookahead = finished.LookaheadIndex;
 						Trace("leave repeat", 64, p, entries.Count, text, "Url");
-						goto S64;
+						{ state = 64; goto Leave; }
 					}
 
 					Leave:

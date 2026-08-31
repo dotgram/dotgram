@@ -8100,3 +8100,64 @@ threshold becomes a crossing between two costs rather than a cliff.
 Placing the first threshold wants a fourth and fifth point between six hundred and two
 thousand blocks, which no grammar in this repository provides — it wants a synthetic
 grammar swept by size. Recorded with the tree at `Budget = 1500` and 1511/1511 green.
+
+## Built: whether to divide and how large a part is are two numbers now, and it is worth
+## two to four times
+
+The synthetic sweep the last entry asked for. A grammar of a fixed hot core — an
+expression ladder — and a ballast of cold rules grown from nothing to four hundred, timing
+an input that touches only the core, so what moves is the size of the machine around a hot
+path that does not change:
+
+    ballast      one method   parts of 150   parts
+        0           379 ns        519 ns        2
+       20           545           593           9
+       50         2,199           586          18
+      100         2,474           591          32
+      200         2,708           555          61
+      400         3,423           575         118
+
+**Divided into small parts the hot path is flat — 519 to 593 ns whatever the grammar
+is.** Undivided it holds while the machine is small and then falls off a cliff between
+twenty and fifty ballast rules, ending four times worse.
+
+Two things follow. The crossing is between about 1,150 and 2,350 estimated blocks, so the
+`Budget` of 1,500 was **standing in the right place all along**. And the asymmetry is
+sharp: dividing a machine that did not need it costs about a quarter, leaving one
+undivided that needed it costs four times over.
+
+So what was wrong was never the threshold. It was that `parts = ceil(whole / Budget)` made
+one number answer two questions, and a machine only just over the line came out in **two
+parts** — the worst arrangement there is, slower than one and slower than many.
+
+### The change
+
+One line, and a constant beside it. `Budget` still says whether to divide; a new `Part`,
+150, says how large a piece should be. Everything else stands.
+
+    URL grammar (~600 blocks)      undivided before and after, same code
+    Url.gram snapshot              2 parts -> 13
+    GramGrammar                    120.0 us -> 48.1      2.5x
+    ExpressionLanguage             7 parts -> 42
+      (int x) => x                  11.5 us ->  3.9      2.9x
+      x * x - 1                     15.1    ->  4.6      3.3x
+      four parentheses deep         72.1    -> 26.5      2.7x
+      six deep                     116.4    -> 49.0      2.4x
+      six deep, refused             88.1    -> 23.3      3.8x
+    Rfc3986                        9 parts -> 81
+
+The URL grammar is the check that matters as much as the speedups: it is under the
+threshold, so it is still one method and its generated code is unchanged, which is what
+keeps the comparison against `RegexOptions.Compiled` where it was. A budget low enough to
+divide it costs it 16 to 57%, and that is why the threshold is kept rather than lowered.
+
+One snapshot moved, `Url.gram`, from two parts to thirteen — the shape this fixes, caught
+by the file that exists to catch it.
+
+### What is still owed
+
+The number should be a setting rather than a constant, and a wish rather than a
+requirement: a consumer tuning for their own grammar should be able to ask for anything,
+including nothing and a million, and get a working parser either way — the generator
+dividing as near to what was asked as it can and never failing because it could not.
+That is the next piece.
