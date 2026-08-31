@@ -8044,3 +8044,59 @@ correctness one.
 
 Nothing changed here: the tree is back at `Budget = 1500`, 1511/1511 green. What is
 recorded is that the constant is not the thing to tune — the shape is.
+
+## Corrected: finer is better only for a grammar large enough to need dividing at all
+
+The entry above swept the part budget over `ExpressionLanguage` and `GramGrammar`, found
+the curve falling all the way down, and concluded that the constant is not the thing to
+tune. The sweep had no small grammar in it, and with one the conclusion does not hold.
+
+The URL grammar of `benchmarks/Urls.cs` is not divided at the shipping budget — one method,
+and the flagship numbers of this project are made of it. Divided, it gets worse at every
+input:
+
+    input                    1500, one method   350, two parts   150, five parts
+    http://example.com             154.6 ns        187.2  +21%      202.1  +31%
+    every part named               315.2           366.8  +16%      420.9  +34%
+    an IP host                     168.0           196.5  +17%      237.8  +42%
+    eight path segments            251.6           368.7  +47%      333.7  +33%
+    the refusal                    102.3           138.2  +35%      160.3  +57%
+
+So a budget low enough to make `ExpressionLanguage` three times faster would cost the URL
+grammar between a sixth and half of everything it has, on the comparison against
+`RegexOptions.Compiled` that the README leads with.
+
+### What the three grammars say together
+
+    URL             ~600 estimated blocks    one method is best; every division costs
+    GramGrammar     2,113                    86 us undivided, 126 in two, 51.7 in four
+    ExpressionLanguage 6,708                 141 KB of IL undivided, MinOpts, and hopeless
+
+Dividing is not free and not always worth it. It buys better code inside each method and
+costs a crossing; which wins depends on how large the whole would have been. The
+**two decisions** the earlier entry proposed and then withdrew are back, and now with a
+third point to place them:
+
+  * **Whether to divide at all** is a real threshold, somewhere between the URL grammar's
+    six hundred blocks and `GramGrammar`'s two thousand. Below it a single method wins by
+    16 to 57%; above it dividing wins by up to a factor of three.
+  * **How large a part should be, once dividing**, is the flat basin the last sweep
+    found — anywhere from about 350 blocks down to 50 measures the same, and the shipping
+    1500 is far above it.
+
+### And why today's shape is the worst of both
+
+`parts = ceil(whole / (Budget * 9/10))` makes those one decision. A grammar just over the
+budget is divided into **two** parts — which every measurement here says is the worst
+place to be: `GramGrammar` at two parts is slower than at one *and* slower than at four.
+Being just over the line does not cost a little, it costs the most.
+
+Divide finely once the decision to divide is made, and that disappears: a grammar just
+over the threshold gets many small parts, which is the good configuration, and the
+threshold becomes a crossing between two costs rather than a cliff.
+
+### Not built
+
+Placing the first threshold wants a fourth and fifth point between six hundred and two
+thousand blocks, which no grammar in this repository provides — it wants a synthetic
+grammar swept by size. Recorded with the tree at `Budget = 1500` and 1511/1511 green.
