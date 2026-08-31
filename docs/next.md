@@ -7979,3 +7979,68 @@ choosing against the IL gate rather than nudging: an estimator that predicts IL 
 aims under 60,000 with a margin is a different heuristic from one that counts branches and
 aims under a fitted 2,000. Recorded for that decision, with the tree restored to `Budget =
 1500` and 1511/1511 green.
+
+## Measured: finer is better all the way down, and the budget is leaving 2-3x on the table
+
+The entry above found the split costing `GramGrammar` 47% and proposed separating two
+decisions — whether to divide at all, and how large a part should be — with the second
+left where it stood, because two data points bracketed an optimum near it. **That model
+was wrong.** A sweep says the curve does not turn: it falls until the parts are tiny and
+then flattens.
+
+Both grammars, all timings in microseconds, `Budget` swept while everything else stands:
+
+    Budget    ET parts   nest 4   nest 6   refused    GramGrammar
+      1500        7        72.1    116.4     88.1        120.0
+       700       14        40.4     68.6     37.5         51.7
+       350       25        36.4     58.1     28.5         51.9
+       200       44        37.0     69.7     27.2         48.9
+       100       86        23.6     41.1     18.5         49.1
+        50      167        24.7     39.9     19.6         49.1
+
+`ExpressionLanguage` is **three times faster** at a budget of 100 than at the shipping
+1500, and its refusal path three and a half. `GramGrammar` is **2.4 times faster**, and it
+flattens by 700. Nothing turns back up as far down as 50, where the largest grammar is in
+167 methods.
+
+`GramGrammar` is the one that kills the previous entry's model outright: undivided it is
+86 us, in two parts 126, and in four parts 51.7. Not a U with an optimum in the middle —
+two parts is simply a bad place to be, and more is better than either.
+
+### Why the old model was wrong
+
+The reasoning was that a part's code quality falls off with size and crossings cost, so
+there is an optimum in between. The first half is right and the second is much weaker
+than assumed: at a budget of 50 the parsers cross constantly — `ExpressionLanguage`
+already crosses 520 times per parse of a fifty-character input at a budget of 1500, ten
+crossings per input character — and going finer still does not hurt. Whatever a crossing
+costs, it is dominated by what the JIT does with a method small enough to hold in
+registers.
+
+### The concept this came from, and the one it points to
+
+The engine is one large method because rules became states rather than methods, and that
+was the answer to recursion: a method cannot be suspended and resumed, and resuming across
+a rule boundary is what backtracking is. That reason is about the **arena**, which holds
+the frames — not about how the emitted code is laid out. The one-method shape was never
+required by it; it was what fell out of it.
+
+So the shape can change, and the sweep says it should: **extract into methods everything
+that extracts naturally**, which is to say per rule, rather than cutting the state list at
+whatever index a budget lands on. Rules are the grammar's own boundaries, diagnostics are
+already phrased in terms of them, a cut there is stable under an edit that adds a rule,
+and each method comes out small — which is the thing the sweep says matters.
+
+### What a fine split breaks today, and it is not semantics
+
+At a budget of 100 the suite fails four: three snapshots, which is the generated code
+changing as it should, and `ReferenceDifferentialTests` — not on a disagreement about what
+the automaton accepts, but on `CS0164: This label has not been referenced`. A state whose
+label is emitted in one part and only ever jumped to from the driver leaves an unreferenced
+label behind, and the differential test holds the emitted source to compiling cleanly. The
+same family as the `CS0159` this session already fixed at a part boundary. It has to be
+solved for any finer division, and it is a codegen tidiness problem rather than a
+correctness one.
+
+Nothing changed here: the tree is back at `Budget = 1500`, 1511/1511 green. What is
+recorded is that the constant is not the thing to tune — the shape is.
