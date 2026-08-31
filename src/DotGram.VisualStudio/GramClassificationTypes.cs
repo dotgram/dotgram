@@ -16,7 +16,7 @@ static class GramClassificationTypes
 	public const string Literal      = "DotGram literal";
 	public const string EmbeddedCode = "DotGram embedded code";
 	public const string Transition   = "DotGram transition";
-	public const string TransitionStyle = "class name";
+	public const string TransitionStyle = PredefinedClassificationTypeNames.Keyword;
 	public const string SpecialSymbol  = "regex - quantifier";
 	public const string Operator     = "DotGram operator";
 	public const string Punctuation  = "DotGram punctuation";

@@ -1,4 +1,4 @@
-DotGram language support 0.1.28
+DotGram language support 0.1.29
 
 Initial preview for Visual Studio 18.
 
@@ -10,4 +10,4 @@ Initial preview for Visual Studio 18.
 - Semantic classification, diagnostics, completion, and Quick Info inside DSL strings.
 - Versioned referenced-assembly descriptors with classification and non-executing
   guard/external-recognizer contracts.
-- The `@` C# transition marker now uses the theme's class-name color.
+- The `@` C# transition marker now uses the theme's keyword color.
