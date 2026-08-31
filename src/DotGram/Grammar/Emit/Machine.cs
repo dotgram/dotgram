@@ -1334,33 +1334,13 @@ sealed partial class Machine
 		// engine used to be exempt because its dispatch had a case for every written state;
 		// now that it has one only for the states that can be resumed at, it needs the same
 		// count as anything else — plus the labels those cases name.
-		var named = Named();
-
-		if (dispatched)
-			foreach (var state in Dispatched())
-				named.Add(Resolved(state));
-
-		// Named from outside the state bodies — a checkpoint site's retries, which only
-		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
-		// layout did not put it first.
-		foreach (var state in _namedOutside)
-			named.Add(Resolved(state));
-
-		// A part is entered at its own label, and the jump that used to name it is a
-		// departure now — so nothing inside the text names it any more, and the chain the
-		// layout threaded runs across the cut where the jump was dropped for being the next
-		// line. Both leave a state the dispatch jumps to with no label to jump to.
 		//
-		// Only where there is a dispatch to jump from. `Divided` is a fact about this
-		// machine's engine, and a lowered recognizer written beside it is one method with
-		// no dispatch and no parts — so the states the engine's dispatch reaches name
-		// nothing here, and labelling them writes labels nobody jumps to. That is a
-		// warning in a consumer's build and an error in one that treats warnings as
-		// errors, and it only appears once a grammar is divided finely enough for a
-		// dispatched state to fall inside a flat method's own run.
-		if (dispatched && Divided)
-			foreach (var one in Dispatching())
-				named.Add(Resolved(one.Key));
+		// Worked out once for the whole machine. Not one of the four things that go into it
+		// depends on which part is being written — they are the jumps in the finished
+		// bodies, the states the dispatch lands on, the ones named from outside it, and the
+		// ones a part is entered at — so computing it per part was the same answer found
+		// again, over every body, with a regex, once per part.
+		var named = NamedForRender(dispatched);
 
 		for (var written = 0; written < order.Count; written++)
 		{
@@ -3763,6 +3743,65 @@ sealed partial class Machine
 	/// laying the states out in execution order made common — so this has to be worked out
 	/// against the same order rather than against the bodies as compiled.
 	/// </remarks>
+	/// <summary>
+	/// Every label a render writes, worked out once for the machine rather than once per
+	/// part.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The four sets that go into it are all facts about the finished bodies and the
+	/// finished layout — the jumps a body still holds, the states the dispatch lands on,
+	/// the ones named from outside it, and the ones a part is entered at. None is a fact
+	/// about which part is being written, so the answer is the same every time and was
+	/// found again every time, with a regex over every body.
+	/// </para>
+	/// <para>
+	/// Keyed by <paramref name="dispatched"/> rather than assumed constant: a machine
+	/// renders its engine and the lowered recognizers beside it, and those two answer it
+	/// differently. Cleared where the bodies change, which is <see cref="PlanLayout"/>.
+	/// </para>
+	/// </remarks>
+	HashSet<int> NamedForRender(bool dispatched)
+	{
+		if (_namedForRender is { } held && _namedDispatched == dispatched)
+			return held;
+
+		var named = Named();
+
+		if (dispatched)
+			foreach (var state in Dispatched())
+				named.Add(Resolved(state));
+
+		// Named from outside the state bodies — a checkpoint site's retries, which only
+		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
+		// layout did not put it first.
+		foreach (var state in _namedOutside)
+			named.Add(Resolved(state));
+
+		// A part is entered at its own label, and the jump that used to name it is a
+		// departure now — so nothing inside the text names it any more, and the chain the
+		// layout threaded runs across the cut where the jump was dropped for being the next
+		// line. Both leave a state the dispatch jumps to with no label to jump to.
+		//
+		// Only where there is a dispatch to jump from. `Divided` is a fact about this
+		// machine's engine, and a lowered recognizer written beside it is one method with
+		// no dispatch and no parts — so the states the engine's dispatch reaches name
+		// nothing here, and labelling them writes labels nobody jumps to. That is a
+		// warning in a consumer's build and an error in one that treats warnings as
+		// errors, and it only appears once a grammar is divided finely enough for a
+		// dispatched state to fall inside a flat method's own run.
+		if (dispatched && Divided)
+			foreach (var one in Dispatching())
+				named.Add(Resolved(one.Key));
+
+		_namedDispatched = dispatched;
+
+		return _namedForRender = named;
+	}
+
+	HashSet<int>? _namedForRender;
+	bool          _namedDispatched;
+
 	HashSet<int> Named()
 	{
 		var named = new HashSet<int>();

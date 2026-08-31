@@ -8425,3 +8425,40 @@ ScriptDom is built on **ANTLR 2**, not ANTLR 4 — `antlr.Tool`, a vendored
 predicates, and a separate lexer. Beating it would be worth saying, because it is the
 production T-SQL parser with 27.8 million downloads; "faster than ANTLR" would not be,
 because that is not the ANTLR anyone means today.
+
+## Built: the emitter's answers are worked out once, and it stops being quadratic
+
+The probe above put the whole of the generator's superlinearity in `CSharpEmitter`, and a
+sampling profile named `Machine.Dispatching` at 16.6% and `Machine.Named` at 11.8%, with
+`String.SplitInternal` and a regex behind them. The reason is one line of structure:
+`RenderStates` is called once per part, and each call worked those out again.
+
+Neither depends on which part is being written. `Dispatching` is a map for the whole
+machine; `Dispatched` is a list of the states the dispatch can land on; and the label set
+`RenderStates` builds is four sets united, none of which is a fact about a part — the
+jumps the finished bodies hold, the states the dispatch lands on, the ones named from
+outside, and the ones a part is entered at. Each is now worked out once and held, and
+cleared in `PlanLayout`, which is the one moment the bodies or the parts change.
+
+    forms   rules   emit before   emit after
+       40      97      1,099 ms       342 ms
+      100     217      2,448          609
+      200     417     10,357          963
+      400     817     47,208        2,164
+
+**Twenty-two times at the largest point**, and the shape changed rather than the constant:
+3.8 times the rules now costs 3.55 times the time, an exponent of 0.96 against the 2.2 it
+was. End to end the generator goes from 56.7 seconds to 2.5 on the largest grammar
+measured.
+
+The check that matters is that the emitted code did not move: caching a pure function
+cannot change its answer, so every snapshot must be byte identical, and they are —
+including `Url.gram`, which is seven thousand lines in thirteen parts. 1518/1518 green.
+
+### What is now in the way of a SQL-sized grammar
+
+Not us. At 625,171 lines of generated C# the generator takes 2.5 seconds and **Roslyn
+takes 41.6**. The wall moved to the C# compiler, and the only lever on it is emitting
+less: this synthetic grammar expands at 221 lines of C# per line of grammar, where
+`ExpressionLanguage` expands at 37. Which of those a real SQL grammar is like decides
+everything, and it is measured by writing one rather than by arguing about it.

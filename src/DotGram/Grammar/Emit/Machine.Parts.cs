@@ -196,7 +196,23 @@ sealed partial class Machine
 	/// more, so it becomes a departure and comes back through here.
 	/// </para>
 	/// </remarks>
-	SortedDictionary<int, int> Dispatching()
+	SortedDictionary<int, int> Dispatching() => _dispatching ??= DispatchingNow();
+
+	/// <summary>
+	/// Cleared when a layout is planned, which is the only thing that can change the
+	/// answer, and held between the many places that ask for it.
+	/// </summary>
+	/// <remarks>
+	/// It used to be worked out afresh at each of them, and two of them are per part: the
+	/// switch at the head of a part and the labels <see cref="RenderStates"/> names. Each
+	/// answer walks every dispatched state and every jump of every body, so recomputing it
+	/// per part is quadratic in the size of the machine — measured at a second per part
+	/// pair on a grammar of eight hundred rules, which is what stopped a SQL-sized grammar
+	/// being generated in a reasonable time.
+	/// </remarks>
+	SortedDictionary<int, int>? _dispatching;
+
+	SortedDictionary<int, int> DispatchingNow()
 	{
 		var cases = new SortedDictionary<int, int>();
 

@@ -179,6 +179,14 @@ sealed partial class Machine
 		_written = reachable;
 
 		PlanParts();
+
+		// Everything worked out from the finished bodies and the finished parts is worked
+		// out once and held; this is the one moment either of those changes. A machine
+		// plans a layout for its engine and again for each lowered recognizer beside it,
+		// so the answers do not survive between them.
+		_dispatched    = null;
+		_dispatching   = null;
+		_namedForRender = null;
 	}
 
 	/// <summary>
@@ -317,7 +325,12 @@ sealed partial class Machine
 	/// a slot in the jump table and a jump stub that nothing can execute. Across every
 	/// grammar in this repository that was 82% of the table — 677 cases of 735 in `Url`.
 	/// </remarks>
-	IEnumerable<int> Dispatched()
+	IEnumerable<int> Dispatched() => _dispatched ??= [.. DispatchedNow()];
+
+	/// <summary>The same, held: three places ask and two of them ask once per part.</summary>
+	IReadOnlyList<int>? _dispatched;
+
+	IEnumerable<int> DispatchedNow()
 	{
 		// Nothing said where the parse begins, so anything could be a beginning. `PlanLayout`
 		// kept every state for that same reason; the dispatch has to be able to land on every
