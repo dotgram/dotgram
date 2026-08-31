@@ -44,8 +44,97 @@ public static partial class CSharpEmitter
 	/// Where the grammar's own C# came from, for the <c>#line</c> directives of §7.6. Null
 	/// emits none, which is right for a caller with no file to point at.
 	/// </param>
+	/// <summary>
+	/// Every method of the finished file held against the size the JIT stops optimizing at.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over the text, because the text is what every rendering produces and the estimate is
+	/// textual anyway — a detector inside one rendering measures that rendering's own
+	/// bookkeeping and misses the next one, which is how the first version of this warned
+	/// about nothing. A local function is a method of its own to the JIT and is measured as
+	/// one here: a header at deeper indent ends the enclosing method's stretch, which is
+	/// exactly how the JIT sees it too.
+	/// </para>
+	/// <para>
+	/// A warning, not an error: the parser is correct and merely compiled the way a method
+	/// is on its first call, several times slower. The message carries the numbers the
+	/// generator acted under, because the remedy is chosen against them.
+	/// </para>
+	/// </remarks>
+	static void Oversee(
+		string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
+	{
+		if (diagnostics is null)
+			return;
+
+		var lines = file.Split('\n');
+		var name  = default(string);
+		var body  = default(StringBuilder);
+
+		for (var i = 0; i <= lines.Length; i++)
+		{
+			var header = i < lines.Length ? MethodHeader(lines[i]) : "";
+
+			if (header is null)
+			{
+				body?.Append(lines[i]).Append('\n');
+
+				continue;
+			}
+
+			if (name is not null && Machine.Branches(body!.ToString()) is var cost && cost > 2000)
+			{
+				var at = anchor?.Declaration?.At ?? default;
+
+				diagnostics.Add(new GramDiagnostic(
+					Machine.Unoptimized,
+					$"The generated method '{name}' is estimated at {cost} basic blocks; " +
+					"past about 2000, the JIT compiles a method without optimization and " +
+					"this one will run several times slower than it needs to. The " +
+					"generator divides what it can under a budget of 1500 per method; " +
+					"what is left this large cannot be divided — usually one rule or one " +
+					"alternative whose compiled body is over the budget by itself. " +
+					"Splitting that rule restores optimization.",
+					at.Position, at.Length, GramSeverity.Warning));
+			}
+
+			name = header.Length > 0 ? header : null;
+			body = header.Length > 0 ? new StringBuilder() : null;
+		}
+	}
+
+	/// <summary>The name a line declares a method or local function under, if it does.</summary>
+	static string? MethodHeader(string line)
+	{
+		var text = line.TrimStart();
+
+		foreach (var opening in Openings)
+		{
+			if (!text.StartsWith(opening, StringComparison.Ordinal))
+				continue;
+
+			var rest  = text.Substring(opening.Length);
+			var paren = rest.IndexOf('(');
+
+			if (paren > 0 && rest.Take(paren).All(c => char.IsLetterOrDigit(c) || c == '_'))
+				return rest.Substring(0, paren);
+		}
+
+		return null;
+	}
+
+	static readonly string[] Openings =
+	[
+		"static int ", "static bool ", "static void ", "static string ",
+		"internal static int ", "internal static bool ", "internal static void ",
+		"public static ",
+		"int ", "bool ", "void ",
+	];
+
 	public static string Emit(
-		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null)
+		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
+		ICollection<GramDiagnostic>? diagnostics = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -84,6 +173,8 @@ public static partial class CSharpEmitter
 					publication =>
 						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
 						made.CanLowerValued(publication.Rule, publication.Kind == PublishKind.Parse));
+
+			made.Anchor = group.Publications.Count > 0 ? group.Publications[0].Rule : group.Rule;
 
 			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered));
 		}
@@ -298,7 +389,21 @@ public static partial class CSharpEmitter
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
 
-		return file.ToString();
+		var written = file.ToString();
+
+		if (diagnostics is not null)
+		{
+			foreach (var compiled in machines)
+				foreach (var warning in compiled.Machine.Oversized)
+					diagnostics.Add(warning);
+
+			Oversee(
+				written,
+				machines.Count > 0 ? machines[0].Machine.Anchor : null,
+				diagnostics);
+		}
+
+		return written;
 	}
 
 	/// <summary>

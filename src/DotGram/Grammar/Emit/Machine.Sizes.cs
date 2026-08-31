@@ -48,6 +48,15 @@ sealed partial class Machine
 	const int Budget = 1500;
 
 	/// <summary>
+	/// The count past which the compiler below gives up, as measured — the line the budget
+	/// stands a quarter under.
+	/// </summary>
+	const int Limit = 2000;
+
+	/// <summary>A method was left past <see cref="Limit"/> and nothing here could divide it.</summary>
+	public const string Unoptimized = "GRAM5003";
+
+	/// <summary>
 	/// How many ranges a character class may be written out as comparisons before it is
 	/// read from a table instead.
 	/// </summary>

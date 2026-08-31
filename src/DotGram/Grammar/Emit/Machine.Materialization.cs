@@ -292,6 +292,14 @@ sealed partial class Machine
 			costs.Add(cost);
 
 			whole += cost;
+
+			if (cost > Limit)
+				Oversize(
+					$"Building the value of '{rule.Name}' is estimated at {cost} basic " +
+					$"blocks in one switch case; past about {Limit}, the JIT compiles the " +
+					"method holding it without optimization, and a case cannot be divided. " +
+					"Splitting the rule, or building the value in a method of your own " +
+					"called from its '=>', restores optimization.", rule);
 		}
 
 		if (whole <= Budget || rules.Count < 2)

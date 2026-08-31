@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
+using DotGram.Grammar.Binding;
+
 namespace DotGram.Grammar.Emit;
 
 /// <summary>
@@ -37,6 +39,32 @@ sealed partial class Machine
 	/// <summary>The states each part is written with, in the order they are written.</summary>
 	List<List<int>> _parts = [];
 
+	/// <summary>What each part is estimated to cost, aligned with <see cref="_parts"/>.</summary>
+	List<int> _partCosts = [];
+
+	/// <summary>
+	/// Every method this machine had to leave past the limit, told as warnings.
+	/// </summary>
+	/// <remarks>
+	/// Warnings and not errors: the parser is correct, it is merely compiled the way a
+	/// method is on its first call and stays that way, several times slower than the same
+	/// parser under the limit. The message names the numbers it acted under, because the
+	/// author's remedy — splitting a rule, simplifying an alternative — is chosen against
+	/// them.
+	/// </remarks>
+	public List<GramDiagnostic> Oversized { get; } = [];
+
+	/// <summary>Where a machine-wide warning points: the rule this machine was built for.</summary>
+	public RuleSymbol? Anchor { get; set; }
+
+	void Oversize(string message, RuleSymbol? rule = null)
+	{
+		var at = (rule ?? Anchor)?.Declaration?.At ?? default;
+
+		Oversized.Add(new GramDiagnostic(
+			Unoptimized, message, at.Position, at.Length, GramSeverity.Warning));
+	}
+
 	/// <summary>Which part a state is written in, by its index.</summary>
 	int[] _partOf = [];
 
@@ -70,9 +98,12 @@ sealed partial class Machine
 
 		// One method for as long as it fits, which is every grammar small enough not to
 		// care — and byte for byte what was written before any of this.
+		_partCosts = [];
+
 		if (whole <= Budget || _order.Count < 2)
 		{
 			_parts.Add(_order);
+			_partCosts.Add(whole);
 
 			return;
 		}
@@ -115,16 +146,22 @@ sealed partial class Machine
 		void Take(int start, int end)
 		{
 			var part = new List<int>(end - start);
+			var cost = 0;
 
 			for (var at = start; at < end; at++)
 			{
 				_partOf[_order[at]] = _parts.Count;
 
 				part.Add(_order[at]);
+
+				cost += Branches(_bodies[_order[at]]);
 			}
 
 			if (part.Count > 0)
+			{
 				_parts.Add(part);
+				_partCosts.Add(cost);
+			}
 		}
 	}
 
@@ -303,7 +340,7 @@ sealed partial class Machine
 	/// nothing, because it divides a little sooner than it had to.
 	/// </para>
 	/// </remarks>
-	static int Branches(string body)
+	public static int Branches(string body)
 	{
 		var branches = 0;
 

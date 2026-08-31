@@ -7199,3 +7199,31 @@ What survives is the diagnosis. The one-character failures that remain live in t
 loops, and a probe that pays would have to (a) reach those loops and (b) cost nothing on a
 successful turn — enter the body past the trivia the probe already read, instead of reading
 it twice. Both are design work on the fold machinery, not a guard bolted on beside it.
+
+## Built: a method left past the limit is told about, as GRAM5003
+
+The dividing machinery keeps every method of the real parsers under the line the JIT stops
+optimizing at, but the grammar is the consumer's, and one rule big enough on its own can put
+a method past it with nothing said — only a parse that quietly runs several times slower.
+Now it is said: a warning, because the parser is correct, with the numbers the generator
+acted under — the estimate, the ~2000-block line, the 1500 budget it divides under — and the
+remedy, because the remedy is chosen against those numbers.
+
+Emission gained a diagnostics channel to say it through: `CSharpEmitter.Emit` takes an
+optional collection and `GramCompiler` passes its own, which is the first diagnostic to come
+out of the emit stage at all.
+
+**The first detector measured nothing, and the test caught it before it shipped.** It read
+the part costs off the layout's own bookkeeping — and the flat rendering writes straight-line
+code past the state table, so for exactly the method most likely to be left whole the costs
+summed to zero. The detector that stayed sweeps the finished text instead, method by method,
+local functions as methods of their own — which is how the JIT meets them — with the same
+estimator the dividing uses. One detector for every rendering there is and every rendering
+to come, because it measures what was written rather than what a writer remembered doing.
+
+The materializer keeps one detector of its own beside the sweep: a single switch case over
+the limit can name the rule it builds, and the remedy — build the value in a method of your
+own called from the `=>` — is worth saying with the name in it.
+
+Watched to fire on a 1200-literal rule and stay quiet on the whole corpus: the real parsers
+are all under the line now, which is what the last three entries were for.
