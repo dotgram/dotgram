@@ -767,17 +767,20 @@ namespace DotGram.Parsers;
 		| token: Unsigned(Dec)     => @(Expression.Constant(uint.Parse(token, CultureInfo.InvariantCulture)))
 
 		// An integer with no suffix is an `int` where it fits and a `long` where it does
-		// not, which is C#'s own rule. One alternative deciding in its factory rather than
-		// a guarded pair deciding while the text is read, and the difference is a
-		// measurement: both readings consume the same digits, so the pair told the engine
-		// nothing about the text — but it left a live way back at every literal, and a
-		// refusal walked every combination of them. 2^(literals) rereadings of everything
-		// after: 74, 327, 1299 us at two, four and six parentheses, cut to linear by
-		// making the choice where it never was one.
-		| token: Dec
-		  => @(int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var small)
-		       ? Expression.Constant(small)
-		       : Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
+		// not, which is C#'s own rule. `int.TryParse` is what knows, asked while the text
+		// is read (§8.1) — so the two are two readings of the same digits, and not a
+		// helper this class would otherwise have to hold.
+		//
+		// A pair like this is what the fold's committed residue exists for. Both
+		// alternatives read the same digits, so past them the choice is about which
+		// factory runs and not about the text — and left uncommitted it once left a live
+		// way back at every literal, which made refusing exponential: 2^(literals)
+		// rereadings of everything after, 74/327/1299 us at two, four and six
+		// parentheses. `ExpressionBenchmarks` holds the refusals that would say if that
+		// ever comes back.
+		| token: Dec & when @(int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+		                   => @(Expression.Constant(int.Parse(token, CultureInfo.InvariantCulture)))
+		| token: Dec       => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
 
 		| token: Verbatim  => @(Expression.Constant(token))
 		| token: Text      => @(Expression.Constant(token))

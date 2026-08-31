@@ -60,6 +60,12 @@ public sealed partial class GrammarNormalizer
 
 	readonly ISymbolResolver _resolver;
 
+	/// <summary>
+	/// Asked which names a guard uses, where the fold weighs whether a committed residue
+	/// could be seen through a value a guard reads. Null answers conservatively.
+	/// </summary>
+	ICSharpScanner? _scanner;
+
 	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver)
 	{
 		_model    = model;
@@ -83,7 +89,10 @@ public sealed partial class GrammarNormalizer
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance);
+		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance)
+		{
+			_scanner = scanner,
+		};
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();

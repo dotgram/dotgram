@@ -626,12 +626,14 @@ Power = left: Unary & '^' & right: Power                => @Raise(left, right)
 ```
 
 reads `Unary` twice: once for an alternative that wants a `^` after it and once for the
-one that does not. That is a factor of two, and it *compounds* — `Unary` leads back to
-`Power` through the parentheses at the bottom of every expression grammar, so the second
-reading reads everything inside them twice again. Sixteen parentheses deep is thirty
-milliseconds written that way and a twentieth of one written as above. `GRAM4016` reports
-the shape, and reports it only where the shared operand leads back to the rule holding
-it, which is where the doubling compounds.
+one that does not. That is a factor of two, and where the shared operand leads back to
+the rule holding it — as `Unary` leads back to `Power` through the parentheses at the
+bottom of every expression grammar — it *compounds*: the second reading reads everything
+inside them twice again. Sixteen parentheses deep is thirty milliseconds written that way
+and a twentieth of one written as above. And a flat cost with no nesting is still a cost
+paid once per alternative: eleven alternatives reading one operand is eleven readings
+where one would do. `GRAM4016` reports the shape wherever the compiler could not share
+the operand itself.
 
 The two are not the same grammar, which is why it is reported rather than rewritten. Two
 alternatives prefer every reading of the first over any reading of the second, so a shared
@@ -773,6 +775,12 @@ seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how 
 `A S A S A`, and the join that wraps around is no different from the ones inside. An author
 who wrote `S & A` has already said that a space may stand between `S` and `A`; refusing one
 between `A` and the next `S` would be the same seam answered two ways.
+
+**Not before a `when`.** A seam separates two readings of text, and a guard reads none:
+there is no token on its far side for trivia to stand in front of. So a guard evaluates
+where the operand before it ended — which is also what its `parserSpan` says — and an
+alternative that ends in a guard ends where its last reading operand did, exactly as its
+guard-free twin does.
 
 ```dotgram
 trivia = Whitespace

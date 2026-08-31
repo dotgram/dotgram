@@ -1013,7 +1013,16 @@ public sealed partial class GrammarNormalizer
 			// without multiplying readings — `trivia & trivia` is one seam, and every
 			// spelling of it the search would otherwise walk is the same span split two
 			// ways.
-			if (nodes.Count > 0 && trivia is not null &&
+			//
+			// And not before a `when`. §4.5 separates operands, and a guard is not one:
+			// it reads nothing, so there is no token on its other side for a seam to
+			// separate. Weaving one anyway cost a trivia scan per guard and did
+			// something worse than cost — it made the extent of an alternative depend
+			// on whether its guard stood last, so a rule read more input when a guard
+			// passed than when its unguarded twin matched the same text. The guard
+			// evaluates where the operand before it ended, which is also what its
+			// `parserSpan` now says.
+			if (nodes.Count > 0 && trivia is not null && lowered is not Node.Guard &&
 				!IsSeam(nodes[^1], trivia) && !IsSeam(lowered, trivia))
 				nodes.Add(trivia);
 

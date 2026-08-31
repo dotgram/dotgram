@@ -55,6 +55,12 @@ public sealed partial class GrammarNormalizer
 				!follow.TryGetValue(rule, out var after))
 				continue;
 
+			// What this rule's own guards can see, for the commit decision below: a
+			// residue folded inside a capture one of them names is a residue whose
+			// choice of factory a guard can read back, and it is left uncommitted.
+			_guardNamed  = GuardNamed(body);
+			_insideNamed = false;
+
 			// A rule whose alternatives all hand on the same capture is written with one `=>`
 			// outside the choice, and `CollapseTransparent` makes that shape out of a
 			// forwarding rule whether anyone wrote it or not. Given to each alternative
@@ -318,7 +324,13 @@ public sealed partial class GrammarNormalizer
 
 			case Node.Capture(var name, var body):
 			{
+				var outer = _insideNamed;
+
+				_insideNamed = outer || _guardNamed is null || _guardNamed.Contains(name);
+
 				var inner = Folded(body, following, graph, owner);
+
+				_insideNamed = outer;
 
 				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Capture(name, inner));
 			}
@@ -502,10 +514,188 @@ public sealed partial class GrammarNormalizer
 
 		// The whole condition. Reading it once instead of once per alternative is the same
 		// reading only where there was one reading to begin with.
-		return Determinism.Of(head, after, graph, FollowSets.SeamOf(owner, graph))
-			? new Node.Sequence([head, new Node.Choice(tails)])
-			: null;
+		if (!Determinism.Of(head, after, graph, FollowSets.SeamOf(owner, graph)))
+			return null;
+
+		return new Node.Sequence(
+			[head, Committed(new Node.Choice(tails), following, graph, owner)]);
 	}
+
+	/// <summary>
+	/// The residue of a fold, committed where coming back to it could never change the
+	/// parse — wrapped in an atomic group, so the first tail to succeed is final.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What the fold leaves behind is a choice among tails, and the engine keeps every
+	/// untried tail alive in case a later failure means another should have been taken.
+	/// Where the tails read input that is the machinery working; where they read none it
+	/// is a trap. A guarded pair over one operand — <c>t: Dec &amp; when @(fits) =&gt;
+	/// int | t: Dec =&gt; long</c> — folds into tails that consume nothing, so resuming
+	/// the second can only end where the first did and rerun everything after it toward
+	/// the same failure. Every such site multiplies a refusal by two, and a nest of them
+	/// made refusing exponential where accepting was linear.
+	/// </para>
+	/// <para>
+	/// Three things have to hold, and each guards a way the commit could be seen.
+	/// <b>The tails must read nothing</b> — guards, factories, and at most the woven
+	/// trivia, which every tail of a spaced rule leads with. <b>Positions must
+	/// converge</b>: a tail that read the trivia ends past it and the bare tail does not,
+	/// so the trivia must have one reading (atomic or empty) and nothing that can follow
+	/// this choice may begin with a character the trivia begins with, unless it begins by
+	/// reading the same trivia itself — which is what <see
+	/// cref="FollowSets.Continuation.AfterSeam"/> holds, escalated to "anything" exactly
+	/// where a continuation crosses into another namespace or could open mid-span.
+	/// <b>The choice of factory must not be readable back</b>: a <c>when</c> elsewhere
+	/// that materializes a value built over this rule would see which tail ran, so a rule
+	/// any guard-named capture can reach is left uncommitted, and so is a residue folded
+	/// inside a capture the rule's own guards name.
+	/// </para>
+	/// <para>
+	/// What a commit forgoes beyond the rereading is the rerunning of downstream guards
+	/// on those doomed retries — fewer spurious <c>context</c> mutations, not more.
+	/// </para>
+	/// </remarks>
+	Node Committed(
+		Node.Choice residue, FollowSets.Continuation following, RecognitionGraph graph,
+		RuleSymbol owner)
+	{
+		if (_insideNamed)
+			return residue;
+
+		var seam     = FollowSets.SeamOf(owner, graph);
+		var seamSeen = false;
+
+		foreach (var tail in residue.Nodes)
+			if (!Ethereal(tail, seam, ref seamSeen))
+				return residue;
+
+		if (seamSeen)
+		{
+			if (seam is null || !graph.Bodies.TryGetValue(seam, out var trivia) ||
+				trivia is not (Node.Atomic or Node.Empty) ||
+				following.AfterSeam.Overlaps(FirstSets.Of(trivia, graph)))
+				return residue;
+		}
+
+		if (Observed().Contains(owner))
+			return residue;
+
+		return new Node.Atomic(residue);
+	}
+
+	/// <summary>
+	/// Whether a tail reads nothing: guards, factories, and the rule's own woven trivia,
+	/// in any arrangement — and nothing else.
+	/// </summary>
+	static bool Ethereal(Node node, RuleSymbol? seam, ref bool seamSeen)
+	{
+		switch (node)
+		{
+			case Node.Empty or Node.Guard:
+				return true;
+
+			case Node.Call(var called, { Count: 0 }) when
+				seam is not null && ReferenceEquals(called, seam):
+			{
+				seamSeen = true;
+
+				return true;
+			}
+
+			case Node.Construct(var body, _):
+				return Ethereal(body, seam, ref seamSeen);
+
+			case Node.Sequence(var parts):
+			{
+				foreach (var part in parts)
+					if (!Ethereal(part, seam, ref seamSeen))
+						return false;
+
+				return true;
+			}
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>
+	/// The rules whose values some guard can read back: everything reachable through
+	/// calls from a capture a guard names. Materializing such a capture replays the
+	/// factories of everything inside it, so which factory a committed residue chose
+	/// would be visible there.
+	/// </summary>
+	/// <remarks>
+	/// Which captures a guard names is the scanner's answer; without one, every capture
+	/// of a rule that has guards is assumed named, which refuses the commit rather than
+	/// risks it.
+	/// </remarks>
+	HashSet<RuleSymbol> Observed()
+	{
+		if (_observed is not null)
+			return _observed;
+
+		_observed = [];
+
+		foreach (var body in _bodies.Values)
+		{
+			var names = GuardNamed(body);
+
+			if (names is { Count: 0 })
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Capture(var name, var captured) &&
+					(names is null || names.Contains(name)))
+					Reach(captured);
+		}
+
+		return _observed;
+
+		void Reach(Node from)
+		{
+			var pending = new Stack<Node>();
+
+			pending.Push(from);
+
+			while (pending.Count > 0)
+				foreach (var node in NodeWalk.Descendants(pending.Pop()))
+					if (node is Node.Call(var called, _) && _observed.Add(called) &&
+						_bodies.TryGetValue(called, out var next))
+						pending.Push(next);
+		}
+	}
+
+	HashSet<RuleSymbol>? _observed;
+
+	/// <summary>
+	/// The capture names a body's guards use. Empty for a body with no guards; null —
+	/// every name — where a guard's C# could not be asked.
+	/// </summary>
+	HashSet<string>? GuardNamed(Node body)
+	{
+		HashSet<string>? names = [];
+
+		foreach (var node in NodeWalk.Descendants(body))
+		{
+			if (node is not Node.Guard(var text))
+				continue;
+
+			if (_scanner?.FreeNames(text) is { } free)
+				names?.UnionWith(free);
+			else
+				names = null;
+		}
+
+		return names;
+	}
+
+	/// <summary>The current rule's <see cref="GuardNamed"/>, for the walk to consult.</summary>
+	HashSet<string>? _guardNamed = [];
+
+	/// <summary>Whether the walk stands inside a capture one of those guards names.</summary>
+	bool _insideNamed;
 
 	/// <summary>
 	/// Whether something outside this pass names this node, and would be talking about

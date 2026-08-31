@@ -7461,3 +7461,67 @@ inside the longer, so a refusal past a nest of ifs would pay the same way. Two p
 answers, neither taken today: the fold could commit the residual choice where every
 remaining tail is provably empty (this case exactly), or general memoization, which is a
 different engine. Worth measuring on an `if` nest before deciding anything.
+
+## Built: the fold commits its residue, and the grammar takes its pair back
+
+The int/long fix of the previous entry was a workaround, and it was called one: "ты
+сейчас замазал проблему пользовательским кодом". Merging the pair into one factory works
+for two alternatives and a ternary; three guards in a row have no such spelling, and the
+engine was the thing being wrong — past the shared operand the choice was about which C#
+runs, not about the text, and the engine kept a way back into a choice that could not
+change anything.
+
+So the fold now commits that residue. `Sharing` wraps the choice of tails in an atomic
+group when three things hold:
+
+- **The tails read nothing** — guards, factories, `none`. Then resuming a later tail
+  lands on the same position with the same text ahead, and can only walk to the same
+  failure.
+- **No value window.** Which factory ran is invisible during recognition with one
+  exception: a `when` elsewhere can materialize a value built over this rule and read
+  the difference. So a rule reachable through calls from any capture a guard names —
+  `FreeNames` says which; no scanner means every capture of a guarded rule — keeps its
+  residue uncommitted, and so does a residue folded inside a capture the rule's own
+  guards name.
+- **Nothing else.** The first cut also demanded that nothing following the choice could
+  begin with a trivia character, because the guarded tail led with a woven seam and the
+  bare tail did not, so the two ended at different positions. That condition drowned:
+  `FOLLOW(Primary).AfterSeam` held whitespace fed in by a nullable operand between two
+  seams somewhere across the grammar, and one polluter anywhere refuses every site.
+
+### The seam that should not have been there
+
+The asymmetry itself was the bug. §4.5 weaves trivia between operands, and a guard is
+not one — it reads nothing, so there is no token on its far side for a seam to separate.
+Weaving one anyway cost a trivia scan per guard evaluation, made `parserSpan` include
+trailing whitespace, and gave an alternative ending in a guard a longer extent than its
+guard-free twin over the same tokens. The weave now skips guards; §4.5 says so; with it
+gone, the guarded pair's tails are both pure epsilon and the commit needs no global
+condition at all.
+
+### What broke on the way
+
+Two shape-matchers knew the fold's residue as `Sequence([..., Choice(Constructs)])` and
+did not see through the atomic: `Fold.Shared` (which offers the tails' factories) and
+`CaptureLayout`'s shared-head detection. "A construction in 'Primary' has no factory"
+named the first; both unwrap the atomic now.
+
+And one non-failure worth writing down: the first run after the change showed the old
+exponential byte for byte, because the compiler server was still holding the old
+generator. `dotnet build-server shutdown` is part of measuring a generator change.
+
+### Measured, with the original pair restored
+
+    trace lines, refusals at 2/4/6 parens:   2,346 / 9,872 / 39,838  ->  991 / 1,552 / 2,113
+    benchmark, same refusals:                  74  /  327 / 1,299 us ->  35  /  55  /  76 us
+    allocation:                               5.9  / 19.4 / 70.6 KB  -> 2.8  / 3.8  /  4.8 KB
+
+Linear in both directions, with the guarded pair written the natural way. 1511/1511
+green, six of them new: the committed shape, both refusal conditions, the answers
+unchanged, and the seam count around a guard.
+
+Against the ternary workaround the committed pair costs about ten percent on this
+parser's refusal path — an atomic entry per literal and the commit walk over the entries
+above it, where the merged factory left nothing in the arena at all. A dedicated
+rendering for an all-epsilon committed choice — evaluate the guards, pick the factory,
+write no entry — would close that; noted, not built.
