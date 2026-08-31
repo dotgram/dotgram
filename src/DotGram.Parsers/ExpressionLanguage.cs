@@ -298,17 +298,13 @@ namespace DotGram.Parsers;
 	// what the text said, and the arguments here are types the `=>` has not built yet. It
 	// needs no guard either — nothing else in this language is a name followed by `<`, a
 	// type, and `>`, so a reading that gets that far is a generic type or is nothing.
-	NamedType : @Type
-		= name: TypeName & '<' & first: Type & (',' & rest: Type)* & '>'
-		  => @(ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first, rest)))
-		| name: TypeName & when @(ExpressionLanguage.Resolves(name))
-		  => @(ExpressionLanguage.TypeNamed(name))
+	NamedType : @Type = name: TypeName & '<' & first: Type & (',' & rest: Type)* & '>' => @(ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first, rest)))
+		      | name: TypeName & when @(ExpressionLanguage.Resolves(name))             => @(ExpressionLanguage.TypeNamed(name))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
-	Arguments : @Expression[]
-		= '(' & (first: Expression & (',' & rest: Expression)*)? & ')'
-		=> @(ExpressionLanguage.Listed(first, rest))
+	Arguments : @Expression[] = '(' & (first: Expression & (',' & rest: Expression)*)? & ')'
+		     => @(ExpressionLanguage.Listed(first, rest))
 
 	// What a member initializer sets, as the text said it: the member's name and the value,
 	// with which member that is left until the type is known — which is at construction,

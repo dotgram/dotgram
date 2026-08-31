@@ -456,7 +456,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			cancellationToken = _cancellation.Token;
 		}
 
-		_ = AnalyzeAsync(snapshot, cancellationToken);
+		_ = Task.Run(() => AnalyzeAsync(snapshot, cancellationToken), cancellationToken);
 	}
 
 	async Task AnalyzeAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
@@ -554,7 +554,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 					_retryCount++ < 5;
 			}
 
-			Changed?.Invoke(snapshot);
+			await NotifyChangedAsync(snapshot);
 
 			if (retry)
 				_ = RetryAsync(snapshot, cancellationToken);
@@ -567,6 +567,12 @@ sealed class EmbeddedGrammarBufferAnalysis
 			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
 			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
 		}
+	}
+
+	async Task NotifyChangedAsync(ITextSnapshot snapshot)
+	{
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+		Changed?.Invoke(snapshot);
 	}
 
 	internal static bool ShouldPreserveEmbeddedAnalysis(
