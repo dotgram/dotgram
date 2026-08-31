@@ -658,7 +658,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 		symbols.Select(item => new HostDslSymbol(
 			Translate(item.Span, source, target),
 			item.Role,
-			item.Target)).ToArray();
+			item.Target,
+			item.DefinitionPath,
+			item.DefinitionLine,
+			item.DefinitionColumn)).ToArray();
 
 	static IReadOnlyList<HostDslSite> TranslateDslSites(
 		IReadOnlyList<HostDslSite> sites,

@@ -92,6 +92,17 @@ The detailed design and explicit deferrals are in
   API parameters and on consumer-owned parameters.
 - [x] Emit semantic classification mappings in metadata format v2, while retaining
   metadata v1 discovery compatibility.
+
+## Current milestone: generated DSL symbol semantics
+
+- [x] Show classification role and grammar target in Quick Info for recognized DSL tokens.
+- [x] Navigate from recognized DSL tokens to rule and capture declarations in a
+  file-backed source grammar.
+- [ ] Navigate to embedded source grammar declarations and declarations contributed by
+  included grammars.
+- [ ] Add declaration/reference semantics inside user DSLs where the grammar exposes a
+  stable symbol identity.
+
 - Reuse the editor-neutral service from an LSP/VS Code adapter.
 
 ## Validation rules

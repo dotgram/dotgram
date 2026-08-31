@@ -1,0 +1,6 @@
+trivia     = [' ' | '\t']*
+Keyword    = "select"
+Identifier = ['a'..'z']+
+Query      = Keyword & field: (Identifier)
+
+parse Query

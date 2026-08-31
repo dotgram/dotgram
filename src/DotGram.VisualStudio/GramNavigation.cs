@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 
 namespace DotGram.VisualStudio;
@@ -35,11 +38,15 @@ sealed class EmbeddedGramNavigableSymbolSourceProvider : INavigableSymbolSourceP
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
+	[Import(typeof(SVsServiceProvider))]
+	IServiceProvider Services { get; set; } = null!;
+
 	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer) =>
 		new EmbeddedGramNavigableSymbolSource(
 			textView,
 			buffer,
-			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents));
+			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
+			Services);
 }
 
 sealed class GramNavigableSymbolSource(
@@ -85,7 +92,8 @@ sealed class GramNavigableSymbolSource(
 sealed class EmbeddedGramNavigableSymbolSource(
 	ITextView view,
 	ITextBuffer buffer,
-	EmbeddedGrammarBufferAnalysis analysis) : INavigableSymbolSource
+	EmbeddedGrammarBufferAnalysis analysis,
+	IServiceProvider services) : INavigableSymbolSource
 {
 	public Task<INavigableSymbol?> GetNavigableSymbolAsync(
 		SnapshotSpan triggerSpan,
@@ -96,6 +104,16 @@ sealed class EmbeddedGramNavigableSymbolSource(
 
 		if (!analysis.TryGetSymbols(snapshot, out var symbols))
 			return Task.FromResult<INavigableSymbol?>(null);
+
+		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols))
+			foreach (var item in dslSymbols)
+				if (item.Span.Contains(position) && item.DefinitionPath is not null)
+					return Task.FromResult<INavigableSymbol?>(new FileNavigableSymbol(
+						new SnapshotSpan(snapshot, item.Span.Start, item.Span.Length),
+						services,
+						item.DefinitionPath,
+						item.DefinitionLine,
+						item.DefinitionColumn));
 
 		foreach (var item in symbols)
 			if (item.Span.Contains(position))
@@ -119,6 +137,40 @@ sealed class EmbeddedGramNavigableSymbolSource(
 
 	public void Dispose()
 	{
+	}
+}
+
+sealed class FileNavigableSymbol(
+	SnapshotSpan symbolSpan,
+	IServiceProvider services,
+	string filePath,
+	int line,
+	int column) : INavigableSymbol
+{
+	static readonly IReadOnlyCollection<INavigableRelationship> Definition =
+		new[] { PredefinedNavigableRelationships.Definition };
+
+	public SnapshotSpan SymbolSpan => symbolSpan;
+
+	public IEnumerable<INavigableRelationship> Relationships => Definition;
+
+	public void Navigate(INavigableRelationship relationship)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (relationship != PredefinedNavigableRelationships.Definition)
+			return;
+
+		VsShellUtilities.OpenDocument(
+			services,
+			filePath,
+			Guid.Empty,
+			out _,
+			out _,
+			out IVsWindowFrame frame,
+			out IVsTextView textView);
+		frame.Show();
+		textView.SetCaretPos(line, column);
+		textView.CenterLines(line, 1);
 	}
 }
 

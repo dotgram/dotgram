@@ -55,6 +55,60 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
+	public async Task ExposesDefinitionLocationsForFileBackedDslSymbols()
+	{
+		const string grammar =
+			"trivia = ' '*\n" +
+			"Keyword = \"let\"\n" +
+			"Identifier = ['a'..'z']+\n" +
+			"Start = Keyword & ' ' & name: Identifier\n" +
+			"parse Start";
+		const string path = @"P:\Dsl\Filter.gram";
+		var source = SupportEmitter.Attributes + """
+
+			[DotGram.Gram("Filter.gram")]
+			[DotGram.GramLanguage("dotgram.test.filter")]
+			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
+			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
+			[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
+			static class FilterParser
+			{
+				public static string ParseStart(string input) => input;
+			}
+
+			[System.AttributeUsage(System.AttributeTargets.Parameter)]
+			sealed class FilterAttribute : System.Attribute { }
+
+			static class Example
+			{
+				static void Run([Filter] string text) { }
+				static void Test() => Run("let customer");
+			}
+			""";
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var original = Document(source);
+		var project = original.Project.AddAdditionalDocument(
+			"Filter.gram",
+			SourceText.From(grammar),
+			filePath: path).Project;
+		var document = project.GetDocument(original.Id) ?? throw new InvalidOperationException();
+		var root  = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		var grammarText = SourceText.From(grammar);
+		var keyword = result.Symbols.Single(item => item.Target == "Keyword");
+		var capture = result.Symbols.Single(item => item.Target == "Start.name");
+		Assert.Equal(path, keyword.DefinitionPath);
+		Assert.Equal(grammarText.Lines.GetLinePosition(grammar.IndexOf("Keyword", StringComparison.Ordinal)).Line, keyword.DefinitionLine);
+		Assert.Equal(path, capture.DefinitionPath);
+		var capturePosition = grammar.IndexOf("name:", StringComparison.Ordinal);
+		var expectedCapture = grammarText.Lines.GetLinePosition(capturePosition);
+		Assert.Equal((expectedCapture.Line, expectedCapture.Character), (capture.DefinitionLine, capture.DefinitionColumn));
+	}
+
+	[Fact]
 	public async Task ExposesLiteralCompletionsAtTheRecognitionFailurePosition()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;

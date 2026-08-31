@@ -69,13 +69,7 @@ public static partial class VisualStudioToolingPlayground
 // Custom-attribute DSL check. In the ToolingQuery string below, `select` should use the
 // standard keyword color and `customer` the standard local/variable color. Replacing
 // `customer` with `123` should underline the failure position with GRAM5101.
-[Gram("""
-	trivia    = [' ' | '\t']*
-	Keyword   = "select"
-	Identifier = ['a'..'z']+
-	Query     = Keyword & field: (Identifier)
-	parse Query
-	""")]
+[Gram("ToolingQuery.gram")]
 [GramLanguage("dotgram.tooling.query")]
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Query.field", GramClassification.Variable)]

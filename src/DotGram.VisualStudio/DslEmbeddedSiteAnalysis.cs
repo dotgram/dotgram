@@ -17,7 +17,13 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.VisualStudio;
 
 internal readonly record struct HostDslClassification(TextSpan Span, string Role);
-internal readonly record struct HostDslSymbol(TextSpan Span, string Role, string Target);
+internal readonly record struct HostDslSymbol(
+	TextSpan Span,
+	string Role,
+	string Target,
+	string? DefinitionPath,
+	int DefinitionLine,
+	int DefinitionColumn);
 internal readonly record struct HostDslSite(
 	TextSpan Span,
 	string LanguageId,
@@ -131,7 +137,12 @@ internal static class DslEmbeddedSiteAnalysis
 					language.ParserType,
 					method.ContainingType)));
 
-			var routes = new List<(DslLanguageDefinition Language, DslPreparedLanguage Prepared, Publication Publication)>();
+			var routes = new List<(
+				DslLanguageDefinition Language,
+				DslPreparedLanguage Prepared,
+				Publication Publication,
+				string? DefinitionPath,
+				SourceText? DefinitionText)>();
 			foreach (var language in languages.Distinct())
 			{
 				var resolution = await DslGrammarSourceResolver.ResolveAsync(
@@ -158,7 +169,17 @@ internal static class DslEmbeddedSiteAnalysis
 						? candidate.Publications
 						: [];
 				if (publications is [{ } selectedPublication])
-					routes.Add((language, candidate, selectedPublication));
+				{
+					var definitionText = resolution.Document is null
+						? null
+						: await resolution.Document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+					routes.Add((
+						language,
+						candidate,
+						selectedPublication,
+						resolution.Document?.FilePath,
+						definitionText));
+				}
 			}
 
 			var distinctRoutes = routes
@@ -189,7 +210,21 @@ internal static class DslEmbeddedSiteAnalysis
 					classifications.Add(new HostDslClassification(mapped, classified.Role));
 			foreach (var symbol in Describe(trace.Extents, prepared.Binding.Classifications))
 				if (sourceMap!.TryMap(symbol.Position, symbol.Length, out var mapped))
-					symbols.Add(new HostDslSymbol(mapped, symbol.Role, symbol.Target));
+				{
+					var definition = route.DefinitionText is not null &&
+						symbol.DefinitionPosition <= route.DefinitionText.Length
+						? route.DefinitionText.Lines.GetLinePosition(symbol.DefinitionPosition)
+						: default;
+					var hasDefinition = route.DefinitionPath is not null && route.DefinitionText is not null &&
+						symbol.DefinitionPosition <= route.DefinitionText.Length;
+					symbols.Add(new HostDslSymbol(
+						mapped,
+						symbol.Role,
+						symbol.Target,
+						hasDefinition ? route.DefinitionPath : null,
+						hasDefinition ? definition.Line : -1,
+						hasDefinition ? definition.Character : -1));
+				}
 
 			if (trace.Status == DslRecognitionStatus.Failure &&
 				sourceMap!.TryMap(trace.FailurePosition, 0, out var failure))
@@ -294,11 +329,21 @@ internal static class DslEmbeddedSiteAnalysis
 		return result;
 	}
 
-	internal static IReadOnlyList<(int Position, int Length, string Role, string Target)> Describe(
+	internal static IReadOnlyList<(
+		int Position,
+		int Length,
+		string Role,
+		string Target,
+		int DefinitionPosition)> Describe(
 		IReadOnlyList<DslRecognitionExtent> extents,
 		IReadOnlyList<DslBoundClassification> bindings)
 	{
-		var result = new List<(int Position, int Length, string Role, string Target)>();
+		var result = new List<(
+			int Position,
+			int Length,
+			string Role,
+			string Target,
+			int DefinitionPosition)>();
 
 		foreach (var extent in extents)
 		foreach (var binding in bindings)
@@ -313,7 +358,8 @@ internal static class DslEmbeddedSiteAnalysis
 					extent.Position,
 					extent.Length,
 					binding.Definition.Role,
-					binding.Definition.Target));
+					binding.Definition.Target,
+					binding.CaptureDefinitionPosition ?? binding.RuleDefinitionPosition));
 		}
 
 		return result;
