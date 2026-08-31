@@ -496,8 +496,8 @@ namespace DotGram.Parsers;
 	Fallback : @Expression = "default" & ':' & body: Statement+ => @(Expression.Block(body))
 
 	Jump : @Expression
-		= "break"    => @(Expression.Break(context.Exit(parserSpan)))
-		| "continue" => @(Expression.Continue(context.Again(parserSpan)))
+		= "break"                     => @(Expression.Break(context.Exit(parserSpan)))
+		| "continue"                  => @(Expression.Continue(context.Again(parserSpan)))
 		| "throw" & value: Expression => @(Expression.Throw(value))
 		| "throw"                     => @(Expression.Rethrow())
 
