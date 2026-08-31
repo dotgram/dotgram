@@ -8211,3 +8211,51 @@ engine.
 §6.4 documents it, and says the other half out loud: whether to divide at all is not
 tunable and is a different question, decided from the estimate, because dividing a grammar
 that did not need it costs a quarter and failing to divide one that did costs four times.
+
+## Measured: the default is right for both parsers, and the first sweep that said otherwise
+## was measuring the machine
+
+The option exists so a grammar that wants something else can say so. Asked of the two
+parsers this repository has numbers for, neither does.
+
+### The URL grammar has nothing to tune
+
+It sits under the divide-or-not threshold, so it is one method and `PartSize` is inert —
+setting it to forty still emits nought parts. The question worth re-asking was whether
+that is right, because the measurement behind it was taken when `Budget` was both the
+threshold and the part size and so could not tell the two apart. Forced to divide, with
+the two now separate:
+
+    parts        short    full     IP host   long path   refused
+    one (as is)  130.2    302.4    149.3     216.3        86.8 ns
+    two          164.3    355.4    185.5     280.1       116.6
+    five         179.1    401.6    201.0     290.7       131.6
+    eight        296.3    455.8    388.8     426.7       164.6
+    sixteen      227.4    490.6    312.9     873.8       166.2
+
+Worse at every size and worse the finer it is cut. Its optimum is the arrangement it
+already has, and the threshold that gives it that is doing its job.
+
+### `ExpressionLanguage` has nothing to tune either
+
+Swept through its own attribute, sixty to three hundred, the numbers are flat. A first
+reading put a shallow optimum at ninety — about 3% better than the default over the five
+inputs — and interleaving 90, 150, 90, 150 dissolved it: the first pair goes to ninety by
+0.4% and the second to a hundred and fifty by 3%. There is no difference to find.
+
+### What made the first sweep lie
+
+Worth writing down, because it nearly produced a tuned constant out of noise. The harness
+timed one window and reported its mean, and on this machine the spread between runs of
+**one** build was larger than the spread between builds — the same default measured 44.5,
+49.0 and 51.4 microseconds on the same input across the evening. A mean over that cannot
+separate two configurations.
+
+The fix is two lines: take the **best of several short windows** rather than the mean of
+one long one — no run is ever faster than the work takes, so the minimum is the one least
+interfered with — and **interleave** the configurations rather than running all of one and
+then all of the other. Repeatability went from ±15% to ±0.8% on the shortest input and
+±2.4% on the longest, which is what made the answer legible: there is nothing there.
+
+So the option stays for a grammar that turns out to want it, and the two grammars measured
+here are not it.
