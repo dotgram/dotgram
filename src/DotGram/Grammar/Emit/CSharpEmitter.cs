@@ -391,6 +391,15 @@ public static partial class CSharpEmitter
 
 		var written = file.ToString();
 
+		// A mark stands for a state whose final name was not known when it was written, and
+		// `Settle` puts the name in. One that reaches here would be a control character in
+		// the consumer's source — so it is caught here, where the failure names the
+		// generator, rather than there, where it names nothing.
+		if (written.IndexOf('\u0001') >= 0)
+			throw new InvalidOperationException(
+				"A state mark reached the generated file, which means a body was written " +
+				"and never settled (Machine.Graph.cs).");
+
 		if (diagnostics is not null)
 		{
 			foreach (var compiled in machines)

@@ -72,7 +72,8 @@ sealed partial class Machine
 			signposts[i] = JumpOnly(_bodies[i]);
 		}
 
-		Rewrite(Resolve(signposts));
+		Resolve(signposts);
+		Rewrite(null);
 
 		// Collapsing one state into another can leave two more saying the same thing, so
 		// this runs until it stops finding any. It converges because a state is only ever
@@ -279,11 +280,16 @@ sealed partial class Machine
 	/// of the cost of merging and almost all of it is wasted. What a body names is recorded,
 	/// so the ones that have to be written again can be asked for by name.
 	/// </remarks>
-	void Rewrite(HashSet<int> moved)
+	/// <remarks>
+	/// <paramref name="moved"/> null is every body, which the first pass has to be: a body
+	/// whose only named state is <c>Return</c> names nothing that can move, and selecting on
+	/// what moved would leave its marks standing — in the file, where a mark is not C#.
+	/// </remarks>
+	void Rewrite(HashSet<int>? moved)
 	{
 		for (var i = 0; i < _states.Count; i++)
-			if (Names(i, moved))
-				_bodies[i] = Redirect(_raw[i]);
+			if (moved is null || Names(i, moved))
+				_bodies[i] = Settle(_raw[i]);
 	}
 
 	/// <summary>Whether a state names any of them.</summary>
@@ -396,7 +402,11 @@ sealed partial class Machine
 		return null;
 	}
 
-	/// <summary>The state a single <c>goto</c> statement names, by label or by number.</summary>
+	/// <summary>The state a single <c>goto</c> statement names, by mark, label or number.</summary>
+	/// <remarks>
+	/// Both spellings, because both are asked: a body is read before it has been settled,
+	/// where the state it names is a mark, and again afterwards, where it is the name.
+	/// </remarks>
 	static int? Jump(string statement)
 	{
 		if (!statement.StartsWith("goto ", StringComparison.Ordinal) ||
@@ -406,6 +416,17 @@ sealed partial class Machine
 		}
 
 		var label = statement.Substring("goto ".Length, statement.Length - "goto ".Length - 1);
+
+		if (label.Length > 3 && label[0] == Fence && label[^1] == Fence && label[1] == Jumps)
+		{
+			return int.TryParse(
+				label.Substring(2, label.Length - 3),
+				NumberStyles.None,
+				CultureInfo.InvariantCulture,
+				out var marked)
+				? marked
+				: null;
+		}
 
 		return label switch
 		{

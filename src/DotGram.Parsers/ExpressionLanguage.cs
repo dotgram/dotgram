@@ -504,13 +504,10 @@ namespace DotGram.Parsers;
 	// Three factories and three shapes, so the grammar says which by what is written and
 	// nothing here has to ask. The bodies are blocks and so are worth something, which
 	// `TryCatch` requires them to agree on — the API's rule, in the API's words.
-	Try : @Expression
-		= "try" & body: Block & handlers: Catch+ & "finally" & final: Block
-		  => @(Expression.TryCatchFinally(body, final, handlers))
-		| "try" & body: Block & handlers: Catch+
-		  => @(Expression.TryCatch(body, handlers))
-		| "try" & body: Block & "finally" & final: Block
-		  => @(Expression.TryFinally(body, final))
+	Try : @Expression =
+		  "try" & body: Block & handlers: Catch+ & "finally" & final: Block => @(Expression.TryCatchFinally(body, final, handlers))
+		| "try" & body: Block & handlers: Catch+                            => @(Expression.TryCatch(body, handlers))
+		| "try" & body: Block &                    "finally" & final: Block => @(Expression.TryFinally(body, final))
 
 	// The caught variable belongs to the handler and not to what is around it, so the
 	// `catch` records a scope of its own — the `(` it is declared in stands outside the
