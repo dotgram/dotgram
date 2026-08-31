@@ -7232,3 +7232,35 @@ own called from the `=>` — is worth saying with the name in it.
 
 Watched to fire on a 1200-literal rule and stay quiet on the whole corpus: the real parsers
 are all under the line now, which is what the last three entries were for.
+
+## Built: the second account of the graph is gone, and so are the patterns that read it
+
+The entry above minted the marks. This deletes what they replace: `Redirect`, both regular
+expressions, `MeansAState` with the table of what each entry kind's second field means, and
+`Verify` with the comparison it existed to make. 258 lines out, 55 in.
+
+`Verify` went because it had nothing left to compare. It held the recorded graph against one
+read back out of the text, and the two now come out of one call with one argument — `Label`
+records the edge and mints the mark, `Resuming` the same — so they cannot disagree. Keeping
+it through the transition earned its place twice on the way here, catching a body left
+unsettled that the balance check would not have seen.
+
+`MeansAState` went because the hazard it guarded is gone by construction. A capture slot
+could be rewritten as a state when that table said the wrong thing about a kind — a silent
+corruption the project has already had once. Nothing rewrites a plain number now; only a
+mark, and only `Resuming` makes one, so a slot cannot be mistaken for a state whatever
+anyone forgets.
+
+**What is left to guard is the forgetting itself, and the two tests that went are replaced by
+one that guards it.** A site that writes a state's number instead of asking for a mark leaves
+a number nothing will move, and what that costs is exact and quiet: the arena resumes at a
+state that was not written, the dispatch has no case, and the parse refuses input it ought to
+accept. So the emitter's own source is read: an arena entry whose kind carries a state must
+write it as `{Resuming(...)}`. The three fixed labels are exempt and say why — they are never
+collapsed, and a mark there would leak, since settling runs over the state bodies and the
+root call is written into the file. Watched to fail by taking one site back to a bare number.
+
+`Gotos` stays, for the two readers that work on the finished text rather than on the graph —
+the departure rewriting a divided method needs, and which labels are still named once the
+chained jumps are dropped. Both are positional questions about the text, and both fail into
+larger output or a label the C# compiler says is missing, which is the other class.

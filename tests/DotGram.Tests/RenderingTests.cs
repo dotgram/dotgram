@@ -110,71 +110,65 @@ public sealed class RenderingTests
 	static readonly Type Layout =
 		typeof(GrammarBinder).Assembly.GetType("DotGram.Grammar.Emit.Machine")!;
 
-	static bool MeansAState(string kind)
-	{
-		try
-		{
-			return (bool)Layout
-				.GetMethod("MeansAState", BindingFlags.NonPublic | BindingFlags.Static)!
-				.Invoke(null, [kind])!;
-		}
-		catch (TargetInvocationException raised)
-		{
-			throw raised.InnerException!;
-		}
-	}
-
-	/// <summary>Every kind of arena entry there is, read out of the emitted code itself.</summary>
-	/// <remarks>
-	/// From a checked-in snapshot rather than from a list written here, which is the whole
-	/// point: a kind added to the engine appears in the snapshot on the next run, and this
-	/// then asks whether anybody decided what its second field means.
-	/// </remarks>
-	public static TheoryData<string> Kinds()
-	{
-		var emitted = File.ReadAllText(
-			Path.Combine(SolutionRoot(), "tests", "Snapshots", "Url.gram.g.cs"));
-
-		var data = new TheoryData<string>();
-
-		foreach (Match found in Regex.Matches(emitted, @"internal const int (\w+)\s*=\s*\d+;"))
-			data.Add(found.Groups[1].Value);
-
-		Assert.NotEmpty(data);
-
-		return data;
-	}
-
 	/// <summary>
-	/// Layout rewrites an entry's second field where it is a state, and must not where it
-	/// is not.
+	/// Every entry that resumes at a state says so, so that layout can move it.
 	/// </summary>
 	/// <remarks>
-	/// This has already been a silent corruption once: a capture slot that happened to equal
-	/// a collapsed state's number came back as that state's, the value it named was never
-	/// built, and a construction was handed a null. It was guarded by a list of the eight
-	/// kinds that are states, which said nothing about the other ten — so a kind added later
-	/// was undecided by default, in whichever direction the next reader assumed. Two kinds
-	/// were added this week.
-	/// </remarks>
-	[Theory]
-	[MemberData(nameof(Kinds))]
-	public void Every_kind_of_entry_says_what_its_second_field_is(string kind) =>
-		MeansAState(kind);
-
-	/// <summary>And a kind nobody decided about is an error, not a guess either way.</summary>
-	/// <remarks>
-	/// Which is what the theory above rests on: it asserts a decision exists by asking for
-	/// one, so the asking has to be what fails. Verified by taking an entry out, which turns
-	/// out to break generation itself — loudly, but as a downstream compile error in the
-	/// consumer rather than as a sentence naming the kind. Hence both: the throw says which,
-	/// and the theory says that every kind reaches it.
+	/// <para>
+	/// A state's number is not final where it is written — layout collapses the ones that
+	/// only point somewhere and merges the ones that do the same thing — so a site that
+	/// writes the number instead of asking <c>Resuming</c> for a mark leaves a number
+	/// nothing will move. What that costs is exact and quiet: the arena resumes at a state
+	/// that was not written, the dispatch has no case for it, and a parse that should have
+	/// carried on refuses input it ought to accept.
+	/// </para>
+	/// <para>
+	/// The reverse hazard is gone by construction and was the reason the pair of tests this
+	/// replaces existed: a capture slot could be rewritten as a state when a table of kinds
+	/// said the wrong thing. Nothing rewrites a plain number now — only a mark, and only
+	/// <c>Resuming</c> makes one — so a slot cannot be mistaken for a state whatever anyone
+	/// forgets. What is left to guard is the forgetting itself, and it is guarded here,
+	/// against the emitter's own source: a second field written as an interpolation must be
+	/// a mark. The four sites that write a runtime expression there — <c>entry.State</c> and
+	/// its like — are not interpolations and name no state the generator knows.
+	/// </para>
 	/// </remarks>
 	[Fact]
-	public void A_kind_nobody_decided_about_is_refused_loudly() =>
-		Assert.Contains(
-			"No decision",
-			Assert.Throws<InvalidOperationException>(() => MeansAState("SomethingNew")).Message);
+	public void Every_entry_that_resumes_at_a_state_asks_for_a_mark()
+	{
+		var kinds = string.Join(
+			"|",
+			"Choice", "Call", "Lookahead", "Completed", "Dead", "Run", "PendingRecovery", "LoopExit");
+
+		var written = new Regex(
+			@"new ParserEntry\(ParserEntry\.(" + kinds + @"), \{([^}]*)\}");
+
+		var bare = new List<string>();
+
+		foreach (var file in Directory.GetFiles(
+			Path.Combine(SolutionRoot(), "src", "DotGram", "Grammar", "Emit"), "Machine*.cs"))
+		{
+			foreach (Match found in written.Matches(File.ReadAllText(file)))
+			{
+				var second = found.Groups[2].Value;
+
+				// The three fixed states are never collapsed and never merged — they are
+				// labels rather than numbered states — so there is nothing for a mark to
+				// move and writing one would leak it: settling runs over the state bodies,
+				// and the root call is written into the file.
+				if (second is "Return" or "Accept" or "Fail")
+					continue;
+
+				if (!second.StartsWith("Resuming(", StringComparison.Ordinal))
+					bare.Add($"{Path.GetFileName(file)}: {found.Value}");
+			}
+		}
+
+		Assert.True(
+			bare.Count == 0,
+			"An arena entry names a state without asking `Resuming` for a mark, so layout " +
+			"cannot move it where the state is collapsed:\n" + string.Join("\n", bare));
+	}
 
 	static DotGram.Grammar.Parsing.GrammarFile Parsed(string grammar) =>
 		DotGram.Grammar.Parsing.GramParser.Parse(

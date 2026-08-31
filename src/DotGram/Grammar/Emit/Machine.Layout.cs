@@ -178,7 +178,6 @@ sealed partial class Machine
 
 		_written = reachable;
 
-		Verify();
 		PlanParts();
 	}
 
@@ -441,101 +440,8 @@ sealed partial class Machine
 		};
 	}
 
-	/// <summary>
-	/// The same text with every state it names replaced by the state that one really is.
-	/// </summary>
-	/// <remarks>
-	/// Two places name a state: a <c>goto</c>, and the second argument of a
-	/// <c>ParserEntry</c>, which is where the parse resumes. The second matters as much as
-	/// the first — a resume point pointing at a signpost pays the dispatch twice.
-	/// </remarks>
-	string Redirect(string body)
-	{
-		body = Gotos.Replace(body, match =>
-			$"goto {Label(Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)))};");
-
-		return Resumes.Replace(body, match =>
-			!MeansAState(match.Groups[1].Value)
-				? match.Value
-				:
-			$"new ParserEntry(ParserEntry.{match.Groups[1].Value}, " +
-			Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)) + ",");
-	}
-
 	int Resolved(int state) =>
 		state - First is var index && index >= 0 && index < _resolved.Length ? _resolved[index] : state;
 
 	static readonly Regex Gotos   = new(@"goto S(\d+);", RegexOptions.Compiled);
-	static readonly Regex Resumes = new(@"new ParserEntry\(ParserEntry\.(\w+), (\d+),", RegexOptions.Compiled);
-
-	/// <summary>The entry kinds whose second field is a state, and not something else.</summary>
-	/// <remarks>
-	/// It is not a state in four of them, and rewriting it as one is silent corruption:
-	/// <c>Capture</c> and <c>RuleCapture</c> hold a capture slot there, <c>Construct</c> a
-	/// factory's number and <c>Recovery</c> a recovery's. A slot that happened to equal a
-	/// collapsed state's number came back as that state's, so the value it named was never
-	/// built and the construction was handed a null.
-	///
-	/// Latent until something made a rule's entry state collapsible — the collapse is what
-	/// makes a rewrite happen at all — and found by trying to take a `Trace` call out of one.
-	/// </remarks>
-	/// <summary>What an arena entry's second field means, for each kind there is.</summary>
-	/// <remarks>
-	/// One entry per kind and no default: <see cref="MeansAState"/> throws for a kind nobody
-	/// has decided about. The list this replaces named the eight resumable kinds and said
-	/// nothing about the other ten, so a kind added later carrying a state there would have
-	/// had its target quietly collapse — and one added carrying something else would have
-	/// been read as a state if anyone had put it in by reflex. Two kinds were added this
-	/// week.
-	/// </remarks>
-	enum Second
-	{
-		/// <summary>A state to resume at. These are the ones layout must follow.</summary>
-		State,
-
-		/// <summary>A capture's slot.</summary>
-		Slot,
-
-		/// <summary>Which factory, or which recovery, or which `with state` site.</summary>
-		Choice,
-
-		/// <summary>Nothing that is numbered — a marker, whose second field is always zero.</summary>
-		Nothing,
-	}
-
-	static readonly Dictionary<string, Second> SecondField = new()
-	{
-		["Choice"]          = Second.State,
-		["Call"]            = Second.State,
-		["Lookahead"]       = Second.State,
-		["Completed"]       = Second.State,
-		["Dead"]            = Second.State,
-		["Run"]             = Second.State,
-		["PendingRecovery"] = Second.State,
-		["LoopExit"]        = Second.State,
-
-		["Capture"]         = Second.Slot,
-		["RuleCapture"]     = Second.Slot,
-		["CaptureOpen"]     = Second.Slot,
-
-		["Construct"]       = Second.Choice,
-		["Recovery"]        = Second.Choice,
-		["StateSet"]        = Second.Choice,
-		["StateEnd"]        = Second.Choice,
-
-		["Atomic"]          = Second.Nothing,
-		["Repeat"]          = Second.Nothing,
-		["TurnDone"]        = Second.Nothing,
-	};
-
-	/// <summary>Whether this kind's second field is a state to resume at.</summary>
-	/// <exception cref="InvalidOperationException">Nobody has decided.</exception>
-	static bool MeansAState(string kind) =>
-		SecondField.TryGetValue(kind, out var means)
-			? means == Second.State
-			: throw new InvalidOperationException(
-				$"No decision about what a '{kind}' entry's second field is. Layout rewrites " +
-				"state numbers and follows them; a slot or a factory read as one is silent " +
-				"corruption, and a state not read as one is text nothing can reach " +
-				"(Machine.Layout.cs).");
 }

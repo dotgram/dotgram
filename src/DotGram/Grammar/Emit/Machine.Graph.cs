@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace DotGram.Grammar.Emit;
 
@@ -21,10 +19,10 @@ namespace DotGram.Grammar.Emit;
 /// have resumed there falls to the default and refuses input it ought to accept.
 /// </para>
 /// <para>
-/// The second is the one worth spending on. So the edge is recorded by the same call that
-/// writes the text — there is no second spelling to keep in step — and <see cref="Verify"/>
-/// holds the recorded graph against the recovered one on every grammar this repository
-/// compiles. Both exist until the recorded one has earned the right to be the only one.
+/// So neither is read back. The call that writes a state's name records the edge and mints
+/// a mark holding the number, and <see cref="Settle"/> puts the final name in once layout
+/// knows it. One call, one argument, two uses of it — there is no second account to keep in
+/// step and nothing to check the first against.
 /// </para>
 /// </remarks>
 sealed partial class Machine
@@ -144,24 +142,6 @@ sealed partial class Machine
 		return text.ToString();
 	}
 
-	/// <summary>
-	/// That the recorded graph and the one read back out of the text say the same thing.
-	/// </summary>
-	/// <remarks>
-	/// Held after <see cref="PlanLayout"/> has redirected the bodies, so the recovered side
-	/// names states that are already resolved and the recorded side is resolved to match. A
-	/// state that resolves to <c>Return</c>, <c>Accept</c> or <c>Fail</c> is written as that
-	/// label and is no longer a numbered jump in the text, so neither side counts it.
-	/// </remarks>
-	void Verify()
-	{
-		for (var i = 0; i < _states.Count; i++)
-		{
-			Agree(i, "jumps to", Settled(Recorded(i).Jumps), Recovered(_bodies[i], Gotos, 1));
-			Agree(i, "resumes at", Settled(Recorded(i).Resumes), Resumable(_bodies[i]));
-		}
-	}
-
 	/// <summary>What the state at an index recorded, which is nothing where it wrote nothing.</summary>
 	Edges Recorded(int index) =>
 		index >= 0 && index < _states.Count && _edges.TryGetValue(_states[index], out var edges)
@@ -170,87 +150,4 @@ sealed partial class Machine
 
 	static readonly Edges None = new();
 
-	/// <summary>The states a set of recorded targets really names, once collapsed.</summary>
-	HashSet<int> Settled(List<int> states)
-	{
-		var settled = new HashSet<int>();
-
-		foreach (var state in states)
-			if (Resolved(state) is var landed && landed >= First)
-				settled.Add(landed);
-
-		return settled;
-	}
-
-	/// <summary>The states a body's text names, by the pattern that finds them.</summary>
-	static HashSet<int> Recovered(string body, Regex pattern, int group)
-	{
-		var found = new HashSet<int>();
-
-		foreach (Match match in pattern.Matches(body))
-			if (int.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture) is var state && state >= First)
-				found.Add(state);
-
-		return found;
-	}
-
-	/// <summary>The states a body's arena entries name to resume at.</summary>
-	static HashSet<int> Resumable(string body)
-	{
-		var found = new HashSet<int>();
-
-		foreach (Match match in Resumes.Matches(body))
-			if (MeansAState(match.Groups[1].Value) &&
-				int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) is var state && state >= First)
-			{
-				found.Add(state);
-			}
-
-		return found;
-	}
-
-	/// <summary>Or says which way they differ, and stops.</summary>
-	/// <remarks>
-	/// Both directions are a defect and neither is the same defect. A state the text names
-	/// and the record does not is a site that jumps without saying so — layout still finds
-	/// it, so nothing is wrong yet, but the record is no longer the whole graph. The other
-	/// way round is the one that would have shipped: the site said where it goes and the
-	/// text says it in a spelling the recovery does not match, so layout leaves the state
-	/// out of the dispatch and a parse that should resume there refuses instead.
-	/// </remarks>
-	/// <exception cref="InvalidOperationException">They do not.</exception>
-	static void Agree(int index, string direction, HashSet<int> recorded, HashSet<int> recovered)
-	{
-		if (recorded.SetEquals(recovered))
-			return;
-
-		var unsaid = Missing(recovered, recorded);
-		var unseen = Missing(recorded, recovered);
-
-		throw new InvalidOperationException(
-			$"State {index + First} {direction} {Listed(recorded)} by the sites that wrote it, " +
-			$"and {Listed(recovered)} by reading that text back." +
-			(unseen.Count > 0
-				? $" Recorded and not recovered: {Listed(unseen)} — written in a spelling the " +
-					"recovery does not match, which leaves the state out of the dispatch and a " +
-					"parse that should resume there refusing instead."
-				: "") +
-			(unsaid.Count > 0
-				? $" Recovered and not recorded: {Listed(unsaid)} — a site that names a state " +
-					"without saying so, which leaves the recorded graph short of the whole."
-				: "") +
-			" (Machine.Graph.cs)");
-	}
-
-	static HashSet<int> Missing(HashSet<int> of, HashSet<int> from)
-	{
-		var missing = new HashSet<int>(of);
-
-		missing.ExceptWith(from);
-
-		return missing;
-	}
-
-	static string Listed(HashSet<int> states) =>
-		states.Count == 0 ? "nothing" : string.Join(", ", states.OrderBy(static state => state));
 }
