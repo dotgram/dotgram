@@ -8353,3 +8353,75 @@ worse where the hot path is the whole machine.
 `Settlements` is therefore the first grammar here that would set `PartSize` for itself —
 which is what the option is for, and the first evidence that it was worth having rather
 than a knob added because it could be.
+
+## Probed: a SQL-sized grammar, and the emitter is quadratic
+
+Before writing any SQL. `TSql170.g` is 35,800 lines of ANTLR grammar against this
+repository's largest at 683, so the first question is whether the generator survives that
+at all. A synthetic grammar shaped like a dialect — one shared expression ladder and a
+growing number of statement forms, each with keywords, an option list and captures that
+build — answers it.
+
+    forms   grammar   generated    parts   generate   compile C#
+       10        99      19,039       72       0.4s        3.2s
+       40       309      65,367      268       1.9s        4.3s
+      100       729     157,935      650       4.2s       12.6s
+      200     1,429     313,667    1,298      11.5s       17.0s
+      400     2,829     625,171    2,594      56.7s       52.3s
+
+Every one of them generates, compiles and parses. What they do not do is scale: the
+generator's exponent climbs 0.9, 1.6, **2.3** as the grammar grows.
+
+### Where, exactly
+
+Stage by stage, and it is not where I would have guessed:
+
+    forms   rules    lex   parse   bind   normalize      emit
+       40      97     22       4      7         367     1,099 ms
+      100     217      6       1      1         239     2,448
+      200     417      2       4      2         228    10,357
+      400     817      1       0      1         327    47,208
+
+**Normalization is flat** — 230 to 370 ms whatever the size, so its fixed points are not
+the problem. All of it is the emitter: 3.8 times the rules for 19.3 times the time.
+
+A sampling profile names the methods:
+
+    Machine.Dispatching        16.6%
+    Machine.Named              11.8%
+    String.SplitInternal       11.2%
+    regex MatchCollection       5.3%
+
+`RenderStates` is called once per part, and it calls `Named()` — which runs a regex over
+every body — and `Dispatching()` — which walks every state and every jump. Neither
+depends on which part is being written; both are pure functions of the finished bodies.
+With parts growing in proportion to states, computing them per part is O(states²), and
+that is the whole of it. **Cacheable once per machine**, which is the fix.
+
+### What it says about SQL
+
+Two blockers, and only one is ours.
+
+Ours is the quadratic above, and it looks cheap to remove.
+
+The other is not: 625,171 lines of C# took Roslyn 52 seconds, growing at about n^1.6, and
+this synthetic grammar expands at **221 lines of C# per line of grammar**. Full T-SQL at
+that ratio is millions of lines and minutes of the consumer's build, every build.
+
+But the ratio is a property of how a grammar is written, not a constant:
+`ExpressionLanguage` expands at 37, `Rfc3986` at 262, and this probe — many small rules of
+literal alternatives — at 221. A SQL grammar written as fewer, richer rules would land
+somewhere else entirely, and **which** is the next thing worth measuring, on a real
+`SELECT` subset rather than on a synthetic.
+
+So: not a no, and not a yes yet. The order is the emitter's quadratic first, because it is
+ours and it is bounded; then a `SELECT` subset to find the real expansion ratio; then the
+comparison against ScriptDom.
+
+### And one correction to the framing
+
+ScriptDom is built on **ANTLR 2**, not ANTLR 4 — `antlr.Tool`, a vendored
+`antlr/antlr/*.cs` runtime, `options { k = 2; }`, LL(2) with hand-written syntactic
+predicates, and a separate lexer. Beating it would be worth saying, because it is the
+production T-SQL parser with 27.8 million downloads; "faster than ANTLR" would not be,
+because that is not the ANTLR anyone means today.
