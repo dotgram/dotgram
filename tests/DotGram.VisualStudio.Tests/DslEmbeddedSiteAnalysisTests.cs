@@ -44,6 +44,14 @@ public sealed class DslEmbeddedSiteAnalysisTests
 				Assert.Equal("Variable", item.Role);
 				Assert.Equal("total", text.ToString(item.Span));
 			});
+		Assert.Equal(
+			new[]
+			{
+				("Keyword", "Keyword", "let"),
+				("Variable", "Start.name", "total"),
+			},
+			result.Symbols.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, item.Target, text.ToString(item.Span))));
 	}
 
 	[Fact]

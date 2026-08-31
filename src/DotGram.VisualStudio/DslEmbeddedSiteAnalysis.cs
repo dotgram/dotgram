@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.VisualStudio;
 
 internal readonly record struct HostDslClassification(TextSpan Span, string Role);
+internal readonly record struct HostDslSymbol(TextSpan Span, string Role, string Target);
 internal readonly record struct HostDslSite(
 	TextSpan Span,
 	string LanguageId,
@@ -26,10 +27,12 @@ internal readonly record struct HostDslSite(
 
 internal sealed class DslEmbeddedSiteResult(
 	IReadOnlyList<HostDslClassification> classifications,
+	IReadOnlyList<HostDslSymbol> symbols,
 	IReadOnlyList<HostDiagnostic> diagnostics,
 	IReadOnlyList<HostDslSite> sites)
 {
 	public IReadOnlyList<HostDslClassification> Classifications { get; } = classifications;
+	public IReadOnlyList<HostDslSymbol> Symbols { get; } = symbols;
 	public IReadOnlyList<HostDiagnostic> Diagnostics { get; } = diagnostics;
 	public IReadOnlyList<HostDslSite> Sites { get; } = sites;
 }
@@ -91,6 +94,7 @@ internal static class DslEmbeddedSiteAnalysis
 	{
 		var catalog = DslLanguageDiscovery.Discover(model.Compilation, cancellationToken);
 		var classifications = new List<HostDslClassification>();
+		var symbols = new List<HostDslSymbol>();
 		var diagnostics = new List<HostDiagnostic>();
 		var sites = new List<HostDslSite>();
 
@@ -183,6 +187,9 @@ internal static class DslEmbeddedSiteAnalysis
 			foreach (var classified in Classify(trace.Extents, prepared.Binding.Classifications))
 				if (sourceMap!.TryMap(classified.Position, classified.Length, out var mapped))
 					classifications.Add(new HostDslClassification(mapped, classified.Role));
+			foreach (var symbol in Describe(trace.Extents, prepared.Binding.Classifications))
+				if (sourceMap!.TryMap(symbol.Position, symbol.Length, out var mapped))
+					symbols.Add(new HostDslSymbol(mapped, symbol.Role, symbol.Target));
 
 			if (trace.Status == DslRecognitionStatus.Failure &&
 				sourceMap!.TryMap(trace.FailurePosition, 0, out var failure))
@@ -199,7 +206,7 @@ internal static class DslEmbeddedSiteAnalysis
 			}
 		}
 
-		return new DslEmbeddedSiteResult(classifications, diagnostics, sites);
+		return new DslEmbeddedSiteResult(classifications, symbols, diagnostics, sites);
 	}
 
 	static string? EntryRule(DslLanguageDefinition language, IMethodSymbol method)
@@ -282,6 +289,31 @@ internal static class DslEmbeddedSiteAnalysis
 			while (position < roles.Length && roles[position].Role == role)
 				position++;
 			result.Add((start, position - start, role));
+		}
+
+		return result;
+	}
+
+	internal static IReadOnlyList<(int Position, int Length, string Role, string Target)> Describe(
+		IReadOnlyList<DslRecognitionExtent> extents,
+		IReadOnlyList<DslBoundClassification> bindings)
+	{
+		var result = new List<(int Position, int Length, string Role, string Target)>();
+
+		foreach (var extent in extents)
+		foreach (var binding in bindings)
+		{
+			if (extent.Rule.Declaration?.At.Position != binding.RuleDefinitionPosition)
+				continue;
+
+			if (binding.TargetKind == DslClassificationTargetKind.Rule && extent.Capture is null ||
+				binding.TargetKind == DslClassificationTargetKind.Capture &&
+				extent.Capture == CaptureName(binding.Definition.Target))
+				result.Add((
+					extent.Position,
+					extent.Length,
+					binding.Definition.Role,
+					binding.Definition.Target));
 		}
 
 		return result;

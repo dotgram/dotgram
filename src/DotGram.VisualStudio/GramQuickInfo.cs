@@ -482,6 +482,25 @@ sealed class EmbeddedGramQuickInfoSource(
 		if (point is null || !analysis.TryGet(snapshot, out var classifications, out _))
 			return null;
 
+		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols) &&
+			dslSymbols
+				.Where(symbol => symbol.Span.Contains(point.Value.Position))
+				.OrderBy(symbol => symbol.Target.IndexOf('.') < 0)
+				.ThenBy(symbol => symbol.Span.Length)
+				.FirstOrDefault() is { Span.Length: > 0 } dslSymbol)
+		{
+			var span = new SnapshotSpan(snapshot, dslSymbol.Span.Start, dslSymbol.Span.Length);
+			var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
+
+			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+			return new QuickInfoItem(
+				trackingSpan,
+				new DslSymbolQuickInfoContent(
+					trackingSpan,
+					dslSymbol.Role,
+					dslSymbol.Target));
+		}
+
 		if (analysis.TryGetDslSites(snapshot, out var dslSites))
 			foreach (var site in dslSites)
 				if (site.Span.Contains(point.Value.Position))
@@ -560,6 +579,25 @@ sealed class DslQuickInfoContent : StackPanel, IDotGramQuickInfoContent
 		Children.Add(new TextBlock
 		{
 			Text = $"Entry rule: {entryRule}",
+			Foreground = foreground,
+		});
+	}
+
+	public bool ShouldDisplay => true;
+	public ITrackingSpan TrackingSpan { get; }
+}
+
+sealed class DslSymbolQuickInfoContent : StackPanel, IDotGramQuickInfoContent
+{
+	public DslSymbolQuickInfoContent(ITrackingSpan trackingSpan, string role, string target)
+	{
+		TrackingSpan = trackingSpan;
+		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
+			?? SystemColors.InfoTextBrush;
+
+		Children.Add(new TextBlock
+		{
+			Text = $"{role}: {target}",
 			Foreground = foreground,
 		});
 	}

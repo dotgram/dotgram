@@ -228,6 +228,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	int                               _retryCount;
 	IReadOnlyList<HostClassification> _classifications = [];
 	IReadOnlyList<HostDslClassification> _dslClassifications = [];
+	IReadOnlyList<HostDslSymbol>         _dslSymbols = [];
 	IReadOnlyList<HostDslSite>           _dslSites = [];
 	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
@@ -334,6 +335,22 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 		Schedule(snapshot);
 		sites = [];
+		return false;
+	}
+
+	public bool TryGetDslSymbols(ITextSnapshot snapshot, out IReadOnlyList<HostDslSymbol> symbols)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == snapshot)
+			{
+				symbols = _dslSymbols;
+				return true;
+			}
+		}
+
+		Schedule(snapshot);
+		symbols = [];
 		return false;
 	}
 
@@ -506,12 +523,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 				{
 					_classifications = TranslateClassifications(_classifications, _snapshot, snapshot);
 					_dslClassifications = TranslateDslClassifications(_dslClassifications, _snapshot, snapshot);
+					_dslSymbols = TranslateDslSymbols(_dslSymbols, _snapshot, snapshot);
 					_dslSites = TranslateDslSites(_dslSites, _snapshot, snapshot);
 				}
 				else
 				{
 					_classifications = classifications;
 					_dslClassifications = dslSites.Classifications;
+					_dslSymbols = dslSites.Symbols;
 					_dslSites = dslSites.Sites;
 				}
 
@@ -582,6 +601,15 @@ sealed class EmbeddedGrammarBufferAnalysis
 		classifications.Select(item => new HostDslClassification(
 			Translate(item.Span, source, target),
 			item.Role)).ToArray();
+
+	static IReadOnlyList<HostDslSymbol> TranslateDslSymbols(
+		IReadOnlyList<HostDslSymbol> symbols,
+		ITextSnapshot source,
+		ITextSnapshot target) =>
+		symbols.Select(item => new HostDslSymbol(
+			Translate(item.Span, source, target),
+			item.Role,
+			item.Target)).ToArray();
 
 	static IReadOnlyList<HostDslSite> TranslateDslSites(
 		IReadOnlyList<HostDslSite> sites,
