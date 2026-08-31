@@ -413,10 +413,8 @@ namespace DotGram.Parsers;
 		| c: Switch  => @(c)
 
 	If : @Expression
-		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch
-		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
-		| "if" & '(' & test: Expression & ')' & then: Statement
-		  => @(Expression.IfThen(test, then))
+		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionLanguage.Chosen(test, then, otherwise))
+		| "if" & '(' & test: Expression & ')' & then: Statement => @(Expression.IfThen(test, then))
 
 	// A branch is a statement where one was written and an expression where one was: C#
 	// only has the first, and the second is what `int n = if (c) 1 else 2;` needs. The

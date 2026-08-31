@@ -427,7 +427,22 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
-	void BufferChanged(object sender, TextContentChangedEventArgs change) => Schedule(change.After);
+	void BufferChanged(object sender, TextContentChangedEventArgs change)
+	{
+		lock (_gate)
+		{
+			if (_snapshot == change.Before)
+			{
+				_classifications = TranslateClassifications(_classifications, change.Before, change.After);
+				_dslClassifications = TranslateDslClassifications(_dslClassifications, change.Before, change.After);
+				_dslSymbols = TranslateDslSymbols(_dslSymbols, change.Before, change.After);
+				_dslSites = TranslateDslSites(_dslSites, change.Before, change.After);
+				_snapshot = change.After;
+			}
+		}
+
+		Schedule(change.After);
+	}
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
 	{
