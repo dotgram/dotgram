@@ -48,7 +48,7 @@ architecture and possible VS Code/LSP/metadata work remain in
 - [x] Produce a Release VSIX for Visual Studio 18.
 - [x] Add Extension Manager metadata and installation documentation.
 - [x] Validate installation through VSIXInstaller.
-- [ ] Validate an update when a package with a later version is available.
+- [x] Validate an update from 0.1.26 to 0.1.27 through VSIXInstaller.
 
 ## Current milestone: generated DSL discovery
 
