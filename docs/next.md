@@ -8306,3 +8306,50 @@ parts to twenty-two), shows its `WideFeedBenchmarks` rows down 8.5 to 18.3% at t
 sizes — inside the same band the untouched `Regex` rows moved by. **That improvement
 cannot be claimed from this run.** Separating it wants the two builds interleaved on one
 machine state, the way `ExpressionBenchmarks` was measured, and that was not done.
+
+## A/B, interleaved: the division is a large win on one grammar and nothing on another,
+## and the synthetic experiment could not have told me
+
+The previous entry declined to claim `Settlements`' 8.5 to 18.3% because the untouched
+`Regex` rows moved by as much. Measured properly it was right to decline.
+
+### How
+
+The `PartSize` option makes the A/B possible in one process: `PartSize = 1500` reproduces
+exactly what the generator did when one number answered both questions — `parts =
+ceil(whole / (Budget * 9/10))` — so two copies of the benchmarks' own grammar, generated
+from the one source and differing in that number alone, are the two builds. Four parts
+against twenty-two, alternating which goes first each round, best of several rounds.
+
+    20,000 records     1.05x   0.99x   0.99x   1.00x
+    100,000 records    0.94x   0.98x   0.96x   0.96x
+
+**Nothing at the small size and about 4% *worse* at the large one**, reproducibly, at a
+spread of ±1%. Against `ExpressionBenchmarks`' two to five times on the same change.
+
+### Why
+
+A line-by-line profile counts the crossings, and they are the whole story:
+
+    four parts    2 of them ever entered      3,015 entries
+    twenty-two   10 of them ever entered     13,525 entries
+
+Four and a half times the crossings, for no gain in code quality — the coarse parts were
+already small enough to be compiled well. `Settlements` is one enormous `Row` rule, a
+straight line of fifty fields that every record walks end to end, so its hot path *is* the
+machine: dividing it finely can only add boundaries to something that has to cross them
+all anyway. `ExpressionLanguage` is the other shape — a small operator ladder inside a
+large machine most of which a given parse never touches.
+
+### What that says about the experiment that set the number
+
+The synthetic grammar built to place the threshold was **a fixed hot core with cold
+ballast grown around it**, which is exactly the shape where dividing helps most. It could
+not have shown this, and I generalized from it. The honest statement of the change is
+narrower than the last entry's: two to five times where a grammar's hot path is a small
+part of a large machine, inert where the machine is not divided at all, and a few per cent
+worse where the hot path is the whole machine.
+
+`Settlements` is therefore the first grammar here that would set `PartSize` for itself —
+which is what the option is for, and the first evidence that it was worth having rather
+than a knob added because it could be.
