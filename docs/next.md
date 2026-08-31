@@ -7089,9 +7089,14 @@ thing that named it — and the C# compiler said `No such label`.
 **What it costs.** A build without optimization gets slower, and by about what it gains with
 one: the `Url` benchmark in the test suite went from 2.87 times a hand-written parser to
 5.51. In a Debug build the extra call and the second dispatch are paid and nothing is
-optimized in return. Whether to divide only where the consumer's compilation is optimized is
-a question this leaves open — the emitted-code rules already allow a method body to differ
-between Debug and Release, since nothing observable does.
+optimized in return.
+
+That is the price and it is paid. Dividing only where the consumer's compilation is optimized
+was raised and refused: a build configuration may change diagnostics and it may not change
+algorithms or behaviour, so the parser stepped through in a debugger is the parser that ships.
+Written down in `.claude/rules/emitted-code.md`, where the appeal to a rule that had permitted
+this was wrong — that rule is about the language version, and names Debug and Release only as
+an analogy for two spellings of one thing.
 
 **And one method is still over.** `ExpressionLanguage`'s materializer is 2004 blocks and is
 not a recognizer, so nothing divides it. That is the next one of these.
