@@ -7903,3 +7903,79 @@ worth: **3,152 arena appends** and **1,367 entries into the two parts** per pars
 3,053-character file. The parts are this session's answer to the JIT's block limit, and
 every crossing between them is a return to the driver and a switch over 321 states — a
 cost that grammar pays for a rendering decision made about a different grammar.
+
+## Measured: the method split is calibrated twice too tight, and one grammar pays 47% for it
+
+The sampled profile put 56% of a self-hosted parse inside the two halves of the split
+recognizer, and 1,367 crossings between them per parse. That is a cost this session
+introduced, so the first question is whether the split is paying for itself. On
+`GramGrammar` it is not.
+
+### The two sides, timed identically
+
+`line.exe`, 40,000 parses of `Url.gram` after 2,000 warm-up, in-process timer, three runs:
+
+    split, two parts       125.9   126.5   128.4 us
+    one method             85.0    86.1    86.6 us
+
+**The split costs 47%**, and the estimator refuses the fast one: `GRAM5003` says the
+undivided recognizer is 2,113 basic blocks, past the 2,000 where "the JIT compiles a
+method without optimization and this one will run several times slower".
+
+### What the JIT actually did
+
+`DOTNET_JitDisasmSummary=1` with `DOTNET_JitStdOutFile` answers it directly, and both
+sides are fully optimized:
+
+    one method   Tier1-OSR with Synthesized PGO, IL size=33326, code size=90196
+    two parts    Tier1 with Synthesized PGO, IL 30358 + 24463, code 46147 + 36335
+
+No MinOpts anywhere. The premise the split was made under does not hold for this grammar,
+and the total code is the same either way — 90,196 bytes against 86,846. The split buys
+nothing and adds 1,367 returns to the driver and switches over 321 states per parse.
+`Tier1-OSR` is the reason: a method whose body is one long dispatch loop is exactly what
+on-stack replacement is for, and it gets promoted mid-run however large it is.
+
+### And the other side, where the split earns everything
+
+`ExpressionLanguage` at a budget of 4,000 — two parts instead of seven:
+
+    (int x) => x                          11.5 us  ->   30.4
+    (int x) => ((((x + 1) * 2) - 3) / 4)   67.9    ->  343.4
+    the same six deep                     120.9    ->  522.6
+    the same six deep, refused             90.5    ->  311.9
+
+Three to five times slower, and the JIT says why:
+
+    Part0  Tier-0 switched MinOpts, IL size=71017
+    Part1  Tier-0 switched MinOpts, IL size=70186
+
+**So the gate is IL size against `JITMinOptsCodeSize`, which is 60,000 bytes** — 71,017
+is over it and 33,326 is not. Not a basic-block count, and not 2,000 of anything.
+
+### The calibration
+
+Two points, from the diagnostic and the JIT:
+
+    GramGrammar     2,113 estimated blocks   ->   33,326 IL   ~15.8 bytes a block
+    ExpressionLanguage's largest machine
+                    6,708 estimated blocks   ->  ~141,000 IL  ~21 bytes a block
+
+At the worse ratio, 60,000 IL is about **2,850 estimated blocks**. `Budget` is 1,500 and
+divides to nine tenths of it, so a part comes out around 1,350 blocks — some 28,000 IL,
+**less than half the gate**. The margin was set as "a quarter under" a `Limit` of 2,000
+that was itself fitted to two grammars; measured against what the runtime actually
+switches on, the whole scale is about twice too tight.
+
+Five parsers in this repository are divided today: `Rfc3986` into nine, `ExpressionLanguage`
+into seven, `Settlements` into four, `UrlGrammar` and `GramGrammar` into two. The two-part
+ones are the ones to suspect — a machine only just over the budget is divided into halves
+that were never in danger.
+
+### Not changed here
+
+Raising `Budget` changes the generated code of every consumer, and the number wants
+choosing against the IL gate rather than nudging: an estimator that predicts IL bytes and
+aims under 60,000 with a margin is a different heuristic from one that counts branches and
+aims under a fitted 2,000. Recorded for that decision, with the tree restored to `Budget =
+1500` and 1511/1511 green.
