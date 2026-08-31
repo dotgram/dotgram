@@ -375,6 +375,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// text is several of them joined, and the map is one per piece with the same
 			// two cases inside it.
 			LineMap        = MapOf(grammar, text),
+
+			// Nought is what the attribute holds when nobody set it, and what somebody
+			// setting it to nought means: take the measured default either way.
+			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -632,7 +636,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Literal    = null,
 		int       LiteralAt  = 0,
 		string?   IncludedAs = null,
-		EquatableArray<Included> Includes = default)
+		EquatableArray<Included> Includes = default,
+		int       PartSize   = 0)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -709,6 +714,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
 				.Value.Value as string;
 
+			// Zero for "nothing was said", which is also what a consumer writing
+			// `PartSize = 0` means: the emitter reads it as no wish and takes its default.
+			// Anything else goes through as written and is answered with a parser, however
+			// unreasonable — see `Machine.PartSize`.
+			var partSize = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.PartSize))
+				.Value.Value as int? ?? 0;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
@@ -753,7 +766,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Literal:    written == default ? null : written.Text,
 				LiteralAt:  written == default ? 0    : written.SpanStart,
 				IncludedAs: includedAs,
-				Includes:   new EquatableArray<Included>(Inherited(type)));
+				Includes:   new EquatableArray<Included>(Inherited(type)),
+				PartSize:   partSize);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

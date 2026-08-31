@@ -8161,3 +8161,53 @@ requirement: a consumer tuning for their own grammar should be able to ask for a
 including nothing and a million, and get a working parser either way — the generator
 dividing as near to what was asked as it can and never failing because it could not.
 That is the next piece.
+
+## Built: `PartSize`, an attribute option that is a wish rather than a setting
+
+The measurements say the part size sits in a wide flat basin — sixty to two hundred and
+fifty estimated blocks all measure alike, on `ExpressionLanguage`, on the self-hosted
+grammar and on a synthetic one:
+
+    Part   ET nest 6   ET refused   GramGrammar
+      60      48.3 us      20.4 us      48.0 us
+     100      44.9        19.8         47.2
+     150      44.5        19.2         48.6
+     250      46.4        19.8         50.9
+
+Flat, and the same shape for grammars that differ in kind — so there is nothing to compute
+from a grammar and the default is a constant. Wide is not universal, though, and the three
+grammars measured are not a consumer's, so the number is theirs to change.
+
+**On the attribute, not in the build.** It was written as an MSBuild property first, and
+that was the wrong channel: a build property is per project and this is per grammar, and
+it would have added a packaged `build/` folder to a package that has none. `[Gram("…",
+PartSize = 80)]` puts it where the grammar is.
+
+**A wish, and that is the load-bearing part.** Nothing an author writes there may fail a
+build, because a knob that can break a compilation is one nobody can safely turn. Below
+one asks for the finest division there is, anything past the size of the recognizer asks
+for one part, zero is what the attribute holds when nobody set it and means the default,
+and everything between is taken at its word. Measured on a grammar of three hundred
+ballast alternatives:
+
+    PartSize        parts   hot path
+    (unset)            61     554 ns
+    40                220     570
+    0                  61     561
+    1,000,000           4  20,791
+    -5              1,452   1,996
+
+The last two are what "as near as it can" looks like: both are answered, both parse, and
+both are slow in the direction asked for.
+
+Seven tests hold it — every value in that table generating a parser that parses, compiled
+by the C# compiler rather than merely emitted, because an unreferenced label or a jump
+with no target is exactly the failure a fine division produces and only a compiler finds
+it. The test grammar had to be rebuilt twice on the way: a choice of four hundred literals
+is settled enough to be lowered to one flat method, which has no parts at all and would
+have measured nothing whatever the size said. Recursion with values is what asks for the
+engine.
+
+§6.4 documents it, and says the other half out loud: whether to divide at all is not
+tunable and is a different question, decided from the estimate, because dividing a grammar
+that did not need it costs a quarter and failing to divide one that did costs four times.

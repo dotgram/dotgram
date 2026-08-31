@@ -214,13 +214,14 @@ sealed partial class Machine
 	/// </param>
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
-		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "")
+		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null)
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
 		_tag = tag;
+		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 

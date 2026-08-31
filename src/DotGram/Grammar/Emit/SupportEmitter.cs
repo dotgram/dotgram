@@ -80,6 +80,23 @@ public static class SupportEmitter
 				/// on the answer.
 				/// </remarks>
 				public string? IncludedAs { get; set; }
+
+				/// <summary>
+				/// How large the parts of a divided recognizer are aimed to be, in the
+				/// generator's estimate of basic blocks. Zero takes the measured default.
+				/// </summary>
+				/// <remarks>
+				/// A recognizer too large for one method is written in several, and how
+				/// large each should be was measured flat anywhere between sixty and two
+				/// hundred and fifty — flat, but on grammars that are not yours. Set this
+				/// where yours turns out to want something else.
+				///
+				/// It is a wish rather than a setting: every value generates a parser.
+				/// Below one asks for the finest division there is, past the size of the
+				/// recognizer asks for one part, and nothing written here can fail a
+				/// build.
+				/// </remarks>
+				public int PartSize { get; set; }
 			}
 
 			/// <summary>

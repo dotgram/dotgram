@@ -43,6 +43,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
+  - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1313,6 +1314,34 @@ a `long` regardless of mode, since even in-memory input could in principle be a 
 an `int` cannot index; it is only ever widened once, at the one place a position
 crosses a publication's own boundary out to the caller, so an error at offset
 8,432,109,553 can be reported as such.
+
+### 6.4 `PartSize`, the one thing a host may tune
+
+A recognizer too large for one method is written in several. Past about sixty thousand
+bytes of IL the JIT stops optimizing a method altogether, and well before that its code
+quality falls off — a synthetic grammar with a fixed hot core measures 379 ns undivided
+while it is small and 3,423 once it is large, against a flat 520 to 590 divided into
+small parts, whatever its size.
+
+How large a part is aimed to be is measured flat anywhere between sixty and two hundred
+and fifty of the generator's estimated basic blocks, and the default sits in the middle
+of that. Measured, but on grammars that are not yours:
+
+```csharp
+[Gram("…", PartSize = 80)]
+public partial class MyParser { }
+```
+
+**It is a wish, not a setting.** Every value generates a parser and none can fail a
+build: below one asks for the finest division there is, anything past the size of the
+recognizer asks for one part, zero means nothing was asked, and everything between is
+taken at its word. A number that made a grammar stop compiling would be a knob nobody
+could safely turn.
+
+Whether to divide *at all* is not tunable and is not the same question — a grammar
+small enough to hold in one method is faster that way, and dividing one that did not
+need it costs about a quarter where failing to divide one that did costs four times
+over. The generator decides that from the size it estimates.
 
 ---
 

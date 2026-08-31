@@ -124,7 +124,16 @@ sealed partial class Machine
 		// are two questions, and using one number for both is what made a machine only just
 		// over the budget come out in two parts — the worst arrangement there is, slower
 		// than one part and slower than many. See <see cref="Part"/>.
-		var parts    = (whole + Part * 9 / 10 - 1) / (Part * 9 / 10);
+		//
+		// Asked for rather than obeyed. `PartSize` is whatever a consumer wrote in their
+		// build, and a build property is a wish: nothing they can type may stop a parser
+		// being generated. Nought and less mean the finest division this machine has —
+		// every state its own part — and anything past the whole means one part, which is
+		// what asking for a piece larger than there is can only mean. Between those it is
+		// taken at its word.
+		var size     = Math.Max(1, Math.Min(PartSize, whole));
+		var aimed    = Math.Max(1, size * 9 / 10);
+		var parts    = (whole + aimed - 1) / aimed;
 		var crossing = Crossings();
 		var cuts     = new List<int>();
 

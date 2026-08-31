@@ -76,6 +76,18 @@ sealed partial class Machine
 	const int Part = 150;
 
 	/// <summary>
+	/// The size asked for, or <see cref="Part"/> where nothing asked.
+	/// </summary>
+	/// <remarks>
+	/// A consumer can set it — <c>DotGramPartSize</c> in their build — because the flat
+	/// basin the measurements found is wide but was measured on two grammars, and theirs
+	/// is a third. What it is not is a constraint: <see cref="PlanParts"/> takes it as a
+	/// wish and answers every value with a parser, so no number written in a build file
+	/// can fail a compilation.
+	/// </remarks>
+	int PartSize { get; }
+
+	/// <summary>
 	/// The count past which the compiler below gives up, as measured — the line the budget
 	/// stands a quarter under.
 	/// </summary>
