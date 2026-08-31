@@ -7264,3 +7264,64 @@ root call is written into the file. Watched to fail by taking one site back to a
 the departure rewriting a divided method needs, and which labels are still named once the
 chained jumps are dropped. Both are positional questions about the text, and both fail into
 larger output or a label the C# compiler says is missing, which is the other class.
+
+## Profiled: what `ExpressionLanguage` spends a parse on, and the two guesses that were wrong
+
+`Rfc3986` parses a URL in 344 ns. `ExpressionLanguage` takes 13 to 110 microseconds — two
+orders apart — so it is the one to look at. A harness that parses expressions in a loop, a
+dotTrace snapshot, and then, because the snapshot is not readable outside the GUI,
+`dotnet-trace` into speedscope and a reader for it.
+
+**The sampler's leaf attribution is not to be trusted here**, and two hypotheses taken from
+it were refuted by experiment rather than by argument. It puts 89% of self time in a GC poll
+worker and 63% under array copying inside recognition; removing the only list the recognizer
+adds to — the expected-set accumulation on failure — changed nothing at all, and the theory
+that a large earlier parse leaves buffers whose clearing costs a later small one was refuted
+the other way round: after a large parse the small one is *faster*.
+
+What direct measurement says instead:
+
+    (int x) => x            builds        22 563 ns
+    (int x) => ###          builds not     3 883 ns    - never reaches the body
+    ###                     builds not       278 ns
+
+    Expression.Lambda by hand                326 ns    - 1.6% of the parse
+    new State()                                6 ns
+
+So the tree it builds is not the cost, and steady-state allocation is 1.9 KB for the first of
+those — the 76 KB an early measurement showed was the arena growing on a thread's first
+parses, which is not what a parse costs and was my mistake to report. **Reading a body of one
+identifier costs 18 microseconds.** The trace says why: on `(int x) => x * x - 1`, three
+identifiers in the text, `Name` is called seventeen times and `Target` eleven. That is
+`Assignment` — ten compound-assignment alternatives each reading `Target` and failing on the
+operator, and the eleventh reading it again.
+
+`GRAM4016` exists to say exactly this and was silent, because it asked whether the shared
+operand leads back to the rule — whether the cost compounds with nesting. Here it does not
+compound; it is merely paid eleven times, and eleven times was most of the parse.
+
+## Fixed: an atomic group leaves no way back into the middle of it
+
+`Doors` answers "whether matching something can leave a way back into the middle of it", and
+answered it for an atomic group by walking inside the braces — where it finds the repetition
+and says yes. An atomic group commits its first reading: a failure reaching past it has the
+group to give back and nowhere inside it to resume. The same question `Determinism` used to
+ask of braces and stopped asking.
+
+Found while widening `GRAM4016` to the flat case: with the wider check, nine of fourteen
+sites were the trivia §4.5 weaves between operands — which an author cannot factor out and
+which the old `Reaches` condition had excluded by accident — and of the rest, `FilterExample`'s
+`Expr` was reported only because a braced `Name` was said to leave a door. With the braces
+answering for themselves the compiler folds it and there is nothing to report.
+
+The corpus is byte-identical: no grammar here has a capture inside an atomic group that this
+newly lets live in a variable, and the fold's own condition is `Determinism` rather than this.
+It is a predicate corrected against its own definition, and what exercises it is the wider
+check, which is not landed yet.
+
+## Built: the JSON example reads its digits once
+
+`Number = Digits & Fraction | Digits` reads the digits once for each alternative. Written with
+the fraction as an optional tail it reads them once, and it is the same language here because
+a fraction begins with `.`, which digits cannot contain — no shorter reading of the digits
+lets a fraction fit that a longer one refuses.
