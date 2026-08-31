@@ -1349,7 +1349,15 @@ sealed partial class Machine
 		// departure now — so nothing inside the text names it any more, and the chain the
 		// layout threaded runs across the cut where the jump was dropped for being the next
 		// line. Both leave a state the dispatch jumps to with no label to jump to.
-		if (Divided)
+		//
+		// Only where there is a dispatch to jump from. `Divided` is a fact about this
+		// machine's engine, and a lowered recognizer written beside it is one method with
+		// no dispatch and no parts — so the states the engine's dispatch reaches name
+		// nothing here, and labelling them writes labels nobody jumps to. That is a
+		// warning in a consumer's build and an error in one that treats warnings as
+		// errors, and it only appears once a grammar is divided finely enough for a
+		// dispatched state to fall inside a flat method's own run.
+		if (dispatched && Divided)
 			foreach (var one in Dispatching())
 				named.Add(Resolved(one.Key));
 
