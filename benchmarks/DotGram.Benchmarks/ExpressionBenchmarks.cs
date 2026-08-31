@@ -82,7 +82,12 @@ public class ExpressionBenchmarks
 	/// between two numbers is the cost of refusing and nothing else. Graded for the same
 	/// reason the accepted ones are — refusal is where a backtracking engine does its worst
 	/// work, and whether that work grows with depth the way the accepting work does is a
-	/// different question with a different answer.
+	/// different question. The first run of these answered it with an exponential: two
+	/// alternatives of <c>Primary</c> both read a bare integer, the second reading consumed
+	/// the same digits as the first, and a refusal walked every combination of the live
+	/// ways back that left — 2^(literals) rereadings of everything after them. The pair is
+	/// one alternative now, deciding int-or-long in its factory, and these three exist to
+	/// say if that shape ever comes back.
 	/// </remarks>
 	static readonly string[] Refusals = [.. Nests.Select(nest => nest[..^1])];
 

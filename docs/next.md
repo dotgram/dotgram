@@ -7395,3 +7395,69 @@ and so puts the dot in the member's name — `'.Source' is not a member of type
 
 And the first `NamedType` had the guard in front, which is the generic-type mistake above. It
 compiled, and the corpus caught it.
+
+## Fixed: refusal was exponential in the number of integer literals
+
+The first run of the new `ExpressionBenchmarks` paired each graded nest with itself minus
+its final operand, and the pairs said: accepting is linear, refusing is not. 74, 327,
+1299 us at two, four and six parentheses — a little under four times per two levels, and
+the gap against accepting the same text widened from 2.9x to 17.3x.
+
+### Finding it
+
+A `DOTGRAM_TRACE` build counted rule calls per input: every lexical leaf multiplied by
+four per two levels, and `call Unary at <end>` — the whole failing suffix retried — went
+4, 16, 64. Not the repetitions: the trace holds **no `give a turn back` at all**. The
+walk from one arrival at the end to the next showed the mechanism whole:
+
+    fail state=1 at 25          the parse fails with " + " left over
+    resume state=1593 at 23     ...and lands on a live choice inside the nest,
+    construct in Primary        which succeeds AGAIN over the same span,
+    ...                         closes the outer ')' again, folds '+' again,
+    call Multiplicative at 27   and rereads the suffix to the end
+
+State 1593 named the culprit. `Primary` read a bare integer twice:
+
+    | token: Dec & when @(int.TryParse(...)) => @(int constant)
+    | token: Dec                             => @(long constant)
+
+The fold shared `Dec`, but the choice between the tails stayed live — and both tails read
+nothing, so the second reading consumes exactly the digits the first did and can never
+change what fits after it. It is not a choice about the text at all. Every unsuffixed
+integer literal left one such way back, a refusal walked every combination:
+2^(literals) rereadings of everything after them.
+
+The exponent counts literals, not depth, and that was the test of the diagnosis before
+any fix: the same six-deep nest with names for operands traced 1,813 lines against
+39,838, and with `L`-suffixed literals — one reading each — 2,713.
+
+### The fix
+
+The decision moved into the factory, where it never was a choice:
+
+    | token: Dec => @(int.TryParse(token, ..., out var small)
+                     ? Expression.Constant(small)
+                     : Expression.Constant(long.Parse(token, ...)))
+
+Same language, same values, one reading, nothing left alive. The trace goes 985, 1540,
+2095 lines — +555 per two levels, flat — and the benchmark:
+
+    refusal, 2 parens     73.8 us ->  30.8      5.9 KB -> 2.7
+    refusal, 4 parens    327.1 us ->  47.0     19.4 KB -> 3.6
+    refusal, 6 parens   1299.3 us ->  67.1     70.6 KB -> 4.5
+
+Linear, and now cheaper than accepting at every depth, which is the right way round: it
+reads one character less. Accepting itself moved inside noise (25.9/47.5/75.2 ->
+25.4/45.5/71.4). 1505/1505 green.
+
+### What this generalizes to, not built
+
+The engine keeps every untried alternative of a succeeded choice live, which is ordered
+choice working as specified — the cost shows only where a later alternative can *succeed
+over the same span*, because that retry rereads the whole rest of the input for nothing.
+The `Dec` pair was the one such place on this benchmark's path, but the shape exists
+elsewhere: `If` with and without `else` is two alternatives whose shorter one always fits
+inside the longer, so a refusal past a nest of ifs would pay the same way. Two possible
+answers, neither taken today: the fold could commit the residual choice where every
+remaining tail is provably empty (this case exactly), or general memoization, which is a
+different engine. Worth measuring on an `if` nest before deciding anything.
