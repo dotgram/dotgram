@@ -103,8 +103,8 @@ public sealed record UriParts(
 		// `1` before a bare digit — because ordered choice takes the first that matches
 		// where ABNF's `/` may take any.
 		DecOctet = "25" & ['0'..'5']
-		         | '2' & ['0'..'4'] & Digit
-		         | '1' & Digit & Digit
+		         |  '2' & ['0'..'4'] & Digit
+		         |  '1' & Digit & Digit
 		         | ['1'..'9'] & Digit
 		         | Digit
 
@@ -116,9 +116,9 @@ public sealed record UriParts(
 		// §3.2.2, verbatim and in the RFC's order. `::` stands for a run of zero or more
 		// groups whose length is known only from how many are written either side of it,
 		// and there is no way to say that but by writing out the cases.
-		IPv6Address =                                  (H16 & ':'){6} & Ls32
-		            |                           "::" & (H16 & ':'){5} & Ls32
-		            | H16?                    & "::" & (H16 & ':'){4} & Ls32
+		IPv6Address =                                    (H16 & ':'){6} & Ls32
+		            |                             "::" & (H16 & ':'){5} & Ls32
+		            | H16?                      & "::" & (H16 & ':'){4} & Ls32
 		            | ((H16 & ':'){0,1} & H16)? & "::" & (H16 & ':'){3} & Ls32
 		            | ((H16 & ':'){0,2} & H16)? & "::" & (H16 & ':'){2} & Ls32
 		            | ((H16 & ':'){0,3} & H16)? & "::" & (H16 & ':')    & Ls32
@@ -156,23 +156,18 @@ public sealed record UriParts(
 	UriReference : @UriParts = u: Uri => @(u) | r: RelativeRef => @(r)
 
 	// §3.
-	Uri : @UriParts
-		= scheme: SchemeText & ':' & rest: HierPart
-		& ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
+	Uri : @UriParts = scheme: SchemeText & ':' & rest: HierPart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
 		=> @(rest with { Scheme = scheme, Query = query, Fragment = fragment })
 
 	// §4.2.
-	RelativeRef : @UriParts
-		= rest: RelativePart
-		& ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
-		=> @(rest with { Query = query, Fragment = fragment })
+	RelativeRef : @UriParts = rest: RelativePart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
+		       => @(rest with { Query = query, Fragment = fragment })
 
 	// §3. The order is the RFC's, and `PathEmpty` is last because everything matches it.
-	HierPart : @UriParts
-		= "//" & a: Authority & path: PathAbEmpty => @(a with { Path = path })
-		| path: PathAbsolute                      => @(Rfc3986.Only(path))
-		| path: PathRootless                      => @(Rfc3986.Only(path))
-		| ""                                      => @(Rfc3986.Only(""))
+	HierPart : @UriParts = "//" & a: Authority & path: PathAbEmpty => @(a with { Path = path })
+		     | path: PathAbsolute                                  => @(Rfc3986.Only(path))
+		     | path: PathRootless                                  => @(Rfc3986.Only(path))
+		     | ""                                                  => @(Rfc3986.Only(""))
 
 	// §4.2. The same, with `PathNoScheme` where `PathRootless` stood: a relative
 	// reference may not begin with a segment holding a colon, or the colon would have

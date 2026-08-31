@@ -7177,3 +7177,25 @@ of methods the JIT gives up on, across `Rfc3986` and `ExpressionLanguage` both, 
 The recognizers' own cuts did not move under the widened estimator — the corpus is
 byte-identical and the suite green without a snapshot touched. That is luck as much as
 stability: the estimates all grew, and the cuts happened to land in the same gaps.
+
+## Tried and taken back out: a probe at a settled loop's head
+
+The remaining backtracking in `ExpressionLanguage` divides by the pair of characters an
+abandoned attempt died on, and the census pointed at loop turns: an attempt reads the trivia,
+meets `+` where its own operators live, fails, and pays a standing exit, an unwinding and a
+resume to learn what one character past the trivia already said. So a probe was built at the
+head of a settled star — scan past a nullable leading operand that has a scanner, test the
+character against the remainder's first set, and leave without entering when it says no,
+writing the Repeat entry's last-end on the way out so the previous standing exit stays
+visibly stale.
+
+Measured, it refused itself. The turns it was aimed at are the loops of rewritten left
+recursion, which do not meet its conditions — `ExpressionLanguage`'s event count moved from
+1160 to 1158. And where it did fire, list grammars, it costs an extra scan and test on every
+successful turn to save one refused entry per loop: the exact wrong side of frequency times
+complexity, which is the criterion these have to answer to. Reverted.
+
+What survives is the diagnosis. The one-character failures that remain live in the fold
+loops, and a probe that pays would have to (a) reach those loops and (b) cost nothing on a
+successful turn — enter the body past the trivia the probe already read, instead of reading
+it twice. Both are design work on the fold machinery, not a guard bolted on beside it.
