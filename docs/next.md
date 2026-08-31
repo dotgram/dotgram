@@ -7701,3 +7701,63 @@ what is behind it.
 
 Not started here. The measurement is the deliverable, and it moved the target twice: from
 the forwarding chain to the value machinery, and from a profile reading to an experiment.
+
+## Investigated and ruled out: sites cannot reach the self-hosting gap, nested or not
+
+The previous entry proposed widening `Machine.Sites` to admit a member that is another
+rule's value, and put 69% behind it. Checked against the grammar before writing any code,
+that direction is closed, and the reason is worth recording so it is not proposed a third
+time.
+
+A site refuses a callee on two counts (`ComputeSitedValued`): every member of its value
+must be a span of the input, and the callee must be outside every cycle. `GramExample`'s
+rules fail **both**, and the same rules fail both:
+
+    rule             recursive  members
+    Body             True       [first:Alternative, rest:Alternative[]]
+    Alternative      True       [body:Sequence, value:Value]
+    Sequence         True       [first:Guard, rest:Guard[]]
+    Quantified       True       [body:QuantifiedCore, rebound:text, mark:Marking[]]
+    QuantifiedCore   True       [body:Prefixed, quantifier:Quantifier, recovery:Recovery]
+    Prefixed         True       [prefix:text, body:Captured]
+    Captured         True       [name:text, body:Primary]
+    Primary          True       [text:text, e:ElementSet, cs:CsExpr, body:Body]
+
+Nesting sites answers the first count only. The cycle stands: `Primary` leads back to
+`Body` through `'(' & Body & ')'`, so the chain is one strongly connected component and a
+nested expansion through it does not terminate statically. Twenty-one of the grammar's
+fifty-five rules are in it; twenty-three are already compiled in place.
+
+Relaxing the cycle restriction alone is the other half, and it is worth measuring at
+7%, not 69%: `Reference`, `Type` and `Value` are recursive but every member of each is
+text, so they are what a relaxed cycle rule would admit — and `Reference` is 68 of the
+1,020 calls a parse makes.
+
+So the 69% is not reachable by widening this mechanism. What is left for it is one of two
+larger things, neither started: making the replay itself cheaper — the materializer walks
+a linked list of capture entries per completed call, 1,014 of them — or revisiting eager
+construction with a soundness argument the reverted attempt did not have. `=>` may have
+side effects, which is why §7.2 defers it and why "build it anyway, it is only wasted"
+is not available.
+
+### Found while trying to split the cost: refusal is three times acceptance
+
+The split was attempted with an input that fails at `Accept:` — `whole` is checked before
+the materialize block, so recognition runs and nothing is built. It did not work, because
+refusing is not free:
+
+    accepted                     generated  135 us   bare   53 us
+    refused on '%'                          388.5           177.6
+    refused on ')'                          388.4           174.6
+    refused on '='                          395.7           180.5
+    refused on '&'                          395.0           174.2
+    refused on '|'                          396.0           176.6
+
+One trailing character that cannot begin a declaration costs **2.9x a whole successful
+parse**, and 3.3x in the value-free grammar — so it is the engine's backtracking and not
+construction. Stable across five characters, which says it is the unwinding after `Accept`
+fails rather than anything about what was typed.
+
+That is the shape this session already found and fixed once in `ExpressionLanguage`, on a
+different grammar and a different cause. Worth its own look: an editor parsing an
+incomplete file pays it on every keystroke.
