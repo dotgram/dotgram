@@ -309,9 +309,8 @@ namespace DotGram.Parsers;
 	// What a member initializer sets, as the text said it: the member's name and the value,
 	// with which member that is left until the type is known — which is at construction,
 	// where the type is.
-	Bindings : @Setting[]
-		= '{' & first: Binding & (',' & rest: Binding)* & '}'
-		=> @(ExpressionLanguage.Set(first, rest))
+	Bindings : @Setting[] = '{' & first: Binding & (',' & rest: Binding)* & '}'
+		    => @(ExpressionLanguage.Set(first, rest))
 
 	// Three things one syntax says, told apart by what stands after the `=` — a value, a
 	// nested initializer of members, or a nested one of elements. One route rather than

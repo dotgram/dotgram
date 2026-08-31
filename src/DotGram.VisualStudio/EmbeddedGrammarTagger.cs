@@ -435,8 +435,12 @@ sealed class EmbeddedGrammarBufferAnalysis
 			{
 				_classifications = TranslateClassifications(_classifications, change.Before, change.After);
 				_dslClassifications = TranslateDslClassifications(_dslClassifications, change.Before, change.After);
-				_dslSymbols = TranslateDslSymbols(_dslSymbols, change.Before, change.After);
-				_dslSites = TranslateDslSites(_dslSites, change.Before, change.After);
+				// Semantic spans must not be exposed against a newer snapshot. In particular,
+				// Visual Studio turns stale navigable spans into Ctrl+click hyperlinks that can
+				// cover the entire embedded string. Fresh analysis restores them shortly after.
+				_symbols = [];
+				_dslSymbols = [];
+				_dslSites = [];
 				_snapshot = change.After;
 			}
 		}
