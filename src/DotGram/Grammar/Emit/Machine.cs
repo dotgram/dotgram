@@ -2227,7 +2227,13 @@ sealed partial class Machine
 					}
 				}
 
-				writer.Line($"if (!{method}({string.Join(", ", arguments)})) {{ expected = null; goto Fail; }}");
+				// To wherever failure is routed, like a terminal test — which today is
+				// `Fail:` everywhere but inside a committed choice, where a refused guard
+				// falls to the next tail rather than into the unwinder. A guard reads
+				// nothing and records nothing, so there is nothing to unwind past.
+				writer.Line(
+					$"if (!{method}({string.Join(", ", arguments)})) " +
+					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -2262,6 +2268,31 @@ sealed partial class Machine
 
 			case Node.Atomic(var body):
 			{
+				// A committed choice whose tails read nothing — the fold's residue, where
+				// past the shared operand the alternatives differ in which factory runs
+				// and not in what the text says. Compiled as the decision it is: each
+				// guard is evaluated where it stands and the first tail to pass is taken,
+				// with a refused guard falling to the tail behind it. No choice entry, no
+				// atomic boundary, no commit walk — nothing is written that a commit
+				// would have to put out, which is the whole of what the braces meant.
+				if (_recoveries.Count == 0 &&
+					body is Node.Choice(var decided) && decided.Count > 1 &&
+					decided.All(Weightless))
+				{
+					var chosen = Compile(decided[decided.Count - 1], next, following);
+
+					for (var at = decided.Count - 2; at >= 0; at--)
+					{
+						var saved = _fail;
+
+						_fail  = chosen;
+						chosen = Compile(decided[at], next, following);
+						_fail  = saved;
+					}
+
+					return chosen;
+				}
+
 				// First-match-commits held in locals: each alternative is tried through
 				// the give-back door, and the first that matches is final. The same test
 				// `Silent`'s own Atomic case asks — recoveries included, whose owned
@@ -4018,6 +4049,19 @@ sealed partial class Machine
 
 		return _states.Count - 1 + First;
 	}
+
+	/// <summary>
+	/// Whether a tail reads nothing at all — guards, factories, <c>none</c> — so that a
+	/// committed choice of such tails can be compiled as a plain decision. The emitter's
+	/// answer to the shape the fold's <c>Committed</c> builds, asked of the same tails.
+	/// </summary>
+	static bool Weightless(Node node) => node switch
+	{
+		Node.Empty or Node.Guard    => true,
+		Node.Construct(var body, _) => Weightless(body),
+		Node.Sequence(var parts)    => parts.All(Weightless),
+		_                           => false,
+	};
 
 	bool KeepsRecords(Node body)
 	{

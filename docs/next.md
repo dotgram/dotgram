@@ -7525,3 +7525,41 @@ parser's refusal path — an atomic entry per literal and the commit walk over t
 above it, where the merged factory left nothing in the arena at all. A dedicated
 rendering for an all-epsilon committed choice — evaluate the guards, pick the factory,
 write no entry — would close that; noted, not built.
+
+## Built: a committed choice of weightless tails compiles as a decision
+
+The follow-up the last entry noted. The committed residue was correct but paid rent: an
+atomic entry per literal, a choice entry inside it, and the commit walk that put the
+choice out — machinery for remembering a way back, spent on a choice proven to have
+none.
+
+Two changes, one of them one line. A guard's refusal now goes to wherever failure is
+routed rather than to a hardwired `Fail:` — which today is `Fail:` everywhere else, so
+every existing snapshot is byte-identical; a guard was never compiled under a redirected
+failure before, because `Silent` refuses guards and every `_fail`-setting path demands
+silence. And the emitter's `Atomic` case takes a committed choice of weightless tails —
+guards, factories, `none`, the same shape the fold's `Committed` builds — and compiles
+it as the decision it is: evaluate each guard where it stands, fall to the tail behind
+on refusal, take the first that passes. No choice entry, no atomic boundary, no commit
+walk.
+
+The generated line is the sentence that started this: `if (!Guard10(token)) goto S1583;`
+— worked the `when`, or call the other piece of C#.
+
+### Measured
+
+The trace is the flat answer: 985 / 1,540 / 2,095 lines on the graded refusals —
+character for character the stream the hand-merged ternary produced. The engine now
+compiles the natural two-alternative spelling into what the workaround was by hand.
+
+Wall clock did not move against the previous commit (35/55/77 us), and the previous
+commit's "ten percent against the ternary" deserves a correction: the floor input —
+`(int x) => x`, which none of this touches — drifted 7.2 to 8.0 us across the same three
+runs, so most of that gap was the machine warming through the evening, not the atomic
+entries. What is real and remains is allocation: 2.82 KB against the ternary's 2.73 at
+depth two, which is the guard itself — `when` runs while the text is read (§8.1), so
+`token` is built as a string once per literal to ask it. That is the semantics of
+writing a guard, not a cost of the choice, and the deferred ternary factory is the
+spelling for whoever refuses to pay it.
+
+1511/1511 green, snapshots untouched.
