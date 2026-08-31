@@ -301,11 +301,20 @@ namespace DotGram.Parsers;
 	// what the text said, and the arguments here are types the `=>` has not built yet. It
 	// needs no guard either — nothing else in this language is a name followed by `<`, a
 	// type, and `>`, so a reading that gets that far is a generic type or is nothing.
+	// The type arguments are an optional tail rather than a second alternative: written as
+	// two, the dotted name is read once for each, and it is the most expensive operand
+	// here. One reading is the same language because arguments begin with '<', which a
+	// dotted name cannot contain.
+	//
+	// The guard keeps the place it had, which is load-bearing: a generic form needs no
+	// name that resolves on its own — `List<int>` resolves and `List` does not — so it
+	// asks only where there are no arguments to say what the name is.
 	NamedType : @Type
-		= name: TypeName & '<' & first: Type & (',' & rest: Type)* & '>'
-		  => @(ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first, rest)))
-		| name: TypeName & when @(ExpressionLanguage.Resolves(name))
-		  => @(ExpressionLanguage.TypeNamed(name))
+		= name: TypeName & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
+		  & when @(args != null || ExpressionLanguage.Resolves(name))
+		  => @(args is null
+		       ? ExpressionLanguage.TypeNamed(name)
+		       : ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
@@ -561,9 +570,13 @@ namespace DotGram.Parsers;
 	// What may be written to. An element is read one way and written another — `ArrayIndex`
 	// answers with a value and `ArrayAccess` with a place — and which is wanted is decided
 	// by where it stands, which is a thing the grammar knows and the API does not.
+	// The member is an optional tail rather than a second alternative: written as two, the
+	// name is read once for each and so is every alternative of `Assignment` that begins
+	// with this. One reading is the same language here because a member begins with '.',
+	// which a name cannot contain.
 	Target : @Expression
-		= n: Name & '.' & member: Word => @(ExpressionLanguage.Member(n, member))
-		| n: Name                      => @(n)
+		= n: Name & ('.' & member: Word)?
+		=> @(member is null ? n : ExpressionLanguage.Member(n, member))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -711,10 +724,14 @@ namespace DotGram.Parsers;
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
 		// is a type where it names one, and an expression where it does not.
-		| type: NamedType & '.' & member: Word & args: Arguments
-		  => @(Expression.Call(type, member, null, args))
-		| type: NamedType & '.' & member: Word
-		  => @(ExpressionLanguage.StaticMember(type, member))
+		// The arguments are an optional tail rather than a second alternative: written as
+		// two, the type and the member are read once for each, and a dotted type name is
+		// not cheap to read. One reading is the same language because arguments begin with
+		// '(', which nothing at the end of a member name can be.
+		| type: NamedType & '.' & member: Word & args: Arguments?
+		  => @(args is null
+		       ? ExpressionLanguage.StaticMember(type, member)
+		       : Expression.Call(type, member, null, args))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary

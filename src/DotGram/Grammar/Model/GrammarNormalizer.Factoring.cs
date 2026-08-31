@@ -384,13 +384,18 @@ public sealed partial class GrammarNormalizer
 		{
 			var last = Run(alternatives, at, owner);
 
-			if (last > at && Sharing(alternatives, at, last, following, graph, owner) is { } one)
+			if (last > at)
 			{
-				folded ??= [.. alternatives.Take(at)];
-				folded.Add(one);
-				at = last;
+				if (Sharing(alternatives, at, last, following, graph, owner) is { } one)
+				{
+					folded ??= [.. alternatives.Take(at)];
+					folded.Add(one);
+					at = last;
 
-				continue;
+					continue;
+				}
+
+				Declined(last - at + 1, owner);
 			}
 
 			folded?.Add(alternatives[at]);
@@ -401,6 +406,43 @@ public sealed partial class GrammarNormalizer
 
 		return folded.Count == 1 ? folded[0] : new Node.Choice(folded);
 	}
+
+	/// <summary>
+	/// Says that a run of alternatives sharing an operand was found and not shared.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Said here rather than by a check of its own, and that is the whole of the point.
+	/// A check has to guess at what this pass will do — it asked <c>Doors</c> where this
+	/// asks <c>Determinism</c>, which are not the same question — so it spoke where the
+	/// operand was shared anyway and stayed silent where it was not. Here there is nothing
+	/// to guess: the run was found, the proof was asked for, and the answer was no.
+	/// </para>
+	/// <para>
+	/// Once per rule. A rule whose alternatives share an operand usually has one place
+	/// where they do, and a body walked to a fixed point would otherwise say it again on
+	/// every round.
+	/// </para>
+	/// </remarks>
+	void Declined(int run, RuleSymbol owner)
+	{
+		if (owner.Declaration is null || !_declined.Add(owner))
+			return;
+
+		Warn(
+			SharedPrefix,
+			$"{run} alternatives of '{owner.Name}' begin with the same operand, and ordered choice " +
+			$"reads it once for each of them — {run} readings where one would do. It is not shared " +
+			"for you because it is not shown to have one reading where it stands: two alternatives " +
+			"prefer a shorter reading of it that lets their own tail fit, and one shared reading " +
+			"prefers its own, so sharing it would be a different grammar rather than the same one " +
+			"written once. Saying the operand is read once — braces around the lexeme it is, §4.5 — " +
+			"is what lets it be shared; writing the alternatives with the shared operand in front " +
+			"and the rest of each behind it is the same choice made by hand.",
+			owner.Declaration.At);
+	}
+
+	readonly HashSet<RuleSymbol> _declined = [];
 
 	/// <summary>How far a run of alternatives sharing one leading operand reaches.</summary>
 	int Run(IReadOnlyList<Node> alternatives, int from, RuleSymbol owner)

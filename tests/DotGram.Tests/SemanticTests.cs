@@ -291,11 +291,15 @@ public sealed class SemanticTests
 
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
-	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
+	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(
+		string grammar, string input, string? expected = null)
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(result.Diagnostics);
+		Assert.Empty(
+			expected is null
+				? result.Diagnostics
+				: result.Diagnostics.Where(one => one.Id != expected).ToArray());
 
 		return EmittedCode.Match(
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
@@ -575,11 +579,13 @@ public sealed class SemanticTests
 			""");
 
 	[Fact]
-	public void And_a_shared_beginning_that_leads_nowhere_back_is_not() =>
+	public void And_a_shared_beginning_that_leads_nowhere_back_is_said_too() =>
 		// Splitting the last segment off a path: two alternatives are the only way to say
-		// it, the operand gives back so the tail fits, and nothing here reads anything
-		// twice per level because nothing nests. Reporting this would be noise.
-		Accepted(
+		// it, and the operand gives back so the tail fits. This used to go unreported on
+		// the grounds that nothing nests here and so nothing doubles per level — until a
+		// profile of `ExpressionLanguage` found a flat eleven readings of one operand
+		// costing most of a parse. Flat is still worth saying.
+		Reported(
 			"""
 			Name     = ['a'..'z']+
 			Segments = Name & ('/' & Name)*
@@ -597,6 +603,14 @@ public sealed class SemanticTests
 		var diagnostics = Compile(grammar).Diagnostics;
 
 		Assert.DoesNotContain(
+			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
+	}
+
+	static void Reported(string grammar)
+	{
+		var diagnostics = Compile(grammar).Diagnostics;
+
+		Assert.Contains(
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
 
@@ -2087,7 +2101,11 @@ public sealed class SemanticTests
 					= a: Chunk & "xy" => @("first:" + a)
 					| a: Chunk & "y"  => @("second:" + a)
 				""",
-				"xxy"));
+				"xxy",
+				// And says that it declined, which it did not use to: the operand does not
+				// lead back to the rule, and reporting only where the cost compounds is the
+				// scope this widened out of.
+				GrammarNormalizer.SharedPrefix));
 
 	/// <summary>And one that cannot is, with nothing to show for it but the reading saved.</summary>
 	/// <remarks>
@@ -2109,9 +2127,9 @@ public sealed class SemanticTests
 				""",
 				"abce"));
 
-	static object? Built(string grammar, string input)
+	static object? Built(string grammar, string input, string? expected = null)
 	{
-		var (isSuccess, value, _, _) = Parsed(grammar, input);
+		var (isSuccess, value, _, _) = Parsed(grammar, input, expected);
 
 		Assert.True(isSuccess, input);
 

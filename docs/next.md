@@ -7334,3 +7334,64 @@ over, so it says nothing in either direction and no number from it is reported h
 the fraction as an optional tail it reads them once, and it is the same language here because
 a fraction begins with `.`, which digits cannot contain — no shorter reading of the digits
 lets a fraction fit that a longer one refuses.
+
+## Built: the fold says what it could not do, and three rules in `ExpressionLanguage` stop
+## reading their operand twice
+
+`GRAM4016` was raised by a check of its own, which had to guess what the folding pass would
+do with the same alternatives — it asked `Doors`, "can this leave a way back into the middle
+of it", where the fold asks `Determinism`, "does this have one reading where it stands".
+Those are different questions, and widening the check to the flat case showed how different:
+of sixteen sites it named across this repository, **nine were the trivia §4.5 weaves between
+operands**, which no author wrote and none can factor out, and **four more were operands the
+fold went on to share anyway**. Three were real.
+
+So the diagnostic moved into `Share`, which is the one place that knows: a run of alternatives
+sharing an operand was found, `Determinism` was asked, and the answer was no. Nothing to
+guess, and the sentence it can now write is the useful one — the remedy is to make the
+operand's reading provable, not to rearrange anything. The check and its `Leading`,
+`SameShape` and `Reaches` go with it.
+
+And the scope is what a profile asked for. `Reaches` used to decide whether to say anything
+at all, on the grounds that a cost compounding with nesting is the one worth interrupting an
+author for. It now decides nothing: `Assignment` reads a non-recursive operand eleven times,
+and reading a body of one identifier cost 18 microseconds.
+
+### The three that were real
+
+    Target      2 readings of `Name`       -> `n: Name & ('.' & member: Word)?`
+    Primary     2 readings of `NamedType`  -> `& args: Arguments?`
+    NamedType   2 readings of `TypeName`   -> `& args: ('<' & ... & '>')?`
+
+`Target` is the one the profile was pointing at: eleven alternatives of `Assignment` begin
+with it, so its own two readings were twenty-two, and folding it folded them — `Assignment`
+went quiet without being touched.
+
+`NamedType` needed care that the shape did not show. Its guard — `when Resolves(name)` — was
+on the plain alternative and not the generic one, and that is load-bearing: `List<int>`
+resolves where `List` alone does not. Moved in front of the arguments it would have refused
+every generic type whose bare name means nothing, which is most of them. It asks where there
+is nothing else to say what the name is: `when args != null || Resolves(name)`.
+
+`TypeName` itself is left alone, and its own comment says why: a dotted name is a type only
+as far as it resolves and the rest is member access, so it has to be able to hand a trailing
+word back. Braces there would be wrong, which is why the remedy was the tail and not the
+lexeme.
+
+    (int x) => x * x - 1                       23 189 ns -> 18 073   -22%
+    (int x, int y) => (x + y) * 3 - x / 5 …    51 500 ns -> 39 650   -23%
+    (int x) => ((((x + 1) * 2) - 3) / 4) + …  109 976 ns -> 83 707   -24%
+
+The shortest input, `(int x) => x`, is not reported: it measured 13 193, 18 515, 20 006 and
+22 421 ns at different points of this session on builds that did not differ in anything it
+touches, so nothing it says now would mean anything.
+
+### Two mistakes on the way, both caught by the corpus
+
+The capture in `Target` was first written `member: ('.' & Word)?`, which captures the group
+and so puts the dot in the member's name — `'.Source' is not a member of type
+'System.Exception'`, said by LINQ rather than by anything here. It belongs on the word:
+`('.' & member: Word)?`.
+
+And the first `NamedType` had the guard in front, which is the generic-type mistake above. It
+compiled, and the corpus caught it.
