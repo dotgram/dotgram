@@ -102,9 +102,6 @@ sealed class EmbeddedGramNavigableSymbolSource(
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
 
-		if (!analysis.TryGetSymbols(snapshot, out var symbols))
-			return Task.FromResult<INavigableSymbol?>(null);
-
 		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols))
 			foreach (var item in dslSymbols)
 				if (item.Span.Contains(position) && item.DefinitionPath is not null)
@@ -115,14 +112,15 @@ sealed class EmbeddedGramNavigableSymbolSource(
 						item.DefinitionLine,
 						item.DefinitionColumn));
 
-		foreach (var item in symbols)
-			if (item.Span.Contains(position))
-				return Task.FromResult<INavigableSymbol?>(GramNavigableSymbolSource.Create(
-					view,
-					snapshot,
-					item.Span.Start,
-					item.Span.Length,
-					item.DefinitionSpan.Start));
+		if (analysis.TryGetSymbols(snapshot, out var symbols))
+			foreach (var item in symbols)
+				if (item.Span.Contains(position))
+					return Task.FromResult<INavigableSymbol?>(GramNavigableSymbolSource.Create(
+						view,
+						snapshot,
+						item.Span.Start,
+						item.Span.Length,
+						item.DefinitionSpan.Start));
 
 		// Returning null here lets the default C# provider treat the containing string
 		// literal as one large navigable symbol. Claim positions inside an embedded

@@ -48,6 +48,9 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		ThreadHelper.ThrowIfNotOnUIThread();
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
+		if (DslDefinition(args, snapshot, position) is { } dslDefinition)
+			return Navigate(dslDefinition);
+
 		if (args.SubjectBuffer.ContentType.IsOfType("CSharp") &&
 			Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
 				new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
@@ -98,6 +101,27 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		view.SetCaretPos(source.Line, source.Column);
 		view.CenterLines(source.Line, 1);
 		return true;
+	}
+
+	GeneratedApiSource? DslDefinition(
+		GoToDefinitionCommandArgs args,
+		ITextSnapshot snapshot,
+		int position)
+	{
+		if (!args.SubjectBuffer.ContentType.IsOfType("CSharp"))
+			return null;
+
+		var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
+		if (!analysis.TryGetDslSymbols(snapshot, out var symbols))
+			return null;
+
+		var symbol = symbols.FirstOrDefault(item => item.Span.Contains(position));
+		return symbol.DefinitionPath is null
+			? null
+			: new GeneratedApiSource(
+				symbol.DefinitionPath,
+				symbol.DefinitionLine,
+				symbol.DefinitionColumn);
 	}
 
 	string? PublishedApi(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
