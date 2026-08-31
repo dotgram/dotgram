@@ -10,6 +10,12 @@
 		<GeneratePkgDefFile>true</GeneratePkgDefFile>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<StartAction>Program</StartAction>
+		<StartProgram>$(DevEnvDir)devenv.exe</StartProgram>
+		<StartArguments>/RootSuffix DotGram</StartArguments>
+	</PropertyGroup>
+
 	<PropertyGroup Label="Enabled Polyfills">
 		<Polyfill></Polyfill>
 		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
