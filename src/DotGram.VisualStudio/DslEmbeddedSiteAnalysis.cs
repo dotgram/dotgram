@@ -38,12 +38,14 @@ internal sealed class DslPreparedLanguage(
 	string fingerprint,
 	RecognitionGraph graph,
 	IReadOnlyList<Publication> publications,
-	DslClassificationBinding binding)
+	DslClassificationBinding binding,
+	IDslRecognitionContract? recognitionContract)
 {
 	public string Fingerprint { get; } = fingerprint;
 	public RecognitionGraph Graph { get; } = graph;
 	public IReadOnlyList<Publication> Publications { get; } = publications;
 	public DslClassificationBinding Binding { get; } = binding;
+	public IDslRecognitionContract? RecognitionContract { get; } = recognitionContract;
 }
 
 internal sealed class DslEmbeddedSiteCache
@@ -56,7 +58,11 @@ internal sealed class DslEmbeddedSiteCache
 		var key = language.ParserType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 		var fingerprint = grammarSource + "\u001e" + string.Join(
 			"\u001f",
-			language.Classifications.Select(static item => item.Target + "\u001d" + item.Role));
+			language.Classifications.Select(static item => item.Target + "\u001d" + item.Role)) +
+			"\u001e" + string.Join("\u001f", language.RecognitionContract.Guards.Select(static item =>
+				"G\u001d" + item.Key + "\u001d" + item.Value)) +
+			"\u001e" + string.Join("\u001f", language.RecognitionContract.Externals.Select(static item =>
+				"E\u001d" + item.Key + "\u001d" + item.Value));
 
 		lock (_gate)
 			if (_languages.TryGetValue(key, out var cached) && cached.Fingerprint == fingerprint)
@@ -164,7 +170,8 @@ internal static class DslEmbeddedSiteAnalysis
 			var trace = DslRecognitionTrace.Recognize(
 				prepared.Graph,
 				publication,
-				literal.Token.ValueText);
+				literal.Token.ValueText,
+				prepared.RecognitionContract);
 			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan) &&
 				sourceMap.TryMap(trace.FailurePosition, 0, out var completionSpan))
 				sites.Add(new HostDslSite(
@@ -222,8 +229,12 @@ internal static class DslEmbeddedSiteAnalysis
 			return null;
 
 		var binding = DslClassificationBinder.Bind(language, grammarSource);
+		var contract = language.RecognitionContract.Guards.Count == 0 &&
+			language.RecognitionContract.Externals.Count == 0
+			? null
+			: new DslDescriptorRecognitionContract(graph, language.RecognitionContract);
 		return binding.Diagnostics.Count == 0
-			? new DslPreparedLanguage(fingerprint, graph, publications, binding)
+			? new DslPreparedLanguage(fingerprint, graph, publications, binding, contract)
 			: null;
 	}
 

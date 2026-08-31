@@ -147,6 +147,20 @@ Its output is recognition success/failure plus rule/capture source extents. Cons
 C#, guards that require user execution, recovery factories, and generated return values
 are outside the first slice.
 
+Guards and external recognizers can participate only through an explicit non-executing
+contract on the language host:
+
+```csharp
+[GramToolingGuard("@(FeatureEnabled)", true)]
+[GramToolingExternal("ReadIdentifier", "Identifier")]
+```
+
+The guard entry declares the editor-time decision for the exact normalized expression.
+The external entry names a grammar rule with equivalent recognition behavior. These are
+author assertions: they affect tooling only and must describe the runtime recognizer
+faithfully. The generator stores them in descriptor v3; tooling reads the descriptor
+through Roslyn and evaluates the mapped grammar rule without loading consumer code.
+
 Before implementation, the parser work on `main` must expose a stable input to this trace
 without making `Grammar/` depend on Roslyn or Visual Studio. If reuse would require
 duplicating the emitted automaton, stop and define the versioned language contract first.

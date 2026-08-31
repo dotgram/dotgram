@@ -18,6 +18,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\DotGram.VisualStudio\DotGram.VisualStudio.csproj" />
+		<Compile Include="..\DotGram.Tests\EmittedCode.cs" Link="EmittedCode.cs" />
 	</ItemGroup>
 
 </Project>

@@ -27,6 +27,8 @@ public sealed class DslLanguageDiscoveryTests
 				[DG.GramLanguage("com.example.filter", Extensions = new[] { ".filter", ".query" })]
 				[DG.GramClassify("Keyword", DG.GramClassification.Keyword)]
 				[DG.GramClassify("Start.name", DG.GramClassification.Variable)]
+				[DG.GramToolingGuard("@(Enabled)", true)]
+				[DG.GramToolingExternal("Read", "Identifier")]
 				[DG.GramLanguageMarker(typeof(FilterAttribute))]
 				public static class FilterParser;
 
@@ -43,6 +45,8 @@ public sealed class DslLanguageDiscoveryTests
 		Assert.Equal(
 			new[] { ("Keyword", "Keyword"), ("Start.name", "Variable") },
 			language.Classifications.Select(item => (item.Target, item.Role)));
+		Assert.True(language.RecognitionContract.Guards["@(Enabled)"]);
+		Assert.Equal("Identifier", language.RecognitionContract.Externals["Read"]);
 
 		var carrier = Assert.Single(catalog.AttributeCarriers);
 		Assert.Equal("FilterAttribute", carrier.AttributeType.Name);
@@ -211,6 +215,27 @@ public sealed class DslLanguageDiscoveryTests
 			new[] { ("Keyword", "Keyword"), ("Start.name", "Variable") },
 			language.Classifications.Select(item => (item.Target, item.Role)));
 		Assert.All(language.Classifications, item => Assert.Null(item.Attribute));
+	}
+
+	[Fact]
+	public void ReadsRecognitionContractFromVersionThreeDescriptor()
+	{
+		const string grammar = "Word = ['a'..'z']+\nStart = when @(Allowed) & @Read\nparse Start as ReadStart";
+		var sourcePayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("ReadStart\tParse\tStart"));
+		var contractPayload = Convert.ToBase64String(
+			System.Text.Encoding.UTF8.GetBytes("G\t@(Allowed)\t1\nE\tRead\tWord"));
+		var catalog = Discover(Support + $$"""
+
+			[DotGram.GramLanguage("referenced")]
+			[DotGram.GramLanguageDescriptor(3, "referenced", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}", "", "{{contractPayload}}")] // v3
+			partial class Parser;
+			""");
+
+		var contract = Assert.Single(catalog.Languages).RecognitionContract;
+		Assert.True(contract.Guards["@(Allowed)"]);
+		Assert.Equal("Word", contract.Externals["Read"]);
 	}
 
 	[Fact]

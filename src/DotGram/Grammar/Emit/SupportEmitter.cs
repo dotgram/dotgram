@@ -149,6 +149,36 @@ public static class SupportEmitter
 				public GramClassification Role   { get; }
 			}
 
+			/// <summary>Declares a non-executing editor decision for a grammar guard.</summary>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramToolingGuardAttribute : global::System.Attribute
+			{
+				public GramToolingGuardAttribute(string expression, bool accepted)
+				{
+					Expression = expression;
+					Accepted   = accepted;
+				}
+
+				public string Expression { get; }
+				public bool Accepted { get; }
+			}
+
+			/// <summary>Maps an external recognizer to an equivalent grammar rule for editors.</summary>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramToolingExternalAttribute : global::System.Attribute
+			{
+				public GramToolingExternalAttribute(string method, string rule)
+				{
+					Method = method;
+					Rule   = rule;
+				}
+
+				public string Method { get; }
+				public string Rule { get; }
+			}
+
 			/// <summary>
 			/// Associates this generated language with a user attribute that marks string
 			/// parameters whose arguments are written in the language.
@@ -192,12 +222,24 @@ public static class SupportEmitter
 					: this(formatVersion, languageId, grammarHash, sourcePayload, entriesPayload) =>
 					ClassificationsPayload = classificationsPayload;
 
+				public GramLanguageDescriptorAttribute(
+					int formatVersion,
+					string languageId,
+					string grammarHash,
+					string sourcePayload,
+					string entriesPayload,
+					string classificationsPayload,
+					string recognitionContractPayload)
+					: this(formatVersion, languageId, grammarHash, sourcePayload, entriesPayload, classificationsPayload) =>
+					RecognitionContractPayload = recognitionContractPayload;
+
 				public int FormatVersion { get; }
 				public string LanguageId { get; }
 				public string GrammarHash { get; }
 				public string SourcePayload { get; }
 				public string EntriesPayload { get; }
 				public string? ClassificationsPayload { get; }
+				public string? RecognitionContractPayload { get; }
 			}
 
 		}

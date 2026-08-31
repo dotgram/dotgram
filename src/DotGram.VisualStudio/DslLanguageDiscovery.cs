@@ -23,6 +23,18 @@ public sealed class DslClassificationDefinition(string target, string role, Attr
 	public AttributeData? Attribute { get; } = attribute;
 }
 
+public sealed class DslRecognitionContractDefinition(
+	IReadOnlyDictionary<string, bool> guards,
+	IReadOnlyDictionary<string, string> externals)
+{
+	public IReadOnlyDictionary<string, bool> Guards { get; } = guards;
+	public IReadOnlyDictionary<string, string> Externals { get; } = externals;
+
+	public static DslRecognitionContractDefinition Empty { get; } = new(
+		new Dictionary<string, bool>(StringComparer.Ordinal),
+		new Dictionary<string, string>(StringComparer.Ordinal));
+}
+
 public sealed class DslIncludedGrammarDefinition(
 	string name,
 	DslGrammarSourceKind sourceKind,
@@ -43,7 +55,8 @@ public sealed class DslLanguageDefinition(
 	IReadOnlyList<DslIncludedGrammarDefinition>? includedGrammars = null,
 	int descriptorFormatVersion = 0,
 	string? grammarHash = null,
-	IReadOnlyDictionary<string, string>? entries = null)
+	IReadOnlyDictionary<string, string>? entries = null,
+	DslRecognitionContractDefinition? recognitionContract = null)
 {
 	public string Id { get; } = id;
 	public INamedTypeSymbol ParserType { get; } = parserType;
@@ -59,6 +72,8 @@ public sealed class DslLanguageDefinition(
 	public string? GrammarHash { get; } = grammarHash;
 	public IReadOnlyDictionary<string, string> Entries { get; } =
 		entries ?? new Dictionary<string, string>();
+	public DslRecognitionContractDefinition RecognitionContract { get; } =
+		recognitionContract ?? DslRecognitionContractDefinition.Empty;
 }
 
 public sealed class DslAttributeCarrier(
@@ -92,6 +107,8 @@ public static class DslLanguageDiscovery
 	const string Classification                = "DotGram.GramClassification";
 	const string LanguageMarkerAttribute       = "DotGram.GramLanguageMarkerAttribute";
 	const string LanguageDescriptorAttribute   = "DotGram.GramLanguageDescriptorAttribute";
+	const string ToolingGuardAttribute         = "DotGram.GramToolingGuardAttribute";
+	const string ToolingExternalAttribute      = "DotGram.GramToolingExternalAttribute";
 
 	static readonly string[] ClassificationMembers =
 	[
@@ -169,6 +186,10 @@ public static class DslLanguageDiscovery
 				.ToArray();
 			if (classifications.Length == 0 && descriptor is not null)
 				classifications = descriptor.Classifications.ToArray();
+			var recognitionContract = RecognitionContract(type);
+			if (recognitionContract.Guards.Count == 0 && recognitionContract.Externals.Count == 0 &&
+				descriptor is not null)
+				recognitionContract = descriptor.RecognitionContract;
 
 			languages.Add(new DslLanguageDefinition(
 				id,
@@ -180,7 +201,8 @@ public static class DslLanguageDiscovery
 				grammarAttribute is null ? [] : IncludedGrammars(type),
 				descriptor?.FormatVersion ?? 0,
 				descriptor?.GrammarHash,
-				descriptor?.Entries));
+				descriptor?.Entries,
+				recognitionContract));
 		}
 
 		var carriers = new List<DslAttributeCarrier>();
@@ -205,7 +227,8 @@ public static class DslLanguageDiscovery
 		string grammarHash,
 		string source,
 		IReadOnlyDictionary<string, string> entries,
-		IReadOnlyList<DslClassificationDefinition> classifications)
+		IReadOnlyList<DslClassificationDefinition> classifications,
+		DslRecognitionContractDefinition recognitionContract)
 	{
 		public int FormatVersion { get; } = formatVersion;
 		public string LanguageId { get; } = languageId;
@@ -213,13 +236,14 @@ public static class DslLanguageDiscovery
 		public string Source { get; } = source;
 		public IReadOnlyDictionary<string, string> Entries { get; } = entries;
 		public IReadOnlyList<DslClassificationDefinition> Classifications { get; } = classifications;
+		public DslRecognitionContractDefinition RecognitionContract { get; } = recognitionContract;
 	}
 
 	static GeneratedDescriptor? Descriptor(INamedTypeSymbol type)
 	{
 		var attribute = type.GetAttributes().FirstOrDefault(IsDescriptorAttribute);
 		if (attribute?.ConstructorArguments is not { } arguments ||
-			arguments.Length is not (5 or 6) ||
+			arguments.Length is not (5 or 6 or 7) ||
 			arguments[0].Value is not int formatVersion ||
 			formatVersion != arguments.Length - 4 ||
 			arguments[1].Value is not string languageId ||
@@ -242,7 +266,7 @@ public static class DslLanguageDiscovery
 		}
 
 		var classifications = new List<DslClassificationDefinition>();
-		if (formatVersion == 2)
+		if (formatVersion >= 2)
 		{
 			if (arguments[5].Value is not string classificationsPayload ||
 				!TryBase64(classificationsPayload, out var classificationText))
@@ -256,7 +280,69 @@ public static class DslLanguageDiscovery
 			}
 		}
 
-		return new GeneratedDescriptor(formatVersion, languageId, hash, source, entries, classifications);
+		var recognitionContract = DslRecognitionContractDefinition.Empty;
+		if (formatVersion == 3)
+		{
+			if (arguments[6].Value is not string contractPayload ||
+				!TryBase64(contractPayload, out var contractText) ||
+				!TryRecognitionContract(contractText, out recognitionContract))
+				return null;
+		}
+
+		return new GeneratedDescriptor(
+			formatVersion,
+			languageId,
+			hash,
+			source,
+			entries,
+			classifications,
+			recognitionContract);
+	}
+
+	static DslRecognitionContractDefinition RecognitionContract(INamedTypeSymbol type)
+	{
+		var lines = new List<string>();
+		foreach (var attribute in type.GetAttributes())
+		{
+			if (IsAttributeType(attribute.AttributeClass, ToolingGuardAttribute) &&
+				attribute.ConstructorArguments is [{ Value: string expression }, { Value: bool accepted }])
+				lines.Add("G\t" + expression + "\t" + (accepted ? "1" : "0"));
+			else if (IsAttributeType(attribute.AttributeClass, ToolingExternalAttribute) &&
+				attribute.ConstructorArguments is [{ Value: string method }, { Value: string rule }])
+				lines.Add("E\t" + method + "\t" + rule);
+		}
+
+		return TryRecognitionContract(string.Join("\n", lines), out var contract)
+			? contract
+			: DslRecognitionContractDefinition.Empty;
+	}
+
+	static bool TryRecognitionContract(string text, out DslRecognitionContractDefinition contract)
+	{
+		var guards = new Dictionary<string, bool>(StringComparer.Ordinal);
+		var externals = new Dictionary<string, string>(StringComparer.Ordinal);
+		foreach (var line in text.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+		{
+			var fields = line.Split('\t');
+			if (fields.Length != 3 || fields[1].Length == 0 || fields[2].Length == 0)
+			{
+				contract = DslRecognitionContractDefinition.Empty;
+				return false;
+			}
+
+			if (fields[0] == "G" && fields[2] is "0" or "1")
+				guards[fields[1]] = fields[2] == "1";
+			else if (fields[0] == "E")
+				externals[fields[1]] = fields[2];
+			else
+			{
+				contract = DslRecognitionContractDefinition.Empty;
+				return false;
+			}
+		}
+
+		contract = new DslRecognitionContractDefinition(guards, externals);
+		return true;
 	}
 
 	static bool TryBase64(string payload, out string value)
@@ -393,7 +479,7 @@ public static class DslLanguageDiscovery
 	static bool IsDescriptorAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
 		attribute.AttributeConstructor?.Parameters is { } parameters &&
-		parameters.Length is 5 or 6 &&
+		parameters.Length is 5 or 6 or 7 &&
 		parameters[0].Type.SpecialType == SpecialType.System_Int32 &&
 		parameters.Skip(1).All(static parameter =>
 			parameter.Type.SpecialType == SpecialType.System_String);

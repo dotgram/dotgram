@@ -89,7 +89,8 @@ public static class GramCompiler
 					options.LineMap,
 					options.LanguageId,
 					options.LanguageSource,
-					options.LanguageClassifications)));
+					options.LanguageClassifications,
+					options.LanguageRecognitionContract)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

@@ -70,6 +70,9 @@ public sealed class GramCompilerOptions
 	/// <summary>Semantic classification mappings stored in a generated language descriptor.</summary>
 	public string? LanguageClassifications { get; set; }
 
+	/// <summary>Non-executing guard and external-recognizer mappings stored in the descriptor.</summary>
+	public string? LanguageRecognitionContract { get; set; }
+
 	/// <summary>
 	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
 	/// that accepts everything, which is right for tests of the grammar side and wrong

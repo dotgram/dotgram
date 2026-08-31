@@ -43,12 +43,36 @@ internal interface IDslRecognitionContract
 {
 	bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted);
 
-	bool TryMatchExternal(
+	bool TryResolveExternal(
 		Node.External external,
 		RuleSymbol owner,
-		string input,
-		int position,
-		out int end);
+		out RuleSymbol rule);
+}
+
+internal sealed class DslDescriptorRecognitionContract : IDslRecognitionContract
+{
+	readonly IReadOnlyDictionary<string, bool> _guards;
+	readonly IReadOnlyDictionary<string, RuleSymbol> _externals;
+
+	public DslDescriptorRecognitionContract(
+		RecognitionGraph graph,
+		DslRecognitionContractDefinition definition)
+	{
+		_guards = definition.Guards;
+		var rules = graph.Rules
+			.GroupBy(static rule => rule.Name, StringComparer.Ordinal)
+			.Where(static group => group.Count() == 1)
+			.ToDictionary(static group => group.Key, static group => group.Single(), StringComparer.Ordinal);
+		_externals = definition.Externals
+			.Where(item => rules.ContainsKey(item.Value))
+			.ToDictionary(static item => item.Key, item => rules[item.Value], StringComparer.Ordinal);
+	}
+
+	public bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted) =>
+		_guards.TryGetValue(guard.Text, out accepted);
+
+	public bool TryResolveExternal(Node.External external, RuleSymbol owner, out RuleSymbol rule) =>
+		_externals.TryGetValue(external.Name, out rule!);
 }
 
 /// <summary>
@@ -289,14 +313,14 @@ internal static class DslRecognitionTrace
 
 				case Node.External external:
 					if (contract is null ||
-						!contract.TryMatchExternal(external, owner, input, position, out var end) ||
-						end < position || end > input.Length)
+						!contract.TryResolveExternal(external, owner, out var externalRule))
 					{
 						Unsupported = true;
 						yield break;
 					}
 
-					yield return Match.Empty(end);
+					foreach (var match in Rule(externalRule, position))
+						yield return match;
 					yield break;
 			}
 		}

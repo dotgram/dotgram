@@ -371,6 +371,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			LanguageId     = host.LanguageId,
 			LanguageSource = host.LanguageId is null ? null : text,
 			LanguageClassifications = host.LanguageId is null ? null : host.LanguageClassifications,
+			LanguageRecognitionContract = host.LanguageId is null ? null : host.LanguageRecognitionContract,
 
 			// §7.6. A grammar that is its own file maps onto itself; one written into an
 			// attribute maps into the C# file holding it, which has to be searched for
@@ -633,6 +634,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		string?   LanguageId,
 		string    LanguageClassifications,
+		string    LanguageRecognitionContract,
 		Location? Location,
 		string?   Literal    = null,
 		int       LiteralAt  = 0,
@@ -722,6 +724,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramClassifyAttribute")
 				.Select(Classification)
 				.Where(static value => value is not null));
+			var recognitionContract = string.Join("\n", type.GetAttributes()
+				.Select(RecognitionContract)
+				.Where(static value => value is not null));
 
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
@@ -763,6 +768,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Source:    source,
 				LanguageId: languageId,
 				LanguageClassifications: classifications,
+				LanguageRecognitionContract: recognitionContract,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
@@ -784,6 +790,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var field = role.Type?.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(candidate =>
 				candidate.HasConstantValue && Equals(candidate.ConstantValue, role.Value));
 			return field is null ? null : target + "\t" + field.Name;
+		}
+
+		static string? RecognitionContract(AttributeData attribute)
+		{
+			var name = attribute.AttributeClass?.ToDisplayString();
+			return (name, attribute.ConstructorArguments) switch
+			{
+				("DotGram.GramToolingGuardAttribute", [{ Value: string expression }, { Value: bool accepted }]) =>
+					"G\t" + expression + "\t" + (accepted ? "1" : "0"),
+				("DotGram.GramToolingExternalAttribute", [{ Value: string method }, { Value: string rule }]) =>
+					"E\t" + method + "\t" + rule,
+				_ => null,
+			};
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

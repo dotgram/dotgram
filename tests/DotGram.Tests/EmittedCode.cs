@@ -42,11 +42,15 @@ static class EmittedCode
 		CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp8);
 
 	/// <summary>The generated source, plus the partial class it is a half of.</summary>
-	public static Assembly Compile(string source, string className = "Grammar", string? @namespace = null)
+	public static Assembly Compile(
+		string source,
+		string className = "Grammar",
+		string? @namespace = null,
+		string? declarationMembers = null)
 	{
 		var declaration = @namespace is null
-			? $"public partial class {className} {{ }}"
-			: $"namespace {@namespace} {{ public partial class {className} {{ }} }}";
+			? $"public partial class {className} {{ {declarationMembers} }}"
+			: $"namespace {@namespace} {{ public partial class {className} {{ {declarationMembers} }} }}";
 
 		// `[Gram]` and `SourceSpan` come with every generated parser in a real build, so
 		// they come with one here too. A grammar that names `span` in a `recover` reaches
