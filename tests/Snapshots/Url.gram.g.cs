@@ -531,12 +531,15 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 3), global::System.MemoryExtensions.AsSpan("://")))
 						{
-							if (text[p] == ':')
+							if (lookahead < 0)
 							{
-								if (text[p + 1] != '/')
-									p += 1;
-								else
-									p += 2;
+								if (text[p] == ':')
+								{
+									if (text[p + 1] != '/')
+										p += 1;
+									else
+										p += 2;
+								}
 							}
 							expected = Recognize_DotGram_Expected10;
 							{ state = 2; goto Leave; }
@@ -1360,8 +1363,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -1560,8 +1566,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -1873,8 +1882,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -2347,8 +2359,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -2822,8 +2837,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -3258,8 +3276,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -3583,8 +3604,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}
@@ -3889,8 +3913,11 @@ namespace DotGram.Snapshots
 						}
 						if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("::")))
 						{
-							if (text[p] == ':')
-								p += 1;
+							if (lookahead < 0)
+							{
+								if (text[p] == ':')
+									p += 1;
+							}
 							expected = Recognize_DotGram_Expected24;
 							{ state = 2; goto Leave; }
 						}

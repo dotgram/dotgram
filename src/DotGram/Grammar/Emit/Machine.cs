@@ -175,11 +175,13 @@ sealed partial class Machine
 	{
 		readonly bool _checkpointsAllowed = machine._checkpointsAllowed;
 		readonly bool _valuesInLocals     = machine._valuesInLocals;
+		readonly bool _lowering           = machine._lowering;
 
 		public void Dispose()
 		{
 			machine._checkpointsAllowed = _checkpointsAllowed;
 			machine._valuesInLocals     = _valuesInLocals;
+			machine._lowering           = _lowering;
 		}
 	}
 
@@ -669,6 +671,17 @@ sealed partial class Machine
 	/// Off for the engine, whose captures are arena entries backtracking must unwind.
 	/// </summary>
 	bool _valuesInLocals;
+
+	/// <summary>
+	/// Whether what is being compiled is a lowered recognizer rather than the engine.
+	/// </summary>
+	/// <remarks>
+	/// The two report a failure differently, and one line of emitted code turns on which:
+	/// the engine's <c>Fail:</c> reads the position only outside a lookahead — the
+	/// <c>lookahead</c> local it tests belongs to the engine and does not exist in a
+	/// lowered method, whose own <c>Fail:</c> reads the position unconditionally.
+	/// </remarks>
+	bool _lowering;
 
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
@@ -1474,8 +1487,31 @@ sealed partial class Machine
 						//
 						// A literal run has always been guarded this way; a literal on its
 						// own was not, and the two are the same question.
+						//
+						// And inside a lookahead nothing reads it either, which the engine's
+						// own `Fail:` says out loud — `if (lookahead < 0 && p >
+						// failure.Position)` — six comparisons after this ladder has run.
+						// Asked here instead, it costs one comparison on a branch that is
+						// already failing and saves the ladder every time; and a keyword list
+						// is reached through `?!Reserved`, where it is *always* inside one.
+						//
+						// A rule cannot know this about its callers — `Reserved` is compiled
+						// once and every caller of it discards the answer — so the question
+						// is asked at run time rather than worked out over the graph.
 						if (_fail == Fail)
-							Sharpen(writer, value, ignoreCase);
+						{
+							if (_lowering)
+							{
+								Sharpen(writer, value, ignoreCase);
+							}
+							else
+							{
+								writer.Line("if (lookahead < 0)");
+
+								using (writer.Block(""))
+									Sharpen(writer, value, ignoreCase);
+							}
+						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}

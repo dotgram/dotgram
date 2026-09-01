@@ -1537,8 +1537,11 @@ namespace DotGram.Snapshots
 					}
 					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 					{
-						if (text[p] == '(')
-							p += 1;
+						if (lookahead < 0)
+						{
+							if (text[p] == '(')
+								p += 1;
+						}
 						expected = Recognize_DotGram_Primary_Expected1;
 						goto Fail;
 					}
@@ -1589,8 +1592,11 @@ namespace DotGram.Snapshots
 					}
 					if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 					{
-						if (text[p] == '(')
-							p += 1;
+						if (lookahead < 0)
+						{
+							if (text[p] == '(')
+								p += 1;
+						}
 						expected = Recognize_DotGram_Primary_Expected1;
 						goto Fail;
 					}

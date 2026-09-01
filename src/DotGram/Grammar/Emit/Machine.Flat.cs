@@ -37,6 +37,7 @@ sealed partial class Machine
 		using (var modes = Keeping())
 		{
 			_checkpointsAllowed = true;
+			_lowering           = true;
 
 			entry = Compile(BodyOf(rule, whole), Accept, seed);
 		}
@@ -377,10 +378,12 @@ sealed partial class Machine
 		_flatRuleOf[0]  = rule;
 		_seam           = FollowSets.SeamOf(rule, _graph);
 		_valuesInLocals = true;
+		_lowering       = true;
 
 		var entry = Compile(BodyOf(rule, whole), Accept, seed);
 
 		_valuesInLocals = false;
+		_lowering       = false;
 
 		_roots.Add(entry);
 
