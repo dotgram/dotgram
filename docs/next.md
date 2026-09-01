@@ -10010,3 +10010,42 @@ cache with everything else.
 The same shape is in the character parser's `Recognize_DotGram_Set`, where `ExpressionLanguage`
 has five of them rather than sixty-seven — a few percent rather than two thirds, and not yet
 done.
+
+## The set test is a bit, and the bits are printed
+
+The binary search is gone. A set is two halves, and each is read as one bit:
+
+    (c < 128
+        ? (Scan_Low1[c >> 6] & (1UL << (c & 63))) != 0
+        : (Scan_High0[c >> 3] & (1 << (c & 7))) != 0)
+
+Below ASCII a set is 128 bits, which is two numbers — `Scan_Low1` is
+`{ 0x03FF000000000000UL, 0x07B7AFFE87B7AFFEUL }`, the digits and the letters this state does
+not branch on. Above it a set is eight kilobytes, which is every script of the plane, and it
+is printed as it stands rather than searched or rebuilt: a `ReadOnlySpan<byte>` over a byte
+literal is data in the assembly, so nothing is allocated and nothing runs at type load.
+
+**It was worth measuring twice, because the first measurement asked the wrong parser.** A
+membership test looked like a tenth of a percent when timed through `ExpressionLanguage`,
+where a parse is eight to sixteen microseconds and mostly builds expression trees. Through
+the SQL lexer, where a parse is two to six hundred nanoseconds, a bare non-Latin identifier
+cost half as much again:
+
+    shape           latin   cyrillic     before    after
+    one name         207n       261n      1.26x    1.02x
+    three names      655n       874n      1.33x    1.05x
+    long name        361n       566n      1.57x    1.00x
+
+The long name — fifty-two Cyrillic letters — went from 566 nanoseconds to 279. The penalty
+for not writing in Latin is now nothing at all, and the ASCII corpus is 0.97x to 1.12x,
+which is to say unchanged to better.
+
+**One thing had to be written out rather than called.** Behind a method taking a
+`ReadOnlySpan<byte>`, every ASCII character paid for materializing the span of the half it
+was never going to read — a fifth of the time on an input that is all keywords, where the
+answer is always on the first line. As an expression at the call site it costs nothing,
+because the branch that touches the span is the branch not taken.
+
+The file grows from 310,106 characters to 370,162 — the price of printing three eight-kilobyte
+halves instead of three sets of bounds. Against the 816,461 it was this morning that is still
+55% smaller.

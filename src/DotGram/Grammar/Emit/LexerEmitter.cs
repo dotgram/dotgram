@@ -71,6 +71,8 @@ public static class LexerEmitter
 		Tag = tag;
 		Bounds.Clear();
 		Named.Clear();
+		Low.Clear();
+		Lows.Clear();
 		Wide = false;
 
 		// The scanner is written first and the sets it asked for after it, because which sets
@@ -85,7 +87,6 @@ public static class LexerEmitter
 		text.Line();
 		Table(text, machine, tag);
 		Sets(text, tag);
-		Between(text, tag);
 		text.Line();
 		text.Add(body);
 
@@ -107,64 +108,44 @@ public static class LexerEmitter
 		if (Bounds.Count == 0)
 			return;
 
-		foreach (var (bounds, at) in Bounds.Select((one, at) => (one, at)))
-			text.Line(
-				bounds.Length == 0
-					? $"static readonly char[] Scan{tag}_Set{at} = new char[0];"
-					: $"static readonly char[] Scan{tag}_Set{at} = {{ {bounds} }};");
+		foreach (var (bits, at) in Low.Select((one, at) => (one, at)))
+			text.Line($"static readonly ulong[] Scan{tag}_Low{at} = {{ {bits} }};");
+
+		text.Line();
+
+		foreach (var (bits, at) in Bounds.Select((one, at) => (one, at)))
+		{
+			text.Line($"static global::System.ReadOnlySpan<byte> Scan{tag}_High{at} => new byte[]");
+
+			using (text.Braces("", ";"))
+			{
+				var line = new StringBuilder("	");
+
+				foreach (var cell in bits.Split(','))
+				{
+					line.Append(cell).Append(',');
+
+					if (line.Length < 96)
+						continue;
+
+					text.Line(line.ToString());
+					line.Clear().Append('	');
+				}
+
+				if (line.Length > 1)
+					text.Line(line.ToString());
+			}
+		}
 
 		text.Line();
 	}
 
 	static readonly List<string>             Bounds = [];
 	static readonly Dictionary<string, int>  Named  = [];
+	static readonly List<string>             Low    = [];
+	static readonly Dictionary<string, int>  Lows   = [];
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
 	static bool Wide;
-
-	/// <summary>Membership of a set too wide to write out, by searching its bounds.</summary>
-	/// <remarks>
-	/// The bounds alternate: a range's first character and one past its last. So a character
-	/// is inside the set exactly where the number of bounds at or below it is odd, which a
-	/// binary search answers in a handful of steps however many ranges there are. This is
-	/// what a Unicode category costs here.
-	/// </remarks>
-	static void Between(Writer text, string tag)
-	{
-		text.Line("/// <summary>Whether a character is inside a set given as alternating bounds.</summary>");
-		text.Line("/// <remarks>");
-		text.Line("/// In two halves, cut at the top of ASCII: a keyword trie branches on the letters");
-		text.Line("/// that begin words, which are ASCII, so what is above it is the same set of Unicode");
-		text.Line("/// letters from every state and is written once for all of them.");
-		text.Line("/// </remarks>");
-		text.Line($"static bool Scan{tag}_Between(char c, char[] below, char[] above)");
-
-		using (text.Braces())
-		{
-			text.Line($"var bounds = c < {Ascii} ? below : above;");
-			text.Line();
-			text.Line("var low  = 0;");
-			text.Line("var high = bounds.Length;");
-			text.Line();
-
-			using (text.Braces("while (low < high)", ""))
-			{
-				text.Line("var middle = (low + high) / 2;");
-				text.Line();
-				text.Line("if (bounds[middle] <= c)");
-
-				using (text.Indent())
-					text.Line("low = middle + 1;");
-
-				text.Line("else");
-
-				using (text.Indent())
-					text.Line("high = middle;");
-			}
-
-			text.Line();
-			text.Line("return (low & 1) != 0;");
-		}
-	}
 
 	/// <summary>
 	/// How wide one state's row may be.
@@ -591,24 +572,68 @@ public static class LexerEmitter
 				high.Add(new CharRange((char)Math.Max((int)range.From, Ascii), range.To));
 		}
 
-		return $"Scan{Tag}_Between(c, Scan{Tag}_Set{Field(low)}, Scan{Tag}_Set{Field(high)})";
+		// Written out rather than called. The two halves are one expression, and putting it
+		// behind a method makes every ASCII character pay for the span of the half it will
+		// not read — which measured as a fifth of the time on an input that is all keywords,
+		// where the answer is always on the first line.
+		return
+			$"(c < {Ascii} " +
+			$"? (Scan{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 " +
+			$": (Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0)";
+	}
+
+	/// <summary>The ASCII half, as the 128 bits it is.</summary>
+	/// <remarks>
+	/// Two numbers, because that is all 128 characters take. This is the half a keyword
+	/// trie's states disagree about — they branch on the letters that begin words — so there
+	/// are as many of these as there are states asking, and each is sixteen bytes.
+	/// </remarks>
+	static int Below(IReadOnlyList<CharRange> ranges)
+	{
+		var bits = new ulong[2];
+
+		foreach (var range in ranges)
+			for (var c = (int)range.From; c <= range.To && c < Ascii; c++)
+				bits[c >> 6] |= 1UL << (c & 63);
+
+		var text = $"0x{bits[0]:X16}UL, 0x{bits[1]:X16}UL";
+
+		if (!Lows.TryGetValue(text, out var at))
+		{
+			Lows[text] = at = Low.Count;
+			Low.Add(text);
+		}
+
+		return at;
 	}
 
 	/// <summary>Where ASCII stops and the categories begin.</summary>
 	const int Ascii = 0x80;
 
-	/// <summary>The field holding one run of bounds, made once however often it is asked for.</summary>
+	/// <summary>
+	/// The half above ASCII, worked out here and printed as the bits it is.
+	/// </summary>
+	/// <remarks>
+	/// Eight kilobytes covering the whole sixteen-bit alphabet — every script of the plane
+	/// and not one of them, which is what a set named by a Unicode category holds. Printed
+	/// as a byte literal behind a <c>ReadOnlySpan&lt;byte&gt;</c>, which the compiler puts
+	/// in the assembly's own data rather than in an array: nothing is allocated, nothing
+	/// runs when the type is loaded, and reading it is a load and a bit test.
+	/// </remarks>
 	static int Field(IReadOnlyList<CharRange> ranges)
 	{
-		var bounds = string.Join(
-			", ",
-			ranges.SelectMany(range =>
-				new[] { CSharpEmitter.Char(range.From), CSharpEmitter.Char((char)(range.To + 1)) }));
+		var bits = new byte[8192];
 
-		if (!Named.TryGetValue(bounds, out var at))
+		foreach (var range in ranges)
+			for (var c = (int)range.From; c <= range.To; c++)
+				bits[c >> 3] |= (byte)(1 << (c & 7));
+
+		var text = string.Join(",", bits);
+
+		if (!Named.TryGetValue(text, out var at))
 		{
-			Named[bounds] = at = Bounds.Count;
-			Bounds.Add(bounds);
+			Named[text] = at = Bounds.Count;
+			Bounds.Add(text);
 		}
 
 		return at;
