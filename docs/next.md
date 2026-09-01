@@ -9044,3 +9044,68 @@ is reported as one.
 
 Nine tests. `SqlStandard92`'s two blocked entries are unchanged and still the `Subquery`
 rule its own comment calls knowingly wrong.
+
+## Built: the syntactic machine over kinds, and three things it taught while being built
+
+`LexicalSplit` rewrites a graph so its terminals are token kinds instead of characters.
+The machine underneath does not change at all, which is the point: `CharRange` is
+`(char From, char To)`, so a graph over kinds is a graph, and `FirstSets`, `FollowSets`,
+`Determinism`, `Doors`, `Predictive` and `Dispatchable` all run over it without being told.
+
+    "SELECT"                 -> one character standing for that kind
+    ?<!b & "SELECT" & ?!b    -> the same; the boundary was the lexer's all along
+    ['+' | '-']              -> the kinds those characters carry
+    RegularIdentifier        -> the kind of the class
+    Reserved                 -> the range those fifty-six words occupy
+    trivia                   -> nothing
+
+Emitted with the unmodified emitter and run against `SqlStandard92` on the probe's
+forty-six inputs, the tokenizer being the hand-written one from `.work/kinds` now driven by
+the *generated* numbering:
+
+    SqlStandard92     23,500 lines -> 6,182       44 of 46 inputs agree
+
+**Three things the design did not know, each found by running it rather than reasoning.**
+
+**A class stands for itself and for the words it would have matched.** `zone` is a word of
+SQL-92 — `WITH TIME ZONE` — and is not reserved, so `Identifier = ?!Reserved &
+RegularIdentifier` takes it over characters. Over kinds it arrives as that keyword's kind
+and never reaches `RegularIdentifier`. The gate said so precisely: one input failed, and
+`zone` was the only word in it that could have been the reason. So a crossing rewrites to a
+set — the class plus every word the class accepts — with `?!Reserved` in front taking the
+reserved ones back out. That union is the set difference this file promised two entries
+ago, reached from the other side, and it is the general answer to contextual keywords.
+Deciding it wanted a matcher over the lexical rules; the strings are keywords and the rules
+are small, so it answers exactly rather than approximating, which matters because
+approximating one way refuses valid programs and the other way accepts invalid ones.
+
+**Nothing may rewrite to nothing where nothing means something else.** `?!wordboundary` has
+an operand that is entirely the lexer's, and rewriting it away leaves a negative lookahead
+over what matches the empty string — which refuses everywhere. The first run cut half of SQL
+out of the machine that way and *looked like a triumph*: 3,313 lines, `Choice` entries down
+to 15. Then the gate refused all forty-six inputs. The number was measuring a machine that
+accepted nothing.
+
+**Two classes that accept the same string cannot both be numbered.** A token carries one
+kind. `Digits` and `UnsignedNumericLiteral` both accept `0`, longest match gives the
+second, and `Length = '(' & Digits & ')'` — the precision of a `NUMERIC` or a `VARCHAR` —
+stops reading. That is the two inputs of forty-six that still disagree, and it is not the
+compiler's to fix: one kind for both widens the language, choosing one narrows it. So it is
+refused, with the string as the witness.
+
+The check found three:
+
+    SqlStandard92        Digits / UnsignedNumericLiteral         both accept "0"
+                         CharacterStringLiteral / QuotedString   both accept "''"
+    ExpressionLanguage   TypeName / Word                         both accept "A"
+
+**And the third one moved an item up the plan.** `TypeName = Word & ('.' & Word)*` is not a
+token; it is syntax living in a lexical namespace only so that `System . Text` will not read
+with the spaces in it. Which says that **`trivia = none` marks where trivia is off, and that
+is not the same line as where tokens end** — inference from it picks up rules that are not
+terminals. Notation for an explicit lexical root was last on the list of what to do; it is
+now third, because no analysis can tell `Word` from `TypeName` without being told.
+
+Ten tests over the two passes. Nothing under `src/` outside the two new model files
+changed, and the three shipping parsers are byte for byte what they were: this is a
+function of a graph that nothing calls yet.

@@ -161,10 +161,9 @@ public sealed class TerminalInventoryTests
 	/// </summary>
 	/// <remarks>
 	/// <c>['+' | '-']</c> is two terminals and is written that way all over a grammar. A
-	/// negated one is sixty-five thousand, and sixty-five thousand kinds is the character
-	/// machine wearing a different name — so it is named as an obstacle instead of being
-	/// quietly turned into an alphabet. <c>SqlStandard92</c> has exactly two, both in the
-	/// <c>Subquery</c> rule its own comment calls knowingly wrong.
+	/// <c>\p{L}</c> is tens of thousands, and tens of thousands of kinds is the character
+	/// machine wearing a different name — so it is named as an obstacle rather than quietly
+	/// turned into an alphabet.
 	/// </remarks>
 	[Fact]
 	public void A_small_character_class_is_its_characters_and_a_wide_one_is_named()
@@ -174,9 +173,28 @@ public sealed class TerminalInventoryTests
 		Assert.Equal(["+", "-", "x"], Marks(small));
 		Assert.Empty(small.Blocked);
 
-		var wide = Of("trivia = ' '*\nStart = 'x' & [^ '(' | ')']\nparse Start");
+		var wide = Of("trivia = ' '*\nStart = 'x' & [\\p{L}]\nparse Start");
 
-		Assert.Contains(wide.Blocked, reason => reason.Contains("character class of 65534"));
+		Assert.Contains(wide.Blocked, reason => reason.Contains("characters in syntactic position"));
+	}
+
+	/// <summary>
+	/// A negated class names what it excludes, and only that has to be numbered.
+	/// </summary>
+	/// <remarks>
+	/// <c>[^ '(' | ')']</c> is "one item that is not a bracket", and over kinds it is the
+	/// same sentence about a wider alphabet — which is what
+	/// <c>Subquery = '(' &amp; (Balanced | [^ '(' | ')'])* &amp; ')'</c> means by "anything
+	/// balanced" and could not say over characters. Counting its sixty-five thousand members
+	/// was the first attempt, and it refused the split of a grammar that had no problem.
+	/// </remarks>
+	[Fact]
+	public void A_negated_class_names_only_what_it_excludes()
+	{
+		var inventory = Of("trivia = ' '*\nStart = 'x' & [^ '(' | ')']\nparse Start");
+
+		Assert.Empty(inventory.Blocked);
+		Assert.Equal(["x", "(", ")"], Marks(inventory));
 	}
 
 	/// <summary>

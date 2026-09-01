@@ -370,20 +370,66 @@ inside fell between them. It is spaced now, for the reason `Repeated` already ga
 seam inside a turn and the seam between turns are the same question. A callee with no seam
 of its own is untouched, which is what keeps a lexeme a lexeme.
 
+## What the split turned out to need, once it was written
+
+Three things the plan above did not know, each found by running the rewrite against
+`SqlStandard92` and its own oracle rather than by reasoning about it.
+
+**A class stands for itself *and* for the words it would have matched.** `zone` is a word
+of SQL-92 — `WITH TIME ZONE` — and is not reserved, so `Identifier = ?!Reserved &
+RegularIdentifier` takes it over characters. Over kinds it arrives as that keyword's own
+kind and never reaches `RegularIdentifier` at all. So the crossing rewrites to a *set*: the
+class, plus every word terminal whose text the class accepts, with the `?!Reserved` in
+front taking the reserved ones back out. That union is the set difference this document
+promised, arrived at from the other side, and it is the general answer to contextual
+keywords. Deciding it needs a matcher over the lexical rules — the strings are keywords and
+the rules are small, so membership is answered exactly rather than approximated.
+
+**Nothing may rewrite to nothing where nothing means something else.** `?!wordboundary` has
+an operand that is entirely the lexer's; rewriting it away leaves a negative lookahead over
+what matches the empty string, which refuses everywhere. The first run of the rewrite cut
+half of SQL out of the machine that way and looked like a triumph — 3,313 lines — until the
+gate refused every input.
+
+**Two classes that accept the same string cannot both be numbered.** A token carries one
+kind. `Digits` and `UnsignedNumericLiteral` both accept `0`; longest match gives the
+second, and `Length = '(' & Digits & ')'` — the precision of a `NUMERIC` or a `VARCHAR` —
+then stops reading. The compiler cannot resolve it: one kind for both widens the language,
+choosing one narrows it. So it is refused, with the string as the witness, and the author
+decides what they meant.
+
+That check found three, and the third is the interesting one:
+
+    SqlStandard92   Digits / UnsignedNumericLiteral          both accept "0"
+                    CharacterStringLiteral / QuotedString    both accept "''"
+    ExpressionLanguage
+                    TypeName / Word                          both accept "A"
+
+`TypeName = Word & ('.' & Word)*` is not a token at all — it is syntax that lives in a
+lexical namespace only so that `System . Text` will not read with spaces in it. Which says
+something the plan had at the bottom of its list and should have had nearer the top:
+**`trivia = none` marks where trivia is off, and that is not the same line as where tokens
+end.** Inference from it picks up rules that are not terminals. An explicit lexical root is
+not a convenience for later; it is what tells `Word` from `TypeName`.
+
 ## Suggested order from here
 
-1. Terminal inventory in `Grammar/`: a pure analysis over `RecognitionGraph` producing
-   leaves, contiguous groups and the numbering. No emission.
-2. The generated lexical machine, with **"no arena write survives in the lexer"** as its
+1. ~~Terminal inventory~~ — done: leaves, contiguous groups, the numbering, and the sets
+   that become ranges.
+2. ~~The rewrite of the syntactic machine over kinds~~ — done, and validated against the
+   shipping parser on forty-six inputs.
+3. **Notation for a lexical root**, moved up from last. The three overlaps above are all
+   rules that are inside the lexical namespace and are not tokens, and no analysis can tell
+   which is which without being told.
+4. The generated lexical machine, with **"no arena write survives in the lexer"** as its
    correctness signal — if one does, the boundary is in the wrong place, and that is a
    cheaper alarm than any benchmark.
-3. The alphabet as a parameter of the syntactic machine.
-4. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. `Mark` and
+5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. `Mark` and
    `Restore` must carry the lexical mode, and any cached token must remember the mode it
    was read under — designed in from the start it is free, discovered later it is a rewrite
    of the cache.
-5. One grammar end to end behind an opt-in, the scannerless path untouched.
-6. Only then settle the notation for a lexical root and for rung-2 modes.
+6. One grammar end to end behind an opt-in, the scannerless path untouched.
+7. Rung-2 modes, when a grammar here first needs one.
 
 ## Central design statement
 

@@ -93,6 +93,42 @@ public sealed class TerminalInventory
 	/// </remarks>
 	public IReadOnlyList<string> Blocked { get; }
 
+	/// <summary>The kind a literal carries, or 0 where it is no terminal of this grammar.</summary>
+	public int KindOf(string text, bool ignoreCase)
+	{
+		_literals ??= Indexed();
+
+		return _literals.TryGetValue((text, ignoreCase), out var kind) ? kind : 0;
+	}
+
+	/// <summary>The kind a class carries, or 0 where the rule is not one.</summary>
+	public int KindOf(RuleSymbol rule)
+	{
+		_rules ??= Terminals.OfType<Terminal.Class>().ToDictionary(one => one.Rule, one => one.Kind);
+
+		return rule is not null && _rules.TryGetValue(rule, out var kind) ? kind : 0;
+	}
+
+	/// <summary>The ranges a rule that is a set of terminals occupies, or null.</summary>
+	public Named? SetOf(string name) => Sets.FirstOrDefault(set => set.Name == name);
+
+	Dictionary<Text, int> Indexed()
+	{
+		var indexed = new Dictionary<Text, int>();
+
+		foreach (var terminal in Terminals)
+			switch (terminal)
+			{
+				case Terminal.Word(var kind, var text, var fold): indexed[(text, fold)] = kind; break;
+				case Terminal.Mark(var kind, var text, var fold): indexed[(text, fold)] = kind; break;
+			}
+
+		return indexed;
+	}
+
+	Dictionary<Text, int>?       _literals;
+	Dictionary<RuleSymbol, int>? _rules;
+
 	/// <summary>Works out the inventory for a graph.</summary>
 	public static TerminalInventory Of(RecognitionGraph graph)
 	{
@@ -360,6 +396,25 @@ public sealed class TerminalInventory
 
 		const string Boundary = "wordboundary";
 
+		/// <summary>
+		/// A character class in syntactic position, and which of its characters are terminals.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A positive one is its characters, each a terminal of its own — <c>['+' | '-']</c>
+		/// is two, and a grammar writes that everywhere. Bounded, because a Unicode category
+		/// names thousands and thousands of kinds is the character machine wearing a hat.
+		/// </para>
+		/// <para>
+		/// A negated one names nothing new. <c>[^ '(' | ')']</c> is "one item that is not a
+		/// bracket", and over kinds that reads "one token that is not a bracket" — the same
+		/// sentence about a wider alphabet, and arguably the sentence
+		/// <c>Subquery = '(' &amp; (Balanced | [^ '(' | ')'])* &amp; ')'</c> was reaching for.
+		/// So what it *excludes* has to be numbered, and it itself does not. Counting its
+		/// sixty-five thousand members was the first attempt, and it refused the split of a
+		/// grammar that had no problem.
+		/// </para>
+		/// </remarks>
 		void Elemental(Node.Element element, RuleSymbol owner)
 		{
 			var first = FirstSets.Of(element, graph);
@@ -371,9 +426,20 @@ public sealed class TerminalInventory
 				return;
 			}
 
+			var wanted = element.IsNegated
+				? FirstSets.OfElement(element with { IsNegated = false })
+				: first;
+
+			if (!wanted.IsKnown)
+			{
+				Block($"a character class whose members cannot be listed: {element} in {owner.Name}");
+
+				return;
+			}
+
 			var count = 0;
 
-			foreach (var range in first.Ranges)
+			foreach (var range in wanted.Ranges)
 				count += range.To - range.From + 1;
 
 			// Eight is where a set stops being a handful of punctuation and starts being an
@@ -387,7 +453,7 @@ public sealed class TerminalInventory
 				return;
 			}
 
-			foreach (var range in first.Ranges)
+			foreach (var range in wanted.Ranges)
 				for (var c = range.From; ; c++)
 				{
 					Take(_marks, c.ToString(), false);
