@@ -8936,3 +8936,62 @@ fix off and watching three of them fail. Timings after the fix sit about five pe
 above the ones measured earlier the same day, uniformly and including inputs with no
 `CASE` in them at all — inputs the change cannot reach — so that is the machine drifting,
 not the seam costing.
+
+## Built: the terminal inventory, and it disagreed with me twice
+
+The first pass of the lexical split (`docs/lexical-adt-design.md`, phase 1). A pure
+function of the graph in `Grammar/TerminalInventory.cs`: it emits nothing and rewrites
+nothing, and answers three questions — what a lexical machine would have to recognize, what
+numbers those results carry, and what in this grammar stands in the way.
+
+**The boundary is a reference, not a file.** A rule is syntactic where it carries trivia
+(§4.5) and lexical where it does not, and a terminal is a call that crosses from the first
+to the second. Nothing has to be declared, which is the whole point: an author who wrote
+`namespace Lexical { trivia = none }` has drawn the line already, and one whose grammar has
+no trivia at all has said the thing is lexical from end to end. `Rfc3986` answers
+"scannerless: no rule carries trivia, so there is no boundary" and pays nothing.
+
+**A word is told from a mark by the shape §4.6 already left.** `Bounded` weaves
+`?<!boundary & literal & ?!boundary` round a literal whose every character continues a
+word, and leaves `'('` alone — so the lowered graph carries the answer and the boundary
+rule need not be asked again.
+
+    SqlStandard92     106 Word    17 Mark    12 Class    135 terminals
+    ExpressionLanguage 38 Word    47 Mark    22 Class    107 terminals
+    Rfc3986            scannerless
+
+**The 106 and the 17 are the finding.** Yesterday's probe derived the same two numbers by
+hand from the grammar text — 56 reserved words plus 50 that SQL-92 does not reserve, and
+seventeen symbols — and this pass reached them from the graph without being told. Two
+readings of the same grammar agreeing is worth more than either.
+
+**It disagreed with me twice on the way, and both times it was right.**
+
+The first run put `"OR"`, `"AND"`, `"IS"` and thirty more in *both* the word group and the
+mark group, and had `'\t'`, `"--"` and `"/*"` among SQL's terminals. Two mistakes, and both
+were mine. Normalization flattens §4.6's woven triple into whatever sequence surrounded it,
+so matching it as a whole rule body found only the keywords that stood alone — the shape
+has to be looked for at every position. And `trivia` and `wordboundary` are ordinary rules
+in the same spaced namespace as the syntax, so they were walked like syntax; excluding the
+two roots is not enough, because `trivia = { (Whitespace | LineComment | BlockComment)* }`
+is three more rules with trivia entries of their own. It is the closure that has to go.
+
+**And it named something the design had not.** `ExpressionLanguage`'s `Keyword` lists
+thirty-eight words inside a lexical namespace, reached only through `Name = ?!Keyword &
+Word` — and every one of those words also stands in the syntax as a literal of its own.
+Give `Keyword` a kind and the lexer has to decide whether `if` is the word or the class,
+and either answer breaks the other reading. The design's answer is that it is neither: it
+is the range those words already occupy, and `?!Keyword & Word` becomes one set difference
+over integers. So it is reported rather than numbered.
+
+`SqlStandard92` does not have the problem, and why not is worth reading: its `Reserved`
+sits where trivia is *not* empty, so it is syntax, and its words are walked into the word
+group like any others. The same list, one namespace apart, is two different problems.
+
+**What is still blocked, and it is honest that it is.** SQL has two: `[^ '(' | ')']` in
+`Subquery` and `Balanced`, sixty-five thousand characters each. Over kinds that means "any
+token but a bracket", which is a different statement, and this is the rule the grammar's own
+comment already calls "the one place this grammar is knowingly wrong". `ExpressionLanguage`
+has nothing blocked but the `Keyword` overlap.
+
+Eight tests, on the model rather than on generated code, because nothing is generated yet.
