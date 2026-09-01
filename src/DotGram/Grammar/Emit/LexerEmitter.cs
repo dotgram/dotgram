@@ -152,6 +152,27 @@ public static class LexerEmitter
 		}
 	}
 
+	/// <summary>
+	/// How many states one method may hold.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Not a size in lines but a size in basic blocks, which is the measure the JIT reads.
+	/// Written as one method, <c>SqlStandard92</c>'s scanner came to 26,637 bytes of IL and
+	/// the runtime said what it thought of that: <c>Tier-0 switched MinOpts</c> — never
+	/// optimized, and re-compiled worse rather than better — while the syntactic machine
+	/// beside it, four thousand bytes after its own division, reached <c>Tier1 with
+	/// Synthesized PGO</c>.
+	/// </para>
+	/// <para>
+	/// Direct code was chosen over a table on the strength of 1,034 tests against 473,616
+	/// table cells. The 1,034 was right and the conclusion wrong: a test is not a block, and
+	/// 528 <c>case</c> labels are a great many blocks. So the states are divided the way the
+	/// syntactic machine's are, and each part is a method the JIT will look at.
+	/// </para>
+	/// </remarks>
+	const int Held = 96;
+
 	static void Scanner(Writer text, LexicalAutomaton machine, string tag)
 	{
 		text.Line("/// <summary>");
@@ -175,43 +196,35 @@ public static class LexerEmitter
 			text.Line("var p     = pos;");
 			text.Line();
 
+			var parts = (machine.Next.Count + Held - 1) / Held;
+
 			using (text.Braces("while (p < text.Length)", ""))
 			{
 				text.Line("var c = text[p];");
 				text.Line();
+				text.Line("var next =");
 
-				using (text.Braces("switch (state)", ""))
-				{
-					for (var state = 0; state < machine.Next.Count; state++)
-					{
-						var ways = machine.From(state);
-
-						if (ways.Count == 0)
-							continue;
-
-						text.Line($"case {state}:");
-
-						using (text.Indent())
-						{
-							foreach (var (on, to) in ways)
-								text.Line($"if ({Test(on)}) {{ state = {to}; break; }}");
-
-							text.Line("goto Done;");
-						}
-					}
-
-					text.Line("default: goto Done;");
-				}
+				using (text.Indent())
+					for (var part = 0; part < parts; part++)
+						text.Line(
+							part == parts - 1
+								? $"Scan{tag}_Part{part}(state, c);"
+								: $"state < {(part + 1) * Held} ? Scan{tag}_Part{part}(state, c) :");
 
 				text.Line();
+				text.Line("if (next < 0)");
+
+				using (text.Indent())
+					text.Line("goto Done;");
+
+				text.Line();
+				text.Line("state = next;");
 				text.Line("p++;");
 				text.Line();
 				text.Line($"if (Scan{tag}_Accepts[state] != 0)");
 
 				using (text.Indent())
-				{
 					text.Line($"(end, found) = (p, Scan{tag}_Accepts[state]);");
-				}
 			}
 
 			text.Line();
@@ -219,6 +232,39 @@ public static class LexerEmitter
 			text.Line("kind = found;");
 			text.Line();
 			text.Line("return end;");
+		}
+
+		for (var part = 0; part * Held < machine.Next.Count; part++)
+		{
+			var first = part * Held;
+			var last  = Math.Min((part + 1) * Held, machine.Next.Count) - 1;
+
+			text.Line();
+			text.Line($"/// <summary>Where states {first} to {last} go, or -1 for nowhere.</summary>");
+
+			using (text.Braces($"static int Scan{tag}_Part{part}(int state, char c)"))
+			using (text.Braces("switch (state)", ""))
+			{
+				for (var state = first; state <= last; state++)
+				{
+					var ways = machine.From(state);
+
+					if (ways.Count == 0)
+						continue;
+
+					text.Line($"case {state}:");
+
+					using (text.Indent())
+					{
+						foreach (var (on, to) in ways)
+							text.Line($"if ({Test(on)}) return {to};");
+
+						text.Line("return -1;");
+					}
+				}
+
+				text.Line("default: return -1;");
+			}
 		}
 	}
 

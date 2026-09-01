@@ -439,7 +439,11 @@ that joins the parts) is the honest fix.
    `new char[] { … }` inside the scanning loop is an allocation per character per test, and
    the first generated lexer came out seventeen times slower than the hand one. Hoisted into
    static fields it is faster than hand-written.
-5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
+5. ~~One grammar end to end~~ — done. The publication takes a string, tokenizes it and
+   parses the kinds; values are cut from the text the tokens came from and positions are
+   characters. Every input the shipping SQL parser accepts or refuses, the split one agrees
+   with, and it is faster on all eighteen of them.
+6. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
    answer to `List<List<int>>` as well: `>` is a declared pattern and `>>` begins with it,
    so a cursor that can be asked for a particular kind splits without any state at all. What
    a token was read under has to travel with it in the cache — designed in from the start it

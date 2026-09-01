@@ -33,7 +33,7 @@ public sealed class ProvenanceTests
 	const string Grammar =
 		"""
 		wordboundary = ['a'..'z']
-		trivia = ' '*
+		trivia = { ' '* }
 
 		namespace Lexical
 		{
@@ -95,77 +95,14 @@ public sealed class ProvenanceTests
 
 		var diagnostics = new List<DotGram.Grammar.GramDiagnostic>();
 
-		// Both halves in one class: the scanner the automaton wrote, and the syntactic
-		// machine the ordinary emitter wrote from the rewritten graph.
-		var text =
-			CSharpEmitter.Emit(split.Syntax, "Grammar", null, null, diagnostics, null, overKinds: true)
-				.TrimEnd().TrimEnd('}') +
-			string.Join(
-				"\r\n",
-				LexerEmitter.Emit(split.Inventory.Machine!, "_Lex").Replace("\r\n", "\n").Split('\n')
-					.Select(line => line.Length == 0 ? line : "\t" + line)) +
-			// Reflection cannot carry a span, so a string door is opened onto the scanner.
-			"\r\n\tpublic static int Over(string text, int pos, out int kind) =>" +
-			"\r\n\t\tScan_Lex(global::System.MemoryExtensions.AsSpan(text), pos, out kind);\r\n}\r\n";
+		// One file with both halves in it, which is what a split grammar is now: the
+		// publication tokenizes and then parses, and the caller hands over a string.
+		var text = CSharpEmitter.Emit(split.Syntax, "Grammar", null, null, diagnostics, null, split);
 
-		var compiled = EmittedCode.Compile(text);
-		var grammar  = compiled.GetType("Grammar")!;
-		var scan     = grammar.GetMethod("Over")!;
+		var grammar = EmittedCode.Compile(text).GetType("Grammar")!;
+		var method  = grammar.GetMethod("TryParseStart", [typeof(string)])!;
 
-		var (tokens, starts, lengths) = Scanned(input, (source, at) =>
-		{
-			var arguments = new object?[] { source, at, null };
-			var end       = (int)scan.Invoke(null, arguments)!;
-
-			return ((int)arguments[2]!, end);
-		});
-
-		var method = grammar.GetMethod(
-			"TryParseStart",
-			[typeof(string), typeof(string), typeof(int[]), typeof(int[])])!;
-
-		return Told(method.Invoke(null, [input, tokens, starts, lengths])!);
-	}
-
-	/// <summary>
-	/// The tokens, trivia skipped by hand.
-	/// </summary>
-	/// <remarks>
-	/// The last hand-written thing, and it is here rather than generated because trivia is
-	/// skipped and not reported: it is no pattern and has no kind. Giving it to the machine
-	/// too is what wires a split grammar to a one-string entry point, and is not done yet.
-	/// </remarks>
-	static (string Kinds, int[] Starts, int[] Lengths) Scanned(
-		string text, Func<string, int, (int Kind, int End)> scan)
-	{
-		var kinds   = new char[text.Length + 1];
-		var starts  = new int[text.Length + 1];
-		var lengths = new int[text.Length + 1];
-		var count   = 0;
-		var p       = 0;
-
-		while (true)
-		{
-			while (p < text.Length && text[p] == ' ')
-				p++;
-
-			if (p >= text.Length)
-				break;
-
-			var (kind, end) = scan(text, p);
-
-			if (kind == 0 || end <= p)
-				break;
-
-			kinds  [count] = (char)kind;
-			starts [count] = p;
-			lengths[count] = end - p;
-			count++;
-
-			p = end;
-		}
-
-		return (new string(kinds, 0, count), starts, lengths);
+		return Told(method.Invoke(null, [input])!);
 	}
 
 	/// <summary>A match said as one string, so that two of them can be compared.</summary>

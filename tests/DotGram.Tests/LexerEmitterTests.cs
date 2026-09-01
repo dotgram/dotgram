@@ -197,6 +197,38 @@ public sealed class LexerEmitterTests
 		Assert.Equal(expected > 0, kind != 0);
 	}
 
+	/// <summary>
+	/// The states are divided into methods, because the JIT reads blocks and not lines.
+	/// </summary>
+	/// <remarks>
+	/// Written as one method, <c>SqlStandard92</c>'s scanner was 26,637 bytes of IL and the
+	/// runtime answered <c>Tier-0 switched MinOpts</c>: never optimized, and recompiled worse
+	/// rather than better. Divided, no method in the file is compiled that way, and the split
+	/// grammar went from losing on two of nine inputs to winning on all eighteen.
+	/// </remarks>
+	[Fact]
+	public void The_states_are_divided_into_methods()
+	{
+		var split = LexicalSplit.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(Sql, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+
+		var machine = split!.Inventory.Machine!;
+		var source  = LexerEmitter.Emit(machine);
+
+		// This grammar is small enough for one part; what is asserted is that the division
+		// exists and follows the states, not that this scanner needed it.
+		Assert.Contains("Scan_Part0(", source, StringComparison.Ordinal);
+
+		var parts = Enumerable
+			.Range(0, machine.Next.Count)
+			.Count(state => source.Contains($"static int Scan_Part{state}(", StringComparison.Ordinal));
+
+		Assert.Equal((machine.Next.Count + 95) / 96, parts);
+	}
+
 	static string[] Patterns(TerminalInventory inventory, int kind) =>
 		[.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
 }

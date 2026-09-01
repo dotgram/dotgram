@@ -9544,3 +9544,43 @@ That is a real limit and it is worth stating rather than optimizing around. Wher
 wins it wins for a reason that grows with the input — a refusal walks a fifth as many ways
 back, a long expression reads a fifth as many items — and where it loses it loses by a fixed
 cost that does not.
+
+## Fixed: the lexer was never optimized, and dividing it is what a table would have been for
+
+The last entry left a diagnostic unexplained — the scanner estimated at 3,669 basic blocks,
+past where the JIT stops optimizing. Asked directly, with `DOTNET_JitDisasmSummary`:
+
+    Kinds.SqlKinds:Scan(…)              [Tier-0 switched MinOpts, IL size=26637]
+    Kinds.SqlKinds:Recognize_DotGram(…) [Tier1 with Synthesized PGO, IL size=3980]
+
+So the lexer never reached Tier1 at all, and when it was compiled again it was compiled
+*worse*, while the syntactic machine beside it — divided into parts by machinery that has
+been there for months — reached Tier1 with PGO. Direct code was chosen over a table on the
+strength of 1,034 tests against 473,616 table cells; the 1,034 was right and the conclusion
+was wrong, because a test is not a block and 528 `case` labels are a great many blocks.
+
+The answer was not a table. It was the division the syntactic machine already had: ninety-six
+states to a method, and the loop picks the part by state range.
+
+           before      after    against the character parser
+             684n       513n    0.78x -> 1.05x   x IN (1, 2, 3) AND y IS NOT NULL
+           1,177n       891n    0.92x -> 1.23x   warehouse.zip_code = 'X' AND …
+           1,258n     1,033n    1.98x -> 2.45x   (a + b) * c - d / e > f AND NOT g < h
+           1,268n       973n    2.89x -> 3.85x   ! amount * 1.05 + tax >= total AND …
+           3,017n     2,752n    3.40x -> 3.74x   ! (quantity + weight) * rate - zone / …
+
+**No `MinOpts` anywhere in the run, and no input is slower than the character parser any
+more.** Accepted 1.05x to 2.45x, refused 1.35x to 3.85x. The two rows that lost last entry
+were not losing to allocation and were not losing to the idea; they were losing to a method
+the JIT had given up on.
+
+Which is the third time this session a number has been believed and then measured. The size
+of a method has three meanings — lines, IL bytes, basic blocks — and only the last one is
+the one that decides.
+
+## Done: a split grammar end to end
+
+`ProvenanceTests` no longer carries a tokenizer. It emits one file, compiles it, and calls
+`TryParseStart(input)` — the same signature the character parser has — and compares the
+answer with the character parser's, value and refusal position alike. What is left of the
+plan is the lazy cursor, and after this it is an optimization again rather than a repair.
