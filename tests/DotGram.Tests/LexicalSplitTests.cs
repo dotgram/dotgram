@@ -234,6 +234,38 @@ public sealed class LexicalSplitTests
 		Assert.Contains(Numbers(inventory, name), one => one == of.From);
 	}
 
+	/// <summary>
+	/// A built-in is a shape and not a terminal, and neither is `any`.
+	/// </summary>
+	/// <remarks>
+	/// A built-in carries no declaration and therefore no trivia, which made every call to
+	/// one look like a crossing: `eof` came back as a class, and since it is `?!any` the
+	/// automaton then refused the grammar for holding a lookahead. `any` is `[^ ]`, a
+	/// negation of nothing, and over kinds it means one of whatever the alphabet holds —
+	/// which names no terminal either. Both were found by splitting the first grammar that
+	/// builds a value, which is the first one to have written `eof`.
+	/// </remarks>
+	[Fact]
+	public void A_built_in_is_a_shape_and_not_a_terminal()
+	{
+		var split = LexicalSplit.Of(Graph(
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Start = (Lexical.Name | any)* & eof
+			parse Start
+			"""));
+
+		Assert.NotNull(split);
+		Assert.Empty(split.Blocked);
+
+		Assert.Equal(["Name"], split.Inventory.Patterns.Select(one => one.ToString()));
+	}
+
 	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name) =>
 		inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Single(one => one.Rule.Name == name);
 

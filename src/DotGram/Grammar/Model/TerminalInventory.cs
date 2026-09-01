@@ -329,10 +329,21 @@ public sealed class TerminalInventory
 					return;
 
 				case Node.Call(var called, _):
-					// Three kinds of callee and only one is a pattern. What trivia and the
-					// word boundary are made of is the lexer's already; syntax calling syntax
-					// is walked on the callee's own turn, since every rule that carries trivia
-					// gets one; and what is left is the crossing.
+					// Four kinds of callee and only one is a pattern. A built-in carries no
+					// trivia because it carries no declaration, which made `eof` look like a
+					// crossing and gave a position assertion a kind of its own; it is walked
+					// through instead. What trivia and the word boundary are made of is the
+					// lexer's already; syntax calling syntax is walked on the callee's own
+					// turn, since every rule that carries trivia gets one; and what is left is
+					// the crossing.
+					if (called.IsBuiltIn)
+					{
+						if (graph.Bodies.TryGetValue(called, out var standard))
+							Walk(standard, owner);
+
+						return;
+					}
+
 					if (_lexical.Contains(called) || graph.Trivia.ContainsKey(called))
 						return;
 
@@ -442,6 +453,12 @@ public sealed class TerminalInventory
 		void Elemental(Node.Element element, RuleSymbol owner)
 		{
 			var wanted = FirstSets.OfElement(element with { IsNegated = false });
+
+			// `any` is `[^ ]`, a negation of nothing, and it names nothing: over kinds it
+			// means one of whatever the alphabet holds, which needs no terminal of its own.
+			// The `Nothing` set is what an empty complement comes back as.
+			if (wanted.Nothing)
+				return;
 
 			if (!wanted.IsKnown)
 			{

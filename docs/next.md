@@ -9268,3 +9268,48 @@ alphabet took it; the inventory sorted them so a named set stays one run of kind
 fine while the tokenizer was hand-written against the inventory, and became nineteen
 disagreements the moment the scanner printed its own numbers. The sort belongs in the
 automaton, which is the only place that can promise there is one numbering.
+
+## Found: what a grammar that builds values still needs, by splitting one
+
+The next step is the cursor, and its real content is not laziness but *provenance*: a
+syntactic machine over kinds has no text, and every value a grammar builds is cut from
+text. Rather than guess at what that costs, the smallest grammar with a capture and a
+factory was split and emitted:
+
+```dotgram
+Pair  : @string   = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+Start : @string[] = (p: Pair)* & eof => @(p)
+```
+
+**Two things had to be fixed before it would split at all, and both were about built-ins.**
+
+`eof` came back as a *class* — a terminal of its own. A built-in carries no declaration and
+therefore no trivia entry, so every call to one looked like a crossing into the lexical
+half. And since `eof` is `?!any`, the automaton then refused the whole grammar for holding
+a lookahead inside a pattern. A built-in is a shape and not a terminal; it is walked through
+now, in both passes.
+
+`any` is `[^ ]` — a negation of nothing. The negation handling added two entries ago asks
+what a negated class *excludes*, and an empty exclusion came back as "cannot be listed".
+Over kinds `any` means one of whatever the alphabet holds, which names no terminal, so
+there is nothing to number and nothing to refuse.
+
+Neither would have been found by SQL: it never writes `eof` or `any` in syntactic position.
+It took the first grammar that builds a value to write them, which is a reason to keep
+reaching for a *different* grammar rather than a bigger one.
+
+**And then the list, which is the point of the exercise.** The grammar splits, the machine
+builds, the lexer is six states — and what is wrong is exactly and only provenance, at four
+kinds of site:
+
+    var captured0 = text.Slice(captured0From, captured0To - captured0From).ToString();
+
+`text` is the kinds, so `k` comes back as the character standing for `Name` rather than as
+`a`. The same slice appears in the constructed value, in the streamed form, and in the
+failure message that quotes what was found; and `Match<T>.Position` is a token index rather
+than a character one.
+
+So the cursor's work is: carry `kind + start + length`, thread the original text into the
+machine beside the kinds, and route every position-to-text and position-to-report through
+it. Four kinds of site, enumerated by running a grammar that has them rather than by
+reading the emitter. That is the next thing, and it is now a list rather than a worry.

@@ -212,6 +212,12 @@ public sealed class LexicalSplit
 
 				case Node.Call(var called, var arguments):
 				{
+					// A built-in is a shape and not a terminal: `eof` is `?!any` and means the
+					// same over kinds as over characters — no more input — and `any` means one
+					// of whatever the alphabet holds. Rewritten through rather than looked up.
+					if (called.IsBuiltIn && graph.Bodies.TryGetValue(called, out var standard))
+						return Rewrite(standard, owner, blocked);
+
 					if (inventory.PatternOf(called) is { } crossing)
 						return Testing(inventory.KindsOf(crossing));
 
@@ -302,6 +308,11 @@ public sealed class LexicalSplit
 		Node Elemental(Node.Element element, RuleSymbol owner, List<string> blocked)
 		{
 			var named = FirstSets.OfElement(element with { IsNegated = false });
+
+			// `any` again: nothing excluded, so one of whatever the alphabet holds — which
+			// over kinds is one token, whichever it is.
+			if (named.Nothing)
+				return new Node.Element(element.IsNegated, [], [], []);
 
 			if (!named.IsKnown)
 				return Refuse(element, owner, blocked);
