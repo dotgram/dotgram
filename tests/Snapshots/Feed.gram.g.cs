@@ -268,7 +268,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var c       = '\0';
 				string[]? expected = null;
-				var turn0 = 0;
 				var completedCall = -1;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
@@ -280,18 +279,18 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S31;
+					case 3: goto S28;
+					case 16: goto S16;
 					case 19: goto S19;
-					case 22: goto S22;
-					case 26: goto S26;
-					case 30: goto S30;
+					case 23: goto S23;
+					case 27: goto S27;
 					default: expected = null; goto Fail;
 				}
 
-				S31:
+				S28:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 30, p, call, atomic, repeat, lookahead, 0, 10));
+					entries.Add(new ParserEntry(ParserEntry.Call, 27, p, call, atomic, repeat, lookahead, 0, 10));
 					call = callIndex;
 					Trace("call Header", 13, p, entries.Count, text, "Feed");
 				}
@@ -301,12 +300,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected15;
+						expected = Recognize_DotGram_Feed_Expected20;
 						goto Fail;
 					}
 					if (text[p] != 'H')
 					{
-						expected = Recognize_DotGram_Feed_Expected15;
+						expected = Recognize_DotGram_Feed_Expected20;
 						goto Fail;
 					}
 					p += 1;
@@ -317,12 +316,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -334,163 +333,14 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_Date_Feed(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
+						p = -1 - scanned;
+						expected = Recognize_DotGram_Feed_Expected19;
 						goto Fail;
 					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto Fail;
-					}
-					if (text[p] != '-')
-					{
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto Fail;
-					}
-					if (text[p] != '-')
-					{
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto Fail;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
+					p = scanned;
 				}
 
 				{
@@ -539,12 +389,12 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Feed_Expected2;
+					expected = Recognize_DotGram_Feed_Expected3;
 					p = Recognize_DotGram_Feed_Sharpen1(text, p, ref expected);
 					goto Fail;
 				}
 
-				S30:
+				S27:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
@@ -557,14 +407,14 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c == 'R') goto S25;
+						if (c == 'R') goto S22;
 					}
 				}
 
-				S20:
+				S17:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 19, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 16, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Trailer", 5, p, entries.Count, text, "Feed");
 				}
@@ -574,12 +424,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected8;
+						expected = Recognize_DotGram_Feed_Expected9;
 						goto Fail;
 					}
 					if (text[p] != 'T')
 					{
-						expected = Recognize_DotGram_Feed_Expected8;
+						expected = Recognize_DotGram_Feed_Expected9;
 						goto Fail;
 					}
 					p += 1;
@@ -590,12 +440,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -607,46 +457,14 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_Count_Feed(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
+						p = -1 - scanned;
+						expected = Recognize_DotGram_Feed_Expected7;
 						goto Fail;
 					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
-				}
-
-				S39:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S40;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S40;
-					}
-					p++;
-					goto S39;
-				}
-
-				S40:
-				{
-					p = turn0;
+					p = scanned;
 				}
 
 				{
@@ -695,12 +513,12 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Feed_Expected2;
+					expected = Recognize_DotGram_Feed_Expected3;
 					p = Recognize_DotGram_Feed_Sharpen0(text, p, ref expected);
 					goto Fail;
 				}
 
-				S19:
+				S16:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
@@ -710,54 +528,40 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_eof_Feed(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected1;
-						goto S15;
+						p = -1 - scanned;
+						expected = Recognize_DotGram_Feed_Expected0;
+						goto Fail;
 					}
-					p++;
-				}
-
-				{
-					p = turn0;
-					expected = Recognize_DotGram_Feed_Expected0;
-					goto Fail;
-				}
-
-				S15:
-				{
-					p = turn0;
+					p = scanned;
 					goto Return;
 				}
 
-				S25:
+				S22:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 23, p, entries.Count, text, "Feed");
+					Trace("enter repeat", 20, p, entries.Count, text, "Feed");
 				}
 
-				S23:
+				S20:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					{
-						entries.Add(new ParserEntry(ParserEntry.LoopExit, 22, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 19, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 22, p, entries.Count, text, "Feed");
+						Trace("stand exit", 19, p, entries.Count, text, "Feed");
 					}
 				}
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 26, p, call, atomic, repeat, lookahead, 0, 7));
+					entries.Add(new ParserEntry(ParserEntry.Call, 23, p, call, atomic, repeat, lookahead, 0, 7));
 					call = callIndex;
 					Trace("call Row", 10, p, entries.Count, text, "Feed");
 				}
@@ -767,12 +571,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected14;
+						expected = Recognize_DotGram_Feed_Expected16;
 						goto Fail;
 					}
 					if (text[p] != 'R')
 					{
-						expected = Recognize_DotGram_Feed_Expected14;
+						expected = Recognize_DotGram_Feed_Expected16;
 						goto Fail;
 					}
 					p += 1;
@@ -783,12 +587,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -803,37 +607,37 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected13;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Feed_Expected13;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto Fail;
 					}
 					p++;
 				}
 
-				S72:
+				S56:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected13;
-						goto S70;
+						expected = Recognize_DotGram_Feed_Expected15;
+						goto S54;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Feed_Expected13;
-						goto S70;
+						expected = Recognize_DotGram_Feed_Expected15;
+						goto S54;
 					}
 					p++;
-					goto S72;
+					goto S56;
 				}
 
-				S70:
+				S54:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -869,12 +673,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Feed_Expected7;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -886,118 +690,16 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_Amount_Feed(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto S65;
-					}
-					if (text[p] != '-')
-					{
-						expected = Recognize_DotGram_Feed_Expected12;
-						goto S65;
-					}
-					p += 1;
-				}
-
-				S65:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
+						p = -1 - scanned;
+						expected = Recognize_DotGram_Feed_Expected14;
 						goto Fail;
 					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto Fail;
-					}
-					p++;
+					p = scanned;
 				}
 
-				S62:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S63;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S63;
-					}
-					p++;
-					goto S62;
-				}
-
-				S63:
-				{
-					p = turn0;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected11;
-						goto S57;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Feed_Expected11;
-						goto S57;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S57;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S57;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S57;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Feed_Expected6;
-						goto S57;
-					}
-					p++;
-				}
-
-				S56:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -1039,7 +741,7 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Feed_Expected10;
+					expected = Recognize_DotGram_Feed_Expected11;
 				}
 
 				{
@@ -1047,35 +749,29 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Feed_Expected9;
+						expected = Recognize_DotGram_Feed_Expected10;
 						goto Fail;
 					}
 					if (text[p] != '\r')
 					{
-						expected = Recognize_DotGram_Feed_Expected9;
+						expected = Recognize_DotGram_Feed_Expected10;
 						goto Fail;
 					}
 					p += 1;
 					goto Return;
 				}
 
-				S57:
-				{
-					p = turn0;
-					goto S56;
-				}
-
-				S26:
+				S23:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 7 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
 					Trace("rule capture", 1, p, entries.Count, text, "Feed");
-					goto S23;
+					goto S20;
 				}
 
-				S22:
+				S19:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1084,8 +780,8 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 21, p, entries.Count, text, "Feed");
-					goto S20;
+					Trace("leave repeat", 18, p, entries.Count, text, "Feed");
+					goto S17;
 				}
 
 				Return:
@@ -1257,6 +953,209 @@ namespace DotGram.Snapshots
 				parser.Reset();
 				if (lent) ReturnParser(parser); else Recycle(parser);
 			}
+		}
+
+		/// <summary><c>eof</c>, recognized with nothing written down.</summary>
+		static int Scan_eof_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var mark0 = 0;
+
+			mark0 = p;
+			if ((uint)p >= (uint)text.Length) goto L0_absent;
+			p++;
+			p = mark0;
+			goto Refuse;
+			L0_absent: ;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
+		}
+
+		/// <summary><c>Count</c>, recognized with nothing written down.</summary>
+		static int Scan_Count_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+			var turns0 = 0;
+
+			turns0 = 0;
+			L0_turn:
+			if ((uint)p >= (uint)text.Length) goto L1_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L1_done;
+			p++;
+			turns0++;
+			goto L0_turn;
+			L1_done:
+			if (turns0 < 1) goto Refuse;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
+		}
+
+		/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
+		static int Scan_Digit_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+
+			if ((uint)p >= (uint)text.Length) goto Refuse;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto Refuse;
+			p++;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
+		}
+
+		/// <summary><c>Amount</c>, recognized with nothing written down.</summary>
+		static int Scan_Amount_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+			var mark0 = 0;
+			var mark1 = 0;
+			var turns0 = 0;
+			var turns1 = 0;
+			var turns2 = 0;
+			var turns3 = 0;
+			var furthest = pos;
+
+			mark0 = p;
+			turns0 = 0;
+			L2_turn:
+			if (turns0 >= 1) goto L3_done;
+			if ((uint)p >= (uint)text.Length) goto L3_done;
+			if (text[p + 0] != '-') goto L3_done;
+			p += 1;
+			turns0++;
+			goto L2_turn;
+			L3_done:
+			;
+			turns1 = 0;
+			L4_turn:
+			if ((uint)p >= (uint)text.Length) goto L5_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L5_done;
+			p++;
+			turns1++;
+			goto L4_turn;
+			L5_done:
+			if (turns1 < 1) goto L0_undo;
+			turns2 = 0;
+			L6_turn:
+			if (turns2 >= 1) goto L7_done;
+			mark1 = p;
+			if ((uint)p >= (uint)text.Length) goto L7_done;
+			if (text[p + 0] != '.') goto L7_done;
+			p += 1;
+			turns3 = 0;
+			L10_turn:
+			if (turns3 >= 2) goto L11_done;
+			if ((uint)p >= (uint)text.Length) goto L11_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L11_done;
+			p++;
+			turns3++;
+			goto L10_turn;
+			L11_done:
+			if (turns3 < 2) goto L8_undo;
+			goto L9_on;
+			L8_undo:
+			if (p > furthest) furthest = p;
+			p = mark1;
+			goto L1_on;
+			L9_on: ;
+			turns2++;
+			goto L6_turn;
+			L7_done:
+			;
+			goto L1_on;
+			L0_undo:
+			if (p > furthest) furthest = p;
+			p = mark0;
+			goto Refuse;
+			L1_on: ;
+
+			return p;
+
+			Refuse:
+			if (p > furthest) furthest = p;
+
+			return -1 - furthest;
+		}
+
+		/// <summary><c>Date</c>, recognized with nothing written down.</summary>
+		static int Scan_Date_Feed(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+			var mark0 = 0;
+			var turns0 = 0;
+			var turns1 = 0;
+			var turns2 = 0;
+			var furthest = pos;
+
+			mark0 = p;
+			turns0 = 0;
+			L2_turn:
+			if (turns0 >= 4) goto L3_done;
+			if ((uint)p >= (uint)text.Length) goto L3_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L3_done;
+			p++;
+			turns0++;
+			goto L2_turn;
+			L3_done:
+			if (turns0 < 4) goto Refuse;
+			if ((uint)p >= (uint)text.Length) goto L0_undo;
+			if (text[p + 0] != '-') goto L0_undo;
+			p += 1;
+			turns1 = 0;
+			L4_turn:
+			if (turns1 >= 2) goto L5_done;
+			if ((uint)p >= (uint)text.Length) goto L5_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L5_done;
+			p++;
+			turns1++;
+			goto L4_turn;
+			L5_done:
+			if (turns1 < 2) goto L0_undo;
+			if ((uint)p >= (uint)text.Length) goto L0_undo;
+			if (text[p + 0] != '-') goto L0_undo;
+			p += 1;
+			turns2 = 0;
+			L6_turn:
+			if (turns2 >= 2) goto L7_done;
+			if ((uint)p >= (uint)text.Length) goto L7_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L7_done;
+			p++;
+			turns2++;
+			goto L6_turn;
+			L7_done:
+			if (turns2 < 2) goto L0_undo;
+			goto L1_on;
+			L0_undo:
+			if (p > furthest) furthest = p;
+			p = mark0;
+			goto Refuse;
+			L1_on: ;
+
+			return p;
+
+			Refuse:
+			if (p > furthest) furthest = p;
+
+			return -1 - furthest;
 		}
 
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
@@ -1474,7 +1373,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var c       = '\0';
 				string[]? expected = null;
-				var turn0 = 0;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -1485,22 +1383,22 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S31;
+					case 3: goto S21;
 					default: expected = null; goto Fail;
 				}
 
-				S31:
+				S21:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected7;
+						expected = Recognize_DotGram_Row_Expected5;
 						goto Fail;
 					}
 					if (text[p] != 'R')
 					{
-						expected = Recognize_DotGram_Row_Expected7;
+						expected = Recognize_DotGram_Row_Expected5;
 						goto Fail;
 					}
 					p += 1;
@@ -1511,12 +1409,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Row_Expected3;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Row_Expected3;
 						goto Fail;
 					}
 					p += 1;
@@ -1531,37 +1429,37 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected6;
+						expected = Recognize_DotGram_Row_Expected4;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Row_Expected6;
+						expected = Recognize_DotGram_Row_Expected4;
 						goto Fail;
 					}
 					p++;
 				}
 
-				S27:
+				S17:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected6;
-						goto S25;
+						expected = Recognize_DotGram_Row_Expected4;
+						goto S15;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Row_Expected6;
-						goto S25;
+						expected = Recognize_DotGram_Row_Expected4;
+						goto S15;
 					}
 					p++;
-					goto S27;
+					goto S17;
 				}
 
-				S25:
+				S15:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -1597,12 +1495,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Row_Expected3;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Row_Expected3;
 						goto Fail;
 					}
 					p += 1;
@@ -1614,118 +1512,16 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_Amount_Row(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected4;
-						goto S20;
-					}
-					if (text[p] != '-')
-					{
-						expected = Recognize_DotGram_Row_Expected4;
-						goto S20;
-					}
-					p += 1;
-				}
-
-				S20:
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
+						p = -1 - scanned;
 						expected = Recognize_DotGram_Row_Expected2;
 						goto Fail;
 					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Row_Expected2;
-						goto Fail;
-					}
-					p++;
+					p = scanned;
 				}
 
-				S17:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S18;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S18;
-					}
-					p++;
-					goto S17;
-				}
-
-				S18:
-				{
-					p = turn0;
-				}
-
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected3;
-						goto S12;
-					}
-					if (text[p] != '.')
-					{
-						expected = Recognize_DotGram_Row_Expected3;
-						goto S12;
-					}
-					p += 1;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S12;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S12;
-					}
-					p++;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S12;
-					}
-					c = text[p];
-					if (!(((c >= '0' && c <= '9'))))
-					{
-						expected = Recognize_DotGram_Row_Expected2;
-						goto S12;
-					}
-					p++;
-				}
-
-				S11:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -1785,12 +1581,6 @@ namespace DotGram.Snapshots
 					}
 					p += 1;
 					goto Return;
-				}
-
-				S12:
-				{
-					p = turn0;
-					goto S11;
 				}
 
 				Return:
@@ -1940,6 +1730,100 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		/// <summary><c>Amount</c>, recognized with nothing written down.</summary>
+		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+			var mark0 = 0;
+			var mark1 = 0;
+			var turns0 = 0;
+			var turns1 = 0;
+			var turns2 = 0;
+			var turns3 = 0;
+			var furthest = pos;
+
+			mark0 = p;
+			turns0 = 0;
+			L2_turn:
+			if (turns0 >= 1) goto L3_done;
+			if ((uint)p >= (uint)text.Length) goto L3_done;
+			if (text[p + 0] != '-') goto L3_done;
+			p += 1;
+			turns0++;
+			goto L2_turn;
+			L3_done:
+			;
+			turns1 = 0;
+			L4_turn:
+			if ((uint)p >= (uint)text.Length) goto L5_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L5_done;
+			p++;
+			turns1++;
+			goto L4_turn;
+			L5_done:
+			if (turns1 < 1) goto L0_undo;
+			turns2 = 0;
+			L6_turn:
+			if (turns2 >= 1) goto L7_done;
+			mark1 = p;
+			if ((uint)p >= (uint)text.Length) goto L7_done;
+			if (text[p + 0] != '.') goto L7_done;
+			p += 1;
+			turns3 = 0;
+			L10_turn:
+			if (turns3 >= 2) goto L11_done;
+			if ((uint)p >= (uint)text.Length) goto L11_done;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto L11_done;
+			p++;
+			turns3++;
+			goto L10_turn;
+			L11_done:
+			if (turns3 < 2) goto L8_undo;
+			goto L9_on;
+			L8_undo:
+			if (p > furthest) furthest = p;
+			p = mark1;
+			goto L1_on;
+			L9_on: ;
+			turns2++;
+			goto L6_turn;
+			L7_done:
+			;
+			goto L1_on;
+			L0_undo:
+			if (p > furthest) furthest = p;
+			p = mark0;
+			goto Refuse;
+			L1_on: ;
+
+			return p;
+
+			Refuse:
+			if (p > furthest) furthest = p;
+
+			return -1 - furthest;
+		}
+
+		/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
+		static int Scan_Digit_Row(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+
+			if ((uint)p >= (uint)text.Length) goto Refuse;
+			c = text[p];
+			if (!(((c >= '0' && c <= '9')))) goto Refuse;
+			p++;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
+		}
+
 		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Row value)
 		{
 			object? recognized;
@@ -1953,17 +1837,17 @@ namespace DotGram.Snapshots
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
 				p += 1;
-				expected = Recognize_DotGram_Feed_Expected3;
+				expected = Recognize_DotGram_Feed_Expected4;
 				if ((uint)p < (uint)text.Length && text[p] == '\n')
 				{
 					p += 1;
-					expected = Recognize_DotGram_Feed_Expected4;
+					expected = Recognize_DotGram_Feed_Expected5;
 				}
 			}
 			else if ((uint)p < (uint)text.Length && text[p] == '\n')
 			{
 				p += 1;
-				expected = Recognize_DotGram_Feed_Expected5;
+				expected = Recognize_DotGram_Feed_Expected6;
 			}
 			return p;
 		}
@@ -1973,17 +1857,17 @@ namespace DotGram.Snapshots
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
 				p += 1;
-				expected = Recognize_DotGram_Feed_Expected3;
+				expected = Recognize_DotGram_Feed_Expected4;
 				if ((uint)p < (uint)text.Length && text[p] == '\n')
 				{
 					p += 1;
-					expected = Recognize_DotGram_Feed_Expected4;
+					expected = Recognize_DotGram_Feed_Expected5;
 				}
 			}
 			else if ((uint)p < (uint)text.Length && text[p] == '\n')
 			{
 				p += 1;
-				expected = Recognize_DotGram_Feed_Expected5;
+				expected = Recognize_DotGram_Feed_Expected6;
 			}
 			return p;
 		}
@@ -2203,37 +2087,47 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static readonly string[] Recognize_DotGram_Feed_Expected0 = { "?![^ ]" };
+		static readonly string[] Recognize_DotGram_Feed_Expected0 = { "eof" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected1 = { "[^ ]" };
+		static readonly string[] Recognize_DotGram_Feed_Expected1 = { "?![^ ]" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected2 = { "\"\r\n\"", "'\\n'", "'\\r'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected2 = { "[^ ]" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected3 = { "\"\r\n\"", "'\\r'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected3 = { "\"\r\n\"", "'\\n'", "'\\r'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected4 = { "\"\r\n\"" };
+		static readonly string[] Recognize_DotGram_Feed_Expected4 = { "\"\r\n\"", "'\\r'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected5 = { "'\\n'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected5 = { "\"\r\n\"" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected6 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Feed_Expected6 = { "'\\n'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected7 = { "'|'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected7 = { "Count" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected8 = { "'T'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected8 = { "'|'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected9 = { "'\\r'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected9 = { "'T'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected10 = { "\"\r\n\"", "'\\n'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected10 = { "'\\r'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected11 = { "'.'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected11 = { "\"\r\n\"", "'\\n'" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected12 = { "'-'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected12 = { "Digit" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected13 = { "[^ '\\n' | '\\r' | '|']" };
+		static readonly string[] Recognize_DotGram_Feed_Expected13 = { "['0'..'9']" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected14 = { "'R'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected14 = { "Amount" };
 
-		static readonly string[] Recognize_DotGram_Feed_Expected15 = { "'H'" };
+		static readonly string[] Recognize_DotGram_Feed_Expected15 = { "[^ '\\n' | '\\r' | '|']" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected16 = { "'R'" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected17 = { "'.'" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected18 = { "'-'" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected19 = { "Date" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected20 = { "'H'" };
 
 		static readonly string[] Recognize_DotGram_Name_Expected0 = { "[^ '\\n' | '\\r' | '|']" };
 
@@ -2344,17 +2238,21 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Row_Expected1 = { "\"\r\n\"", "'\\n'" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected2 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Row_Expected2 = { "Amount" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected3 = { "'.'" };
+		static readonly string[] Recognize_DotGram_Row_Expected3 = { "'|'" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected4 = { "'-'" };
+		static readonly string[] Recognize_DotGram_Row_Expected4 = { "[^ '\\n' | '\\r' | '|']" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected5 = { "'|'" };
+		static readonly string[] Recognize_DotGram_Row_Expected5 = { "'R'" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected6 = { "[^ '\\n' | '\\r' | '|']" };
+		static readonly string[] Recognize_DotGram_Row_Expected6 = { "Digit" };
 
-		static readonly string[] Recognize_DotGram_Row_Expected7 = { "'R'" };
+		static readonly string[] Recognize_DotGram_Row_Expected7 = { "'.'" };
+
+		static readonly string[] Recognize_DotGram_Row_Expected8 = { "'-'" };
+
+		static readonly string[] Recognize_DotGram_Row_Expected9 = { "['0'..'9']" };
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome

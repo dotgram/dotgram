@@ -809,19 +809,14 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					var scanned = Scan_Sep_With1_List_With1(text, p);
+					if (scanned < 0)
 					{
-						failure.Starved = true;
+						p = -1 - scanned;
 						expected = Recognize_DotGram_List_With1_Expected0;
 						goto Fail;
 					}
-					c = text[p];
-					if (!((c == ',' || c == ';')))
-					{
-						expected = Recognize_DotGram_List_With1_Expected0;
-						goto Fail;
-					}
-					p++;
+					p = scanned;
 				}
 
 				{
@@ -1002,6 +997,23 @@ namespace DotGram.Snapshots
 				parser.Reset();
 				if (lent) ReturnParser(parser); else Recycle(parser);
 			}
+		}
+
+		/// <summary><c>Sep_With1</c>, recognized with nothing written down.</summary>
+		static int Scan_Sep_With1_List_With1(global::System.ReadOnlySpan<char> text, int pos)
+		{
+			var p = pos;
+			var c = '\0';
+
+			if ((uint)p >= (uint)text.Length) goto Refuse;
+			c = text[p];
+			if (!((c == ',' || c == ';'))) goto Refuse;
+			p++;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
 		}
 
 		static int Recognize_List_With1_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -2292,9 +2304,11 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static readonly string[] Recognize_DotGram_List_With1_Expected0 = { "[',' | ';']" };
+		static readonly string[] Recognize_DotGram_List_With1_Expected0 = { "Sep_With1" };
 
 		static readonly string[] Recognize_DotGram_List_With1_Expected1 = { "['a'..'z']" };
+
+		static readonly string[] Recognize_DotGram_List_With1_Expected2 = { "[',' | ';']" };
 
 		static void Materialize_DotGram_List(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{

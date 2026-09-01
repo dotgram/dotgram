@@ -2045,8 +2045,16 @@ sealed partial class Machine
 
 						atScan.Line($"var scanned = {scanner}(text, p);");
 						atScan.Line("if (scanned < 0)");
+
 						using (atScan.Block(""))
+						{
+							// A refusal comes back negated and carrying how far the scan
+							// reached, so the failure is recorded there rather than where the
+							// rule began — which is all the caller would otherwise know.
+							atScan.Line("p = -1 - scanned;");
 							EmitTerminalFailure(atScan, _fail, arrayName);
+						}
+
 						atScan.Line("p = scanned;");
 					}
 

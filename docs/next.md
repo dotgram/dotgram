@@ -10497,3 +10497,53 @@ and a true one has to be true.
 Nothing in the repository's own grammars changes, snapshots included, because their scanners
 really are infallible — `trivia` is a repetition of none, which is the case this was written
 for and the only one it had ever been asked about.
+
+## The scanner is asked for rather than written, and Rfc3986 never had to know
+
+The three pieces the last entry listed are built, and two more turned up in the building.
+
+**A rule becomes a scanner when the compiler can prove what braces assert.** Braces say
+"commit the first reading"; the proof is that committing loses nothing, which is
+`FollowSets` handed to `Scannable` where braces hand it nothing. The set is the union over
+every call site, so a rule reached from two places is judged against both.
+
+**Where it does not look, and why:**
+
+- *The seam.* A publication weaves trivia around what it publishes, and that is not a call
+  site the graph records — so the follow set has never heard of the one place where giving
+  the spaces back is the whole parse. This was the counterexample two entries ago.
+- *Kinds.* What a scanner is worth is swallowing a run of input in one call; over kinds a
+  step is a whole token and there are no runs, so all that is left is the call. Measured:
+  `SqlStandard92` took **twice as long**. It is excluded, and is unchanged now — 0.97x to
+  1.03x, which is noise.
+- *A body that spells itself.* A scanner is one call, so its refusal can only name the rule.
+  `Expected B.` where the same grammar compiled in place says `Expected "abqy".` is a loss
+  for a literal — and a gain for everything else, since `Expected RegName.` beats a hundred
+  character ranges. So literals and choices of them keep the inline path.
+
+**The refusal position, which was the debt.** A `furthest` local from `pos`, raised wherever
+the scan gives input back, and a refusal returning `-1 - furthest` — one value saying both
+that it refused and where it reached. Three things it needed:
+
+- A literal compared in one `SequenceEqual` has no offset to report, so the run is walked —
+  on the path that was going to refuse anyway, which costs the path that matches nothing.
+- Only where the refusal is the scan's own answer. A literal failing into a loop's exit has
+  refused nothing, and the seam of a spaced grammar ends that way at every operand; computing
+  a reach there would have been pure cost on the hottest thing in the compiler.
+- **A lookahead's advance is not distance covered.** It looked and put the position back.
+  Counting it had `eof` — which is `?!any` — report a refusal one character past where the
+  input failed to end, and that made the split parser and the character parser disagree about
+  the same grammar. `ProvenanceTests` is what says they must not.
+
+**What it is worth**, on a grammar with no braces anywhere and no changes to it:
+
+    before   after
+       206     185   1.11x  http://example.com/
+       243     205   1.19x  urn:isbn:0451450523
+       307     238   1.29x  https://example.com/%D0%BF%D1%83%D1%82%D1%8C/…
+       937     765   1.22x  http://[2001:db8::7]/c=GB?objectClass?one
+       338     248   1.36x  https://a.example/very/long/path/with/many/…
+       335     284   1.18x  http://example.com/ has a space
+
+Forty-four scanners where there were none, and 25,771 lines down to 19,277. The snapshots
+move with it: `Url` from 7,121 lines to 4,656, `Feed` from 3,147 to 3,045.
