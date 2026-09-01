@@ -9633,3 +9633,47 @@ move with the input.
 
 They pass with `Lexical = true` and they pass without it, which is the point: they are about
 the grammar and not about which machine read it.
+
+## What the second grammar found
+
+`ExpressionLanguage` was asked to split, and did not — but not before turning up five
+defects that `SqlStandard92` had no way to show, four of them in the emitter and one that
+would have been wrong in silence.
+
+**`OverKinds` was an `init` property, and a `Machine` does its work in its constructor.**
+So the object initializer ran after every state had already been written. The materializer's
+*declaration* is emitted late enough to have seen it and the *calls* to it early enough not
+to: a guard called a seven-parameter method with four arguments. It is a constructor
+argument now, which is what it always was.
+
+**Four things a rewritten graph dropped.** `State` and `Context` are `init` properties of
+`RecognitionGraph` that the split simply did not carry, and dropping `State` changes the
+publication's signature — the author's own calls stop compiling. Worse were `Climbing`,
+`Powers`, `Recoveries` and each rule's `Fold`, which are keyed by *node*: a `Node` is a
+record, so they key by structure, and changing structure is the whole of what the split
+does. Carried across they key nothing, and a left-recursive rule is then emitted as a plain
+repetition — the tail's capture becomes an array and the accumulator is never bound, so
+`=> @(Expression.OrElse(left, right))` names a `left` that does not exist. The rewrite now
+records what each node became and says the four dictionaries again in those terms.
+
+**And `SourceSpan` was carrying token indices.** `Cut` had been given seven sites and the
+spans beside them none, so a grammar over kinds that asked `parserSpan` where something
+stood would have been told which token, in an interface documented as characters. There is
+a `Span` beside `Cut` now, and a `Span_DotGram` emitted only where one is asked for, plus
+`At` for a position and `Source` for the input a line and a column are counted in — which
+is what a recovery hands its handler, and recovery was reporting all four in kinds.
+
+**What actually stopped it, and why it stays stopped.** `Hex : @string = "0x"i & t: HexRun
+=> @(t.Replace("_", ""))` is three statements at once: what a hexadecimal literal looks
+like, which part of it is the number, and that the separators come out. The lexer answers
+the first; the token it hands over is `0x_1F` whole, and the other two are gone with the
+parts they named. Six of `ExpressionLanguage`'s terminals are written that way.
+
+Refused, and named — `GRAM5004` says which rule. Handing back the token's own text instead
+would be a different parser that compiles, which is the worst of the three answers. The fix
+is a rule read twice, once by the lexer for its extent and once by its own character machine
+for its value, which is item 6 of `docs/lexical-adt-design.md` and not yet written.
+
+`SqlStandard92` could not have found any of this. It builds no values, declares no state,
+climbs no precedence and recovers from nothing — it answers yes or no. The second grammar
+was worth more than the first measurement.

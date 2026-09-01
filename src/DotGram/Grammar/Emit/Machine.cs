@@ -216,13 +216,15 @@ sealed partial class Machine
 	/// </param>
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
-		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null)
+		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
+		bool overKinds = false)
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
 		_tag = tag;
+		OverKinds = overKinds;
 		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
@@ -736,27 +738,36 @@ sealed partial class Machine
 	/// places that cut a value go through <see cref="Cut"/> so that the care is taken in one
 	/// place rather than six.
 	/// </remarks>
-	public bool OverKinds { get; init; }
+	/// <summary>Whether what this machine reads is token kinds rather than characters.</summary>
+	/// <remarks>
+	/// A constructor argument and not an <c>init</c> property, which it was until it was
+	/// wrong: this class does its work <em>in the constructor</em>, so an initializer runs
+	/// after every state has already been written. The declaration of the materializer is
+	/// emitted late enough to have seen the property and the calls to it early enough not
+	/// to, and a guard called one with four arguments where seven were declared.
+	/// </remarks>
+	public bool OverKinds { get; }
 
 	string TokensParameter =>
 		OverKinds ? ", string parserSource, int[] parserStarts, int[] parserLengths" : "";
 
 	string TokensArgument => OverKinds ? ", parserSource, parserStarts, parserLengths" : "";
 
-	/// <summary>The text between a position and a length, whatever a position is.</summary>
-	/// <remarks>
-	/// Over characters a position indexes what is being read, so the cut is a slice of it.
-	/// Over kinds it indexes a token and the text is somewhere else entirely — which is the
-	/// one thing a split grammar has to be careful about, and the reason this is a method.
-	/// </remarks>
 	/// <summary>
-	/// The text a run of tokens came from.
+	/// What a run of tokens came from: its text, and where in the input it stood.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The first token's start and the last one's end, so that trivia standing after the run
 	/// is left out — a capture is what was written, not what was written plus the space
-	/// following it. A run of none is the empty string, which is what an optional capture
-	/// that never ran hands over.
+	/// following it. A run of none is the empty string and an empty span at where it would
+	/// have begun, which is what an optional capture that never ran hands over.
+	/// </para>
+	/// <para>
+	/// Both are emitted whenever a machine reads kinds, because whether the grammar asks for
+	/// a span is known here only per site and a static nobody calls costs a build warning at
+	/// worst. Over characters neither exists: a position already is one.
+	/// </para>
 	/// </remarks>
 	string Provenance()
 	{
@@ -777,13 +788,76 @@ sealed partial class Machine
 			helper.Line("return source.Substring(began, ended - began);");
 		}
 
+		if (!_spans)
+			return helper.ToString();
+
+		helper.Line();
+		helper.Line("/// <summary>Where in the input a run of tokens stood.</summary>");
+
+		using (helper.Block(
+			$"static SourceSpan Span_DotGram{_tag}(" +
+			"int[] starts, int[] lengths, int from, int length)"))
+		{
+			// A run of none still has a place: where the next token begins, or the end of
+			// the last one when there is no next. A span with no length and no place would
+			// say the input began there, which is a different and wrong thing.
+			helper.Line("if (length <= 0)");
+			using (helper.Block(""))
+			{
+				helper.Line("var at = from < starts.Length ? starts[from] : 0;");
+				helper.Line();
+				helper.Line("return new SourceSpan(at, 0);");
+			}
+
+			helper.Line();
+			helper.Line("var began = starts[from];");
+			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+			helper.Line("return new SourceSpan(began, ended - began);");
+		}
+
 		return helper.ToString();
 	}
 
+	/// <summary>The text between a position and a length, whatever a position is.</summary>
+	/// <remarks>
+	/// Over characters a position indexes what is being read, so the cut is a slice of it.
+	/// Over kinds it indexes a token and the text is somewhere else entirely — which is the
+	/// one thing a split grammar has to be careful about, and the reason this is a method.
+	/// </remarks>
 	string Cut(string from, string length) =>
 		OverKinds
 			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
 			: $"text.Slice({from}, {length}).ToString()";
+
+	/// <summary>Where one position of the machine's own stands in the input.</summary>
+	/// <remarks>
+	/// A token's position is its first character's. Past the last token it is the end of the
+	/// input, which is where a refusal for running out has to point.
+	/// </remarks>
+	string At(string position) =>
+		OverKinds
+			? $"({position} < parserStarts.Length ? parserStarts[{position}] : parserSource.Length)"
+			: position;
+
+	/// <summary>The input as characters — what it is being read as, or what it came from.</summary>
+	string Source => OverKinds ? "global::System.MemoryExtensions.AsSpan(parserSource)" : "text";
+
+	/// <summary>And where that was, which over kinds is not where the machine is.</summary>
+	string Span(string from, string length)
+	{
+		if (!OverKinds)
+			return $"new SourceSpan({from}, {length})";
+
+		// `SourceSpan` is emitted only for a grammar that asks for one, so a helper returning
+		// it must be emitted only where one was asked for too — `Extra` reads this after every
+		// state is written, the way it already does for the expectation tables.
+		_spans = true;
+
+		return $"Span_DotGram{_tag}(parserStarts, parserLengths, {from}, {length})";
+	}
+
+	bool _spans;
 
 	/// <summary>
 	/// Whether anything in this machine names the grammar's own state (§7.7).
@@ -898,7 +972,7 @@ sealed partial class Machine
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
-				file.Line("value = end < 0 ? default : new SourceSpan(pos, end - pos);");
+				file.Line($"value = end < 0 ? default : {Span("pos", "end - pos")};");
 			else if (type is not null)
 				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
 
@@ -2038,7 +2112,7 @@ sealed partial class Machine
 				if (node is Node.Guard { Text: var guardText } && CSharpEmitter.Uses(_graph, guardText, "parserText"))
 				{
 					parameters.Add("string parserText");
-					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
+					arguments.Add(Cut("ruleStart", "p - ruleStart"));
 				}
 
 				// The same extent unread. A guard runs before its rule is finished, so this
@@ -2048,7 +2122,7 @@ sealed partial class Machine
 				if (node is Node.Guard { Text: var spanning } && CSharpEmitter.Uses(_graph, spanning, "parserSpan"))
 				{
 					parameters.Add("SourceSpan parserSpan");
-					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
+					arguments.Add(Span("ruleStart", "p - ruleStart"));
 				}
 
 				// The grammar's own state (§7.7), where the condition names it. A guard is
@@ -2175,9 +2249,10 @@ sealed partial class Machine
 						writer.Line(
 							$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
 							(member.IsOptional ? "null" : "string.Empty") + " : " +
-							$"text.Slice(entries[guardCaptured{memberIndex}At].Position, " +
-							$"entries[guardCaptured{memberIndex}At].Value - " +
-							$"entries[guardCaptured{memberIndex}At].Position).ToString();");
+							Cut(
+								$"entries[guardCaptured{memberIndex}At].Position",
+								$"entries[guardCaptured{memberIndex}At].Value - " +
+								$"entries[guardCaptured{memberIndex}At].Position") + ";");
 					else
 						using (writer.Block(
 							$"if (guardCaptured{memberIndex}At >= 0 && !guardBuilt[guardCaptured{memberIndex}At])"))

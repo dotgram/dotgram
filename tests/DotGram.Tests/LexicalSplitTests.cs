@@ -269,6 +269,120 @@ public sealed class LexicalSplitTests
 		Assert.Equal(["Name"], split.Inventory.Patterns.Select(one => one.ToString()));
 	}
 
+	/// <summary>
+	/// A terminal that builds a value out of parts of itself cannot be one token.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// This is where the second real grammar stopped. <c>ExpressionLanguage</c> writes its
+	/// numbers the way C# does — <c>Hex : @string = "0x"i &amp; t: HexRun =&gt; @(t.Replace("_",
+	/// ""))</c> — and that rule is three statements at once: what a hexadecimal literal looks
+	/// like, which part of it is the number, and that the separators come out. The lexer can
+	/// answer the first and has no way to say the other two, because the token it produces is
+	/// <c>0x_1F</c> whole.
+	/// </para>
+	/// <para>
+	/// Refused, and not approximated into handing back the token's own text: that would be a
+	/// different parser that compiles, which is worse than one that does not. The fix is a
+	/// rule read twice, and it is not written yet.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_terminal_that_builds_from_its_parts_stops_the_split()
+	{
+		var split = LexicalSplit.Of(
+			Graph(
+				"""
+				trivia = ' '*
+				namespace Lexical
+				{
+					trivia = none
+					Digits = ['0'..'9'] & ['0'..'9']*
+					Hex : @string = "0x"i & t: Digits => @(t)
+				}
+				Start = Lexical.Hex & eof
+				parse Start
+				"""));
+
+		Assert.NotNull(split);
+		Assert.Contains(split.Blocked, reason => reason.Contains("'Hex'") && reason.Contains("parts of itself"));
+	}
+
+	/// <summary>
+	/// And what a rule left recursive over kinds folds into is still what it folded into.
+	/// </summary>
+	/// <remarks>
+	/// <c>Climbing</c>, <c>Powers</c>, <c>Recoveries</c> and a <c>Fold</c> are all keyed by
+	/// <em>node</em>, and a <c>Node</c> is a record — so they key by structure, and changing
+	/// structure is the whole of what the split does. Carried across unchanged they key
+	/// nothing, the rule is emitted as a plain repetition, and the accumulator the author
+	/// named in <c>=&gt; @(...)</c> is never bound. That is a compile error in someone else's
+	/// project, so it is asserted here on the model instead.
+	/// </remarks>
+	[Fact]
+	public void A_left_recursive_rule_keeps_its_fold()
+	{
+		const string Climbing =
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Digits = ['0'..'9'] & ['0'..'9']*
+			}
+			Sum : @int = left: Sum & '+' & right: Term => @(left + right)
+			           | t: Term                       => @(t)
+			Term : @int = d: Lexical.Digits => @(int.Parse(d))
+			parse Sum
+			""";
+
+		var source = Graph(Climbing);
+		var split  = LexicalSplit.Of(source);
+
+		Assert.NotNull(split);
+		Assert.Empty(split.Blocked);
+
+		var rule = split.Syntax.Rules.Single(one => one.Name == "Sum");
+
+		Assert.True(source.Folds.ContainsKey(rule), "the character graph folds it");
+		Assert.True(split.Syntax.Folds.ContainsKey(rule), "and so does the split one");
+
+		// Not merely present — pointing at a node the new bodies actually hold. A fold whose
+		// loop belongs to the graph it came from is the same defect wearing a passing test.
+		var loop = split.Syntax.Folds[rule].Loop;
+
+		Assert.Contains(Descendants(split.Syntax.Bodies[rule]), node => ReferenceEquals(node, loop) || node == loop);
+	}
+
+	/// <summary>A grammar's own state travels with it.</summary>
+	/// <remarks>
+	/// <c>State</c> and <c>Context</c> are the two things a rewritten graph was dropping in
+	/// silence, and dropping them changes a signature: the publication loses the parameter the
+	/// author declared, so their own calls to it stop compiling.
+	/// </remarks>
+	[Fact]
+	public void A_declared_state_survives_the_split()
+	{
+		var source = Graph(
+			"""
+			state : @System.Text.StringBuilder
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Start = Lexical.Name & eof
+			parse Start
+			""");
+
+		var split = LexicalSplit.Of(source);
+
+		Assert.NotNull(split);
+		Assert.NotNull(source.State);
+		Assert.Equal(source.State, split.Syntax.State);
+	}
+
 	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name) =>
 		inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Single(one => one.Rule.Name == name);
 

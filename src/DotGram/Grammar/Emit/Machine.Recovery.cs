@@ -192,14 +192,24 @@ sealed partial class Machine
 		}
 	}
 
-	static string RecoverySupplied(string name, RecoveryPlan plan) => name switch
+	/// <summary>
+	/// What a recovery hands its handler, said in characters however the machine reads.
+	/// </summary>
+	/// <remarks>
+	/// Everything here is about <em>the input the author wrote</em> and not about what the
+	/// parser is walking: a handler is given a message to show a person. So over kinds each
+	/// of the five is mapped back — the position of a token is the position of its first
+	/// character, and a line and a column are counted in the source rather than in the
+	/// kinds, where they would all be one.
+	/// </remarks>
+	string RecoverySupplied(string name, RecoveryPlan plan) => name switch
 	{
-		"parserText"     => "text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString()",
-		"parserPosition" => "recovered.Position",
+		"parserText"     => Cut("recovered.Position", "recovered.Value - recovered.Position"),
+		"parserPosition" => At("recovered.Position"),
 		"parserOrdinal"  => "recovered.RuleIndex",
-		"parserLine"     => "LineAt(text, recovered.Position)",
-		"parserColumn"   => "ColumnAt(text, recovered.Position)",
-		"parserSpan"     => "new SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
+		"parserLine"     => $"LineAt({Source}, {At("recovered.Position")})",
+		"parserColumn"   => $"ColumnAt({Source}, {At("recovered.Position")})",
+		"parserSpan"     => Span("recovered.Position", "recovered.Value - recovered.Position"),
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		"parserInput"    => "parserInput",

@@ -141,6 +141,30 @@ public sealed class LexicalSplit
 			return reached;
 		}
 
+		/// <summary>
+		/// Whether a rule the lexer took over was making something out of what it read.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A terminal is a token and its text, and most grammars want no more: a name is what
+		/// it says, and <c>Identifier</c> declares no type. But a rule may build:
+		/// <c>Hex : @string = "0x"i &amp; t: HexRun =&gt; @(t.Replace("_", ""))</c> hands back
+		/// the digits without the prefix and without the separators, and none of that survives
+		/// becoming one token — the capture named a part, and the syntactic machine sees only
+		/// the whole.
+		/// </para>
+		/// <para>
+		/// Refused rather than approximated. Handing back the token's whole text would be a
+		/// different parser that compiles, which is the worst of the three answers. What makes
+		/// it fixable is a rule read twice — once by the lexer to find its extent and once by
+		/// its own character machine to build its value — which is `docs/lexical-adt-design.md`
+		/// item 6 and not yet written.
+		/// </para>
+		/// </remarks>
+		bool Builds(RuleSymbol rule) =>
+			graph.Types.ContainsKey(rule) ||
+			graph.Results.TryGetValue(rule, out var members) && members.Count > 0;
+
 		public LexicalSplit Split()
 		{
 			var rules   = new List<RuleSymbol>();
@@ -153,6 +177,11 @@ public sealed class LexicalSplit
 					_sets.Contains(rule.Name) ||
 					!graph.Bodies.TryGetValue(rule, out var body))
 				{
+					if (Builds(rule))
+						blocked.Add(
+							$"'{rule.Name}' is a terminal that builds a value out of parts of itself, " +
+							"which the lexer reads as one token and no longer has the parts of");
+
 					continue;
 				}
 
@@ -175,11 +204,19 @@ public sealed class LexicalSplit
 				// grammar declared is about values and control, not about the alphabet, and
 				// travels unchanged.
 				Externals  = graph.Externals,
-				Folds      = graph.Folds,
-				Recoveries = graph.Recoveries,
-				Climbing   = graph.Climbing,
-				Powers     = graph.Powers,
 				FreeNames  = graph.FreeNames,
+				Context    = graph.Context,
+				State      = graph.State,
+
+				// Keyed by node — said again in the terms of the graph that now holds those
+				// nodes, see `_became`. A fold is keyed by rule and holds nodes inside it,
+				// so it is rebuilt rather than looked up.
+				Recoveries = Remapped(graph.Recoveries),
+				Powers     = Remapped(graph.Powers),
+				Climbing   = Kept(graph.Climbing, rules).ToDictionary(
+					one => one.Key,
+					one => (IReadOnlyDictionary<Node, int>)Remapped(one.Value)),
+				Folds = Refolded(Kept(graph.Folds, rules)),
 			};
 
 			return new LexicalSplit(
@@ -217,7 +254,73 @@ public sealed class LexicalSplit
 					[],
 					[]);
 
+		/// <summary>
+		/// The rewrite, and a record of what each node became.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Three of the graph's dictionaries are keyed by <em>node</em> rather than by rule —
+		/// <c>Climbing</c> says which alternatives of a rule are left recursive, <c>Powers</c>
+		/// what binds tighter than what, <c>Recoveries</c> where a refusal may be caught. A
+		/// <c>Node</c> is a record, so those keys match by structure, and the whole of what
+		/// this class does is change structure. Carried across unchanged they key nothing.
+		/// </para>
+		/// <para>
+		/// It is silent where it is wrong, which is how it was found: a climbing rule whose
+		/// alternatives no longer match its <c>Climbing</c> map is emitted as ordinary
+		/// recursion, so the left capture is never bound and the C# the author wrote in
+		/// <c>=&gt; @(...)</c> names a variable that does not exist. That is a compile error
+		/// and therefore loud. Nothing says <c>Powers</c> would be.
+		/// </para>
+		/// </remarks>
+		readonly Dictionary<Node, Node> _became = [];
+
 		Node Rewrite(Node node, RuleSymbol owner, List<string> blocked)
+		{
+			var into = Rewritten(node, owner, blocked);
+
+			// By structure, so two nodes a grammar wrote the same way share one entry — which
+			// is right: they rewrite the same way too, and the dictionaries being remapped
+			// could not have told them apart in the first place.
+			_became[node] = into;
+
+			return into;
+		}
+
+		/// <summary>
+		/// A left-recursive rule's fold, over the loop the rewrite made of its loop.
+		/// </summary>
+		/// <remarks>
+		/// A fold is what §4.3 leaves behind when it turns <c>Or = Or &amp; "||" &amp; And</c>
+		/// into a repetition of tails: the loop node, and which capture of each tail carries
+		/// the value built so far. Lose it and the rule still reads — as a plain repetition,
+		/// so the tail's capture becomes an array and the accumulator is never passed. The
+		/// author's <c>=&gt; @(Expression.OrElse(left, right))</c> then has no <c>left</c>.
+		/// </remarks>
+		Dictionary<RuleSymbol, Fold> Refolded(Dictionary<RuleSymbol, Fold> folds)
+		{
+			var into = new Dictionary<RuleSymbol, Fold>(folds.Count);
+
+			foreach (var one in folds)
+				if (_became.TryGetValue(one.Value.Loop, out var loop))
+					into[one.Key] = new Fold(loop, Remapped(one.Value.Accumulators));
+
+			return into;
+		}
+
+		/// <summary>Every dictionary key that survived, said in the new graph's terms.</summary>
+		Dictionary<Node, T> Remapped<T>(IReadOnlyDictionary<Node, T> from)
+		{
+			var into = new Dictionary<Node, T>(from.Count);
+
+			foreach (var one in from)
+				if (_became.TryGetValue(one.Key, out var became))
+					into[became] = one.Value;
+
+			return into;
+		}
+
+		Node Rewritten(Node node, RuleSymbol owner, List<string> blocked)
 		{
 			switch (node)
 			{

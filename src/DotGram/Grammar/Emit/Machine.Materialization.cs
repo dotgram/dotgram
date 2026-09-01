@@ -353,7 +353,7 @@ sealed partial class Machine
 	/// </remarks>
 	string ValueFrom(string type, string index) =>
 		type == "SourceSpan"
-			? $"new SourceSpan(entries[{index}].Position, entries[{index}].Value - entries[{index}].Position)"
+			? Span($"entries[{index}].Position", $"entries[{index}].Value - entries[{index}].Position")
 			: TableFor(type) is var table && table >= 0
 				? $"values{table}[{index}]"
 				: $"({type})values[{index}]!";
@@ -1090,9 +1090,7 @@ sealed partial class Machine
 			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(
-				"new SourceSpan(" +
-				"completed.Position, completed.Value - completed.Position)");
+			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -1130,9 +1128,7 @@ sealed partial class Machine
 			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(
-				"new SourceSpan(" +
-				"completed.Position, completed.Value - completed.Position)");
+			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");

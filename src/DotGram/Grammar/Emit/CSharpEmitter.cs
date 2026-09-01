@@ -170,10 +170,8 @@ public static partial class CSharpEmitter
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
-			var made = new Machine(graph, results, lines, Streaming(graph, overKinds), only, tag, partSize)
-			{
-				OverKinds = overKinds,
-			};
+			var made = new Machine(
+				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
