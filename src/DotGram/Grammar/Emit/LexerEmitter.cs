@@ -108,7 +108,10 @@ public static class LexerEmitter
 			return;
 
 		foreach (var (bounds, at) in Bounds.Select((one, at) => (one, at)))
-			text.Line($"static readonly char[] Scan{tag}_Set{at} = {{ {bounds} }};");
+			text.Line(
+				bounds.Length == 0
+					? $"static readonly char[] Scan{tag}_Set{at} = new char[0];"
+					: $"static readonly char[] Scan{tag}_Set{at} = {{ {bounds} }};");
 
 		text.Line();
 	}
@@ -128,10 +131,17 @@ public static class LexerEmitter
 	static void Between(Writer text, string tag)
 	{
 		text.Line("/// <summary>Whether a character is inside a set given as alternating bounds.</summary>");
-		text.Line($"static bool Scan{tag}_Between(char c, char[] bounds)");
+		text.Line("/// <remarks>");
+		text.Line("/// In two halves, cut at the top of ASCII: a keyword trie branches on the letters");
+		text.Line("/// that begin words, which are ASCII, so what is above it is the same set of Unicode");
+		text.Line("/// letters from every state and is written once for all of them.");
+		text.Line("/// </remarks>");
+		text.Line($"static bool Scan{tag}_Between(char c, char[] below, char[] above)");
 
 		using (text.Braces())
 		{
+			text.Line($"var bounds = c < {Ascii} ? below : above;");
+			text.Line();
 			text.Line("var low  = 0;");
 			text.Line("var high = bounds.Length;");
 			text.Line();
@@ -543,23 +553,65 @@ public static class LexerEmitter
 
 	static string Tag = "";
 
+	/// <summary>
+	/// A wide set, cut at the top of ASCII so that its halves can be shared apart.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Whole, these sets are what a generated lexer is mostly made of: <c>SqlStandard92</c>
+	/// had sixty-seven of them and they were <b>65% of the file</b>. They are that many
+	/// because a keyword trie has a state per prefix and each one's "any letter that is not
+	/// one I branch on" is a set of its own — four hundred ranges, written out again for
+	/// every state.
+	/// </para>
+	/// <para>
+	/// And they are nearly the same set. A trie branches on the letters that begin the words
+	/// of a language, which are ASCII in every language that has keywords; above ASCII all
+	/// sixty-seven are the same Unicode letters. Cut at <c>U+0080</c> there are <b>three</b>
+	/// distinct upper halves among the sixty-seven, one of which covers sixty-four — so the
+	/// half that is enormous is written three times and the half that differs is a handful of
+	/// characters.
+	/// </para>
+	/// <para>
+	/// Nothing about the reading changes: the halves are searched by the same parity rule,
+	/// and which one to search is a comparison against a constant.
+	/// </para>
+	/// </remarks>
 	static string Searched(IReadOnlyList<CharRange> ranges)
+	{
+		var low  = new List<CharRange>();
+		var high = new List<CharRange>();
+
+		foreach (var range in ranges)
+		{
+			if (range.From < Ascii)
+				low.Add(new CharRange(range.From, (char)Math.Min((int)range.To, Ascii - 1)));
+
+			if (range.To >= Ascii)
+				high.Add(new CharRange((char)Math.Max((int)range.From, Ascii), range.To));
+		}
+
+		return $"Scan{Tag}_Between(c, Scan{Tag}_Set{Field(low)}, Scan{Tag}_Set{Field(high)})";
+	}
+
+	/// <summary>Where ASCII stops and the categories begin.</summary>
+	const int Ascii = 0x80;
+
+	/// <summary>The field holding one run of bounds, made once however often it is asked for.</summary>
+	static int Field(IReadOnlyList<CharRange> ranges)
 	{
 		var bounds = string.Join(
 			", ",
 			ranges.SelectMany(range =>
 				new[] { CSharpEmitter.Char(range.From), CSharpEmitter.Char((char)(range.To + 1)) }));
 
-		// The same set asked for twice is the same field. A lexer asks for very few distinct
-		// wide sets — one per character class the grammar wrote — and asks for each of them
-		// from a great many states.
 		if (!Named.TryGetValue(bounds, out var at))
 		{
 			Named[bounds] = at = Bounds.Count;
 			Bounds.Add(bounds);
 		}
 
-		return $"Scan{Tag}_Between(c, Scan{Tag}_Set{at})";
+		return at;
 	}
 
 	/// <summary>The smallest writer that will do, so this file owes the emitter nothing.</summary>

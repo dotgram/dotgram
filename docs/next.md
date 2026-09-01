@@ -9983,3 +9983,30 @@ So calling `char.IsLetter` from emitted code would make the language a parser ac
 function of the framework it is running on: the same assembly would take `U+A7CB` in an
 identifier on one machine and refuse it on another. Expanding `\p{L}` into ranges at
 generation time is what freezes it, and those eight characters are what that is worth.
+
+## Two thirds of the generated SQL parser was one set, written out sixty-seven times
+
+Chasing a faster membership test turned up something much larger than the test. The 67
+`Scan_Set` declarations were **65% of the file** — 532,823 characters of 816,461.
+
+They are that many because a keyword trie has a state per prefix, and each state's "any
+letter that is not one I branch on" is a set of its own: four hundred ranges, written out
+again for every state. And they are nearly the same set. A trie branches on the letters that
+begin the words of a language, and those are ASCII in every language that has keywords —
+so above `U+0080` all sixty-seven are the same Unicode letters. Cut there, **three** distinct
+upper halves remain among the sixty-seven, and one of them covers sixty-four.
+
+So each set is emitted as two fields and searched as two: `c < 128 ? below : above`, the
+same parity rule on whichever half. The half that is enormous is written three times, and
+the half that differs is a handful of characters.
+
+    816,461 -> 312,933 characters, 62% smaller
+
+The line count barely moves — 9,078 to 9,088 — because a set was always one very long line;
+what shrank is what is on them. And reading got *faster* rather than merely no slower, 1.01x
+to 1.13x over the corpus, which is half a megabyte of static data no longer competing for
+cache with everything else.
+
+The same shape is in the character parser's `Recognize_DotGram_Set`, where `ExpressionLanguage`
+has five of them rather than sixty-seven — a few percent rather than two thirds, and not yet
+done.
