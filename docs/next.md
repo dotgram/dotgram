@@ -10046,6 +10046,6 @@ was never going to read — a fifth of the time on an input that is all keywords
 answer is always on the first line. As an expression at the call site it costs nothing,
 because the branch that touches the span is the branch not taken.
 
-The file grows from 310,106 characters to 370,162 — the price of printing three eight-kilobyte
-halves instead of three sets of bounds. Against the 816,461 it was this morning that is still
-55% smaller.
+The file grows from 310,106 characters to 401,442 — three eight-kilobyte halves printed
+instead of three sets of bounds, and the test written out at sixty-seven call sites instead
+of called. Against the 816,461 it was this morning that is still half.
