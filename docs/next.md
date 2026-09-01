@@ -9888,3 +9888,52 @@ never been near any of this, has the same exponent — 40.8x for eight times the
 the split parser's 39.3x. So this is how the recognizer has always behaved and nothing
 measured it, which is the same sentence as the first paragraph and the reason the file
 exists.
+
+## What the quadratic was, and it was one alternative
+
+The recognizer is not quadratic in nesting. One rule is, and finding out which took four
+ablations of the same grammar rather than any reasoning about the engine.
+
+**Everything synthetic was linear.** A bare parenthesis recursion, the same with an operator
+written as a repetition, the same written left-recursively, a ladder of six precedence
+levels, that ladder with a woven seam, and that ladder with a lexical namespace — all of
+them double when the depth doubles. So the engine's arena, its unwinding and its left-
+recursion folding are not it, which is what the first hour was spent suspecting.
+
+**Then the layers, and only one of them.** `SqlStandard92` publishes two rules, and they
+disagree: over the same nest `ValueExpression` is linear (2,970 / 5,679 / 11,256 at depth 32,
+64, 128) and `SearchCondition` is quadratic (71,379 / 273,343 / 1,072,011 — a clean factor
+of four for a doubling). So the cost is in the predicate layer above the expression ladder.
+
+**Then the shape of the input.** `nest > 0`, `0 > nest` and `nest IS NULL` cost the same, so
+it is not the tail; and `(a, nest) = (1, 2)` is linear, which is the pair that names it — a
+list with a comma in it is recognized straight away, and a bare parenthesis is not.
+
+**Then the rule, by removing one alternative at a time:**
+
+     n      whole   no subquery      no list   element only
+    32    58,556n      63,008n       1,608n         3,286n
+   128   867,543n     891,265n       5,799n        12,247n
+
+    RowValueConstructor = '(' & RowValueConstructorElement
+                              & (',' & RowValueConstructorElement)+ & ')'
+                        | TableSubquery
+                        | RowValueConstructorElement
+
+The first alternative is the whole of it. `TableSubquery` — the balanced-bracket scan that
+was the obvious suspect, being the one place this grammar is knowingly wider than SQL — costs
+nothing at all.
+
+**Why it costs what it costs.** On `(((a+a)+a)+a)` the alternative takes the `'('`, reads an
+element, and asks for a comma that is not there. So it fails — and then the engine tries the
+element *shorter*: a `+` chain of length n offers n places to stop, and after each of them
+the comma is asked for again. n attempts over n characters is the square, and the nesting
+supplies a fresh chain at every level.
+
+That is a real property of the machine and not of this grammar: a sequence whose second half
+fails is retried against every shorter reading of its first half. A PEG would have committed
+after the first reading; this engine explores. Which of the two is wanted is a decision about
+the notation — §4.4's atomic braces already say "do not come back here", and writing them
+around the element would end this instance today. What they would not do is find the next
+one, and nothing in the compiler currently can: no rule warns that an alternative may consume
+an unbounded prefix before deciding.
