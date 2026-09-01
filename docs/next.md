@@ -9846,3 +9846,45 @@ for the plain chain. A keyword trie has a great many states that admit exactly t
 continuing a word, and at a fixed width those states share one row.
 
 Every `Scan_Part` still reaches `Tier1 with Dynamic PGO`; nothing says `MinOpts`.
+
+## SqlStandard92 gets a benchmark, and the benchmark says something
+
+Every number the lexical split has been justified by — the split itself, the inventory, the
+generated lexer, its division into methods, the transition table that replaced its `switch` —
+came from a throwaway program that no longer exists. A parser whose numbers live nowhere is
+one whose next change is measured against a memory. So `SqlBenchmarks` now holds the corpus,
+graded nests and their refusals, and the input that stops being this language at its first
+character.
+
+It earned its keep on the first run.
+
+    input                                accepted    refused
+    a = 1                                    167n          —
+    salary BETWEEN 1000 AND 2000             321n          —
+    CAST(x AS INTEGER) = 5 OR SUBSTRING(…)   740n          —
+    (a + b) * c > d                          540n      1,274n
+    ((((a + 1) * 2) - 3) / 4) + b > 0      1,904n      8,457n
+    ((((((a + 1) * 2) …) * 6) + b > 0      3,892n     20,736n
+    ! a = 1                                    —           7n
+
+A short condition allocates nothing, which is the token buffers being rented and handed back
+working as intended. A refusal at depth allocates 2,520 bytes against the accepted parse's
+328, and costs five times as much.
+
+**And the shape underneath it.** Not an exponential — the ratios between successive depths
+fall away (1.88, 1.69, 1.59, 1.49, 1.42, 1.36, 1.36), which is a polynomial and not the
+thing this repository has twice found and fixed. What it is, is quadratic in *nesting*:
+
+     n   parentheses        AND chain          a + 0 + 1 + …
+     2   17ch     609n      27ch     569n      13ch    254n
+    32  220ch  56,168n     401ch   6,434n     155ch  1,456n
+
+The `AND` chain is fifteen times longer and eleven times slower — linear. The sum is twelve
+times longer and six times slower. The parenthesis nest is thirteen times longer and
+**ninety-two** times slower. Length is not the variable; depth is.
+
+**It is the engine and not the split.** `ExpressionLanguage`, which reads characters and has
+never been near any of this, has the same exponent — 40.8x for eight times the depth against
+the split parser's 39.3x. So this is how the recognizer has always behaved and nothing
+measured it, which is the same sentence as the first paragraph and the reason the file
+exists.
