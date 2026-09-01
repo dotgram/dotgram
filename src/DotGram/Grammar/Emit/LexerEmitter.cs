@@ -73,6 +73,8 @@ public static class LexerEmitter
 		Named.Clear();
 		Low.Clear();
 		Lows.Clear();
+		Edges.Clear();
+		Edged.Clear();
 		Reached = true;
 		Wide = false;
 
@@ -117,7 +119,52 @@ public static class LexerEmitter
 		foreach (var (bits, at) in Low.Select((one, at) => (one, at)))
 			text.Line($"static readonly ulong[] Scan{tag}_Low{at} = {{ {bits} }};");
 
+		foreach (var (bounds, at) in Edges.Select((one, at) => (one, at)))
+			text.Line(
+				bounds.Length == 0
+					? $"static readonly char[] Scan{tag}_Bounds{at} = new char[0];"
+					: $"static readonly char[] Scan{tag}_Bounds{at} = {{ {bounds} }};");
+
 		text.Line();
+
+		if (Edges.Count > 0)
+		{
+			text.Line("/// <summary>Whether a character is inside a set given as alternating bounds.</summary>");
+			text.Line("/// <remarks>");
+			text.Line("/// The bounds alternate: a range's first character and one past its last. So a");
+			text.Line("/// character is inside exactly where the number of bounds at or below it is odd,");
+			text.Line("/// which a search answers in a handful of steps. This is what a set too small to");
+			text.Line("/// be worth eight kilobytes of bitmap costs instead.");
+			text.Line("/// </remarks>");
+			text.Line($"static bool Scan{tag}_Between(char c, char[] bounds)");
+
+			using (text.Braces())
+			{
+				text.Line("var low  = 0;");
+				text.Line("var high = bounds.Length;");
+				text.Line();
+
+				using (text.Braces("while (low < high)", ""))
+				{
+					text.Line("var middle = (low + high) / 2;");
+					text.Line();
+					text.Line("if (bounds[middle] <= c)");
+
+					using (text.Indent())
+						text.Line("low = middle + 1;");
+
+					text.Line("else");
+
+					using (text.Indent())
+						text.Line("high = middle;");
+				}
+
+				text.Line();
+				text.Line("return (low & 1) != 0;");
+			}
+
+			text.Line();
+		}
 
 		foreach (var (bits, at) in Bounds.Select((one, at) => (one, at)))
 		{
@@ -150,6 +197,8 @@ public static class LexerEmitter
 	static readonly Dictionary<string, int>  Named  = [];
 	static readonly List<string>             Low    = [];
 	static readonly Dictionary<string, int>  Lows   = [];
+	static readonly List<string>             Edges  = [];
+	static readonly Dictionary<string, int>  Edged  = [];
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
 	static bool Wide;
 
@@ -672,17 +721,50 @@ public static class LexerEmitter
 				high.Add(new CharRange((char)Math.Max((int)range.From, Ascii), range.To));
 		}
 
+		// A bitmap is eight kilobytes whatever it holds, so it is spent only where it is
+		// paid for: on a set with hundreds of ranges, which is what a Unicode category is.
+		// A smaller one keeps the parity search — a set of thirty-six ranges is 144 bytes of
+		// bounds against eight kilobytes, and a grammar naming many small classes would
+		// otherwise put a bitmap in the assembly for each of them.
+		var above = high.Count > Bitmapped
+			? $"(Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0"
+			: $"Scan{Tag}_Between(c, Scan{Tag}_Bounds{Edge(high)})";
+
 		// Written out rather than called: behind a method taking a span, every character
 		// pays for materializing the half it will not read, which measured as a fifth of the
-		// time on an input that is all keywords.
-		//
-		// And where ASCII cannot arrive there is nothing to choose between, so the test is
-		// the bit and no more.
-		var above = $"(Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0";
-
+		// time on an input that is all keywords. And where ASCII cannot arrive there is
+		// nothing to choose between, so the test is what is left of it.
 		return Reached
 			? $"(c < {Ascii} ? (Scan{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 : {above})"
 			: above;
+	}
+
+	/// <summary>
+	/// How many ranges make a bitmap worth eight kilobytes.
+	/// </summary>
+	/// <remarks>
+	/// A Unicode category is four hundred ranges and a class somebody wrote out is a dozen;
+	/// there is no continuum here to cut in the middle of, so the number only has to fall
+	/// between them. Sixty-four, which is also about where the parity search stops being six
+	/// steps and starts being ten.
+	/// </remarks>
+	const int Bitmapped = 64;
+
+	/// <summary>The field holding one run of alternating bounds.</summary>
+	static int Edge(IReadOnlyList<CharRange> ranges)
+	{
+		var bounds = string.Join(
+			", ",
+			ranges.SelectMany(range =>
+				new[] { CSharpEmitter.Char(range.From), CSharpEmitter.Char((char)(range.To + 1)) }));
+
+		if (!Edged.TryGetValue(bounds, out var at))
+		{
+			Edged[bounds] = at = Edges.Count;
+			Edges.Add(bounds);
+		}
+
+		return at;
 	}
 
 	/// <summary>The ASCII half, as the 128 bits it is.</summary>

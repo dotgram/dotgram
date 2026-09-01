@@ -10131,3 +10131,43 @@ Against the chain the day began with, and against the branchy version:
 
 Removing the branch bought nothing — it was perfectly predicted, being always false. What
 it bought is the file: 580,503 characters to 547,119, and sixty-seven fields nothing read.
+
+## A bitmap only where eight kilobytes are paid for
+
+A bitmap costs eight kilobytes whatever it holds, and one of `SqlStandard92`'s three held
+360 characters and was read from a single place. A grammar naming many small classes would
+put one in the assembly for each of them, which is a data segment growing with the grammar
+rather than with the alphabet.
+
+So it is spent by weight: above sixty-four ranges a set gets a bitmap, below it the parity
+search over bounds. There is no continuum to cut in the middle of — a Unicode category is
+four hundred ranges and a class somebody wrote out is a dozen — so the number only has to
+fall between them. `SqlStandard92` keeps two bitmaps and one 144-byte bounds array where it
+had three bitmaps, and the file goes from 547,029 characters to 531,106.
+
+**What the three were**, since it is the clearest picture of what a lexer's wide sets
+actually are:
+
+    Scan_High0   48,921 characters   \p{L}              2 sites    identifier start
+    Scan_High1   49,281 characters   \p{L} | \p{Nd}   457 sites    identifier continuation
+    Scan_High2      360 characters   \p{Nd}             1 site     inside a number
+
+The 360 are every decimal digit outside ASCII — Arabic-Indic, Devanagari, Thai and the rest.
+That is the one that is bounds now.
+
+**And against the runtime's own predicates**, which was the other question:
+
+    input             bounds     bitmap   IsLetter    IsDigit     either
+    ASCII letters      9.19n      2.13n      2.28n      2.02n      2.23n
+    ASCII marks        4.97n      1.51n      1.69n      1.31n      1.32n
+    Cyrillic           5.26n      1.12n      2.81n      2.82n      2.81n
+    CJK                5.05n      1.11n      2.80n      2.82n      2.85n
+
+Level on ASCII, where `char.IsLetter` is one arithmetic test and the bitmap is one load, and
+two and a half times faster above it, where the runtime walks three levels of page table and
+decodes a category and the bitmap still does one load. Which is what a table answering one
+question beats a table answering every question by.
+
+Not that speed is why the emitted code cannot call them. `\p{L}` is expanded from the
+generator's Unicode tables at generation time, and `char.IsLetter` reads the consumer's — the
+same assembly would take `U+A7CB` in an identifier on one runtime and refuse it on another.
