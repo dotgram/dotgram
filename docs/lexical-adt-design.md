@@ -372,64 +372,65 @@ of its own is untouched, which is what keeps a lexeme a lexeme.
 
 ## What the split turned out to need, once it was written
 
-Three things the plan above did not know, each found by running the rewrite against
+Four things the plan did not know, each found by running the rewrite against
 `SqlStandard92` and its own oracle rather than by reasoning about it.
 
-**A class stands for itself *and* for the words it would have matched.** `zone` is a word
-of SQL-92 — `WITH TIME ZONE` — and is not reserved, so `Identifier = ?!Reserved &
-RegularIdentifier` takes it over characters. Over kinds it arrives as that keyword's own
-kind and never reaches `RegularIdentifier` at all. So the crossing rewrites to a *set*: the
-class, plus every word terminal whose text the class accepts, with the `?!Reserved` in
-front taking the reserved ones back out. That union is the set difference this document
-promised, arrived at from the other side, and it is the general answer to contextual
-keywords. Deciding it needs a matcher over the lexical rules — the strings are keywords and
-the rules are small, so membership is answered exactly rather than approximated.
+**A kind is a set of patterns, not a pattern.** This is the one that matters and it took
+two attempts to see. `SELECT` is matched by the keyword *and* by `RegularIdentifier`; `0`
+by `Digits` *and* by `UnsignedNumericLiteral`; `'x'` by `QuotedString` *and* by
+`CharacterStringLiteral`. Written as one kind per pattern, a lexer has to choose, and every
+syntactic position that wanted the other stops reading — which is how the first version
+came to refuse three grammars that had nothing wrong with them. So a kind is the whole set
+of patterns that matched, the test for a pattern is "the kind's set holds it" — a set of
+kinds, computed at compile time and lowered to a range test — and nothing is refused.
+
+    10          {Digits, UnsignedNumericLiteral}    one kind
+    1.5         {UnsignedNumericLiteral}            another
+    SELECT      {"SELECT", RegularIdentifier}       another
+    zone        {"ZONE", RegularIdentifier}         another
+
+`Length = '(' & Digits & ')'` takes the first; a value position takes the first and the
+second; an identifier position takes the third and the fourth, and `?!Reserved` then takes
+the third back out. Contextual keywords, overlapping literal classes and the reserved-word
+lookahead are all one mechanism, seen from three sides.
 
 **Nothing may rewrite to nothing where nothing means something else.** `?!wordboundary` has
 an operand that is entirely the lexer's; rewriting it away leaves a negative lookahead over
-what matches the empty string, which refuses everywhere. The first run of the rewrite cut
-half of SQL out of the machine that way and looked like a triumph — 3,313 lines — until the
-gate refused every input.
+what matches the empty string, which refuses everywhere. The first run cut half of SQL out
+of the machine that way and looked like a triumph — 3,313 lines — until the gate refused
+every input.
 
-**Two classes that accept the same string cannot both be numbered.** A token carries one
-kind. `Digits` and `UnsignedNumericLiteral` both accept `0`; longest match gives the
-second, and `Length = '(' & Digits & ')'` — the precision of a `NUMERIC` or a `VARCHAR` —
-then stops reading. The compiler cannot resolve it: one kind for both widens the language,
-choosing one narrows it. So it is refused, with the string as the witness, and the author
-decides what they meant.
+**A negated class names what it excludes.** `[^ '(' | ')']` over characters is "one item
+that is not a bracket", and over kinds it is the same sentence about a wider alphabet —
+which is what `Subquery` means by "anything balanced" and could not say before. Counting
+its sixty-five thousand members was the first attempt, and it refused a grammar that had no
+problem.
 
-That check found three, and the third is the interesting one:
-
-    SqlStandard92   Digits / UnsignedNumericLiteral          both accept "0"
-                    CharacterStringLiteral / QuotedString    both accept "''"
-    ExpressionLanguage
-                    TypeName / Word                          both accept "A"
-
-`TypeName = Word & ('.' & Word)*` is not a token at all — it is syntax that lives in a
-lexical namespace only so that `System . Text` will not read with spaces in it. Which says
-something the plan had at the bottom of its list and should have had nearer the top:
-**`trivia = none` marks where trivia is off, and that is not the same line as where tokens
-end.** Inference from it picks up rules that are not terminals. An explicit lexical root is
-not a convenience for later; it is what tells `Word` from `TypeName`.
+**`trivia = none` is not where tokens end.** `TypeName = Word & ('.' & Word)*` is not a
+token; it is syntax living in a lexical namespace only so that `System . Text` will not
+read with the spaces in it, and its captured span is why. The set model absorbs it — `A` is
+`{Word, TypeName}` and `A.B` is `{TypeName}` — so nothing is refused, but the grammar is
+still saying something it does not mean, and moving the rule out (at the cost of a factory
+that joins the parts) is the honest fix.
 
 ## Suggested order from here
 
-1. ~~Terminal inventory~~ — done: leaves, contiguous groups, the numbering, and the sets
-   that become ranges.
+1. ~~Terminal inventory~~ — done: patterns, kinds as sets of them, and the rules that are
+   sets of terminals and become ranges.
 2. ~~The rewrite of the syntactic machine over kinds~~ — done, and validated against the
-   shipping parser on forty-six inputs.
-3. **Notation for a lexical root**, moved up from last. The three overlaps above are all
-   rules that are inside the lexical namespace and are not tokens, and no analysis can tell
-   which is which without being told.
-4. The generated lexical machine, with **"no arena write survives in the lexer"** as its
-   correctness signal — if one does, the boundary is in the wrong place, and that is a
-   cheaper alarm than any benchmark.
-5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. `Mark` and
-   `Restore` must carry the lexical mode, and any cached token must remember the mode it
-   was read under — designed in from the start it is free, discovered later it is a rewrite
-   of the cache.
-6. One grammar end to end behind an opt-in, the scannerless path untouched.
-7. Rung-2 modes, when a grammar here first needs one.
+   shipping parser on forty-six inputs, all of which now agree.
+3. **The generated lexical machine**: one automaton over all the patterns, its accepting
+   states giving the kinds. That construction is also what makes the kind enumeration exact
+   — the inventory over-approximates it today from witnesses, which is sound but coarse.
+   Correctness signal: **no arena write survives in the lexer**.
+4. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
+   answer to `List<List<int>>` as well: `>` is a declared pattern and `>>` begins with it,
+   so a cursor that can be asked for a particular kind splits without any state at all. What
+   a token was read under has to travel with it in the cache — designed in from the start it
+   is a field, discovered later it is a rewrite.
+5. One grammar end to end behind an opt-in, the scannerless path untouched.
+6. Modes, when a grammar here first needs one. Interpolation is the case that will force
+   them, because the closing brace is known only to whoever parsed the expression inside.
 
 ## Central design statement
 

@@ -9109,3 +9109,71 @@ now third, because no analysis can tell `Word` from `TypeName` without being tol
 Ten tests over the two passes. Nothing under `src/` outside the two new model files
 changed, and the three shipping parsers are byte for byte what they were: this is a
 function of a graph that nothing calls yet.
+
+## Fixed: a kind is a set of patterns, not a pattern
+
+Igor, on the claim that `INTERVAL '1' DAY` would stop reading: «почему? … это - keyword,
+строка, keyword». He was right, and the reason is worth the entry.
+
+The previous two entries numbered one kind per *pattern* — per keyword, per mark, per
+class. But `SELECT` is matched by the keyword **and** by `RegularIdentifier`; `0` by
+`Digits` **and** by `UnsignedNumericLiteral`; `'x'` by `QuotedString` **and** by
+`CharacterStringLiteral`. A lexer that has to answer with one of them makes every syntactic
+position that wanted the other stop reading — so the check written last time refused three
+grammars, and all three were fine.
+
+A kind is the **set** that matched:
+
+    10          {Digits, UnsignedNumericLiteral}
+    1.5         {UnsignedNumericLiteral}
+    SELECT      {"SELECT", RegularIdentifier}
+    zone        {"ZONE", RegularIdentifier}
+
+`Length = '(' & Digits & ')'` takes the first. A value position takes the first and the
+second. An identifier position takes the third and the fourth, and `?!Reserved` takes the
+third back out again. The test for a pattern is "the kind's set holds it" — a set of kinds,
+worked out here and lowered to a range test, so it costs what one comparison cost before.
+
+**Contextual keywords, overlapping literal classes and the reserved-word lookahead turn out
+to be one mechanism seen from three sides.** The union written by hand last time — a class
+standing for the words it would have matched — is what falls out of this rather than
+something added to it.
+
+    SqlStandard92     135 patterns -> 137 kinds     46 of 46 inputs agree
+    ExpressionLanguage 106 patterns -> 107 kinds     nothing blocked
+
+Forty-six of forty-six, where the pattern model managed forty-four and refused to run at
+all once its own overlap check was added. And the two extra kinds are exactly the two
+overlaps: `{Digits, UnsignedNumericLiteral}` and `{QuotedString, CharacterStringLiteral}`.
+
+**Time**, min of seven windows, the hand tokenizer now driven by the generated numbering
+and the syntactic machine emitted from the rewritten graph by the unmodified emitter:
+
+           chars        lex      kinds      total
+            457n        98n       157n       255n   1.80x  a = 1
+          4,728n       802n       819n     1,621n   2.92x  (quantity + weight) * rate …
+          3,043n       517n       525n     1,043n   2.92x  amount * 1.05 + tax >= total …
+          9,798n       674n     2,211n     2,885n   3.40x  ! (a + b) * c - d / e > f AND …
+         16,880n       726n     2,211n     2,937n   5.75x  ! (quantity + weight) * rate …
+          5,223n       507n       570n     1,077n   4.85x  ! amount * 1.05 + tax >= total …
+
+    SqlStandard92     23,500 lines -> 6,217
+
+**How the sets are found, and what is still approximate.** A literal's set is exact: its
+text is known, so which classes accept it is a question with an answer, and `Language`
+answers it by running the rule against the string. A class's sets are the cliques of the
+classes it overlaps, and overlap is witnessed by the shortest string either accepts —
+sound where it fires, and it fires on all three of the real cases. A clique that turns out
+never to occur is a number nothing emits, which costs nothing; a set with *no* number would
+be a string the lexer recognized and could not report, and that is what must not happen.
+
+The exact enumeration is the automaton's, which is the next thing to build: one machine
+over all the patterns, its accepting states carrying the sets. Which is what Igor asked for
+two entries ago — «получить полный список всех правил, соптимизировать их» — and it turns
+out to be the same construction as the numbering rather than a step after it.
+
+Also settled by the same reasoning, and no longer needing anything from the language: a
+negated class names what it *excludes*, so `[^ '(' | ')']` is "any token but a bracket";
+and `List<List<int>>` needs no lexer state, because `>` is a declared pattern and a cursor
+that can be asked for a particular kind splits `>>` by rescanning. Notation for a lexical
+root, which the last entry moved up to third, moves back off the list entirely.

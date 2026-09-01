@@ -129,24 +129,24 @@ public sealed class LexicalSplitTests
 	}
 
 	/// <summary>
-	/// Two classes that accept the same string are refused, with the string as the witness.
+	/// Two classes that accept the same string get a kind that says both.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// A token carries one kind, so where two classes both accept it the lexer must choose
-	/// and every position that wanted the other stops reading. Both shipping grammars have
-	/// the shape: SQL-92's <c>Digits</c> against its <c>UnsignedNumericLiteral</c>, and
-	/// <c>ExpressionLanguage</c>'s <c>TypeName</c> — which is <c>Word &amp; ('.' &amp;
-	/// Word)*</c> — against its <c>Word</c>.
+	/// The thing the first version got wrong. A token carries one kind, so a lexer forced to
+	/// answer with one <em>pattern</em> would make every position that wanted the other stop
+	/// reading — and both shipping grammars have the shape, so both were refused for having
+	/// nothing wrong with them.
 	/// </para>
 	/// <para>
-	/// Refused rather than resolved, because resolving means choosing: making them one kind
-	/// widens the language and picking one narrows it, and neither is the compiler's to
-	/// decide.
+	/// A kind is a set. <c>10</c> is matched by <c>Digits</c> and by <c>Number</c> at once
+	/// and its kind holds both, so <c>'(' &amp; Digits &amp; ')'</c> takes it and so does a
+	/// value position; <c>1.5</c> is matched by <c>Number</c> alone and only the second takes
+	/// it. Nothing is refused and nothing is widened.
 	/// </para>
 	/// </remarks>
 	[Fact]
-	public void Two_classes_that_accept_the_same_string_are_refused()
+	public void Two_classes_that_accept_the_same_string_share_a_kind()
 	{
 		var split = LexicalSplit.Of(Graph(
 			"""
@@ -162,11 +162,51 @@ public sealed class LexicalSplitTests
 			"""));
 
 		Assert.NotNull(split);
+		Assert.Empty(split.Blocked);
 
-		Assert.Contains(
-			split.Blocked,
-			reason => reason.Contains("Digits and Number both accept \"0\""));
+		var inventory = split.Inventory;
+		var digits    = Class(inventory, "Digits");
+		var number    = Class(inventory, "Number");
+
+		var shared = Assert.Single(
+			inventory.Kinds,
+			kind => kind.Matched.Contains(digits) && kind.Matched.Contains(number));
+
+		// And each of them tests for that kind as well as for its own.
+		Assert.Contains(Numbers(inventory, digits), one => one == shared.Number);
+		Assert.Contains(Numbers(inventory, number), one => one == shared.Number);
 	}
+
+	/// <summary>A keyword's kind says it is an identifier too, which is what makes `zone` a name.</summary>
+	/// <remarks>
+	/// The same mechanism one level down, and the case that found it: `zone` is a word of
+	/// SQL-92 and is not reserved, so `?!Reserved &amp; RegularIdentifier` takes it over
+	/// characters. It reaches the syntactic machine as that keyword's kind, and only because
+	/// the kind holds the class as well does the identifier position accept it.
+	/// </remarks>
+	[Fact]
+	public void A_keyword_is_an_identifier_too()
+	{
+		var split = LexicalSplit.Of(Graph(Spaced));
+
+		Assert.NotNull(split);
+
+		var inventory = split.Inventory;
+		var name      = Class(inventory, "Name");
+		var word      = inventory.Patterns.OfType<TerminalInventory.Pattern.Word>()
+			.Single(one => one.Text == "if");
+
+		var of = Assert.Single(inventory.KindsOf(word));
+
+		Assert.Equal(of.From, of.To);
+		Assert.Contains(Numbers(inventory, name), one => one == of.From);
+	}
+
+	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name) =>
+		inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Single(one => one.Rule.Name == name);
+
+	static IEnumerable<int> Numbers(TerminalInventory inventory, TerminalInventory.Pattern pattern) =>
+		inventory.KindsOf(pattern).SelectMany(range => Enumerable.Range(range.From, range.Count));
 
 	/// <summary>Every node of a body, the compiler's own walker being internal.</summary>
 	static IEnumerable<Node> Descendants(Node node)

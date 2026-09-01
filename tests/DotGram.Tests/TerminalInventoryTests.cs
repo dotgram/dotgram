@@ -40,8 +40,8 @@ public sealed class TerminalInventoryTests
 		var inventory = Of("Start = 'a' & \"bc\" & ['d'..'f']\nparse Start");
 
 		Assert.False(inventory.Applies);
-		Assert.Empty(inventory.Terminals);
-		Assert.Empty(inventory.Groups);
+		Assert.Empty(inventory.Patterns);
+		Assert.Empty(inventory.Kinds);
 	}
 
 	/// <summary>
@@ -122,14 +122,17 @@ public sealed class TerminalInventoryTests
 		Assert.DoesNotContain("--", Marks(inventory));
 	}
 
-	/// <summary>The kinds are a partition: one-based, contiguous, every terminal in a group.</summary>
+	/// <summary>
+	/// The kinds are numbered one-based and consecutively, and every pattern is in one.
+	/// </summary>
 	/// <remarks>
-	/// The point of the numbering is that a group is a range, so that membership is
-	/// <c>(uint)(kind - From) &lt;= (uint)(To - From)</c> and a sum type costs nothing. That
-	/// only holds while the groups tile the terminals without gap or overlap.
+	/// The point of the numbering is that a pattern's kinds are runs, so that a syntactic
+	/// test is <c>(uint)(kind - From) &lt;= (uint)(To - From)</c> and a sum type costs
+	/// nothing. A pattern in no kind at all would be a terminal the lexer can recognize and
+	/// never report.
 	/// </remarks>
 	[Fact]
-	public void The_kinds_are_a_partition()
+	public void Every_pattern_is_in_a_kind_and_the_kinds_are_consecutive()
 	{
 		var inventory = Of(
 			"""
@@ -145,15 +148,11 @@ public sealed class TerminalInventoryTests
 			""");
 
 		Assert.Equal(
-			Enumerable.Range(1, inventory.Terminals.Count),
-			inventory.Terminals.Select(terminal => terminal.Kind));
+			Enumerable.Range(1, inventory.Kinds.Count),
+			inventory.Kinds.Select(kind => kind.Number));
 
-		Assert.Equal(1, inventory.Groups[0].From);
-
-		for (var i = 1; i < inventory.Groups.Count; i++)
-			Assert.Equal(inventory.Groups[i - 1].To + 1, inventory.Groups[i].From);
-
-		Assert.Equal(inventory.Terminals.Count, inventory.Groups.Sum(group => group.Count));
+		foreach (var pattern in inventory.Patterns)
+			Assert.NotEmpty(inventory.KindsOf(pattern));
 	}
 
 	/// <summary>
@@ -311,11 +310,11 @@ public sealed class TerminalInventoryTests
 	}
 
 	static string[] Words(TerminalInventory inventory) =>
-		[.. inventory.Terminals.OfType<TerminalInventory.Terminal.Word>().Select(word => word.Text)];
+		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Word>().Select(word => word.Text)];
 
 	static string[] Marks(TerminalInventory inventory) =>
-		[.. inventory.Terminals.OfType<TerminalInventory.Terminal.Mark>().Select(mark => mark.Text)];
+		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Mark>().Select(mark => mark.Text)];
 
 	static string[] Classes(TerminalInventory inventory) =>
-		[.. inventory.Terminals.OfType<TerminalInventory.Terminal.Class>().Select(one => one.Rule.Name)];
+		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Select(one => one.Rule.Name)];
 }
