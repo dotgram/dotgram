@@ -3570,14 +3570,10 @@ namespace DotGram.Snapshots
 					expected = Recognize_DotGram_Ci_Expected0;
 					goto Fail;
 				}
-				if (global::System.Char.ToUpperInvariant(text[p]) != 'G')
+				if (!global::System.MemoryExtensions.Equals(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("go"), global::System.StringComparison.OrdinalIgnoreCase))
 				{
-					expected = Recognize_DotGram_Ci_Expected0;
-					goto Fail;
-				}
-				if (global::System.Char.ToUpperInvariant(text[p + 1]) != 'O')
-				{
-					p += 1;
+					if (global::System.Char.ToUpperInvariant(text[p]) == 'G')
+						p += 1;
 					expected = Recognize_DotGram_Ci_Expected0;
 					goto Fail;
 				}

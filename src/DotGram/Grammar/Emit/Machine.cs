@@ -1420,9 +1420,25 @@ sealed partial class Machine
 				// branches with an order that is observable, and only what the JIT
 				// recognizes as one comparison is emitted as one.
 				//
-				// Case-insensitive stays as it was. What it compares is each character
-				// folded, which is not the comparison any span method makes.
-				if (value.Length > 1 && !ignoreCase)
+				// Case-insensitive goes the same way where the text is ASCII, and that is
+				// where the comment here used to stop: "not the comparison any span method
+				// makes" was wrong — `MemoryExtensions.Equals` with `OrdinalIgnoreCase` is
+				// exactly it, is vectorized, and is on the netstandard2.0 floor through
+				// System.Memory, which the emitted code already needs for the span itself.
+				//
+				// ASCII, because that is where the two agree. Ordinal case folding and
+				// per-character `ToUpperInvariant` part company outside it — surrogate
+				// pairs have no per-`char` answer at all — so a literal that reaches beyond
+				// ASCII keeps the chain rather than quietly changing what it accepts. Every
+				// keyword of every language this is likely to meet is ASCII; what is not is
+				// a literal in someone's own alphabet, and it stays as it was.
+				//
+				// What it saves is the shape a keyword list is made of. Standard SQL writes
+				// 192 case-insensitive literals averaging seven characters, and each was
+				// seven comparisons with a five-line failure block beside every one of
+				// them — where the whole of the reporting belongs on the branch that has
+				// already failed.
+				if (value.Length > 1 && (!ignoreCase || Ascii(value)))
 				{
 					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
@@ -1434,9 +1450,12 @@ sealed partial class Machine
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
-					writer.Line(
-						"if (!global::System.MemoryExtensions.SequenceEqual(" +
-						$"text.Slice(p, {value.Length}), {Spanned(value)}))");
+					writer.Line(ignoreCase
+						? "if (!global::System.MemoryExtensions.Equals(" +
+						  $"text.Slice(p, {value.Length}), {Spanned(value)}, " +
+						  "global::System.StringComparison.OrdinalIgnoreCase))"
+						: "if (!global::System.MemoryExtensions.SequenceEqual(" +
+						  $"text.Slice(p, {value.Length}), {Spanned(value)}))");
 
 					using (writer.Block(""))
 					{
@@ -1444,7 +1463,7 @@ sealed partial class Machine
 						// branch already taken rather than on the way in. The comparison has
 						// said they differ; this only says where, and nothing reaches it
 						// unless the parse is failing anyway.
-						Sharpen(writer, value);
+						Sharpen(writer, value, ignoreCase);
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -4065,9 +4084,20 @@ sealed partial class Machine
 		}
 	}
 
-	static void Sharpen(Writer writer, string value)
+	/// <summary>Whether every character is ASCII, which is where ordinal folding agrees
+	/// with per-character `ToUpperInvariant`.</summary>
+	static bool Ascii(string value)
 	{
-		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");
+		foreach (var character in value)
+			if (character > 0x7F)
+				return false;
+
+		return true;
+	}
+
+	static void Sharpen(Writer writer, string value, bool ignoreCase = false)
+	{
+		writer.Line($"if ({Folded(At(0), ignoreCase)} == {Folded(value[0], ignoreCase)})");
 
 		if (value.Length == 2)
 		{
@@ -4080,7 +4110,9 @@ sealed partial class Machine
 		{
 			for (var i = 1; i < value.Length - 1; i++)
 			{
-				writer.Line($"{(i == 1 ? "if" : "else if")} ({At(i)} != {CSharpEmitter.Char(value[i])})");
+				writer.Line(
+					$"{(i == 1 ? "if" : "else if")} " +
+					$"({Folded(At(i), ignoreCase)} != {Folded(value[i], ignoreCase)})");
 				writer.Then($"p += {i};");
 			}
 
@@ -4088,6 +4120,14 @@ sealed partial class Machine
 			writer.Then($"p += {value.Length - 1};");
 		}
 	}
+
+	/// <summary>A character read, folded where the literal ignores case.</summary>
+	static string Folded(string read, bool ignoreCase) =>
+		ignoreCase ? $"global::System.Char.ToUpperInvariant({read})" : read;
+
+	/// <summary>And the constant it is compared against, folded the same way.</summary>
+	static string Folded(char value, bool ignoreCase) =>
+		CSharpEmitter.Char(ignoreCase ? char.ToUpperInvariant(value) : value);
 
 	int Reserve(out Writer writer)
 	{

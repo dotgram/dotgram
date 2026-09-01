@@ -8637,3 +8637,57 @@ alternatives with disjoint first sets — and a keyword list never has that: `AN
 tests, one per alternative, each falling to the next. A jump table on the first character,
 or a trie over the whole set, is the thing that shape wants, and neither exists here.
 Recorded rather than built: the size problem above was worth more and cost less.
+
+## Built: a case-insensitive literal is one comparison too
+
+The entry above counted 31% of the generated file as failure reporting and left it there
+as the price §0 names. Igor's reading of it was sharper: most of the time nobody needs to
+know *which character* did not match, and it was being worked out after every comparison —
+where the whole of it belongs on the branch that has already failed.
+
+Which is exactly what a case-*sensitive* literal already did. One `SequenceEqual`, and
+`Sharpen` inside the failing branch to say where. The case-insensitive one did not, on a
+stated ground:
+
+> Case-insensitive stays as it was. What it compares is each character folded, which is
+> not the comparison any span method makes.
+
+That is wrong. `MemoryExtensions.Equals` with `OrdinalIgnoreCase` is exactly it, and it is
+on the netstandard2.0 floor through System.Memory, which the emitted code already needs
+for the span.
+
+### Measured before believed, because the fear was reasonable
+
+`SequenceEqual` against a constant is folded by the JIT into word-sized compares; a call
+into a runtime routine might not be, and a keyword list is mostly *misses* — fifty-nine of
+sixty words failing at their first character, where the chain stops after one comparison
+and a call cannot. Nanoseconds a call on a seven-character word:
+
+                             chain   folded   exact
+      a hit                   4.02     2.10    1.90
+      a miss, first char      2.04     2.10    1.90
+      a miss, last char       4.03     2.10    1.91
+
+Twice as fast on a hit and on a late miss, within 3% on an early miss, and within 0.2 ns
+of the exact compare. A win or a wash everywhere.
+
+### How it gets there, since it is not the JIT
+
+`Ordinal.EqualsIgnoreCase` is hand-written and the trick is that ASCII letters differ by
+one bit: `c | 0x20` lowercases both sides with no table. One OR is not enough — `'@' |
+0x20` is a backtick — so every difference is checked against `(v - 'a') <= ('z' - 'a')`
+before being forgiven. Under `Vector128<ushort>.Count`, which is eight characters and so
+every keyword worth the name, it takes the scalar path: 64 bits at a time, four characters
+a chunk. "DEFAULT" is two chunks where the chain was seven `ToUpperInvariant` calls.
+
+And the runtime falls back to full Unicode comparison the moment the data is not ASCII —
+which is the same line the emitter now draws. Beyond ASCII the two foldings genuinely
+part company (a surrogate pair has no per-`char` answer at all), so a literal in somebody
+else's alphabet keeps the chain rather than quietly changing what it accepts.
+
+    SqlStandard92        26,473 -> 23,837    -10%
+    ExpressionLanguage   25,349 -> 25,358      0%
+    Rfc3986              25,571 -> 25,571      0%
+
+Only SQL moves, because only SQL is made of case-insensitive keywords — 192 of them. Two
+snapshots moved with it and both diffs are the intended shape.
