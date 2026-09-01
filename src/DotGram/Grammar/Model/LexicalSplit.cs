@@ -47,12 +47,14 @@ public sealed class LexicalSplit
 		RecognitionGraph syntax,
 		RecognitionGraph source,
 		IReadOnlyList<RuleSymbol> trivia,
+		IReadOnlyList<RuleSymbol> valued,
 		TerminalInventory inventory,
 		IReadOnlyList<string> blocked)
 	{
 		Syntax    = syntax;
 		Source    = source;
 		Trivia    = trivia;
+		Valued    = valued;
 		Inventory = inventory;
 		Blocked   = blocked;
 	}
@@ -74,6 +76,30 @@ public sealed class LexicalSplit
 
 	/// <summary>The rules that are the seam, whose scanner the tokenizer calls.</summary>
 	public IReadOnlyList<RuleSymbol> Trivia { get; }
+
+	/// <summary>The terminals whose value has to be read a second time.</summary>
+	/// <remarks>
+	/// <para>
+	/// A terminal is usually a token and its text, and a grammar that wants no more gets no
+	/// more. But a rule may build: <c>Hex : @string = "0x"i &amp; t: HexRun =&gt;
+	/// @(t.Replace("_", ""))</c> says three things at once — what a hexadecimal literal looks
+	/// like, which part of it is the number, and that the separators come out. The lexer
+	/// answers the first, and the token it hands over is <c>0x_1F</c> whole, so the parts the
+	/// other two named are gone.
+	/// </para>
+	/// <para>
+	/// So the rule is read twice: once by the lexer, for where it ends, and once by its own
+	/// character machine over exactly the text the token covers, for what it is worth. It
+	/// stays in <see cref="Syntax"/> as its own kind and with its declared type, and with no
+	/// members at all — nothing the syntactic machine walks builds it.
+	/// </para>
+	/// <para>
+	/// The second read is not backtracking and cannot fail: the extent is already known and
+	/// the lexer accepted it by that rule. It costs one pass over one token's characters, for
+	/// the tokens of a grammar that asked for values in its terminals and nothing else.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<RuleSymbol> Valued { get; }
 
 	/// <summary>What the split could not do, empty where it did all of it.</summary>
 	public IReadOnlyList<string> Blocked { get; }
@@ -101,6 +127,31 @@ public sealed class LexicalSplit
 	{
 		readonly HashSet<RuleSymbol> _lexical = Lexicals(graph, inventory);
 		readonly HashSet<string>     _sets    = [.. inventory.Sets.Select(set => set.Name)];
+		readonly HashSet<RuleSymbol> _valued  = Values(graph, inventory);
+
+		/// <summary>
+		/// The terminals that build a value, worked out before anything is rewritten.
+		/// </summary>
+		/// <remarks>
+		/// Before, because a call to one of them must stay a call. Every other terminal is
+		/// replaced by its kind test where it is called from — the rule was only ever a name
+		/// for a set of characters — but one of these has to be entered and left, so that the
+		/// arena records where it began and ended and the materializer has an extent to read
+		/// again.
+		/// </remarks>
+		static HashSet<RuleSymbol> Values(RecognitionGraph graph, TerminalInventory inventory)
+		{
+			var built = new HashSet<RuleSymbol>();
+
+			foreach (var rule in graph.Rules)
+				if (inventory.PatternOf(rule) is not null &&
+					(graph.Types.ContainsKey(rule) || graph.Results[rule].Count > 0))
+				{
+					built.Add(rule);
+				}
+
+			return built;
+		}
 
 		/// <summary>
 		/// Every rule the syntactic machine no longer holds.
@@ -141,35 +192,12 @@ public sealed class LexicalSplit
 			return reached;
 		}
 
-		/// <summary>
-		/// Whether a rule the lexer took over was making something out of what it read.
-		/// </summary>
-		/// <remarks>
-		/// <para>
-		/// A terminal is a token and its text, and most grammars want no more: a name is what
-		/// it says, and <c>Identifier</c> declares no type. But a rule may build:
-		/// <c>Hex : @string = "0x"i &amp; t: HexRun =&gt; @(t.Replace("_", ""))</c> hands back
-		/// the digits without the prefix and without the separators, and none of that survives
-		/// becoming one token — the capture named a part, and the syntactic machine sees only
-		/// the whole.
-		/// </para>
-		/// <para>
-		/// Refused rather than approximated. Handing back the token's whole text would be a
-		/// different parser that compiles, which is the worst of the three answers. What makes
-		/// it fixable is a rule read twice — once by the lexer to find its extent and once by
-		/// its own character machine to build its value — which is `docs/lexical-adt-design.md`
-		/// item 6 and not yet written.
-		/// </para>
-		/// </remarks>
-		bool Builds(RuleSymbol rule) =>
-			graph.Types.ContainsKey(rule) ||
-			graph.Results.TryGetValue(rule, out var members) && members.Count > 0;
-
 		public LexicalSplit Split()
 		{
 			var rules   = new List<RuleSymbol>();
 			var bodies  = new Dictionary<RuleSymbol, Node>();
 			var blocked = new List<string>();
+			var valued  = new List<RuleSymbol>();
 
 			foreach (var rule in graph.Rules)
 			{
@@ -177,10 +205,16 @@ public sealed class LexicalSplit
 					_sets.Contains(rule.Name) ||
 					!graph.Bodies.TryGetValue(rule, out var body))
 				{
-					if (Builds(rule))
-						blocked.Add(
-							$"'{rule.Name}' is a terminal that builds a value out of parts of itself, " +
-							"which the lexer reads as one token and no longer has the parts of");
+					// A terminal that builds keeps its place, as its own kind and with the
+					// type it declared. What it no longer has is members: the parts it named
+					// are inside one token now, so nothing the syntactic machine walks can
+					// build it, and its value is read again from the text (see `Valued`).
+					if (_valued.Contains(rule))
+					{
+						rules.Add(rule);
+						bodies[rule] = Testing(inventory.KindsOf(inventory.PatternOf(rule)!));
+						valued.Add(rule);
+					}
 
 					continue;
 				}
@@ -189,11 +223,16 @@ public sealed class LexicalSplit
 				bodies[rule] = Rewrite(body, rule, blocked);
 			}
 
+			var results = Kept(graph.Results, rules);
+
+			foreach (var rule in valued)
+				results[rule] = [];
+
 			var syntax = new RecognitionGraph(
 				rules,
 				bodies,
 				Kept(graph.Nullable, rules),
-				Kept(graph.Results, rules),
+				results,
 				Kept(graph.Types, rules),
 				graph.CSharpImports,
 				graph.Publications,
@@ -223,6 +262,7 @@ public sealed class LexicalSplit
 				syntax,
 				graph,
 				[.. graph.Trivia.Values.OfType<Node.Call>().Select(call => call.Rule).Distinct()],
+				valued,
 				inventory,
 				blocked);
 		}
@@ -344,6 +384,12 @@ public sealed class LexicalSplit
 					// of whatever the alphabet holds. Rewritten through rather than looked up.
 					if (called.IsBuiltIn && graph.Bodies.TryGetValue(called, out var standard))
 						return Rewrite(standard, owner, blocked);
+
+					// A terminal that builds stays a call: the kind test is its whole body now,
+					// and what the syntactic machine needs from it is an entry saying where it
+					// began and ended, for the second read to be run over.
+					if (_valued.Contains(called))
+						return node;
 
 					if (inventory.PatternOf(called) is { } crossing)
 						return Testing(inventory.KindsOf(crossing));

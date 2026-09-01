@@ -270,45 +270,6 @@ public sealed class LexicalSplitTests
 	}
 
 	/// <summary>
-	/// A terminal that builds a value out of parts of itself cannot be one token.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// This is where the second real grammar stopped. <c>ExpressionLanguage</c> writes its
-	/// numbers the way C# does — <c>Hex : @string = "0x"i &amp; t: HexRun =&gt; @(t.Replace("_",
-	/// ""))</c> — and that rule is three statements at once: what a hexadecimal literal looks
-	/// like, which part of it is the number, and that the separators come out. The lexer can
-	/// answer the first and has no way to say the other two, because the token it produces is
-	/// <c>0x_1F</c> whole.
-	/// </para>
-	/// <para>
-	/// Refused, and not approximated into handing back the token's own text: that would be a
-	/// different parser that compiles, which is worse than one that does not. The fix is a
-	/// rule read twice, and it is not written yet.
-	/// </para>
-	/// </remarks>
-	[Fact]
-	public void A_terminal_that_builds_from_its_parts_stops_the_split()
-	{
-		var split = LexicalSplit.Of(
-			Graph(
-				"""
-				trivia = ' '*
-				namespace Lexical
-				{
-					trivia = none
-					Digits = ['0'..'9'] & ['0'..'9']*
-					Hex : @string = "0x"i & t: Digits => @(t)
-				}
-				Start = Lexical.Hex & eof
-				parse Start
-				"""));
-
-		Assert.NotNull(split);
-		Assert.Contains(split.Blocked, reason => reason.Contains("'Hex'") && reason.Contains("parts of itself"));
-	}
-
-	/// <summary>
 	/// And what a rule left recursive over kinds folds into is still what it folded into.
 	/// </summary>
 	/// <remarks>

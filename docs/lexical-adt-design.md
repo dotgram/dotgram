@@ -443,13 +443,34 @@ that joins the parts) is the honest fix.
    parses the kinds; values are cut from the text the tokens came from and positions are
    characters. Every input the shipping SQL parser accepts or refuses, the split one agrees
    with, and it is faster on all eighteen of them.
-6. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
+6. ~~A terminal read twice~~ — done. `Hex : @string = "0x"i & '_'* & t: HexRun =>
+   @(t.Replace("_", ""))` says three things at once and a lexer answers only the first: the
+   token is `0x_1F` whole and the parts the other two named are inside it. So the rule keeps
+   its place in the syntactic graph — as its own kind, with its declared type, with no
+   members — and a second `Machine` over the original graph, tagged `_Value`, turns the
+   token's text into the value. One way in per rule, called from the materializer exactly
+   where an external recognizer's value is recovered, and for the same reason.
+
+   Three things it needed. The call has to stay a call, or there is no entry and no extent
+   to read again — the parser compiles and builds empty strings, which took an hour. The
+   type has to stay and the members have to go. And the second machine has to join the
+   file's value tables before a line is rendered, or it writes into `values11` while its
+   caller reads `values9`.
+
+7. `ExpressionLanguage` end to end, which needs one thing more. Eleven of its tests still
+   refuse, all of them `Math.PI` and `s.Length` and `new int[]`: `TypeName = Word & ('.' &
+   Word)*` is lexical, so the lexer takes a dotted name whole and `Postfix` never reads the
+   dot. The grammar says a dotted name is a lexeme, which is true of a type and false of a
+   member access, and only a symbol resolver knows which one it was looking at. Either the
+   grammar moves `TypeName` out of the lexical namespace, or the cursor below splits it.
+
+8. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
    answer to `List<List<int>>` as well: `>` is a declared pattern and `>>` begins with it,
    so a cursor that can be asked for a particular kind splits without any state at all. What
    a token was read under has to travel with it in the cache — designed in from the start it
    is a field, discovered later it is a rewrite.
-6. One grammar end to end behind an opt-in, the scannerless path untouched.
-7. Modes, when a grammar here first needs one. Interpolation is the case that will force
+
+9. Modes, when a grammar here first needs one. Interpolation is the case that will force
    them, because the closing brace is known only to whoever parsed the expression inside.
 
 ## Central design statement

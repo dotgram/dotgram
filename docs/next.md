@@ -9677,3 +9677,59 @@ for its value, which is item 6 of `docs/lexical-adt-design.md` and not yet writt
 `SqlStandard92` could not have found any of this. It builds no values, declares no state,
 climbs no precedence and recovers from nothing — it answers yes or no. The second grammar
 was worth more than the first measurement.
+
+## A terminal read twice
+
+`Hex : @string = "0x"i & '_'* & t: HexRun => @(t.Replace("_", ""))` is three statements at
+once, and the previous entry recorded that the lexer can answer only the first. That was
+the honest place to stop and it is not where this stops.
+
+The rule is read twice now. Once by the lexer, which says where it ends; once by **its own
+character machine, over exactly the text the token covers**, which says what it is worth.
+The second read runs the same states an unsplit parser would have run, so whatever the
+author wrote in `=> @(...)` runs against the captures it was written for.
+
+It is the shape the seam already had. A `Machine` over the original graph, restricted to the
+terminals that build and what they reach, tagged `_Value` so its tables and states do not
+collide with the syntax's, and one way in per rule:
+
+    static string Value_Lexical_Hex_DotGram(string token)
+
+The syntactic materializer calls it in place of the factories it no longer has — the same
+line the external-recognizer case has always written, for the same reason: no captures to
+walk, and a value recovered by asking again from what the arena recorded.
+
+**Three things had to change for it to work at all.**
+
+The rule has to stay a *call*. Every other terminal is replaced by its kind test where it is
+called from — the rule was only ever a name for a set of characters — and doing that to one
+of these leaves nothing to read again: no entry, no extent, no case in the materializer. It
+took an hour to find, because the parser compiled and ran and simply built empty strings.
+
+It has to keep its declared type and lose all its members. The type is what makes the call
+a valued one and gives the caller something to read; the members are what would make the
+syntactic machine try to build it out of parts that are inside a token.
+
+And the value machine has to join the file's value tables before anything is rendered. A
+machine names a type by where it sits in one list they all agree on, and a second read
+writing into `values11` while its caller reads `values9` is a defect that no test shape
+catches except running it.
+
+**Where `ExpressionLanguage` now stands.** 127 of its tests failed the first time it was
+asked to split; 11 fail now, and all eleven are one thing:
+
+    () => Math.PI            refused
+    (string s) => s.Length   refused
+    () => new int[] { 1, 2 } refused
+
+`TypeName = Word & ('.' & Word)*` is lexical, and deliberately: without it `System . Text`
+would be captured with the spaces in it. Over kinds the lexer therefore takes `Math.PI`
+whole and `Postfix` never gets to read the dot as member access. That is not a defect of the
+second read — it is a grammar that says a dotted name is a lexeme, which is true of a type
+and false of a member access, and only a symbol resolver knows which it was looking at.
+
+So `ExpressionLanguage` stays on characters, and the second read is covered by a grammar of
+its own instead: `RereadTests` runs both parsers over the same inputs and requires the same
+answer, and then requires that the answer is what the rules say — the separators come out of
+`0x_1f`, the base is read, the quotes are gone. Values, and not merely agreement, because
+two parsers agreeing on nothing would pass the first half.

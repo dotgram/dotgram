@@ -439,6 +439,24 @@ sealed partial class Machine
 			return;
 		}
 
+		// A terminal the lexer swallowed: what the arena holds is one token, and what the
+		// rule builds was written against parts of it that no longer exist separately. So it
+		// is read again — the rule's own character machine over exactly the text the token
+		// covers, which is the same code an unsplit parser would have run here.
+		if (_reread is not null && _reread.Contains(rule))
+		{
+			using (file.Block($"case {_ruleIds[rule]}:"))
+			{
+				file.Line(
+					$"{ValueInto(type, "completedAt")} = " +
+					$"Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram(" +
+					Cut("completed.Position", "completed.Value - completed.Position") + ");");
+				file.Line("break;");
+			}
+
+			return;
+		}
+
 		// A value-returning external recognizer (§7.1's third row) has no captures to walk
 		// and no factory to call — recognition already ran the method once, speculatively,
 		// keeping only the bool and the position it moved (Machine.cs's Node.External

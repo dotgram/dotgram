@@ -22,6 +22,20 @@ sealed partial class Machine
 
 	readonly RecognitionGraph _graph;
 	readonly ResultTypes _results;
+
+	/// <summary>
+	/// The terminals whose value is not built here but read again from their own text.
+	/// </summary>
+	/// <remarks>
+	/// One token stands where a whole rule used to, so the captures its <c>=&gt;</c> was
+	/// written against are inside it and out of reach. What this machine records is the
+	/// extent; a second machine over characters turns that extent into the value
+	/// (`LexicalSplit.Valued`).
+	/// </remarks>
+	readonly IReadOnlyCollection<RuleSymbol>? _reread;
+
+	/// <summary>The types this machine builds, for whoever renders a way into it.</summary>
+	public ResultTypes Results => _results;
 	readonly List<Writer> _states = [];
 	readonly Dictionary<RuleSymbol, int> _entries = [];
 	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
@@ -217,7 +231,7 @@ sealed partial class Machine
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
-		bool overKinds = false)
+		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null)
 	{
 		_graph = graph;
 		_results = results;
@@ -225,6 +239,7 @@ sealed partial class Machine
 		_starves = starves;
 		_tag = tag;
 		OverKinds = overKinds;
+		_reread = reread;
 		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
