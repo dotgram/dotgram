@@ -8718,3 +8718,75 @@ now, so it is a rule compiled once, in its own context, where `_fail` *is* `Fail
 emitter cannot see from inside a shared body that every caller will discard the answer.
 That is a fact about the whole graph — "is this rule reached only from negative
 lookaheads" — and a different pass from this one.
+
+## Built: a choice of keywords is entered through a switch
+
+Igor: «давай таблицу переходов по первому символу».
+
+`Predictive` asks whether one character says *which* alternative this is, and a keyword
+list never lets it: `AND`, `ALL`, `ANY` and `AS` all begin with `A`. But one character
+does say which *group*, and that is the useful half of the same fact. So `Dispatchable`
+gathers the alternatives by first set, admits the gathering only where the sets partition
+— any two equal or disjoint — and `CompileDispatchedChoice` writes a `switch (c)` that
+lands in the right group. The groups themselves are the same chain as before; the chain
+moved into `CompileChainedChoice` so both callers write it.
+
+Order is kept where order can matter. Between groups it cannot: one character decides,
+and no alternative outside the chosen group could have matched whatever it was written
+after. Inside a group the written order and every way back are exactly what they were.
+
+**The second half is worth more than the switch.** A dispatched group is entered only
+through the switch, and the switch proves both halves of what each alternative was about
+to ask — that there is a character, and that it is this one's. So neither the test nor the
+bounds check around it is written inside the group at all, which is what the `proven`
+argument of `CompileChainedChoice` is for. The elision is sound *because* dispatch is the
+only way in: the ways back a group writes name states in that same group and carry the
+position the switch tested, and the one path that used to arrive untested — the end of the
+input — now fails at the switch before any of them exists. The general chain cannot do
+this, and says so where it declines (`Machine.cs`, the way-back comment).
+
+    SqlStandard92   24,418 -> 23,500 lines
+
+Interleaved A/B, best of three windows each, nanoseconds:
+
+                                                       chain   switch
+      a = 1                                              454      458
+      salary BETWEEN 1000 AND 2000                       983      935
+      x IN (1, 2, 3) AND y IS NOT NULL                 1,098    1,003
+      (quantity + weight) * rate - … < offset          5,306    5,033
+      warehouse.zip_code = 'X' AND vendor_key IS …     2,170    2,005
+
+**Five per cent, and the smallness is again the finding.** Two reasons, both worth
+writing down.
+
+The first is that the chain was never sixty tests. `Skipped` makes a failed character
+test jump past everything that begins the same way, so sixty keywords cost twenty-six
+tests, not sixty — and `Grouped = 4` is set where four tests stop being obviously cheaper
+than a jump table. The identifiers in the first run of this benchmark were `a`, `b`, `c`,
+`x`, `y`, which met the chain at its first tests; spread across the alphabet the gain is
+consistent and still small.
+
+The second is that most of a SQL parse is not the keyword list. `?!Reserved` runs once per
+identifier, and twenty-six tests saved there is five per cent of the whole.
+
+**Two things it does not reach, both deliberate.**
+
+`ExpressionLanguage` is flat — 0.97x to 1.03x, which is this machine's noise. Its keywords
+are case-sensitive, so `CompileLiterals` had them already: a run of plain literals shares
+its prefix and decides where the texts differ, without entries and without a first-set
+test per alternative. A switch in front of that is a jump table in front of something that
+was already deciding on the first character. It is not a loss, and it is not a win.
+
+A bare list of case-insensitive literals never reaches the dispatcher at all: the
+checkpoint class takes it first, and that class is the better machine — a way back three
+locals hold rather than an arena entry. SQL's reserved words reach dispatch only because
+`wordboundary` puts a look-behind in front of each one, which is not checkpoint-silent.
+Left as it is on purpose: dispatch is the fallback for a choice that was going to write
+entries anyway, not a replacement for a choice that writes none. Dispatching *into*
+checkpoint groups is the shape that would have both, and it is a bigger change than this
+one.
+
+And one thing left on the floor: `CompileLiterals` does not take `proven`, so a
+case-sensitive group re-reads the character the switch tested — `if ((uint)p >=
+(uint)text.Length || text[p] != 'a')` right after `case 'a':`. One predictable branch, and
+the measurement above is what it is worth.

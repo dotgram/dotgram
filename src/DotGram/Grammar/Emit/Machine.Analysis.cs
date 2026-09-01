@@ -294,6 +294,100 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// How many groups of alternatives make a first character worth switching on, and how
+	/// many characters that switch may name.
+	/// </summary>
+	/// <remarks>
+	/// Below four groups the chain is already about as short: it does not test the
+	/// alternatives one by one but the <em>groups</em> one by one, because
+	/// <see cref="Skipped"/> jumps a failed character test past everything that begins the
+	/// same way. Four groups is four tests against one switch, and that is where a switch
+	/// starts being the shorter road rather than merely a different one.
+	///
+	/// The character cap is what keeps a switch a switch. A jump table is a table, and a
+	/// group whose first set is a Unicode letter category would name tens of thousands of
+	/// them; the sets this is aimed at are alphabets — fifty-two characters for a list of
+	/// case-insensitive keywords, which is what standard SQL's reserved words come to.
+	/// </remarks>
+	const int Grouped = 4;
+	const int Switched = 128;
+
+	/// <summary>
+	/// The alternatives gathered by what they can begin with — or null where the first
+	/// character does not divide them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Predictive"/> asks whether one character decides <em>which</em> alternative
+	/// this is, and a list of keywords never lets it: <c>AND</c>, <c>ALL</c>, <c>ANY</c> and
+	/// <c>AS</c> all begin with <c>A</c>. But one character does decide which <em>group</em>
+	/// it is, and that is the useful half of the same fact. Sixty keywords are twenty-six
+	/// groups, and the parse can be put into the right one by a switch rather than walked
+	/// into by testing the groups in turn.
+	/// </para>
+	/// <para>
+	/// What has to hold is that the sets partition: any two are the same set or share no
+	/// character. Then an alternative outside the chosen group cannot match here whatever
+	/// order it was written in, so leaving it untried is not a reordering of the choice but
+	/// the removal of alternatives that were going to fail. Within a group the written order
+	/// is kept exactly, and so is every way back between them.
+	/// </para>
+	/// <para>
+	/// The partition is also what makes the group's own chain cheaper than the same chain
+	/// standing alone — see the <c>proven</c> argument of <c>CompileChainedChoice</c>. Both
+	/// halves of that follow from the switch being the only way in.
+	/// </para>
+	/// </remarks>
+	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives)
+	{
+		if (alternatives.Count < Grouped)
+			return null;
+
+		var groups = new List<(FirstSets.First Set, List<Node> Members)>();
+		var named  = 0;
+
+		foreach (var alternative in alternatives)
+		{
+			// `Ends` is not a character and cannot be switched on; the rest of what makes a
+			// first set unusable `Decidable` already refuses.
+			if (Decidable(alternative) is not { Ends: false } set)
+				return null;
+
+			var joined = false;
+
+			foreach (var group in groups)
+			{
+				if (FirstSets.Same(group.Set, set))
+				{
+					group.Members.Add(alternative);
+					joined = true;
+
+					break;
+				}
+
+				// Overlapping without being equal is the one shape that cannot be dispatched:
+				// a character in both would have to choose a group, and either choice skips
+				// an alternative that could have matched.
+				if (group.Set.Overlaps(set))
+					return null;
+			}
+
+			if (joined)
+				continue;
+
+			foreach (var range in set.Ranges)
+				named += range.To - range.From + 1;
+
+			if (named > Switched)
+				return null;
+
+			groups.Add((set, [alternative]));
+		}
+
+		return groups.Count < Grouped ? null : groups;
+	}
+
+	/// <summary>
 	/// How many alternatives ending at <paramref name="at"/> are plain text, up to two or
 	/// more.
 	/// </summary>

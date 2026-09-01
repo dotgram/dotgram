@@ -1646,112 +1646,12 @@ sealed partial class Machine
 					CheckpointSilent(alternatives, following))
 					return CompileCheckpointChoice(alternatives, next, following);
 
-				var last   = alternatives.Count - 1;
-				var run    = LiteralGroup(alternatives, last, following.Plain);
-				var target = run > 0
-					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
-					: Compile(alternatives[last], next, following);
-				var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
+				// One character cannot say which alternative this is, but it can say which
+				// group, and for a list of keywords that is nearly the same saving.
+				if (Dispatchable(alternatives) is { } groups)
+					return CompileDispatchedChoice(alternatives, groups, next, following);
 
-				for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
-				{
-					// Alternatives that are all text need neither. Nothing is written down to
-					// come back to and the position is not moved until one of them has
-					// matched, so where they differ is where the next is tried — which is
-					// what a common prefix is worth, and it is worth it whether or not there
-					// is one.
-					if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
-					{
-						var from = i - here + 1;
-
-						rest   = Begins(alternatives, from, i).Or(rest is null ? FirstSets.First.All : rest);
-						target = CompileLiterals(alternatives, from, i, next, target);
-						i      = from;
-
-						continue;
-					}
-
-					var first = Compile(alternatives[i], next, following);
-					var mine  = Decidable(alternatives[i]);
-					var state = Reserve(out var writer);
-
-					// One character can say two things here, and each saves something
-					// different. That this alternative cannot begin here saves going into it;
-					// that none of the ones after it can saves the entry that would have let
-					// the parse come back for them.
-					//
-					// Both are kept because both were measured. Keeping only the second — on
-					// the reasoning that the first merely repeats the test the alternative
-					// makes anyway — came out level with doing neither: what going in costs
-					// is not the character test but everything around it, the frame and the
-					// setup of a rule that was never going to match.
-					//
-					// Neither is `Predictive`, which needs every alternative told apart from
-					// every other. This asks about one at a time and takes what it is given.
-					// And only at a character there is: at the end of the input nothing is
-					// asked and the entry is written, which is what always happened.
-					if (mine is not null || rest is not null)
-					{
-						_usesChar = true;
-
-						using (writer.Block("if ((uint)p < (uint)text.Length)"))
-						{
-							writer.Line("c = text[p];");
-
-							// Not to the next alternative's own test but past it, wherever
-							// that test is one this jump has already answered. Reaching it
-							// means `c` is outside this alternative's set, so a next one
-							// whose set is inside this one asks a question with a known
-							// answer and jumps straight on — which was two states and two
-							// reads of the same character to arrive where one goes now.
-							//
-							// The way back written below is untouched, and not because
-							// nothing is known there — something is. It is pushed only on
-							// the path this test let through, so whatever resumes at it
-							// resumes with `c` inside this alternative's set, and the link
-							// it names asks a question it could answer. What stops the same
-							// trick there is the other way in: the entry is pushed at the
-							// end of the input too, where no test ran, and that path goes
-							// through the link rather than past it. Skipping it would drop a
-							// failure the parse reports, so `expected` would change even
-							// though what is accepted would not. Left, with the trap named
-							// (docs/next.md).
-							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges, Tabulate)})) goto {Label(writer, Skipped(begins, target))};");
-
-							// The second is read knowing the first did not fire, where there
-							// was a first: `c` is in this alternative's own set by then, so
-							// what is being asked is whether that set holds anything outside
-							// the later ones'. Written as it stood, the two ignored each
-							// other and said things that could not be true — `if (!(c ==
-							// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
-							// second cannot fire at all.
-							if (rest is { } after)
-							{
-								if (mine is not { } known)
-									writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
-								else if (!known.Overlaps(after))
-									writer.Line($"goto {Label(writer, first)};");     // always fires
-								else if (!after.Covers(known))               // never fires: not written
-									writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
-							}
-						}
-					}
-
-					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
-						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
-					writer.Line($"goto {Label(writer, first)};");
-
-					if (mine is not null)
-						_dispatchers[state] = (mine, target);
-
-					target = state;
-					rest   = mine is null || rest is null ? null : mine.Or(rest);
-				}
-
-				return target;
+				return CompileChainedChoice(alternatives, next, following);
 			}
 
 			case Node.Capture(_, var body):
@@ -3095,6 +2995,230 @@ sealed partial class Machine
 	/// <summary>
 	/// A choice one character decides: read it, jump to the alternative it belongs to.
 	/// </summary>
+	/// <summary>
+	/// A choice as a chain: each alternative tried in turn, with a way back to the next.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The general form, and what every other one is measured against. It is also what a
+	/// dispatched choice's groups are made of — a group is a choice of its own members and
+	/// nothing else, so the same code writes it.
+	/// </para>
+	/// <para>
+	/// <paramref name="proven"/> is what the caller has already established about the
+	/// character at <c>p</c>: that there is one, and that it is in this set. Only a
+	/// dispatched group can say it, and it is worth saying — an alternative whose own first
+	/// set covers what is proven asks a question with a known answer, so neither the test
+	/// nor the bounds check around it is written at all. That the elision is sound rests on
+	/// the switch being the only way in: the ways back written below name states in this
+	/// same group and carry the position the switch tested, and the one path that used to
+	/// arrive untested — the end of the input — now fails at the switch before any of them
+	/// exists.
+	/// </para>
+	/// </remarks>
+	int CompileChainedChoice(
+		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
+		FirstSets.First? proven = null)
+	{
+		var last   = alternatives.Count - 1;
+		var run    = LiteralGroup(alternatives, last, following.Plain);
+		var target = run > 0
+			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
+			: Compile(alternatives[last], next, following);
+		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
+
+		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
+		{
+			// Alternatives that are all text need neither. Nothing is written down to
+			// come back to and the position is not moved until one of them has
+			// matched, so where they differ is where the next is tried — which is
+			// what a common prefix is worth, and it is worth it whether or not there
+			// is one.
+			if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
+			{
+				var from = i - here + 1;
+
+				rest   = Begins(alternatives, from, i).Or(rest is null ? FirstSets.First.All : rest);
+				target = CompileLiterals(alternatives, from, i, next, target);
+				i      = from;
+
+				continue;
+			}
+
+			var first = Compile(alternatives[i], next, following);
+			var mine  = Decidable(alternatives[i]);
+			var state = Reserve(out var writer);
+
+			// What is already proven about the character is not asked about again. A
+			// set that covers the proven one holds every character the parse can be
+			// standing on, so its test cannot fire; and with both tests gone the bounds
+			// check they sat inside goes too, the switch that let the parse in having
+			// already made it.
+			//
+			// The accumulators keep the unelided sets — they say what is *known* at the
+			// next alternative, which eliding a test does not change. `_dispatchers`
+			// takes the elided one, because `Skipped` jumps from a test and there is
+			// none to jump from.
+			var asked  = proven is { } sure    && mine is { } opens && opens.Covers(sure)   ? null : mine;
+			var others = proven is { } settled && rest is { } later && later.Covers(settled) ? null : rest;
+
+			// One character can say two things here, and each saves something
+			// different. That this alternative cannot begin here saves going into it;
+			// that none of the ones after it can saves the entry that would have let
+			// the parse come back for them.
+			//
+			// Both are kept because both were measured. Keeping only the second — on
+			// the reasoning that the first merely repeats the test the alternative
+			// makes anyway — came out level with doing neither: what going in costs
+			// is not the character test but everything around it, the frame and the
+			// setup of a rule that was never going to match.
+			//
+			// Neither is `Predictive`, which needs every alternative told apart from
+			// every other. This asks about one at a time and takes what it is given.
+			// And only at a character there is: at the end of the input nothing is
+			// asked and the entry is written, which is what always happened.
+			if (asked is not null || others is not null)
+			{
+				_usesChar = true;
+
+				using (writer.Block("if ((uint)p < (uint)text.Length)"))
+				{
+					writer.Line("c = text[p];");
+
+					// Not to the next alternative's own test but past it, wherever
+					// that test is one this jump has already answered. Reaching it
+					// means `c` is outside this alternative's set, so a next one
+					// whose set is inside this one asks a question with a known
+					// answer and jumps straight on — which was two states and two
+					// reads of the same character to arrive where one goes now.
+					//
+					// The way back written below is untouched, and not because
+					// nothing is known there — something is. It is pushed only on
+					// the path this test let through, so whatever resumes at it
+					// resumes with `c` inside this alternative's set, and the link
+					// it names asks a question it could answer. What stops the same
+					// trick there is the other way in: the entry is pushed at the
+					// end of the input too, where no test ran, and that path goes
+					// through the link rather than past it. Skipping it would drop a
+					// failure the parse reports, so `expected` would change even
+					// though what is accepted would not. Left, with the trap named
+					// (docs/next.md).
+					if (asked is { } begins)
+						writer.Line($"if (!({RangesTest(begins.Ranges, Tabulate)})) goto {Label(writer, Skipped(begins, target))};");
+
+					// The second is read knowing the first did not fire, where there
+					// was a first: `c` is in this alternative's own set by then, so
+					// what is being asked is whether that set holds anything outside
+					// the later ones'. Written as it stood, the two ignored each
+					// other and said things that could not be true — `if (!(c ==
+					// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
+					// second cannot fire at all.
+					if (others is { } after)
+					{
+						if (asked is not { } known)
+							writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
+						else if (!known.Overlaps(after))
+							writer.Line($"goto {Label(writer, first)};");     // always fires
+						else if (!after.Covers(known))               // never fires: not written
+							writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
+					}
+				}
+			}
+
+			writer.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
+				"repeat, lookahead, 0));");
+			writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
+			writer.Line($"goto {Label(writer, first)};");
+
+			if (asked is not null)
+				_dispatchers[state] = (asked, target);
+
+			target = state;
+			rest   = mine is null || rest is null ? null : mine.Or(rest);
+		}
+
+		return target;
+	}
+
+	/// <summary>
+	/// A choice entered through a switch on its first character.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The chain <see cref="CompileChainedChoice"/> writes asks the alternatives one group
+	/// at a time — <see cref="Skipped"/> makes a failed character test jump past everything
+	/// that begins the same way — so a list of sixty keywords costs twenty-six tests to
+	/// refuse. This asks once. The switch is over a partition
+	/// (<see cref="Dispatchable"/>), so the group it lands in holds every alternative that
+	/// could match here and the ones it skips could not have.
+	/// </para>
+	/// <para>
+	/// It is also what makes the groups themselves cheaper. The switch proves both halves
+	/// of what each alternative in a group was testing — that there is a character, and
+	/// that it is this one's — so neither the bounds check nor the first-character test is
+	/// written inside the group at all. A group of eight keywords loses eight of each.
+	/// </para>
+	/// <para>
+	/// What is expected here is every alternative, spelled out. The chain would have named
+	/// only the ones it actually entered, which is a subset that depends on where the
+	/// skipping stopped; naming all of them is both the simpler rule and the more useful
+	/// message — a reader who wrote <c>SELCT</c> wants the list of words, not the set of
+	/// letters one may start with.
+	/// </para>
+	/// </remarks>
+	int CompileDispatchedChoice(
+		IReadOnlyList<Node> alternatives,
+		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
+		int next,
+		FollowSets.Continuation following)
+	{
+		var heads = new int[groups.Count];
+
+		for (var i = 0; i < groups.Count; i++)
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
+
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected([.. alternatives.Select(alternative => alternative.ToString())]);
+
+		_usesChar = true;
+
+		writer.Line("if ((uint)p >= (uint)text.Length)");
+		using (writer.Block(""))
+		{
+			if (_starves)
+				writer.Line("failure.Starved = true;");
+
+			EmitTerminalFailure(writer, _fail, arrayName);
+		}
+
+		writer.Line("c = text[p];");
+
+		using (writer.Block("switch (c)"))
+		{
+			for (var i = 0; i < groups.Count; i++)
+			{
+				var labels = "";
+
+				foreach (var range in groups[i].Set.Ranges)
+					for (var c = range.From; ; c++)
+					{
+						labels += $"case {CSharpEmitter.Char(c)}: ";
+
+						if (c == range.To)
+							break;
+					}
+
+				writer.Line($"{labels}goto {Label(writer, heads[i])};");
+			}
+		}
+
+		// No `default:` — falling out of the switch is the default, and it is here.
+		EmitTerminalFailure(writer, _fail, arrayName);
+
+		return state;
+	}
+
 	int CompilePredictedChoice(
 		IReadOnlyList<Node> alternatives, string[] tests, int next, FollowSets.Continuation following)
 	{

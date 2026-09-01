@@ -1834,4 +1834,144 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>A list of keywords is entered through a switch on the first character.</summary>
+	/// <remarks>
+	/// The alternatives do not have to be told apart by one character — <c>and</c> and
+	/// <c>all</c> are not — only the groups do, and a keyword list is a partition by first
+	/// letter whether or not any two words share one.
+	/// </remarks>
+	[Fact]
+	public void A_keyword_list_is_entered_through_a_switch()
+	{
+		var source = Emit("""Start = "and" | "all" | "between" | "case" | "cast" | "default"    """);
+
+		Assert.Contains("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("case 'a':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'b':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'c':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'd':", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A case-insensitive one switches on both cases, and on whatever else folds to them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// U+017F LATIN SMALL LETTER LONG S is the one that surprises: ordinal case folding puts
+	/// it with <c>S</c>, so it is in the first set and has to be in the switch. Missing it
+	/// would refuse a word the comparison beneath would have accepted.
+	/// </para>
+	/// <para>
+	/// The recursion is there to get the engine rendering. A choice of case-insensitive
+	/// literals with nothing around it is one the checkpoint class takes first — a way back
+	/// three locals hold, cheaper than anything dispatch could put in its place — and that
+	/// class is admitted only where failure routes through <c>Fail:</c>, which the lowered
+	/// rendering has and the engine does not.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_case_insensitive_keyword_list_switches_on_every_folding()
+	{
+		var source = Emit("""
+			Word  = "select"i | "some"i | "and"i | "between"i | "case"i
+			Start = Word | '(' & Start & ')'
+			parse Start
+			""");
+
+		Assert.Contains("case 'S': case 's': case '\\u017F':", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// And inside a group nothing tests the character the switch already tested.
+	/// </summary>
+	/// <remarks>
+	/// The saving is both halves of what the chain used to ask per alternative: that there
+	/// is a character at all, and that it is this alternative's. Neither survives, because
+	/// the switch made both and is the only way in.
+	/// </remarks>
+	[Fact]
+	public void A_dispatched_group_tests_its_first_character_no_further()
+	{
+		var source = Emit("""
+			Word  = "select"i | "some"i | "and"i | "between"i | "case"i
+			Start = Word | '(' & Start & ')'
+			parse Start
+			""");
+
+		// Followed from the switch's own `S` arm to the state it names, because the states
+		// are laid out by number and the other groups sit in between.
+		var arm   = source.IndexOf("case 'S': case 's':", StringComparison.Ordinal);
+		var jump  = source.IndexOf("goto ", arm, StringComparison.Ordinal) + "goto ".Length;
+		var label = source[jump..source.IndexOf(';', jump)];
+		var head  = source.IndexOf(label + ":", StringComparison.Ordinal);
+
+		Assert.True(arm >= 0 && head > 0);
+
+		// From there to the word itself nothing asks again. The literal's own length check
+		// stays — that is about what follows the first character, which nothing has proven.
+		var group = source[head..source.IndexOf("AsSpan(", head, StringComparison.Ordinal)];
+
+		Assert.DoesNotContain("(uint)p", group, StringComparison.Ordinal);
+		Assert.DoesNotContain("ToUpperInvariant", group, StringComparison.Ordinal);
+	}
+
+	/// <summary>Too few groups and the chain stands: it is already about that short.</summary>
+	/// <remarks>
+	/// A chain does not test the alternatives one by one but the groups one by one, since a
+	/// failed character test jumps past everything that begins the same way. Three groups
+	/// are three tests, and a switch is not obviously fewer instructions than that.
+	/// </remarks>
+	[Fact]
+	public void Three_groups_are_not_worth_a_switch()
+	{
+		var source = Emit("""Start = "and" | "all" | "between" | "case" | "cast"    """);
+
+		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Sets that overlap without being equal are not dispatched at all.
+	/// </summary>
+	/// <remarks>
+	/// A character in two groups would have to pick one, and either pick skips an
+	/// alternative that could have matched. Nothing here tries to be clever about it: the
+	/// chain is compiled, which is what always happened.
+	/// </remarks>
+	[Fact]
+	public void Overlapping_groups_keep_the_chain()
+	{
+		var source = Emit("""
+			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
+			""");
+
+		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Written order is kept inside a group, which is the whole of what has to be preserved.
+	/// </summary>
+	/// <remarks>
+	/// Between groups order cannot matter — one character decides which group, and no
+	/// alternative outside it could have matched. Inside one it matters as much as it ever
+	/// did: <c>in</c> written before <c>int</c> takes the input <c>int</c> as <c>in</c> and
+	/// leaves <c>t</c>, and the way back to <c>int</c> has to still be there for the <c>&amp;
+	/// end</c> to find.
+	/// </remarks>
+	[Theory]
+	[InlineData("in",  true)]
+	[InlineData("int", true)]
+	[InlineData("is",  true)]
+	[InlineData("on",  true)]
+	[InlineData("or",  true)]
+	[InlineData("to",  true)]
+	[InlineData("i",   false)]
+	[InlineData("ins", false)]
+	public void A_dispatched_choice_keeps_the_order_inside_a_group(string input, bool matches)
+	{
+		// A publication reads the whole input, so nothing has to be written to say so.
+		var (matched, _) = Run("""Start = "in" | "int" | "is" | "on" | "or" | "to" | "up" """, input);
+
+		Assert.Equal(matches, matched);
+	}
+
 }
