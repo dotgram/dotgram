@@ -32,16 +32,80 @@ namespace DotGram.Grammar.Model;
 /// so it is never a pattern.
 /// </para>
 /// </remarks>
-static class LexicalAutomaton
+public sealed class LexicalAutomaton
 {
+	LexicalAutomaton(
+		IReadOnlyList<CharRange> atoms,
+		IReadOnlyList<int[]> next,
+		IReadOnlyList<int> accepts,
+		IReadOnlyList<IReadOnlyList<int>> sets)
+	{
+		Atoms   = atoms;
+		Next    = next;
+		Accepts = accepts;
+		Sets    = sets;
+	}
+
+	/// <summary>The alphabet: disjoint character ranges, in order.</summary>
+	public IReadOnlyList<CharRange> Atoms { get; }
+
+	/// <summary>One row a state, one column an atom; -1 where there is no way on.</summary>
+	public IReadOnlyList<int[]> Next { get; }
+
+	/// <summary>What each state accepts, as an index into <see cref="Sets"/>, or -1.</summary>
+	public IReadOnlyList<int> Accepts { get; }
+
+	/// <summary>The distinct sets of patterns some string makes accept — the kinds.</summary>
+	public IReadOnlyList<IReadOnlyList<int>> Sets { get; }
+
 	/// <summary>
-	/// The distinct sets of patterns that some string makes accept, or null where one of
-	/// them is not a regular language.
+	/// What leaves a state: one entry a target, holding the characters that lead there.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The atoms are how the machine was built and not how it is written. A state inside an
+	/// identifier has one way on — itself, for every letter, digit and underscore — and the
+	/// alphabet says that in three hundred atoms because a keyword's letters cut it. Grouped
+	/// by target it is one test again, over the set it was written as.
+	/// </para>
+	/// <para>
+	/// Measured before it was chosen. <c>SqlStandard92</c> is 528 states over 897 atoms, so a
+	/// dense table is 473,616 cells and out of the question; merging atoms that neighbour each
+	/// other leaves 186,342 tests, because the atoms alternate; grouping by target leaves
+	/// <b>1,034</b>, forty-three at the widest state.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> From(int state)
+	{
+		var grouped = new Dictionary<int, List<CharRange>>();
+		var row     = Next[state];
+
+		for (var atom = 0; atom < row.Length; atom++)
+		{
+			if (row[atom] < 0)
+				continue;
+
+			if (!grouped.TryGetValue(row[atom], out var ranges))
+				grouped[row[atom]] = ranges = [];
+
+			ranges.Add(Atoms[atom]);
+		}
+
+		return
+		[
+			.. grouped
+				.OrderBy(one => one.Key)
+				.Select(one => ((IReadOnlyList<CharRange>)FirstSets.First.Normalized(one.Value), one.Key)),
+		];
+	}
+
+	/// <summary>
+	/// The machine, or null where one of the patterns is not a regular language.
 	/// </summary>
 	/// <param name="graph">For the bodies calls reach.</param>
 	/// <param name="patterns">One node a pattern, in the order the caller numbers them.</param>
 	/// <param name="blocked">What refused, appended to.</param>
-	public static IReadOnlyList<IReadOnlyList<int>>? Sets(
+	public static LexicalAutomaton? Of(
 		RecognitionGraph graph, IReadOnlyList<Node> patterns, List<string> blocked)
 	{
 		if (graph is null)
@@ -50,9 +114,7 @@ static class LexicalAutomaton
 		if (patterns is null)
 			throw new ArgumentNullException(nameof(patterns));
 
-		var built = new Builder(graph, blocked);
-
-		return built.Run(patterns);
+		return new Builder(graph, blocked).Run(patterns);
 	}
 
 	sealed class Builder(RecognitionGraph graph, List<string> blocked)
@@ -77,7 +139,7 @@ static class LexicalAutomaton
 			return _on.Count - 1;
 		}
 
-		public IReadOnlyList<IReadOnlyList<int>>? Run(IReadOnlyList<Node> patterns)
+		public LexicalAutomaton? Run(IReadOnlyList<Node> patterns)
 		{
 			// Two passes over the patterns: the first to learn the alphabet, the second to
 			// build over it. A Thompson edge is labelled with an atom, and an atom cannot be
@@ -399,28 +461,31 @@ static class LexicalAutomaton
 		// ── The subset construction ──────────────────────────────────────────────────
 
 		/// <summary>
-		/// The accepting sets of the deterministic machine, which are the kinds.
+		/// The deterministic machine, and the accepting sets that are the kinds.
 		/// </summary>
 		/// <remarks>
-		/// The states themselves are not kept. What is wanted here is which sets of patterns
-		/// can accept at once, and a state that accepts nothing or accepts the same set as
-		/// another is not a different answer. Emission will want the states; this does not.
+		/// Both, because they are one construction: the sets are what the accepting states
+		/// carry, and the states are what a lexer runs. Working either out on its own would be
+		/// working the other out twice.
 		/// </remarks>
-		IReadOnlyList<IReadOnlyList<int>> Subsets(int start)
+		LexicalAutomaton Subsets(int start)
 		{
-			var seen    = new Dictionary<string, HashSet<int>>();
-			var pending = new Queue<HashSet<int>>();
-			var found   = new List<IReadOnlyList<int>>();
-			var named   = new HashSet<string>();
+			var numbered = new Dictionary<string, int>();
+			var pending  = new Queue<(HashSet<int> States, int Number)>();
+			var sets     = new List<IReadOnlyList<int>>();
+			var named    = new Dictionary<string, int>();
+			var accepts  = new List<int>();
+			var rows     = new List<int[]>();
 
 			var first = Closed([start]);
 
-			seen[Key(first)] = first;
-			pending.Enqueue(first);
+			numbered[Key(first)] = 0;
+			pending.Enqueue((first, 0));
+			Room(rows, accepts, 0);
 
 			while (pending.Count > 0)
 			{
-				var here = pending.Dequeue();
+				var (here, number) = pending.Dequeue();
 
 				var accepting = here.Where(_accepts.ContainsKey).Select(one => _accepts[one]).ToList();
 
@@ -428,8 +493,15 @@ static class LexicalAutomaton
 				{
 					accepting.Sort();
 
-					if (named.Add(string.Join(",", accepting)))
-						found.Add(accepting);
+					var key = string.Join(",", accepting);
+
+					if (!named.TryGetValue(key, out var which))
+					{
+						named[key] = which = sets.Count;
+						sets.Add(accepting);
+					}
+
+					accepts[number] = which;
 				}
 
 				for (var atom = 0; atom < _atoms.Count; atom++)
@@ -447,15 +519,72 @@ static class LexicalAutomaton
 					var closed = Closed(next);
 					var key    = Key(closed);
 
-					if (seen.ContainsKey(key))
-						continue;
+					if (!numbered.TryGetValue(key, out var to2))
+					{
+						numbered[key] = to2 = numbered.Count;
 
-					seen[key] = closed;
-					pending.Enqueue(closed);
+						Room(rows, accepts, to2);
+						pending.Enqueue((closed, to2));
+					}
+
+					rows[number][atom] = to2;
 				}
 			}
 
-			return found;
+			return Ordered(_atoms, rows, accepts, sets);
+		}
+
+		/// <summary>
+		/// The sets renumbered by the patterns they hold, and the states pointed at the new
+		/// numbers.
+		/// </summary>
+		/// <remarks>
+		/// The subset construction meets its states in whatever order the alphabet takes it,
+		/// and that is not the order the patterns are in — while the caller has arranged the
+		/// patterns so that a named set is one run of them, which only survives if the kinds
+		/// follow the patterns. So they are sorted by the lowest pattern each set holds, which
+		/// puts a word's kind in word order and the wider sets after.
+		///
+		/// Here and not in the caller. Doing it there left two numberings — the caller's and
+		/// the one the emitted scanner printed — and forty-six inputs became nineteen
+		/// disagreements the moment the scanner was generated rather than written by hand.
+		/// </remarks>
+		static LexicalAutomaton Ordered(
+			IReadOnlyList<CharRange> atoms,
+			IReadOnlyList<int[]> rows,
+			List<int> accepts,
+			List<IReadOnlyList<int>> sets)
+		{
+			var order = Enumerable.Range(0, sets.Count)
+				.OrderBy(one => sets[one][0])
+				.ThenBy(one => sets[one].Count)
+				.ThenBy(one => string.Join(",", sets[one]))
+				.ToList();
+
+			var moved = new int[sets.Count];
+
+			for (var to = 0; to < order.Count; to++)
+				moved[order[to]] = to;
+
+			for (var state = 0; state < accepts.Count; state++)
+				if (accepts[state] >= 0)
+					accepts[state] = moved[accepts[state]];
+
+			return new LexicalAutomaton(atoms, rows, accepts, [.. order.Select(one => sets[one])]);
+		}
+
+		void Room(List<int[]> rows, List<int> accepts, int number)
+		{
+			while (rows.Count <= number)
+			{
+				var row = new int[_atoms.Count];
+
+				for (var i = 0; i < row.Length; i++)
+					row[i] = -1;
+
+				rows.Add(row);
+				accepts.Add(-1);
+			}
 		}
 
 		HashSet<int> Closed(IEnumerable<int> states)

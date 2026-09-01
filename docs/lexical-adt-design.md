@@ -426,9 +426,19 @@ that joins the parts) is the honest fix.
    `{Digits}` and `{QuotedString}` — sets no string can produce, because each of those
    languages is contained in another pattern's. Only reading them together finds that; no
    witness can.
-4. **Emitting the lexer from that automaton.** The states are already built; what is
-   missing is writing them out. Correctness signal: **no arena write survives in the
-   lexer**.
+4. ~~Emitting the lexer from that automaton~~ — done, and it writes no arena. 528 states
+   and 2,222 lines for `SqlStandard92`, smaller than the syntactic machine it feeds. Direct
+   code and not a table, and that was measured rather than assumed: a dense table is 473,616
+   cells over an alphabet of 897 atoms, merging neighbouring atoms leaves 186,342 tests
+   because the atoms alternate, and grouping the ways out of a state by where they lead
+   leaves **1,034**, forty-three at the widest state.
+
+   It is also *faster* than the hand-written tokenizer it replaced, which the earlier
+   measurements had called an optimistic bound — 412 nanoseconds against 710 on a long
+   expression. The one thing that nearly sank it was writing the wide character sets inline:
+   `new char[] { … }` inside the scanning loop is an allocation per character per test, and
+   the first generated lexer came out seventeen times slower than the hand one. Hoisted into
+   static fields it is faster than hand-written.
 5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
    answer to `List<List<int>>` as well: `>` is a declared pattern and `>>` begins with it,
    so a cursor that can be asked for a particular kind splits without any state at all. What

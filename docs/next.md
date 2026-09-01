@@ -9219,3 +9219,52 @@ is skipped rather than tokenized.
 
 The lexer itself is next, and most of it now exists: the states are built, and what is
 missing is writing them out.
+
+## Built: the lexer, generated — and it is faster than the one it replaces
+
+The automaton was already there; this writes it out. One method, one array of accepting
+kinds, and a static field per wide character set.
+
+    SqlStandard92    528 states, 2,222 lines, no arena write
+
+**Direct code and not a table, and it was measured before it was chosen.** Over an alphabet
+of 897 atoms a dense table is 473,616 cells and out of the question. Merging atoms that
+neighbour each other leaves 186,342 tests, because the atoms alternate — a keyword's letters
+cut the alphabet everywhere a category is dense. Grouping the ways out of a state by *where
+they lead* leaves **1,034**, forty-three at the widest state, and each of those is the
+character set the grammar wrote, lowered the way every other character set is: comparisons
+while there are few, a searched array of bounds beyond that.
+
+**No arena write survives in it**, which is what the design asked for as the correctness
+signal. Not an optimization: a lexical machine that needed a way back would mean a pattern
+had been admitted that is not a regular language, and the split would be wrong upstream. It
+is checked by a test, not by reading.
+
+**And it is faster than the hand-written tokenizer it replaces**, which every earlier
+measurement had treated as an optimistic bound:
+
+           chars        lex      kinds      total
+            460n        69n       163n       232n   1.98x  a = 1
+          3,891n       412n       838n     1,250n   3.11x  (a + b) * c - d / e > f AND NOT g < h
+          4,767n       872n       828n     1,700n   2.80x  (quantity + weight) * rate …
+          9,656n       394n     2,236n     2,630n   3.67x  ! (a + b) * c - d / e > f AND NOT g <
+         16,676n       794n     2,244n     3,038n   5.49x  ! (quantity + weight) * rate …
+
+The hand tokenizer took 710 nanoseconds on the fifth line where this takes 412. Forty-six
+of forty-six inputs still agree with the shipping parser, and the only hand-written thing
+left in `.work/kinds` is the trivia skip.
+
+**Two things nearly sank it, and both were caught by running it.**
+
+The wide sets were written inline — `new char[] { … }` inside the scanning loop, an
+allocation per character per test. The first generated lexer came out **seventeen times
+slower** than the hand one, 8,997 nanoseconds against 510, slow enough to make the whole
+split a loss. Hoisted into static fields it is faster than hand-written. A generated lexer
+that allocates in its inner loop is not a lexer, and nothing but running it would have said
+so.
+
+And there were two numberings. The automaton met its accepting sets in whatever order the
+alphabet took it; the inventory sorted them so a named set stays one run of kinds. That was
+fine while the tokenizer was hand-written against the inventory, and became nineteen
+disagreements the moment the scanner printed its own numbers. The sort belongs in the
+automaton, which is the only place that can promise there is one numbering.

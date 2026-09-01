@@ -87,6 +87,16 @@ public sealed class TerminalInventory
 	/// <summary>What could not be numbered, empty where nothing stood in the way.</summary>
 	public IReadOnlyList<string> Blocked { get; }
 
+	/// <summary>
+	/// The machine that reads the patterns together, and whose accepting states are the kinds.
+	/// </summary>
+	/// <remarks>
+	/// Null where the grammar has no lexical half or the patterns are not all regular. It is
+	/// here rather than beside the inventory because the two are one construction: the kinds
+	/// are what its accepting states carry.
+	/// </remarks>
+	public LexicalAutomaton? Machine { get; private init; }
+
 	/// <summary>The kinds whose set holds this pattern — what a syntactic position tests.</summary>
 	public IReadOnlyList<Group> KindsOf(Pattern pattern)
 	{
@@ -625,26 +635,22 @@ public sealed class TerminalInventory
 			// accept together is what a subset construction answers, and answering it any
 			// other way is either approximate or a second implementation of the lexer.
 			var shapes = patterns.Select(one => Shape(one)).ToList();
-			var found  = shapes.Any(one => one is null)
+			var machine = shapes.Any(one => one is null)
 				? null
-				: LexicalAutomaton.Sets(graph, [.. shapes!], _reasons);
+				: LexicalAutomaton.Of(graph, [.. shapes!], _reasons);
 
-			if (found is null)
+			if (machine is null)
 			{
 				Refuse("the patterns are not all regular, so they cannot be read together");
 
 				return new TerminalInventory(true, patterns, [], [], _reasons);
 			}
 
-			// Numbered by the patterns they hold and not by the order the machine met them.
-			// The laminar ordering above put the patterns where a named set is one run of
-			// them, and that only survives into the kinds if the kinds follow the patterns:
-			// a word's kind holds that word and nothing earlier, so sorting by the lowest
-			// pattern in the set puts the word kinds in word order and the rest after them.
-			var kinds = found
-				.OrderBy(set => set[0])
-				.ThenBy(set => set.Count)
-				.ThenBy(set => string.Join(",", set))
+			// In the order the machine gives them, which is the order the emitted scanner
+			// prints — it renumbers its own sets by the patterns they hold, so that the
+			// laminar ordering above survives into the kinds. Sorting them a second time here
+			// is how two numberings came to exist, and nineteen inputs said so.
+			var kinds = machine.Sets
 				.Select((set, at) => new Kind(at + 1, [.. set.Select(one => patterns[one])]))
 				.ToList();
 
@@ -659,7 +665,7 @@ public sealed class TerminalInventory
 						.SelectMany(range => Enumerable.Range(range.From, range.Count)))))
 				.ToList();
 
-			return new TerminalInventory(true, patterns, kinds, named, _reasons);
+			return new TerminalInventory(true, patterns, kinds, named, _reasons) { Machine = machine };
 		}
 
 		/// <summary>The node a pattern recognizes, as the automaton needs to read it.</summary>
