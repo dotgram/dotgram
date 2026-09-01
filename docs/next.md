@@ -9449,3 +9449,63 @@ the two were already for. What is left before a grammar can ask for the split in
 text is emitting that scanner beside the lexer — the machine that renders it exists and is
 reached through a rule rather than through the graph, so it is a matter of asking it, not of
 building anything.
+
+## Built: a split grammar reads one string
+
+Igor's point about calling the existing trivia scanner is what made this short. The lexical
+half of a generated file is now three things and none of them new: the machine
+`LexerEmitter` writes, §4.5's `trivia` asked for as the scanner it already compiles to, and
+the loop between them.
+
+    public static Match<string[]> TryParseStart(string input)
+    {
+        var source = input;
+
+        input = Tokenize_DotGram(source, out var starts, out var lengths, out var stopped);
+
+        if (stopped >= 0)
+            return Match<string[]>.Failed(Outcome.NoMatch, "…", stopped, null, null);
+        …
+
+The seam is asked for by rule rather than found by compiling — a lexical machine has no
+calls to compile and still needs it — and the machine that renders it is built over the
+original graph restricted to the trivia rules, so what it costs is the scanner and not the
+parser it could have been. Tagged `_Seam`, because everything a machine emits is named after
+its tag and this one lands in a file another machine has already filled: without it the two
+sets of character tables collide name for name.
+
+**A grammar with values, from one string:**
+
+    Pair : @string = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+
+    TryParseStart("a=1 bb=22")  ->  a:1 | bb:22
+    TryParseStart("a=1 b=")     ->  refused at character 6
+
+Forty-six of forty-six on SQL, against the shipping parser, with no hand-written tokenizer
+anywhere.
+
+**And the advantage narrowed, which is the honest part.**
+
+           chars      kinds
+            573n       718n   0.80x  x IN (1, 2, 3) AND y IS NOT NULL
+          1,118n     1,234n   0.91x  warehouse.zip_code = 'X' AND …
+          2,517n     1,317n   1.91x  (a + b) * c - d / e > f AND NOT g < h
+          6,832n     2,714n   2.52x  ! (a + b) * c - d / e > f AND NOT g <
+         10,726n     3,133n   3.42x  ! (quantity + weight) * rate - zone / …
+
+Accepted inputs run 0.80x to 1.91x where the hand-tokenizer measurement said 1.47x to 3.11x,
+and two of nine are now *slower*. Two reasons and both are worth saying. The character
+parser got faster: unweaving trivia took seven per cent off it, so the thing being beaten
+improved. And this measures one call rather than two, which means it includes the three
+allocations a tokenized parse makes — a `char[]` and two `int[]` sized for the input — that
+the earlier figure split out. On a short condition that is most of the difference.
+
+So the lazy cursor stops being an optimization looking for a reason: three allocations per
+parse is the reason.
+
+**One more number, from a diagnostic the build raised on its own.** The lexer's `Scan` is
+estimated at 3,669 basic blocks, past the ~2,000 where the JIT stops optimizing (GRAM5003).
+Direct code was chosen over a table on the strength of 1,034 tests against 473,616 table
+cells, and 1,034 tests is right — but 528 `case` labels is a lot of *blocks*, which is a
+different measure and the one the JIT reads. The design said the lexer wants a table; that
+was overridden on size, and the size argument was about the wrong size.

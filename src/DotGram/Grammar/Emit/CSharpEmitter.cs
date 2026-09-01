@@ -136,16 +136,19 @@ public static partial class CSharpEmitter
 	/// How large a divided recognizer's parts should be aimed to be, or null for the
 	/// measured default. A wish rather than a requirement — see <c>Machine.PartSize</c>.
 	/// </param>
-	/// <param name="overKinds">
-	/// Whether the graph reads token kinds rather than characters — a graph
-	/// <c>LexicalSplit</c> rewrote. It changes one thing in the machine: a position is a
-	/// token, so the text a value is cut from travels beside the kinds rather than being
-	/// what is read (docs/lexical-adt-design.md).
+	/// <param name="lexical">
+	/// The split this graph is the syntactic half of, where it is one. Then the file carries
+	/// a lexical machine as well, the seam is skipped rather than woven, and a position is a
+	/// token — so the text a value is cut from travels beside the kinds rather than being what
+	/// is read (docs/lexical-adt-design.md).
 	/// </param>
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
-		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null, bool overKinds = false)
+		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
+		LexicalSplit? lexical = null)
 	{
+		var overKinds = lexical is not null;
+
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
@@ -386,6 +389,16 @@ public static partial class CSharpEmitter
 		if (Locating(graph))
 		{
 			file.Write(LocateHelper);
+			file.Line();
+		}
+
+		// The lexical half: the machine that reads characters and answers with kinds, the
+		// seam it skips between them, and the loop that puts the two together. Written here
+		// rather than beside the publications because every publication of a split grammar
+		// calls the same one.
+		if (lexical is not null)
+		{
+			file.Write(Lexical(lexical));
 			file.Line();
 		}
 
@@ -765,15 +778,9 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		var takesText = overKinds
-			? "string source, string input, int[] starts, int[] lengths"
-			: "string input";
-
-		var givesText = overKinds ? "source, input, starts, lengths" : "input";
-
-		using (file.Block($"public static {value} {method}({takesText}{takes})"))
+		using (file.Block($"public static {value} {method}(string input{takes})"))
 		{
-			file.Line($"var match = Try{method}({givesText}{gives});");
+			file.Line($"var match = Try{method}(input{gives});");
 			file.Line();
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
@@ -784,16 +791,28 @@ public static partial class CSharpEmitter
 		file.Line();
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		// Over kinds the caller hands over what a lexer produced: the source it read, the
-		// kinds it found, and where each one was. Four arguments and not one, deliberately —
-		// wiring a lexer into the one-string form is the step after this, and inventing a
-		// half of it here would hide which half is missing.
-		var reads = overKinds
-			? "string source, string input, int[] starts, int[] lengths"
-			: "string input";
-
-		using (file.Block($"public static {match} Try{method}({reads}{takes})"))
+		using (file.Block($"public static {match} Try{method}(string input{takes})"))
 		{
+			// A split grammar reads its input twice: once into kinds and once as kinds. What
+			// the caller hands over is a string either way — the two halves are the parser's
+			// business and not theirs.
+			if (overKinds)
+			{
+				file.Line("var source = input;");
+				file.Line();
+				file.Line("input = Tokenize_DotGram(source, out var starts, out var lengths, out var stopped);");
+				file.Line();
+
+				using (file.Block("if (stopped >= 0)"))
+				{
+					file.Line(
+						$"return {match}.Failed({OutcomeType}.NoMatch, " +
+						$"\"Input does not match '{name}'.\", stopped, null, null);");
+				}
+
+				file.Line();
+			}
+
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
 			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
@@ -849,6 +868,117 @@ public static partial class CSharpEmitter
 						"end == 0 ? 0 : starts[end - 1] + lengths[end - 1]);"
 					: $"return {match}.Success({Recognized("0", "end")}, 0, end);");
 		}
+	}
+
+	/// <summary>
+	/// The lexical half of a split grammar: the scanner, the seam, and the loop.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Three things and none of them new. <c>LexerEmitter</c> writes the machine that reads
+	/// the patterns together; §4.5's <c>trivia</c> is already an atomic-braced rule that
+	/// compiles to a scanner with nothing written down, so it is asked for rather than
+	/// recognized again; and the loop between them is what a tokenizer is.
+	/// </para>
+	/// <para>
+	/// Whitespace is skipped and not reported, which is why it is not a pattern. Making it
+	/// one was tried: the subset construction crosses a comment's <c>any</c> with every atom
+	/// of every other pattern, and it ran for ten minutes without finishing.
+	/// </para>
+	/// </remarks>
+	static string Lexical(LexicalSplit lexical)
+	{
+		var file = new Writer(0);
+
+		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!));
+		file.Line();
+
+		// A machine over the original graph, asked for one rule. Only the seam is compiled:
+		// what it costs is the scanner it renders, not the parser it could have.
+		var seam = new Machine(
+			lexical.Source,
+			new ResultTypes(lexical.Source, "Lexical", null),
+			null,
+			only: lexical.Trivia,
+			// Tagged, because everything a machine emits is named after its tag and this one
+			// stands in a file another machine has already filled: without it the seam's
+			// character tables collide with the syntax's, name for name.
+			tag: "_Seam");
+
+		var skipping = lexical.Trivia
+			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
+			.FirstOrDefault(one => one.Name is not null);
+
+		foreach (var extra in seam.Extra)
+		{
+			file.Write(extra);
+			file.Line();
+		}
+
+		file.Write(seam.RenderScanners());
+
+		file.Line("/// <summary>The input as kinds, with where each one was.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// The seam first and then a terminal, which is §4.5 read from the other side:");
+		file.Line("/// trivia stands between operands, so between tokens is exactly where it stands.");
+		file.Line("/// A character that begins no terminal stops the scan and is reported as where");
+		file.Line("/// the input stopped being this language.");
+		file.Line("/// </remarks>");
+
+		using (file.Block(
+			"static string Tokenize_DotGram(string input, out int[] starts, out int[] lengths, " +
+			"out int stopped)"))
+		{
+			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line("var kinds   = new char[input.Length + 1];");
+			file.Line();
+			file.Line("starts  = new int[input.Length + 1];");
+			file.Line("lengths = new int[input.Length + 1];");
+			file.Line();
+			file.Line("var count = 0;");
+			file.Line("var p     = 0;");
+			file.Line();
+
+			using (file.Block("while (true)"))
+			{
+				if (skipping.Name is { } scanner)
+				{
+					file.Line($"var skipped = {scanner}(text, p);");
+					file.Line();
+					file.Line("if (skipped > p)");
+					file.Then("p = skipped;");
+					file.Line();
+				}
+
+				file.Line("if (p >= text.Length)");
+				file.Then("break;");
+				file.Line();
+				file.Line("var end = Scan(text, p, out var kind);");
+				file.Line();
+
+				using (file.Block("if (kind == 0 || end <= p)"))
+				{
+					file.Line("stopped = p;");
+					file.Line();
+					file.Line("return new string(kinds, 0, count);");
+				}
+
+				file.Line();
+				file.Line("kinds  [count] = (char)kind;");
+				file.Line("starts [count] = p;");
+				file.Line("lengths[count] = end - p;");
+				file.Line("count++;");
+				file.Line();
+				file.Line("p = end;");
+			}
+
+			file.Line();
+			file.Line("stopped = -1;");
+			file.Line();
+			file.Line("return new string(kinds, 0, count);");
+		}
+
+		return file.ToString();
 	}
 
 	/// <summary>

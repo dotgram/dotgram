@@ -53,6 +53,16 @@ sealed partial class Machine
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
 
+	/// <summary>
+	/// The scanner one rule becomes, asked for rather than found by compiling.
+	/// </summary>
+	/// <remarks>
+	/// A machine registers a scanner when it compiles a call to one. A lexical machine has
+	/// no calls to compile and still needs the seam — the tokenizer skips trivia between
+	/// terminals — so it asks for the one rule it wants and renders that.
+	/// </remarks>
+	public string? Scanner(RuleSymbol rule) => ScannerOf(rule);
+
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	public string RenderScanners()
 	{

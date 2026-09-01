@@ -43,9 +43,16 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public sealed class LexicalSplit
 {
-	LexicalSplit(RecognitionGraph syntax, TerminalInventory inventory, IReadOnlyList<string> blocked)
+	LexicalSplit(
+		RecognitionGraph syntax,
+		RecognitionGraph source,
+		IReadOnlyList<RuleSymbol> trivia,
+		TerminalInventory inventory,
+		IReadOnlyList<string> blocked)
 	{
 		Syntax    = syntax;
+		Source    = source;
+		Trivia    = trivia;
 		Inventory = inventory;
 		Blocked   = blocked;
 	}
@@ -55,6 +62,18 @@ public sealed class LexicalSplit
 
 	/// <summary>What the kinds are, and what a lexical machine recognizes to produce them.</summary>
 	public TerminalInventory Inventory { get; }
+
+	/// <summary>The graph this was cut out of, over characters.</summary>
+	/// <remarks>
+	/// Kept for one thing: the seam. §4.5's <c>trivia</c> is compiled to a scanner already —
+	/// atomic-braced, nothing written down — and a tokenizer that wants whitespace skipped
+	/// between terminals calls it rather than recognizing it. The rule lives here and not in
+	/// <see cref="Syntax"/>, which has no seams left at all.
+	/// </remarks>
+	public RecognitionGraph Source { get; }
+
+	/// <summary>The rules that are the seam, whose scanner the tokenizer calls.</summary>
+	public IReadOnlyList<RuleSymbol> Trivia { get; }
 
 	/// <summary>What the split could not do, empty where it did all of it.</summary>
 	public IReadOnlyList<string> Blocked { get; }
@@ -163,7 +182,12 @@ public sealed class LexicalSplit
 				FreeNames  = graph.FreeNames,
 			};
 
-			return new LexicalSplit(syntax, inventory, blocked);
+			return new LexicalSplit(
+				syntax,
+				graph,
+				[.. graph.Trivia.Values.OfType<Node.Call>().Select(call => call.Rule).Distinct()],
+				inventory,
+				blocked);
 		}
 
 		static Dictionary<RuleSymbol, T> Kept<T>(
