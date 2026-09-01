@@ -230,82 +230,95 @@ public sealed class LexerEmitterTests
 	}
 
 	/// <summary>
-	/// A state whose ways out sit near each other is read out of a row, not asked about.
+	/// A transition is a table row, and the row begins where the state's own alphabet does.
 	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// The licence is determinism: each character belongs to exactly one atom and each atom
-	/// leads to one state, so no character satisfies two of a state's tests and the chain's
-	/// order carries no meaning. What that buys is that any subset may be lifted into a row
-	/// with the rest left where it was.
+	/// leads to one state, so no character satisfies two of a state's tests and a cell can be
+	/// written once however the ranges are ordered.
 	/// </para>
 	/// <para>
-	/// Asserted on the text here, unlike everything else in this file, because the claim is
-	/// about the shape of the code and not about what it recognizes — every other test in this
-	/// file already says the machine still answers the same. What is checked is that a wide
-	/// set is <em>not</em> in a row, which is the whole of what keeps this from becoming the
-	/// dense table the design rejected.
+	/// Asserted on the text, unlike everything else in this file, because the claim is about
+	/// the shape of the code and not about what it recognizes — every other test here already
+	/// says the machine answers the same. What is checked is the second half of the claim:
+	/// that a row is <em>shifted</em> to the state's first character rather than anchored at
+	/// zero, which is what gives a machine over Cyrillic the table a machine over ASCII gets.
 	/// </para>
 	/// </remarks>
 	[Fact]
-	public void A_state_whose_ways_out_are_near_each_other_becomes_a_row()
+	public void A_transition_is_a_row_shifted_to_where_the_alphabet_is()
 	{
-		var split = LexicalSplit.Of(
-			GrammarNormalizer.Normalize(
-				GrammarBinder.Bind(
-					GramParser.Parse(
-						GramLexer.Tokenize(
-							"""
-							trivia = ' '*
-							namespace Lexical
-							{
-								trivia = none
-								Name = ['a'..'z'] & ['a'..'z']*
-								Text = '"' & [^ '"']* & '"'
-							}
-							Start = Lexical.Name & '=' & Lexical.Text & eof
-							parse Start
-							""",
-							DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+		var source = Emitted(
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Word = ['а'..'я'] & ['а'..'я']*
+			}
+			Start = Lexical.Word & '=' & Lexical.Word & eof
+			parse Start
+			""");
 
-		var source = LexerEmitter.Emit(split!.Inventory.Machine!);
+		Assert.Contains("Scan_Cells[(int)row + at]", source, StringComparison.Ordinal);
 
-		Assert.Contains("static readonly short[] Scan_Row0 =", source, StringComparison.Ordinal);
-		Assert.Contains("Scan_Row0[c - ", source, StringComparison.Ordinal);
+		// The alphabet is U+0430 to U+044F, so the rows over it hold that and sit nowhere near
+		// ASCII. Anchored at zero this grammar would have no usable row at all and every
+		// character of every word would take the chain.
+		var rows = Rows(source).Where(one => one > 0).ToList();
 
-		// `[^ '"']` is two ranges reaching the top of the plane. A row for that would be most
-		// of one, so it stays a comparison — and stays correct, since the row it sits beside
-		// answers -1 for every character it does not hold.
+		Assert.NotEmpty(rows);
+		Assert.All(rows, one => Assert.InRange(one, 0x044F - 127, 0x0430));
+	}
+
+	/// <summary>And what no budget can hold keeps the chain it had.</summary>
+	/// <remarks>
+	/// <c>[^ '"']</c> is the top of the plane less one character. A row for that is most of a
+	/// plane, so it stays a comparison — and stays correct, since the row beside it answers
+	/// -1 for every character it holds and does not lead anywhere.
+	/// </remarks>
+	[Fact]
+	public void But_a_category_is_still_a_comparison()
+	{
+		var source = Emitted(
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Text = '"' & [^ '"']* & '"'
+			}
+			Start = Lexical.Text & eof
+			parse Start
+			""");
+
 		Assert.Contains("if (c >= ", source, StringComparison.Ordinal);
 	}
 
-	/// <summary>And one comparison is never traded for a subtraction and a load.</summary>
-	/// <remarks>
-	/// A state with one single-character way out has one comparison to make. The row costs
-	/// three operations and a field, so it is not built — the threshold is on what the chain
-	/// would ask, not on how many ways there are.
-	/// </remarks>
-	[Fact]
-	public void But_a_single_character_is_still_a_comparison()
+	static string Emitted(string grammar) =>
+		LexerEmitter.Emit(
+			LexicalSplit.Of(
+				GrammarNormalizer.Normalize(
+					GrammarBinder.Bind(
+						GramParser.Parse(
+							GramLexer.Tokenize(
+								grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)))!
+			.Inventory.Machine!);
+
+	/// <summary>The character each state's row begins at.</summary>
+	static IReadOnlyList<int> Rows(string source)
 	{
-		var split = LexicalSplit.Of(
-			GrammarNormalizer.Normalize(
-				GrammarBinder.Bind(
-					GramParser.Parse(
-						GramLexer.Tokenize(
-							"""
-							trivia = ' '*
-							Start = "->" & '(' & eof
-							parse Start
-							""",
-							DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+		var at   = source.IndexOf("Scan_States =", StringComparison.Ordinal);
+		var from = source.IndexOf('{', at) + 1;
+		var to   = source.IndexOf("};", from, StringComparison.Ordinal);
 
-		var source = LexerEmitter.Emit(split!.Inventory.Machine!);
-
-		// The first state admits `-` and `(`, which is two comparisons and so a row. The one
-		// after `-` admits `>` and nothing else, which is one.
-		Assert.Contains("static readonly short[] Scan_Row0 =", source, StringComparison.Ordinal);
-		Assert.Contains("if (c == '>') return", source, StringComparison.Ordinal);
+		return
+		[
+			.. source[from..to]
+				.Split([',', '\r', '\n', '\t', ' '], StringSplitOptions.RemoveEmptyEntries)
+				.Select(one => (int)(long.Parse(one, System.Globalization.CultureInfo.InvariantCulture) >> 32)),
+		];
 	}
 
 	static string[] Patterns(TerminalInventory inventory, int kind) =>

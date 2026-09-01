@@ -9784,3 +9784,65 @@ is slower is the shortest, and it is slower in every variant tried.
 generated file goes from 8,647 lines to 10,726. No part of the scanner fell out of
 optimization: every `Scan_Part` still reaches `Tier1 with Dynamic PGO`, and nothing anywhere
 says `MinOpts`.
+
+## And then the loop stopped asking which state it was in
+
+The rows of the previous entry were per state, so reading a transition meant finding the
+state's row first: a chain of range tests to pick which of six methods held it, a call, and
+a `switch` over ninety-six labels — a jump table, and an indirect jump the predictor cannot
+help with, once per character.
+
+All of it is gone. There is one array of cells for the whole machine and one number per
+state saying where that state's row begins:
+
+    var c    = text[p];
+    var row  = Scan_States[state];
+    var at   = c - (int)(row >> 32);
+
+    if ((uint)at < 128u)
+        next = Scan_Cells[(int)row + at];
+    else
+        next = <the chain, for what a row cannot hold>;
+
+One load, one subtract, one compare against a constant, one load. Every row is the same
+width, so only where it *starts* has to be looked up — which is the half of the descriptor
+worth loading, and the half that makes this work for an alphabet that is not ASCII.
+
+**Three things were wrong before they were right.**
+
+The first table was anchored at zero and 128 wide, which is a table for English. A grammar
+whose words are Cyrillic got rows that were entirely -1 and took the chain for every
+character of every word. The row is placed now, not assumed.
+
+Placing it by the state's *first* character was the second wrong answer. A state admitting
+`'='` and а..я has an alphabet a thousand apart, and a window at the `'='` answers for one
+character and sends the whole language to the chain. So the window is chosen to cover the
+most of what the grammar named — the most **ranges**, and the widest where two windows tie.
+Ranges and not characters, because a Unicode category is a great many characters in a great
+many scattered pieces and counting characters drags every window into the middle of one.
+
+And then it is slid as far down as it can go without dropping any range it was chosen for.
+That was the third: `SqlStandard92`'s first state begins at `'"'`, and an input beginning
+with `!` fell past the table to be refused by a chain that the table already knew the answer
+to. The room below is free — those cells refuse, which is what the chain would have said —
+and it is where the characters that end a token live. That one change took the immediate
+refusal from 0.85x of the old code to 1.77x.
+
+    chain    rows   table   vs chain
+      201     204     194      1.04x  a = 1
+      391     373     357      1.10x  salary BETWEEN 1000 AND 2000
+      449     389     394      1.14x  x IN (1, 2, 3) AND y IS NOT NULL
+      975     946     926      1.05x  (a + b) * c - d / e > f AND NOT g < h
+      899     860     768      1.17x  amount * 1.05 + tax >= total AND …
+      829     759     691      1.20x  warehouse.zip_code = 'X' AND …
+      858     709     745      1.15x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1425    1319    1244      1.15x  (quantity + weight) * rate - zone / 2 > …
+       23      19      13      1.77x  ! amount * 1.05 + tax >= total AND …
+
+Interleaved, five rounds each, min of all. It is also **smaller than what it replaced**:
+53 distinct rows and 6,784 cells — thirteen kilobytes — where the per-state rows were 367
+fields and 24, and the generated file goes from 10,726 lines back to 9,078, against 8,647
+for the plain chain. A keyword trie has a great many states that admit exactly the letters
+continuing a word, and at a fixed width those states share one row.
+
+Every `Scan_Part` still reaches `Tier1 with Dynamic PGO`; nothing says `MinOpts`.

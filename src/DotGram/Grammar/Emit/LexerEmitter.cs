@@ -27,19 +27,29 @@ namespace DotGram.Grammar.Emit;
 /// feeds.
 /// </para>
 /// <para>
-/// <b>But a row per state where the characters are near each other</b>, which was measured
-/// too. Grouping by target says what a state's ways out <em>are</em>; it does not say they
-/// have to be asked one at a time. A state whose edges live inside a small window of
-/// characters is one subtraction, one unsigned compare and one load — see <c>Dense</c> —
-/// and the window is what keeps this from becoming the dense table again: a Unicode
-/// category or an "anything but a quote" stays a chain, because a row for one of those is
-/// most of a plane.
+/// <b>But a table in front of it, which was measured too.</b> Grouping by target says what a
+/// state's ways out <em>are</em>; it does not say they have to be asked one at a time. So
+/// each state gets a row of 128 characters — <see cref="Table"/> — and reading a transition
+/// is one load of where the row starts, one compare against a constant, and one load of the
+/// cell. No call, no switch, no chain, and nothing that depends on which state it is except
+/// that first load.
 /// </para>
 /// <para>
-/// It is worth 1.02x to 1.24x over <c>SqlStandard92</c>'s corpus, interleaved, for 367 rows
-/// and 12,000 cells — 24 kilobytes of <c>short</c>. The first state alone was forty-four
-/// tests, every mark the language writes and both cases of every letter a keyword begins
-/// with, and it is entered once per token.
+/// <b>The row sits where the state's own alphabet is</b>, not at zero. That is what lets a
+/// machine over Cyrillic or Greek have the table a machine over ASCII has, and what the
+/// window is chosen for: the most of what the grammar named that 128 characters can hold,
+/// counted in ranges and not in characters, because a Unicode category is a great many
+/// characters in a great many scattered pieces and counting those would drag every window
+/// into the middle of one. Then it is slid as far down as it can go without dropping any of
+/// them, since the room is free and it is where the characters that <em>end</em> a token
+/// live.
+/// </para>
+/// <para>
+/// What no window can hold keeps the chain: a category is most of a plane. Nothing but the
+/// chain is reached for such a character, so the table costs it nothing — and for
+/// <c>SqlStandard92</c> the whole table is 53 distinct rows and 6,784 cells, thirteen
+/// kilobytes, because a keyword trie has a great many states that admit exactly the letters
+/// continuing a word.
 /// </para>
 /// <para>
 /// <b>No arena.</b> Not as an optimization but as the correctness signal the design asked
@@ -61,8 +71,6 @@ public static class LexerEmitter
 		Tag = tag;
 		Bounds.Clear();
 		Named.Clear();
-		Rows.Clear();
-		Rowed.Clear();
 		Wide = false;
 
 		// The scanner is written first and the sets it asked for after it, because which sets
@@ -75,8 +83,8 @@ public static class LexerEmitter
 
 		Accepting(text, machine, tag);
 		text.Line();
+		Table(text, machine, tag);
 		Sets(text, tag);
-		Rowsets(text, tag);
 		Between(text, tag);
 		text.Line();
 		text.Add(body);
@@ -107,52 +115,8 @@ public static class LexerEmitter
 
 	static readonly List<string>             Bounds = [];
 	static readonly Dictionary<string, int>  Named  = [];
-	static readonly List<string>             Rows   = [];
-	static readonly Dictionary<string, int>  Rowed  = [];
-
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
 	static bool Wide;
-
-	/// <summary>
-	/// The rows a dense state is read out of, one static field each.
-	/// </summary>
-	/// <remarks>
-	/// <c>short</c> rather than <c>int</c> wherever the states fit in one, which is every
-	/// grammar seen here and then some: halving the table is what keeps a hot row in cache.
-	/// The same row asked for twice is one field, which the keyword trie makes worth doing —
-	/// many of its states admit exactly the letters that continue a word.
-	/// </remarks>
-	static void Rowsets(Writer text, string tag)
-	{
-		if (Rows.Count == 0)
-			return;
-
-		foreach (var (row, at) in Rows.Select((one, at) => (one, at)))
-		{
-			text.Line($"static readonly {(Wide ? "int" : "short")}[] Scan{tag}_Row{at} =");
-
-			using (text.Braces("", ";"))
-			{
-				var line = new StringBuilder("	");
-
-				foreach (var cell in row.Split(' '))
-				{
-					line.Append(cell).Append(", ");
-
-					if (line.Length < 92)
-						continue;
-
-					text.Line(line.ToString().TrimEnd());
-					line.Clear().Append('	');
-				}
-
-				if (line.Length > 1)
-					text.Line(line.ToString().TrimEnd());
-			}
-		}
-
-		text.Line();
-	}
 
 	/// <summary>Membership of a set too wide to write out, by searching its bounds.</summary>
 	/// <remarks>
@@ -190,6 +154,200 @@ public static class LexerEmitter
 			text.Line();
 			text.Line("return (low & 1) != 0;");
 		}
+	}
+
+	/// <summary>
+	/// How wide one state's row may be.
+	/// </summary>
+	/// <remarks>
+	/// A budget and not a place. The row begins at the state's own first character, so what
+	/// this bounds is how far apart the characters a state admits may be before it stops
+	/// being worth a table — a machine over Greek or Cyrillic gets one exactly as a machine
+	/// over ASCII does, shifted to where its alphabet actually is. What no budget can hold is
+	/// a Unicode category, which is most of a plane; that keeps the chain, and a character
+	/// reaching it was never going to be answered by a row.
+	/// </remarks>
+	const int Reach = 128;
+
+	/// <summary>
+	/// Where every state goes for every character below <see cref="Reach"/>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One array for the whole machine and one descriptor per state, packed into an
+	/// <c>int</c>: the low byte is how far the state's row reaches and the rest is where it
+	/// begins. So reading a transition is a load, a mask, a compare and a load — against a
+	/// chain of range tests behind a call behind a switch, which is what a state used to be.
+	/// </para>
+	/// <para>
+	/// A row stops at the state's own last character rather than at 128 where that is
+	/// shorter, which costs nothing: a character past it is one the state refuses, and the
+	/// chain it falls to says so. And two states that go to the same places share one row —
+	/// a keyword trie has a great many states that admit exactly the letters continuing a
+	/// word.
+	/// </para>
+	/// </remarks>
+	static void Table(Writer text, LexicalAutomaton machine, string tag)
+	{
+		var cells  = new List<int>();
+		var shared = new Dictionary<string, int>();
+		var states = new List<long>();
+
+		Wide = machine.Next.Count > short.MaxValue;
+
+		for (var state = 0; state < machine.Next.Count; state++)
+		{
+			var ways = machine.From(state);
+			var low  = Window(ways);
+
+			if (low < 0)
+			{
+				// Nowhere to put a row: the state admits nothing, or admits it only above
+				// where a row could reach. Pointed at a run of cells that refuse everything,
+				// so the loop needs no case for it.
+				states.Add(Empty(cells, shared));
+
+				continue;
+			}
+
+			var row = new int[Reach];
+
+			for (var at = 0; at < Reach; at++)
+				row[at] = -1;
+
+			// Every way out leads somewhere different and no character takes two of them, so
+			// a cell is written once however the ranges are ordered.
+			foreach (var (on, to) in ways)
+				foreach (var range in on)
+					for (var c = Math.Max(range.From, low); c <= range.To && c - low < Reach; c++)
+						row[c - low] = to;
+
+			var key = string.Join(" ", row);
+
+			if (!shared.TryGetValue(key, out var at2))
+			{
+				shared[key] = at2 = cells.Count;
+				cells.AddRange(row);
+			}
+
+			// Unsigned, because a row index is a place in an array and not a number that could
+			// be negative — signed, the shift below it would smear its top bit across the low.
+			states.Add((uint)at2 | ((long)low << 32));
+		}
+
+		text.Line("/// <summary>Where each state goes, for the characters its row holds.</summary>");
+		text.Line($"static readonly {(Wide ? "int" : "short")}[] Scan{tag}_Cells =");
+
+		using (text.Braces("", ";"))
+			Numbers(text, cells);
+
+		text.Line();
+		text.Line("/// <summary>Each state's row: where it begins in the cells, how wide, and from");
+		text.Line("/// which character.</summary>");
+		text.Line($"static readonly long[] Scan{tag}_States =");
+
+		using (text.Braces("", ";"))
+			Numbers(text, states);
+
+		text.Line();
+	}
+
+	/// <summary>A row that refuses everything, shared by every state that needs one.</summary>
+	static long Empty(List<int> cells, Dictionary<string, int> shared)
+	{
+		var row = new int[Reach];
+
+		for (var at = 0; at < Reach; at++)
+			row[at] = -1;
+
+		var key = string.Join(" ", row);
+
+		if (!shared.TryGetValue(key, out var at2))
+		{
+			shared[key] = at2 = cells.Count;
+			cells.AddRange(row);
+		}
+
+		return at2;
+	}
+
+	/// <summary>
+	/// Where to put one state's row.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Anywhere, not at the state's first character. A state that admits <c>'='</c> and a
+	/// Cyrillic letter has an alphabet a thousand apart, and a row anchored at the <c>'='</c>
+	/// answers for one character and sends every letter to the chain — which is the whole
+	/// language taking the slow path to save one comparison.
+	/// </para>
+	/// <para>
+	/// So the window is the one covering the most of what the grammar named: the most
+	/// <em>ranges</em>, and the widest where two windows cover as many. Ranges and not
+	/// characters, because a Unicode category is a great many characters in a great many
+	/// scattered pieces, and counting characters would move every window into the middle of
+	/// one. The ranges are disjoint and sorted, so the answer is one pass with two pointers.
+	/// </para>
+	/// </remarks>
+	static int Window(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
+	{
+		var ranges = ways
+			.SelectMany(way => way.On)
+			.OrderBy(range => range.From)
+			.ToList();
+
+		if (ranges.Count == 0)
+			return -1;
+
+		var best = (Low: -1, Count: 0, Chars: 0);
+		var last = 0;
+		var held = 0;
+
+		for (var first = 0; first < ranges.Count; first++)
+		{
+			if (last < first)
+			{
+				last = first;
+				held = 0;
+			}
+
+			while (last < ranges.Count && ranges[last].To - ranges[first].From + 1 <= Reach)
+				held += ranges[last].To - ranges[last++].From + 1;
+
+			var count = last - first;
+
+			// As low as the window can sit and still hold everything it was chosen for. The
+			// room is free — those cells refuse, which is the same answer the chain gives —
+			// and it is where the characters that end a token live: a space, a newline, the
+			// mark this language does not write. Anchored at the first range instead, an
+			// input beginning with `!` fell past the table to say what the table knew.
+			if (count > 0 && (count > best.Count || count == best.Count && held > best.Chars))
+				best = (Math.Max(0, Math.Min(ranges[first].From, ranges[last - 1].To - Reach + 1)), count, held);
+
+			if (last > first)
+				held -= ranges[first].To - ranges[first].From + 1;
+		}
+
+		return best.Low;
+	}
+
+	static void Numbers<T>(Writer text, IReadOnlyList<T> values)
+	{
+		var line = new StringBuilder("	");
+
+		foreach (var value in values)
+		{
+			line.Append(value).Append(", ");
+
+			if (line.Length < 92)
+				continue;
+
+			text.Line(line.ToString().TrimEnd());
+			line.Clear().Append('	');
+		}
+
+		if (line.Length > 1)
+			text.Line(line.ToString().TrimEnd());
 	}
 
 	static void Accepting(Writer text, LexicalAutomaton machine, string tag)
@@ -265,16 +423,35 @@ public static class LexerEmitter
 
 			using (text.Braces("while (p < text.Length)", ""))
 			{
-				text.Line("var c = text[p];");
+				text.Line("var c    = text[p];");
+				text.Line($"var row  = Scan{tag}_States[state];");
+				text.Line("var at   = c - (int)(row >> 32);");
+				text.Line("int next;");
 				text.Line();
-				text.Line("var next =");
+
+				// One compare against a constant, because every row is the same width — what
+				// varies is where it starts, and that is the half of the descriptor worth
+				// loading. What falls outside is what the chains were always for: a Unicode
+				// category, and the gap on either side of what one state admits. Both are off
+				// the path an ordinary input takes.
+				text.Line($"if ((uint)at < {Reach}u)");
 
 				using (text.Indent())
-					for (var part = 0; part < parts; part++)
-						text.Line(
-							part == parts - 1
-								? $"Scan{tag}_Part{part}(state, c);"
-								: $"state < {(part + 1) * Held} ? Scan{tag}_Part{part}(state, c) :");
+					text.Line($"next = Scan{tag}_Cells[(int)row + at];");
+
+				text.Line("else");
+
+				using (text.Braces())
+				{
+					text.Line("next =");
+
+					using (text.Indent())
+						for (var part = 0; part < parts; part++)
+							text.Line(
+								part == parts - 1
+									? $"Scan{tag}_Part{part}(state, c);"
+									: $"state < {(part + 1) * Held} ? Scan{tag}_Part{part}(state, c) :");
+				}
 
 				text.Line();
 				text.Line("if (next < 0)");
@@ -286,10 +463,12 @@ public static class LexerEmitter
 				text.Line("state = next;");
 				text.Line("p++;");
 				text.Line();
-				text.Line($"if (Scan{tag}_Accepts[state] != 0)");
+				text.Line($"var accepts = Scan{tag}_Accepts[state];");
+				text.Line();
+				text.Line("if (accepts != 0)");
 
 				using (text.Indent())
-					text.Line($"(end, found) = (p, Scan{tag}_Accepts[state]);");
+					text.Line("(end, found) = (p, accepts);");
 			}
 
 			text.Line();
@@ -317,39 +496,15 @@ public static class LexerEmitter
 					if (ways.Count == 0)
 						continue;
 
-					var dense = Dense(ways);
-
+					// Only the characters the table does not answer for reach here, which is
+					// everything above ASCII and, for a state that admits nothing near the top
+					// of it, the gap above its own last character. So these are written as they
+					// always were: a chain, over a set the table has already narrowed.
 					text.Line($"case {state}:");
 
 					using (text.Indent())
 					{
-						if (dense is null)
-						{
-							foreach (var (on, to) in ways)
-								text.Line($"if ({Test(on)}) return {to};");
-
-							text.Line("return -1;");
-
-							continue;
-						}
-
-						var (field, low, cells, rest) = dense.Value;
-						var read = $"(uint)(c - {low}) < {cells}u ? {field}[c - {low}] : -1";
-
-						// Every way out of a state leads somewhere different and no character
-						// takes two of them, so what is left over may be asked after the row
-						// rather than before it — see `Dense`.
-						if (rest.Count == 0)
-						{
-							text.Line($"return {read};");
-
-							continue;
-						}
-
-						text.Line($"var next{state} = {read};");
-						text.Line($"if (next{state} >= 0) return next{state};");
-
-						foreach (var (on, to) in rest)
+						foreach (var (on, to) in ways)
 							text.Line($"if ({Test(on)}) return {to};");
 
 						text.Line("return -1;");
@@ -360,94 +515,6 @@ public static class LexerEmitter
 			}
 		}
 	}
-
-	/// <summary>
-	/// A state read out of a row instead of asked about, where that is the shorter question.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// The first state of <c>SqlStandard92</c>'s scanner is forty-four tests and some sixty
-	/// comparisons — every mark the language writes and both cases of every letter a keyword
-	/// begins with. As a row it is one subtraction, one unsigned compare and one load.
-	/// </para>
-	/// <para>
-	/// <b>Why the leftovers may be asked afterwards.</b> This is a deterministic machine over
-	/// an alphabet of atoms: each character belongs to exactly one atom and each atom leads to
-	/// one state, so no character satisfies two of a state's tests. The chain's order carries
-	/// no meaning, and any subset of it may be lifted out and the rest left where it was.
-	/// </para>
-	/// <para>
-	/// What is lifted is what fits a small window: an edge every range of which lies under
-	/// <see cref="Reach"/>. That leaves out the wide sets — a Unicode category, or the
-	/// "anything but a quote" of a string body — which is right twice over, since a row for
-	/// one of those is most of a plane and the binary search it uses is already short.
-	/// </para>
-	/// </remarks>
-	static (string Field, int Low, int Cells, IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> Left)? Dense(
-		IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
-	{
-		var near = new List<(IReadOnlyList<CharRange> On, int To)>();
-		var far  = new List<(IReadOnlyList<CharRange> On, int To)>();
-
-		foreach (var way in ways)
-			(way.On.All(range => range.To <= Reach) ? near : far).Add(way);
-
-		// What the chain would have asked, in comparisons: a single character is one, a range
-		// is two. The row is a subtraction, an unsigned compare and a load, so one comparison
-		// is not worth replacing and two already are.
-		var asked = near.Sum(way => way.On.Sum(range => range.From == range.To ? 1 : 2));
-
-		if (asked < 2)
-			return null;
-
-		var low  = near.Min(way => way.On.Min(range => (int)range.From));
-		var high = near.Max(way => way.On.Max(range => (int)range.To));
-
-		var cells = high - low + 1;
-
-		if (cells > Cells)
-			return null;
-
-		var row = new int[cells];
-
-		for (var at = 0; at < cells; at++)
-			row[at] = -1;
-
-		foreach (var (on, to) in near)
-			foreach (var range in on)
-				for (var c = (int)range.From; c <= range.To; c++)
-					row[c - low] = to;
-
-		var text = string.Join(" ", row);
-
-		Wide |= high > short.MaxValue;
-
-		if (!Rowed.TryGetValue(text, out var found))
-		{
-			Rowed[text] = found = Rows.Count;
-			Rows.Add(text);
-		}
-
-		return ($"Scan{Tag}_Row{found}", low, cells, far);
-	}
-
-	/// <summary>How far above the ASCII marks a row may reach before it is not one.</summary>
-	/// <remarks>
-	/// Latin Extended-A, so that a grammar naming accented letters one by one still gets a
-	/// row, and a category or an "anything at all" does not.
-	/// </remarks>
-	const int Reach = 0x017F;
-
-	/// <summary>How wide the window may be before the row costs more than it saves.</summary>
-	/// <remarks>
-	/// The only threshold left. How <em>many</em> ways out are worth a row was measured
-	/// rather than reasoned about, and the answer was one: rowing every state that has a near
-	/// edge beat rowing only the wide ones at every size tried, six, three and two — and it
-	/// beat the plain chain by 1.03x to 1.22x over `SqlStandard92`'s corpus, interleaved. Two
-	/// comparisons are not cheaper than a subtraction and a load, and 528 chains that each
-	/// predict well still occupy the predictor.
-	/// </remarks>
-	const int Cells = 320;
 
 	/// <summary>
 	/// A test over <c>c</c> for a set of ranges.
