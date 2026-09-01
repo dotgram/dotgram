@@ -10376,3 +10376,53 @@ around it rather than of the characters after it.
 What is not in doubt is the payoff. Braced by hand, the same twenty-two rules made `Rfc3986`
 1.06x to 2.35x faster and agreed on every input. The mechanism works; the licence to apply it
 without being asked is what is missing.
+
+## Which of the two was wrong, and it was the engine
+
+The entry above stopped at "the differential test refuses it" and offered a diagnostic
+instead. That was ducking the question: an engine that disagrees with the semantics is wrong
+somewhere, and finding out where is the work. So the counterexample was run rather than
+abandoned.
+
+    trivia = [' ']*
+    Start = (?! ['b'..'c' | 'x'] & (R1 | R1) & R2) & ({ ['b'..'c' | 'x'] } | { ['a'..'b'] })
+    R1 = "c"i
+    R2 = 'b'
+    parse Start
+
+`Start`'s body, as the normalizer leaves it, is
+
+    ?!['b'..'c' | 'x'] & trivia & R1 & { (none | none) } & trivia & R2 & trivia & ( … )
+
+and the rules turned into scanners are `trivia`, `R1`, `R2`.
+
+**The semantics is right and the engine was wrong.** On `" cba"` the reading that works has
+the *leading* seam match nothing at all: `Start` begins at zero, `?!['b'..'c'|'x']` passes on
+the space, and then the woven `trivia` inside eats it, `R1` takes `c`, `R2` takes `b`, the
+group takes `a`, and the input ends. A possessive `trivia` cannot do that — it eats the space
+at the leading seam and cannot give it back, so `Start` is forced to begin at `c` and the
+lookahead refuses.
+
+**And the reason is exact.** `FollowSets.Of` computes what may follow a rule from its call
+sites *in the graph*. A publication weaves the seam around what it publishes, and that is not
+a call site the graph records — so the follow set of `trivia` has never heard of the one place
+where giving the space back is the whole parse. Excluding the seam makes that grammar agree,
+and the whole differential suite with it.
+
+**A second boundary, found the same way.** Over token kinds a scanner breaks the provenance:
+a split grammar cuts its values out of the extents of the tokens it ran over, and a scanner
+swallows tokens without recording any. `RereadTests` crashed in the materializer, which is the
+right way to find out.
+
+**And one that is not a boundary but a debt.** A scanner writes nothing down, so when it
+refuses, the caller can only report the failure where the rule *began* — position 0 where the
+machine used to say 3. That is a documented promise of this parser broken quietly, and it is
+not fixed by excluding anything: it needs the scanner to carry how far it got. Returning `p`
+at its `Refuse:` label is not that, because the scan restores `p` on its own backtracking; it
+needs a furthest-reached local, which costs the hot path something and wants measuring.
+
+So the state of it: the condition is sound where it is allowed to run — the differential suite
+agrees on every seed with the seam and the split excluded — and it turns `Rfc3986` from no
+scanners into forty-four, 25,771 lines into 19,037, for the 1.06x to 2.35x that hand-written
+braces measured. What it still costs is the refusal position, and that is the piece to build
+before any of this is turned on.
