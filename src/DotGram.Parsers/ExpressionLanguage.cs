@@ -165,13 +165,6 @@ namespace DotGram.Parsers;
 			|  "ushort"  | "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
-		// A type's name, dotted. Lexical for the same reason a suffix is: `System . Text`
-		// would be captured with the spaces in it, and nothing is named that.
-		// No braces, deliberately: a dotted name is a type only as far as it resolves, and
-		// what is left is member access, so this one has to be able to hand a trailing dotted
-		// word back. The lexeme rules around it wear them (§4.5) and this one must not.
-		TypeName = Word & ('.' & Word)*
-
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
 
 		Digit    = ['0'..'9']
@@ -309,12 +302,31 @@ namespace DotGram.Parsers;
 	// The guard keeps the place it had, which is load-bearing: a generic form needs no
 	// name that resolves on its own — `List<int>` resolves and `List` does not — so it
 	// asks only where there are no arguments to say what the name is.
+	// The dotted name is read here rather than lexed, and that is a correction. As a lexeme
+	// it was one unit that had to hand its own tail back when the guard below said the whole
+	// of it named no type — `Math.PI` read as `Math.PI`, refused, then re-read as `Math` with
+	// `.PI` left for member access. That works only where a lexeme may be taken apart again,
+	// which is to say only over characters: a tokenizer decides where a token ends once, and
+	// `Math.PI` arriving whole is a member access that can never be read.
+	//
+	// Written as words with dots between them it is the same language and gives the same
+	// answer by the same means — the repetition hands a turn back where the lexeme handed a
+	// suffix back — and the parts are captured rather than the run, so `System . Text` names
+	// `System.Text` and the spaces the author put in are nowhere in the string.
+	// One word of a dotted name, given a type so that the parts arrive one at a time. A bare
+	// `part: Word` under a repetition captures the run between the first and the last, spaces
+	// and dots and all; a typed part is an array of words, and a name assembled from those
+	// has nothing in it the author did not name.
+	NamePart : @string = w: Word => @(w)
+
 	NamedType : @Type
-		= name: TypeName & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(args != null || ExpressionLanguage.Resolves(name))
+		= head: Word & ('.' & part: NamePart)*
+		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
+		  & when @(args != null || ExpressionLanguage.Resolves(ExpressionLanguage.Dotted(head, part)))
 		  => @(args is null
-		       ? ExpressionLanguage.TypeNamed(name)
-		       : ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first!, rest)))
+		       ? ExpressionLanguage.TypeNamed(ExpressionLanguage.Dotted(head, part))
+		       : ExpressionLanguage.Generic(
+		           ExpressionLanguage.Dotted(head, part), ExpressionLanguage.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
@@ -874,6 +886,15 @@ public static partial class ExpressionLanguage
 	/// not, and the guard answering no is what sends the parse to the other reading.
 	/// </remarks>
 	public static bool Resolves(string name) => Lookup(name) is not null;
+
+	/// <summary>A dotted name from the words the grammar read, and nothing between them.</summary>
+	/// <remarks>
+	/// The parts and not the run: the words are captured one at a time, so whatever spacing
+	/// stood between them in the text is not in the name. `System . Text` is `System.Text`,
+	/// which is what it means and what the lookup below can answer about.
+	/// </remarks>
+	public static string Dotted(string head, string[]? tail) =>
+		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 
 	/// <summary>The type that name means.</summary>
 	/// <exception cref="FormatException">It means none.</exception>

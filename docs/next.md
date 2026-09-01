@@ -10547,3 +10547,46 @@ that it refused and where it reached. Three things it needed:
 
 Forty-four scanners where there were none, and 25,771 lines down to 19,277. The snapshots
 move with it: `Url` from 7,121 lines to 4,656, `Feed` from 3,147 to 3,045.
+
+## TypeName was a lexeme, and that was the mistake
+
+`ExpressionLanguage` had one rule stopping it from being read as tokens:
+
+    namespace Lexical { TypeName = Word & ('.' & Word)* }
+
+A dotted name lexed whole, deliberately without braces so that it could hand its own tail
+back: `Math.PI` is read as `Math.PI`, the guard on `NamedType` asks whether that names a type,
+the answer is no, and the lexeme gives up `.PI` for member access to find. It works, and it
+works **only over characters** — a tokenizer decides where a token ends once, and `Math.PI`
+arriving whole is a member access that can never be read. That is why 11 of the parser's tests
+refused when it was asked to split.
+
+It is read here now, one word at a time, with the dots between them:
+
+    NamePart : @string = w: Word => @(w)
+
+    NamedType : @Type
+        = head: Word & ('.' & part: NamePart)* & args: (…)?
+          & when @(args != null || Resolves(Dotted(head, part)))
+
+Same language and the same means — the repetition hands a turn back where the lexeme handed a
+suffix back — and the comment that argued for the lexeme is answered rather than ignored:
+`System . Text` was going to be captured with its spaces in it, so the *parts* are captured
+and joined, and what the author put between them is nowhere in the name. `NamePart` exists
+for exactly that: a bare `part: Word` under a repetition captures the run from the first to
+the last, dots and spaces and all, where a typed part is an array of words.
+
+**And with it the parser splits.** 25,843 lines become 22,856, and 127 refusals become **nine**
+— all of them one thing, which the first of them names precisely:
+
+    'V' is not a member of type 'System.Int32[]'
+
+There is no `V` in `(int[] a) => a.Length`. It is kind number 86 read as a character: three
+materialization sites still cut their text out of the machine's own input rather than out of
+the extents of the tokens it ran over — the piece a sequence member copies, and the two the
+fold of a left-recursive rule uses. `SqlStandard92` never found them because it builds no
+values, and `Postfix` is the rule that does: left recursive, folded, and its member captured
+as text.
+
+Routing them through `Cut` is the next piece and is not this one — the first attempt at it
+broke the character path, which is what `UrlTests` is for.
