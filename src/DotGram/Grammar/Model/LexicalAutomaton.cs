@@ -201,6 +201,9 @@ public sealed class LexicalAutomaton
 				case Node.Lookahead:
 					return Refuse($"a lookahead inside a pattern: {node}");
 
+				case Node.Repeat(var turns, _, _) when Until(node) is not null:
+					return Gather(turns is Node.Sequence([_, var consumed]) ? consumed : turns, inside);
+
 				case Node.Behind:
 					return Refuse($"a look-behind inside a pattern: {node}");
 
@@ -221,7 +224,8 @@ public sealed class LexicalAutomaton
 
 					return true;
 
-				case Node.Repeat(var turns, _, _):       return Gather(turns, inside);
+				case Node.Repeat(var turns, _, _):
+					return Gather(turns, inside);
 				case Node.Atomic(var kept):              return Gather(kept, inside);
 				case Node.Marked(var kept, _):           return Gather(kept, inside);
 				case Node.Capture(_, var held):          return Gather(held, inside);
@@ -357,6 +361,9 @@ public sealed class LexicalAutomaton
 					return (from, to);
 				}
 
+				case Node.Repeat when Until(node) is var (delimiter, item):
+					return Delimited(delimiter, item, inside);
+
 				case Node.Repeat(var body, var min, var max):
 					return Repeated(body, min, max, inside);
 
@@ -391,6 +398,130 @@ public sealed class LexicalAutomaton
 
 			return to;
 		}
+
+		/// <summary>
+		/// The delimiter and the item of <c>(?!L &amp; X)*</c>, or null where a node is not it.
+		/// </summary>
+		/// <remarks>
+		/// "Everything up to a delimiter", which is how every language writes the inside of a
+		/// comment and how <c>.gram</c> writes it too: <c>BlockComment = "/*" &amp; (?!"*/"
+		/// &amp; any)* &amp; "*/"</c>. The language is regular — strings in which the
+		/// delimiter does not occur — but it is not one a Thompson construction reaches by
+		/// following the shape, because the shape is a lookahead and a lookahead is not one of
+		/// its three cases. So the idiom is recognized and built, and anything else wearing a
+		/// lookahead is still refused.
+		/// </remarks>
+		static (string Delimiter, Node Item)? Until(Node node) =>
+			node is Node.Repeat(
+				Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), var item]),
+				0,
+				null) &&
+			delimiter.Length > 0
+				? (delimiter, item)
+				: null;
+
+		/// <summary>
+		/// The machine for "an item at a time, and the delimiter never begins here".
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// One state a length of matched delimiter prefix, and the state that would complete
+		/// it is simply absent — Knuth, Morris and Pratt's automaton with its accepting state
+		/// taken out, which is exactly "the delimiter does not occur". Every state is a place
+		/// the repetition may stop, so every one of them reaches the end.
+		/// </para>
+		/// <para>
+		/// Where the repetition is followed by the delimiter — which is the only way anyone
+		/// writes it — this is exact. Standing alone it admits a little more: the operand's
+		/// lookahead sees past what the repetition consumed, and an automaton cannot. What it
+		/// admits is a longer run, and the delimiter that follows is what cuts it back.
+		/// </para>
+		/// </remarks>
+		(int From, int To)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside)
+		{
+			var over = Consumed(item, inside);
+
+			if (over is null)
+				return null;
+
+			var length = delimiter.Length;
+			var states = new int[length];
+
+			for (var i = 0; i < length; i++)
+				states[i] = State();
+
+			var to = State();
+
+			foreach (var state in states)
+				_empty[state].Add(to);
+
+			// The prefix function, and then the failure links read off it. Written the
+			// standard way rather than in one pass, because the one-pass version this began
+			// as gave `*/` a link from one matched character back to one matched character —
+			// and a link to itself is a loop the builder never leaves.
+			var prefix = new int[length];
+
+			for (int i = 1, matched = 0; i < length; i++)
+			{
+				while (matched > 0 && delimiter[i] != delimiter[matched])
+					matched = prefix[matched - 1];
+
+				if (delimiter[i] == delimiter[matched])
+					matched++;
+
+				prefix[i] = matched;
+			}
+
+			// How much of the delimiter is still matched once the next character is not the
+			// one that would continue it. Strictly less than what came in, which is what makes
+			// the walk below finish.
+			int Fail(int state) => state == 0 ? 0 : prefix[state - 1];
+
+			int Delta(int state, char? c)
+			{
+				while (true)
+				{
+					if (c is { } one && state < length && delimiter[state] == one)
+						return state + 1;
+
+					if (state == 0)
+						return 0;
+
+					state = Fail(state);
+				}
+			}
+
+			for (var state = 0; state < length; state++)
+				foreach (var atom in Atoms(over))
+				{
+					// An atom is either exactly one of the delimiter's characters or holds
+					// none of them, because each of those characters was added to the
+					// alphabet as a set of its own and the partition cuts at every boundary.
+					var here = _atoms[atom];
+
+					var next = Delta(
+						state,
+						here.From == here.To && delimiter.IndexOf(here.From) >= 0 ? here.From : null);
+
+					// Completing the delimiter is the one thing this language forbids, so the
+					// way there is not written and the machine simply stops.
+					if (next < length)
+						_on[states[state]].Add((atom, states[next]));
+				}
+
+			return (states[0], to);
+		}
+
+		/// <summary>What one turn of an "until" consumes, or null where it consumes no one item.</summary>
+		FirstSets.First? Consumed(Node node, HashSet<RuleSymbol> inside) =>
+			node switch
+			{
+				Node.Element element => FirstSets.OfElement(element),
+				Node.Literal(var text) one when text.Length == 1 => Folded(text[0], one.IgnoreCase),
+				Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body) =>
+					inside.Add(called) ? Consumed(body, inside) : null,
+				_ => null,
+			};
 
 		/// <summary>
 		/// A repetition, written out to its floor and then looped or unrolled to its ceiling.

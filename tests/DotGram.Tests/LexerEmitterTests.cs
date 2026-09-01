@@ -152,6 +152,51 @@ public sealed class LexerEmitterTests
 		Assert.DoesNotContain("new char[]", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// "Everything up to a delimiter" is a pattern, though a lookahead is not.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>'"' &amp; (?!'"' &amp; any)* &amp; '"'</c> is how a string literal is written in
+	/// half the grammars there are, and <c>"/*" &amp; (?!"*/" &amp; any)* &amp; "*/"</c> is
+	/// how a comment is written in all of them. The language is regular — strings in which
+	/// the delimiter does not occur — but it is not one a Thompson construction reaches by
+	/// following the shape, because the shape is a lookahead.
+	/// </para>
+	/// <para>
+	/// So the idiom is recognized and built as Knuth, Morris and Pratt's automaton with its
+	/// accepting state taken out, which is exactly "the delimiter does not occur". A
+	/// multi-character delimiter is the case that needs the failure links: after <c>*</c>
+	/// and then another <c>*</c>, one <c>*</c> is still matched.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("/**/",       4)]
+	[InlineData("/* a */",    7)]
+	[InlineData("/* a * b */", 11)]
+	[InlineData("/*a**/",     6)]
+	[InlineData("/* a */ b",  7)]
+	[InlineData("/* a",       0)]
+	public void Everything_up_to_a_delimiter_is_a_pattern(string input, int expected)
+	{
+		var (_, scan) = Built(
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Comment = "/*" & (?!"*/" & any)* & "*/"
+			}
+			Start = Lexical.Comment & ';'
+			parse Start
+			""");
+
+		var (kind, end) = scan(input, 0);
+
+		Assert.Equal(expected, end);
+		Assert.Equal(expected > 0, kind != 0);
+	}
+
 	static string[] Patterns(TerminalInventory inventory, int kind) =>
 		[.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
 }

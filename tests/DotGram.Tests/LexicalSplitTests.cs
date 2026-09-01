@@ -186,10 +186,13 @@ public sealed class LexicalSplitTests
 
 	/// <summary>A pattern that is not a regular language is refused, and said to be.</summary>
 	/// <remarks>
-	/// The patterns are read together or not at all, and reading them together is a
-	/// subset construction over a Thompson machine — which has three shapes and a lookahead
-	/// is none of them. Rather than approximate it the grammar keeps the character machine,
-	/// which is correct and right there.
+	/// The patterns are read together or not at all, and reading them together is a subset
+	/// construction over a Thompson machine. Nesting is the thing no such machine can count,
+	/// so a rule that reaches itself is refused rather than approximated and the grammar
+	/// keeps the character machine, which is correct and right there.
+	///
+	/// The example used to be a lookahead, which is no longer one: <c>(?!"zz" &amp; any)*</c>
+	/// is "everything up to a delimiter", it is regular, and the automaton builds it now.
 	/// </remarks>
 	[Fact]
 	public void A_pattern_that_is_not_regular_is_refused()
@@ -200,9 +203,9 @@ public sealed class LexicalSplitTests
 			namespace Lexical
 			{
 				trivia = none
-				Odd = 'a' & (?!"zz" & ['a'..'z'])* & 'b'
+				Nested = '(' & Nested? & ')'
 			}
-			Start = Lexical.Odd & ',' & Lexical.Odd
+			Start = Lexical.Nested & ',' & Lexical.Nested
 			parse Start
 			"""));
 

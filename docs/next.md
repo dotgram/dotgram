@@ -9408,3 +9408,44 @@ that had been calling itself for no reason since §4.5 existed.
 What is left in the way of trivia becoming a pattern is now only the idiom
 `(?!"*/" & any)*` — "characters up to a delimiter" — which is a regular language and not one
 a Thompson construction reaches without being told. That is the next thing.
+
+## Built: "everything up to a delimiter" is a pattern, though a lookahead is not
+
+    Comment = "/*" & (?!"*/" & any)* & "*/"
+    Text    = '"'  & (?!'"'  & any)* & '"'
+
+Half the grammars there are write a string this way and all of them write a comment this
+way. The language is regular — the strings in which the delimiter does not occur — but it
+is not one a Thompson construction reaches by following the shape, because the shape is a
+lookahead and a lookahead is none of its three cases. So the idiom is recognized and built
+as Knuth, Morris and Pratt's automaton with its accepting state taken out, which is exactly
+"the delimiter does not occur". Anything else wearing a lookahead is still refused, and the
+test that used to prove that had to be rewritten around recursion, which no automaton can
+count.
+
+Exact where the repetition is followed by the delimiter, which is the only way anyone writes
+it. Standing alone it admits a little more, because the operand's lookahead sees past what
+the repetition consumed and an automaton cannot; what it admits is a longer run, and the
+delimiter that follows cuts it back.
+
+**The failure links are the whole of it and I got them wrong first.** Written in one pass,
+`*/` came out with a link from one matched character back to one matched character, and a
+link to itself is a loop the builder never leaves — the test hung for ten minutes rather
+than failing. The prefix function is computed the standard way now, and `/*a**/` is the case
+that proves it: after `*` and then another `*`, one `*` is still matched.
+
+## Not built: trivia as a pattern
+
+Igor: «можно же было просто вызвать существующий метод тривии».
+
+Right, and the attempt said so too. Adding trivia to the patterns made the subset
+construction run for ten minutes without finishing — a comment's `any` crosses every atom
+of every other pattern, which is a product nobody needs. And there was no reason to build
+it: §4.5's trivia is already compiled to a scanner (`Machine.Scan.cs`), atomic-braced and
+with nothing written down, and a tokenizer that wants whitespace skipped can call it.
+
+So the lexer recognizes terminals and the trivia scanner skips between them, which is what
+the two were already for. What is left before a grammar can ask for the split in its own
+text is emitting that scanner beside the lexer — the machine that renders it exists and is
+reached through a rule rather than through the graph, so it is a matter of asking it, not of
+building anything.
