@@ -10171,3 +10171,37 @@ question beats a table answering every question by.
 Not that speed is why the emitted code cannot call them. `\p{L}` is expanded from the
 generator's Unicode tables at generation time, and `char.IsLetter` reads the consumer's — the
 same assembly would take `U+A7CB` in an identifier on one runtime and refuse it on another.
+
+## Forty-four questions, and the answer to forty-three was already known
+
+The chain for `SqlStandard92`'s first state was every mark the language writes and both cases
+of every letter a keyword begins with. None of it could run. The state's row covers
+`[0,127]`, so a character reaching the chain is above ASCII by construction, and forty-three
+of those forty-four tests ask about characters that were answered before the call.
+
+A state's tests are clipped to the outside of its own window now, and what clips to nothing
+is not written. The case that was forty-five lines is two:
+
+    case 0:
+        if ((Scan_High0[c >> 3] & (1 << (c & 7))) != 0) return 27;
+        return -1;
+
+And then what is left is shared. There is one question left in most states — "is this more
+of the identifier I am reading" — and hundreds of trie states ask it and go to the same
+place, so **480 case labels stand over 11 bodies**. `Scan_Part0` goes from 221 lines to 91.
+
+**Which also ended the division into methods.** Six of them existed because one method was
+26,637 bytes of IL and the runtime said `Tier-0 switched MinOpts`. There is nothing left to
+divide: every state fits in one method, the six-way `state < 96 ? … : …` chain is gone from
+the hot loop, and `Scan` drops from 214 bytes of IL to 121 — still `Tier1 with Dynamic PGO`,
+still no `MinOpts` anywhere.
+
+    531,106 -> 468,130 characters
+
+Speed is unchanged, 1.00x to 1.05x, which is what removing unreachable code should do.
+
+**On making the chain a `switch (c)` instead**, which is what prompted this: there is nothing
+left to switch on. The dense run of `c == '('`, `c == ')'`, `c == '*'` was exactly the part
+the row had already answered, and what survives clipping is one test against a Unicode
+bitmap — a switch of no cases and a `default`. The table in front is the jump table, and it
+is a direct load rather than an indirect branch.

@@ -35,21 +35,19 @@ namespace DotGram.Grammar.Emit;
 /// that first load.
 /// </para>
 /// <para>
-/// <b>The row sits where the state's own alphabet is</b>, not at zero. That is what lets a
-/// machine over Cyrillic or Greek have the table a machine over ASCII has, and what the
-/// window is chosen for: the most of what the grammar named that 128 characters can hold,
-/// counted in ranges and not in characters, because a Unicode category is a great many
-/// characters in a great many scattered pieces and counting those would drag every window
-/// into the middle of one. Then it is slid as far down as it can go without dropping any of
-/// them, since the room is free and it is where the characters that <em>end</em> a token
-/// live.
+/// <b>The row sits where the state's own alphabet is</b>, not at zero, which is what lets a
+/// machine over Cyrillic or Greek have the table a machine over ASCII has. Which window it
+/// is, is <see cref="Weigh"/>, and getting that wrong is quiet: a row placed where no input
+/// falls is a row that answers nothing and costs its cells anyway.
 /// </para>
 /// <para>
-/// What no window can hold keeps the chain: a category is most of a plane. Nothing but the
-/// chain is reached for such a character, so the table costs it nothing — and for
-/// <c>SqlStandard92</c> the whole table is 53 distinct rows and 6,784 cells, thirteen
-/// kilobytes, because a keyword trie has a great many states that admit exactly the letters
-/// continuing a word.
+/// What no window can hold keeps the chain — a category is most of a plane, and no row is
+/// most of a plane. But <b>only what the row did not answer is asked</b>: a state's tests
+/// are clipped to the outside of its own window before they are written, and what clips to
+/// nothing is not written at all. The first state of <c>SqlStandard92</c> wrote forty-four
+/// tests and needs one, because the other forty-three are inside its row. What is left is
+/// then shared — hundreds of trie states have the same one question left, "is this more of
+/// the identifier I am reading", and the same answer to it.
 /// </para>
 /// <para>
 /// <b>No arena.</b> Not as an optimization but as the correctness signal the design asked
@@ -528,7 +526,7 @@ public static class LexerEmitter
 	/// syntactic machine's are, and each part is a method the JIT will look at.
 	/// </para>
 	/// </remarks>
-	const int Held = 96;
+	const int Held = 4096;
 
 	static void Scanner(Writer text, LexicalAutomaton machine, string tag, IReadOnlyList<int> lows)
 	{
@@ -623,37 +621,88 @@ public static class LexerEmitter
 			using (text.Braces($"static int Scan{tag}_Part{part}(int state, char c)"))
 			using (text.Braces("switch (state)", ""))
 			{
+				var shared = new Dictionary<string, List<int>>();
+
 				for (var state = first; state <= last; state++)
 				{
-					var ways = machine.From(state);
+					// Only what the row does not answer for reaches here, so only that is
+					// asked. Everything a state admits inside its own window was decided
+					// before this method was called, and a test for it is a line that cannot
+					// run — which was most of them: the first state of `SqlStandard92` wrote
+					// forty-four and needed one.
+					var outside = new List<(IReadOnlyList<CharRange> On, int To)>();
 
-					if (ways.Count == 0)
+					foreach (var (on, to) in machine.From(state))
+					{
+						var kept = Beyond(on, lows[state]);
+
+						if (kept.Count > 0)
+							outside.Add((kept, to));
+					}
+
+					if (outside.Count == 0)
 						continue;
 
-					// Only the characters the table does not answer for reach here, which is
-					// everything above ASCII and, for a state that admits nothing near the top
-					// of it, the gap above its own last character. So these are written as they
-					// always were: a chain, over a set the table has already narrowed.
 					// Whether a character below ASCII can reach this case at all. It cannot
 					// where the state's row begins at zero: the row is 128 wide, so every
 					// such character was answered before the chain was called, and a set
 					// test here may read the half above ASCII and nothing else.
 					Reached = lows[state] != 0;
 
-					text.Line($"case {state}:");
+					var body = string.Join(
+						"\n",
+						outside.Select(one => $"if ({Test(one.On)}) return {one.To};").Append("return -1;"));
+
+					if (!shared.TryGetValue(body, out var together))
+						shared[body] = together = [];
+
+					together.Add(state);
+				}
+
+				// Written once for however many states ask it. What is left of a state after
+				// its row has answered is usually one question — "is this a letter, and is it
+				// therefore more of the identifier I am reading" — and a keyword trie has
+				// hundreds of states asking exactly that and going to the same place.
+				foreach (var one in shared)
+				{
+					foreach (var state in one.Value)
+						text.Line($"case {state}:");
 
 					using (text.Indent())
-					{
-						foreach (var (on, to) in ways)
-							text.Line($"if ({Test(on)}) return {to};");
-
-						text.Line("return -1;");
-					}
+						foreach (var line in one.Key.Split('\n'))
+							text.Line(line);
 				}
 
 				text.Line("default: return -1;");
 			}
 		}
+	}
+
+	/// <summary>What is left of a set once the state's own row has answered for it.</summary>
+	/// <remarks>
+	/// A row is <see cref="Reach"/> wide and holds every answer inside it, so a chain reached
+	/// after it can only ever be asked about a character outside — and asking about one
+	/// inside is a line that cannot run. A state with no row at all keeps everything.
+	/// </remarks>
+	static List<CharRange> Beyond(IReadOnlyList<CharRange> ranges, int low)
+	{
+		var kept = new List<CharRange>();
+
+		if (low < 0)
+			return [.. ranges];
+
+		var high = low + Reach - 1;
+
+		foreach (var range in ranges)
+		{
+			if (range.From < low)
+				kept.Add(new CharRange(range.From, (char)Math.Min((int)range.To, low - 1)));
+
+			if (range.To > high)
+				kept.Add(new CharRange((char)Math.Max((int)range.From, high + 1), range.To));
+		}
+
+		return kept;
 	}
 
 	/// <summary>
