@@ -9360,3 +9360,51 @@ rather than reported, so it is no pattern and has no kind, and until the lexer e
 entry point takes four arguments — the source, the kinds, and where each one was — rather
 than one string. That is the last hand-written thing in the probe and the last thing between
 here and an opt-in.
+
+## Fixed: trivia was woven into the rules that are trivia
+
+Found while asking why a lexical machine cannot recognize whitespace. §4.5 weaves the seam
+between the operands of every sequence in a spaced namespace, and the rules `trivia` is
+*made of* are sequences in that namespace like any others:
+
+    LineComment  = "--" & [^ '\n']*        ->  "--" & trivia & [^ '\n']*
+    BlockComment = "/*" & (?!"*/" & any)* & "*/"
+
+    BlockComment:
+      Sequence
+        Literal "/*"
+        Call trivia          <- and `trivia` is a choice that holds BlockComment
+        Repeat 0..*
+          Sequence
+            Call trivia
+            Lookahead "*/"
+            Call trivia
+            Call any
+        Call trivia
+        Literal "*/"
+
+A rule woven with itself. It says nothing — a seam is `trivia`, `trivia` matches the empty
+string, and `A & trivia & B` accepts exactly what `A & B` accepts — and it costs a call at
+every seam inside every comment and every run of whitespace, compiled into a scanner that
+then calls itself.
+
+    SqlStandard92   23,524 -> 21,773 lines
+
+**Seven per cent of the file, and nothing else moved.** `ExpressionLanguage` and `Rfc3986`
+are byte for byte what they were: their trivia is a repetition of one operand, which has no
+seam to weave. Both snapshots are unchanged and all 1,579 tests pass, which is what one
+expects of removing something that accepts the same language.
+
+Only where the seam is nullable, which is where taking it out changes nothing. A grammar
+whose `trivia` must match something has said that operands are separated, and that would be
+a statement about its own rules too — however odd it would be to mean it.
+
+**How it was noticed is the part worth keeping.** Nothing about the size. A lexical machine
+reads its patterns together as one automaton, and a rule that reaches itself is not a shape
+a Thompson construction has — so `trivia` could not be a pattern, and a split grammar had to
+be handed its tokens with the whitespace already skipped by hand. Chasing that found a rule
+that had been calling itself for no reason since §4.5 existed.
+
+What is left in the way of trivia becoming a pattern is now only the idiom
+`(?!"*/" & any)*` — "characters up to a delimiter" — which is a regular language and not one
+a Thompson construction reaches without being told. That is the next thing.

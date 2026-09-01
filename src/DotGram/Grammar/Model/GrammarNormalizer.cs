@@ -131,6 +131,11 @@ public sealed partial class GrammarNormalizer
 		// of a collection is inside the seam it gets here.
 		normalizer.SpaceLists();
 
+		// After the seams are all in, because this takes some of them back out: §4.5 weaves
+		// trivia into the rules that trivia is made of, which is a rule woven with itself
+		// and says nothing (GrammarNormalizer.Trivia.cs).
+		normalizer.UnweaveTrivia();
+
 		// Before the results are computed from the captures, so that they are computed
 		// from the hoisted shape: a capture repeated is recorded once, around the loop,
 		// wherever the join of the turns is the extent of the repetition.
