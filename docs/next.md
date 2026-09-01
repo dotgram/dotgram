@@ -9733,3 +9733,54 @@ its own instead: `RereadTests` runs both parsers over the same inputs and requir
 answer, and then requires that the answer is what the rules say — the separators come out of
 `0x_1f`, the base is read, the quotes are gone. Values, and not merely agreement, because
 two parsers agreeing on nothing would pass the first half.
+
+## The scanner reads a row where it was asking forty-four questions
+
+`Scan_Part0`'s first state was every mark SQL-92 writes and both cases of every letter a
+keyword begins with, asked one at a time:
+
+    case 0:
+        if (c == '"') return 1;
+        if (c == '\'') return 2;
+        …
+        if (c == 'A' || c == 'a') return 17;
+        …                                       // forty-four of them
+
+It is now one subtraction, one unsigned compare and one load. **The licence for that is
+determinism**: this is a machine over an alphabet of atoms, each character belongs to
+exactly one atom and each atom leads to one state, so no character satisfies two of a
+state's tests. The chain's order carries no meaning, and any subset of it can be lifted into
+a row with the rest left where it was.
+
+What is lifted is what fits a small window — an edge every range of which lies under Latin
+Extended-A. That is what keeps this from becoming the dense table the design rejected: a
+Unicode category, or the "anything but a quote" of a string body, stays a chain, because a
+row for one of those is most of a plane and the binary search it already uses is short.
+
+**The threshold was measured rather than reasoned about, and the reasoning was wrong.** The
+first guess was six ways out; then three, then two, then one — each beat the last, and rowing
+every state that has a near edge beat rowing only the wide ones. Two comparisons are not
+cheaper than a subtraction and a load, and 528 chains that each predict well still occupy the
+predictor. What is left is a threshold on *comparisons* and not on ways out: a single
+character is one comparison and a range is two, and a row replaces two or more. That never
+turns one compare into three operations, and it is a wash against rowing everything.
+
+    chain    row
+      201    205   0.98x  a = 1
+      398    383   1.04x  salary BETWEEN 1000 AND 2000
+      464    387   1.20x  x IN (1, 2, 3) AND y IS NOT NULL
+      985    970   1.02x  (a + b) * c - d / e > f AND NOT g < h
+      913    870   1.05x  amount * 1.05 + tax >= total AND …
+      839    787   1.07x  warehouse.zip_code = 'X' AND …
+      881    711   1.24x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1447   1346   1.08x  (quantity + weight) * rate - zone / 2 > …
+       23     19   1.21x  ! amount * 1.05 + tax >= total AND …
+
+Interleaved binaries, five rounds each, min of all — because sequential runs of the same
+binary drifted by five to eight percent, which is more than the effect. The one input that
+is slower is the shortest, and it is slower in every variant tried.
+
+367 rows and 12,000 cells, `short` where the states fit in one, which is 24 kilobytes. The
+generated file goes from 8,647 lines to 10,726. No part of the scanner fell out of
+optimization: every `Scan_Part` still reaches `Tier1 with Dynamic PGO`, and nothing anywhere
+says `MinOpts`.

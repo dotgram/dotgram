@@ -229,6 +229,85 @@ public sealed class LexerEmitterTests
 		Assert.Equal((machine.Next.Count + 95) / 96, parts);
 	}
 
+	/// <summary>
+	/// A state whose ways out sit near each other is read out of a row, not asked about.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The licence is determinism: each character belongs to exactly one atom and each atom
+	/// leads to one state, so no character satisfies two of a state's tests and the chain's
+	/// order carries no meaning. What that buys is that any subset may be lifted into a row
+	/// with the rest left where it was.
+	/// </para>
+	/// <para>
+	/// Asserted on the text here, unlike everything else in this file, because the claim is
+	/// about the shape of the code and not about what it recognizes — every other test in this
+	/// file already says the machine still answers the same. What is checked is that a wide
+	/// set is <em>not</em> in a row, which is the whole of what keeps this from becoming the
+	/// dense table the design rejected.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_state_whose_ways_out_are_near_each_other_becomes_a_row()
+	{
+		var split = LexicalSplit.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(
+							"""
+							trivia = ' '*
+							namespace Lexical
+							{
+								trivia = none
+								Name = ['a'..'z'] & ['a'..'z']*
+								Text = '"' & [^ '"']* & '"'
+							}
+							Start = Lexical.Name & '=' & Lexical.Text & eof
+							parse Start
+							""",
+							DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+
+		var source = LexerEmitter.Emit(split!.Inventory.Machine!);
+
+		Assert.Contains("static readonly short[] Scan_Row0 =", source, StringComparison.Ordinal);
+		Assert.Contains("Scan_Row0[c - ", source, StringComparison.Ordinal);
+
+		// `[^ '"']` is two ranges reaching the top of the plane. A row for that would be most
+		// of one, so it stays a comparison — and stays correct, since the row it sits beside
+		// answers -1 for every character it does not hold.
+		Assert.Contains("if (c >= ", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And one comparison is never traded for a subtraction and a load.</summary>
+	/// <remarks>
+	/// A state with one single-character way out has one comparison to make. The row costs
+	/// three operations and a field, so it is not built — the threshold is on what the chain
+	/// would ask, not on how many ways there are.
+	/// </remarks>
+	[Fact]
+	public void But_a_single_character_is_still_a_comparison()
+	{
+		var split = LexicalSplit.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(
+							"""
+							trivia = ' '*
+							Start = "->" & '(' & eof
+							parse Start
+							""",
+							DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+
+		var source = LexerEmitter.Emit(split!.Inventory.Machine!);
+
+		// The first state admits `-` and `(`, which is two comparisons and so a row. The one
+		// after `-` admits `>` and nothing else, which is one.
+		Assert.Contains("static readonly short[] Scan_Row0 =", source, StringComparison.Ordinal);
+		Assert.Contains("if (c == '>') return", source, StringComparison.Ordinal);
+	}
+
 	static string[] Patterns(TerminalInventory inventory, int kind) =>
 		[.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
 }
