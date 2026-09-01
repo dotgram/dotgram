@@ -2030,9 +2030,12 @@ sealed partial class Machine
 				{
 					var scanned = Reserve(out var atScan);
 
-					if (FirstSets.Nullable(_graph.Bodies[rule] is Node.Atomic(var inside)
+					// Without the check only where there is nothing to check: a scanner that
+					// cannot refuse. Nullable is a different question and was the wrong one —
+					// see `Infallible`.
+					if (Infallible(_graph.Bodies[rule] is Node.Atomic(var inside)
 							? inside
-							: _graph.Bodies[rule], _graph))
+							: _graph.Bodies[rule]))
 					{
 						atScan.Line($"p = {scanner}(text, p);");
 					}

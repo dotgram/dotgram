@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -52,6 +53,42 @@ sealed partial class Machine
 	}
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
+
+	/// <summary>Whether a node matches at every position — whether it cannot refuse.</summary>
+	/// <remarks>
+	/// <para>
+	/// Not "can it match the empty string", which is what <c>FirstSets.Nullable</c> answers
+	/// and what the scanner's caller used to ask. A lookahead matches the empty string when
+	/// it succeeds and refuses when it does not: nullable and fallible at once. Reading such
+	/// a scanner's answer as a position without asking whether it is one puts <c>-1</c> in
+	/// <c>p</c>, and what happens next is whatever the rest of the rule does with a negative
+	/// position — in the grammar that found this, the right answer by accident, and in the
+	/// one before it the wrong one.
+	/// </para>
+	/// <para>
+	/// Conservative in the safe direction: a false answer costs a comparison the parse did
+	/// not need, and a true one has to be true.
+	/// </para>
+	/// </remarks>
+	bool Infallible(Node node) => Infallible(node, []);
+
+	bool Infallible(Node node, HashSet<RuleSymbol> seen) =>
+		node switch
+		{
+			Node.Empty                    => true,
+			Node.Literal(var text)        => text.Length == 0,
+			Node.Repeat(_, var min, _)    => min == 0,
+			Node.Sequence(var parts)      => parts.All(part => Infallible(part, seen)),
+			Node.Choice(var alternatives) => alternatives.Any(one => Infallible(one, seen)),
+			Node.Atomic(var kept)         => Infallible(kept, seen),
+			Node.Marked(var kept, _)      => Infallible(kept, seen),
+			Node.Capture(_, var held)     => Infallible(held, seen),
+			Node.Construct(var built, _)  => Infallible(built, seen),
+			Node.Call(var called, _)      => seen.Add(called) &&
+				_graph.Bodies.TryGetValue(called, out var body) &&
+				Infallible(body, seen),
+			_                             => false,
+		};
 
 	/// <summary>
 	/// The scanner one rule becomes, asked for rather than found by compiling.

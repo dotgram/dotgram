@@ -10467,3 +10467,33 @@ once.
 So the state: the condition is sound, the scanner can report where it reached, and what is
 left is the literal run's bulk compare and the split path's mapping. `Rfc3986` is 44 scanners
 and 19,037 lines against 25,771 whenever those two are done.
+
+## Nullable is not the same question as infallible
+
+Two things were called defects in the entry above and only one of them was. The local
+declared where its label is rather than where it is written was my own code, half-built and
+not compiling; the emitter has always declared its scanner locals by whether the body writes
+them. That claim is withdrawn.
+
+The other is real, and reachable without any of the scanner work. A rule in braces compiles
+to a scanner, and the caller skips asking whether the scanner refused when the rule is
+*nullable* — reasoning that something matching the empty string cannot fail:
+
+    Ahead = { ?= 'a' }
+    Start = Ahead & ['a'..'z']
+
+`?= 'a'` matches the empty string when the lookahead passes and refuses when it does not. So
+the caller writes `p = Scan_Ahead(text, p);` with no check, `p` becomes -1 on `"b"`, and what
+happens next is whatever the rest of the rule does with a negative position. Here it is the
+right answer by accident: the character test after it fails on a position out of bounds. In
+the grammar that turned this up it was the wrong one — a parse accepting input the grammar
+refuses.
+
+The question wanted is whether the rule can refuse, not whether it can be empty: a repetition
+of none, a sequence of those, a choice with one among them. `Infallible` asks that, and it is
+conservative in the safe direction — a false answer costs a comparison the parse did not need,
+and a true one has to be true.
+
+Nothing in the repository's own grammars changes, snapshots included, because their scanners
+really are infallible — `trivia` is a repetition of none, which is the case this was written
+for and the only one it had ever been asked about.
