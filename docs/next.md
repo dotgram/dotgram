@@ -10617,3 +10617,20 @@ suite is green — the largest grammar in this repository, the one with the stat
 the precedence climbing, the recovery and the values, on the same path SQL has been on since
 this morning. What it took was two corrections to the grammar and four to provenance, and no
 change at all to what the language accepts.
+
+    input                                   before     after
+    (int x) => x                            2.359us   1.912us   1.23x
+    (int x) => x * x - 1                    4.062us   3.632us   1.12x
+    (string s) => s.Length                  3.120us   2.532us   1.23x
+    (int x) => { x += 1; x *= 2; return x }  8.356us   7.177us   1.16x
+    (int x) => Math.Max(x, 1)               9.348us   8.053us   1.16x
+    two levels of parenthesis               7.378us   4.461us   1.65x
+    four levels                            12.239us   7.347us   1.67x
+    six levels                             17.113us  10.393us   1.65x
+    two levels, refused                    10.565us   9.045us   1.17x
+    six levels, refused                    40.705us  36.777us   1.11x
+
+Between 1.11x and 1.67x, and the nests gain most, which is where the character machine was
+doing the most re-reading. Allocation moves both ways and is worth its own look: four inputs
+allocate a fifth less and four a quarter more, and `x * x - 1` most of all — the token buffers
+are pooled, so what grew is elsewhere.
