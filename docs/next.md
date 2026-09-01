@@ -8578,3 +8578,62 @@ costs is character-level recognition rather than SQL.
 Of the remainder, one part is measured: making the 192 case-insensitive keyword literals
 case-sensitive takes 60,317 lines to 51,976 — **case insensitivity is 14%**, which is a
 real cost and not the difference.
+
+## Built: a rule is written where it is called only while it is small
+
+`ExecutionPlan.CompiledInPlace` had no size in it. Any rule that keeps no value, holds no
+capture and sits outside every cycle was written at each of its call sites, and its own
+comment said why that was safe — "what the duplication costs is generated text" — as
+though text were free. For the helpers it was aimed at, four to six nodes each, it is.
+
+Standard SQL's reserved-word list is 285 nodes, and the expansion is compositional:
+`Reserved` is written into `Identifier`, `Identifier` into `QualifiedName` and three other
+places, `QualifiedName` into four more, and `QualifiedName` holds `Identifier` twice. About
+a dozen copies of a sixty-way choice.
+
+    60 keywords          60,317 lines
+     4 keywords          24,503
+     no reserved check   22,228
+
+**Fifty-nine per cent of the file.** So a boundary is kept where the body is large, at
+sixty-four nodes — measured rather than chosen, because there is no continuum to cut in
+the middle of. Across the three parsers here the rules this admits have a median of four
+to six nodes, and what stands above the line stands well above it: 92 for `Rfc3986`'s IPv6
+address, 228 and 285 for SQL's data types and reserved words. `ExpressionLanguage`'s
+keyword list is 42 and stays inlined.
+
+    SqlStandard92        60,317 -> 26,473    -56%    154 parts -> 62
+    Rfc3986              33,024 -> 25,571    -23%
+    ExpressionLanguage   25,349 -> 25,349      0%
+
+One snapshot moved, `Url.gram`, by five lines and a full renumbering of states — which is
+what a rule leaving the inline set does to everything written after it. Behaviour is the
+other 1,519 tests, and the SQL grammar still accepts the twenty-eight of thirty-one it did.
+
+### What a keyword actually costs, since the last entry said it badly
+
+"640 lines per keyword" divided a total by a count and hid two different multipliers. What
+is emitted for `"SET"` is twenty lines: one comparison per character, and beside each a
+five-line block recording *which* character did not match.
+
+    if (text.Length - p < 3 || ToUpperInvariant(text[p]) != 'S')
+    {
+        if (text.Length - p < 3) failure.OutOfInput = p + 1;
+        expected = Recognize_DotGram_Expected144;
+        { state = 2; goto Leave; }
+    }
+    …
+
+So it is about six and a half lines per character of keyword, per copy, and there were a
+dozen copies. Three of the twenty lines recognize; the rest report. Counted over the whole
+file, **31% of it is failure reporting** — which is not a defect but the price
+`implementation.md` §0 names out loud, and this is the first time it has been counted.
+
+### And the answer to whether predicted dispatch helps here
+
+Not as it stands. `Predictive` requires `Determinism.Distinguishable` — every pair of
+alternatives with disjoint first sets — and a keyword list never has that: `AND`, `ALL`,
+`ANY` and `AS` all begin with `A`. What is emitted instead is a chain of first-character
+tests, one per alternative, each falling to the next. A jump table on the first character,
+or a trie over the whole set, is the thing that shape wants, and neither exists here.
+Recorded rather than built: the size problem above was worth more and cost less.
