@@ -10260,3 +10260,41 @@ worth a quarter of the table however large the grammar. Under 256 kilobytes the 
 is kept and the five percent with it; over that, a grammar of some six hundred words, it is
 compacted. The last column is the dense state-by-atom table this design rejected in its first
 week: 7.7 megabytes where the row table is 232 kilobytes.
+
+## The scannerless parsers are not one lexeme, and the measurement says why
+
+A lexical machine is a DFA and a table falls out of it. The proposal was that a scannerless
+grammar is just one big lexeme and should have the same table, which for `Rfc3986` — a URL
+parser with ten call sites in 25,771 lines — looked very likely.
+
+**Statically it is.** Of its 978 states, 770 do nothing a transition table could not say:
+they read a character and jump. Only 79 write the arena.
+
+    parser                states   only read and jump   write the arena
+    Rfc3986                  978           770  (79%)         79  (8%)
+    SqlStandard92            276           179  (65%)         83 (30%)
+    ExpressionLanguage       696           268  (39%)        421 (60%)
+
+**Dynamically it is not.** Counting steps rather than states, a corpus of eight URLs spends
+37% of them in those states — and, decisively, they do not come in runs:
+
+    parser              steps   pure   runs   mean  median  longest   in runs of 4+
+    Rfc3986             1,478    37%    394    1.4       1        9              8%
+    SqlStandard92         642    50%    121    2.7       1       13             60%
+    ExpressionLanguage  1,734    28%    209    2.3       2       13             44%
+
+A table pays for itself by being stayed in. The lexer's inner loop reads a token — a dozen
+characters, a dozen table steps, no exit. A URL parser's pure states last **1.4 steps** on
+average and a single step at the median: the loop would spend more on entering and leaving
+than the chain of comparisons costs. Eight percent of its pure steps are in runs of four or
+more.
+
+Which is the answer to why a scannerless grammar is not one lexeme. A lexeme is regular
+*and produces nothing*: the lexer writes no arena, so its states are pure by construction and
+its runs are as long as a token. A parser records where every capture began, and in a URL
+grammar a capture begins every few characters — so the pure states are real but scattered one
+at a time between the writes, and there is no run to put a loop around.
+
+**Where the time actually is.** Sixty per cent of `ExpressionLanguage`'s steps and half of
+`Rfc3986`'s go to arena traffic, not to deciding which character was read. That is the target
+the measurement points at, and it is a different piece of work from this one.
