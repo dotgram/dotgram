@@ -1898,8 +1898,6 @@ namespace DotGram.Snapshots
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan(",a")))
 				{
-					if (text[p] == ',')
-						p += 1;
 					expected = Recognize_DotGram_List_Expected0;
 					goto S12;
 				}
@@ -2110,8 +2108,6 @@ namespace DotGram.Snapshots
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
 				{
-					if (text[p] == 'a')
-						p += 1;
 					expected = Recognize_DotGram_Ahead_Expected1;
 					goto S10;
 				}
@@ -2208,8 +2204,6 @@ namespace DotGram.Snapshots
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("no")))
 				{
-					if (text[p] == 'n')
-						p += 1;
 					expected = Recognize_DotGram_Not_Expected2;
 					goto S18;
 				}
@@ -2310,8 +2304,6 @@ namespace DotGram.Snapshots
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
 				{
-					if (text[p] == 'a')
-						p += 1;
 					expected = Recognize_DotGram_Committed_Expected2;
 					goto S14;
 				}

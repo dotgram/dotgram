@@ -8691,3 +8691,30 @@ else's alphabet keeps the chain rather than quietly changing what it accepts.
 
 Only SQL moves, because only SQL is made of case-insensitive keywords — 192 of them. Two
 snapshots moved with it and both diffs are the intended shape.
+
+## Fixed: the failing position is worked out only where something reads it
+
+Igor, reading the emitted `BETWEEN`: "in this code we work out which character we broke
+on — how is that information used afterwards? Not in general, in this particular place.
+Here it looks like a vestigial pattern, done because everything is done this way, and
+nobody needs it."
+
+Right, and the emitter agreed with him in one of the two places it does this. A literal
+*run* guards the work with `if (fail == Fail)`; a literal on its own did not. `p` at a
+terminal failure is what the caller is told; a failure routed anywhere else goes to a door
+that opens with `p = turn{n};` — a lookahead rewinding, an atomic group trying the next
+alternative — so the ladder is overwritten by the next line to run.
+
+No correctness was at stake: `FailsWhereItBegan`, which is what admits a failure target
+with no give-back, is true for a literal only at length one, and a literal of one never
+sharpens. The two sites are the same question and now answer it the same way.
+
+    SqlStandard92   23,837 -> 23,703
+
+**134 lines, and the smallness is the finding.** The case it was aimed at is not fixed by
+it: `?!Reserved` is where a keyword list is usually reached and where every one of sixty
+ladders leads to a position nobody reads — but `Reserved` is over the inlining threshold
+now, so it is a rule compiled once, in its own context, where `_fail` *is* `Fail`. The
+emitter cannot see from inside a shared body that every caller will discard the answer.
+That is a fact about the whole graph — "is this rule reached only from negative
+lookaheads" — and a different pass from this one.

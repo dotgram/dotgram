@@ -1463,7 +1463,19 @@ sealed partial class Machine
 						// branch already taken rather than on the way in. The comparison has
 						// said they differ; this only says where, and nothing reaches it
 						// unless the parse is failing anyway.
-						Sharpen(writer, value, ignoreCase);
+						//
+						// And only where anything will read it. `p` at a terminal failure is
+						// what the caller is told; a failure routed anywhere else is a door
+						// that restores `p` from a local — a lookahead rewinding, an atomic
+						// group trying its next alternative — and this would be overwritten
+						// by the next line to run. Inside `?!Reserved`, which is how a
+						// keyword list is usually reached, every one of sixty words walks a
+						// ladder to a position nobody reads.
+						//
+						// A literal run has always been guarded this way; a literal on its
+						// own was not, and the two are the same question.
+						if (_fail == Fail)
+							Sharpen(writer, value, ignoreCase);
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
