@@ -5,8 +5,8 @@ using DotGram;
 namespace DotGram.Parsers;
 
 /// <summary>
-/// The expression layer of standard SQL: <c>&lt;value expression&gt;</c> and
-/// <c>&lt;search condition&gt;</c>, as ISO/IEC 9075:1992 defines them.
+/// The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and
+/// <c>&lt;search condition&gt;</c> — as ISO/IEC 9075:1992 defines them.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -378,7 +378,7 @@ namespace DotGram.Parsers;
 	parse SearchCondition as ParseSearchCondition
 	parse ValueExpression as ParseValueExpression
 	""")]
-public static partial class SqlExpressions
+public static partial class SqlStandard92
 {
 	[ThreadStatic]
 	static Parser? _parser;

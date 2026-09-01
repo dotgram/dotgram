@@ -1503,22 +1503,61 @@ public static partial class CSharpEmitter
 		var byRule = new Dictionary<RuleSymbol, List<Publication>>();
 
 		foreach (var publication in graph.Publications)
-			if (byRule.TryGetValue(publication.Rule, out var already))
-			{
-				already.Add(publication);
-			}
-			else
-			{
-				var mine = new List<Publication> { publication };
+		{
+			// The same rule published twice — `parse R` and `find R` — has always shared a
+			// machine, entered at two states. Two *different* rules that can each reach the
+			// other share one now, and for the same reason: a machine is built over what its
+			// root reaches, mutual reachability makes those sets equal, and what used to
+			// happen instead was the whole grammar compiled once per publication.
+			//
+			// The expression layer of standard SQL is what made that visible. `SearchCondition`
+			// reaches `ValueExpression` through its predicates and `ValueExpression` reaches
+			// back through `CASE`, so publishing both wrote 119,722 lines where one machine
+			// writes 60,150 — the second entry point cost a complete second copy.
+			var host = byRule.TryGetValue(publication.Rule, out var already)
+				? already
+				: Sharing(groups, graph, publication.Rule);
 
-				byRule[publication.Rule] = mine;
-				groups.Add((publication.Rule, mine));
+			if (host is not null)
+			{
+				host.Add(publication);
+				byRule[publication.Rule] = host;
+
+				continue;
 			}
+
+			var mine = new List<Publication> { publication };
+
+			byRule[publication.Rule] = mine;
+			groups.Add((publication.Rule, mine));
+		}
 
 		if (groups.Count == 0 && graph.Rules.Count > 0)
 			groups.Add((null, []));
 
 		return groups;
+	}
+
+	/// <summary>
+	/// The publications a rule may join: those of a rule it can reach and which can reach
+	/// it, or null where there are none.
+	/// </summary>
+	/// <remarks>
+	/// Mutual reachability and not one-way: a machine is compiled over what its root
+	/// reaches, so two rules can share one exactly when each reaches what the other does.
+	/// One-way would put a rule's machine inside another's and leave the smaller with no
+	/// entry of its own.
+	/// </remarks>
+	static List<Publication>? Sharing(
+		List<(RuleSymbol? Rule, IReadOnlyList<Publication> Publications)> groups,
+		RecognitionGraph graph,
+		RuleSymbol rule)
+	{
+		foreach (var (owner, publications) in groups)
+			if (owner is not null && graph.Calls.Together(owner, rule))
+				return (List<Publication>)publications;
+
+		return null;
 	}
 
 	/// <summary>

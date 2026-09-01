@@ -1720,4 +1720,63 @@ public sealed class CSharpEmitterTests
 		Assert.Matches(@"else if \(text\[p \+ 2\] != 'c'\)\s*p \+= 2;", source);
 		Assert.Matches(@"else\s*p \+= 3;", source);
 	}
+
+	/// <summary>
+	/// Two published rules that can each reach the other share one machine, entered at two
+	/// states, rather than each getting a machine that compiles the same grammar.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same rule published twice has always shared one. This is the other case, and it
+	/// arrived with the expression layer of standard SQL: `<search condition>` reaches
+	/// `<value expression>` through its predicates and `<value expression>` reaches back
+	/// through `CASE`, so publishing both — which a SQL parser wants, since a caller has
+	/// either a condition or an expression in hand — wrote the whole grammar twice. 119,722
+	/// lines against 60,317.
+	/// </para>
+	/// <para>
+	/// Mutual reachability is the condition and not one-way: a machine is compiled over what
+	/// its root reaches, and only where each reaches the other are those two sets the same.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Two_publications_that_reach_each_other_share_one_machine()
+	{
+		var source = Emit("""
+			Condition = Value & '=' & Value | '(' & Condition & ')'
+			Value     = ['0'..'9']+ | "if" & Condition
+			parse Condition
+			parse Value
+			""");
+
+		// One machine is one untagged recognizer; two would be tagged with their rules.
+		Assert.Contains("int Recognize_DotGram(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Recognize_DotGram_Condition(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Recognize_DotGram_Value(", source, StringComparison.Ordinal);
+
+		// And both are still entry points of their own.
+		Assert.Contains("ParseCondition", source, StringComparison.Ordinal);
+		Assert.Contains("ParseValue", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And two that cannot still get a machine each.</summary>
+	/// <remarks>
+	/// `Left` reaches nothing of `Right` and neither reaches the other, so one machine over
+	/// either would compile a grammar the other's entry state is not in. The tagged pair is
+	/// what that has always produced and what it must go on producing.
+	/// </remarks>
+	[Fact]
+	public void Two_publications_that_do_not_reach_each_other_get_one_each()
+	{
+		var source = Emit("""
+			Left  = 'a'+
+			Right = 'b'+
+			parse Left
+			parse Right
+			""");
+
+		Assert.Contains("Recognize_DotGram_Left", source, StringComparison.Ordinal);
+		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
+	}
+
 }

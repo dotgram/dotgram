@@ -8530,3 +8530,51 @@ that matters.
 Where it goes is not yet measured, but the shape of the grammar says where to look: sixty
 reserved words tried in order behind every identifier, and case-insensitive keyword
 literals that expand per character. Both are size and both are speed.
+
+## Built: two published rules that reach each other share one machine
+
+`SqlStandard92` publishes both of its roots — a caller has either a condition or an
+expression in hand — and that wrote the grammar **twice**: 119,722 lines against 60,317,
+the second entry point costing a complete second copy.
+
+The emitter grouped publications by rule identity. `parse R` and `find R` shared a machine
+and always had; two *different* rules got one each, "even where both call a third rule,
+which is then compiled into both", as its own comment said. `<search condition>` reaches
+`<value expression>` through its predicates and `<value expression>` reaches back through
+`CASE`, so each machine compiled everything.
+
+They share one now, on the condition that each can reach the other. Mutual reachability is
+the right test and one-way is not: a machine is compiled over what its root reaches, and
+only where the reaching goes both ways are the two sets equal — so the two roots are two
+entry states of one machine, which is a shape `Register` already had. `CallGraph.Together`
+is the predicate, and it was already there, meaning the same components Tarjan finds for
+recursion.
+
+    two publications, two machines   119,722 lines   308 parts
+    two publications, one machine     60,317         154
+
+Nothing in the repository changed — no grammar here had two mutually reachable
+publications, which is why the snapshots did not move and why two tests were added rather
+than relying on them.
+
+### And the headline of the entry above was wrong twice
+
+It said a real SQL grammar expands at 358 lines of C# per line of grammar against
+`ExpressionLanguage`'s 37. Half of that was this duplication. The other half was the
+measure: **grammar lines say more about how an author wrapped them than about how much
+grammar there is** — `SqlStandard92` writes 60 reserved words as one rule over ten lines,
+where `ExpressionLanguage` spreads comparable content over many more. Counted in nodes of
+the lowered tree, which is what the emitter is actually given:
+
+    grammar              rules   nodes   C# lines   per node
+    SqlStandard92           70   1,558     60,317       38.7
+    ExpressionLanguage      86   1,713     25,349       14.8
+    Rfc3986                 36     322     33,024      102.6
+
+The two grammars are nearly the same size — 1,558 nodes against 1,713 — and SQL emits 2.4
+times as much, not ten times. `Rfc3986` is worse than either, which says the shape that
+costs is character-level recognition rather than SQL.
+
+Of the remainder, one part is measured: making the 192 case-insensitive keyword literals
+case-sensitive takes 60,317 lines to 51,976 — **case insensitivity is 14%**, which is a
+real cost and not the difference.
