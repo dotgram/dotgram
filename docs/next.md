@@ -10049,3 +10049,53 @@ because the branch that touches the span is the branch not taken.
 The file grows from 310,106 characters to 401,442 — three eight-kilobyte halves printed
 instead of three sets of bounds, and the test written out at sixty-seven call sites instead
 of called. Against the 816,461 it was this morning that is still half.
+
+## The table was working for eighty-eight states out of five hundred
+
+A question about whether the bitmap's bytes were really all letters turned into finding that
+the transition table was mostly not being used. Its rows are placed by a heuristic, and the
+heuristic was wrong three times over.
+
+**Counted in ranges.** A row is 128 characters wide and the window is chosen to hold the most
+of what a state admits — counted, at first, in *ranges*. That put 440 of `SqlStandard92`'s
+528 rows at `U+0B25`, entirely above ASCII: a window there holds more separate pieces of
+`\p{L}` than the whole of ASCII holds, and every ASCII character in those states missed the
+table and took the chain. A range is an artefact of how a set is written; a way out is a
+decision the machine makes, and that is what is worth counting.
+
+**Slid by characters.** Counting ways out fixed 440 rows and left the windows anchored at
+`'+'`, because a window from 43 holds forty-three more Latin-1 letters than a window from 0.
+It also puts the space outside, and the space is what ends every token — so each token paid a
+chain call to find out it had finished, and `a = 1` got three times slower. Sliding must
+preserve ways out, not characters.
+
+**Scored by how many ways rather than which.** That left 95 rows at `U+00F8`. They are the
+states whose only way out is "any identifier character": ASCII holds sixty-three of those and
+a window in Latin-1 holds a hundred and twenty-eight, so the count of characters chose
+Latin-1, where nobody types. Two windows admitting the *same ways* are the same answer and the
+lower is the better of two same answers — what the higher holds extra belongs to a way the row
+already answers for, and the chain answers for it exactly as well. Where the ways genuinely
+differ, the characters still decide, which is what keeps a Cyrillic grammar's row on its
+letters rather than on the `'='` beside them.
+
+All 528 rows sit at `U+0000` now, and what that was worth against the chain the day began
+with:
+
+    chain     now
+      203     193   1.05x  a = 1
+      400     275   1.45x  salary BETWEEN 1000 AND 2000
+      453     306   1.48x  x IN (1, 2, 3) AND y IS NOT NULL
+      907     601   1.51x  amount * 1.05 + tax >= total AND …
+      837     493   1.70x  warehouse.zip_code = 'X' AND …
+      876     583   1.50x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1457     976   1.49x  (quantity + weight) * rate - zone / 2 > …
+       22      14   1.57x  ! amount * 1.05 + tax >= total AND …
+
+Non-Latin identifiers cost 1.03x, 1.04x and 0.92x of their Latin twins, which is to say
+nothing. The earlier "1.02x to 1.20x" was a table answering for eighty-eight states.
+
+**And what the question was actually about.** `Scan_High0` is 5,924 bytes of `0xFF` out of
+8,192, and they are letters: `U+4E00..U+A48C` is 22,157 unbroken ideographs, `U+AC00..U+D7A3`
+is 11,172 Hangul syllables, `U+3400..U+4DBF` is 6,592 more ideographs. Of the 48,921
+characters the set holds, Unicode 15.1 declines to call eight of them letters, and those
+eight are the ones added in 16.0.

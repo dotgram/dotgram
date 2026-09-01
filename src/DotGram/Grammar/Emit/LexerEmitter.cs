@@ -269,57 +269,142 @@ public static class LexerEmitter
 	/// <para>
 	/// Anywhere, not at the state's first character. A state that admits <c>'='</c> and a
 	/// Cyrillic letter has an alphabet a thousand apart, and a row anchored at the <c>'='</c>
-	/// answers for one character and sends every letter to the chain — which is the whole
-	/// language taking the slow path to save one comparison.
+	/// answers for one character and sends every letter to the chain.
 	/// </para>
 	/// <para>
-	/// So the window is the one covering the most of what the grammar named: the most
-	/// <em>ranges</em>, and the widest where two windows cover as many. Ranges and not
-	/// characters, because a Unicode category is a great many characters in a great many
-	/// scattered pieces, and counting characters would move every window into the middle of
-	/// one. The ranges are disjoint and sorted, so the answer is one pass with two pointers.
+	/// <b>Counted in ways out and not in ranges, which took a second look.</b> A range is an
+	/// artefact of how a set is written; a way out is a decision the machine makes. Counting
+	/// ranges put 440 of <c>SqlStandard92</c>'s 528 rows at <c>U+0B25</c> — a window that
+	/// holds more <em>pieces</em> of <c>\p{L}</c> than the whole of ASCII holds, and one
+	/// single way out. Every ASCII character in those states missed the table and took the
+	/// chain, which is to say the table was working for eighty-eight states out of five
+	/// hundred.
+	/// </para>
+	/// <para>
+	/// A way out counts where any part of it falls inside, because the row is filled by
+	/// clipping and half a way out is half a row that answers. Characters break the tie, and
+	/// then the window is slid as far down as it can go without dropping any way it was
+	/// chosen for — the room below is free, since those cells refuse exactly as the chain
+	/// would, and it is where the characters that end a token live.
 	/// </para>
 	/// </remarks>
 	static int Window(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
 	{
-		var ranges = ways
-			.SelectMany(way => way.On)
-			.OrderBy(range => range.From)
-			.ToList();
-
-		if (ranges.Count == 0)
+		if (ways.Count == 0)
 			return -1;
 
-		var best = (Low: -1, Count: 0, Chars: 0);
-		var last = 0;
-		var held = 0;
+		// Two candidates and no more: ASCII, or the best place above it. A row is 128 wide
+		// and the characters that *end* a token — the space, the comma, the operator — are
+		// all below 128 in every language there is, so a window that begins part way up
+		// ASCII is never the right answer: it buys Latin-1 letters and sells the space.
+		var best = (Low: 0, Ways: 0L, Chars: 0);
 
-		for (var first = 0; first < ranges.Count; first++)
+		Weigh(ref best, ways, 0);
+
+		foreach (var start in ways
+			.SelectMany(way => way.On)
+			.Select(range => (int)range.From)
+			.Where(from => from >= Reach)
+			.Distinct())
 		{
-			if (last < first)
-			{
-				last = first;
-				held = 0;
-			}
-
-			while (last < ranges.Count && ranges[last].To - ranges[first].From + 1 <= Reach)
-				held += ranges[last].To - ranges[last++].From + 1;
-
-			var count = last - first;
-
-			// As low as the window can sit and still hold everything it was chosen for. The
-			// room is free — those cells refuse, which is the same answer the chain gives —
-			// and it is where the characters that end a token live: a space, a newline, the
-			// mark this language does not write. Anchored at the first range instead, an
-			// input beginning with `!` fell past the table to say what the table knew.
-			if (count > 0 && (count > best.Count || count == best.Count && held > best.Chars))
-				best = (Math.Max(0, Math.Min(ranges[first].From, ranges[last - 1].To - Reach + 1)), count, held);
-
-			if (last > first)
-				held -= ranges[first].To - ranges[first].From + 1;
+			Weigh(ref best, ways, start);
 		}
 
-		return best.Low;
+		return best.Ways == 0 ? -1 : best.Low;
+	}
+
+	/// <summary>One candidate window, scored and kept if it is the best so far.</summary>
+	/// <remarks>
+	/// <para>
+	/// Scored by <em>which</em> ways out it admits and not by how many, which is the
+	/// distinction the third wrong answer turned on. Two windows admitting the same ways are
+	/// the same answer, and the lower one is the better of two same answers: what the higher
+	/// one holds extra belongs to a way the row already answers for, and the chain answers
+	/// for it exactly as well. That is a state whose only way out is "any identifier
+	/// character" — ASCII holds sixty-three of them and a window up in Latin-1 holds a
+	/// hundred and twenty-eight, and the sixty-three are the ones anybody types.
+	/// </para>
+	/// <para>
+	/// Where the ways differ the count decides, and then the characters — which is what tells
+	/// a row over Cyrillic letters from a row over the single <c>'='</c> standing beside
+	/// them. A window above ASCII is slid down as far as it goes without losing a character
+	/// it holds, so that it sits on its alphabet rather than one reach past it.
+	/// </para>
+	/// </remarks>
+	static void Weigh(
+		ref (int Low, long Ways, int Chars) best,
+		IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways,
+		int low)
+	{
+		var high  = low + Reach - 1;
+		var taken = 0L;
+		var held  = 0;
+		var least = int.MaxValue;
+		var most  = -1;
+
+		for (var at = 0; at < ways.Count; at++)
+		{
+			var inside = false;
+
+			foreach (var range in ways[at].On)
+			{
+				var from = Math.Max((int)range.From, low);
+				var to   = Math.Min((int)range.To, high);
+
+				if (from > to)
+					continue;
+
+				inside = true;
+				held  += to - from + 1;
+				least  = Math.Min(least, from);
+				most   = Math.Max(most, to);
+			}
+
+			// Sixty-four ways out is more than any state here has, and a state with more
+			// simply shares one bit between two of them — which costs a worse window and
+			// never a wrong one.
+			if (inside)
+				taken |= 1L << (at & 63);
+		}
+
+		if (taken == 0)
+			return;
+
+		var at2 = low == 0 ? 0 : Math.Max(Reach, Math.Min(least, most - Reach + 1));
+
+		if (best.Ways != 0)
+		{
+			// The same ways: keep whichever sits lower. Different ways: more of them, and
+			// then more characters.
+			if (taken == best.Ways)
+			{
+				if (at2 >= best.Low)
+					return;
+			}
+			else
+			{
+				var mine  = Count(taken);
+				var found = Count(best.Ways);
+
+				if (mine < found || mine == found && held <= best.Chars)
+					return;
+			}
+		}
+
+		best = (at2, taken, held);
+	}
+
+	static int Count(long bits)
+	{
+		var many = 0;
+
+		while (bits != 0)
+		{
+			bits &= bits - 1;
+			many++;
+		}
+
+		return many;
 	}
 
 	static void Numbers<T>(Writer text, IReadOnlyList<T> values)
