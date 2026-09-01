@@ -9937,3 +9937,49 @@ the notation — §4.4's atomic braces already say "do not come back here", and 
 around the element would end this instance today. What they would not do is find the next
 one, and nothing in the compiler currently can: no rule warns that an alternative may consume
 an unbounded prefix before deciding.
+
+## A faster set test, and why it is not being written
+
+`Scan_Between` answers whether a character is in a set by binary search over the set's
+boundaries, which alternate: a character is inside exactly where the count of bounds at or
+below it is odd. `SqlStandard92`'s widest set is 382 ranges, so that is about ten dependent
+loads with ten branches nothing can predict.
+
+A page table is the obvious better shape, and it is what the runtime itself uses for
+`char.IsLetter`: the top byte of the character picks a page, the page is 256 bits, and pages
+that are equal are shared. Measured over the real set, on random characters:
+
+    input             searched       paged    IsLetter
+    ASCII letters        8.68n       2.56n       2.24n
+    ASCII marks          4.81n       1.96n       2.43n
+    Cyrillic             5.41n       1.37n       2.78n
+    CJK                  5.19n       1.36n       2.78n
+
+Three and a half to four times faster, and faster than `char.IsLetter` on everything that is
+not ASCII — two levels against the runtime's three plus a category to decode. It costs 1,856
+bytes where the bounds cost 1,528, because fifty distinct pages is all a set like this needs.
+
+**And it is worth nothing at all.** Both machines already tabulate ASCII — the lexer in its
+transition rows and the parser in `Recognize_DotGram_Class`, 128 bytes apiece — so a search
+runs only for a character outside them. Timed end to end on the case that should show it
+most, the same expression with Latin and with Cyrillic identifiers:
+
+    shape              latin       other
+    short name        8,654n      8,433n   0.97x
+    long name        10,744n     12,208n   1.14x
+    many names       16,512n     14,664n   0.89x
+
+Noise, in both directions. A few nanoseconds against a parse of eight to sixteen
+microseconds is a tenth of a percent, and the direction closes here rather than in the
+emitter.
+
+**One thing the measurement did settle**, which was the reason for looking. The set and
+`char.IsLetter` disagree on 56 of the 65,536 characters. Forty-eight are the letters the
+keyword trie took for itself, in both cases. The other eight are `U+1C89`, `U+1C8A`,
+`U+A7CB`–`U+A7CD` and `U+A7DA`–`U+A7DC` — Cyrillic and Latin Extended-D letters added in
+Unicode 16.0. The generator's tables know them; the consumer's `net8.0` runtime does not.
+
+So calling `char.IsLetter` from emitted code would make the language a parser accepts a
+function of the framework it is running on: the same assembly would take `U+A7CB` in an
+identifier on one machine and refuse it on another. Expanding `\p{L}` into ranges at
+generation time is what freezes it, and those eight characters are what that is worth.
