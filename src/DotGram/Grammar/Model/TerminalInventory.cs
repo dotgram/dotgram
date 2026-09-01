@@ -4,6 +4,9 @@ using DotGram.Grammar.Binding;
 
 namespace DotGram.Grammar.Model;
 
+/// <summary>A literal, told apart by what it says and by whether its case matters.</summary>
+using Text = (string Text, bool IgnoreCase);
+
 /// <summary>
 /// What the terminals of a grammar are, once its lexical half is told from its syntactic
 /// one — and where that telling fails.
@@ -36,11 +39,13 @@ public sealed class TerminalInventory
 		bool applies,
 		IReadOnlyList<Terminal> terminals,
 		IReadOnlyList<Group> groups,
+		IReadOnlyList<Named> named,
 		IReadOnlyList<string> blocked)
 	{
 		Applies   = applies;
 		Terminals = terminals;
 		Groups    = groups;
+		Sets      = named;
 		Blocked   = blocked;
 	}
 
@@ -54,8 +59,29 @@ public sealed class TerminalInventory
 	/// <summary>The terminals, in kind order. <see cref="Terminal.Kind"/> is one-based.</summary>
 	public IReadOnlyList<Terminal> Terminals { get; }
 
-	/// <summary>The groups, each a contiguous range of kinds.</summary>
+	/// <summary>The groups, each a contiguous range of kinds. They tile the terminals.</summary>
 	public IReadOnlyList<Group> Groups { get; }
+
+	/// <summary>
+	/// The rules that are a set of terminals rather than a terminal, as ranges of kinds.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rule written as a choice of literals — <c>TruthValue</c>, <c>CompOp</c>,
+	/// <c>Reserved</c>, <c>Keyword</c> — recognizes nothing a terminal does not already
+	/// recognize. It is a *set*, and over integers a set is a range test: the numbering is
+	/// arranged so that as many of them as possible occupy one run each.
+	/// </para>
+	/// <para>
+	/// This is what turns <c>?!Reserved &amp; RegularIdentifier</c> — a negative lookahead
+	/// over fifty-six words, run at every identifier — into a subtraction and a comparison.
+	/// A set that needs more than one range says so by carrying more than one, which is the
+	/// truth about it rather than a failure: <c>SetQuantifier</c> is <c>DISTINCT | ALL</c>
+	/// and <c>Quantifier</c> is <c>ALL | SOME | ANY</c>, they share a word without either
+	/// containing the other, and no ordering makes both a single run.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<Named> Sets { get; }
 
 	/// <summary>
 	/// What stops this grammar from being split, in the words a reader would need.
@@ -76,7 +102,7 @@ public sealed class TerminalInventory
 		var walker = new Walker(graph);
 
 		if (!walker.Applies)
-			return new TerminalInventory(false, [], [], []);
+			return new TerminalInventory(false, [], [], [], []);
 
 		foreach (var rule in graph.Rules)
 			if (walker.IsSyntactic(rule) && graph.Bodies.TryGetValue(rule, out var body))
@@ -113,6 +139,16 @@ public sealed class TerminalInventory
 		}
 	}
 
+	/// <summary>A rule that is a set of terminals, and the runs of kinds it comes to.</summary>
+	public sealed record Named(string Name, IReadOnlyList<Group> Ranges)
+	{
+		/// <summary>How many terminals it holds.</summary>
+		public int Count => Ranges.Sum(range => range.Count);
+
+		public override string ToString() =>
+			$"{Name} = {string.Join(", ", Ranges.Select(range => $"{range.From}..{range.To}"))}";
+	}
+
 	/// <summary>A contiguous run of kinds, which is what makes membership a range test.</summary>
 	/// <remarks>
 	/// <c>(uint)(kind - From) &lt;= (uint)(To - From)</c>: one subtract and one compare, no
@@ -136,9 +172,11 @@ public sealed class TerminalInventory
 	/// </remarks>
 	sealed class Walker(RecognitionGraph graph)
 	{
-		readonly List<(string Text, bool IgnoreCase)> _words = [];
-		readonly List<(string Text, bool IgnoreCase)> _marks = [];
+
+		readonly List<Text> _words = [];
+		readonly List<Text> _marks = [];
 		readonly List<RuleSymbol>                     _classes = [];
+		readonly List<(string Name, List<Text> Members)> _sets = [];
 		readonly HashSet<string>                      _seen = [];
 		readonly HashSet<string>                      _blocked = [];
 		readonly List<string>                         _reasons = [];
@@ -365,7 +403,7 @@ public sealed class TerminalInventory
 				_classes.Add(called);
 		}
 
-		void Take(List<(string, bool)> into, string text, bool ignoreCase)
+		void Take(List<Text> into, string text, bool ignoreCase)
 		{
 			if (_seen.Add((into == _words ? "word " : "mark ") + (ignoreCase ? "i" : "") + text))
 				into.Add((text, ignoreCase));
@@ -383,62 +421,145 @@ public sealed class TerminalInventory
 		const int Named = 8;
 
 		/// <summary>
-		/// A class whose strings are words already numbered wants a range, not a kind.
+		/// The rules that are a set of terminals rather than a terminal of their own.
 		/// </summary>
 		/// <remarks>
 		/// <para>
-		/// <c>ExpressionLanguage</c> has the shape and it is the one that matters:
-		/// <c>Keyword = ("as" | "bool" | … | "while") &amp; ?![\p{L} | \p{Nd} | '_']</c> sits
-		/// in a lexical namespace and is reached only through <c>Name = ?!Keyword &amp;
-		/// Word</c>, while every one of those words also stands in the syntax as a literal of
-		/// its own. Give <c>Keyword</c> a kind and the lexer has to decide whether <c>if</c>
-		/// is the word or the class, and either answer breaks the other reading.
+		/// A rule written as a choice of literals recognizes nothing its literals do not
+		/// recognize already — <c>TruthValue</c>, <c>CompOp</c>, <c>Quantifier</c>,
+		/// <c>Reserved</c>. Over characters that is a choice and costs a choice; over
+		/// integers it is a set, and a set that occupies one run of kinds is a subtraction
+		/// and a comparison.
 		/// </para>
 		/// <para>
-		/// The answer the design wants is that it is neither a kind nor a lookahead: it is
-		/// the range those words already occupy, and <c>?!Keyword &amp; Word</c> becomes one
-		/// set difference over integers. Recognizing the shape is this pass's job; doing
-		/// something about it is the next one's.
+		/// Only where every one of its literals is already a terminal. A rule listing a word
+		/// that no syntax ever writes has a string in it that nothing else numbers, and
+		/// promoting it here would invent a terminal out of a lookahead; such a rule stays
+		/// whatever it was.
 		/// </para>
 		/// <para>
-		/// <c>SqlStandard92</c> does not have it, and the reason is worth reading: its
-		/// <c>Reserved</c> is declared where trivia is *not* empty, so it is syntax, and its
-		/// words are walked into the word group like any others. The same list, one namespace
-		/// apart, is two different problems.
+		/// Both halves of the grammar are asked, and the difference between them is the point.
+		/// <c>ExpressionLanguage</c>'s <c>Keyword</c> is lexical and would otherwise be a
+		/// class whose strings are also terminals — <c>if</c> would have two kinds.
+		/// <c>SqlStandard92</c>'s <c>Reserved</c> is syntactic and is walked into the word
+		/// group already; what it needs is not a kind but the knowledge that those
+		/// fifty-six words are a range.
 		/// </para>
 		/// </remarks>
-		void Overlapping(RuleSymbol called)
+		public void Collect()
 		{
-			if (!graph.Bodies.TryGetValue(called, out var body) || Choices(body) is not { } texts)
-				return;
+			var known = new Dictionary<Text, int>();
 
-			var words = new HashSet<string>(_words.Select(word => word.Text), StringComparer.Ordinal);
+			for (var i = 0; i < _words.Count; i++) known[_words[i]] = i;
+			for (var i = 0; i < _marks.Count; i++) known[_marks[i]] = ~i;
 
-			if (texts.Count == 0 || !texts.All(words.Contains))
-				return;
+			foreach (var rule in graph.Rules)
+			{
+				if (_lexical.Contains(rule) || !graph.Bodies.TryGetValue(rule, out var body))
+					continue;
 
-			Block(
-				$"a class that is a set of words already numbered: {called.Name} is " +
-				$"{texts.Count} of them, {string.Join(", ", texts.Take(3))} among the rest, " +
-				"so it wants a range rather than a kind of its own");
+				if (Choices(body) is not { Count: > 1 } literals)
+					continue;
+
+				var members = new List<Text>(literals.Count);
+
+				foreach (var literal in literals)
+					if (known.ContainsKey((literal.Text, literal.IgnoreCase)))
+						members.Add((literal.Text, literal.IgnoreCase));
+					else
+						goto next;
+
+				_sets.Add((rule.Name, members));
+
+				next: ;
+			}
+
+			// A class that turned out to be a set is not a class: its strings are terminals
+			// already, and giving it a kind as well would be the `if` with two kinds.
+			var named = new HashSet<string>(_sets.Select(one => one.Name), StringComparer.Ordinal);
+
+			_classes.RemoveAll(one => named.Contains(one.Name));
 		}
 
-		/// <summary>The texts of a choice of plain literals, however it is wrapped.</summary>
-		static List<string>? Choices(Node node)
+		/// <summary>
+		/// Orders terminals so that as many named sets as possible are one run of kinds.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Greedy and laminar: take the largest set that divides what is left, put its
+		/// members before the rest, and go on inside each half. Every set nested in another
+		/// stays whole, and every set disjoint from the rest stays whole — which is the shape
+		/// almost all of them have.
+		/// </para>
+		/// <para>
+		/// Two sets that cross — sharing a member with neither containing the other — cannot
+		/// both be one run under any order, and this is where they are split rather than
+		/// where the fact is hidden. <c>SetQuantifier</c> is <c>DISTINCT | ALL</c> and
+		/// <c>Quantifier</c> is <c>ALL | SOME | ANY</c>: one of them ends up as two ranges,
+		/// which is two comparisons and still not a fifty-way choice.
+		/// </para>
+		/// </remarks>
+		static List<Text> Laminar(List<Text> members, IReadOnlyList<HashSet<Text>> sets)
+		{
+			HashSet<Text>? largest = null;
+
+			foreach (var set in sets)
+			{
+				var inside = members.Count(set.Contains);
+
+				if (inside == 0 || inside == members.Count)
+					continue;
+
+				if (largest is null || inside > members.Count(largest.Contains))
+					largest = set;
+			}
+
+			if (largest is null)
+				return members;
+
+			var within  = members.Where(largest.Contains).ToList();
+			var without = members.Where(one => !largest.Contains(one)).ToList();
+
+			return [.. Laminar(within, sets), .. Laminar(without, sets)];
+		}
+
+		/// <summary>The runs of kinds a set comes to, once the numbering is settled.</summary>
+		static List<Group> Runs(string name, IEnumerable<int> kinds)
+		{
+			var runs   = new List<Group>();
+			var sorted = kinds.OrderBy(kind => kind).ToList();
+
+			for (var i = 0; i < sorted.Count; )
+			{
+				var j = i;
+
+				while (j + 1 < sorted.Count && sorted[j + 1] == sorted[j] + 1)
+					j++;
+
+				runs.Add(new Group(name, sorted[i], sorted[j]));
+
+				i = j + 1;
+			}
+
+			return runs;
+		}
+
+		/// <summary>The literals of a choice of plain literals, however it is wrapped.</summary>
+		static List<Node.Literal>? Choices(Node node)
 		{
 			switch (node)
 			{
 				case Node.Choice(var alternatives):
 				{
-					var texts = new List<string>(alternatives.Count);
+					var literals = new List<Node.Literal>(alternatives.Count);
 
 					foreach (var alternative in alternatives)
 						if (Only(alternative) is { } literal)
-							texts.Add(literal.Text);
+							literals.Add(literal);
 						else
 							return null;
 
-					return texts;
+					return literals;
 				}
 
 				// A hand-written boundary — `(… | …) & ?!\p{L}` — wraps the choice without
@@ -473,26 +594,40 @@ public sealed class TerminalInventory
 
 		public TerminalInventory Gathered()
 		{
-			foreach (var called in _classes)
-				Overlapping(called);
+			Collect();
 
-			var terminals = new List<Terminal>(_words.Count + _marks.Count + _classes.Count);
+			// Each group ordered against the sets that live in it. A set spanning two groups
+			// cannot be one run whatever is done inside either, so nothing pretends otherwise.
+			var sets  = _sets.Select(one => new HashSet<Text>(one.Members)).ToList();
+			var words = Laminar(_words, sets);
+			var marks = Laminar(_marks, sets);
+
+			var terminals = new List<Terminal>(words.Count + marks.Count + _classes.Count);
 			var groups    = new List<Group>(3);
 			var kind      = 1;
 
 			// Words first, then marks, then classes. The order is what a set difference wants
-			// later — "a word that is not one of these" is one range against another — and it
-			// costs nothing to choose it now rather than to renumber for it afterwards.
-			kind = Run(groups, terminals, "Word", kind, _words.Count,
-				at => new Terminal.Word(at.Kind, _words[at.Index].Text, _words[at.Index].IgnoreCase));
+			// — "a word that is not one of these" is one range against another — and it costs
+			// nothing to choose it now rather than to renumber for it afterwards.
+			kind = Run(groups, terminals, "Word", kind, words.Count,
+				at => new Terminal.Word(at.Kind, words[at.Index].Text, words[at.Index].IgnoreCase));
 
-			kind = Run(groups, terminals, "Mark", kind, _marks.Count,
-				at => new Terminal.Mark(at.Kind, _marks[at.Index].Text, _marks[at.Index].IgnoreCase));
+			kind = Run(groups, terminals, "Mark", kind, marks.Count,
+				at => new Terminal.Mark(at.Kind, marks[at.Index].Text, marks[at.Index].IgnoreCase));
 
 			Run(groups, terminals, "Class", kind, _classes.Count,
 				at => new Terminal.Class(at.Kind, _classes[at.Index]));
 
-			return new TerminalInventory(true, terminals, groups, _reasons);
+			var of = new Dictionary<Text, int>();
+
+			for (var i = 0; i < words.Count; i++) of[words[i]] = i + 1;
+			for (var i = 0; i < marks.Count; i++) of[marks[i]] = words.Count + i + 1;
+
+            var named = _sets
+                .Select(one => new Named(one.Name, Runs(one.Name, one.Members.Select(m => of[m]))))
+                .ToList();
+
+			return new TerminalInventory(true, terminals, groups, named, _reasons);
 		}
 
 		static int Run(

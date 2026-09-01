@@ -8995,3 +8995,52 @@ comment already calls "the one place this grammar is knowingly wrong". `Expressi
 has nothing blocked but the `Keyword` overlap.
 
 Eight tests, on the model rather than on generated code, because nothing is generated yet.
+
+## Built: a rule that is a choice of literals is a set, and a set is a range
+
+The inventory's own report said what to do next, so this does it. `TruthValue`, `CompOp`,
+`Quantifier`, `Reserved`, `Keyword` — a rule written as a choice of literals recognizes
+nothing its literals do not recognize already. Over characters that is a choice and costs a
+choice. Over integers it is a *set*, and a set that occupies one run of kinds is a subtract
+and a compare.
+
+So the numbering is arranged for it. Greedy and laminar: take the largest set that divides
+what is left, put its members before the rest, and order each half the same way inside.
+Every set nested in another comes out whole, and so does every set disjoint from the rest.
+
+    SqlStandard92                                ExpressionLanguage
+      Reserved           56   1 range   1..56      Keyword  38   1 range   1..38
+      ExtractField        8   1 range  57..64
+      SetFunctionType     5   1 range  65..69
+      TruthValue          3   1 range   1..3
+      Quantifier          3   1 range   4..6
+      TrimSpecification   3   1 range   7..9
+      SetQuantifier       2   2 ranges  4..4, 10..10
+
+**`Reserved` in one run is the whole point.** `Identifier = ?!Reserved & RegularIdentifier`
+runs a fifty-six-way negative lookahead at every identifier position today; over kinds it
+is `(uint)(kind - 1) > 55`. Yesterday's probe numbered exactly this way by hand, from the
+grammar text; this reaches it from the graph.
+
+And the three that sit *inside* `Reserved` — `TruthValue` at 1..3, `Quantifier` at 4..6,
+`TrimSpecification` at 7..9 — are whole because they are nested, which is the laminar
+ordering earning its keep rather than a coincidence.
+
+**`SetQuantifier` is two ranges, and that is the honest answer rather than a complaint.**
+It is `DISTINCT | ALL`, `Quantifier` is `ALL | SOME | ANY`, they share a word and neither
+contains the other, so no ordering makes both a single run. The one that loses carries two
+ranges: two comparisons, and still not a fifty-way choice. The design's lowering ladder has
+a rung for it.
+
+**`ExpressionLanguage` now has nothing blocked at all.** `Keyword` was the only entry, and
+it was the entry precisely because it was being made a class while its strings were already
+terminals — `if` with two kinds. As a range it is neither a kind nor a lookahead, which is
+what the previous entry said the answer would be.
+
+A set is recorded only where every one of its literals is already a terminal. A rule listing
+a word that no syntax ever writes has a string in it that nothing else numbers, and
+promoting it here would invent a terminal out of a lookahead; such a rule stays a class and
+is reported as one.
+
+Nine tests. `SqlStandard92`'s two blocked entries are unchanged and still the `Subquery`
+rule its own comment calls knowingly wrong.

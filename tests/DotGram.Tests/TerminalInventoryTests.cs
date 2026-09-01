@@ -180,18 +180,18 @@ public sealed class TerminalInventoryTests
 	}
 
 	/// <summary>
-	/// A class whose strings are words already numbered is named, because it wants a range.
+	/// A rule that is a choice of literals is a set of terminals, and becomes a range.
 	/// </summary>
 	/// <remarks>
-	/// <c>ExpressionLanguage</c> has it: `Keyword` lists thirty-eight words in a lexical
-	/// namespace, every one of which also stands in the syntax as a literal of its own, and
-	/// it is reached only through <c>Name = ?!Keyword &amp; Word</c>. Give it a kind and the
-	/// lexer must decide whether <c>if</c> is the word or the class. The answer the design
-	/// wants is a set difference over the range those words occupy, which is the next pass's
-	/// work; naming it is this one's.
+	/// <c>ExpressionLanguage</c> is where this matters: `Keyword` lists thirty-eight words
+	/// in a lexical namespace, every one of which also stands in the syntax as a literal of
+	/// its own, and it is reached only through <c>Name = ?!Keyword &amp; Word</c>. Given a
+	/// kind of its own the lexer would have to decide whether <c>if</c> is the word or the
+	/// class; given a range it decides nothing, and the lookahead becomes a subtraction and
+	/// a comparison.
 	/// </remarks>
 	[Fact]
-	public void A_class_that_is_a_set_of_known_words_is_named()
+	public void A_rule_that_is_a_set_of_known_words_becomes_a_range()
 	{
 		var inventory = Of(
 			"""
@@ -208,19 +208,26 @@ public sealed class TerminalInventoryTests
 			parse Start
 			""");
 
-		Assert.Contains(
-			inventory.Blocked,
-			reason => reason.Contains("a class that is a set of words already numbered: Keyword is 3"));
+		var keyword = Assert.Single(inventory.Sets, set => set.Name == "Keyword");
+
+		Assert.Equal(3, keyword.Count);
+		Assert.Equal(new TerminalInventory.Group("Keyword", 1, 3), Assert.Single(keyword.Ranges));
+
+		// And it is no longer a class: its strings are terminals, and a kind of its own on
+		// top of them is the `if` with two kinds.
+		Assert.DoesNotContain("Keyword", Classes(inventory));
+		Assert.Empty(inventory.Blocked);
 	}
 
-	/// <summary>And the same list one namespace over is not a problem at all.</summary>
+	/// <summary>The same list one namespace over comes to the same range.</summary>
 	/// <remarks>
-	/// `SqlStandard92`'s `Reserved` sits where trivia is *not* empty, so it is syntax: it is
-	/// walked like any other rule and its words join the word group. The same fifty-odd
-	/// literals, written in a spaced namespace instead of a lexical one, need nothing.
+	/// `SqlStandard92`'s `Reserved` sits where trivia is *not* empty, so it is syntax and its
+	/// words are walked into the word group directly rather than met as a crossing. Two
+	/// different roads, and what a set difference needs at the end of either is the same:
+	/// those words in one run.
 	/// </remarks>
 	[Fact]
-	public void The_same_list_in_a_spaced_namespace_is_just_words()
+	public void The_same_list_in_a_spaced_namespace_is_the_same_range()
 	{
 		var inventory = Of(
 			"""
@@ -237,8 +244,52 @@ public sealed class TerminalInventoryTests
 			parse Start
 			""");
 
-		Assert.Equal(["if", "else", "while"], Words(inventory));
+		var reserved = Assert.Single(inventory.Sets, set => set.Name == "Reserved");
+
+		Assert.Equal(new TerminalInventory.Group("Reserved", 1, 3), Assert.Single(reserved.Ranges));
 		Assert.Empty(inventory.Blocked);
+	}
+
+	/// <summary>
+	/// A set nested in another stays one range; two that cross cannot both, and say so.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The ordering is greedy and laminar: the largest set that divides what is left goes
+	/// first, and the halves are ordered the same way inside. Everything nested or disjoint
+	/// comes out whole, which is nearly all of it — in `SqlStandard92`, `Reserved` is
+	/// fifty-six words in one run and `TruthValue`, `Quantifier` and `TrimSpecification` sit
+	/// inside it in runs of their own.
+	/// </para>
+	/// <para>
+	/// Two that cross cannot both be one run under any order, and the one that loses carries
+	/// two ranges rather than a complaint: two comparisons is not a fifty-way choice.
+	/// `SetQuantifier` is `DISTINCT | ALL` against `Quantifier`'s `ALL | SOME | ANY`, and
+	/// that is the shape written here.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Nested_sets_stay_one_range_and_crossing_ones_split()
+	{
+		var inventory = Of(
+			"""
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			Truth    = "yes" | "no"
+			Reserved = "yes" | "no" | "all" | "some"
+			Quant    = "all" | "some"
+			Both     = "all" | "when"
+			Start = Truth & Reserved & Quant & Both & "when"
+			parse Start
+			""");
+
+		// Nested in the largest, so whole.
+		Assert.Single(Assert.Single(inventory.Sets, set => set.Name == "Reserved").Ranges);
+		Assert.Single(Assert.Single(inventory.Sets, set => set.Name == "Truth").Ranges);
+		Assert.Single(Assert.Single(inventory.Sets, set => set.Name == "Quant").Ranges);
+
+		// Crossing `Reserved` — it holds `all` and `when`, and `when` is not reserved.
+		Assert.Equal(2, Assert.Single(inventory.Sets, set => set.Name == "Both").Ranges.Count);
 	}
 
 	static string[] Words(TerminalInventory inventory) =>
