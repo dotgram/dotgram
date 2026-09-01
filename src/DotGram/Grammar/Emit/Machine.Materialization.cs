@@ -820,8 +820,16 @@ sealed partial class Machine
 						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
 						file.Line();
 						file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
+						// Over characters the piece is a slice of what is being read. Over
+						// kinds it is not there at all: a position indexes a token, and the
+						// text is the extent that token covers.
+						var piece = OverKinds
+							? "global::System.MemoryExtensions.AsSpan(" +
+								Cut("candidate.Position", $"captured{memberIndex}Piece") + ")"
+							: $"text.Slice(candidate.Position, captured{memberIndex}Piece)";
+
 						file.Line(
-							$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
+							$"{piece}.CopyTo(" +
 							$"new global::System.Span<char>(captured{memberIndex}Chars, " +
 							$"captured{memberIndex}At, captured{memberIndex}Piece));");
 					}
@@ -1282,7 +1290,7 @@ sealed partial class Machine
 				using (file.Block($"if ({test})"))
 					file.Line(member.Rule is null
 						? $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
-							"text.Slice(candidate.Position, candidate.Value - candidate.Position).ToString();"
+							Cut("candidate.Position", "candidate.Value - candidate.Position") + ";"
 						: $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
 							ValueFrom(element, "candidate.Position") + ";");
 			}
@@ -1309,9 +1317,10 @@ sealed partial class Machine
 		file.Line(member.Rule is null
 			? $"var foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
 				(member.IsOptional ? "null" : "string.Empty") + " : " +
-				$"text.Slice(entries[foldCaptured{memberIndex}At].Position, " +
-				$"entries[foldCaptured{memberIndex}At].Value - " +
-				$"entries[foldCaptured{memberIndex}At].Position).ToString();"
+				Cut(
+					$"entries[foldCaptured{memberIndex}At].Position",
+					$"entries[foldCaptured{memberIndex}At].Value - " +
+					$"entries[foldCaptured{memberIndex}At].Position") + ";"
 			: member.IsOptional
 				? $"{type}? foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
 					$"default({type}?) : " +

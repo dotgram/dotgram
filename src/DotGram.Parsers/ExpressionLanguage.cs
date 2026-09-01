@@ -720,7 +720,11 @@ namespace DotGram.Parsers;
 	Primary : @Expression
 		= "new" & type: Type & '[' & size: Expression & ']'
 		  => @(Expression.NewArrayBounds(type, size))
-		| "new" & type: Type & '[' & ']'
+		// `"[]"` and not `'[' & ']'`, which is the same thing said the other way and the way
+		// that cannot be read as tokens: a lexer takes the longest match, `Type` above names
+		// `"[]"` as one, and two marks written apart here are one token by the time this rule
+		// sees them. One spelling for one thing.
+		| "new" & type: Type & "[]"
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
 		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
 		// An initializer is written after the constructor's own arguments, and which of the
@@ -811,7 +815,7 @@ namespace DotGram.Parsers;
 	Name : @Expression = ?!Keyword & name: Word => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
-	""")]
+	""", Lexical = true)]
 public static partial class ExpressionLanguage
 {
 	// ParseLambda and TryParseLambda are generated here.

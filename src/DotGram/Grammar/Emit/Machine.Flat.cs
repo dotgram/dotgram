@@ -541,7 +541,7 @@ sealed partial class Machine
 
 					expression =
 						$"{start} < 0 ? {expression} : " +
-						$"text.Slice({start}, flat{instance}_{slot}End - {start}).ToString()";
+						Cut(start, $"flat{instance}_{slot}End - {start}");
 				}
 
 				file.Line($"var {local} = {expression};");

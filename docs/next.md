@@ -10590,3 +10590,30 @@ as text.
 
 Routing them through `Cut` is the next piece and is not this one — the first attempt at it
 broke the character path, which is what `UrlTests` is for.
+
+## And ExpressionLanguage reads tokens
+
+Four sites still cut their text out of the machine's own input rather than out of the extents
+of the tokens it ran over: the piece a sequence member copies into its buffer, the two a
+left-recursive fold uses, and the one the flat path uses where there is no arena at all. Over
+characters a position is where the text is; over kinds it indexes a token, and the text is
+somewhere else. `SqlStandard92` never found them because it builds no values.
+
+The piece is the one that needed care rather than a substitution. Over characters it is a
+span copied straight out of what is being read, and that must stay — so it is the copy that
+changes alphabet, not the expression around it. The first attempt made both paths go through
+a string and broke `UrlTests`, which is what `UrlTests` is for.
+
+**Then one more thing in the grammar, and it is the same mistake as `TypeName`:**
+
+    | "new" & type: Type & '[' & ']' & '{' … '}'
+
+`Type` above names `"[]"` as a literal, so a lexer takes the longest match and two marks
+written apart here are one token by the time this rule sees them. The same thing said two
+ways, and the second way cannot be read as tokens. One spelling now.
+
+With those, `ExpressionLanguage` reads token kinds: **25,843 lines become 22,840**, and the
+suite is green — the largest grammar in this repository, the one with the state, the guards,
+the precedence climbing, the recovery and the values, on the same path SQL has been on since
+this morning. What it took was two corrections to the grammar and four to provenance, and no
+change at all to what the language accepts.
