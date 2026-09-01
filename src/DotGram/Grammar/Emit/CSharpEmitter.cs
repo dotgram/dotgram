@@ -799,15 +799,22 @@ public static partial class CSharpEmitter
 			if (overKinds)
 			{
 				file.Line("var source = input;");
+				file.Line("var tokens = Tokenize_DotGram(source);");
 				file.Line();
-				file.Line("input = Tokenize_DotGram(source, out var starts, out var lengths, out var stopped);");
+				file.Line("var starts  = tokens.Starts;");
+				file.Line("var lengths = tokens.Lengths;");
+				file.Line("var count   = tokens.Count;");
 				file.Line();
 
-				using (file.Block("if (stopped >= 0)"))
+				using (file.Block("if (tokens.Stopped >= 0)"))
 				{
+					file.Line("var at = tokens.Stopped;");
+					file.Line();
+					file.Line("Recycle_DotGram(tokens);");
+					file.Line();
 					file.Line(
 						$"return {match}.Failed({OutcomeType}.NoMatch, " +
-						$"\"Input does not match '{name}'.\", stopped, null, null);");
+						$"\"Input does not match '{name}'.\", at, null, null);");
 				}
 
 				file.Line();
@@ -815,7 +822,10 @@ public static partial class CSharpEmitter
 
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
-			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line(
+				overKinds
+					? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
+					: "var text    = global::System.MemoryExtensions.AsSpan(input);");
 
 			// Carried through every recognizer this call reaches, so that what comes back
 			// is the furthest the input was followed and not merely "no".
@@ -846,6 +856,14 @@ public static partial class CSharpEmitter
 				file.Then("? \"Expected more input.\"");
 				file.Then($": \"Input does not match '{name}'.\";");
 				file.Line();
+				if (overKinds)
+				{
+					file.Line("var at = failure.Position < count ? starts[failure.Position] : source.Length;");
+					file.Line();
+					file.Line("Recycle_DotGram(tokens);");
+					file.Line();
+				}
+
 				file.Line(
 					$"return {match}.Failed(" +
 					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
@@ -855,18 +873,25 @@ public static partial class CSharpEmitter
 					// they hold zeros — and a refusal at the end came back as a refusal at the
 					// beginning, which the character parser next door reported correctly. The
 					// count is the length of the kinds, there being one character a token.
-					(overKinds
-						? "failure.Position < input.Length ? starts[failure.Position] : source.Length, "
-						: "failure.Position, ") +
+					(overKinds ? "at, " : "failure.Position, ") +
 					"failure.Expected, " +
 					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
-			file.Line(
-				overKinds
-					? $"return {match}.Success({Recognized("0", "end")}, 0, " +
-						"end == 0 ? 0 : starts[end - 1] + lengths[end - 1]);"
-					: $"return {match}.Success({Recognized("0", "end")}, 0, end);");
+			if (overKinds)
+			{
+				// Both read the arrays, so both are worked out before the set goes back.
+				file.Line($"var whole = {Recognized("0", "end")};");
+				file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
+				file.Line();
+				file.Line("Recycle_DotGram(tokens);");
+				file.Line();
+				file.Line($"return {match}.Success(whole, 0, over);");
+			}
+			else
+			{
+				file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
+			}
 		}
 	}
 
@@ -917,6 +942,69 @@ public static partial class CSharpEmitter
 
 		file.Write(seam.RenderScanners());
 
+		file.Line("/// <summary>What a tokenized parse reads: the kinds, and where each one was.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// Three arrays and a count, kept for the next parse on this thread the way the");
+		file.Line("/// parser itself is. Allocated afresh they were the whole of what a split grammar");
+		file.Line("/// cost over a character one on a short input — three allocations sized to the");
+		file.Line("/// input, against a parse that reads a dozen tokens.");
+		file.Line("/// </remarks>");
+
+		using (file.Block("sealed class Tokens_DotGram"))
+		{
+			file.Line("internal char[] Kinds   = new char[0];");
+			file.Line("internal int[]  Starts  = new int[0];");
+			file.Line("internal int[]  Lengths = new int[0];");
+			file.Line("internal int    Count;");
+			file.Line("internal int    Stopped;");
+			file.Line();
+
+			using (file.Block("internal void Room(int length)"))
+			{
+				file.Line("if (Kinds.Length >= length)");
+				file.Then("return;");
+				file.Line();
+				file.Line("Kinds   = new char[length];");
+				file.Line("Starts  = new int[length];");
+				file.Line("Lengths = new int[length];");
+			}
+		}
+
+		file.Line();
+		file.Line("/// <summary>The last set this thread used — one slot, taken out while in use.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// Taken out rather than shared, so a parse reached from inside another — a guard");
+		file.Line("/// that parses, a value that does — gets its own. Let go rather than kept when it");
+		file.Line("/// grew past what an ordinary input needs, so one outsized document does not leave");
+		file.Line("/// every thread holding its buffers for ever.");
+		file.Line("/// </remarks>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static Tokens_DotGram? _spareTokens;");
+		file.Line();
+		file.Line("const int KeptTokens = 65536;");
+		file.Line();
+
+		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
+		{
+			file.Line("var spare = _spareTokens;");
+			file.Line();
+			file.Line("if (spare == null)");
+			file.Then("return new Tokens_DotGram();");
+			file.Line();
+			file.Line("_spareTokens = null;");
+			file.Line();
+			file.Line("return spare;");
+		}
+
+		file.Line();
+
+		using (file.Block("static void Recycle_DotGram(Tokens_DotGram tokens)"))
+		{
+			file.Line("if (tokens.Kinds.Length <= KeptTokens)");
+			file.Then("_spareTokens = tokens;");
+		}
+
+		file.Line();
 		file.Line("/// <summary>The input as kinds, with where each one was.</summary>");
 		file.Line("/// <remarks>");
 		file.Line("/// The seam first and then a terminal, which is §4.5 read from the other side:");
@@ -925,15 +1013,16 @@ public static partial class CSharpEmitter
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
-		using (file.Block(
-			"static string Tokenize_DotGram(string input, out int[] starts, out int[] lengths, " +
-			"out int stopped)"))
+		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input)"))
 		{
-			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
-			file.Line("var kinds   = new char[input.Length + 1];");
+			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
-			file.Line("starts  = new int[input.Length + 1];");
-			file.Line("lengths = new int[input.Length + 1];");
+			file.Line("tokens.Room(input.Length + 1);");
+			file.Line();
+			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line("var kinds   = tokens.Kinds;");
+			file.Line("var starts  = tokens.Starts;");
+			file.Line("var lengths = tokens.Lengths;");
 			file.Line();
 			file.Line("var count = 0;");
 			file.Line("var p     = 0;");
@@ -958,9 +1047,10 @@ public static partial class CSharpEmitter
 
 				using (file.Block("if (kind == 0 || end <= p)"))
 				{
-					file.Line("stopped = p;");
+					file.Line("tokens.Count   = count;");
+					file.Line("tokens.Stopped = p;");
 					file.Line();
-					file.Line("return new string(kinds, 0, count);");
+					file.Line("return tokens;");
 				}
 
 				file.Line();
@@ -973,9 +1063,10 @@ public static partial class CSharpEmitter
 			}
 
 			file.Line();
-			file.Line("stopped = -1;");
+			file.Line("tokens.Count   = count;");
+			file.Line("tokens.Stopped = -1;");
 			file.Line();
-			file.Line("return new string(kinds, 0, count);");
+			file.Line("return tokens;");
 		}
 
 		return file.ToString();

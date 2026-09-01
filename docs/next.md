@@ -9509,3 +9509,38 @@ Direct code was chosen over a table on the strength of 1,034 tests against 473,6
 cells, and 1,034 tests is right — but 528 `case` labels is a lot of *blocks*, which is a
 different measure and the one the JIT reads. The design said the lexer wants a table; that
 was overridden on size, and the size argument was about the wrong size.
+
+## Built: the token buffers are kept, and the answer is that they were not the problem
+
+Three allocations a parse — a `char[]` and two `int[]` sized to the input — were named last
+entry as the reason a split grammar could lose to a character one on a short condition. They
+are kept now, in one `[ThreadStatic]` slot taken out while in use, exactly as the parser
+itself is: a parse reached from inside another gets its own, and a set grown past what an
+ordinary input needs is let go rather than pinned to the thread for ever.
+
+           before      after
+             233n       220n   a = 1
+           1,317n     1,258n   (a + b) * c - d / e > f AND NOT g < h
+             718n       684n   x IN (1, 2, 3) AND y IS NOT NULL
+
+**Five per cent, and the two rows that were slower are still slower.** So the allocations
+were not what was costing the short inputs, and saying they were — which the last entry
+did — was a guess that measuring has now corrected.
+
+           chars      kinds
+            533n       684n   0.78x  x IN (1, 2, 3) AND y IS NOT NULL
+          1,077n     1,177n   0.92x  warehouse.zip_code = 'X' AND …
+          2,485n     1,258n   1.98x  (a + b) * c - d / e > f AND NOT g < h
+          6,299n     2,627n   2.40x  ! (a + b) * c - d / e > f AND NOT g <
+         10,264n     3,017n   3.40x  ! (quantity + weight) * rate - zone / …
+
+What is left is the tokenizer's own work. On `x IN (1, 2, 3) AND y IS NOT NULL` the earlier
+split measurement had the lexer at about three hundred nanoseconds and the parse at about
+the same — so tokenizing is half of it, and the character parser does the whole thing in
+less. A short input is where reading it twice cannot pay: the second reading is cheap, but
+the first is not free, and the character machine reads once.
+
+That is a real limit and it is worth stating rather than optimizing around. Where the split
+wins it wins for a reason that grows with the input — a refusal walks a fifth as many ways
+back, a long expression reads a fifth as many items — and where it loses it loses by a fixed
+cost that does not.
