@@ -8888,3 +8888,51 @@ Not fixed here — this entry is the probe's, and `src/` was deliberately untouc
 but it goes first in what comes next. It is a correctness bug in shipping code, and where
 it lives is worth noticing: in the seam machinery, which exists only because lexing and
 parsing are the same machine.
+
+## Fixed: a turn that holds a seam is spaced from the next one
+
+The defect the probe turned up, and the first thing done about it.
+
+Two passes space the turns of a repetition and neither saw this shape. `Repeated`, during
+lowering, spaces a repetition whose body is a **sequence** — an author who wrote a seam
+inside a turn has already allowed one at the join. `SpaceLists`, after the types exist,
+spaces a repetition whose turn is a **valued rule** — a collection's elements are spaced.
+A call to a *valueless* rule whose body is a sequence is neither, and fell between them:
+
+```dotgram
+trivia = ' '*
+Item  = "when" & ['a'..'z']
+Start = "case" & Item+ & "end"
+```
+
+`Repeated` saw a `Call`, not a `Sequence`, and looked no further. So the loop body began
+with `"when"` where `p` still stood on the space, the literal failed, and `Item+` ended
+after one turn. With `wordboundary` on, as `SqlStandard92` has it, it failed one step
+earlier and more confusingly: §4.6's `?<!wordboundary` read `text[p - 1]`, found the last
+letter of the previous turn, and refused the second turn before its literal was compared
+at all.
+
+The fix reaches one step further, in `SpaceLists` where the bodies already exist: a turn
+that calls a rule **whose own body carries the seam** is spaced, for exactly the reason
+`Repeated` gives. Valuedness stays as the other half of the same predicate — a valued rule
+is a list's element and is spaced whatever its body looks like.
+
+**What decides it is the callee's seam, not the caller's.** A rule declared where `trivia`
+is empty has no seam to find, so `Word*` over a lexical `Word` is untouched and `ab cd`
+stays two words. That is the whole of what keeps a lexeme a lexeme, and it is why the
+existing `Assert.False(Matches("trivia = ' '*\nStart = Word*\nWord = ['a'..'z']+", "ab cd"))`
+still holds — along with a new test that puts a *sequence* body in a `trivia = none`
+namespace, since a sequence is precisely what would otherwise have tempted the spacing.
+
+    SqlStandard92   23,500 -> 23,524 lines
+
+Twenty-four lines, and two sites: `SimpleWhen+` and `SearchedWhen+`. `ExpressionLanguage`
+and `Rfc3986` are byte for byte what they were, and so are both snapshots. So
+`SqlStandard92` now reads `CASE WHEN a > 1 THEN 'big' WHEN a > 0 THEN 'small' ELSE 'none'
+END` and `CASE a WHEN 1 THEN 2 WHEN 3 THEN 4 END`, which it refused before.
+
+Nine tests, and they were checked the only way a regression test can be: by turning the
+fix off and watching three of them fail. Timings after the fix sit about five per cent
+above the ones measured earlier the same day, uniformly and including inputs with no
+`CASE` in them at all — inputs the change cannot reach — so that is the machine drifting,
+not the seam costing.

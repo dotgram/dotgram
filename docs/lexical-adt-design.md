@@ -364,22 +364,26 @@ accepts both.
 It is worth noticing *where* the bug lives: in the seam machinery, which exists only
 because lexing and parsing are the same machine.
 
+**Fixed since.** `SpaceLists` spaced a repetition whose turn is a *valued* rule, and
+`Repeated` spaced one whose body is a *sequence*; a call to a valueless rule with a seam
+inside fell between them. It is spaced now, for the reason `Repeated` already gave — the
+seam inside a turn and the seam between turns are the same question. A callee with no seam
+of its own is untouched, which is what keeps a lexeme a lexeme.
+
 ## Suggested order from here
 
-1. Fix the weaving defect above. It is a correctness bug in shipping code and independent
-   of everything else here.
-2. Terminal inventory in `Grammar/`: a pure analysis over `RecognitionGraph` producing
+1. Terminal inventory in `Grammar/`: a pure analysis over `RecognitionGraph` producing
    leaves, contiguous groups and the numbering. No emission.
-3. The generated lexical machine, with **"no arena write survives in the lexer"** as its
+2. The generated lexical machine, with **"no arena write survives in the lexer"** as its
    correctness signal — if one does, the boundary is in the wrong place, and that is a
    cheaper alarm than any benchmark.
-4. The alphabet as a parameter of the syntactic machine.
-5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. `Mark` and
+3. The alphabet as a parameter of the syntactic machine.
+4. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. `Mark` and
    `Restore` must carry the lexical mode, and any cached token must remember the mode it
    was read under — designed in from the start it is free, discovered later it is a rewrite
    of the cache.
-6. One grammar end to end behind an opt-in, the scannerless path untouched.
-7. Only then settle the notation for a lexical root and for rung-2 modes.
+5. One grammar end to end behind an opt-in, the scannerless path untouched.
+6. Only then settle the notation for a lexical root and for rung-2 modes.
 
 ## Central design statement
 

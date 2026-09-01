@@ -1367,6 +1367,82 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A turn that carries a seam of its own is spaced from the next one (§4.5).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The seam inside a turn and the seam between turns are the same question. `Item` is
+	/// two operands with a space allowed between them, so a space between one `Item` and the
+	/// next is the same permission; refusing it read the first turn and stopped.
+	/// </para>
+	/// <para>
+	/// It is written as a rule rather than inline because that is where it hid: the spacing
+	/// of a repetition whose body is a sequence has always been done, and a call is not a
+	/// sequence to look at. `SqlStandard92` refused `CASE WHEN a &gt; 1 THEN 'big' WHEN a
+	/// &gt; 0 THEN 'small' END` for exactly this, on both of its `WHEN` forms.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("case when a end",              true)]
+	[InlineData("case when a when b end",       true)]
+	[InlineData("case when a when b when c end", true)]
+	[InlineData("casewhenaend",                 true)]   // the seams are all optional
+	[InlineData("case when end",                false)]  // a turn still needs its operand
+	public void A_turn_that_holds_a_seam_is_spaced_from_the_next(string input, bool expected)
+	{
+		Assert.Equal(expected, Matches(
+			"trivia = ' '*\n" +
+			"Item  = \"when\" & ['a'..'z']\n" +
+			"Start = \"case\" & Item+ & \"end\"",
+			input));
+	}
+
+	/// <summary>And the same with a word boundary, which is how it was found.</summary>
+	/// <remarks>
+	/// §4.6 weaves `?&lt;!wordboundary` in front of a word literal, and without the seam
+	/// that check ran on the character before the *space* — the last letter of the previous
+	/// turn — so the second turn was refused before its literal was ever compared. The
+	/// boundary still does its own work here: `casewhen` is one word and not two.
+	/// </remarks>
+	[Theory]
+	[InlineData("case when a when b end", true)]
+	[InlineData("casewhen a end",         false)]
+	[InlineData("case when aend",         false)]
+	public void A_word_boundary_does_not_stop_the_second_turn(string input, bool expected)
+	{
+		Assert.Equal(expected, Matches(
+			"wordboundary = ['a'..'z' | '0'..'9' | '_']\n" +
+			"trivia = ' '*\n" +
+			"Item  = \"when\" & ['a'..'z']\n" +
+			"Start = \"case\" & Item+ & \"end\"",
+			input));
+	}
+
+	/// <summary>
+	/// A turn with no seam of its own is still not spaced, which is what keeps a lexeme one.
+	/// </summary>
+	/// <remarks>
+	/// The seam is looked for in the callee's own body and against the callee's own trivia.
+	/// `Word` is declared where trivia is empty, so there is none to find and none to insert
+	/// — `ab cd` stays two words and never becomes one.
+	/// </remarks>
+	[Fact]
+	public void A_turn_with_no_seam_of_its_own_is_left_alone()
+	{
+		// A sequence this time, not `['a'..'z']+`: the body being a sequence is exactly what
+		// would have made the caller space it, and the empty trivia is what stops it.
+		Assert.False(Matches(
+			"trivia = ' '*\n" +
+			"namespace Lexical\n" +
+			"{\n" +
+			"\ttrivia = none\n" +
+			"\tWord = ['a'..'z'] & ['a'..'z']*\n" +
+			"}\n" +
+			"Start = Lexical.Word*",
+			"ab cd"));
+	}
+
+	/// <summary>
 	/// A repetition of a valued rule is a collection, and a grammar that separates its
 	/// operands separates its collections the same way (§4.5). Valuedness is the line:
 	/// `Word*` above stays a lexeme-shaped run because `Word` builds nothing, while
