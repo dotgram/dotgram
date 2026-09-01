@@ -8462,3 +8462,71 @@ takes 41.6**. The wall moved to the C# compiler, and the only lever on it is emi
 less: this synthetic grammar expands at 221 lines of C# per line of grammar, where
 `ExpressionLanguage` expands at 37. Which of those a real SQL grammar is like decides
 everything, and it is measured by writing one rather than by arguing about it.
+
+## Built: the expression layer of standard SQL, recognizing
+
+The bottom level first, which is the right order and not only because the standard is
+layered that way: a `SELECT` is mostly places where an expression stands, so writing the
+query level first means writing expressions anyway, badly scoped.
+
+**The rule names are the standard's, production for production** — `SearchCondition`,
+`BooleanTerm`, `BooleanFactor`, `BooleanTest`, `BooleanPrimary`, `Predicate`,
+`RowValueConstructor`, `ValueExpression`, `Term`, `Factor`, `ValueExpressionPrimary`. Not
+an implementation's object model: what I first proposed used `BooleanExpression`, which is
+Microsoft's DOM name and not a name in ISO/IEC 9075 at all. The standard calls it
+`<search condition>`, and in SQL-92 there is no `<boolean value expression>` to confuse it
+with.
+
+Two things the reading corrected beyond the naming. `<value expression>` in SQL-92 is the
+four value categories and nothing else — `<search condition>` stands beside it as its own
+nonterminal rather than being a branch of it, which is SQL:2003's arrangement and what I
+had described. And a predicate compares `<row value constructor>`, not a value expression,
+which is why `a = 1` and `(a, b) = (1, 2)` are one production rather than two.
+
+### The one divergence, written where it happens
+
+§6.11 gives four towers — numeric, string, datetime, interval — that share a bottom, so
+`a + b` belongs to two at once and only the types of `a` and `b` say which. That is not a
+defect in the standard: it describes syntax modulo type resolution, and a parser has no
+types. One untyped ladder here, as in every implementation, and the grammar says so at the
+place it does it.
+
+### What it recognizes
+
+Twenty-eight of thirty-one sample conditions, and the three refused are the three written
+to be refused. Comparisons, `AND`/`OR`/`NOT`, `IS TRUE`, `BETWEEN`, `IN` both ways, `LIKE
+… ESCAPE`, `IS NULL`, `EXISTS`, quantified comparison, row constructors, `CASE` both
+forms, `CAST`, `EXTRACT`, `SUBSTRING`, `COALESCE`, set functions with `DISTINCT`, typed
+literals, intervals, concatenation, delimited identifiers, parameters.
+
+Nothing is built. The tree comes when its shape is decided; getting the language right
+first is what keeps that decision about the tree rather than about the parse.
+
+### Two defects it found on the way
+
+**Mine, and the notation caught it:** `Identifier = RegularIdentifier & ?!Reserved` asks
+whether a reserved word *follows* an identifier, where §5.2 says an identifier is a word
+that *is not* one. In front, it reads; behind, it refuses `x IN (1, 2)` and `LIKE 'A%'
+ESCAPE ''` — two failures from one transposition.
+
+**The generator's, and nothing caught it:** a capture whose name is already capitalised
+makes the emitted class use one name for both the property and the constructor parameter,
+so the constructor comes out as `EXISTS = EXISTS;` — CS1717, uncompilable, with no
+diagnostic from us. The same family as the CS0164 fixed earlier this session: emitted code
+that does not compile and is not refused. Recorded here; not fixed yet.
+
+### And the measurement it was written for
+
+    grammar   generated    ratio
+      334      119,722      358x    SqlExpressions
+      683       25,349       37x    ExpressionLanguage
+      126       33,024      262x    Rfc3986
+
+**358 to one**, worse than the synthetic probe's 221 and ten times `ExpressionLanguage`.
+So the answer to the question the probe left open is the unwelcome one: a real SQL grammar
+expands like `Rfc3986` and not like `ExpressionLanguage`, and the C# compiler is the wall
+that matters.
+
+Where it goes is not yet measured, but the shape of the grammar says where to look: sixty
+reserved words tried in order behind every identifier, and case-insensitive keyword
+literals that expand per character. Both are size and both are speed.
