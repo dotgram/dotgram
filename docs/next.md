@@ -10426,3 +10426,44 @@ agrees on every seed with the seam and the split excluded — and it turns `Rfc3
 scanners into forty-four, 25,771 lines into 19,037, for the 1.06x to 2.35x that hand-written
 braces measured. What it still costs is the refusal position, and that is the piece to build
 before any of this is turned on.
+
+## The furthest a scanner came, and why it is three pieces and not one
+
+Building it turned the debt into a shape, and the shape is worth writing down because the
+next attempt should start from here rather than from the beginning.
+
+**The scanner can carry it, and the successful path pays nothing.** A `furthest` local
+starting at `pos`, raised wherever the scan gives input back to itself, and a refusal that
+comes back as `-1 - furthest` — one return saying both that it refused and where it reached,
+with `< 0` still meaning the first. The caller sets `p` from it before recording the failure.
+Everything on the path that succeeds is untouched.
+
+**Which was not enough, and the counterexample says why.** `"abqy"` and `"abcdefx"` both begin
+`ab`; on `abqzzz` the message must name the one that got to the fourth character. But a
+literal does not give input back — it refuses outright — so `furthest` never moves, and the
+failure is reported where the literal began. The offset is right there at the emit site and
+threading it in works, for the branch that walks a literal character by character. The branch
+that compares the whole run with one `SequenceEqual` has no offset to thread, and that is the
+branch a seven-character literal takes. Making it walk instead would be trading the scan's
+speed for the message's precision, which is a decision and wants measuring.
+
+**And a third piece, found by the split tests.** Over token kinds a refusal position is a
+token index mapped back through the extents, so a scanner's `furthest` would have to be mapped
+too. Excluding kinds — which this needed anyway, for provenance — leaves that alone.
+
+**Two other things the build taught, both real defects rather than obstacles.**
+
+A scanner's caller skips the failure check when the rule is nullable, on the reasoning that
+something matching the empty string cannot fail. That is the wrong question: `?= X` matches
+the empty string when it succeeds and refuses when it does not, and reading its refusal as a
+position made a parse succeed on input the grammar refuses. The predicate wanted is
+*infallible* — a repetition of none, a sequence of those, a choice with one — and nullability
+is not it. `ReferenceDifferentialTests` found it on the first seed.
+
+And a local emitted at a backtrack site must be declared wherever it is written, not only
+where the label that reads it exists. Obvious once the build says so, in eight grammars at
+once.
+
+So the state: the condition is sound, the scanner can report where it reached, and what is
+left is the literal run's bulk compare and the split path's mapping. `Rfc3986` is 44 scanners
+and 19,037 lines against 25,771 whenever those two are done.
