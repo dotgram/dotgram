@@ -8790,3 +8790,101 @@ And one thing left on the floor: `CompileLiterals` does not take `proven`, so a
 case-sensitive group re-reads the character the switch tested — `if ((uint)p >=
 (uint)text.Length || text[p] != 'a')` right after `case 'a':`. One predictable branch, and
 the measurement above is what it is worth.
+
+## Measured: the syntactic machine over token kinds, and what it costs today not to have one
+
+Igor: «мы занимаемся фигнёй… главное развязать логику выделения токенов и основную логику
+парсера. мы смешали эти вещи и теперь никак не можем выйти ни на нормальный объём кода, ни
+на нормальную производительность».
+
+He is right, and the last three entries in this file are the evidence: each attacked the
+keyword list from inside the character machine, and each ends by saying how small the win
+was. So the question was put to a probe instead of to another optimization.
+
+**What was built.** `.work/kinds`, scratch and not in git. `SqlStandard92`'s syntactic half
+— the forty rules from `SearchCondition` through `Subquery` — transcribed *mechanically*
+onto an alphabet of one character per token kind, compiled by the **unmodified** generator,
+and fed by a hand-written SQL-92 tokenizer. Mechanically because a grammar retyped by hand
+is a grammar that might be subtly easier than the one that ships.
+
+Nothing in the compiler had to change, and that is the first finding. `CharRange` is
+`(char From, char To)`, so `FirstSets`, `FollowSets`, `Determinism`, `Doors`, `RangesTest`,
+`Predictive`, `Skipped` and the `Dispatchable` switch built two entries ago are **already a
+machine over a 16-bit alphabet**. Handing them kinds instead of characters is a matter of
+what the input string holds.
+
+**A gate ran first and blocked.** Forty-two inputs — nine search conditions, their refusals
+derived by cutting the last token, and adversarial ones — had to get the same verdict from
+both parsers before a nanosecond was reported. A probe measuring a weaker grammar measures
+nothing.
+
+**What the arena holds:**
+
+                                  chars    kinds
+      generated lines            23,500    6,580   3.6x
+      Choice entries written        143       19   7.5x
+      Call entries written          299       64   4.7x
+      Run / Lookahead / Atomic       20        0
+      reads of text[p]              692      320
+
+**Time**, nanoseconds, min of seven windows, three runs in agreement — `lex` the tokenizer,
+`kinds` the parse alone, `total` both, `!` a refusal:
+
+           chars        lex      kinds      total
+            464n        85n       209n       294n   1.58x  a = 1
+            919n       132n       282n       414n   2.22x  salary BETWEEN 1000 AND 2000
+          4,533n       727n     1,007n     1,734n   2.61x  (a + b) * c - d / e > f AND …
+          5,287n       843n       994n     1,837n   2.88x  (quantity + weight) * rate …
+            777n        92n       137n       229n   3.39x  ! a =
+         11,518n       637n     1,836n     2,473n   4.66x  ! (a + b) * c - d / e > f AND …
+         19,248n       767n     1,800n     2,567n   7.50x  ! (quantity + weight) * rate …
+
+Accepted 1.49x to 2.88x, median 2.22x. Refused 2.08x to 7.50x, median 4.27x. The bar set
+before the measurement was 2x end to end **or** 3x smaller with no slowdown; both were met.
+
+**Refusals gain most, and that is the arena numbers showing through.** Refusal is where a
+backtracking engine walks every reading still alive, and there are seven times fewer ways
+back to walk. It is also the case the last three entries were chipping at from the wrong
+side.
+
+**Two biases, opposite, both stated.** The tokenizer is hand-written, so a generated one is
+unlikely to beat it — optimistic. It also builds three buffers and a string per call,
+because the generated parser takes a `string` where the design wants a virtual stream —
+conservative. An attempt to measure the second directly gave numbers that contradicted
+themselves across two runs, so it was dropped rather than explained: `bare` came out
+*slower* than the allocating path in a third of the rows, which is not physically possible,
+and no explanation was found that survived a second run.
+
+**What it does not show.** There is no generated lexer, so "the lexer needs no arena" is
+asserted by construction. And 143-to-19 compares a whole parser, lexical rules included,
+against a syntactic half that has none — the gap is wide enough that the conclusion holds,
+but it is not like for like.
+
+## Found: a repetition led by a word literal takes one turn, and the boundary is why
+
+Turned up by the transcription above, unrelated to it, and larger than SQL. The smallest
+form has no SQL in it at all:
+
+```dotgram
+wordboundary = ['a'..'z' | '0'..'9' | '_']
+trivia = { ' '* }
+
+Item  = "when" & ['a'..'z']
+Start = "case" & Item+ & "end"
+```
+
+`case when a end` reads. `case when a when b end` does not, nor does three of them. Strip
+the trivia and the word boundary, write the same shape over single characters, and it reads
+any number.
+
+So `SqlStandard92` refuses `CASE WHEN a > 1 THEN 'big' WHEN a > 0 THEN 'small' ELSE 'none'
+END` — ordinary SQL — and refuses `CASE a WHEN 1 THEN 2 WHEN 3 THEN 4 END` the same way.
+Both `SimpleWhen+` and `SearchedWhen+` are hit, and both begin with a word literal. The
+transcription accepts them, having no word literals and therefore no weaving, which is how
+the gate caught it: the one input of forty-two where the two parsers disagreed, and the
+probe was the one that was right.
+
+Not fixed here — this entry is the probe's, and `src/` was deliberately untouched by it —
+but it goes first in what comes next. It is a correctness bug in shipping code, and where
+it lives is worth noticing: in the seam machinery, which exists only because lexing and
+parsing are the same machine.
