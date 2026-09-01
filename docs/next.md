@@ -10298,3 +10298,43 @@ at a time between the writes, and there is no run to put a loop around.
 **Where the time actually is.** Sixty per cent of `ExpressionLanguage`'s steps and half of
 `Rfc3986`'s go to arena traffic, not to deciding which character was read. That is the target
 the measurement points at, and it is a different piece of work from this one.
+
+## And the same question asked properly: cut out the regular parts and scan them
+
+The entry above measured the wrong thing. It asked how long the runs of pure states are *in
+the machine as it stands*, found them 1.4 states long, and concluded there was nothing to put
+a loop around. But what breaks those runs is not the captures — it is the machine's own
+per-turn bookkeeping. A repetition writes down where each turn began, so a `Pchar*` scanning
+a path alternates: test a character, record the turn, test a character, record the turn. 129
+of `Rfc3986`'s states (13%) do nothing else.
+
+Compiling the fragment as a lexeme removes that record entirely, which is exactly what the
+question was. The right experiment is to try it, and DotGram already has the mechanism: a rule
+written in braces is atomic, and an atomic rule that keeps no records compiles to a scanner —
+one run of a machine with nothing written down. `Rfc3986` has no braces anywhere, which is
+why it had no scanners.
+
+A copy of it with braces round the twenty-two regular rules:
+
+    url                                            plain   braced
+    http://example.com/                             442n     188n   2.35x
+    https://a.example/very/long/path/…              361n     248n   1.46x
+    https://user:pass@www.example.co.uk:8443/…      331n     265n   1.25x
+    http://[2001:db8::7]/c=GB?objectClass?one       979n     819n   1.20x
+    //relative/reference?only                       239n     203n   1.18x
+    mailto:someone@example.com                      146n     138n   1.06x
+
+and the two agree on every input, accepted and refused. Thirty scanners, 25,771 lines down to
+20,907, and 1,358 reads of `text[p]` down to 1,139.
+
+**What stands between this and doing it automatically** is that braces are *possessive*.
+`{ A }` does not give input back, and a rule that would have needed to is a rule the automatic
+version would silently change the meaning of. It happened to be safe for all twenty-two here,
+which is a fact about RFC 3986 and not a licence.
+
+The compiler can prove it in the cases that matter: making a fragment possessive changes
+nothing when what follows it cannot begin with what it consumes, which is `FollowSets` and
+`Determinism.Distinguishable` — the same pair that already warns about an ambiguous repetition
+(`GRAM5002`). So the rule would be: a fragment becomes a scanner when it is `Scannable`, keeps
+no records, **and** giving input back could never have helped. The first two are written; the
+third is the work.
