@@ -103,4 +103,14 @@ public sealed class GramCompilerOptions
 	/// </para>
 	/// </remarks>
 	public int? PartSize { get; set; }
+
+	/// <summary>
+	/// Whether to read the input as tokens rather than as characters (§4.5's other side).
+	/// </summary>
+	/// <remarks>
+	/// A request rather than a setting: a grammar that cannot be cut in two is compiled over
+	/// characters and told why, because the character machine is correct and right there.
+	/// `docs/lexical-adt-design.md` carries the design and its measurements.
+	/// </remarks>
+	public bool Lexical { get; set; }
 }

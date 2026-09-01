@@ -377,7 +377,7 @@ namespace DotGram.Parsers;
 
 	parse SearchCondition as ParseSearchCondition
 	parse ValueExpression as ParseValueExpression
-	""")]
+	""", Lexical = true)]
 public static partial class SqlStandard92
 {
 	[ThreadStatic]

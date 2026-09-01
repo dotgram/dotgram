@@ -108,6 +108,7 @@ These do not say a grammar is wrong. They say what it will not be given, and why
 | `GRAM5001` | A publication gets no overload taking a reader. | The message says which of the reasons applies: something the rule matches can cross a line, or the rule keeps what it cannot keep from a window (§6.3). |
 | `GRAM5002` | A repetition can begin with the same input as what follows it. | A warning: the reading is ambiguous where the two overlap, and the parser resolves it by order rather than by meaning. |
 | `GRAM5003` | A generated method is left past the size at which the JIT stops optimizing it. | A warning: the parser is correct and several times slower than it needs to be. The message names the estimate, the budget the generator divides methods under, and what to split to restore optimization. |
+| `GRAM5004` | `Lexical = true` was asked for and the grammar cannot be cut in two. | Information, not a warning: the parser is the one it would have been without the request, and nothing the author wrote is wrong. The message says which of the four it is — no trivia at all, so there is nothing to tell a token from a character; a terminal that is not a regular language; a `find`, which hunts through characters for a place to begin; or a `trivia` not written in braces, the seam between tokens being skipped by the scanner braces ask for. |
 
 ## Retired numbers
 

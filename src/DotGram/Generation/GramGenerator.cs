@@ -379,6 +379,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Nought is what the attribute holds when nobody set it, and what somebody
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
+			Lexical        = host.Lexical,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -637,7 +638,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       LiteralAt  = 0,
 		string?   IncludedAs = null,
 		EquatableArray<Included> Includes = default,
-		int       PartSize   = 0)
+		int       PartSize   = 0,
+		bool      Lexical    = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -722,6 +724,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.PartSize))
 				.Value.Value as int? ?? 0;
 
+			// A request and not a setting: a grammar that cannot be cut in two is compiled
+			// over characters and told why (GRAM5004), so nothing written here fails a build.
+			var lexical = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
+				.Value.Value as bool? ?? false;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
@@ -767,7 +775,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				LiteralAt:  written == default ? 0    : written.SpanStart,
 				IncludedAs: includedAs,
 				Includes:   new EquatableArray<Included>(Inherited(type)),
-				PartSize:   partSize);
+				PartSize:   partSize,
+				Lexical:    lexical);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

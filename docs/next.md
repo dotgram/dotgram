@@ -9584,3 +9584,52 @@ the one that decides.
 `TryParseStart(input)` — the same signature the character parser has — and compares the
 answer with the character parser's, value and refusal position alike. What is left of the
 plan is the lazy cursor, and after this it is an optimization again rather than a repair.
+
+## Built: `Lexical = true`, and SqlStandard92 asks for it
+
+The split is a word in the grammar's own attribute now, plumbed the way `PartSize` is:
+
+    [Gram("""
+        …
+        parse SearchCondition as ParseSearchCondition
+        """, Lexical = true)]
+
+A request and not a setting. Four things stop it and each says so in its own words
+(`GRAM5004`, information rather than a warning, because the parser that comes out is the
+one that would have come out anyway):
+
+- no rule carries trivia — a URL is characters, and there is nothing to tell a token from
+  one;
+- a terminal that is not a regular language, so the patterns cannot be read together;
+- a `find`, which hunts through characters for a place to begin, and a stream of tokens has
+  no such places;
+- a `trivia` not written in braces, the seam between tokens being skipped by the scanner
+  braces ask for.
+
+**`SqlStandard92` asks for it, and what that is worth:**
+
+    21,773 -> 8,673 lines                      2.5x smaller
+
+           chars      kinds
+          2,532n     1,065n   2.38x  (a + b) * c - d / e > f AND NOT g < h
+          2,175n       978n   2.22x  amount * 1.05 + tax >= total AND …
+         10,307n     2,752n   3.74x  ! (quantity + weight) * rate - zone / …
+          3,748n       973n   3.85x  ! amount * 1.05 + tax >= total AND …
+
+`ExpressionLanguage` and `Rfc3986` are untouched and stay on the character path — the first
+because its `TypeName` is syntax in a lexical namespace and wants moving first, the second
+because a URL is characters. Which leaves both machines exercised by a real grammar, the
+larger of the two still on the older path.
+
+**And the thing that had to be built before the switch could be believed.** The suite did
+not read a single string with `SqlStandard92`. It compiled it and nothing more, so "1,586
+green" said only that the generator had not crashed — and on that evidence switching a
+shipping parser to a newer code path is not a decision, it is a hope. Thirty-two tests now:
+the corpus the split was measured against, the non-reserved words that are names (`zone`,
+`year`), the reserved ones that are not (`having`, `select`) and the one that is reserved
+and reads anyway (`value`, which §6.3 makes a niladic function — the test expected a refusal
+and the parser was right), a `CASE` with two `WHEN`s, and refusals whose position has to
+move with the input.
+
+They pass with `Lexical = true` and they pass without it, which is the point: they are about
+the grammar and not about which machine read it.
