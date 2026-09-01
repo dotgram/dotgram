@@ -10205,3 +10205,58 @@ left to switch on. The dense run of `c == '('`, `c == ')'`, `c == '*'` was exact
 the row had already answered, and what survives clipping is one test against a Unicode
 bitmap — a switch of no cases and a `default`. The table in front is the jump table, and it
 is a direct load rather than an indirect branch.
+
+## What a switch would cost, and how far the table can grow
+
+Two questions about the table, both answerable by measuring.
+
+**A `switch (c)` instead of the row.** The compiler turns a dense one into a jump table, and
+a jump table is an *indirect branch*. The target changes with every character, so nothing
+predicts it, and every miss is a pipeline. The row is a data dependency instead — a load
+from a hot line, which the machine carries on around. Over `SqlStandard92`'s first state,
+forty-four ways out:
+
+    input               table     switch      chain
+    letters            2.02n      8.05n      7.43n
+    marks              2.07n      6.62n      1.87n
+    digits             1.12n      1.29n      1.49n
+    as SQL runs        1.12n      6.22n      3.25n
+    refused            1.51n      1.90n      8.05n
+
+Five and a half times, on the mixture that looks like SQL. And it is worst exactly where a
+switch was supposed to help: the more keywords a grammar has, the more different letters the
+first state admits, the more places the jump goes and the less any of it predicts. The table
+does not care how many ways there are.
+
+**And what the loop actually waits on**, which is the same answer from the other side. There
+are four branches per character and all of them predict: the input is not finished, the
+character is inside the row, the transition is not a refusal, the state does not accept.
+What costs is the chain of loads — the state's row, then the cell, then the *next* state's
+row — each address known only once the last has arrived. Pointer chasing, which no
+prefetcher helps with, because a prefetcher can guess a stride and not a value.
+
+Which is why compacting the table is not free. Characters that lead to the same place from
+every state are one column, and `SqlStandard92` has 47 of them where it has 128 characters —
+so a class map turns 50,560 cells into 18,565, 101 kilobytes into 37. It also makes the
+chain three loads instead of two, and that measured five percent:
+
+     direct  classed
+        191      200   0.95x  a = 1
+        303      370   0.82x  x IN (1, 2, 3) AND y IS NOT NULL
+        980     1030   0.95x  (quantity + weight) * rate - zone / 2 > …
+
+**So the size question decides it.** A lexical machine has about five and a half states per
+keyword and the table is states by row width, so it grows linearly with the language:
+
+    words  states   rows  classes    direct  classed  state x atom
+       25     163    135       32       34K      34K         279K
+      100     618    515       32      129K     129K        1056K
+      200    1229   1026       32      256K      64K        2100K
+      800    4506   3706       32      926K     232K        7701K
+
+The classes do not grow. They are bounded by what the machine can tell apart, which is
+thirty-odd for anything written in Latin letters and never more than 128 — so compacting is
+worth a quarter of the table however large the grammar. Under 256 kilobytes the direct table
+is kept and the five percent with it; over that, a grammar of some six hundred words, it is
+compacted. The last column is the dense state-by-atom table this design rejected in its first
+week: 7.7 megabytes where the row table is 232 kilobytes.

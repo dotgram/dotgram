@@ -75,6 +75,7 @@ public static class LexerEmitter
 		Edged.Clear();
 		Reached = true;
 		Wide = false;
+		Class = null;
 
 		// The scanner is written first and the sets it asked for after it, because which sets
 		// there are is only known once every state has been written.
@@ -82,6 +83,8 @@ public static class LexerEmitter
 
 		for (var state = 0; state < lows.Length; state++)
 			lows[state] = Window(machine.From(state));
+
+		Plan(machine, lows);
 
 		var body = new Writer();
 
@@ -91,7 +94,7 @@ public static class LexerEmitter
 
 		Accepting(text, machine, tag);
 		text.Line();
-		Table(text, machine, tag, lows);
+		Table(text, tag);
 		Sets(text, tag);
 		text.Line();
 		text.Add(body);
@@ -234,29 +237,27 @@ public static class LexerEmitter
 	/// word.
 	/// </para>
 	/// </remarks>
-	static void Table(Writer text, LexicalAutomaton machine, string tag, IReadOnlyList<int> lows)
+	/// <summary>
+	/// Every state's row, and which column of one each character reads.
+	/// </summary>
+	/// <remarks>
+	/// Worked out before anything is written, because the scanning loop is written first and
+	/// has to know whether it indexes a row by character or by class.
+	/// </remarks>
+	static void Plan(LexicalAutomaton machine, IReadOnlyList<int> lows)
 	{
-		var cells  = new List<int>();
-		var shared = new Dictionary<string, int>();
-		var states = new List<long>();
-
 		Wide = machine.Next.Count > short.MaxValue;
+		Rows.Clear();
 
 		for (var state = 0; state < machine.Next.Count; state++)
 		{
-			var ways = machine.From(state);
-			var low  = lows[state];
+			var found = lows[state];
 
-			if (low < 0)
-			{
-				// Nowhere to put a row: the state admits nothing, or admits it only above
-				// where a row could reach. Pointed at a run of cells that refuse everything,
-				// so the loop needs no case for it.
-				states.Add(Empty(cells, shared));
-
-				continue;
-			}
-
+			// A state with no way out has nowhere to put a row, and is given one at zero that
+			// refuses everything — which is what it does. Anywhere else would be as true and
+			// would leave a state's descriptor holding a negative character, which the shift
+			// that packs it would smear into the rest of it.
+			var low = Math.Max(found, 0);
 			var row = new int[Reach];
 
 			for (var at = 0; at < Reach; at++)
@@ -264,22 +265,99 @@ public static class LexerEmitter
 
 			// Every way out leads somewhere different and no character takes two of them, so
 			// a cell is written once however the ranges are ordered.
-			foreach (var (on, to) in ways)
-				foreach (var range in on)
-					for (var c = Math.Max(range.From, low); c <= range.To && c - low < Reach; c++)
-						row[c - low] = to;
+			if (found >= 0)
+				foreach (var (on, to) in machine.From(state))
+					foreach (var range in on)
+						for (var c = Math.Max(range.From, low); c <= range.To && c - low < Reach; c++)
+							row[c - low] = to;
 
-			var key = string.Join(" ", row);
+			Rows.Add((low, row));
+		}
 
-			if (!shared.TryGetValue(key, out var at2))
+		// Characters that lead to the same place from every state are one character as far as
+		// the machine is concerned, and a row need hold a cell for each *class* rather than
+		// for each of the 128. `SqlStandard92` has 47: every letter is its own, both cases
+		// together, and everything that begins nothing at all is one.
+		//
+		// It is not free — the class is a third load on a chain that is already two, and the
+		// chain is what the loop waits on, so it measured five percent. So it is spent where
+		// it is needed and not where it merely helps: a table under `Roomy` stays direct and
+		// fast, and one above it would rather be a quarter the size.
+		//
+		// And only where every row sits at the same place, since a class is a column of the
+		// table and two differently placed rows have no column in common.
+		var distinct = Rows.Select(one => string.Join(" ", one.Row)).Distinct().Count();
+
+		Class = distinct * Reach > Roomy && Rows.All(one => one.Low == Rows[0].Low)
+			? Classes(Rows.Select(one => one.Row))
+			: null;
+	}
+
+	/// <summary>
+	/// How many cells a table may hold before it is worth compacting.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// 131,072 cells is 256 kilobytes of <c>short</c>. Under it the direct table is kept,
+	/// because reading it is two loads where a compacted one is three and the loop waits on
+	/// exactly that chain — the state's row, then the cell, then the next state's row, each
+	/// address known only once the last has arrived. No prefetcher helps with that, and the
+	/// measured difference is five percent.
+	/// </para>
+	/// <para>
+	/// Over it, compacting wins by more than five percent is worth. A lexical machine has
+	/// about five and a half states per keyword, so this is a grammar of some six hundred
+	/// words; the classes do not grow with it — they are bounded by what the machine can tell
+	/// apart, which is thirty-odd for anything written in Latin letters — so the compacted
+	/// table stays about a quarter of the direct one however large the grammar gets.
+	/// </para>
+	/// </remarks>
+	const int Roomy = 131072;
+
+	static readonly List<(int Low, int[] Row)> Rows = [];
+
+	static byte[]? Class;
+
+	static void Table(Writer text, string tag)
+	{
+		var cells  = new List<int>();
+		var shared = new Dictionary<string, int>();
+		var states = new List<long>();
+		var order  = Class is null ? null : Class.Distinct().OrderBy(one => one).ToList();
+
+		foreach (var (low, row) in Rows)
+		{
+			var kept = order is null
+				? row
+				: [.. order.Select(one => row[Array.IndexOf(Class!, one)])];
+
+			var key = string.Join(" ", kept);
+
+			if (!shared.TryGetValue(key, out var at))
 			{
-				shared[key] = at2 = cells.Count;
-				cells.AddRange(row);
+				shared[key] = at = cells.Count;
+				cells.AddRange(kept);
 			}
 
 			// Unsigned, because a row index is a place in an array and not a number that could
 			// be negative — signed, the shift below it would smear its top bit across the low.
-			states.Add((uint)at2 | ((long)low << 32));
+			states.Add((uint)at | ((long)low << 32));
+		}
+
+		if (Class is { } classes)
+		{
+			text.Line("/// <summary>Which column of a row each character reads.</summary>");
+			text.Line("/// <remarks>");
+			text.Line("/// Characters leading to the same state from every state of the machine are one");
+			text.Line("/// character as far as it is concerned. Naming them once is what turns a row of");
+			text.Line("/// 128 cells into a row of as many as the machine can tell apart.");
+			text.Line("/// </remarks>");
+			text.Line($"static readonly byte[] Scan{tag}_Class =");
+
+			using (text.Braces("", ";"))
+				Numbers(text, [.. classes.Select(one => (int)one)]);
+
+			text.Line();
 		}
 
 		text.Line("/// <summary>Where each state goes, for the characters its row holds.</summary>");
@@ -299,23 +377,37 @@ public static class LexerEmitter
 		text.Line();
 	}
 
-	/// <summary>A row that refuses everything, shared by every state that needs one.</summary>
-	static long Empty(List<int> cells, Dictionary<string, int> shared)
+	/// <summary>
+	/// Which column of a row each of the 128 characters reads, or null where there is
+	/// nothing to gain.
+	/// </summary>
+	/// <remarks>
+	/// Two characters that lead to the same state from <em>every</em> state are one character
+	/// to the machine, and one column of the table. Numbered in the order they first appear,
+	/// so the commonest — everything that begins nothing — comes out as class zero.
+	/// </remarks>
+	static byte[]? Classes(IEnumerable<int[]> rows)
 	{
-		var row = new int[Reach];
+		var all   = rows.ToList();
+		var named = new Dictionary<string, byte>();
+		var map   = new byte[Reach];
 
 		for (var at = 0; at < Reach; at++)
-			row[at] = -1;
-
-		var key = string.Join(" ", row);
-
-		if (!shared.TryGetValue(key, out var at2))
 		{
-			shared[key] = at2 = cells.Count;
-			cells.AddRange(row);
+			var column = string.Join(" ", all.Select(one => one[at]));
+
+			if (!named.TryGetValue(column, out var which))
+			{
+				if (named.Count == byte.MaxValue)
+					return null;
+
+				named[column] = which = (byte)named.Count;
+			}
+
+			map[at] = which;
 		}
 
-		return at2;
+		return named.Count < Reach ? map : null;
 	}
 
 	/// <summary>
@@ -569,7 +661,10 @@ public static class LexerEmitter
 				text.Line($"if ((uint)at < {Reach}u)");
 
 				using (text.Indent())
-					text.Line($"next = Scan{tag}_Cells[(int)row + at];");
+					text.Line(
+						Class is null
+							? $"next = Scan{tag}_Cells[(int)row + at];"
+							: $"next = Scan{tag}_Cells[(int)row + Scan{tag}_Class[at]];");
 
 				text.Line("else");
 
