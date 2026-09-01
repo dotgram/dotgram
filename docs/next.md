@@ -10099,3 +10099,35 @@ nothing. The earlier "1.02x to 1.20x" was a table answering for eighty-eight sta
 is 11,172 Hangul syllables, `U+3400..U+4DBF` is 6,592 more ideographs. Of the 48,921
 characters the set holds, Unicode 15.1 declines to call eight of them letters, and those
 eight are the ones added in 16.0.
+
+## Where ASCII cannot arrive there is nothing to choose between
+
+Every row now begins at `U+0000` and is 128 wide, so the table answers for the whole of
+ASCII and a character reaching the chain is above it by construction. Which makes the lower
+half of every set test dead: the state cannot be asked about a character the table already
+answered for. So the test is one line and no branch —
+
+    if ((Scan_High1[c >> 3] & (1 << (c & 7))) != 0) return 126;
+
+— and the sixty-seven `Scan_Low` fields are gone with it. It is emitted per state and not
+by rule: a state whose row sits above ASCII keeps both halves, because there ASCII really
+can arrive.
+
+**And the storage was wrong, which only measuring found.** The halves were
+`static ReadOnlySpan<byte> X => new byte[] { … }`, which the compiler puts in the assembly's
+data — no allocation, nothing at type load, and the right answer on paper. At 457 call sites
+it is the wrong one: materializing the span per use made a short non-Latin identifier 1.66x
+its Latin twin, where the branchy version had been 1.03x. A plain `static readonly byte[]`
+costs three eight-kilobyte allocations once and puts it back to 1.04x.
+
+Against the chain the day began with, and against the branchy version:
+
+    chain  branch    none
+      200     196     196   1.02x  a = 1
+      393     275     279   1.41x  salary BETWEEN 1000 AND 2000
+      840     489     492   1.71x  warehouse.zip_code = 'X' AND …
+     1454     986     980   1.48x  (quantity + weight) * rate - zone / 2 > …
+       23      14      14   1.64x  ! amount * 1.05 + tax >= total AND …
+
+Removing the branch bought nothing — it was perfectly predicted, being always false. What
+it bought is the file: 580,503 characters to 547,119, and sixty-seven fields nothing read.

@@ -73,19 +73,25 @@ public static class LexerEmitter
 		Named.Clear();
 		Low.Clear();
 		Lows.Clear();
+		Reached = true;
 		Wide = false;
 
 		// The scanner is written first and the sets it asked for after it, because which sets
 		// there are is only known once every state has been written.
+		var lows = new int[machine.Next.Count];
+
+		for (var state = 0; state < lows.Length; state++)
+			lows[state] = Window(machine.From(state));
+
 		var body = new Writer();
 
-		Scanner(body, machine, tag);
+		Scanner(body, machine, tag, lows);
 
 		var text = new Writer();
 
 		Accepting(text, machine, tag);
 		text.Line();
-		Table(text, machine, tag);
+		Table(text, machine, tag, lows);
 		Sets(text, tag);
 		text.Line();
 		text.Add(body);
@@ -115,7 +121,7 @@ public static class LexerEmitter
 
 		foreach (var (bits, at) in Bounds.Select((one, at) => (one, at)))
 		{
-			text.Line($"static global::System.ReadOnlySpan<byte> Scan{tag}_High{at} => new byte[]");
+			text.Line($"static readonly byte[] Scan{tag}_High{at} =");
 
 			using (text.Braces("", ";"))
 			{
@@ -146,6 +152,9 @@ public static class LexerEmitter
 	static readonly Dictionary<string, int>  Lows   = [];
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
 	static bool Wide;
+
+	/// <summary>Whether a character below ASCII can reach the case being written.</summary>
+	static bool Reached = true;
 
 	/// <summary>
 	/// How wide one state's row may be.
@@ -178,7 +187,7 @@ public static class LexerEmitter
 	/// word.
 	/// </para>
 	/// </remarks>
-	static void Table(Writer text, LexicalAutomaton machine, string tag)
+	static void Table(Writer text, LexicalAutomaton machine, string tag, IReadOnlyList<int> lows)
 	{
 		var cells  = new List<int>();
 		var shared = new Dictionary<string, int>();
@@ -189,7 +198,7 @@ public static class LexerEmitter
 		for (var state = 0; state < machine.Next.Count; state++)
 		{
 			var ways = machine.From(state);
-			var low  = Window(ways);
+			var low  = lows[state];
 
 			if (low < 0)
 			{
@@ -472,7 +481,7 @@ public static class LexerEmitter
 	/// </remarks>
 	const int Held = 96;
 
-	static void Scanner(Writer text, LexicalAutomaton machine, string tag)
+	static void Scanner(Writer text, LexicalAutomaton machine, string tag, IReadOnlyList<int> lows)
 	{
 		text.Line("/// <summary>");
 		text.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
@@ -576,6 +585,12 @@ public static class LexerEmitter
 					// everything above ASCII and, for a state that admits nothing near the top
 					// of it, the gap above its own last character. So these are written as they
 					// always were: a chain, over a set the table has already narrowed.
+					// Whether a character below ASCII can reach this case at all. It cannot
+					// where the state's row begins at zero: the row is 128 wide, so every
+					// such character was answered before the chain was called, and a set
+					// test here may read the half above ASCII and nothing else.
+					Reached = lows[state] != 0;
+
 					text.Line($"case {state}:");
 
 					using (text.Indent())
@@ -657,14 +672,17 @@ public static class LexerEmitter
 				high.Add(new CharRange((char)Math.Max((int)range.From, Ascii), range.To));
 		}
 
-		// Written out rather than called. The two halves are one expression, and putting it
-		// behind a method makes every ASCII character pay for the span of the half it will
-		// not read — which measured as a fifth of the time on an input that is all keywords,
-		// where the answer is always on the first line.
-		return
-			$"(c < {Ascii} " +
-			$"? (Scan{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 " +
-			$": (Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0)";
+		// Written out rather than called: behind a method taking a span, every character
+		// pays for materializing the half it will not read, which measured as a fifth of the
+		// time on an input that is all keywords.
+		//
+		// And where ASCII cannot arrive there is nothing to choose between, so the test is
+		// the bit and no more.
+		var above = $"(Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0";
+
+		return Reached
+			? $"(c < {Ascii} ? (Scan{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 : {above})"
+			: above;
 	}
 
 	/// <summary>The ASCII half, as the 128 bits it is.</summary>
