@@ -620,29 +620,33 @@ public sealed class TerminalInventory
 				classes.Add(one);
 			}
 
-			// A literal's kind is exactly computable: its text is known, so which classes also
-			// accept it is a question with an answer, and the answer is what lets a syntactic
-			// position that wanted `RegularIdentifier` take the kind of `SELECT`.
-			//
-			// A class's kinds are the cliques of the classes it overlaps. A witness is enough
-			// to know a clique can occur; a clique that turns out never to occur is a number
-			// nothing emits, which costs nothing. What must not happen is a set with no
-			// number — the lexer would have nothing to say about a string it recognized.
-			var kinds = new List<Kind>();
+			// One machine over all of them at once, and its accepting states are the kinds.
+			// Exactly, and not from witnesses: which sets of patterns some string makes
+			// accept together is what a subset construction answers, and answering it any
+			// other way is either approximate or a second implementation of the lexer.
+			var shapes = patterns.Select(one => Shape(one)).ToList();
+			var found  = shapes.Any(one => one is null)
+				? null
+				: LexicalAutomaton.Sets(graph, [.. shapes!], _reasons);
 
-			foreach (var literal in patterns.Where(one => one is not Pattern.Class))
+			if (found is null)
 			{
-				var matched = new List<Pattern> { literal };
+				Refuse("the patterns are not all regular, so they cannot be read together");
 
-				foreach (var one in classes)
-					if (Language.Accepts(graph, one.Rule, Spelling(literal).Text))
-						matched.Add(one);
-
-				kinds.Add(new Kind(kinds.Count + 1, matched));
+				return new TerminalInventory(true, patterns, [], [], _reasons);
 			}
 
-			foreach (var clique in Cliques(classes))
-				kinds.Add(new Kind(kinds.Count + 1, clique));
+			// Numbered by the patterns they hold and not by the order the machine met them.
+			// The laminar ordering above put the patterns where a named set is one run of
+			// them, and that only survives into the kinds if the kinds follow the patterns:
+			// a word's kind holds that word and nothing earlier, so sorting by the lowest
+			// pattern in the set puts the word kinds in word order and the rest after them.
+			var kinds = found
+				.OrderBy(set => set[0])
+				.ThenBy(set => set.Count)
+				.ThenBy(set => string.Join(",", set))
+				.Select((set, at) => new Kind(at + 1, [.. set.Select(one => patterns[one])]))
+				.ToList();
 
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
 
@@ -657,6 +661,16 @@ public sealed class TerminalInventory
 
 			return new TerminalInventory(true, patterns, kinds, named, _reasons);
 		}
+
+		/// <summary>The node a pattern recognizes, as the automaton needs to read it.</summary>
+		Node? Shape(Pattern pattern) =>
+			pattern switch
+			{
+				Pattern.Word(_, var word, var fold) => new Node.Literal(word) { IgnoreCase = fold },
+				Pattern.Mark(_, var mark, var fold) => new Node.Literal(mark) { IgnoreCase = fold },
+				Pattern.Class(_, var rule)          => graph.Bodies.TryGetValue(rule, out var body) ? body : null,
+				_                                   => null,
+			};
 
 		/// <summary>
 		/// The sets of classes that can match one string at once, over-approximated.

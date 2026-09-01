@@ -419,17 +419,23 @@ that joins the parts) is the honest fix.
    sets of terminals and become ranges.
 2. ~~The rewrite of the syntactic machine over kinds~~ — done, and validated against the
    shipping parser on forty-six inputs, all of which now agree.
-3. **The generated lexical machine**: one automaton over all the patterns, its accepting
-   states giving the kinds. That construction is also what makes the kind enumeration exact
-   — the inventory over-approximates it today from witnesses, which is sound but coarse.
-   Correctness signal: **no arena write survives in the lexer**.
-4. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
+3. ~~One automaton over all the patterns~~ — done. Thompson and a subset construction over
+   an alphabet of atoms rather than characters, so a Unicode category costs one symbol per
+   interval it already had. Its accepting sets *are* the kinds, exactly: `SqlStandard92`
+   comes to 135 kinds where the witness approximation guessed 137, the two extra having been
+   `{Digits}` and `{QuotedString}` — sets no string can produce, because each of those
+   languages is contained in another pattern's. Only reading them together finds that; no
+   witness can.
+4. **Emitting the lexer from that automaton.** The states are already built; what is
+   missing is writing them out. Correctness signal: **no arena write survives in the
+   lexer**.
+5. The `Peek` / `Consume` / `Mark` / `Restore` cursor, lazy and rescanning. It carries the
    answer to `List<List<int>>` as well: `>` is a declared pattern and `>>` begins with it,
    so a cursor that can be asked for a particular kind splits without any state at all. What
    a token was read under has to travel with it in the cache — designed in from the start it
    is a field, discovered later it is a rewrite.
-5. One grammar end to end behind an opt-in, the scannerless path untouched.
-6. Modes, when a grammar here first needs one. Interpolation is the case that will force
+6. One grammar end to end behind an opt-in, the scannerless path untouched.
+7. Modes, when a grammar here first needs one. Interpolation is the case that will force
    them, because the closing brace is known only to whoever parsed the expression inside.
 
 ## Central design statement

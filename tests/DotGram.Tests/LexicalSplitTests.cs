@@ -175,6 +175,38 @@ public sealed class LexicalSplitTests
 		// And each of them tests for that kind as well as for its own.
 		Assert.Contains(Numbers(inventory, digits), one => one == shared.Number);
 		Assert.Contains(Numbers(inventory, number), one => one == shared.Number);
+
+		// The sharp part, and what an approximation cannot get right: `Digits` has no kind
+		// of its own, because every string it accepts is also a `Number`. There is no
+		// witness for that — it is a fact about the two languages — and only reading them
+		// together finds it. `Number` does have one: `1.5`.
+		Assert.DoesNotContain(inventory.Kinds, kind => kind.Matched is [var only] && only == digits);
+		Assert.Contains(inventory.Kinds, kind => kind.Matched is [var only] && only == number);
+	}
+
+	/// <summary>A pattern that is not a regular language is refused, and said to be.</summary>
+	/// <remarks>
+	/// The patterns are read together or not at all, and reading them together is a
+	/// subset construction over a Thompson machine — which has three shapes and a lookahead
+	/// is none of them. Rather than approximate it the grammar keeps the character machine,
+	/// which is correct and right there.
+	/// </remarks>
+	[Fact]
+	public void A_pattern_that_is_not_regular_is_refused()
+	{
+		var split = LexicalSplit.Of(Graph(
+			"""
+			trivia = ' '*
+			namespace Lexical
+			{
+				trivia = none
+				Odd = 'a' & (?!"zz" & ['a'..'z'])* & 'b'
+			}
+			Start = Lexical.Odd & ',' & Lexical.Odd
+			parse Start
+			"""));
+
+		Assert.Null(split);
 	}
 
 	/// <summary>A keyword's kind says it is an identifier too, which is what makes `zone` a name.</summary>

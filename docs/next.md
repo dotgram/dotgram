@@ -9177,3 +9177,45 @@ negated class names what it *excludes*, so `[^ '(' | ')']` is "any token but a b
 and `List<List<int>>` needs no lexer state, because `>` is a declared pattern and a cursor
 that can be asked for a particular kind splits `>>` by rescanning. Notation for a lexical
 root, which the last entry moved up to third, moves back off the list entirely.
+
+## Built: one automaton over all the patterns, and the kinds stop being a guess
+
+The last entry worked out the kinds from witnesses — a clique for every pair of classes one
+of which accepts the other's shortest string. Sound where it fired, and coarse: a clique
+that no string can produce still got a number.
+
+Now they come from the machine. Thompson over all the patterns at once, then a subset
+construction, and the accepting sets *are* the kinds. Over an alphabet of atoms rather than
+characters: cut at every boundary any pattern's element set has, and what lies between two
+neighbouring cuts is inside all the same sets, so `\p{L}` costs one symbol per interval it
+already had rather than one per letter.
+
+    SqlStandard92      135 patterns -> 135 kinds     (the witnesses guessed 137)
+    ExpressionLanguage 106 patterns -> 106 kinds
+
+**The two that went are the finding.** `{Digits}` and `{QuotedString}` were numbered by the
+approximation and are impossible: every string `Digits` accepts is also an
+`UnsignedNumericLiteral`, and every `QuotedString` is also a `CharacterStringLiteral`, so
+neither can ever accept alone. That is a fact about two languages and no witness can reach
+it — only reading them together can. It cost nothing to be wrong about (a number nothing
+emits), but being right about it is the difference between a construction and a heuristic.
+
+Forty-six of forty-six inputs still agree against the shipping parser, and the whole of it —
+parse, bind, normalize, build the automaton, emit six thousand lines — takes 1.45 seconds.
+
+**One thing had to be put back.** The kinds come out in the order the subset construction
+meets them, which is not the order the patterns are in — and the laminar ordering that makes
+a named set one run of kinds only survives if the kinds follow the patterns. So they are
+renumbered by the lowest pattern each set holds, which puts the word kinds in word order and
+the class kinds after them. Two tests caught it: `Keyword` came back as `2..4` where it had
+been `1..3`.
+
+**What it refuses, and why refusing is right.** A pattern is a regular language or it is not
+a pattern: a lookahead, an external recognizer or a rule that reaches itself is none of the
+shapes a Thompson construction has. Rather than approximate them the split declines and the
+grammar keeps the character machine, which is correct and right there. `BlockComment`'s
+`(?!"*/" & any)*` is the shape that would come up, and it never does — it is trivia, which
+is skipped rather than tokenized.
+
+The lexer itself is next, and most of it now exists: the states are built, and what is
+missing is writing them out.
