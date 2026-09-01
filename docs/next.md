@@ -10338,3 +10338,41 @@ nothing when what follows it cannot begin with what it consumes, which is `Follo
 (`GRAM5002`). So the rule would be: a fragment becomes a scanner when it is `Scannable`, keeps
 no records, **and** giving input back could never have helped. The first two are written; the
 third is the work.
+
+## The proof is not the follow set, and the differential test said so in seconds
+
+The plan was: a rule becomes a scanner when it is `Scannable`, keeps no records, and giving
+input back could never have helped — the last being the follow set handed to `Scannable`
+where braces hand it nothing.
+
+It admits a great deal. `Rfc3986` goes from no scanners to **44**, and from 25,771 lines to
+19,037; `SqlStandard92` to fifteen, `ExpressionLanguage` to eight. More than the twenty-two
+that were braced by hand.
+
+And it is wrong. `ReferenceDifferentialTests` — random grammars, random inputs, the engine
+against the reference semantics — found a disagreement on the first seed it tried:
+
+    trivia = [' ']*
+    Start = (?! ['b'..'c' | 'x'] & (R1 | R1) & R2) & ({ ['b'..'c' | 'x'] } | { ['a'..'b'] })
+    R1 = "c"i
+    R2 = 'b'
+    parse Start
+
+    input " cba": the semantics say it matches, the engine says it does not.
+
+Excluding published rules — a scanner answers where it stopped and a publication has to say
+what it expected and whether the whole input was read — was the obvious first guess and did
+not fix it. At that point the next move would have been a third guess, so the branch was
+reverted instead.
+
+**What the failure is worth knowing.** The follow set says what characters may come after a
+rule. `Scannable`'s `after` says what still has to match *inside the group being committed*.
+They are not the same question, and handing one to the other is a category error that happens
+to be right most of the time — which is the worst kind, and exactly what a differential test
+is for. The right condition has to be about the *call site*: a rule may commit where every
+path that reaches it can live with the longest match, and that is a property of the graph
+around it rather than of the characters after it.
+
+What is not in doubt is the payoff. Braced by hand, the same twenty-two rules made `Rfc3986`
+1.06x to 2.35x faster and agreed on every input. The mechanism works; the licence to apply it
+without being asked is what is missing.
