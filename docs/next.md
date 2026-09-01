@@ -9313,3 +9313,50 @@ So the cursor's work is: carry `kind + start + length`, thread the original text
 machine beside the kinds, and route every position-to-text and position-to-report through
 it. Four kinds of site, enumerated by running a grammar that has them rather than by
 reading the emitter. That is the next thing, and it is now a list rather than a worry.
+
+## Built: a value cut from the text the tokens came from
+
+The list the last entry made, done. A machine over kinds has positions that are tokens, so
+nothing may cut a value out of what it is reading — the text and the extents travel beside
+the kinds, and every cut goes through one place.
+
+**It is threaded the way the whole input already was.** §8.2's `parserInput` has carried a
+string from the publication down to the materializer since it existed; `parserSource`,
+`parserStarts` and `parserLengths` ride the same five sites. What changes inside is one
+method, `Cut(from, length)`, and the six places that used to write `text.Slice(...)` now ask
+it — over characters it answers the slice it always did, over kinds it answers a call to a
+helper that finds the first token's start and the last one's end.
+
+The last one's *end* and not the next one's start, so that trivia standing after a run is
+left out: a capture is what was written, not what was written plus the space after it.
+
+    Pair : @string = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+
+    a=1              -> a:1
+    a=1 bb=22        -> a:1|bb:22
+      x=9  y=10      -> x:9|y:10
+
+**And the position was wrong in a way only the character parser could show.** A refusal came
+back at character zero however far in the trouble was, while the same grammar over
+characters said six and fourteen. The mapping measured `starts.Length` — the array, sized
+for the worst case and filled at the front — instead of the token count, and past the count
+the array holds zeros. The count is the length of the kinds, there being one character a
+token. That is what the test compares now: not a value typed into it, but what the character
+parser makes of the same input, value and refusal position alike.
+
+**Two things had to be turned off rather than made to work.** A split grammar cannot stream:
+a window is a stretch of characters, and a machine over tokens is handed what a lexer
+already found — there is nothing to grow. It was found the way these things are found, as
+three call sites in the streamed forms that handed the recognizer characters where it now
+wants the text. And with streaming off, `Failure.Starved` is never assigned, which the test
+harness rightly calls a warning and a warning is a failure: the field is not emitted either.
+
+Every character grammar is byte for byte what it was — `SqlStandard92` 23,524 lines,
+`ExpressionLanguage` 25,804, `Rfc3986` 25,771 — because all of this is behind a flag that
+only a split graph sets.
+
+**What is left before a grammar can ask for this in its own text.** Trivia: it is skipped
+rather than reported, so it is no pattern and has no kind, and until the lexer eats it the
+entry point takes four arguments — the source, the kinds, and where each one was — rather
+than one string. That is the last hand-written thing in the probe and the last thing between
+here and an opt-in.

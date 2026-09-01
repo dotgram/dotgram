@@ -136,9 +136,15 @@ public static partial class CSharpEmitter
 	/// How large a divided recognizer's parts should be aimed to be, or null for the
 	/// measured default. A wish rather than a requirement — see <c>Machine.PartSize</c>.
 	/// </param>
+	/// <param name="overKinds">
+	/// Whether the graph reads token kinds rather than characters — a graph
+	/// <c>LexicalSplit</c> rewrote. It changes one thing in the machine: a position is a
+	/// token, so the text a value is cut from travels beside the kinds rather than being
+	/// what is read (docs/lexical-adt-design.md).
+	/// </param>
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
-		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null)
+		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null, bool overKinds = false)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -161,7 +167,10 @@ public static partial class CSharpEmitter
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
-			var made = new Machine(graph, results, lines, Streaming(graph), only, tag, partSize);
+			var made = new Machine(graph, results, lines, Streaming(graph, overKinds), only, tag, partSize)
+			{
+				OverKinds = overKinds,
+			};
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -172,7 +181,7 @@ public static partial class CSharpEmitter
 			var lowered = group.Publications.Count > 0 &&
 				!RecoversWithin(graph, only) &&
 				!ClimbsWithin(graph, only) &&
-				!group.Publications.Any(publication => Streams(graph, publication)) &&
+				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
 				group.Publications.All(
 					publication =>
 						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
@@ -222,11 +231,12 @@ public static partial class CSharpEmitter
 					publication,
 					results,
 					graph.Climbing.ContainsKey(publication.Rule),
-					Streams(graph, publication),
+					Streams(graph, publication, overKinds),
 					compiled.Flat,
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
-					compiled.Machine.UsesContext ? graph.Context : null);
+					compiled.Machine.UsesContext ? graph.Context : null,
+					overKinds);
 
 				file.Line();
 			}
@@ -271,7 +281,7 @@ public static partial class CSharpEmitter
 		foreach (var compiled in machines)
 			EmitRecognizers(
 				file, graph, results, compiled,
-				continuationProbes, streamedParts, streamedSyncs);
+				continuationProbes, streamedParts, streamedSyncs, overKinds);
 
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -286,7 +296,7 @@ public static partial class CSharpEmitter
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
 			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
-			if (Streams(graph, publication) && StagesOf(graph, publication.Rule) is { } stages)
+			if (Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
 			{
 				var parts = new List<string>(stages.Count);
 
@@ -351,15 +361,15 @@ public static partial class CSharpEmitter
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0 && Streaming(graph),
-				starved: Streaming(graph),
+				reach: graph.Recoveries.Count > 0 && Streaming(graph, overKinds),
+				starved: Streaming(graph, overKinds),
 				expected: true,
 				expectedMore: machines.Exists(static compiled =>
 					!compiled.Flat || compiled.Machine.Ties)));
 			file.Line();
 		}
 
-		if (Streaming(graph))
+		if (Streaming(graph, overKinds))
 		{
 			file.Write(WindowClass);
 			file.Line();
@@ -444,7 +454,8 @@ public static partial class CSharpEmitter
 		Compiled compiled,
 		Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)> continuationProbes,
 		Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)> streamedParts,
-		Dictionary<RuleSymbol, (string Name, int Entry)> streamedSyncs)
+		Dictionary<RuleSymbol, (string Name, int Entry)> streamedSyncs,
+		bool overKinds)
 	{
 		var machine = compiled.Machine;
 		var engine  = compiled.Engine;
@@ -504,7 +515,7 @@ public static partial class CSharpEmitter
 
 
 
-				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication) ||
+				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication, overKinds) ||
 
 					StagesOf(graph, publication.Rule) is not { } stages)
 
@@ -693,7 +704,7 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input, string? context)
+		bool ties, bool input, string? context, bool overKinds = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -712,7 +723,7 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "") + gives;
+			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives;
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -726,8 +737,13 @@ public static partial class CSharpEmitter
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
 			(input ? ", null!" : "") + gives;
 
+		// Over kinds a position is a token, so what a publication hands back has to be cut
+		// from the text the tokens came from rather than from what the machine was reading —
+		// the same care the machine takes for a capture, taken once more at the edge.
 		string Recognized(string from, string to) =>
-			built is null ? $"input.Substring({from}, {to})" : "recognized";
+			built is not null ? "recognized" :
+			overKinds        ? $"Text_DotGram(source, starts, lengths, {from}, {to})" :
+			$"input.Substring({from}, {to})";
 
 		if (publication.Kind == PublishKind.Find)
 		{
@@ -749,9 +765,15 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"public static {value} {method}(string input{takes})"))
+		var takesText = overKinds
+			? "string source, string input, int[] starts, int[] lengths"
+			: "string input";
+
+		var givesText = overKinds ? "source, input, starts, lengths" : "input";
+
+		using (file.Block($"public static {value} {method}({takesText}{takes})"))
 		{
-			file.Line($"var match = Try{method}(input{gives});");
+			file.Line($"var match = Try{method}({givesText}{gives});");
 			file.Line();
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
@@ -762,7 +784,15 @@ public static partial class CSharpEmitter
 		file.Line();
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		using (file.Block($"public static {match} Try{method}(string input{takes})"))
+		// Over kinds the caller hands over what a lexer produced: the source it read, the
+		// kinds it found, and where each one was. Four arguments and not one, deliberately —
+		// wiring a lexer into the one-string form is the step after this, and inventing a
+		// half of it here would hide which half is missing.
+		var reads = overKinds
+			? "string source, string input, int[] starts, int[] lengths"
+			: "string input";
+
+		using (file.Block($"public static {match} Try{method}({reads}{takes})"))
 		{
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
@@ -800,11 +830,24 @@ public static partial class CSharpEmitter
 				file.Line(
 					$"return {match}.Failed(" +
 					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
-					"otherwise, failure.Position, failure.Expected, " +
+					"otherwise, " +
+					// Against the token count and not the array's length: the caller sizes the
+					// arrays for the worst case and fills the front of them, so past the count
+					// they hold zeros — and a refusal at the end came back as a refusal at the
+					// beginning, which the character parser next door reported correctly. The
+					// count is the length of the kinds, there being one character a token.
+					(overKinds
+						? "failure.Position < input.Length ? starts[failure.Position] : source.Length, "
+						: "failure.Position, ") +
+					"failure.Expected, " +
 					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
-			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
+			file.Line(
+				overKinds
+					? $"return {match}.Success({Recognized("0", "end")}, 0, " +
+						"end == 0 ? 0 : starts[end - 1] + lengths[end - 1]);"
+					: $"return {match}.Success({Recognized("0", "end")}, 0, end);");
 		}
 	}
 

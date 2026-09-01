@@ -490,6 +490,13 @@ sealed partial class Machine
 		{
 			var kept = new List<string>(_extra);
 
+			// The one thing a machine over kinds needs that a machine over characters does
+			// not: a way from two token positions to the text between them. Emitted here
+			// rather than beside the support types because it is tagged like everything else
+			// this machine writes, and two machines in one class must not collide.
+			if (OverKinds)
+				kept.Add(Provenance());
+
 			foreach (var (name, declaration) in _expected)
 				if (_expectedUsed.Contains(name))
 					kept.Add(declaration);
@@ -719,6 +726,66 @@ sealed partial class Machine
 	string InputArgument  => UsesInput ? ", parserInput" : "";
 
 	/// <summary>
+	/// Whether this machine reads token kinds rather than characters
+	/// (docs/lexical-adt-design.md).
+	/// </summary>
+	/// <remarks>
+	/// It changes one thing and only one: a position is a token and not a character, so
+	/// nothing may cut a value out of what it is reading. The text and the extents travel
+	/// beside the kinds, the same way the whole input already travels for §8.2, and the six
+	/// places that cut a value go through <see cref="Cut"/> so that the care is taken in one
+	/// place rather than six.
+	/// </remarks>
+	public bool OverKinds { get; init; }
+
+	string TokensParameter =>
+		OverKinds ? ", string parserSource, int[] parserStarts, int[] parserLengths" : "";
+
+	string TokensArgument => OverKinds ? ", parserSource, parserStarts, parserLengths" : "";
+
+	/// <summary>The text between a position and a length, whatever a position is.</summary>
+	/// <remarks>
+	/// Over characters a position indexes what is being read, so the cut is a slice of it.
+	/// Over kinds it indexes a token and the text is somewhere else entirely — which is the
+	/// one thing a split grammar has to be careful about, and the reason this is a method.
+	/// </remarks>
+	/// <summary>
+	/// The text a run of tokens came from.
+	/// </summary>
+	/// <remarks>
+	/// The first token's start and the last one's end, so that trivia standing after the run
+	/// is left out — a capture is what was written, not what was written plus the space
+	/// following it. A run of none is the empty string, which is what an optional capture
+	/// that never ran hands over.
+	/// </remarks>
+	string Provenance()
+	{
+		var helper = new Writer(1);
+
+		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
+
+		using (helper.Block(
+			$"static string Text_DotGram{_tag}(" +
+			"string source, int[] starts, int[] lengths, int from, int length)"))
+		{
+			helper.Line("if (length <= 0)");
+			helper.Then("return string.Empty;");
+			helper.Line();
+			helper.Line("var began = starts[from];");
+			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+			helper.Line("return source.Substring(began, ended - began);");
+		}
+
+		return helper.ToString();
+	}
+
+	string Cut(string from, string length) =>
+		OverKinds
+			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
+			: $"text.Slice({from}, {length}).ToString()";
+
+	/// <summary>
 	/// Whether anything in this machine names the grammar's own state (§7.7).
 	/// </summary>
 	/// <remarks>
@@ -821,12 +888,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}{ContextArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -855,7 +922,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{ContextParameter}, " +
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -1055,7 +1122,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{ContextArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument});");
 								RootValue(file);
 							}
 						}
@@ -2124,7 +2191,7 @@ sealed partial class Machine
 				{
 					writer.Line(
 						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
-						$"entries{InputArgument}{ContextArgument});");
+						$"entries{InputArgument}{TokensArgument}{ContextArgument});");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{

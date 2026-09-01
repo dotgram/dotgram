@@ -41,7 +41,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{ContextParameter})"))
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -614,8 +614,8 @@ sealed partial class Machine
 							arguments.Add(
 								$"captured{memberIndex}_{part}From < 0 ? " +
 								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
-								$"text.Slice(captured{memberIndex}_{part}From, " +
-								$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From).ToString()");
+								Cut($"captured{memberIndex}_{part}From",
+									$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From"));
 
 						var built = $"{_factories[sited.Callee][0].Method}({string.Join(", ", arguments)})";
 
@@ -749,8 +749,8 @@ sealed partial class Machine
 					file.Line(
 						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
 						(member.IsOptional ? "null" : "string.Empty") + " : " +
-						$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
-						$"captured{memberIndex}From).ToString();");
+						Cut($"captured{memberIndex}From",
+							$"captured{memberIndex}To - captured{memberIndex}From") + ";");
 					file.Line();
 
 					continue;
@@ -772,7 +772,7 @@ sealed partial class Machine
 					$"captured{memberIndex}Length)");
 				file.Then(
 					$"captured{memberIndex} = " +
-					$"text.Slice(captured{memberIndex}From, captured{memberIndex}Length).ToString();");
+					Cut($"captured{memberIndex}From", $"captured{memberIndex}Length") + ";");
 
 				using (file.Block("else"))
 				{
@@ -1087,8 +1087,7 @@ sealed partial class Machine
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(
-				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
 			arguments.Add(
@@ -1128,8 +1127,7 @@ sealed partial class Machine
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(
-				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
 			arguments.Add(

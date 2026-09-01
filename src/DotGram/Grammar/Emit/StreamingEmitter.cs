@@ -546,19 +546,30 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>Whether anything in this grammar reads through a window.</summary>
-	static bool Streaming(RecognitionGraph graph)
+	static bool Streaming(RecognitionGraph graph, bool overKinds = false)
 	{
 		foreach (var publication in graph.Publications)
-			if (Streams(graph, publication))
+			if (Streams(graph, publication, overKinds))
 				return true;
 
 		return false;
 	}
 
-	static bool Streams(RecognitionGraph graph, Publication publication) =>
-		publication.Kind == PublishKind.Find
+	/// <summary>
+	/// Whether a publication can be read a window at a time.
+	/// </summary>
+	/// <remarks>
+	/// Not over kinds. A window is a stretch of characters, and a machine over tokens is
+	/// handed the tokens a lexer already found — there is no window to grow and nothing to
+	/// grow it from. Refused here rather than emitted and left not to compile, which is
+	/// where it was found: three call sites in the streamed forms handed the recognizer
+	/// characters where it now wants the text the tokens came from.
+	/// </remarks>
+	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false) =>
+		!overKinds &&
+		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&
 				Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
 				extent != LineExtent.Beyond
-			: Retention.StreamedParse(graph, publication.Rule) is null;
+			: Retention.StreamedParse(graph, publication.Rule) is null);
 }
