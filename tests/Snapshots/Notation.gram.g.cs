@@ -1234,13 +1234,9 @@ namespace DotGram.Snapshots
 			var s1 = 0;
 			var lm1 = 0;
 			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var q0 = 0;
-			var q1 = 0;
 			var r0 = -1;
 			var r1 = -1;
 
@@ -1296,14 +1292,14 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
 				goto Fail;
 			}
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
+			s1 = ways.Cursor;
+			lm1 = ways.LogCount;
+			rr1 = ways.RefsCount;
 			L8_again:
 			c = text[p];
-			q1 = Read_Number_Primary(text, p, ref failure, ways);
-			if (q1 < 0) goto L9_failed;
-			p = q1;
+			q0 = Read_Number_Primary(text, p, ref failure, ways);
+			if (q0 < 0) goto L9_failed;
+			p = q0;
 			r1 = ways.Last;
 			ways.Begin(0, 1, pos, p);
 			ways.Put(r0);
@@ -1312,10 +1308,10 @@ namespace DotGram.Snapshots
 			goto L0_took;
 			L9_failed:
 			p = m0;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
+			ways.LogCount  = lm1;
+			ways.RefsCount = rr1;
 			r1 = -1;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L8_again;
+			if (ways.Cursor > s1 && ways.Retry(s1)) goto L8_again;
 			goto Fail;
 			L0_took: ;
 			return p;

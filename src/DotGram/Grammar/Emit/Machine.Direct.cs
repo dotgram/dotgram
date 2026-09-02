@@ -1019,6 +1019,30 @@ sealed partial class Machine
 
 		string Segment() => $"s{_segments++}";
 
+		/// <summary>
+		/// Where the numbering of locals stands — segments, marks, turns, calls and ways.
+		/// The alternatives of one choice never run in the same parse, so each numbers from
+		/// where the choice stood and the frame holds the widest of them, not all of them
+		/// side by side. Labels are not among these: a label is unique to the method.
+		/// </summary>
+		(int Segments, int Marks, int Turns, int Calls, int Ways) Numbered
+		{
+			get => (_segments, _marks, _turns, _calls, _ways);
+			set => (_segments, _marks, _turns, _calls, _ways) = value;
+		}
+
+		/// <summary>The furthest either numbering reached, where what follows a choice numbers from.</summary>
+		static (int Segments, int Marks, int Turns, int Calls, int Ways) Furthest(
+			(int Segments, int Marks, int Turns, int Calls, int Ways) one,
+			(int Segments, int Marks, int Turns, int Calls, int Ways) other) =>
+			(
+				Math.Max(one.Segments, other.Segments),
+				Math.Max(one.Marks,    other.Marks),
+				Math.Max(one.Turns,    other.Turns),
+				Math.Max(one.Calls,    other.Calls),
+				Math.Max(one.Ways,     other.Ways)
+			);
+
 		string Mark() => $"m{_marks++}";
 
 		string Label(string what) => $"L{_labels++}_{what}";
@@ -1742,12 +1766,21 @@ sealed partial class Machine
 
 				Refused(code, "p", name, fail);
 
+				var from    = Numbered;
+				var reached = from;
+
 				for (var i = 0; i < alternatives.Count; i++)
 				{
+					Numbered = from;
+
 					code.Line($"{labels[i]}:");
 					EmitAlternative(code, alternatives[i], mark, fail, following, loaded: true);
 					code.Line($"goto {took};");
+
+					reached = Furthest(reached, Numbered);
 				}
+
+				Numbered = reached;
 
 				code.Line($"{took}: ;");
 
@@ -1803,10 +1836,15 @@ sealed partial class Machine
 			if (lasts.Any(static last => last >= 0))
 				code.Line($"w{way} = -1;");
 
+			var stood  = Numbered;
+			var widest = stood;
+
 			for (var i = 0; i < alternatives.Count; i++)
 			{
 				var spent = Label("spent");
 				var holds = MayHold(i);
+
+				Numbered = stood;
 
 				code.Line($"{chosen[i]}:");
 
@@ -1863,8 +1901,11 @@ sealed partial class Machine
 						code.Line($"if (w{way} >= 0) {Moved(i + 1)}");
 					code.Line($"goto {chosen[i + 1]};");
 				}
+
+				widest = Furthest(widest, Numbered);
 			}
 
+			Numbered = widest;
 			code.Line($"{took}: ;");
 		}
 

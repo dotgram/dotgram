@@ -11282,3 +11282,26 @@ identifier begins a column reference and a value function alike, and the grammar
 written, decides those by trying the first and coming back. The hand-written parser does
 not come back; it reads a value expression after `(` and then looks at what follows.
 That is the rest of the distance, and it is not in the tape.
+
+## Built: the alternatives of a choice share a frame
+
+A reader's locals were numbered once through, in the order the constructs were written:
+every segment its `s`, `lm` and `rr`, every call its `q`, every mark, turn and way its
+own. A choice of eight alternatives, each a sequence of segments with calls inside, laid
+all eight out side by side in one frame — `Read_ValueFunction` declared 377 of them — and
+the JIT zeroes the frame on entry and keeps every one of them addressable, which is what
+a method with 400 locals costs before it reads a character.
+
+No two alternatives of one choice run in the same parse. So each now numbers from where
+the choice stood, and what follows the choice numbers from the widest alternative rather
+than from the sum: the frame holds one alternative's locals and the rest are the same
+slots under other names. Labels are the exception, deliberately — a label is unique to
+the method, and two alternatives with the same `again` would be a jump into the wrong
+one. The parts a rule over budget is cut into are untouched: each is a method with a
+writer of its own.
+
+`Read_ValueFunction` declares 177 locals now against 377, and the widest reader in the SQL
+parser is 181. Measured, the sixty-four predicates went from 3,896 to 3,565 ns and the sixty-four
+operands from 1,361 to 1,259 — eight percent on inputs that enter the wide readers many
+times — and the short inputs stayed within the noise. Two snapshots renumbered, nothing
+else in them moved.

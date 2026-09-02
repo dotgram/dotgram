@@ -439,8 +439,6 @@ namespace DotGram.Snapshots
 			var s1 = 0;
 			var s2 = 0;
 			var s3 = 0;
-			var s4 = 0;
-			var s5 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -578,7 +576,7 @@ namespace DotGram.Snapshots
 				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L9_alt;
 			}
-			s4 = ways.Cursor;
+			s3 = ways.Cursor;
 			L15_again:
 			c = text[p];
 			if (c != '\n')
@@ -590,7 +588,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L16_failed:
 			p = m5;
-			if (ways.Cursor > s4 && ways.Retry(s4)) goto L15_again;
+			if (ways.Cursor > s3 && ways.Retry(s3)) goto L15_again;
 			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L9_alt:
 			c = text[p];
@@ -599,7 +597,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s5 = ways.Cursor;
+			s3 = ways.Cursor;
 			L19_again:
 			c = text[p];
 			if (c != '\r')
@@ -611,7 +609,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L20_failed:
 			p = m5;
-			if (ways.Cursor > s5 && ways.Retry(s5)) goto L19_again;
+			if (ways.Cursor > s3 && ways.Retry(s3)) goto L19_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
@@ -653,8 +651,6 @@ namespace DotGram.Snapshots
 			var s3 = 0;
 			var s4 = 0;
 			var s5 = 0;
-			var s6 = 0;
-			var s7 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -825,7 +821,7 @@ namespace DotGram.Snapshots
 				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L16_alt;
 			}
-			s6 = ways.Cursor;
+			s5 = ways.Cursor;
 			L22_again:
 			c = text[p];
 			if (c != '\n')
@@ -837,7 +833,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L23_failed:
 			p = m8;
-			if (ways.Cursor > s6 && ways.Retry(s6)) goto L22_again;
+			if (ways.Cursor > s5 && ways.Retry(s5)) goto L22_again;
 			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L16_alt:
 			c = text[p];
@@ -846,7 +842,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s7 = ways.Cursor;
+			s5 = ways.Cursor;
 			L26_again:
 			c = text[p];
 			if (c != '\r')
@@ -858,7 +854,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L27_failed:
 			p = m8;
-			if (ways.Cursor > s7 && ways.Retry(s7)) goto L26_again;
+			if (ways.Cursor > s5 && ways.Retry(s5)) goto L26_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
@@ -893,8 +889,6 @@ namespace DotGram.Snapshots
 			var m2 = 0;
 			var s1 = 0;
 			var s2 = 0;
-			var s3 = 0;
-			var s4 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -982,7 +976,7 @@ namespace DotGram.Snapshots
 				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L6_alt;
 			}
-			s3 = ways.Cursor;
+			s2 = ways.Cursor;
 			L12_again:
 			c = text[p];
 			if (c != '\n')
@@ -994,7 +988,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L13_failed:
 			p = m2;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L12_again;
+			if (ways.Cursor > s2 && ways.Retry(s2)) goto L12_again;
 			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L6_alt:
 			c = text[p];
@@ -1003,7 +997,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s4 = ways.Cursor;
+			s2 = ways.Cursor;
 			L16_again:
 			c = text[p];
 			if (c != '\r')
@@ -1015,7 +1009,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L17_failed:
 			p = m2;
-			if (ways.Cursor > s4 && ways.Retry(s4)) goto L16_again;
+			if (ways.Cursor > s2 && ways.Retry(s2)) goto L16_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
