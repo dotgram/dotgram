@@ -44,7 +44,7 @@ static class Language
 
 		switch (node)
 		{
-			case Node.Empty or Node.Guard or Node.Behind or Node.Lookahead:
+			case Node.Empty or Node.Guard or Node.Behind or Node.Lookahead or Node.Glue:
 				return "";
 
 			case Node.Literal(var text):
@@ -118,7 +118,7 @@ static class Language
 	{
 		switch (node)
 		{
-			case Node.Empty or Node.Guard or Node.Behind or Node.Lookahead:
+			case Node.Empty or Node.Guard or Node.Behind or Node.Lookahead or Node.Glue:
 				return [at];
 
 			case Node.Literal(var literal) one:

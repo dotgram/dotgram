@@ -326,6 +326,12 @@ sealed partial class Machine
 			case Node.Behind:
 				return true;
 
+			// Over characters the seam was never woven and there is nothing left to ask,
+			// so a glued sequence scans like any other. Over kinds it is a question about
+			// the tokens, which this rendering does not carry.
+			case Node.Glue:
+				return !OverKinds;
+
 			case Node.Atomic(var kept):
 				return Scannable(kept, after, seen);
 
@@ -695,7 +701,7 @@ sealed partial class Machine
 						Emit(buffer, parts[i], i == 0 ? fail : restore, carry);
 
 						// The invariant survives only what consumes nothing.
-						carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind;
+						carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind or Node.Glue;
 					}
 
 					var written = buffer.ToString();
@@ -809,6 +815,11 @@ sealed partial class Machine
 
 					break;
 				}
+
+				// Only ever reached over characters (see `Scannable`), where the seam was
+				// never woven and adjacency is what the absence of one already says.
+				case Node.Glue:
+					break;
 
 				case Node.Behind(var boundary):
 					_character = true;

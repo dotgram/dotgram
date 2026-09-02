@@ -165,6 +165,67 @@ public sealed class SemanticTests
 			"Start = A & (trivia & A)*" + '\n' +
 			"A = ['a'..'z']", input));
 
+	// ── §4.5: `~`, where trivia may not go ──────────────────────────────────
+
+	/// <summary>
+	/// The angle brackets, which is what <c>~</c> was written for.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A shift is two <c>&gt;</c> with nothing between them and a nested type argument
+	/// list closes with two that are each their own; a language with both cannot spell
+	/// the shift <c>"&gt;&gt;"</c>, because a token cannot be half spent. Written as
+	/// <c>'&gt;' ~ '&gt;'</c> there is no <c>&gt;&gt;</c> to make, and what tells the two
+	/// apart is the gap: C++ needed a space here until C++11 and C# never did.
+	/// </para>
+	/// <para>
+	/// Asked of both halves, because <c>~</c> means one thing and a grammar must read the
+	/// same language whether or not it is lexically split. Over characters it is the seam
+	/// the normalizer withheld; over kinds the trivia was skipped before the tokens were
+	/// made, so the same statement is a question about where each token began.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(true,  "a >> b",              true)]
+	[InlineData(true,  "a>>b",                true)]
+	[InlineData(true,  "a > > b",             false)]
+	[InlineData(true,  "list<list<int>>",     true)]
+	[InlineData(true,  "list<list<int> >",    true)]
+	[InlineData(false, "a >> b",              true)]
+	[InlineData(false, "a>>b",                true)]
+	[InlineData(false, "a > > b",             false)]
+	[InlineData(false, "list<list<int>>",     true)]
+	[InlineData(false, "list<list<int> >",    true)]
+	public void Glue_tells_a_shift_from_two_closing_brackets(bool lexical, string input, bool expected)
+	{
+		var angles =
+			"trivia = { ' '* }" + '\n' +
+			"namespace Lexical" + '\n' +
+			"{" + '\n' +
+			"\ttrivia = none" + '\n' +
+			"\tName = ['a'..'z']+" + '\n' +
+			"}" + '\n' +
+			"Type = Lexical.Name & ('<' & Type & (',' & Type)* & '>')?" + '\n' +
+			"Expr = Expr & '>' ~ '>' & Prim | Prim" + '\n' +
+			"Prim = Lexical.Name" + '\n' +
+			"Start = Type & eof | Expr & eof" + '\n' +
+			"parse Start";
+
+		var result = GramCompiler.Compile(
+			angles,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+
+		var match = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+		Assert.Equal(expected, match.IsSuccess);
+	}
+
 	// ── A settled repetition keeps one way back ─────────────────────────────
 
 	/// <summary>
@@ -323,7 +384,7 @@ public sealed class SemanticTests
 		"Row     = \"R\" & '|' & name: Text & eol\n" +
 		"Text    = [^ '|']+\n" +
 		"Feed    = header: Header & rows: Row* & eof\n" +
-		"Header  = \"H\" ~ '|' & date: Digit{4} & eol\n" +
+		"Header  = \"H\" % '|' & date: Digit{4} & eol\n" +
 		"Digit   = ['0'..'9']\n" +
 		"parse Feed";
 

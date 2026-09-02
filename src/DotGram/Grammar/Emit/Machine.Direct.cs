@@ -105,7 +105,7 @@ sealed partial class Machine
 					switch (node)
 					{
 						case Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Choice
-							or Node.Repeat or Node.Lookahead or Node.Behind or Node.Atomic:
+							or Node.Repeat or Node.Lookahead or Node.Behind or Node.Atomic or Node.Glue:
 							break;
 
 						case Node.External { HasValue: false }:
@@ -200,12 +200,19 @@ sealed partial class Machine
 	/// <summary>Whether the readers run a guard at all.</summary>
 	bool _directGuards;
 
+	/// <summary>Whether the readers ask about a gap, which over kinds needs the tokens.</summary>
+	bool _directGlue;
+
 	void DirectGuardNeeds(IReadOnlyList<RuleSymbol> rules)
 	{
-		_directBuilds = _directGuardContext = _directGuards = false;
+		_directBuilds = _directGuardContext = _directGuards = _directGlue = false;
 
 		foreach (var rule in rules)
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+			{
+				if (node is Node.Glue)
+					_directGlue = true;
+
 				if (node is Node.Guard guard)
 				{
 					_directGuards = true;
@@ -217,6 +224,7 @@ sealed partial class Machine
 						if (member.Rule is not null)
 							_directBuilds = true;
 				}
+			}
 	}
 
 	/// <summary>Whether the readers carry the context: a guard names it, or a guard builds a value whose factory might.</summary>
@@ -225,12 +233,12 @@ sealed partial class Machine
 	/// <summary>What a reader takes beyond the text, the position, the failure and the tape.</summary>
 	string DirectReaderParameters =>
 		(_directBuilds ? ", DirectValues values" : "") +
-		(_directGuards && OverKinds ? TokensParameter : "") +
+		((_directGuards || _directGlue) && OverKinds ? TokensParameter : "") +
 		(DirectReaderContext ? ContextParameter : "");
 
 	string DirectReaderArguments =>
 		(_directBuilds ? ", values" : "") +
-		(_directGuards && OverKinds ? TokensArgument : "") +
+		((_directGuards || _directGlue) && OverKinds ? TokensArgument : "") +
 		(DirectReaderContext ? ContextArgument : "");
 
 	/// <summary>What the entry's own reader takes: the tokens whenever there are tokens, and what the readers take.</summary>
@@ -1179,6 +1187,23 @@ sealed partial class Machine
 					EmitLookahead(code, positive, inside, fail, loaded);
 					break;
 
+				// Nothing was skipped here (§4.5's `~`). Over characters the seam was never
+				// woven, so the operands are adjacent by standing where they do and there
+				// is nothing to write; over kinds the tokens say where each began.
+				case Node.Glue:
+				{
+					if (machine.OverKinds)
+					{
+						code.Line(
+							"if (p > 0 && p < text.Length && " +
+							"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])");
+						using (code.Block(""))
+							Refused(code, "p", Expected([node.ToString()]), fail);
+					}
+
+					break;
+				}
+
 				case Node.Behind(var boundary):
 				{
 					_character = true;
@@ -1633,7 +1658,7 @@ sealed partial class Machine
 			{
 				Emit(buffer, parts[i], undo, follows[i], carry);
 
-				carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind;
+				carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind or Node.Glue;
 			}
 
 			var written = buffer.ToString();

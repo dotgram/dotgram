@@ -190,7 +190,7 @@ public static class Determinism
 		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
 		node switch
 		{
-			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue => true,
 			Node.Literal or Node.Element or Node.External => true,
 			Node.Capture  (_, var body)   => Of(body, asked, following, graph, seam),
 			Node.Construct(var body, _)   => Of(body, asked, following, graph, seam),

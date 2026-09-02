@@ -377,6 +377,14 @@ public sealed class LexicalSplit
 					// whole by construction, so there is nothing left for it to ask.
 					return Node.Empty.Instance;
 
+				case Node.Glue:
+					// The one assertion that means more on this side of the crossing than the
+					// other. Over characters `~` is the absence of a woven seam and needs no
+					// node at all; here the tokens were made after the trivia was skipped, so
+					// whether anything stood between two of them is a question only the token
+					// positions can answer, and this is what asks it.
+					return node;
+
 				case Node.Call(var called, var arguments):
 				{
 					// A built-in is a shape and not a terminal: `eof` is `?!any` and means the

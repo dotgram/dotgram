@@ -324,6 +324,7 @@ public sealed class TerminalInventory
 					return;
 
 				case Node.Behind:
+				case Node.Glue:
 				case Node.Guard:
 				case Node.Empty:
 					return;

@@ -2570,6 +2570,28 @@ sealed partial class Machine
 					: CompileRepeat(repeat, next, following);
 			}
 
+			// Nothing was skipped here (§4.5's `~`). Over characters the seam was never
+			// woven and there is nothing to ask, so this is not a state at all; over kinds
+			// the tokens carry where each began and how long it is, and adjacency is the
+			// one comparison over the pair.
+			case Node.Glue:
+			{
+				if (!OverKinds)
+					return next;
+
+				var glued = Reserve(out var atGlue);
+
+				atGlue.Line(
+					"if (p > 0 && p < text.Length && " +
+					"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])");
+				using (atGlue.Block(""))
+					EmitTerminalFailure(atGlue, _fail, DeclareExpected([node.ToString()]));
+
+				atGlue.Line($"goto {Label(atGlue, next)};");
+
+				return glued;
+			}
+
 			// One comparison against the character behind, and nothing else: no entry,
 			// no state of its own beyond this one, and failing it is an ordinary failure.
 			case Node.Behind(var boundary):
@@ -3684,6 +3706,7 @@ sealed partial class Machine
 		node switch
 		{
 			Node.Empty or Node.Behind => true,
+			Node.Glue                 => true,
 			Node.Element              => true,
 			Node.Literal(var text)    => text.Length == 1,
 			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
@@ -4051,7 +4074,7 @@ sealed partial class Machine
 
 				foreach (var part in parts)
 				{
-					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard)
+					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard or Node.Glue)
 						continue;
 
 					if (EntryTest(part, seen) is not { } head)

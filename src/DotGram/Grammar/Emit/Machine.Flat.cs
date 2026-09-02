@@ -332,7 +332,7 @@ sealed partial class Machine
 	bool Extent(Node node) =>
 		node switch
 		{
-			Node.Empty or Node.Literal or Node.Element or Node.Behind => true,
+			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
 			Node.Sequence(var parts)      => parts.All(Extent),
 			Node.Choice(var alternatives) => alternatives.All(Extent),
 			Node.Repeat(var body, _, _)   => Extent(body),

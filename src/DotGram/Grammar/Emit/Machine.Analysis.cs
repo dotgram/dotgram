@@ -82,6 +82,9 @@ sealed partial class Machine
 			// routes failure through `_fail` like every other silent node.
 			Node.Behind                                => true,
 
+			// Nothing read and nothing kept, whichever half of a split grammar it lands in.
+			Node.Glue                                  => true,
+
 			// A lookahead over a silent body needs no entry either: the body writes
 			// nothing, so entering is a checkpoint local and leaving is putting the
 			// position back — both directions, since a negative lookahead's failure is

@@ -639,19 +639,26 @@ namespace DotGram.Parsers;
 	// `>` and `>>` are told apart the same way, and here the lookahead earns more: the
 	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
 	// the second `>` says otherwise.
+	//
+	// The shift below is written as two `>` glued rather than as one `">>"`, and that is
+	// what lets `List<List<int>>` close two argument lists with the same two characters
+	// C# closes them with. A literal `">>"` is a token, and a token cannot be half spent:
+	// the type argument list wants one `>` and would be handed a shift. Written this way
+	// there is no `>>` for the lexer to make, `~` says the two stand with nothing between
+	// them, and `a > > b` is refused exactly as C# refuses it.
 	Relational : @Expression
-		= left: Relational & "is" & type: Type => @(Expression.TypeIs(left, type))
-		| left: Relational & "as" & type: Type => @(Expression.TypeAs(left, type))
-		| left: Relational & "<=" & right: Shift        => @(Expression.LessThanOrEqual(left, right))
-		| left: Relational & ">=" & right: Shift        => @(Expression.GreaterThanOrEqual(left, right))
+		= left: Relational & "is" &        type : Type  => @(Expression.TypeIs(left, type))
+		| left: Relational & "as" &        type : Type  => @(Expression.TypeAs(left, type))
+		| left: Relational & "<=" &        right: Shift => @(Expression.LessThanOrEqual(left, right))
+		| left: Relational & ">=" &        right: Shift => @(Expression.GreaterThanOrEqual(left, right))
 		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
 		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
 		| s: Shift                                      => @(s)
 
 	Shift : @Expression
-		= left: Shift & "<<" & right: Additive => @(Expression.LeftShift(left, right))
-		| left: Shift & ">>" & right: Additive => @(Expression.RightShift(left, right))
-		| a: Additive                          => @(a)
+		= left: Shift & '<' ~ '<' & right: Additive => @(Expression.LeftShift(left, right))
+		| left: Shift & '>' ~ '>' & right: Additive => @(Expression.RightShift(left, right))
+		| a: Additive                               => @(a)
 
 	Additive : @Expression
 		= left: Additive & '+' & right: Multiplicative

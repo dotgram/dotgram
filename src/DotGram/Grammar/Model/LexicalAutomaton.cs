@@ -171,7 +171,9 @@ public sealed class LexicalAutomaton
 		{
 			switch (node)
 			{
-				case Node.Empty or Node.Guard:
+				// A pattern weaves no trivia, so `~` inside one asks about a gap that could
+				// not have been there: accepted, and worth nothing.
+				case Node.Empty or Node.Guard or Node.Glue:
 					return true;
 
 				case Node.Literal(var text) literal:
@@ -302,7 +304,7 @@ public sealed class LexicalAutomaton
 		{
 			switch (node)
 			{
-				case Node.Empty or Node.Guard:
+				case Node.Empty or Node.Guard or Node.Glue:
 				{
 					var one = State();
 

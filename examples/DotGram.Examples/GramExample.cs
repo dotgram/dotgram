@@ -159,8 +159,14 @@ namespace DotGram.Examples;
 	Binding        = ("<<" | ">>") & Int
 
 	Sequence : @GramExpr
-		= first: Operand & ('&' & rest: Operand)*
+		= first: Glued & ('&' & rest: Glued)*
 		=> @(GramGrammar.Sequence(first, rest))
+
+	// Tighter than `&`, so `a & b ~ c` is `a & (b ~ c)` — which is the whole of what
+	// makes it an operator of its own rather than a spelling of the seam (§4.5).
+	Glued : @GramExpr
+		= first: Operand & ('~' & rest: Operand)*
+		=> @(GramGrammar.Glued(first, rest))
 
 	Operand : @GramExpr = o: Guard => @(o) | o: Quantified => @(o)
 
@@ -268,6 +274,9 @@ public partial class GramGrammar
 
 	public sealed record GramSequence(GramExpr[] Operands) : GramExpr;
 
+	/// <summary>Operands with no trivia between them — <c>a ~ b</c> (§4.5).</summary>
+	public sealed record GramGlued(GramExpr[] Operands) : GramExpr;
+
 	/// <summary>A quantifier, a <c>recover</c> or a <c>with</c> wrapped around an operand.</summary>
 	public sealed record GramQuantified(GramExpr Body, string? Quantifier, GramExpr? Recovery, bool Rebound) : GramExpr;
 
@@ -310,6 +319,9 @@ public partial class GramGrammar
 
 	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
 		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
+
+	public static GramExpr Glued(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramGlued(Joined(first, rest));
 
 	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
 		quantifier is null && recovery is null

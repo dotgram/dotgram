@@ -11163,3 +11163,73 @@ ExpressionLanguage and JSON are where they were. The lexer emitter's tests have 
 under the parallel runner — `A_kind_names_every_pattern_that_matched` failed once in a
 full run and passes alone, as `ProvenanceTests` did earlier with "collection was
 modified" — which is the emitter's static state and not this rendering's.
+
+## Built: `~`, and the question a lexer must not be asked
+
+The lexer was worth seventeen times on SQL and the last entry recommended keeping it. The
+question that came back was the right one: how does a lexer, knowing no grammar, tell the
+`>>` that closes two type argument lists from the `>>` that shifts?
+
+It does not, and it must not be asked. What decides is where the thing stands: in
+`List<List<int>>` a type argument list has to close, in `a >> b` a binary operator has to
+go. The parser knows which and the lexer never will. Every compiler that reads both
+resolves this in the parser — javac and Roslyn lex `>>` and split it back, and C++ moved
+the rule into the grammar in C++11, which is why `list<list<int> >` needed its space
+before then and not after.
+
+**The ambiguity was ours, and the lexer made it.** Measured on one grammar in both modes,
+before anything was built:
+
+    input                       over characters   over kinds
+    a >> b                            OK             OK
+    list<int>                         OK             OK
+    list<list<int>>                   OK             FAIL
+    list<list<int> >                  OK             OK
+
+`ExpressionLanguage` failed on `o is List<List<int>>` and passed with a space, which is to
+say it was a pre-C++11 C#. The cause is maximal munch: with `">>"` in the terminal
+inventory the scanner takes both characters, and the inner argument list — which wants one
+`>` — is handed a shift. A token cannot be half spent, so no order of alternatives recovers
+from it. The decision was made before the parser was asked.
+
+**So `>>` stops being a token.** `'>' ~ '>'` is the shift, `~` says the two stand with
+nothing between them, and the lexer is not consulted about anything. Nothing was needed
+from it: a token already records where it began and how long it is, because a capture has
+to be cut from the original text, so the gap between two tokens is one subtraction that
+was already there. Emitting trivia as tokens would have been the expensive answer — it
+roughly doubles the stream and makes every rule step past whitespace itself, which is what
+§4.5 exists to spare the author.
+
+**And it is not a lexer patch.** Over characters §4.5 weaves trivia between operands, so
+`'>' & '>'` accepts `> >` there too, which the same measurement showed. The gap was in the
+notation, not in the scanner: there was no way to say "here, nothing may intervene". So
+`~` is one operator with one meaning in both halves of a split grammar — the seam withheld
+where positions are characters, the same statement asked of the token positions where they
+are kinds — and it binds tighter than `&`, so `a & b ~ c` is `a & (b ~ c)`.
+
+One node carries it, zero-width like the look-behind §4.6 weaves, and the emitter renders
+it as nothing over characters. Two mistakes on the way, both caught by the same
+measurement run again:
+
+- the first patch put the new case beside `Node.Behind` in `LexicalSplit`, which is a
+  *rewrite* and not a walk, so crossing into the kinds half replaced the glue with
+  nothing — erasing it in the one place it does any work;
+- and beside `Node.Behind` in the lexical automaton, which *refuses* what it does not
+  understand, so `~` inside a pattern was reported as a look-behind. Inside a pattern
+  there is no woven seam to withhold, so it is accepted and worth nothing.
+
+`ExpressionLanguage` reads `o is List<List<int>>` now, shifts by `>>`, and refuses
+`a > > b` exactly as C# refuses it. The glued shift costs nothing measurable: a shift is
+two tokens instead of one and the gap is two additions, and every figure of the last entry
+stands. The notation's self-description learned the operator too — `GramGrammar` parses
+`~` at the same precedence, and `SelfHostingTests` holds the two implementations to it,
+because a notation whose own grammar cannot read it is a notation with two meanings.
+
+**What this does not solve**, and the reason to keep it in view. `~` fixes maximal munch
+and only that. A regular expression against a division in JavaScript, a heredoc, JSX: there
+the content of the token differs, and the scanner has to be told what is expected. The seam
+for it exists in shape — an external recognizer is already a rule that reads the input
+itself — but on the token path it is handed the kinds, so re-reading a span as characters
+would need a new external form. And `a<b>c` in C++, where the answer is whether `a` is a
+template, is not a lexical question at all: that is what `when` and `context` are, and
+`ExpressionLanguage` already resolves a dotted name against real reflection while it reads.

@@ -907,6 +907,40 @@ namespace with non-empty `trivia` will quietly accept `i f` as `if`. No mechanis
 catches that, but a warning does: a rule whose operands all test a single input item
 is almost certainly a mistake in such a namespace.
 
+#### `~` — where trivia may not go
+
+`a ~ b` is `a & b` with no seam between them: what `b` matches must begin exactly where
+`a` ended. It binds tighter than `&`, so `a & b ~ c` is `a & (b ~ c)`.
+
+**It exists for the operators that share their characters with something else.** A shift
+is two `>` with nothing between them, and a nested type argument list closes with two
+that each belong to a different level:
+
+```dotgram
+Shift = left: Shift & '>' ~ '>' & right: Additive
+Type  = Name & ('<' & Type & (',' & Type)* & '>')?
+```
+
+`x >> 2` shifts, `List<List<int>>` closes twice, and `a > > b` is refused — which is what
+C# and Java answer, and what C++ answered only from C++11.
+
+**Writing the shift as `">>"` instead cannot work**, and the reason is worth stating
+because it is the whole argument for the operator. A literal is a terminal, a terminal is
+a token, and a token cannot be half spent: with `>>` in the inventory the scanner takes
+both characters and the inner argument list, which wants one `>`, is handed a shift. There
+is no order of alternatives that recovers from that, because the choice was made before
+the parser was asked. With `'>' ~ '>'` there is no `>>` for the scanner to make.
+
+**One meaning in both halves of a split grammar** (§10). Over characters `~` is simply the
+seam withheld: with nothing woven between them the operands are adjacent because there is
+nowhere for anything to stand. Over kinds the trivia was skipped before the tokens were
+made, so two operands are two tokens whether or not anything stood between them — and the
+question is asked of the tokens themselves, each of which records where it began and how
+long it is. The same grammar reads the same language either way, which is the point.
+
+**Inside a lexical namespace it says nothing**, and is allowed for that reason rather than
+refused: `trivia = none` there means there was never a seam to withhold.
+
 ### 4.6 Keyword boundaries
 
 `wordboundary` is a standard-library rule, `none` by default, naming the characters

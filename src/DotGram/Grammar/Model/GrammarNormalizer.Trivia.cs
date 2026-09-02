@@ -86,7 +86,7 @@ public sealed partial class GrammarNormalizer
 	bool Nullable(Node node, HashSet<RuleSymbol> seen) =>
 		node switch
 		{
-			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue => true,
 			Node.Literal(var text)        => text.Length == 0,
 			Node.Element                  => false,
 			Node.External                 => false,
