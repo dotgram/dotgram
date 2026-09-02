@@ -380,6 +380,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
+			Direct         = host.Direct,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -639,7 +640,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   IncludedAs = null,
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
-		bool      Lexical    = false)
+		bool      Lexical    = false,
+		bool      Direct     = true)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -730,6 +732,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
 				.Value.Value as bool? ?? false;
 
+			var direct = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
+				.Value.Value as bool? ?? true;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
@@ -776,7 +782,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				IncludedAs: includedAs,
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
-				Lexical:    lexical);
+				Lexical:    lexical,
+				Direct:     direct);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

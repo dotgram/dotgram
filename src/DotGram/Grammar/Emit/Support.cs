@@ -1268,3 +1268,155 @@ public static partial class CSharpEmitter
 		}
 		""";
 }
+
+public static partial class CSharpEmitter
+{
+	/// <summary>
+	/// What a direct rendering needs beside the methods it writes: the tape of ways back,
+	/// the refusal recorder, and the walk that says how far a literal run matched.
+	/// </summary>
+	/// <remarks>
+	/// One copy per file, untagged: every direct rendering in the file shares it, and a
+	/// machine rendered the other way never names it. The tape is rented per parse and
+	/// kept per thread, the way the engine keeps its parser.
+	/// </remarks>
+	internal const string DirectSupport = """
+		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
+		/// <remarks>
+		/// Two integers per way: the alternative in force, and the last one there is. A
+		/// way whose two are equal is spent — it stays on the tape so that a replay reads
+		/// the same decisions in the same places, and is never taken again.
+		/// </remarks>
+		sealed class Ways
+		{
+			internal int[] Items = new int[32];
+
+			/// <summary>How many ways are on the tape.</summary>
+			internal int Count;
+
+			/// <summary>The next way a replay reads; equal to <see cref="Count"/> when nothing is being replayed.</summary>
+			internal int Cursor;
+
+			/// <summary>How many lookaheads are open, during which no refusal is recorded.</summary>
+			internal int Lookahead;
+
+			[global::System.ThreadStatic]
+			static Ways? _spare;
+
+			internal static Ways Rent()
+			{
+				var spare = _spare;
+
+				if (spare == null)
+					return new Ways();
+
+				_spare = null;
+				spare.Count = 0;
+				spare.Cursor = 0;
+				spare.Lookahead = 0;
+
+				return spare;
+			}
+
+			internal static void Return(Ways ways)
+			{
+				_spare = ways;
+			}
+
+			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
+			internal int Open(int last)
+			{
+				if (Count * 2 + 2 > Items.Length)
+					global::System.Array.Resize(ref Items, Items.Length * 2);
+
+				Items[Count * 2]     = 0;
+				Items[Count * 2 + 1] = last;
+				Count++;
+				Cursor = Count;
+
+				return Count - 1;
+			}
+
+			/// <summary>
+			/// Takes the latest way decided since <paramref name="segment"/> that still has an
+			/// alternative left, drops everything decided after it, and sets the replay to
+			/// begin at the segment. False when none is left, and then nothing moves.
+			/// </summary>
+			/// <remarks>
+			/// Only what stands before the cursor is the construct's own. During a replay the
+			/// tape past the cursor is the future — decisions of what comes after, waiting to
+			/// be read again — and a construct that fails on the way there, exactly as it did
+			/// the first time, must leave that future alone.
+			/// </remarks>
+			internal bool Retry(int segment)
+			{
+				for (var way = Cursor - 1; way >= segment; way--)
+				{
+					if (Items[way * 2] < Items[way * 2 + 1])
+					{
+						Items[way * 2]++;
+						Count  = way + 1;
+						Cursor = segment;
+
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			/// <summary>
+			/// Moves a way on to its next alternative once the one in force is spent, and
+			/// drops what that alternative decided: the next one starts from nothing.
+			/// </summary>
+			internal void Next(int way, int value)
+			{
+				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
+			internal void Seal(int segment)
+			{
+				for (var way = segment; way < Cursor; way++)
+					Items[way * 2 + 1] = Items[way * 2];
+			}
+		}
+
+		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways ways)
+		{
+			if (ways.Lookahead > 0)
+				return;
+
+			if (at > failure.Position)
+			{
+				failure.Position     = at;
+				failure.Expected     = expected;
+				failure.ExpectedMore = null;
+			}
+			else if (at == failure.Position && expected != null)
+			{
+				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+			}
+		}
+
+		/// <summary>How much of a run matched, asked only when it did not.</summary>
+		static int Reach_DotGram(
+			global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)
+		{
+			var room = text.Length - pos;
+
+			if (want.Length < room)
+				room = want.Length;
+
+			var at = 0;
+
+			while (at < room && text[pos + at] == want[at])
+				at++;
+
+			return pos + at;
+		}
+		""";
+}

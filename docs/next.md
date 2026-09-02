@@ -10887,3 +10887,66 @@ Nothing here helps `SqlStandard92`, which builds no values and whose calls are t
 itself. That one still wants either a narrower record than a `ParserEntry` for a call
 nothing can fail back past, or `<<` on the ladder — which is a change to the transcription
 and not to the engine.
+
+## Built: a publication read by methods, and the tape that keeps it exact
+
+The hand-written recursive descent measured at the end of the last entry was the ceiling,
+and the question was what stood between the automaton and it. Answered by building the
+other thing: `Machine.Direct.cs` renders a publication as one C# method per rule, with a
+call for a call, a local for a mark, and the arena nowhere in it. `SqlStandard92` is the
+first parser through it, because it builds no values and that is the whole of what this
+first rendering leaves out.
+
+**What replaces the arena is a tape of the ways back still open.** A choice the proofs
+cannot settle records one entry — the alternative in force and the last there is — and an
+unsettled repetition records one per turn past its minimum, the option of having stopped
+before it. Every construct is a segment: on failure it asks the tape for the latest way
+opened since it began, takes it, drops what was decided after it, and runs itself again
+from its own mark, replaying the tape up to the way it changed. Nothing is resumed in the
+middle and nothing outside the construct moves; what is re-executed is only the construct
+that failed. The order is the automaton's — innermost way first, latest turn first — and
+`ReferenceDifferentialTests` agrees with the semantics on every seed.
+
+**Four things the differential suite found before any grammar did**, each a rule of the
+tape worth keeping:
+
+- a retry may only look at what stands *before the cursor*. During a replay the tape past
+  the cursor is the future, decisions of what comes after waiting to be read again, and a
+  construct that fails on the way there exactly as it did the first time must leave it
+  alone. Scanning to the end made `(a > 1)` loop for ever with a tape eight entries long;
+- moving a choice on to its next alternative drops what the spent one decided, so the
+  next one starts from nothing and a later replay of it reads its own decisions;
+- an atomic group over a body that cannot fail still seals what was decided inside it: a
+  loop that took its turns may not give one back, and `{ (' ' | …)* }` was giving back
+  a space to a rule that could take it;
+- `c` is only what stands at `p` until something reads another character — a look behind,
+  a lookahead's body, a failed alternative — and every place a construct runs again or
+  moves on reads it again.
+
+**What it costs, and where the rest is.** Over the same inputs, interleaved with the
+automaton and the hand-written parser:
+
+    input                                automaton   methods   by hand
+    a = 1                                    186 ns     78 ns     27 ns
+    (a + b) * c > d                          725        223        88
+    ((((a + 1) * 2) - 3) / 4) + b > 0      2,734      1,057       164
+    x = 1 AND y IS NOT NULL                  378        168        91
+    a0 = 1 AND … (64 terms)               12,075      5,489     2,543
+    a0 + a1 + … (64 terms)                 4,139      1,616       749
+    (a + b) * c >   refused                1,755        467       133
+
+Two to three times the automaton, three times short of the hand. What remains is counted:
+eleven ways opened for `a = 1`, one per level of the ladder whose alternatives genuinely
+overlap — `ValueExpression | NULL | DEFAULT` where `NULL` is also a value — and a refusal
+recorded at every door the hand-written parser walks past in silence. Three things bought
+the rest of the way from the first measurement, which was slower than the automaton:
+§5's filter before each alternative, so an operand no longer walks eight alternatives and
+sixteen more inside one; the stack check on the back edges of the call graph rather than
+in every recursive rule, one per level of nesting instead of a dozen per operand; and the
+door of a settled loop kept quiet, as the engine's is.
+
+**What it hands back to the engine**: values, guards, marks, recovery, streaming, climbing
+and `find`. `CanDirect` refuses rather than guesses, `Direct = false` on the attribute or
+the options keeps the automaton for every publication, and the engine's own tests say so
+to compile against it. An input nested past the thread's stack is read again on a thread
+with a deep one, the input copied once for the crossing.

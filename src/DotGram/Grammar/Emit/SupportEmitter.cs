@@ -99,6 +99,12 @@ public static class SupportEmitter
 				public int PartSize { get; set; }
 
 				/// <summary>
+				/// Compile as methods where the automaton is not needed. On unless set off;
+				/// off keeps the automaton for every publication.
+				/// </summary>
+				public bool Direct { get; set; } = true;
+
+				/// <summary>
 				/// Read the input as tokens rather than as characters.
 				/// </summary>
 				/// <remarks>

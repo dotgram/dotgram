@@ -90,7 +90,7 @@ public static class GramCompiler
 				$"{options.ClassName}.gram.g.cs",
 				CSharpEmitter.Emit(
 					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
-					diagnostics, options.PartSize, lexical)));
+					diagnostics, options.PartSize, lexical, options.Direct)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

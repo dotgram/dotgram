@@ -145,9 +145,10 @@ public static partial class CSharpEmitter
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null)
+		LexicalSplit? lexical = null, bool direct = true)
 	{
 		var overKinds = lexical is not null;
+		var directAllowed = direct;
 
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -191,7 +192,12 @@ public static partial class CSharpEmitter
 
 			made.Anchor = group.Publications.Count > 0 ? group.Publications[0].Rule : group.Rule;
 
-			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered));
+			// Methods where the flat path cannot go and the engine need not: the rules this
+			// machine reaches recognize and build nothing, and every publication reads the
+			// whole input (Machine.Direct.cs).
+			var asMethods = !lowered && directAllowed && made.CanDirect(group.Publications);
+
+			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
 		}
 
 		// A second machine over the characters, for the terminals whose value the lexer
@@ -450,6 +456,14 @@ public static partial class CSharpEmitter
 		// tables and the links are the parser's, not a machine's, and a machine that lowered
 		// needs none of them. The tables have to be the union — every machine numbers a type
 		// by where it sits in this list, so they must all be looking at the same list.
+		if (machines.Exists(static compiled => compiled.Direct))
+		{
+			file.Write(DirectSupport);
+			file.Line();
+		}
+
+		// A direct rendering needs none of this, but a host may have implemented the pooling
+		// hooks over `Parser`, and what it compiled against yesterday must compile today.
 		if (machines.Exists(static compiled => !compiled.Flat))
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
@@ -528,6 +542,13 @@ public static partial class CSharpEmitter
 		// belongs to the states it probes.
 		var mine = new List<(string Name, int Entry, bool Sync)>();
 
+		if (compiled.Direct)
+		{
+			file.Write(machine.RenderDirect(compiled.Publications));
+
+			return;
+		}
+
 		if (compiled.Flat)
 		{
 			var rendered = new HashSet<(RuleSymbol Rule, bool Whole)>();
@@ -560,7 +581,7 @@ public static partial class CSharpEmitter
 
 
 
-		if (!compiled.Flat)
+		if (!compiled.Flat && !compiled.Direct)
 
 		{
 
@@ -1799,7 +1820,8 @@ public static partial class CSharpEmitter
 		IReadOnlyList<Publication> Publications,
 		string Engine,
 		string Tag,
-		bool Flat);
+		bool Flat,
+		bool Direct = false);
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.

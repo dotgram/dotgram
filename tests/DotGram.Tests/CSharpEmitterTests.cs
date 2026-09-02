@@ -26,7 +26,7 @@ public sealed class CSharpEmitterTests
 	{
 		var result = GramCompiler.Compile(
 			grammar,
-			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = false });
 
 		// Anything but information. A grammar is allowed to be told what it did not get and
 		// still be a grammar the emitter should be asked about — that is what `Info` is

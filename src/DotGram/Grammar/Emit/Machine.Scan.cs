@@ -913,7 +913,7 @@ sealed partial class Machine
 		/// straight into the loop's own back-edge — so the seams it leaves are threaded
 		/// here, over the finished text, where following a chain is following lines.
 		/// </summary>
-		static string Threaded(string written)
+		internal static string Threaded(string written)
 		{
 			var lines = new List<string>(written.Split('\n'));
 
@@ -1093,7 +1093,7 @@ sealed partial class Machine
 			return string.Join("\r\n", kept) + "\r\n";
 		}
 
-		static bool IsLabel(string line, out string name, out string rest)
+		internal static bool IsLabel(string line, out string name, out string rest)
 		{
 			name = "";
 			rest = "";
@@ -1103,6 +1103,10 @@ sealed partial class Machine
 
 			if (colon <= 0 || trimmed.Contains("goto ", StringComparison.Ordinal) &&
 				trimmed.IndexOf("goto ", StringComparison.Ordinal) < colon)
+				return false;
+
+			// `global::System` is a name, not a label: a label's colon stands alone.
+			if (colon + 1 < trimmed.Length && trimmed[colon + 1] == ':')
 				return false;
 
 			var candidate = trimmed[..colon];
