@@ -1234,13 +1234,9 @@ namespace DotGram.Snapshots
 			var s1 = 0;
 			var lm1 = 0;
 			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var q0 = 0;
-			var q1 = 0;
 			var r0 = -1;
 			var r1 = -1;
 
@@ -1257,18 +1253,16 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			m0 = p;
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(1); d0 = 0; }
-			switch (d0)
-			{
-				case 0: goto L1_alt;
-				case 1: goto L2_alt;
-			}
-			L1_alt:
+			w0 = -1;
 			if (!((c >= '0' && c <= '9')))
 			{
-				ways.Next(w0, 1);
 				goto L2_alt;
+			}
+			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+			else { w0 = ways.Open(0, 1); d0 = 0; }
+			switch (d0)
+			{
+				case 1: goto L2_alt;
 			}
 			s1 = ways.Cursor;
 			lm1 = ways.LogCount;
@@ -1290,7 +1284,7 @@ namespace DotGram.Snapshots
 			ways.RefsCount = rr1;
 			r0 = -1;
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L4_again;
-			ways.Next(w0, 1);
+			ways.Next(w0, 1, 1);
 			L2_alt:
 			c = text[p];
 			if (!((c >= '0' && c <= '9')))
@@ -1298,14 +1292,14 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
 				goto Fail;
 			}
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
+			s1 = ways.Cursor;
+			lm1 = ways.LogCount;
+			rr1 = ways.RefsCount;
 			L8_again:
 			c = text[p];
-			q1 = Read_Number_Primary(text, p, ref failure, ways);
-			if (q1 < 0) goto L9_failed;
-			p = q1;
+			q0 = Read_Number_Primary(text, p, ref failure, ways);
+			if (q0 < 0) goto L9_failed;
+			p = q0;
 			r1 = ways.Last;
 			ways.Begin(0, 1, pos, p);
 			ways.Put(r0);
@@ -1314,10 +1308,10 @@ namespace DotGram.Snapshots
 			goto L0_took;
 			L9_failed:
 			p = m0;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
+			ways.LogCount  = lm1;
+			ways.RefsCount = rr1;
 			r1 = -1;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L8_again;
+			if (ways.Cursor > s1 && ways.Retry(s1)) goto L8_again;
 			goto Fail;
 			L0_took: ;
 			return p;
@@ -2486,12 +2480,15 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
-			internal int Open(int last)
+			internal int Open(int last) => Open(0, last);
+
+			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
+			internal int Open(int at, int last)
 			{
 				if (Count * 2 + 2 > Items.Length)
 					global::System.Array.Resize(ref Items, Items.Length * 2);
 
-				Items[Count * 2]     = 0;
+				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
 				Count++;
 				Cursor = Count;
@@ -2534,6 +2531,18 @@ namespace DotGram.Snapshots
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>
+			/// <see cref="Next(int, int)"/>, and the way now reaches <paramref name="last"/>:
+			/// as far as the alternative it moved to could be mended from.
+			/// </summary>
+			internal void Next(int way, int value, int last)
+			{
+				Items[way * 2]     = value;
+				Items[way * 2 + 1] = last;
 				Count  = way + 1;
 				Cursor = way + 1;
 			}

@@ -319,7 +319,7 @@ namespace DotGram.Parsers;
 	// has nothing in it the author did not name.
 	NamePart : @string = w: Word => @(w)
 
-	NamedType : @Type
+	NamedType? : @Type
 		= head: Word & ('.' & part: NamePart)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(args != null || ExpressionLanguage.Resolves(ExpressionLanguage.Dotted(head, part)))
@@ -428,7 +428,8 @@ namespace DotGram.Parsers;
 	// and a `Primary`. Written that way, a chain of three `else if`s took 1.6 seconds and a
 	// nest of five braces took 428 ms, both doubling and worse per level. Reachable one way
 	// only, with the value positions naming them here, both are too fast to measure.
-	Value : @Expression = b: Block => @(b) | c: Control => @(c) | e: Expression => @(e)
+	Value : @Expression
+		= b: Block => @(b) | c: IfValue => @(c) | c: Control => @(c) | e: Expression => @(e)
 
 	Control : @Expression
 		= c: Try     => @(c)
@@ -441,6 +442,14 @@ namespace DotGram.Parsers;
 	If : @Expression
 		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionLanguage.Chosen(test, then, otherwise))
 		| "if" & '(' & test: Expression & ')' & then: Statement => @(Expression.IfThen(test, then))
+
+	// The same `if` where a value is wanted: its branches are values, so the `;` after
+	// `else 0` is the declaration's and not the branch's. Over kinds a rule's answer stands
+	// (§4), and a branch read as the statement `0;` would not hand the `;` back; statement
+	// position keeps the rule above, whose branches are statements first.
+	IfValue : @Expression
+		= "if" & '(' & test: Expression & ')' & then: Value & "else" & otherwise: Value
+		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
 
 	// A branch is a statement where one was written and an expression where one was: C#
 	// only has the first, and the second is what `int n = if (c) 1 else 2;` needs. The
@@ -723,13 +732,13 @@ namespace DotGram.Parsers;
 	Primary : @Expression
 		= "new" & type: Type & '[' & size: Expression & ']'
 		  => @(Expression.NewArrayBounds(type, size))
-		// `"[]"` and not `'[' & ']'`, which is the same thing said the other way and the way
-		// that cannot be read as tokens: a lexer takes the longest match, `Type` above names
-		// `"[]"` as one, and two marks written apart here are one token by the time this rule
-		// sees them. One spelling for one thing.
-		| "new" & type: Type & "[]"
+		// `new int[] { … }`: the `[]` is the array type's own — `Type` reads it as one token,
+		// the lexer taking the longest match — and the braces are what tell this from a
+		// constructor. Over kinds a rule's answer stands (§4), so `Type` is not asked to give
+		// the `[]` back for a `"[]"` written here; the guard asks for an array type instead.
+		| "new" & type: Type & when @(type is { IsArray: true })
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
-		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
+		  => @(Expression.NewArrayInit(type.GetElementType()!, ExpressionLanguage.Listed(first, rest)))
 		// An initializer is written after the constructor's own arguments, and which of the
 		// two it is is what stands inside the braces: `Name = value` sets a member, and an
 		// expression is an element to add. Both are one optional tail rather than three

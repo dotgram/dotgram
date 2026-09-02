@@ -481,9 +481,14 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		// A direct rendering needs none of this, but a host may have implemented the pooling
-		// hooks over `Parser`, and what it compiled against yesterday must compile today.
-		if (machines.Exists(static compiled => !compiled.Flat))
+		// The engine's runtime — the pooled parser, its arena and the pooling hooks over it —
+		// is written only where a machine runs on the engine, the valuing machine over the
+		// characters included. A file rendered by methods throughout carries none of it:
+		// the tape above is all those methods need, and a class a consumer cannot reach from
+		// any parse is two hundred lines to compile for nothing. A host that had implemented
+		// the hooks over such a file loses them with the class, which is right — what they
+		// rented, nothing rents.
+		if (machines.Exists(static compiled => !compiled.Flat && !compiled.Direct) || valuing is not null)
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
 				machines.Exists(static compiled => compiled.Machine.Caches),

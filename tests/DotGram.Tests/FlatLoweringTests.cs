@@ -50,9 +50,16 @@ public sealed class FlatLoweringTests
 		Assert.DoesNotContain("RentParser", source);
 	}
 
+	/// <summary>
+	/// Not the flat path: the engine and its arena, or the methods and their tape of ways
+	/// back. Either holds what a flat method cannot — a way back that outlives the locals.
+	/// </summary>
 	static void AssertNotLowered(string source)
 	{
-		Assert.Contains("ParserArena", source);
+		Assert.True(
+			source.Contains("ParserArena", StringComparison.Ordinal) ||
+			source.Contains("sealed class Ways", StringComparison.Ordinal),
+			"Neither the arena nor the tape of ways back is in the source: the grammar lowered.");
 		Assert.Contains("Recognize_DotGram", source);
 	}
 
@@ -84,7 +91,7 @@ public sealed class FlatLoweringTests
 	}
 
 	[Fact]
-	public void A_capture_anywhere_in_the_grammar_falls_back_to_the_shared_engine()
+	public void A_capture_anywhere_in_the_grammar_does_not_lower()
 	{
 		// Everything else about this grammar is silent; the one named capture — deferred
 		// construction needs it kept — is the sole disqualifying feature.
@@ -108,11 +115,11 @@ public sealed class FlatLoweringTests
 	}
 
 	[Fact]
-	public void But_a_repetition_over_one_still_falls_back_to_the_shared_engine()
+	public void But_a_repetition_over_one_still_does_not_lower()
 	{
 		// One set of locals holds one activation, and every turn of the repetition would
 		// need a pending way back of its own — so no checkpoint site may open under a
-		// repetition, and the choice keeps the arena.
+		// repetition, and the choice keeps its way back where locals cannot hold it.
 		const string grammar = "Start = (\"a\" | \"ab\")* & 'c'\nparse Start";
 
 		AssertNotLowered(Emit(grammar));

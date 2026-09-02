@@ -8,7 +8,7 @@ using DotGram.Parsers;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The generated SQL recognizer against <see cref="HandSql"/>, measured round-robin.
+/// The generated SQL recognizer against <see cref="HandSqlTokens"/>, measured round-robin.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,7 +27,9 @@ namespace DotGram.Benchmarks;
 /// <b>Agreement first.</b> A hand-written parser that quietly reads a smaller language is
 /// faster for a reason that says nothing about how the generated one is built, so nothing
 /// is measured until the two have answered the same on every input — the benchmark inputs
-/// and the corpus of shapes below, which is the test suite's, refusals included.
+/// and the corpus of shapes below, which is the test suite's, refusals included. The first
+/// day's parser is the exception and is shown as one: it is held only to the benchmark
+/// inputs, and where it parts from the language is printed rather than thrown.
 /// </para>
 /// </remarks>
 static class SqlAgainst
@@ -94,31 +96,61 @@ static class SqlAgainst
 	{
 		Agree();
 
+		Console.WriteLine();
+		Console.WriteLine(
+			$"{"",-36} {"generated",11} {"by hand",11} {"its lexer",11} {"day one",11}   ratio");
+
 		foreach (var input in Inputs)
 		{
-			var generated = new List<double>();
-			var handed    = new List<double>();
-			var costs     = new List<double>();
+			var taken = new List<double>[Methods.Length];
 
-			// Warmed together and to full size, so that neither is measured at tier zero
+			for (var i = 0; i < Methods.Length; i++)
+				taken[i] = [];
+
+			var costs = new List<double>();
+
+			// Warmed together and to full size, so that none is measured at tier zero
 			// beside a neighbour that is not.
 			for (var warm = 0; warm < 2; warm++)
 			{
 				Time(input, Nothing, iterations);
-				Time(input, Generated, iterations);
-				Time(input, Handed, iterations);
+
+				foreach (var (_, measure) in Methods)
+					Time(input, measure, iterations);
 			}
 
 			for (var round = 0; round < rounds; round++)
 			{
 				costs.Add(Time(input, Nothing, iterations));
-				generated.Add(Time(input, Generated, iterations));
-				handed.Add(Time(input, Handed, iterations));
+
+				for (var i = 0; i < Methods.Length; i++)
+					taken[i].Add(Time(input, Methods[i].Measure, iterations));
 			}
 
-			Report(input, Median(generated) - Median(costs), Median(handed) - Median(costs));
+			var overhead = Median(costs);
+
+			Report(input, [.. taken.Select(times => Median(times) - overhead)]);
 		}
 	}
+
+	/// <summary>
+	/// The two readings of the full language, the hand-written lexer alone, and the first
+	/// day's parser.
+	/// </summary>
+	/// <remarks>
+	/// The first two are the comparison: both tokenize and then read tokens, so what is
+	/// between them is the reader. The third is there so the reader's own share of the
+	/// second can be had by subtraction. The fourth reads a fraction of the language and
+	/// is what the first day's ratios were divided by, kept so a reader can see what they
+	/// were made of.
+	/// </remarks>
+	static readonly (string Name, Func<string, int> Measure)[] Methods =
+	[
+		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
+		("its lexer", static input => HandSqlTokens.LexOnly(input)),
+		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
+	];
 
 	/// <summary>
 	/// The two answering the same about every shape, before anything is timed. Throws
@@ -127,26 +159,44 @@ static class SqlAgainst
 	/// </summary>
 	public static void Agree()
 	{
+		var parted = new List<string>();
+
 		foreach (var text in Corpus.Concat(Inputs))
 		{
 			var generated = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
-			var handed    = HandSql.Parse(text);
+			var handed    = HandSqlTokens.Parse(text);
+			var original  = HandSqlOriginal.Parse(text);
 
 			if (generated != handed)
 			{
 				throw new InvalidOperationException(
-					$"The generated parser says {(generated ? "yes" : "no")} and the hand-written one " +
-					$"says {(handed ? "yes" : "no")} about \"{text}\". " +
-					"One of them reads a language the other does not, and the ratio would be a fiction.");
+					$"About \"{text}\": the generated parser says {Said(generated)} and the hand-written " +
+					$"one says {Said(handed)}. They do not read the same language, and a ratio between " +
+					"them would be a fiction.");
+			}
+
+			// The first day's parser is held only to what it was ever checked against — the
+			// benchmark inputs — and its departures over the corpus are shown, because they
+			// are what the old ratio was made of.
+			if (original != generated)
+			{
+				if (Array.IndexOf(Inputs, text) >= 0)
+					throw new InvalidOperationException(
+						$"The first day's parser says {Said(original)} about the benchmark input \"{text}\" " +
+						$"and the generated one says {Said(generated)}; it did not on the day.");
+
+				parted.Add($"  {Said(original),-3} instead of {Said(generated),-3} about \"{text.Replace('\n', ' ')}\"");
 			}
 		}
 
 		Console.WriteLine($"Both read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine($"The first day's parser reads the {Inputs.Length} benchmark inputs and parts from them on {parted.Count}:");
+
+		foreach (var line in parted)
+			Console.WriteLine(line);
+
+		static string Said(bool yes) => yes ? "yes" : "no";
 	}
-
-	static int Generated(string input) => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0;
-
-	static int Handed(string input) => HandSql.Parse(input) ? 1 : 0;
 
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>
 	static int Nothing(string input) => input.Length & 1;
@@ -165,12 +215,16 @@ static class SqlAgainst
 		return watch.Elapsed.TotalMilliseconds * 1e6 / iterations;
 	}
 
-	static void Report(string input, double generated, double handed)
+	static void Report(string input, IReadOnlyList<double> medians)
 	{
 		var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
 
-		Console.WriteLine(
-			$"{shown,-36} {generated,9:N1} ns {handed,9:N1} ns   {generated / handed,5:N2}x");
+		Console.Write($"{shown,-36}");
+
+		foreach (var median in medians)
+			Console.Write($" {median,8:N1} ns");
+
+		Console.WriteLine($"   {medians[0] / medians[1],5:N2}x");
 	}
 
 	static double Median(List<double> times)

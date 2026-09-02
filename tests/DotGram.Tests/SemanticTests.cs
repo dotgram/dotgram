@@ -226,6 +226,46 @@ public sealed class SemanticTests
 		Assert.Equal(expected, match.IsSuccess);
 	}
 
+	// ── Over kinds a rule's answer stands, unless the rule says otherwise ─────
+
+	/// <summary>
+	/// Over characters a loop gives a turn back when what follows fails; over kinds it
+	/// does not (§4), so the path's last part is the loop's and the call never comes —
+	/// unless the rule is marked <c>?</c>, which lets it give back inside itself.
+	/// </summary>
+	[Theory]
+	[InlineData(false, false, true)]
+	[InlineData(false, true,  true)]
+	[InlineData(true,  false, false)]
+	[InlineData(true,  true,  true)]
+	public void Over_kinds_a_rule_answer_stands_unless_it_is_marked(bool lexical, bool marked, bool expected)
+	{
+		var path =
+			"trivia = { ' '* }" + '\n' +
+			"namespace Lexical" + '\n' +
+			"{" + '\n' +
+			"\ttrivia = none" + '\n' +
+			"\tName = ['a'..'z']+" + '\n' +
+			"}" + '\n' +
+			$"Path{(marked ? "?" : "")} = Lexical.Name & ('.' & Lexical.Name)* & '.' & Lexical.Name & '(' & ')'" + '\n' +
+			"Start = Path & eof" + '\n' +
+			"parse Start";
+
+		var result = GramCompiler.Compile(
+			path,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+
+		var match = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", "a.b.c()");
+
+		Assert.Equal(expected, match.IsSuccess);
+	}
+
 	// ── A settled repetition keeps one way back ─────────────────────────────
 
 	/// <summary>

@@ -439,8 +439,6 @@ namespace DotGram.Snapshots
 			var s1 = 0;
 			var s2 = 0;
 			var s3 = 0;
-			var s4 = 0;
-			var s5 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -539,19 +537,17 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			m5 = p;
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(2); d0 = 0; }
-			switch (d0)
-			{
-				case 0: goto L7_alt;
-				case 1: goto L8_alt;
-				case 2: goto L9_alt;
-			}
-			L7_alt:
+			w0 = -1;
 			if (!(c == '\r'))
 			{
-				ways.Next(w0, 1);
 				goto L8_alt;
+			}
+			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+			else { w0 = ways.Open(0, 2); d0 = 0; }
+			switch (d0)
+			{
+				case 1: goto L8_alt;
+				case 2: goto L9_alt;
 			}
 			s3 = ways.Cursor;
 			L11_again:
@@ -572,15 +568,15 @@ namespace DotGram.Snapshots
 			L12_failed:
 			p = m5;
 			if (ways.Cursor > s3 && ways.Retry(s3)) goto L11_again;
-			ways.Next(w0, 1);
+			ways.Next(w0, 1, 1);
 			L8_alt:
 			c = text[p];
 			if (!(c == '\n'))
 			{
-				ways.Next(w0, 2);
+				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L9_alt;
 			}
-			s4 = ways.Cursor;
+			s3 = ways.Cursor;
 			L15_again:
 			c = text[p];
 			if (c != '\n')
@@ -592,8 +588,8 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L16_failed:
 			p = m5;
-			if (ways.Cursor > s4 && ways.Retry(s4)) goto L15_again;
-			ways.Next(w0, 2);
+			if (ways.Cursor > s3 && ways.Retry(s3)) goto L15_again;
+			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L9_alt:
 			c = text[p];
 			if (!(c == '\r'))
@@ -601,7 +597,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s5 = ways.Cursor;
+			s3 = ways.Cursor;
 			L19_again:
 			c = text[p];
 			if (c != '\r')
@@ -613,7 +609,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L20_failed:
 			p = m5;
-			if (ways.Cursor > s5 && ways.Retry(s5)) goto L19_again;
+			if (ways.Cursor > s3 && ways.Retry(s3)) goto L19_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
@@ -655,8 +651,6 @@ namespace DotGram.Snapshots
 			var s3 = 0;
 			var s4 = 0;
 			var s5 = 0;
-			var s6 = 0;
-			var s7 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -788,19 +782,17 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			m8 = p;
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(2); d0 = 0; }
-			switch (d0)
-			{
-				case 0: goto L14_alt;
-				case 1: goto L15_alt;
-				case 2: goto L16_alt;
-			}
-			L14_alt:
+			w0 = -1;
 			if (!(c == '\r'))
 			{
-				ways.Next(w0, 1);
 				goto L15_alt;
+			}
+			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+			else { w0 = ways.Open(0, 2); d0 = 0; }
+			switch (d0)
+			{
+				case 1: goto L15_alt;
+				case 2: goto L16_alt;
 			}
 			s5 = ways.Cursor;
 			L18_again:
@@ -821,15 +813,15 @@ namespace DotGram.Snapshots
 			L19_failed:
 			p = m8;
 			if (ways.Cursor > s5 && ways.Retry(s5)) goto L18_again;
-			ways.Next(w0, 1);
+			ways.Next(w0, 1, 1);
 			L15_alt:
 			c = text[p];
 			if (!(c == '\n'))
 			{
-				ways.Next(w0, 2);
+				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L16_alt;
 			}
-			s6 = ways.Cursor;
+			s5 = ways.Cursor;
 			L22_again:
 			c = text[p];
 			if (c != '\n')
@@ -841,8 +833,8 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L23_failed:
 			p = m8;
-			if (ways.Cursor > s6 && ways.Retry(s6)) goto L22_again;
-			ways.Next(w0, 2);
+			if (ways.Cursor > s5 && ways.Retry(s5)) goto L22_again;
+			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L16_alt:
 			c = text[p];
 			if (!(c == '\r'))
@@ -850,7 +842,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s7 = ways.Cursor;
+			s5 = ways.Cursor;
 			L26_again:
 			c = text[p];
 			if (c != '\r')
@@ -862,7 +854,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L27_failed:
 			p = m8;
-			if (ways.Cursor > s7 && ways.Retry(s7)) goto L26_again;
+			if (ways.Cursor > s5 && ways.Retry(s5)) goto L26_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
@@ -897,8 +889,6 @@ namespace DotGram.Snapshots
 			var m2 = 0;
 			var s1 = 0;
 			var s2 = 0;
-			var s3 = 0;
-			var s4 = 0;
 			var w0 = 0;
 			var d0 = 0;
 			var a0 = -1;
@@ -947,19 +937,17 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			m2 = p;
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(2); d0 = 0; }
-			switch (d0)
-			{
-				case 0: goto L4_alt;
-				case 1: goto L5_alt;
-				case 2: goto L6_alt;
-			}
-			L4_alt:
+			w0 = -1;
 			if (!(c == '\r'))
 			{
-				ways.Next(w0, 1);
 				goto L5_alt;
+			}
+			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+			else { w0 = ways.Open(0, 2); d0 = 0; }
+			switch (d0)
+			{
+				case 1: goto L5_alt;
+				case 2: goto L6_alt;
 			}
 			s2 = ways.Cursor;
 			L8_again:
@@ -980,15 +968,15 @@ namespace DotGram.Snapshots
 			L9_failed:
 			p = m2;
 			if (ways.Cursor > s2 && ways.Retry(s2)) goto L8_again;
-			ways.Next(w0, 1);
+			ways.Next(w0, 1, 1);
 			L5_alt:
 			c = text[p];
 			if (!(c == '\n'))
 			{
-				ways.Next(w0, 2);
+				if (w0 >= 0) ways.Next(w0, 2, 2);
 				goto L6_alt;
 			}
-			s3 = ways.Cursor;
+			s2 = ways.Cursor;
 			L12_again:
 			c = text[p];
 			if (c != '\n')
@@ -1000,8 +988,8 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L13_failed:
 			p = m2;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L12_again;
-			ways.Next(w0, 2);
+			if (ways.Cursor > s2 && ways.Retry(s2)) goto L12_again;
+			if (w0 >= 0) ways.Next(w0, 2, 2);
 			L6_alt:
 			c = text[p];
 			if (!(c == '\r'))
@@ -1009,7 +997,7 @@ namespace DotGram.Snapshots
 				Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3, ways);
 				goto L1_undo;
 			}
-			s4 = ways.Cursor;
+			s2 = ways.Cursor;
 			L16_again:
 			c = text[p];
 			if (c != '\r')
@@ -1021,7 +1009,7 @@ namespace DotGram.Snapshots
 			goto L2_on;
 			L17_failed:
 			p = m2;
-			if (ways.Cursor > s4 && ways.Retry(s4)) goto L16_again;
+			if (ways.Cursor > s2 && ways.Retry(s2)) goto L16_again;
 			L1_undo:
 			p = m0;
 			a0 = -1;
@@ -2570,12 +2558,15 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
-			internal int Open(int last)
+			internal int Open(int last) => Open(0, last);
+
+			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
+			internal int Open(int at, int last)
 			{
 				if (Count * 2 + 2 > Items.Length)
 					global::System.Array.Resize(ref Items, Items.Length * 2);
 
-				Items[Count * 2]     = 0;
+				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
 				Count++;
 				Cursor = Count;
@@ -2618,6 +2609,18 @@ namespace DotGram.Snapshots
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>
+			/// <see cref="Next(int, int)"/>, and the way now reaches <paramref name="last"/>:
+			/// as far as the alternative it moved to could be mended from.
+			/// </summary>
+			internal void Next(int way, int value, int last)
+			{
+				Items[way * 2]     = value;
+				Items[way * 2 + 1] = last;
 				Count  = way + 1;
 				Cursor = way + 1;
 			}

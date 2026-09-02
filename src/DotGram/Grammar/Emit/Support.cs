@@ -1416,12 +1416,15 @@ public static partial class CSharpEmitter
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
-			internal int Open(int last)
+			internal int Open(int last) => Open(0, last);
+
+			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
+			internal int Open(int at, int last)
 			{
 				if (Count * 2 + 2 > Items.Length)
 					global::System.Array.Resize(ref Items, Items.Length * 2);
 
-				Items[Count * 2]     = 0;
+				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
 				Count++;
 				Cursor = Count;
@@ -1464,6 +1467,18 @@ public static partial class CSharpEmitter
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>
+			/// <see cref="Next(int, int)"/>, and the way now reaches <paramref name="last"/>:
+			/// as far as the alternative it moved to could be mended from.
+			/// </summary>
+			internal void Next(int way, int value, int last)
+			{
+				Items[way * 2]     = value;
+				Items[way * 2 + 1] = last;
 				Count  = way + 1;
 				Cursor = way + 1;
 			}

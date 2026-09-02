@@ -52,17 +52,6 @@ public partial class MaterializationCost
 		public sealed record UrlParts(
 			string Scheme, string? User, string Host, string? Port, string Path, string? Query,
 			string? Fragment);
-
-		[ThreadStatic]
-		static Parser? _parser;
-
-		static partial void RentParser(ref Parser parser)
-		{
-			parser  = _parser!;
-			_parser = null;
-		}
-
-		static partial void ReturnParser(Parser parser) => _parser = parser;
 	}
 
 	[Gram("""
@@ -93,16 +82,6 @@ public partial class MaterializationCost
 		""")]
 	public static partial class NoCaptures
 	{
-		[ThreadStatic]
-		static Parser? _parser;
-
-		static partial void RentParser(ref Parser parser)
-		{
-			parser  = _parser!;
-			_parser = null;
-		}
-
-		static partial void ReturnParser(Parser parser) => _parser = parser;
 	}
 
 	/// <summary>
@@ -156,17 +135,6 @@ public partial class MaterializationCost
 		public sealed record UrlSpans(
 			SourceSpan Scheme, SourceSpan? User, SourceSpan Host, SourceSpan? Port,
 			SourceSpan Path, SourceSpan? Query, SourceSpan? Fragment);
-
-		[ThreadStatic]
-		static Parser? _parser;
-
-		static partial void RentParser(ref Parser parser)
-		{
-			parser  = _parser!;
-			_parser = null;
-		}
-
-		static partial void ReturnParser(Parser parser) => _parser = parser;
 	}
 
 	/// <summary>The heaviest-capture input from <see cref="UrlBenchmarks"/> — every part present.</summary>

@@ -50,7 +50,7 @@ static class Program
 		}
 
 		// `--hand [rounds] [iterations]` is not a benchmark either: it measures the SQL
-		// recognizer against the hand-written one in HandSql.cs, round-robin, after
+		// recognizer against the hand-written one in HandSqlTokens.cs, round-robin, after
 		// checking that the two read the same language. See SqlAgainst.cs.
 		if (args.Length >= 1 && args[0] == "--hand")
 		{

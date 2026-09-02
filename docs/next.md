@@ -11233,3 +11233,167 @@ itself — but on the token path it is handed the kinds, so re-reading a span as
 would need a new external form. And `a<b>c` in C++, where the answer is whether `a` is a
 template, is not a lexical question at all: that is what `when` and `context` are, and
 `ExpressionLanguage` already resolves a dotted name against real reflection while it reads.
+
+## Built: a way back opened at the alternative taken, and only where one could be taken
+
+Two things settled before this one was touched, both in `benchmarks/` and both said at
+length in its README. The yardstick is in the repository now — `HandSqlTokens.cs`, a
+lexer into kinds and precedence climbing over them, held to the generated parser's
+language over forty-two shapes before anything is timed — and it is the best hand-written
+version this session could produce, which is the only kind worth dividing by: it beats
+the first day's parser on six inputs of seven and loses only where an input has no keyword
+at all, so a pass that sorts words into kinds is work with nothing to show for it. That
+one input is why the first day's parser keeps a row. Against the yardstick the generated
+SQL recognizer is 1.2 to 4 times behind, and the lexer is not where: subtracting the
+hand-written lexer from both leaves two to six times on the reader alone.
+
+**The way back was opened at the top of every unsettled choice**, at alternative zero,
+and then walked past every alternative the gates refused, one `Next` each — a hundred and
+six of them written into the SQL parser, and every one an array write and two field
+stores on the path that takes the first alternative it was ever going to take. And it was
+opened whether or not anything could ever take it: a choice whose entered alternative no
+later alternative overlaps by first token has nothing to come back for once that
+alternative has matched, because nothing else could match where it did.
+
+**Now the way is opened on entering the alternative taken, in force at it**, reaching to
+the last alternative that overlaps it, and not at all where none does. The gates run as a
+chain — the first that passes is entered — and the alternative entered opens the way, or
+reads it back on a replay, only if it is one a later alternative overlaps. An alternative
+no later one overlaps records nothing: when it fails the next is tried in place, and a
+replay runs it again to the same failure, reading back the spent ways it left on the tape,
+which is what the exclusive fast path already relied on and what lets the two paths
+become one.
+
+One hole, found by the suite rather than by thought. A way moved past a failed
+alternative kept the reach of the alternative that opened it; that reach was an argument
+about what could match *where the opener matched*, and the opener had not matched. A
+`0XFF` was refused at the `X`, and `SqlReadOnly` ran out of memory replaying a refusal
+whose tape it could no longer read, because the switch that sends a replay to the
+alternative in force knew only the values the reach allowed. So a way moved on takes the
+reach of the alternative it moves to — spent, where nothing overlaps that one — and the
+switch admits every later alternative. Both are the tape's own invariant said in full:
+the value is the alternative in force, the reach is how far a mend could go from it.
+
+The SQL parser writes fifty `Next` now against a hundred and six, and the measurement
+moved three to six percent, not more — `a = 1` from 68 to 66 ns, the nested input from
+196 to 188, the sixty-four predicates from 3,988 to 3,896. Not more because most ways on
+the hot path are genuine: `(` opens a predicate and a parenthesized condition alike, an
+identifier begins a column reference and a value function alike, and the grammar, as
+written, decides those by trying the first and coming back. The hand-written parser does
+not come back; it reads a value expression after `(` and then looks at what follows.
+That is the rest of the distance, and it is not in the tape.
+
+## Built: the alternatives of a choice share a frame
+
+A reader's locals were numbered once through, in the order the constructs were written:
+every segment its `s`, `lm` and `rr`, every call its `q`, every mark, turn and way its
+own. A choice of eight alternatives, each a sequence of segments with calls inside, laid
+all eight out side by side in one frame — `Read_ValueFunction` declared 377 of them — and
+the JIT zeroes the frame on entry and keeps every one of them addressable, which is what
+a method with 400 locals costs before it reads a character.
+
+No two alternatives of one choice run in the same parse. So each now numbers from where
+the choice stood, and what follows the choice numbers from the widest alternative rather
+than from the sum: the frame holds one alternative's locals and the rest are the same
+slots under other names. Labels are the exception, deliberately — a label is unique to
+the method, and two alternatives with the same `again` would be a jump into the wrong
+one. The parts a rule over budget is cut into are untouched: each is a method with a
+writer of its own.
+
+`Read_ValueFunction` declares 177 locals now against 377, and the widest reader in the SQL
+parser is 181. Measured, the sixty-four predicates went from 3,896 to 3,565 ns and the sixty-four
+operands from 1,361 to 1,259 — eight percent on inputs that enter the wide readers many
+times — and the short inputs stayed within the noise. Two snapshots renumbered, nothing
+else in them moved.
+
+## Built: no arena where nothing runs on the engine
+
+Every generated file carried the engine's runtime — `Parser`, `ParserArena`,
+`ParserEntry`, the pooling hooks over them — whether or not a machine in it ran on the
+engine, on the argument that a host might have implemented the hooks and what compiled
+yesterday must compile today. Twenty of the thirty-one parsers the solution generates
+have no engine in them, and each was two hundred and some lines of a class nothing
+reaches, compiled on every build of the consumer for nothing.
+
+The runtime is written now only where a machine runs on the engine — the valuing
+machine over the characters included, which is the one part of `ExpressionLanguage`
+still there, so that file keeps its arena and `SqlStandard92` and `Rfc3986` lose theirs.
+The hooks go with the class, and that is the decision rather than an accident: a host
+that had filled them in over a file that has since gone direct rented a parser nothing
+rents. `SqlStandard92.cs` was such a host, with a thread-static one-slot pool written on
+the day the engine was what ran; the pool is gone and the class is empty. Four benchmark
+grammars had the same pool and are the same now, and `CallCost` loses its two pooling
+rows — pooled against a fresh `Parser` per call — because there is no `Parser` in that
+file to pool. The README keeps the table they made and says what it was.
+
+Two tests said "falls back to the shared engine" of grammars that do not lower, and
+asserted the arena to prove it. A grammar that does not lower goes to the methods now,
+so what they assert is that the flat path was not taken — the arena or the tape of ways
+back, either of which holds what a flat method's locals cannot — and they are named for
+that. The emitter test that used `Parser` as its raw-literal block at depth two uses
+`Ways` instead, which is a raw literal too.
+
+Nothing measured moves: the class was never entered. The SQL file is 35,197 lines against
+37,364 before the last two entries — the shared frame took the declarations, this took
+the class — and every test the suite has stands.
+
+## Built: over kinds a rule's answer stands
+
+The way back was never the cost. Three entries above took the tape apart — opened at
+the alternative taken, shared across a choice, the dead arena gone — and won fifteen
+percent, and `{ }` around every choice the hand-written parser commits at made the SQL
+recognizer *slower*: minus the ways, plus a segment and a `Seal` per group, seven of
+them per predicate. Then the whole emitter was switched to commit by default for an
+afternoon, every choice and every turn, and the SQL numbers did not move either, with
+`Open` at zero. What the tape costs is not the entries. It is the scaffolding a reader
+keeps so that it *could* be sent back: a mark, a segment, a log watermark and a side
+stack watermark per sequence, per alternative, per group, and a retry on every failure
+path. As long as the language says a caller may resume a choice inside a callee, every
+reader carries that, whether or not anything in the parse ever comes back.
+
+**So the language says something else now, over kinds.** In the syntactic half of a
+split grammar a rule's answer stands: a choice is decided by the token in front of it
+and never revisited, and nothing that fails after a rule has matched sends the parse
+back into it. That is what a parser written by hand does at every choice — sees the
+token, enters, never looks back — and it is the default because it is what nearly every
+rule over tokens wants. A rule that needs to give back says so on its name, `Name? = …`,
+and gives back inside itself: the greedy dotted name in `ExpressionLanguage` hands a
+part back at a time until reflection says the type resolves, and once it has answered,
+the answer stands at its boundary. Over characters nothing changed — every rule gives
+back, `?` is accepted and means what it already is — because that is where backtracking
+is understood and wanted: a regular expression, a feed, an RFC transcribed in the order
+its ABNF lists the alternatives.
+
+The experiment said where the old semantics was actually used, over kinds, in this
+repository: five tests of `ExpressionLanguage`, two shapes. A loop giving back its
+last turn to the caller's continuation — `Name ('.' Name)*` before `'.' Member`, and
+`Type` reading `int[]` before a `"[]"` written after it — and a branch read as the
+statement `0;` when the declaration around the `if` needed the `;`. The first is what
+`?` is for and marks one rule. The other two are the caller's to read, and were
+rewritten the way one writes them by hand: `new int[] { … }` reads the array type and
+asks the guard whether it is one, and `if` in value position has branches that are
+values, so the `;` is the declaration's. `SqlStandard92` needed nothing: its choices
+were already ordered the way a committed parser reads them, which is why the commented
+"read it again per level of parentheses" in that grammar was ever written.
+
+**What the emitter does with it.** A reader over kinds whose rule is not marked writes
+no tape: no way back, no segment, no retry on a failure path, no seal, and an atomic
+group is its body. A failure is the position put back and the log put back, which is
+what values still need. A `?` reader is the reader of before, and seals its ways when
+it answers rather than dropping them, so that a replay of the rule reads the same
+decisions in the same places; a rule that commits stays committed where it is written
+in place inside a `?` reader, and a `?` rule is never written in place inside a reader
+that commits. The core of a publication commits with the half it reads.
+
+The SQL recognizer: 41 ns on `a = 1` against 63 the entry before, 2,568 against 3,561
+on the sixty-four predicates, 938 against 1,266 on the sixty-four operands — and the
+last is the first input on which the generated parser is *ahead* of the hand-written
+one, at 0.79 of its time. Against the yardstick the recognizer stands at 1.2 to 2.2
+times, from 2 to 4. What is left on the short inputs is the ladder — ten readers for
+`a = 1` where the hand-written parser climbs three — and that is the grammar's shape.
+
+**A gap, named.** The statement is about the language and the readers honour it; a
+syntactic half that cannot be read by methods — `find`, `stream`, `recover`, a climb —
+still runs on the engine, which backtracks as it always did. Neither split grammar in
+the repository has such a rule, and the day one does is the day the engine learns to
+commit or the compiler learns to say no.

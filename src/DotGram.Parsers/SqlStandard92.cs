@@ -396,14 +396,4 @@ namespace DotGram.Parsers;
 	""", Lexical = true)]
 public static partial class SqlStandard92
 {
-	[ThreadStatic]
-	static Parser? _parser;
-
-	static partial void RentParser(ref Parser parser)
-	{
-		parser  = _parser!;
-		_parser = null;
-	}
-
-	static partial void ReturnParser(Parser parser) => _parser = parser;
 }

@@ -210,9 +210,21 @@ public sealed class GramParser
 	/// Whether the current identifier starts a rule rather than being a contextual
 	/// keyword — the check that lets `namespace`, `parse` and the rest stay ordinary names.
 	/// </summary>
-	bool StartsRule() =>
-		At(TokenKind.Identifier) &&
-		(Next.Kind is TokenKind.Equals || StartsParameterizedRule() || StartsTypedRule());
+	bool StartsRule()
+	{
+		if (!At(TokenKind.Identifier))
+			return false;
+
+		// `Name?` — a rule that may give back (§4) — is the same head with `?` after the name.
+		var head = _index + 1;
+
+		if (KindAt(head) == TokenKind.Question)
+			head++;
+
+		return KindAt(head) is TokenKind.Equals || StartsParameterizedRule(head) || StartsTypedRule(head);
+	}
+
+	TokenKind KindAt(int at) => at < _tokens.Count ? _tokens[at].Kind : TokenKind.EndOfFile;
 
 	/// <summary>
 	/// Whether an identifier followed by <c>(</c> is a rule taking parameters rather than
@@ -225,12 +237,12 @@ public sealed class GramParser
 	/// has after its parameters and a directive does not. Scanned to the matching
 	/// parenthesis, which is a bounded look and the only one this decision needs.
 	/// </remarks>
-	bool StartsParameterizedRule()
+	bool StartsParameterizedRule(int head)
 	{
-		if (Next.Kind != TokenKind.OpenParen)
+		if (KindAt(head) != TokenKind.OpenParen)
 			return false;
 
-		var at    = _index + 2;
+		var at    = head + 1;
 		var depth = 1;
 
 		while (at < _tokens.Count && depth > 0)
@@ -251,28 +263,28 @@ public sealed class GramParser
 	/// prefix: <c>date: Digit{4}</c> inside a rule is otherwise indistinguishable from a
 	/// declaration at the colon and produces a second cascade.
 	/// </summary>
-	bool StartsTypedRule()
+	bool StartsTypedRule(int head)
 	{
-		if (Next.Kind != TokenKind.Colon)
+		if (KindAt(head) != TokenKind.Colon)
 			return false;
 
-		var at = _index + 2;
+		var at = head + 1;
 
-		if (_tokens[at].Kind == TokenKind.At)
+		if (KindAt(at) == TokenKind.At)
 			at++;
 
-		if (_tokens[at].Kind != TokenKind.Identifier)
+		if (KindAt(at) != TokenKind.Identifier)
 			return false;
 
 		at++;
 
-		while (_tokens[at].Kind == TokenKind.Dot && _tokens[at + 1].Kind == TokenKind.Identifier)
+		while (KindAt(at) == TokenKind.Dot && KindAt(at + 1) == TokenKind.Identifier)
 			at += 2;
 
-		if (_tokens[at].Kind == TokenKind.OpenBracket && _tokens[at + 1].Kind == TokenKind.CloseBracket)
+		if (KindAt(at) == TokenKind.OpenBracket && KindAt(at + 1) == TokenKind.CloseBracket)
 			at += 2;
 
-		return _tokens[at].Kind == TokenKind.Equals;
+		return KindAt(at) == TokenKind.Equals;
 	}
 
 	/// <summary>
@@ -483,6 +495,7 @@ public sealed class GramParser
 
 		var start      = Current.Position;
 		var name       = ExpectName();
+		var givesBack  = TakeIf(TokenKind.Question);
 		var parameters = At(TokenKind.OpenParen) ? ParseParameters() : [];
 		var type       = TakeIf(TokenKind.Colon) ? ParseType() : null;
 
@@ -490,7 +503,7 @@ public sealed class GramParser
 
 		var body = ParseBody();
 
-		return new Decl.Rule(name, parameters, type, body) { At = From(start) };
+		return new Decl.Rule(name, parameters, type, body) { At = From(start), GivesBack = givesBack };
 	}
 
 	List<Param> ParseParameters()

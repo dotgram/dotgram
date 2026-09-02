@@ -51,6 +51,13 @@ namespace DotGram.Benchmarks;
 /// is behind the hand-written parser. A quarter, and worth knowing before anything is
 /// rebuilt to avoid them.
 /// </para>
+/// <para>
+/// <b>2026-09-03.</b> These grammars are read by methods again — the direct rendering,
+/// <c>Machine.Direct.cs</c> — and a file rendered that way has no arena and no
+/// <c>Parser</c> to pool, so the two rows that priced the pooling are gone with it. The
+/// figures above are what the engine cost when the engine was what ran; the three rows
+/// that remain ask the same question of the methods.
+/// </para>
 /// </remarks>
 [MemoryDiagnoser]
 public partial class CallCost
@@ -73,51 +80,6 @@ public partial class CallCost
 		""")]
 	public sealed partial class Called
 	{
-	}
-
-	/// <summary>
-	/// The same grammar again, with the pooling hooks the generated parser offers filled in.
-	/// </summary>
-	/// <remarks>
-	/// A one-slot pool, taken out while it is in use so that a parse reached from inside
-	/// another gets its own. What it is here to answer is what the machinery costs when it is
-	/// not rebuilt from nothing on every call.
-	/// </remarks>
-	[Gram("""
-		Start  : @string = t: Letter+ => @(t)
-		Letter = ['a'..'z'] | ('!' & Letter)
-		parse Start
-		""")]
-	public sealed partial class Pooled
-	{
-		[ThreadStatic]
-		static Parser? _mine;
-
-		static partial void RentParser(ref Parser parser)
-		{
-			parser = _mine!;
-			_mine = null;
-		}
-
-		static partial void ReturnParser(Parser parser) => _mine = parser;
-	}
-
-	/// <summary>
-	/// And again with the hooks answering that the caller supplies its own — which is a fresh
-	/// one every time, so this is the machinery built from nothing, as the default used to be.
-	/// </summary>
-	[Gram("""
-		Start  : @string = t: Letter+ => @(t)
-		Letter = ['a'..'z'] | ('!' & Letter)
-		parse Start
-		""")]
-	public sealed partial class Unpooled
-	{
-		static partial void RentParser(ref Parser parser) => parser = new Parser();
-
-		static partial void ReturnParser(Parser parser)
-		{
-		}
 	}
 
 	/// <summary>
@@ -158,12 +120,6 @@ public partial class CallCost
 
 	[Benchmark]
 	public string? Called_as_a_rule() => Called.ParseStart(Input);
-
-	[Benchmark]
-	public string? Called_with_pooling() => Pooled.ParseStart(Input);
-
-	[Benchmark]
-	public string? Called_without_pooling() => Unpooled.ParseStart(Input);
 
 	[Benchmark]
 	public string? Called_as_a_valued_rule() => Valued.ParseStart(Input);

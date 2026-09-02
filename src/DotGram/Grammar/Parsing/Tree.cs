@@ -56,7 +56,16 @@ public abstract record Decl : ILocated
 	public required Location At { get; init; }
 
 	public sealed record Rule(
-		string Name, IReadOnlyList<Param> Params, TypeRef? Type, Expr Body) : Decl;
+		string Name, IReadOnlyList<Param> Params, TypeRef? Type, Expr Body) : Decl
+	{
+		/// <summary>
+		/// <c>Name? = …</c>: a rule that may give back what it read — inside it, a choice
+		/// or a repetition may be revisited after a later failure — where the language
+		/// otherwise commits (§4). Over characters every rule gives back, and the mark is
+		/// what it already is.
+		/// </summary>
+		public bool GivesBack { get; init; }
+	}
 
 	public sealed record Namespace(
 		string Name, IReadOnlyList<Rebinding> Rebindings, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
@@ -209,9 +218,9 @@ static class Dump
 	{
 		switch (declaration)
 		{
-			case Decl.Rule(var name, var parameters, var type, var body):
+			case Decl.Rule(var name, var parameters, var type, var body) rule:
 
-				Write(text, depth, $"Rule {Quote(name)}");
+				Write(text, depth, $"Rule {Quote(name)}{(rule.GivesBack ? " ?" : "")}");
 
 				foreach (var parameter in parameters)
 					Write(text, depth + 1, Label(parameter));

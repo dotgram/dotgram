@@ -271,6 +271,7 @@ sealed partial class Machine
 			return known;
 
 		var copyable =
+			!(OverKinds && rule.GivesBack) &&
 			!Valued(rule) && _graph.Results[rule].Count == 0 &&
 			!_graph.Climbing.ContainsKey(rule) && !_graph.Externals.ContainsKey(rule) &&
 			_graph.Bodies.TryGetValue(rule, out var body) &&
@@ -441,7 +442,7 @@ sealed partial class Machine
 		// Every rule with a boundary gets a reader, and so does a rule written in place that
 		// some reader over the budget chose to call instead — which is only known once that
 		// reader is rendered, so the queue grows as it is drained.
-		var pending  = new Queue<RuleSymbol>(rules.Where(rule => !CanInline(rule)));
+		var pending  = new Queue<RuleSymbol>(rules.Where(rule => !CanInline(rule) || (OverKinds && rule.GivesBack)));
 		var rendered = new HashSet<RuleSymbol>();
 
 		foreach (var wanted in _readersWanted)
@@ -663,7 +664,7 @@ sealed partial class Machine
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectCoreParameters})"))
 		{
-			file.Write(new DirectWriter(this).Render(body, FollowSets.Continuation.End, whole: true));
+			file.Write(new DirectWriter(this) { Commits = OverKinds }.Render(body, FollowSets.Continuation.End, whole: true));
 		}
 
 		file.Line();
@@ -765,6 +766,25 @@ sealed partial class Machine
 		int _segments;
 		bool _character;
 
+		/// <summary>
+		/// Whether nothing between the construct being written and the end of the atomic
+		/// group around it can fail. A way back is the option of coming back after a
+		/// failure further on; where no failure can come from there, and the group's success
+		/// commits everything inside it, the way would never be taken and is not written.
+		/// This is what a hand-written parser does at every choice — sees the token, enters,
+		/// never looks back — said in the grammar with `{ }` and honoured here.
+		/// </summary>
+		bool _committed;
+
+		/// <summary>
+		/// Whether the whole reader commits: it reads kinds, and its rule is not marked
+		/// <c>?</c>. Over kinds a choice is decided by the token in front of it and never
+		/// revisited (§4), so nothing in such a reader is a way back — no segment to retry
+		/// from, no seal, no group to commit — and a failure is the position put back and
+		/// the log put back. This is the parser a person writes.
+		/// </summary>
+		bool _commits;
+
 		/// <summary>The rule whose body is being written, for the back edges out of it and the captures in it.</summary>
 		RuleSymbol? _owner;
 
@@ -790,8 +810,10 @@ sealed partial class Machine
 
 		public string Render(Node body, FollowSets.Continuation following, bool whole, RuleSymbol? owner = null)
 		{
-			_owner  = owner;
-			_offset = owner is not null ? machine._captureOffsets[owner] : 0;
+			_owner     = owner;
+			_offset    = owner is not null ? machine._captureOffsets[owner] : 0;
+			_commits   = Commits ?? (machine.OverKinds && owner is { GivesBack: false });
+			_committed = _commits;
 
 			var code    = new Writer(0);
 			var segment = Segment();
@@ -830,13 +852,21 @@ sealed partial class Machine
 			}
 
 			code.Write(inner.ToString());
+
+			// A rule that gives back gives back inside itself: once it has answered, the
+			// answer stands, and a caller — which commits — is never sent back into it.
+			// Sealed rather than dropped, so that a replay of the rule reads the same
+			// decisions in the same places.
+			if (machine.OverKinds && owner is { GivesBack: true })
+				code.Line($"ways.Seal({segment});");
+
 			code.Line("return p;");
 
 			// A body that cannot fail has no failure path, and one it does not have is not written.
 			if (fallible)
 			{
 				code.Line("Fail:");
-				code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto Again;");
+				Retrying(code, segment, "Again");
 
 				if (valued)
 				{
@@ -1019,6 +1049,30 @@ sealed partial class Machine
 
 		string Segment() => $"s{_segments++}";
 
+		/// <summary>
+		/// Where the numbering of locals stands — segments, marks, turns, calls and ways.
+		/// The alternatives of one choice never run in the same parse, so each numbers from
+		/// where the choice stood and the frame holds the widest of them, not all of them
+		/// side by side. Labels are not among these: a label is unique to the method.
+		/// </summary>
+		(int Segments, int Marks, int Turns, int Calls, int Ways) Numbered
+		{
+			get => (_segments, _marks, _turns, _calls, _ways);
+			set => (_segments, _marks, _turns, _calls, _ways) = value;
+		}
+
+		/// <summary>The furthest either numbering reached, where what follows a choice numbers from.</summary>
+		static (int Segments, int Marks, int Turns, int Calls, int Ways) Furthest(
+			(int Segments, int Marks, int Turns, int Calls, int Ways) one,
+			(int Segments, int Marks, int Turns, int Calls, int Ways) other) =>
+			(
+				Math.Max(one.Segments, other.Segments),
+				Math.Max(one.Marks,    other.Marks),
+				Math.Max(one.Turns,    other.Turns),
+				Math.Max(one.Calls,    other.Calls),
+				Math.Max(one.Ways,     other.Ways)
+			);
+
 		string Mark() => $"m{_marks++}";
 
 		string Label(string what) => $"L{_labels++}_{what}";
@@ -1103,6 +1157,20 @@ sealed partial class Machine
 		}
 
 		/// <summary>Where the log stood when a segment began, kept beside its way-back segment.</summary>
+		/// <summary>The retry of the ways opened since the segment, where there can be any.</summary>
+		void Retrying(Writer code, string segment, string again)
+		{
+			if (!_commits)
+				code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+		}
+
+		/// <summary>The seal over the ways opened since the segment, where there can be any.</summary>
+		void Sealing(Writer code, string segment)
+		{
+			if (!_commits)
+				code.Line($"ways.Seal({segment});");
+		}
+
 		static void Marked(Writer code, string segment, bool writes)
 		{
 			if (!writes)
@@ -1119,6 +1187,12 @@ sealed partial class Machine
 		/// </param>
 		/// <summary>The alternatives read by a method of their own, where the rule's are (Machine.Direct.cs, the budget).</summary>
 		public IReadOnlyDictionary<Node, string>? Parts { get; set; }
+
+		/// <summary>
+		/// Whether the reader commits, where it has no rule of its own to say so: the core of
+		/// a publication, which reads the seam and calls the rule.
+		/// </summary>
+		public bool? Commits { get; init; }
 
 		void Emit(Writer code, Node node, string fail, FollowSets.Continuation following, bool loaded = false)
 		{
@@ -1265,6 +1339,7 @@ sealed partial class Machine
 					// above this point is called instead, which is what breaks every cycle;
 					// the budget is what keeps the method one the JIT will optimize.
 					if (Inline && machine.DirectCopyable(called) && !_inlining.Contains(called) &&
+						!(machine.OverKinds && called.GivesBack) &&
 						!ReferenceEquals(called, _owner) &&
 						(machine.CanInline(called) || machine.DirectCost(called) <= CopyPiece) &&
 						_copied + machine.DirectCost(called) <= CopyBudget &&
@@ -1280,9 +1355,16 @@ sealed partial class Machine
 						var quiet     = _quiet;
 						var buffer    = new Writer(0);
 
+						var committed = _committed;
+
+						// A rule that commits keeps committing where it is written in place.
+						if (machine.OverKinds && !called.GivesBack)
+							_committed = true;
+
 						_inlining.Push(called);
 						Emit(buffer, _graph.Bodies[called], fail, following, loaded);
 						_inlining.Pop();
+						_committed = committed;
 
 						var copied = buffer.ToString();
 						var cost   = Branches(copied);
@@ -1654,12 +1736,28 @@ sealed partial class Machine
 			var buffer  = new Writer(0);
 			var carry   = loaded;
 
+			// A part is committed where the sequence is and nothing after it in the sequence
+			// can fail: a failure that could reach back into the part would have to come
+			// from there.
+			var outside = _committed;
+			var tails   = new bool[parts.Count];
+			var safe    = true;
+
+			for (var i = parts.Count - 1; i >= 0; i--)
+			{
+				tails[i] = safe;
+				safe     = safe && Infallible(parts[i]);
+			}
+
 			for (var i = 0; i < parts.Count; i++)
 			{
+				_committed = outside && (_commits || tails[i]);
 				Emit(buffer, parts[i], undo, follows[i], carry);
 
 				carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind or Node.Glue;
 			}
+
+			_committed = outside;
 
 			var written = buffer.ToString();
 
@@ -1682,7 +1780,7 @@ sealed partial class Machine
 			code.Line($"{undo}:");
 			code.Line($"p = {mark};");
 			Unwritten(code, segment, writes, written);
-			code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+			Retrying(code, segment, again);
 			code.Line($"goto {fail};");
 			code.Line($"{over}: ;");
 		}
@@ -1742,26 +1840,26 @@ sealed partial class Machine
 
 				Refused(code, "p", name, fail);
 
+				var from    = Numbered;
+				var reached = from;
+
 				for (var i = 0; i < alternatives.Count; i++)
 				{
+					Numbered = from;
+
 					code.Line($"{labels[i]}:");
 					EmitAlternative(code, alternatives[i], mark, fail, following, loaded: true);
 					code.Line($"goto {took};");
+
+					reached = Furthest(reached, Numbered);
 				}
+
+				Numbered = reached;
 
 				code.Line($"{took}: ;");
 
 				return;
 			}
-
-			// Exclusive only where each alternative must begin with something of its own: one
-			// that may match nothing is never told apart from the next by what it begins with.
-			var exclusive = alternatives.All(one =>
-				!FirstSets.Nullable(one, _graph) && FirstSets.Of(one, _graph).IsKnown);
-
-			for (var i = 0; i < alternatives.Count && exclusive; i++)
-				for (var j = i + 1; j < alternatives.Count && exclusive; j++)
-					exclusive = machine.Exclusive(alternatives[i], alternatives[j]);
 
 			// The gate before each alternative: what it can begin with, tested on the
 			// character standing here before the alternative is entered at all. This is
@@ -1784,57 +1882,43 @@ sealed partial class Machine
 				loaded = true;
 			}
 
-			if (exclusive)
-			{
-				code.Line($"{mark} = p;");
-
-				for (var i = 0; i < alternatives.Count; i++)
-				{
-					var next = i == alternatives.Count - 1 ? fail : Label("or");
-
-					if (gated)
-					{
-						code.Line($"if (!({gates[i]}))");
-						using (code.Block(""))
-						{
-							if (i == alternatives.Count - 1)
-								Refused(code, "p", union, fail);
-							else
-								code.Line($"goto {next};");
-						}
-					}
-
-					EmitAlternative(code, alternatives[i], mark, next, following, loaded);
-
-					if (i < alternatives.Count - 1)
-					{
-						code.Line($"goto {took};");
-						code.Line($"{next}: ;");
-						// The alternative that failed may have read past here; what stands here is loaded again.
-						Reloaded(code, loaded);
-					}
-				}
-
-				code.Line($"{took}: ;");
-
-				return;
-			}
-
-			// The general case: one way back, its value the alternative in force.
+			// A way back is recorded only where one could be taken: at an alternative that a
+			// later one overlaps by what it begins with, so that once this one has matched,
+			// a failure further on could still be the other's to mend. It is opened there, on
+			// entering, in force at that alternative — not at the top of the choice, with the
+			// tape then walked past every alternative the gates refused — and it reaches only
+			// as far as the last alternative that overlaps this one: past that, nothing could
+			// match where this one did. An alternative no later one overlaps records nothing.
+			// When it fails the next is tried in place, and a replay runs it again to the same
+			// failure, reading back the spent ways it left on the tape.
+			//
+			// A way moved on past a failed alternative takes the reach of the one it moves to:
+			// nothing has matched yet, and the reach of what failed says nothing about what
+			// can match now.
 			var way    = _ways++;
 			var chosen = alternatives.Select(_ => Label("alt")).ToList();
+			var lasts  = alternatives.Select((_, i) => _committed ? -1 : LastOverlapping(alternatives, i)).ToList();
+
+			// Whether a way opened at an earlier alternative may be in hand on arriving at this one.
+			bool MayHold(int i) => lasts.Take(i).Any(static last => last >= 0);
+
+			// The way moved on to alternative i, with i's reach; spent where nothing overlaps i.
+			string Moved(int i) => $"ways.Next(w{way}, {i}, {Math.Max(lasts[i], i)});";
 
 			code.Line($"{mark} = p;");
-			code.Line($"if (ways.Cursor < ways.Count) {{ w{way} = ways.Cursor; d{way} = ways.Items[w{way} * 2]; ways.Cursor++; }}");
-			code.Line($"else {{ w{way} = ways.Open({alternatives.Count - 1}); d{way} = 0; }}");
-			code.Line($"switch (d{way})");
-			using (code.Block(""))
-				for (var i = 0; i < alternatives.Count; i++)
-					code.Line($"case {i}: goto {chosen[i]};");
+
+			if (lasts.Any(static last => last >= 0))
+				code.Line($"w{way} = -1;");
+
+			var stood  = Numbered;
+			var widest = stood;
 
 			for (var i = 0; i < alternatives.Count; i++)
 			{
 				var spent = Label("spent");
+				var holds = MayHold(i);
+
+				Numbered = stood;
 
 				code.Line($"{chosen[i]}:");
 
@@ -1843,8 +1927,8 @@ sealed partial class Machine
 
 				if (gated)
 				{
-					// Gated out: spent without having been entered. The way still moves on,
-					// so that a replay reads the same decision in the same place.
+					// Gated out. A way in hand moves on, so that a replay reads the same
+					// decision in the same place; without one there is nothing to move.
 					code.Line($"if (!({gates[i]}))");
 					using (code.Block(""))
 					{
@@ -1852,9 +1936,24 @@ sealed partial class Machine
 							Refused(code, "p", union, fail);
 						else
 						{
-							code.Line($"ways.Next(w{way}, {i + 1});");
+							if (holds)
+								code.Line($"if (w{way} >= 0) {Moved(i + 1)}");
 							code.Line($"goto {chosen[i + 1]};");
 						}
+					}
+				}
+
+				if (lasts[i] >= 0)
+				{
+					if (holds)
+					{
+						code.Line($"if (w{way} < 0)");
+						using (code.Block(""))
+							Opened(code, way, i, lasts[i], chosen);
+					}
+					else
+					{
+						Opened(code, way, i, lasts[i], chosen);
 					}
 				}
 
@@ -1862,20 +1961,100 @@ sealed partial class Machine
 				code.Line($"goto {took};");
 				code.Line($"{spent}:");
 
-				if (i < alternatives.Count - 1)
-				{
-					// This alternative is spent, and the way records that: the next one
-					// is what the tape now says, so a replay from outside arrives there.
-					code.Line($"ways.Next(w{way}, {i + 1});");
-					code.Line($"goto {chosen[i + 1]};");
-				}
-				else
+				if (i == alternatives.Count - 1)
 				{
 					code.Line($"goto {fail};");
 				}
+				else
+				{
+					// Spent. A way in hand records that, and drops what this alternative
+					// decided: the next one starts from nothing, and a replay never comes here.
+					if (lasts[i] >= 0)
+						code.Line(Moved(i + 1));
+					else if (holds)
+						code.Line($"if (w{way} >= 0) {Moved(i + 1)}");
+					code.Line($"goto {chosen[i + 1]};");
+				}
+
+				widest = Furthest(widest, Numbered);
 			}
 
+			Numbered = widest;
 			code.Line($"{took}: ;");
+		}
+
+		/// <summary>
+		/// Entering an alternative with no way in hand: the one a replay has here is read,
+		/// or one is opened, in force at this alternative and reaching to the last that
+		/// overlaps it. What the tape says goes where it says — any later alternative, the
+		/// way having been moved on since; this alternative falls through.
+		/// </summary>
+		static void Opened(Writer code, int way, int at, int last, IReadOnlyList<string> chosen)
+		{
+			code.Line($"if (ways.Cursor < ways.Count) {{ w{way} = ways.Cursor; d{way} = ways.Items[w{way} * 2]; ways.Cursor++; }}");
+			code.Line($"else {{ w{way} = ways.Open({at}, {last}); d{way} = {at}; }}");
+			code.Line($"switch (d{way})");
+			using (code.Block(""))
+				for (var j = at + 1; j < chosen.Count; j++)
+					code.Line($"case {j}: goto {chosen[j]};");
+		}
+
+		/// <summary>
+		/// Whether the node cannot fail wherever it stands: nothing, an optional or a star,
+		/// a sequence of such, a choice with such an alternative, or a call to a rule whose
+		/// body is such — the seam between operands, most often. What a part like this
+		/// follows can be committed: no failure will come from it.
+		/// </summary>
+		bool Infallible(Node node) => Infallible(node, []);
+
+		bool Infallible(Node node, HashSet<RuleSymbol> visiting)
+		{
+			switch (node)
+			{
+				case Node.Empty:
+					return true;
+				case Node.Repeat(_, var min, _):
+					return min == 0;
+				case Node.Sequence(var parts):
+					return parts.All(part => Infallible(part, visiting));
+				case Node.Choice(var alternatives):
+					return alternatives.Any(alternative => Infallible(alternative, visiting));
+				case Node.Atomic(var body):
+					return Infallible(body, visiting);
+				case Node.Marked(var body, _):
+					return Infallible(body, visiting);
+				case Node.Capture(_, var body):
+					return Infallible(body, visiting);
+				case Node.Construct(var body, _):
+					return Infallible(body, visiting);
+				case Node.Call(var rule, { Count: 0 }):
+					return visiting.Add(rule) && _graph.Bodies.TryGetValue(rule, out var called) &&
+						Infallible(called, visiting);
+				default:
+					return false;
+			}
+		}
+
+		/// <summary>
+		/// The last alternative after <paramref name="i"/> that could match where it did, or
+		/// -1 where none could: the reach of a way back opened at it. An alternative that
+		/// may match nothing, or whose first set is not known, is never told apart from
+		/// another by what it begins with, and overlaps every one.
+		/// </summary>
+		int LastOverlapping(IReadOnlyList<Node> alternatives, int i)
+		{
+			for (var j = alternatives.Count - 1; j > i; j--)
+			{
+				if (!Sure(alternatives[i]) || !Sure(alternatives[j]) ||
+					!machine.Exclusive(alternatives[i], alternatives[j]))
+				{
+					return j;
+				}
+			}
+
+			return -1;
+
+			bool Sure(Node one) => !FirstSets.Nullable(one, _graph) && FirstSets.Of(one, _graph).IsKnown;
 		}
 
 		/// <summary>
@@ -1932,7 +2111,7 @@ sealed partial class Machine
 			code.Line($"{failed}:");
 			code.Line($"p = {mark};");
 			Unwritten(code, segment, writes, written);
-			code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+			Retrying(code, segment, again);
 			code.Line($"goto {spent};");
 			code.Line($"{over}: ;");
 		}
@@ -1963,8 +2142,9 @@ sealed partial class Machine
 			var nullable = FirstSets.Nullable(body, _graph);
 
 			// A count with no range in it has no turn to give back, whatever follows.
-			var settled = max == min || Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
-			var way     = settled ? -1 : _ways++;
+			var settled  = max == min || Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
+			var recorded = !settled && !_committed;
+			var way      = recorded ? _ways++ : -1;
 
 			// Inside the loop what follows a turn is another turn, or what follows the loop.
 			var inside = new FollowSets.Continuation(
@@ -1973,9 +2153,16 @@ sealed partial class Machine
 
 			var buffer = new Writer(0);
 
-			_quiet = settled;
+			// A turn past the minimum that fails ends the loop and retries nothing before
+			// it, so the body is committed where the loop is and no turn is owed; a turn
+			// short of the minimum fails the loop, and what is before it may be retried.
+			var outside = _committed;
+
+			_committed = outside && (_commits || min == 0);
+			_quiet     = settled;
 			Emit(buffer, body, failed, inside);
-			_quiet = false;
+			_quiet     = false;
+			_committed = outside;
 
 			var written  = buffer.ToString();
 			var fallible = written.Contains($"goto {failed};", StringComparison.Ordinal);
@@ -1995,7 +2182,7 @@ sealed partial class Machine
 			if (max is { } limit)
 				code.Line($"if (t{turn} >= {limit}) goto {done};");
 
-			if (!settled)
+			if (recorded)
 			{
 				var eligible = min > 0 ? $"if (t{turn} >= {min}) " : "";
 
@@ -2023,9 +2210,9 @@ sealed partial class Machine
 				code.Line($"{failed}:");
 				code.Line($"p = {mark};");
 				Unwritten(code, segment, writes, written);
-				code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+				Retrying(code, segment, again);
 
-				if (!settled)
+				if (recorded)
 				{
 					// The turn is spent, so the way that offered it now says "stopped here".
 					var stop = min > 0 ? $"if (t{turn} >= {min}) " : "";
@@ -2056,8 +2243,9 @@ sealed partial class Machine
 				return;
 
 			var mark    = Mark();
-			var settled = max == min || Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
-			var way     = settled ? -1 : _ways++;
+			var settled  = max == min || Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
+			var recorded = !settled && !_committed;
+			var way      = recorded ? _ways++ : -1;
 
 			code.Line($"{mark} = p;");
 
@@ -2092,7 +2280,7 @@ sealed partial class Machine
 
 			// The way's value is how many characters were handed back; replayed, the scan
 			// reaches the same end and hands back the same number.
-			if (!settled)
+			if (recorded)
 				code.Line(
 					$"if (p > {floor}) {{ if (ways.Cursor < ways.Count) {{ d{way} = ways.Items[ways.Cursor * 2]; ways.Cursor++; }} " +
 					$"else {{ ways.Open(p - {floor}); d{way} = 0; }} p -= d{way}; }}");
@@ -2114,8 +2302,12 @@ sealed partial class Machine
 			var failed  = Label("failed");
 			var over    = Label("on");
 			var buffer  = new Writer(0);
+			var outside = _committed;
 
+			// What a lookahead reads is its own: nothing outside commits it.
+			_committed = _commits;
 			Emit(buffer, inside, failed, FollowSets.Continuation.All, loaded);
+			_committed = outside;
 
 			var written  = buffer.ToString();
 			var fallible = written.Contains($"goto {failed};", StringComparison.Ordinal);
@@ -2138,7 +2330,7 @@ sealed partial class Machine
 			code.Line("ways.Lookahead--;");
 
 			if (decides)
-				code.Line($"ways.Seal({segment});");
+				Sealing(code, segment);
 
 			// A look that cannot fail always passes when positive and always fails when
 			// negative, and the failure path it does not have is not written.
@@ -2156,7 +2348,7 @@ sealed partial class Machine
 				code.Line($"{failed}:");
 				code.Line($"p = {mark};");
 				Unwritten(code, segment, writes, written);
-				code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+				Retrying(code, segment, again);
 				Reloaded(code, loaded);
 				code.Line("ways.Lookahead--;");
 				code.Line($"goto {fail};");
@@ -2168,7 +2360,7 @@ sealed partial class Machine
 				code.Line($"{failed}:");
 				code.Line($"p = {mark};");
 				Unwritten(code, segment, writes, written);
-				code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+				Retrying(code, segment, again);
 				Reloaded(code, loaded);
 				code.Line("ways.Lookahead--;");
 				code.Line($"{over}: ;");
@@ -2179,14 +2371,26 @@ sealed partial class Machine
 		void EmitAtomic(
 			Writer code, Node kept, string fail, FollowSets.Continuation following, bool loaded)
 		{
+			// A reader that commits throughout has nothing left for a group to commit.
+			if (_commits)
+			{
+				Emit(code, kept, fail, following, loaded);
+
+				return;
+			}
+
 			var mark    = Mark();
 			var segment = Segment();
 			var again   = Label("again");
 			var failed  = Label("failed");
 			var over    = Label("on");
 			var buffer  = new Writer(0);
+			var outside = _committed;
 
+			// Nothing past the group's end reaches back into it: the group commits.
+			_committed = true;
 			Emit(buffer, kept, failed, following, loaded);
+			_committed = outside;
 
 			var written = buffer.ToString();
 			var writes  = Writes(written);
@@ -2199,7 +2403,7 @@ sealed partial class Machine
 				{
 					code.Line($"{segment} = ways.Cursor;");
 					code.Write(written);
-					code.Line($"ways.Seal({segment});");
+					Sealing(code, segment);
 				}
 				else
 					code.Write(written);
@@ -2213,12 +2417,12 @@ sealed partial class Machine
 			code.Line($"{again}:");
 			Reloaded(code, loaded);
 			code.Write(written);
-			code.Line($"ways.Seal({segment});");
+			Sealing(code, segment);
 			code.Line($"goto {over};");
 			code.Line($"{failed}:");
 			code.Line($"p = {mark};");
 			Unwritten(code, segment, writes, written);
-			code.Line($"if (ways.Cursor > {segment} && ways.Retry({segment})) goto {again};");
+			Retrying(code, segment, again);
 			code.Line($"goto {fail};");
 			code.Line($"{over}: ;");
 		}

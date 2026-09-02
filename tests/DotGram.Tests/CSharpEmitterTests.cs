@@ -891,15 +891,15 @@ public sealed class CSharpEmitterTests
 		// In a namespace, so the depth every one of them sits at is two and not "whatever
 		// the class happened to be nested at". Deliberately not silent — the repetition
 		// over an ambiguous choice keeps a way back per turn, which no checkpoint site
-		// can hold, so this grammar still asks for the arena and the Parser below. A
-		// silent grammar no longer pays for either.
+		// can hold, so this grammar is read by methods over the tape of ways below. A
+		// silent grammar pays for none of it.
 		var source = Assert.Single(GramCompiler.Compile(
 			"Start = ((\"a\" | \"ab\") & 'c')* & 'd'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);
 		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\t/// <summary>",                    source);
-		Assert.Contains("\t\tprivate sealed class Parser\r\n\t\t{\r\n", source);
+		Assert.Contains("\t\tsealed class Ways\r\n\t\t{\r\n",                                        source);
 	}
 
 	[Fact]
