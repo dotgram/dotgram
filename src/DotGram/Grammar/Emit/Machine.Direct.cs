@@ -1754,15 +1754,6 @@ sealed partial class Machine
 				return;
 			}
 
-			// Exclusive only where each alternative must begin with something of its own: one
-			// that may match nothing is never told apart from the next by what it begins with.
-			var exclusive = alternatives.All(one =>
-				!FirstSets.Nullable(one, _graph) && FirstSets.Of(one, _graph).IsKnown);
-
-			for (var i = 0; i < alternatives.Count && exclusive; i++)
-				for (var j = i + 1; j < alternatives.Count && exclusive; j++)
-					exclusive = machine.Exclusive(alternatives[i], alternatives[j]);
-
 			// The gate before each alternative: what it can begin with, tested on the
 			// character standing here before the alternative is entered at all. This is
 			// §5's filter, and without it an operand walks every alternative of the choice
@@ -1784,57 +1775,38 @@ sealed partial class Machine
 				loaded = true;
 			}
 
-			if (exclusive)
-			{
-				code.Line($"{mark} = p;");
-
-				for (var i = 0; i < alternatives.Count; i++)
-				{
-					var next = i == alternatives.Count - 1 ? fail : Label("or");
-
-					if (gated)
-					{
-						code.Line($"if (!({gates[i]}))");
-						using (code.Block(""))
-						{
-							if (i == alternatives.Count - 1)
-								Refused(code, "p", union, fail);
-							else
-								code.Line($"goto {next};");
-						}
-					}
-
-					EmitAlternative(code, alternatives[i], mark, next, following, loaded);
-
-					if (i < alternatives.Count - 1)
-					{
-						code.Line($"goto {took};");
-						code.Line($"{next}: ;");
-						// The alternative that failed may have read past here; what stands here is loaded again.
-						Reloaded(code, loaded);
-					}
-				}
-
-				code.Line($"{took}: ;");
-
-				return;
-			}
-
-			// The general case: one way back, its value the alternative in force.
+			// A way back is recorded only where one could be taken: at an alternative that a
+			// later one overlaps by what it begins with, so that once this one has matched,
+			// a failure further on could still be the other's to mend. It is opened there, on
+			// entering, in force at that alternative — not at the top of the choice, with the
+			// tape then walked past every alternative the gates refused — and it reaches only
+			// as far as the last alternative that overlaps this one: past that, nothing could
+			// match where this one did. An alternative no later one overlaps records nothing.
+			// When it fails the next is tried in place, and a replay runs it again to the same
+			// failure, reading back the spent ways it left on the tape.
+			//
+			// A way moved on past a failed alternative takes the reach of the one it moves to:
+			// nothing has matched yet, and the reach of what failed says nothing about what
+			// can match now.
 			var way    = _ways++;
 			var chosen = alternatives.Select(_ => Label("alt")).ToList();
+			var lasts  = alternatives.Select((_, i) => LastOverlapping(alternatives, i)).ToList();
+
+			// Whether a way opened at an earlier alternative may be in hand on arriving at this one.
+			bool MayHold(int i) => lasts.Take(i).Any(static last => last >= 0);
+
+			// The way moved on to alternative i, with i's reach; spent where nothing overlaps i.
+			string Moved(int i) => $"ways.Next(w{way}, {i}, {Math.Max(lasts[i], i)});";
 
 			code.Line($"{mark} = p;");
-			code.Line($"if (ways.Cursor < ways.Count) {{ w{way} = ways.Cursor; d{way} = ways.Items[w{way} * 2]; ways.Cursor++; }}");
-			code.Line($"else {{ w{way} = ways.Open({alternatives.Count - 1}); d{way} = 0; }}");
-			code.Line($"switch (d{way})");
-			using (code.Block(""))
-				for (var i = 0; i < alternatives.Count; i++)
-					code.Line($"case {i}: goto {chosen[i]};");
+
+			if (lasts.Any(static last => last >= 0))
+				code.Line($"w{way} = -1;");
 
 			for (var i = 0; i < alternatives.Count; i++)
 			{
 				var spent = Label("spent");
+				var holds = MayHold(i);
 
 				code.Line($"{chosen[i]}:");
 
@@ -1843,8 +1815,8 @@ sealed partial class Machine
 
 				if (gated)
 				{
-					// Gated out: spent without having been entered. The way still moves on,
-					// so that a replay reads the same decision in the same place.
+					// Gated out. A way in hand moves on, so that a replay reads the same
+					// decision in the same place; without one there is nothing to move.
 					code.Line($"if (!({gates[i]}))");
 					using (code.Block(""))
 					{
@@ -1852,9 +1824,24 @@ sealed partial class Machine
 							Refused(code, "p", union, fail);
 						else
 						{
-							code.Line($"ways.Next(w{way}, {i + 1});");
+							if (holds)
+								code.Line($"if (w{way} >= 0) {Moved(i + 1)}");
 							code.Line($"goto {chosen[i + 1]};");
 						}
+					}
+				}
+
+				if (lasts[i] >= 0)
+				{
+					if (holds)
+					{
+						code.Line($"if (w{way} < 0)");
+						using (code.Block(""))
+							Opened(code, way, i, lasts[i], chosen);
+					}
+					else
+					{
+						Opened(code, way, i, lasts[i], chosen);
 					}
 				}
 
@@ -1862,20 +1849,61 @@ sealed partial class Machine
 				code.Line($"goto {took};");
 				code.Line($"{spent}:");
 
-				if (i < alternatives.Count - 1)
+				if (i == alternatives.Count - 1)
 				{
-					// This alternative is spent, and the way records that: the next one
-					// is what the tape now says, so a replay from outside arrives there.
-					code.Line($"ways.Next(w{way}, {i + 1});");
-					code.Line($"goto {chosen[i + 1]};");
+					code.Line($"goto {fail};");
 				}
 				else
 				{
-					code.Line($"goto {fail};");
+					// Spent. A way in hand records that, and drops what this alternative
+					// decided: the next one starts from nothing, and a replay never comes here.
+					if (lasts[i] >= 0)
+						code.Line(Moved(i + 1));
+					else if (holds)
+						code.Line($"if (w{way} >= 0) {Moved(i + 1)}");
+					code.Line($"goto {chosen[i + 1]};");
 				}
 			}
 
 			code.Line($"{took}: ;");
+		}
+
+		/// <summary>
+		/// Entering an alternative with no way in hand: the one a replay has here is read,
+		/// or one is opened, in force at this alternative and reaching to the last that
+		/// overlaps it. What the tape says goes where it says — any later alternative, the
+		/// way having been moved on since; this alternative falls through.
+		/// </summary>
+		static void Opened(Writer code, int way, int at, int last, IReadOnlyList<string> chosen)
+		{
+			code.Line($"if (ways.Cursor < ways.Count) {{ w{way} = ways.Cursor; d{way} = ways.Items[w{way} * 2]; ways.Cursor++; }}");
+			code.Line($"else {{ w{way} = ways.Open({at}, {last}); d{way} = {at}; }}");
+			code.Line($"switch (d{way})");
+			using (code.Block(""))
+				for (var j = at + 1; j < chosen.Count; j++)
+					code.Line($"case {j}: goto {chosen[j]};");
+		}
+
+		/// <summary>
+		/// The last alternative after <paramref name="i"/> that could match where it did, or
+		/// -1 where none could: the reach of a way back opened at it. An alternative that
+		/// may match nothing, or whose first set is not known, is never told apart from
+		/// another by what it begins with, and overlaps every one.
+		/// </summary>
+		int LastOverlapping(IReadOnlyList<Node> alternatives, int i)
+		{
+			for (var j = alternatives.Count - 1; j > i; j--)
+			{
+				if (!Sure(alternatives[i]) || !Sure(alternatives[j]) ||
+					!machine.Exclusive(alternatives[i], alternatives[j]))
+				{
+					return j;
+				}
+			}
+
+			return -1;
+
+			bool Sure(Node one) => !FirstSets.Nullable(one, _graph) && FirstSets.Of(one, _graph).IsKnown;
 		}
 
 		/// <summary>

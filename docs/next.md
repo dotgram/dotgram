@@ -11233,3 +11233,52 @@ itself — but on the token path it is handed the kinds, so re-reading a span as
 would need a new external form. And `a<b>c` in C++, where the answer is whether `a` is a
 template, is not a lexical question at all: that is what `when` and `context` are, and
 `ExpressionLanguage` already resolves a dotted name against real reflection while it reads.
+
+## Built: a way back opened at the alternative taken, and only where one could be taken
+
+Two things settled before this one was touched, both in `benchmarks/` and both said at
+length in its README. The yardstick is in the repository now — `HandSqlTokens.cs`, a
+lexer into kinds and precedence climbing over them, held to the generated parser's
+language over forty-two shapes before anything is timed — and it is the best hand-written
+version this session could produce, which is the only kind worth dividing by: it beats
+the first day's parser on six inputs of seven and loses only where an input has no keyword
+at all, so a pass that sorts words into kinds is work with nothing to show for it. That
+one input is why the first day's parser keeps a row. Against the yardstick the generated
+SQL recognizer is 1.2 to 4 times behind, and the lexer is not where: subtracting the
+hand-written lexer from both leaves two to six times on the reader alone.
+
+**The way back was opened at the top of every unsettled choice**, at alternative zero,
+and then walked past every alternative the gates refused, one `Next` each — a hundred and
+six of them written into the SQL parser, and every one an array write and two field
+stores on the path that takes the first alternative it was ever going to take. And it was
+opened whether or not anything could ever take it: a choice whose entered alternative no
+later alternative overlaps by first token has nothing to come back for once that
+alternative has matched, because nothing else could match where it did.
+
+**Now the way is opened on entering the alternative taken, in force at it**, reaching to
+the last alternative that overlaps it, and not at all where none does. The gates run as a
+chain — the first that passes is entered — and the alternative entered opens the way, or
+reads it back on a replay, only if it is one a later alternative overlaps. An alternative
+no later one overlaps records nothing: when it fails the next is tried in place, and a
+replay runs it again to the same failure, reading back the spent ways it left on the tape,
+which is what the exclusive fast path already relied on and what lets the two paths
+become one.
+
+One hole, found by the suite rather than by thought. A way moved past a failed
+alternative kept the reach of the alternative that opened it; that reach was an argument
+about what could match *where the opener matched*, and the opener had not matched. A
+`0XFF` was refused at the `X`, and `SqlReadOnly` ran out of memory replaying a refusal
+whose tape it could no longer read, because the switch that sends a replay to the
+alternative in force knew only the values the reach allowed. So a way moved on takes the
+reach of the alternative it moves to — spent, where nothing overlaps that one — and the
+switch admits every later alternative. Both are the tape's own invariant said in full:
+the value is the alternative in force, the reach is how far a mend could go from it.
+
+The SQL parser writes fifty `Next` now against a hundred and six, and the measurement
+moved three to six percent, not more — `a = 1` from 68 to 66 ns, the nested input from
+196 to 188, the sixty-four predicates from 3,988 to 3,896. Not more because most ways on
+the hot path are genuine: `(` opens a predicate and a parenthesized condition alike, an
+identifier begins a column reference and a value function alike, and the grammar, as
+written, decides those by trying the first and coming back. The hand-written parser does
+not come back; it reads a value expression after `(` and then looks at what follows.
+That is the rest of the distance, and it is not in the tape.

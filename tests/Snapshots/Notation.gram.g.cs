@@ -1257,18 +1257,16 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			m0 = p;
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(1); d0 = 0; }
-			switch (d0)
-			{
-				case 0: goto L1_alt;
-				case 1: goto L2_alt;
-			}
-			L1_alt:
+			w0 = -1;
 			if (!((c >= '0' && c <= '9')))
 			{
-				ways.Next(w0, 1);
 				goto L2_alt;
+			}
+			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+			else { w0 = ways.Open(0, 1); d0 = 0; }
+			switch (d0)
+			{
+				case 1: goto L2_alt;
 			}
 			s1 = ways.Cursor;
 			lm1 = ways.LogCount;
@@ -1290,7 +1288,7 @@ namespace DotGram.Snapshots
 			ways.RefsCount = rr1;
 			r0 = -1;
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L4_again;
-			ways.Next(w0, 1);
+			ways.Next(w0, 1, 1);
 			L2_alt:
 			c = text[p];
 			if (!((c >= '0' && c <= '9')))
@@ -2486,12 +2484,15 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
-			internal int Open(int last)
+			internal int Open(int last) => Open(0, last);
+
+			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
+			internal int Open(int at, int last)
 			{
 				if (Count * 2 + 2 > Items.Length)
 					global::System.Array.Resize(ref Items, Items.Length * 2);
 
-				Items[Count * 2]     = 0;
+				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
 				Count++;
 				Cursor = Count;
@@ -2534,6 +2535,18 @@ namespace DotGram.Snapshots
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>
+			/// <see cref="Next(int, int)"/>, and the way now reaches <paramref name="last"/>:
+			/// as far as the alternative it moved to could be mended from.
+			/// </summary>
+			internal void Next(int way, int value, int last)
+			{
+				Items[way * 2]     = value;
+				Items[way * 2 + 1] = last;
 				Count  = way + 1;
 				Cursor = way + 1;
 			}
