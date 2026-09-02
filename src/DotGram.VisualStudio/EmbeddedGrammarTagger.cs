@@ -433,11 +433,16 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
+		var literalStyleChanged = false;
+
 		lock (_gate)
 		{
 			if (_snapshot == change.Before)
 			{
 				_classifications = TranslateClassifications(_classifications, change.Before, change.After);
+				(_classifications, literalStyleChanged) = RefreshLiteralStyles(
+					_classifications,
+					change.After);
 				_dslClassifications = TranslateDslClassifications(_dslClassifications, change.Before, change.After);
 				// Semantic spans must not be exposed against a newer snapshot. In particular,
 				// Visual Studio turns stale navigable spans into Ctrl+click hyperlinks that can
@@ -448,6 +453,9 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_snapshot = change.After;
 			}
 		}
+
+		if (literalStyleChanged)
+			Changed?.Invoke(change.After);
 
 		Schedule(change.After);
 	}
@@ -634,6 +642,51 @@ sealed class EmbeddedGrammarBufferAnalysis
 			item.RuleSignature,
 			item.RuleParameterCount,
 			item.SymbolKind)).ToArray();
+
+	static (IReadOnlyList<HostClassification> Classifications, bool Changed) RefreshLiteralStyles(
+		IReadOnlyList<HostClassification> classifications,
+		ITextSnapshot snapshot)
+	{
+		var result = new HostClassification[classifications.Count];
+		var changed = false;
+
+		for (var index = 0; index < classifications.Count; index++)
+		{
+			var item = classifications[index];
+			var span = item.Span;
+			var kind = item.Kind;
+			var isCharacter = kind is GramSyntaxKind.Character or GramSyntaxKind.CaseInsensitiveCharacter;
+			var isString = kind is GramSyntaxKind.String or GramSyntaxKind.CaseInsensitiveString;
+
+			if ((isCharacter || isString) && span.End <= snapshot.Length)
+			{
+				var hasSuffix = span.Length > 0 && snapshot[span.End - 1] == 'i';
+				if (!hasSuffix && span.End < snapshot.Length && snapshot[span.End] == 'i')
+				{
+					span = new TextSpan(span.Start, span.Length + 1);
+					hasSuffix = true;
+				}
+
+				var refreshed = isCharacter
+					? hasSuffix ? GramSyntaxKind.CaseInsensitiveCharacter : GramSyntaxKind.Character
+					: hasSuffix ? GramSyntaxKind.CaseInsensitiveString : GramSyntaxKind.String;
+				changed |= refreshed != kind || span != item.Span;
+				kind = refreshed;
+			}
+
+			result[index] = new HostClassification(
+				span,
+				kind,
+				item.QuickInfo,
+				item.DefinitionSpan,
+				item.GrammarSpan,
+				item.RuleSignature,
+				item.RuleParameterCount,
+				item.SymbolKind);
+		}
+
+		return (result, changed);
+	}
 
 	static IReadOnlyList<HostDslClassification> TranslateDslClassifications(
 		IReadOnlyList<HostDslClassification> classifications,
