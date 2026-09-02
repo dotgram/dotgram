@@ -79,7 +79,8 @@ public static class GramStringSyntaxExample
 {
 	// A regular API can opt its string parameter into DotGram's own grammar tooling
 	// without defining a generated DSL language.
-	static void Inspect([StringSyntax("DotGram")] string grammar)
+	// Both "DotGram" and ".gram" are recognized; this example exercises the latter.
+	static void Inspect([StringSyntax(".gram")] string grammar)
 	{
 	}
 

@@ -31,6 +31,7 @@ public static class EmbeddedGrammarFinder
 	const string GramAttribute = "DotGram.GramAttribute";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 	const string DotGramSyntax = "DotGram";
+	const string DotGramExtensionSyntax = ".gram";
 
 	public static IReadOnlyList<EmbeddedGrammar> Find(
 		SemanticModel model, SyntaxNode root, CancellationToken cancellationToken = default)
@@ -124,7 +125,8 @@ public static class EmbeddedGrammarFinder
 		parameter.GetAttributes().Any(static attribute =>
 			attribute.AttributeClass?.ToDisplayString() == StringSyntaxAttribute &&
 			attribute.ConstructorArguments is [{ Value: string syntax }] &&
-			string.Equals(syntax, DotGramSyntax, StringComparison.OrdinalIgnoreCase));
+			(string.Equals(syntax, DotGramSyntax, StringComparison.OrdinalIgnoreCase) ||
+			 string.Equals(syntax, DotGramExtensionSyntax, StringComparison.OrdinalIgnoreCase)));
 
 	static bool IsGramAttribute(
 		SemanticModel model, AttributeSyntax attribute, CancellationToken cancellationToken)

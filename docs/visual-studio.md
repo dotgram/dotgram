@@ -10,9 +10,10 @@ same tooling with the standard annotation:
 using System.Diagnostics.CodeAnalysis;
 
 void Inspect([StringSyntax("DotGram")] string grammar);
+void InspectFileSyntax([StringSyntax(".gram")] string grammar);
 ```
 
-String literals passed to that parameter receive DotGram classification, diagnostics,
+Both syntax names are equivalent. String literals passed to either parameter receive DotGram classification, diagnostics,
 Quick Info, navigation, completion, brace matching, and folding. This annotation marks
 the DotGram grammar notation itself; generated DSL strings use `GramLanguageMarker`
 instead.

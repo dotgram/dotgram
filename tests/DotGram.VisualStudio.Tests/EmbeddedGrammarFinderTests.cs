@@ -118,13 +118,15 @@ public sealed class EmbeddedGrammarFinderTests
 			}
 
 			class GrammarText(
-				[System.Diagnostics.CodeAnalysis.StringSyntax("DotGram")] string source);
+				[System.Diagnostics.CodeAnalysis.StringSyntax(".gram")] string source);
 
 			class Consumer
 			{
 				static void Read(
 					[System.Diagnostics.CodeAnalysis.StringSyntax("dotgram")] string source) { }
 				static void Plain(string source) { }
+				static void Other(
+					[System.Diagnostics.CodeAnalysis.StringSyntax("Regex")] string source) { }
 
 				static void Use()
 				{
@@ -133,6 +135,7 @@ public sealed class EmbeddedGrammarFinderTests
 						""");
 					_ = new GrammarText("Start = Word");
 					Plain("Not = Grammar");
+					Other("Also = NotGrammar");
 				}
 			}
 			"""";
