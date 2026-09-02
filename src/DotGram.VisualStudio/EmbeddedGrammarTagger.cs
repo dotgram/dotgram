@@ -224,7 +224,6 @@ sealed class EmbeddedGrammarBufferAnalysis
 	readonly VisualStudioWorkspace      _workspace;
 	readonly ITextDocumentFactoryService _documents;
 	readonly object                     _gate = new();
-	readonly SemaphoreSlim              _analysisGate = new(1, 1);
 	readonly DslEmbeddedSiteCache       _dslCache = new();
 
 	CancellationTokenSource?          _cancellation;
@@ -488,16 +487,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 		try
 		{
 			await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
-			await _analysisGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-			try
-			{
-				await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
-			}
-			finally
-			{
-				_analysisGate.Release();
-			}
+			await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException)
 		{
