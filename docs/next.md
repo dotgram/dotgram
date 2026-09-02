@@ -10826,3 +10826,64 @@ which is a real call. That is the part of it worth measuring.
 Against that: `Merge` collapses states whose bodies are the same text, and it has just been
 shown to be worth 40% of `Rfc3986`. Splicing makes bodies longer and more distinct, so it
 works against exactly that. Which way the file moves is not something to reason out.
+
+## What actually declines a call, and it is not the size threshold
+
+`ExecutionPlan.CompiledInPlace` decides once per rule whether its body is written where it
+is called, and the entry that added `Copied = 64` is about size: the reserved-word list of
+standard SQL is 285 nodes and came to 59% of the generated file. So the first guess at the
+call traffic was that the threshold is too tight. Asked of the three parsers, rule by rule,
+it is not the threshold at all — and the answer is different for each:
+
+    SqlStandard92        70 rules, 45 in place    23 recursive, 2 large
+    ExpressionLanguage   86 rules, 14 in place    72 declared a type
+    Rfc3986              36 rules, 29 in place     6 declared a type, 1 large
+
+**`SqlStandard92` is blocked by recursion, and the rules blocked are tiny** — `Factor` 5
+nodes, `Term` 8, `BooleanPrimary` 8, `ValueExpression` 10, `SearchCondition` 11. Every rung
+of the expression ladder is a handful of nodes and every one of them is on the cycle that
+closes at `'(' ValueExpression ')'`, so `graph.Recursive` refuses them all. Raising `Copied`
+would admit nothing.
+
+The obvious repair is to ask the question per call site instead of per rule — inline unless
+the callee is already on the expansion path, so the ladder unrolls until the cycle really
+closes. Estimated over the graph before writing any of it, that is **2,150x**: 6,044 nodes
+compiled today become 13 million, because the ladder is mutually recursive at a dozen points
+and the expansion multiplies rather than adds. `SearchCondition` alone goes from 43 nodes to
+2.3 million. Closed.
+
+**`ExpressionLanguage` is not blocked by recursion or size at all.** Seventy-two of its
+eighty-six rules declare a type, and a rule that builds a value is never compiled in place —
+which is right, because the value needs a boundary to be built at. Path-sensitive inlining
+there is 1.0x: it changes nothing, because nothing it would admit was refused for a reason
+inlining can address.
+
+**But the ladder is paying three entries a rung to hand a value through unchanged.** Every
+rung is written the way precedence ladders are:
+
+    BitOr : @Expression = left: BitOr & '|' & ?!'|' & right: BitXor => @(Expression.Or(left, right))
+                        | x: BitXor                                => @(x)
+
+and the second alternative is an identity: capture the operand, build the value from it, and
+that value *is* the operand's. Compiled, it is a `Call` frame, a `RuleCapture` of the
+callee's result, a `Construct` naming a factory whose body is `(x)`, and a return. Three
+arena writes and a frame to pass a reference upward.
+
+The counters say how much of the parse that is. One identity factory is shared by
+**twenty-five sites** — `Additive`, `And`, `Assignment`, `BitAnd`, `BitOr`, `BitXor`,
+`Core`, `Equality`, `Multiplicative`, `Or`, `Postfix`, `Primary`, `Relational`, `Shift`,
+`Type`, `Unary` and the rest — and it runs **451 times of 746 constructs**, 60%. With the
+`RuleCapture` beside each, that is a little over nine hundred of the 3,315 arena writes:
+**27% of everything the arena is asked to record, to say that a value is itself.**
+
+So the piece worth doing is not inlining. It is recognizing the identity: an alternative
+whose construction is exactly its one captured call, of the same type, builds nothing — the
+callee's value is the rule's value, and neither the capture nor the construction needs a
+record. Whether the `Call` frame can go with them is a second question and a harder one: the
+alternative is the whole of the rule on that path, so it is a tail call, and the frame is
+also where the failure unwinding stops.
+
+Nothing here helps `SqlStandard92`, which builds no values and whose calls are the ladder
+itself. That one still wants either a narrower record than a `ParserEntry` for a call
+nothing can fail back past, or `<<` on the ladder — which is a change to the transcription
+and not to the engine.
