@@ -10717,3 +10717,61 @@ over — a rule returns, a choice resumes — which is the case a branch predict
 trouble with at all, and four comparisons that each mispredict cannot beat one indirect
 branch that does not. Reverted; the numbering stays, and it is the numbering that let the
 compiler lay the jump table in the first place.
+
+## The step profile, taken again on the token path
+
+`docs/next.md`'s "a scannerless grammar is just one big lexeme" entry counted steps on the
+character machine and ended with a sentence pointing somewhere else: sixty per cent of
+`ExpressionLanguage`'s steps and half of `Rfc3986`'s go to arena traffic, not to deciding
+which character was read. Both parsers that could move have moved since — `SqlStandard92`
+and `ExpressionLanguage` read token kinds now — so the question was worth asking again
+before deciding whether the syntactic machine can be a transition table too.
+
+Counted the way it was counted before: a marker in every state body, a corpus run once, the
+sequence of states written out and read back. Eleven search conditions and eleven lambdas,
+each set graded by depth and ending in refusals. A state is **pure** where its body is tests
+and jumps and nothing else, and **arena** where it touches `entries`.
+
+    parser                     states   read and jump   write the arena
+    SqlStandard92 (kinds)         438       261 (60%)        147 (34%)
+    ExpressionLanguage (kinds)    972       237 (24%)        731 (75%)
+
+    parser               steps   pure   arena   runs   mean  median  longest  in runs of 4+
+    SqlStandard92        2,315    34%     61%    489    1.6       1        7           13%
+    ExpressionLanguage   6,545    19%     80%  1,142    1.1       1        3            0%
+
+**The token path did not reduce arena traffic. It removed everything around it.**
+`ExpressionLanguage` went from 60% of its steps in the arena on characters to 80% on kinds,
+and the absolute count fell — which is the split working exactly as it was meant to, and
+also the reason the remaining share is what it is. What a transition table would replace is
+the other fifth, and it does not come in runs: the longest run of pure states anywhere in
+the whole corpus is **three**, and not one pure step of `ExpressionLanguage`'s is in a run of
+four or more. A table pays for itself by being stayed in, and there is nothing here to stay
+in — the same answer the character machine gave, arrived at from further away and more
+sharply.
+
+**And the arena breaks down the same way in both.** Share of all steps, counted by which
+entry kind a state names — a state naming two is counted in both:
+
+    entry kind      SqlStandard92   ExpressionLanguage
+    Choice                    30%                  35%
+    Call                      20%                  15%
+    RuleCapture                 —                  15%
+    Completed                   —                  13%
+    Construct                   —                  11%
+    Repeat                    16%                   2%
+    LoopExit                   6%                   0%
+    Capture                     —                   4%
+
+`Choice` is a third of every parse in both machines, and a `Choice` entry is one thing: the
+way back that ordered choice needs in case the alternative it is about to try does not
+match. It is written before the alternative is tried and is dead the moment one succeeds.
+
+**Which is where the next piece is, and half of it is already written.**
+`CompileCheckpointChoice` keeps that way back in locals — `way{id}`, `alt{id}`, `over{id}` —
+instead of in the arena, and it is admitted only where `_checkpointsAllowed` is set, which is
+`CanLower` and `RenderFlat` and nowhere else. Inside the shared automaton every ordered
+choice still pays an entry. What stands in the way is that the class was defined against a
+method with one `Fail:` and no arena to unwind, and the engine's failure path is neither —
+so this is a design question about the engine's unwinding and not a switch to flip. It is
+the thing the measurement points at, and it is a different piece of work from the numbering.
