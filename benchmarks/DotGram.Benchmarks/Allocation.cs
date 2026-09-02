@@ -63,9 +63,6 @@ static class Allocation
 		Measure("forty letters, one string", new string('x', 40),
 			text => CallCost.Called.ParseStart(text) is not null);
 
-		Measure("forty letters, parser not kept", new string('x', 40),
-			text => CallCost.Unpooled.ParseStart(text) is not null);
-
 		// A string of n characters is 22 + 2n bytes, rounded up to eight. Asking twice, at
 		// two lengths, says whether what comes back is the one string it looks like or two.
 		Measure("a hundred letters, one string", new string('x', 100),

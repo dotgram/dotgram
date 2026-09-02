@@ -19,14 +19,18 @@ that cannot be checked is a design rationale that drifts.
 
 ## Parser reuse
 
-The generated parser owns reusable arena storage and exposes `RentParser`/`ReturnParser`
-partial hooks. The URL benchmark implements a one-item thread-local cache through those
-hooks. This keeps the benchmark focused on recognition and accepted-value construction;
-without reuse it mostly measures allocating and growing a new arena on every call.
+A parser on the engine owns reusable arena storage and exposes `RentParser`/`ReturnParser`
+partial hooks, and the benchmarks here used to fill them in with a one-item thread-local
+cache — kept in consumer code rather than hidden in the timing method, and safe under
+reentrance, because renting clears the slot. Without reuse those benchmarks mostly
+measured allocating and growing a new arena on every call.
 
-The cache is deliberately in benchmark consumer code rather than hidden in the timing
-method. Reentrant parsing remains safe: renting clears the slot, so a nested parse creates
-another parser and only returned instances enter the cache.
+Since 2026-09-03 none of them can: every grammar in this project is rendered by methods
+throughout, and such a file has no arena, no `Parser` and no hooks to fill in — the tape
+those methods keep is rented per thread by the generated code itself. The hooks remain
+declared where the engine remains, and a consumer that had filled them in over a file
+that has since gone direct loses them with the class, because what they rented, nothing
+rents.
 
 ## The URL benchmark
 
@@ -305,6 +309,11 @@ within 2% of an explicit consumer-supplied pool. What actually costs — 2.25× 
 (`Called_without_pooling`), which nothing does by default and no reasonable consumer would
 opt into. "Heavy initialization" is not a default-path problem; it is what happens if
 pooling is deliberately turned off.
+
+**2026-09-03.** These grammars are read by methods now, and a file rendered that way has
+no `Parser` to pool, so the two pooling rows are gone from `CallCost.cs`. The table above
+is what the engine cost when the engine was what ran; the three rows that remain — in
+place, called, called and valued — ask the same question of the methods.
 
 ## What captures cost
 

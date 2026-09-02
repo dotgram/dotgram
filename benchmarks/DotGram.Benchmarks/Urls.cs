@@ -47,15 +47,4 @@ namespace DotGram.Benchmarks;
 public static partial class Urls
 {
 	// TryParseUrl and the types Url and Authority are generated here.
-
-	[ThreadStatic]
-	static Parser? _parser;
-
-	static partial void RentParser(ref Parser parser)
-	{
-		parser  = _parser!;
-		_parser = null;
-	}
-
-	static partial void ReturnParser(Parser parser) => _parser = parser;
 }

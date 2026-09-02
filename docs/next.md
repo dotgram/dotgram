@@ -11305,3 +11305,34 @@ parser is 181. Measured, the sixty-four predicates went from 3,896 to 3,565 ns a
 operands from 1,361 to 1,259 — eight percent on inputs that enter the wide readers many
 times — and the short inputs stayed within the noise. Two snapshots renumbered, nothing
 else in them moved.
+
+## Built: no arena where nothing runs on the engine
+
+Every generated file carried the engine's runtime — `Parser`, `ParserArena`,
+`ParserEntry`, the pooling hooks over them — whether or not a machine in it ran on the
+engine, on the argument that a host might have implemented the hooks and what compiled
+yesterday must compile today. Twenty of the thirty-one parsers the solution generates
+have no engine in them, and each was two hundred and some lines of a class nothing
+reaches, compiled on every build of the consumer for nothing.
+
+The runtime is written now only where a machine runs on the engine — the valuing
+machine over the characters included, which is the one part of `ExpressionLanguage`
+still there, so that file keeps its arena and `SqlStandard92` and `Rfc3986` lose theirs.
+The hooks go with the class, and that is the decision rather than an accident: a host
+that had filled them in over a file that has since gone direct rented a parser nothing
+rents. `SqlStandard92.cs` was such a host, with a thread-static one-slot pool written on
+the day the engine was what ran; the pool is gone and the class is empty. Four benchmark
+grammars had the same pool and are the same now, and `CallCost` loses its two pooling
+rows — pooled against a fresh `Parser` per call — because there is no `Parser` in that
+file to pool. The README keeps the table they made and says what it was.
+
+Two tests said "falls back to the shared engine" of grammars that do not lower, and
+asserted the arena to prove it. A grammar that does not lower goes to the methods now,
+so what they assert is that the flat path was not taken — the arena or the tape of ways
+back, either of which holds what a flat method's locals cannot — and they are named for
+that. The emitter test that used `Parser` as its raw-literal block at depth two uses
+`Ways` instead, which is a raw literal too.
+
+Nothing measured moves: the class was never entered. The SQL file is 35,197 lines against
+37,364 before the last two entries — the shared frame took the declarations, this took
+the class — and every test the suite has stands.
