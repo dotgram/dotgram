@@ -23,7 +23,7 @@ namespace DotGram.Benchmarks;
 /// subquery; a number may be <c>1.2.3</c>; a quoted string cannot double its quote. It
 /// was checked against the generated parser on the seven benchmark inputs and on nothing
 /// else, which is why <c>SqlAgainst</c> holds it to those seven and prints, rather than
-/// throws on, where it parts from the other three over the corpus.
+/// throws on, where it parts from the other two over the corpus.
 /// </para>
 /// <para>
 /// Kept because a number that was quoted deserves the program that produced it beside

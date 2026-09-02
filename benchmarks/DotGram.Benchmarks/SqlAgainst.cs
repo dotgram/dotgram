@@ -8,7 +8,7 @@ using DotGram.Parsers;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The generated SQL recognizer against <see cref="HandSql"/>, measured round-robin.
+/// The generated SQL recognizer against <see cref="HandSqlTokens"/>, measured round-robin.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,7 +27,9 @@ namespace DotGram.Benchmarks;
 /// <b>Agreement first.</b> A hand-written parser that quietly reads a smaller language is
 /// faster for a reason that says nothing about how the generated one is built, so nothing
 /// is measured until the two have answered the same on every input — the benchmark inputs
-/// and the corpus of shapes below, which is the test suite's, refusals included.
+/// and the corpus of shapes below, which is the test suite's, refusals included. The first
+/// day's parser is the exception and is shown as one: it is held only to the benchmark
+/// inputs, and where it parts from the language is printed rather than thrown.
 /// </para>
 /// </remarks>
 static class SqlAgainst
@@ -96,7 +98,7 @@ static class SqlAgainst
 
 		Console.WriteLine();
 		Console.WriteLine(
-			$"{"",-36} {"generated",11} {"by hand",11} {"scannerless",12} {"its lexer",11} {"day one",11}   ratio");
+			$"{"",-36} {"generated",11} {"by hand",11} {"its lexer",11} {"day one",11}   ratio");
 
 		foreach (var input in Inputs)
 		{
@@ -132,22 +134,22 @@ static class SqlAgainst
 	}
 
 	/// <summary>
-	/// The three readings of the same language, and the hand-written lexer alone.
+	/// The two readings of the full language, the hand-written lexer alone, and the first
+	/// day's parser.
 	/// </summary>
 	/// <remarks>
 	/// The first two are the comparison: both tokenize and then read tokens, so what is
-	/// between them is the reader. The third is the same parser written scannerless, which
-	/// is what the ratio used to be taken against and is why it was measuring the lexical
-	/// split instead. The fourth is there so the reader's own share of the second can be
-	/// had by subtraction.
+	/// between them is the reader. The third is there so the reader's own share of the
+	/// second can be had by subtraction. The fourth reads a fraction of the language and
+	/// is what the first day's ratios were divided by, kept so a reader can see what they
+	/// were made of.
 	/// </remarks>
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
-		("generated",   static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
-		("by hand",     static input => HandSqlTokens.Parse(input) ? 1 : 0),
-		("scannerless", static input => HandSql.Parse(input) ? 1 : 0),
-		("its lexer",   static input => HandSqlTokens.LexOnly(input)),
-		("day one",     static input => HandSqlOriginal.Parse(input) ? 1 : 0),
+		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
+		("its lexer", static input => HandSqlTokens.LexOnly(input)),
+		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
 	];
 
 	/// <summary>
@@ -161,17 +163,16 @@ static class SqlAgainst
 
 		foreach (var text in Corpus.Concat(Inputs))
 		{
-			var generated   = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
-			var handed      = HandSqlTokens.Parse(text);
-			var scannerless = HandSql.Parse(text);
-			var original    = HandSqlOriginal.Parse(text);
+			var generated = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
+			var handed    = HandSqlTokens.Parse(text);
+			var original  = HandSqlOriginal.Parse(text);
 
-			if (generated != handed || generated != scannerless)
+			if (generated != handed)
 			{
 				throw new InvalidOperationException(
-					$"About \"{text}\": the generated parser says {Said(generated)}, the hand-written " +
-					$"one over tokens says {Said(handed)}, and the scannerless one says {Said(scannerless)}. " +
-					"They do not read the same language, and a ratio between them would be a fiction.");
+					$"About \"{text}\": the generated parser says {Said(generated)} and the hand-written " +
+					$"one says {Said(handed)}. They do not read the same language, and a ratio between " +
+					"them would be a fiction.");
 			}
 
 			// The first day's parser is held only to what it was ever checked against — the
@@ -188,7 +189,7 @@ static class SqlAgainst
 			}
 		}
 
-		Console.WriteLine($"Three read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine($"Both read the same language over {Corpus.Length + Inputs.Length} shapes.");
 		Console.WriteLine($"The first day's parser reads the {Inputs.Length} benchmark inputs and parts from them on {parted.Count}:");
 
 		foreach (var line in parted)

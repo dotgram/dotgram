@@ -350,58 +350,64 @@ two capture rows as two grammars, not as one grammar with and without strings.
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures
-`SqlStandard92.TryParseSearchCondition` against two hand-written recognizers of the same
+`SqlStandard92.TryParseSearchCondition` against a hand-written recognizer of the same
 language, round-robin and in one process, for the reason `--against` exists.
-`SqlComparisonBenchmarks` measures the same four methods under BenchmarkDotNet, where the
+`SqlComparisonBenchmarks` measures the same methods under BenchmarkDotNet, where the
 absolute numbers and the allocation come from.
 
-**The hand-written halves are in the repository because they once were not.** Every "so
-many times the hand-written parser" written into `docs/next.md` during the direct-rendering
+**The hand-written half is in the repository because it once was not.** Every "so many
+times the hand-written parser" written into `docs/next.md` during the direct-rendering
 work came from a file in a scratch directory outside it, and the directory was cleared.
 Those figures are unverified and should not be quoted.
 
-### Equal footing, which took two attempts
+### Equal footing, which took three attempts
 
-`HandSql.cs` is scannerless. The generated parser is not, so a ratio against it measures
-the lexical split rather than anything about how either parser is shaped — and it comes out
-saying the generated parser is *faster*, by 1.4 to 2.2 times, because a scannerless parser
-walks the characters again at every keyword it probes for and a predicate tail probes for
-seven. That row is kept below because it is what the old ratio was taken against.
-
-`HandSqlTokens.cs` is the comparison. It lexes into kinds first — every reserved word its
+`HandSqlTokens.cs` is the yardstick. It lexes into kinds first — every reserved word its
 own kind, so its test for `AND` is one comparison against one byte, exactly as the
 generated parser's is — and then reads the tokens by precedence climbing, one loop over a
 binding power where the grammar writes a rule per level. That is what a person writes, and
 it is the variant to divide by: a yardstick that is not the best hand-written version
-understates the distance.
+understates the distance. It is written to look hand-written and to stay that way — a
+keyword is classified by its length and first letter and then compared against the few
+words of that shape, not by a table nobody would type — because the generator's task is to
+catch it and pass it, and passing a parser that has quietly become a generated one proves
+nothing.
+
+Two attempts came before it. The first was a literal transcription of the grammar, ordered
+choice walking eight alternatives per operand, and it was three to eight times *slower*
+than the generated parser. The second was scannerless, and a ratio against it measured the
+lexical split rather than anything about how either parser is shaped — it came out saying
+the generated parser was *faster*, by 1.4 to 2.2 times, because a scannerless parser walks
+the characters again at every keyword it probes for. It is retired; the two are in the
+history.
 
 Three more things are held equal. **The same language**: `Agree()` runs before anything is
-timed and throws where the three disagree about any of forty-two shapes — the test suite's
+timed and throws where the two disagree about any of forty-two shapes — the test suite's
 corpus, comments, delimited identifiers, exponent and leading-point numerals, and nine
-inputs that must be refused. **The same answer**: all three recognize and none builds.
+inputs that must be refused. **The same answer**: both recognize and neither builds.
 **The same input**: a string in, a bool out, each lexing inside itself.
 
 ### 2026-09-03, 7 rounds of 300,000, the loop's own cost subtracted
 
-| input | generated | by hand | scannerless | the hand lexer | day one | ratio |
-| --- | --: | --: | --: | --: | --: | --: |
-| `a = 1` | 68 ns | 22 ns | 92 ns | 15 ns | 30 ns | 3.1 |
-| `(a + b) * c > d` | 115 | 60 | 240 | 40 | 79 | 1.9 |
-| `((((a + 1) * 2) - 3) / 4) + b > 0` | 210 | 89 | 358 | 45 | 150 | 2.4 |
-| `x = 1 AND y IS NOT NULL` | 134 | 100 | 205 | 78 | 82 | 1.3 |
-| 64 predicates joined by `AND` | 3,856 | 2,742 | 7,072 | 2,089 | 2,614 | 1.4 |
-| 64 operands joined by `+` | 1,274 | 969 | 2,787 | 720 | 654 | 1.3 |
-| `(a + b) * c >`, refused | 267 | 69 | 379 | 32 | 105 | 3.9 |
+| input | generated | by hand | the hand lexer | day one | ratio |
+| --- | --: | --: | --: | --: | --: |
+| `a = 1` | 68 ns | 19 ns | 10 ns | 29 ns | 3.6 |
+| `(a + b) * c > d` | 117 | 48 | 27 | 78 | 2.4 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 196 | 87 | 41 | 140 | 2.3 |
+| `x = 1 AND y IS NOT NULL` | 127 | 65 | 48 | 77 | 1.9 |
+| 64 predicates joined by `AND` | 3,988 | 2,232 | 1,727 | 2,616 | 1.8 |
+| 64 operands joined by `+` | 1,384 | 1,154 | 910 | 697 | 1.2 |
+| `(a + b) * c >`, refused | 270 | 66 | 24 | 106 | 4.1 |
 
 The ratio is the first column over the second.
 
-**On equal footing the hand-written parser is 1.3 to 3.5 times faster, and it is not the
+**On equal footing the hand-written parser is 1.2 to 4 times faster, and it is not the
 lexer.** Both sides tokenize; what is left between them is the reader.
 
-The fourth column is there to say how much of that is reader at all. Subtracting it from
-the hand-written total leaves the hand-written reader — 8 ns for `a = 1`, 417 for the
+The third column is there to say how much of that is reader at all. Subtracting it from
+the hand-written total leaves the hand-written reader — 9 ns for `a = 1`, 505 for the
 sixty-four predicates — and subtracting it from the generated total *under the assumption
-that two lexers doing the same work cost about the same* leaves 53 and 1,832. That reads as
+that two lexers doing the same work cost about the same* leaves 58 and 2,261. That reads as
 **two to six times on the reader alone**, and it is the one figure here that rests on an
 assumption: the generated tokenizer is not reachable from this project, so it cannot be
 measured directly. The totals rest on nothing and are what to quote.
@@ -410,10 +416,10 @@ measured directly. The totals rest on nothing and are what to quote.
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from
 the session transcript byte for byte after the scratch directory holding it was cleared.
-It reproduces its own figures — 30 ns on `a = 1` against the 27 recorded, 2,614 on the
+It reproduces its own figures — 29 ns on `a = 1` against the 27 recorded, 2,616 on the
 sixty-four predicates against 2,543 — which is what says the two days' measurements are
-comparable and the generator's gain since is real: 186 ns to 68 on `a = 1`, 2,734 to 210
-on the nested input, 12,075 to 3,856 on the sixty-four predicates.
+comparable and the generator's gain since is real: 186 ns to 68 on `a = 1`, 2,734 to 196
+on the nested input, 12,075 to 3,988 on the sixty-four predicates.
 
 **It reads a fraction of the language, by its own admission** — its first comment ends
 "Only what the benchmark inputs need" — and `--hand` prints where: 17 of the 42 shapes,
@@ -423,17 +429,18 @@ generated parser on the seven benchmark inputs and on nothing else, so it is hel
 seven and no more.
 
 Which settles what the old ratio was made of. Against the full language, read by
-`HandSqlTokens.cs`, it is *slower* on five inputs of seven — tokenizing pays for itself
-once there is a keyword to recognize — and faster only where whitespace is the whole of
-the trivia and every word is a name. The first day's "seven to seventeen times" was two
-things at once: a generator that has since become three to thirteen times faster, and a
-yardstick reading a quarter of the grammar.
+`HandSqlTokens.cs`, it is *slower* on six inputs of seven, and faster only on the
+sixty-four operands joined by `+` — an input with no keyword in it, where a pass that
+sorts words into kinds is work with nothing to show for it, and a parser that never
+tokenizes keeps the difference. That is the one place a second hand-written parser earns
+its row: one design is not fastest on every input, and the table should say so rather
+than hide it. The first day's "seven to seventeen times" was two things at once: a
+generator that has since become three to thirteen times faster, and a yardstick reading a
+quarter of the grammar.
 
 ### What this does not license
 
-One grammar, one machine, and the hand-written half is the third version of it. Written
-first as a literal transcription of the grammar, ordered choice walking eight alternatives
-per operand, it was three to eight times *slower* than the generated parser; a switch on
-the first token is most of the distance from there to here, and precedence climbing is the
-rest. Read the table as what this generator leaves on the table for this grammar, not as a
-general claim about generated parsers.
+One grammar, one machine, and the hand-written half is the third version of it, with a
+switch on the first token most of the distance from the first version to here and
+precedence climbing the rest. Read the table as what this generator leaves on the table
+for this grammar, not as a general claim about generated parsers.

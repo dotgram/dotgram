@@ -1,18 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <see cref="HandSql"/>'s language again, read the way the generated parser reads it: a
-/// lexer into kinds, and a recursive descent over those.
+/// <c>SqlStandard92</c>'s search condition written by hand, the way the generated parser
+/// reads it: a lexer into kinds, and precedence climbing over those. The yardstick every
+/// claim about what the generated parser costs is divided by.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The yardstick <see cref="HandSql"/> could not be. That one is scannerless, and the
-/// generated parser is not, so a ratio between them measures the lexical split and says
-/// nothing about how either parser is shaped — which was the question. This one tokenizes
-/// first, so what separates it from the generated parser is the reader and only the reader.
+/// It is here because it once was not: every "so many times the hand-written parser" in
+/// <c>docs/next.md</c> came from a file in a scratch directory outside the repository, and
+/// the directory was cleared. This one is built by the solution, and
+/// <see cref="SqlAgainst.Agree"/> holds it to the generated parser's language before
+/// anything is timed.
+/// </para>
+/// <para>
+/// It tokenizes first because the generated parser does, so what separates the two is the
+/// reader and only the reader. A scannerless version was tried and retired: a ratio
+/// against it measured the lexical split, not either parser's shape.
 /// </para>
 /// <para>
 /// <b>The lexer does the same work.</b> One pass, skipping trivia, and every reserved word
@@ -24,10 +30,10 @@ namespace DotGram.Benchmarks;
 /// where nothing measured ever goes.
 /// </para>
 /// <para>
-/// Kinds are looked up through <see cref="Dictionary{TKey,TValue}"/>'s span lookup rather
-/// than a trie, because that is what one writes: it allocates nothing, hashes the word once
-/// and is over. Whether a trie would beat it is a question about this file, not about the
-/// generator, and the answer would move both sides of nothing.
+/// A word is classified by its length and first letter and then compared against the few
+/// reserved words of that shape. It was a hashed span lookup first, and that lost to the
+/// first day's parser on inputs made of names: a name is refused by its length or its
+/// first letter before anything is compared, and a hash is computed regardless.
 /// </para>
 /// </remarks>
 static class HandSqlTokens
@@ -93,18 +99,216 @@ static class HandSqlTokens
 		Translate = Of("TRANSLATE"), Trim = Of("TRIM"), True = Of("TRUE"),
 		Unique = Of("UNIQUE"), Unknown = Of("UNKNOWN"), Upper = Of("UPPER"),
 		User = Of("USER"), Using_ = Of("USING"), ValueWord = Of("VALUE"),
-		ValuesWord = Of("VALUES"), When = Of("WHEN");
+		ValuesWord = Of("VALUES"), When = Of("WHEN"),
+		// Reserved and never read here: a name may not be one, and that is all the parser asks.
+		By = Of("BY"), Cross = Of("CROSS"), Group = Of("GROUP"), Having = Of("HAVING"),
+		Join = Of("JOIN"), On = Of("ON"), Order = Of("ORDER"), Where = Of("WHERE");
 
-	static readonly Dictionary<string, byte> Reserved = Build();
-
-	static Dictionary<string, byte> Build()
+	/// <summary>
+	/// Which reserved word a run of characters is, or <see cref="Identifier"/>: by its
+	/// length, then its first letter, then the few words of that shape. A name that is not
+	/// a keyword is refused by its length or its first letter and compared against
+	/// nothing, which is where a hashed lookup lost to the first day's parser on inputs
+	/// made of names — a hash is computed whether or not anything could match.
+	/// </summary>
+	static byte Keyword(ReadOnlySpan<char> w)
 	{
-		var table = new Dictionary<string, byte>(Words.Length, StringComparer.OrdinalIgnoreCase);
+		switch (w.Length)
+		{
+			case 2:
+				switch (w[0] | 0x20)
+				{
+					case 'a': return Same(w, "AS") ? As : Identifier;
+					case 'b': return Same(w, "BY") ? By : Identifier;
+					case 'i':
+						if (Same(w, "IN")) return In;
+						if (Same(w, "IS")) return Is;
+						break;
+					case 'o':
+						if (Same(w, "ON")) return On;
+						if (Same(w, "OR")) return Or;
+						break;
+				}
 
-		for (var i = 0; i < Words.Length; i++)
-			table[Words[i]] = (byte)(FirstWord + i);
+				break;
+			case 3:
+				switch (w[0] | 0x20)
+				{
+					case 'a':
+						if (Same(w, "ALL")) return All;
+						if (Same(w, "AND")) return And;
+						if (Same(w, "ANY")) return Any;
+						if (Same(w, "AVG")) return Avg;
+						break;
+					case 'e': return Same(w, "END") ? EndWord : Identifier;
+					case 'f': return Same(w, "FOR") ? For : Identifier;
+					case 'm':
+						if (Same(w, "MAX")) return Max;
+						if (Same(w, "MIN")) return Min;
+						break;
+					case 'n': return Same(w, "NOT") ? Not : Identifier;
+					case 's': return Same(w, "SUM") ? Sum : Identifier;
+				}
 
-		return table;
+				break;
+			case 4:
+				switch (w[0] | 0x20)
+				{
+					case 'b': return Same(w, "BOTH") ? Both : Identifier;
+					case 'c':
+						if (Same(w, "CASE")) return Case;
+						if (Same(w, "CAST")) return Cast;
+						break;
+					case 'e': return Same(w, "ELSE") ? Else : Identifier;
+					case 'f':
+						if (Same(w, "FROM")) return From;
+						if (Same(w, "FULL")) return Full;
+						break;
+					case 'j': return Same(w, "JOIN") ? Join : Identifier;
+					case 'l': return Same(w, "LIKE") ? Like : Identifier;
+					case 'n': return Same(w, "NULL") ? Null : Identifier;
+					case 's': return Same(w, "SOME") ? Some : Identifier;
+					case 't':
+						if (Same(w, "THEN")) return Then;
+						if (Same(w, "TRIM")) return Trim;
+						if (Same(w, "TRUE")) return True;
+						break;
+					case 'u': return Same(w, "USER") ? User : Identifier;
+					case 'w': return Same(w, "WHEN") ? When : Identifier;
+				}
+
+				break;
+			case 5:
+				switch (w[0] | 0x20)
+				{
+					case 'c':
+						if (Same(w, "COUNT")) return Count;
+						if (Same(w, "CROSS")) return Cross;
+						break;
+					case 'f': return Same(w, "FALSE") ? False : Identifier;
+					case 'g': return Same(w, "GROUP") ? Group : Identifier;
+					case 'l': return Same(w, "LOWER") ? Lower : Identifier;
+					case 'm': return Same(w, "MATCH") ? Match : Identifier;
+					case 'o': return Same(w, "ORDER") ? Order : Identifier;
+					case 't': return Same(w, "TABLE") ? Table : Identifier;
+					case 'u':
+						if (Same(w, "UPPER")) return Upper;
+						if (Same(w, "USING")) return Using_;
+						break;
+					case 'v': return Same(w, "VALUE") ? ValueWord : Identifier;
+					case 'w': return Same(w, "WHERE") ? Where : Identifier;
+				}
+
+				break;
+			case 6:
+				switch (w[0] | 0x20)
+				{
+					case 'e':
+						if (Same(w, "ESCAPE")) return Escape;
+						if (Same(w, "EXISTS")) return Exists;
+						break;
+					case 'h': return Same(w, "HAVING") ? Having : Identifier;
+					case 'n': return Same(w, "NULLIF") ? NullIf : Identifier;
+					case 's': return Same(w, "SELECT") ? Select : Identifier;
+					case 'u': return Same(w, "UNIQUE") ? Unique : Identifier;
+					case 'v': return Same(w, "VALUES") ? ValuesWord : Identifier;
+				}
+
+				break;
+			case 7:
+				switch (w[0] | 0x20)
+				{
+					case 'b': return Same(w, "BETWEEN") ? Between : Identifier;
+					case 'c': return Same(w, "CONVERT") ? Convert : Identifier;
+					case 'd': return Same(w, "DEFAULT") ? Default : Identifier;
+					case 'e': return Same(w, "EXTRACT") ? Extract : Identifier;
+					case 'l': return Same(w, "LEADING") ? Leading : Identifier;
+					case 'p': return Same(w, "PARTIAL") ? Partial : Identifier;
+					case 'u': return Same(w, "UNKNOWN") ? Unknown : Identifier;
+				}
+
+				break;
+			case 8:
+				switch (w[0] | 0x20)
+				{
+					case 'c': return Same(w, "COALESCE") ? Coalesce : Identifier;
+					case 'd': return Same(w, "DISTINCT") ? Distinct : Identifier;
+					case 'i': return Same(w, "INTERVAL") ? Interval : Identifier;
+					case 'o': return Same(w, "OVERLAPS") ? Overlaps : Identifier;
+					case 'p': return Same(w, "POSITION") ? Position : Identifier;
+					case 't': return Same(w, "TRAILING") ? Trailing : Identifier;
+				}
+
+				break;
+			case 9:
+				switch (w[0] | 0x20)
+				{
+					case 's': return Same(w, "SUBSTRING") ? Substring : Identifier;
+					case 't': return Same(w, "TRANSLATE") ? Translate : Identifier;
+				}
+
+				break;
+			case 10:
+				switch (w[0] | 0x20)
+				{
+					case 'b': return Same(w, "BIT_LENGTH") ? BitLength : Identifier;
+				}
+
+				break;
+			case 11:
+				switch (w[0] | 0x20)
+				{
+					case 'c': return Same(w, "CHAR_LENGTH") ? CharLength : Identifier;
+					case 's': return Same(w, "SYSTEM_USER") ? SystemUser : Identifier;
+				}
+
+				break;
+			case 12:
+				switch (w[0] | 0x20)
+				{
+					case 'c':
+						if (Same(w, "CURRENT_DATE")) return CurrentDate;
+						if (Same(w, "CURRENT_TIME")) return CurrentTime;
+						if (Same(w, "CURRENT_USER")) return CurrentUser;
+						break;
+					case 'o': return Same(w, "OCTET_LENGTH") ? OctetLength : Identifier;
+					case 's': return Same(w, "SESSION_USER") ? SessionUser : Identifier;
+				}
+
+				break;
+			case 16:
+				switch (w[0] | 0x20)
+				{
+					case 'c': return Same(w, "CHARACTER_LENGTH") ? CharacterLength : Identifier;
+				}
+
+				break;
+			case 17:
+				switch (w[0] | 0x20)
+				{
+					case 'c': return Same(w, "CURRENT_TIMESTAMP") ? CurrentTimestamp : Identifier;
+				}
+
+				break;
+		}
+
+		return Identifier;
+	}
+
+	/// <summary>
+	/// The run against one keyword of the same length, folding case by setting bit five —
+	/// exact for the letters and the underscore a keyword is made of, and the first
+	/// character that differs ends it. The library's case-insensitive comparison was the
+	/// cost on inputs made of names: a call and a table walk per candidate, to find out
+	/// what the first character already said.
+	/// </summary>
+	static bool Same(ReadOnlySpan<char> w, string word)
+	{
+		for (var i = 0; i < word.Length; i++)
+			if ((w[i] | 0x20) != (word[i] | 0x20))
+				return false;
+
+		return true;
 	}
 
 	// ── The lexer ───────────────────────────────────────────────────────────────
@@ -359,10 +563,7 @@ static class HandSqlTokens
 						break;
 					}
 
-					kind = Reserved.GetAlternateLookup<ReadOnlySpan<char>>()
-						.TryGetValue(s.Slice(from, p - from), out var word)
-							? word
-							: Identifier;
+					kind = Keyword(s.Slice(from, p - from));
 
 					break;
 			}
@@ -426,8 +627,14 @@ static class HandSqlTokens
 		return -1;
 	}
 
-	static bool IsStart(char c) => char.IsLetter(c) || c == '_';
-	static bool IsPart (char c) => char.IsLetter(c) || char.IsDigit(c) || c == '_';
+	// ASCII first, which is nearly every character there is, and the Unicode question
+	// only where the fast tests said no.
+	static bool IsStart(char c) =>
+		(uint)((c | 0x20) - 'a') < 26 || c == '_' || (c > 127 && char.IsLetter(c));
+
+	static bool IsPart(char c) =>
+		(uint)((c | 0x20) - 'a') < 26 || (uint)(c - '0') < 10 || c == '_' ||
+		(c > 127 && char.IsLetterOrDigit(c));
 
 	// ── The parser, over kinds ──────────────────────────────────────────────────
 
