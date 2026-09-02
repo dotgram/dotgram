@@ -85,12 +85,21 @@ sealed partial class Machine
 	/// A state named in a body: the fence, what naming it means, the number, the fence.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// U+0001 because generated C# cannot contain one — every character a grammar can put
 	/// in a literal goes through <c>CSharpEmitter.Char</c> or <c>EscapeExpected</c>, and
 	/// both write a control character as an escape. <see cref="Settle"/> checks that none
 	/// survives into the file, which is a stronger guard than looking for what should have
 	/// been rewritten: a mark left behind is a compile error in the consumer's build rather
 	/// than a state quietly named wrong.
+	/// </para>
+	/// <para>
+	/// Called directly where a body has to <em>name</em> a state without going anywhere: a
+	/// trace, and the two entries recovery walks the arena back to find. Those must say the
+	/// same number the entry holds, and the entry's was written by <see cref="Resuming"/> —
+	/// so a number written here by hand is a number that agrees with it only until something
+	/// moves, which <see cref="Renumber"/> now does to every state there is.
+	/// </para>
 	/// </remarks>
 	static string Mark(char kind, int state) => $"{Fence}{kind}{state.ToString(CultureInfo.InvariantCulture)}{Fence}";
 
@@ -132,7 +141,7 @@ sealed partial class Machine
 
 			var kind   = body[opened + 1];
 			var state  = int.Parse(body.Substring(opened + 2, closed - opened - 2), CultureInfo.InvariantCulture);
-			var landed = Resolved(state);
+			var landed = Number(Resolved(state));
 
 			text.Append(kind == Jumps ? Label(landed) : landed.ToString(CultureInfo.InvariantCulture));
 

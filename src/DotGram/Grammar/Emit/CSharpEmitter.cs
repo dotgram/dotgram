@@ -749,11 +749,13 @@ public static partial class CSharpEmitter
 
 			foreach (var probe in mine)
 			{
+				var entry = machine.Numbered(probe.Entry);
+
 				file.Write(probe.Sync
 					? Machine.RenderSyncProbe(
-						probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput)
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput)
 					: Machine.RenderProbe(
-						probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput));
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput));
 				file.Line();
 			}
 		}

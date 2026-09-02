@@ -968,7 +968,7 @@ sealed partial class Machine
 		var file  = new Writer(0);
 		var type  = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
-		var entry = whole ? _wholeEntries[root] : _entries[root];
+		var entry = Numbered(whole ? _wholeEntries[root] : _entries[root]);
 		var strength = _graph.Climbing.ContainsKey(root) ? ", int power" : "";
 		var enginePower = _graph.Climbing.Count > 0
 			? ", " + (_graph.Climbing.ContainsKey(root) ? "power" : "0")
@@ -1099,8 +1099,8 @@ sealed partial class Machine
 					// which is far from all of them: see `Dispatched`.
 					if (!Divided)
 					{
-						foreach (var state in Dispatched())
-							file.Line($"case {state}: goto {Label(Resolved(state))};");
+						foreach (var state in Numbering(Dispatched()))
+							file.Line($"case {state}: goto {Label(state)};");
 					}
 					else
 					{
@@ -1109,19 +1109,30 @@ sealed partial class Machine
 						// where to go on from, which is this same dispatch again — except a
 						// failure, which carries what it was expecting and must not go
 						// through the case below that clears it.
+						//
+						// Left as a switch, and measured: numbering the states in written
+						// order makes each part's cases a run, which is what lets the C#
+						// compiler lay one jump table over them. Asking the same question as
+						// a bisected chain of range tests — the shape the generated lexer's
+						// transition table was chosen over a switch for — cost 5-8% on every
+						// `SqlStandard92` input but the two shortest. The lexer's answer does
+						// not carry: there the next state varies with the character and the
+						// indirect branch is unpredictable, and here the parse returns to a
+						// handful of the same states over and over, which is the case a
+						// branch predictor has no trouble with and four unpredictable
+						// comparisons cannot beat.
 						var cases = Dispatching();
 
 						for (var part = 0; part < _parts.Count; part++)
 						{
 							var any = false;
 
-							foreach (var one in cases)
-								if (one.Value == part)
-								{
-									file.Line($"case {one.Key}:");
+							foreach (var one in Numbering(cases, part))
+							{
+								file.Line($"case {one}:");
 
-									any = true;
-								}
+								any = true;
+							}
 
 							if (!any)
 								continue;
@@ -1448,12 +1459,9 @@ sealed partial class Machine
 							$"int {name}_Part{part}(global::System.ReadOnlySpan<char> text, " +
 							$"ref {CSharpEmitter.FailureType} failure)"))
 						{
-							var into = Dispatching();
-
 							using (file.Block("switch (state)"))
-								foreach (var one in into)
-									if (one.Value == part)
-										file.Line($"case {one.Key}: goto {Label(Resolved(one.Key))};");
+								foreach (var one in Numbering(Dispatching(), part))
+									file.Line($"case {one}: goto {Label(one)};");
 
 							file.Line("goto Leave;");
 
@@ -1522,7 +1530,7 @@ sealed partial class Machine
 			// between them is a departure rather than a line that can be dropped.
 			if (written + 1 < order.Count &&
 				Tail(body) is { } onward &&
-				onward == order[written + 1] + First)
+				onward == Number(order[written + 1] + First))
 			{
 				body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
 			}
@@ -1532,8 +1540,8 @@ sealed partial class Machine
 
 			file.Line();
 
-			if (named.Contains(i + First))
-				file.Line($"S{i + First}:");
+			if (named.Contains(Number(i + First)))
+				file.Line($"S{Number(i + First)}:");
 
 			using (file.Block(""))
 				file.Write(body);
@@ -2097,7 +2105,8 @@ sealed partial class Machine
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
-				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count{Traced});");
+				writer.Line(
+					$"Trace(\"call {Escape(rule.Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;
@@ -2492,7 +2501,7 @@ sealed partial class Machine
 				writer.Line("var atomicIndex = entries.Count;");
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count{Traced});");
+				writer.Line($"Trace(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
@@ -2539,7 +2548,7 @@ sealed partial class Machine
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count{Traced});");
+				atCommit.Line($"Trace(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 				atCommit.Line($"goto {Label(atCommit, next)};");
 
 				return state;
@@ -2695,7 +2704,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
-				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count{Traced});");
+				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -2709,7 +2718,7 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
-				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count{Traced});");
+				atSuccess.Line($"Trace(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
 				return state;
@@ -2754,7 +2763,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count{Traced});");
+		writer.Line($"Trace(\"enter captured positive lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -2814,7 +2823,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count{Traced});");
+		writer.Line($"Trace(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -3055,7 +3064,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count{Traced});");
+					writer.Line($"Trace(\"push choice\", {Mark(Lands, carry)}, p, entries.Count{Traced});");
 				}
 
 				writer.Line($"goto {Label(writer, next)};");
@@ -3296,7 +3305,7 @@ sealed partial class Machine
 			writer.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
 				"repeat, lookahead, 0));");
-			writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
+			writer.Line($"Trace(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
 			writer.Line($"goto {Label(writer, first)};");
 
 			if (asked is not null)
@@ -3623,7 +3632,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
 
-		writer.Line($"Trace(\"run\", {next}, p, entries.Count{Traced});");
+		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 
 		return state;
@@ -3847,7 +3856,7 @@ sealed partial class Machine
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count{Traced});");
+		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		if (settled || min > 0 || max is not null)
@@ -3875,7 +3884,7 @@ sealed partial class Machine
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
 					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
 					"repeating.LookaheadIndex, repeating.Value, p);");
-				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count{Traced});");
+				atLoop.Line($"Trace(\"stand exit\", {Mark(Lands, exit)}, p, entries.Count{Traced});");
 			}
 		}
 		else if (min == 0)
@@ -4087,7 +4096,7 @@ sealed partial class Machine
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
-		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count{Traced});");
+		writer.Line($"Trace(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 	}
 
@@ -4129,13 +4138,13 @@ sealed partial class Machine
 
 		if (dispatched)
 			foreach (var state in Dispatched())
-				named.Add(Resolved(state));
+				named.Add(Numbered(state));
 
 		// Named from outside the state bodies — a checkpoint site's retries, which only
 		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
 		// layout did not put it first.
 		foreach (var state in _namedOutside)
-			named.Add(Resolved(state));
+			named.Add(Numbered(state));
 
 		// A part is entered at its own label, and the jump that used to name it is a
 		// departure now — so nothing inside the text names it any more, and the chain the
@@ -4151,7 +4160,7 @@ sealed partial class Machine
 		// dispatched state to fall inside a flat method's own run.
 		if (dispatched && Divided)
 			foreach (var one in Dispatching())
-				named.Add(Resolved(one.Key));
+				named.Add(Numbered(one.Key));
 
 		_namedDispatched = dispatched;
 
@@ -4168,7 +4177,7 @@ sealed partial class Machine
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var body = _bodies[_order[written]];
-			var next = written + 1 < _order.Count ? _order[written + 1] + First : -1;
+			var next = written + 1 < _order.Count ? Number(_order[written + 1] + First) : -1;
 			var tail = Tail(body);
 
 			foreach (Match match in Gotos.Matches(body))

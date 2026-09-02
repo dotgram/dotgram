@@ -90,13 +90,18 @@ sealed partial class Machine
 		using (atRecovered.Block(""))
 		{
 			atRecovered.Line("var candidate = entries[recoveryAt];");
-			atRecovered.Line($"if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == {asked})");
+			// Against the mark and not the number: what the entry holds is what `Resuming`
+			// wrote above, and that is the state under the number it is written with.
+			atRecovered.Line(
+				$"if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == {Mark(Lands, asked)})");
 			using (atRecovered.Block(""))
 			{
 				atRecovered.Line("recoveryFrom = candidate.Position;");
 				atRecovered.Line("recoveryReach = candidate.AtomicIndex;");
 			}
-			atRecovered.Line($"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && candidate.State == {advance})");
+			atRecovered.Line(
+				"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && " +
+				$"candidate.State == {Mark(Lands, advance)})");
 			using (atRecovered.Block(""))
 			{
 				atRecovered.Line("recoveryTo = candidate.Position;");

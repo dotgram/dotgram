@@ -10634,3 +10634,86 @@ Between 1.11x and 1.67x, and the nests gain most, which is where the character m
 doing the most re-reading. Allocation moves both ways and is worth its own look: four inputs
 allocate a fifth less and four a quarter more, and `x * x - 1` most of all — the token buffers
 are pooled, so what grew is elsewhere.
+
+## The states are numbered in the order they are written
+
+Compilation reserves a state whenever it needs somewhere to come back to and numbers them as
+it goes, so the numbers are dealt out before anything is known about which of them survive.
+Layout then follows the signposts, merges what says the same thing twice and drops whatever
+nothing can reach — three states in five — and what is left is what a sieve leaves.
+`Rfc3986` wrote 532 states numbered up to 1304; `ExpressionLanguage` 648 up to 1441;
+`SqlStandard92` 276 up to 857. Thirty to forty per cent dense, and the holes are not in one
+place: they are wherever a rule was compiled into a caller and its own copy went unread.
+
+The dispatch pays for that. It is a `switch` over the numbers something can resume at, and
+over a set with those holes in it the C# compiler cannot lay one jump table: it bisects
+instead, and where the table is written in parts it bisects a second time inside each of
+them. Numbered in written order the same set is contiguous, each part is a run of it, and
+both switches become what a run of consecutive labels compiles to.
+
+It is a renaming and nothing else. Every state number in the file is written by `Settle`
+from a mark holding the state it was compiled as — that was already true of every jump and
+every arena entry, which is what `Machine.Graph.cs` exists to guarantee — so a map from
+state to written number, applied where the mark is settled, moves all of them at once.
+`Renumber` builds it from `_order` once the layout is decided, and `Rewrite` says every body
+again.
+
+**Two things were writing a state number without a mark**, and one of them was a defect
+waiting for exactly this. Recovery finds the extent of a broken element by walking the arena
+back for two entries it wrote itself, and it named them by their compiled numbers:
+
+    if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == 19)
+    if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice   && candidate.State == 17)
+
+while the entries themselves were written through `Resuming`, which resolves. The two agreed
+only because nothing had ever moved a written state's number, and a recovered element came
+back with an empty extent the moment something did. Twelve tests said so at once. The other
+was the trace, which named the state a call was about to enter by its unresolved number — a
+trace that cannot be lined up against a label is a trace that says nothing about the machine
+it is tracing.
+
+Both are marks now, and the trace one paid for itself twice over. Two bodies that differ
+only by a number naming the same state are the same body, and `Merge` could not see it while
+the number was the unresolved one. **`Rfc3986` fell from 19,277 lines to 11,635** — five
+copies of the same `IPv6` block collapsed into one — and with them it dropped under the
+budget and is written in one method again rather than twelve.
+
+    grammar               before    after
+    Rfc3986              19,277    11,635    532 states up to 1304 -> 283 up to 411
+    SqlStandard92         9,930     9,856    276 states up to  857 -> 270 up to 440
+    ExpressionLanguage   22,840    22,840    648 states up to 1441 -> 648 up to 974
+
+What it is worth, measured interleaved, best of nine, one variant per process:
+
+    ExpressionLanguage                          before      after
+    (int x) => x                             429,973/s   432,426/s    +0.6%
+    (int x) => x * x - 1                     238,506/s   223,466/s    -6.3%
+    (string s) => s.Length                   258,186/s   269,546/s    +4.4%
+    (int x) => Math.Max(x, 1)                 66,133/s    65,120/s    -1.5%
+    two levels of parenthesis                 77,386/s    85,493/s   +10.5%
+    four levels                               37,248/s    41,653/s   +11.8%
+    six levels                                21,493/s    25,120/s   +16.9%
+    six levels, refused                       82,826/s    84,586/s    +2.1%
+
+`SqlStandard92` is flat within two per cent on every input, and `Rfc3986` half a per cent to
+two. The nests are where it pays, which is where the dispatch is reached most; `x * x - 1`
+is slower by six per cent on three separate runs and is the one number here that is not
+explained.
+
+### And the range chain, which was the point of the exercise, is a loss
+
+A part is now a run, so "which part" can be asked as two comparisons rather than as a jump
+table over every state there is, and bisected it is four comparisons for a machine in
+twenty-three parts. That is the shape the generated lexer's transition table was chosen over
+a `switch` for, where the direct load beat the indirect jump by 5.5x. Written out and
+measured, it costs **five to eight per cent on every `SqlStandard92` input but the two
+shortest**, and on `ExpressionLanguage` it is a wash — up four per cent in the middle of a
+spread from minus seven to plus twelve.
+
+The lexer's answer does not carry, and the reason is worth keeping. There the next state
+varies with the character, so the indirect branch is unpredictable and the load is the
+cheaper of two bad options. Here the parse returns to a handful of the same states over and
+over — a rule returns, a choice resumes — which is the case a branch predictor has no
+trouble with at all, and four comparisons that each mispredict cannot beat one indirect
+branch that does not. Reverted; the numbering stays, and it is the numbering that let the
+compiler lay the jump table in the first place.

@@ -373,11 +373,11 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S6;
+					case 3: goto S3;
 					default: expected = null; goto Fail;
 				}
 
-				S6:
+				S3:
 				{
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 0, p, call, atomic, repeat, lookahead, 0, 1));
@@ -405,7 +405,7 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S9:
+				S6:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
@@ -420,7 +420,7 @@ namespace DotGram.Snapshots
 						goto S7;
 					}
 					p++;
-					goto S9;
+					goto S6;
 				}
 
 				S7:
@@ -623,25 +623,25 @@ namespace DotGram.Snapshots
 				p++;
 			}
 
-			S19:
+			S7:
 			{
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
 					expected = Recognize_DotGram_Marked_Expected0;
-					goto S17;
+					goto S8;
 				}
 				c = text[p];
 				if (!(((c >= 'a' && c <= 'z'))))
 				{
 					expected = Recognize_DotGram_Marked_Expected0;
-					goto S17;
+					goto S8;
 				}
 				p++;
-				goto S19;
+				goto S7;
 			}
 
-			S17:
+			S8:
 			{
 				flat2_2End = p;
 				goto Accept;
@@ -701,23 +701,23 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S13;
+					case 3: goto S3;
 					case 6: goto S6;
 					case 7: goto S7;
+					case 9: goto S9;
 					case 12: goto S12;
-					case 14: goto S14;
 					default: expected = null; goto Fail;
 				}
 
-				S13:
+				S3:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 12, p, call, atomic, repeat, lookahead, 0, 1));
+					entries.Add(new ParserEntry(ParserEntry.Call, 7, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Word", 4, p, entries.Count, text, "List_With1");
 				}
 
-				S16:
+				S4:
 				{
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("open capture", 0, p, entries.Count, text, "Word");
@@ -742,11 +742,11 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 14, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 14, p, entries.Count, text, "Word");
+						entries.Add(new ParserEntry(ParserEntry.Run, 6, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 6, p, entries.Count, text, "Word");
 				}
 
-				S14:
+				S6:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -778,33 +778,33 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S12:
+				S7:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c == ',' || c == ';') goto S9;
+						if (c == ',' || c == ';') goto S8;
 					}
 					goto Return;
 				}
 
-				S9:
+				S8:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 7, p, entries.Count, text, "List_With1");
+					Trace("enter repeat", 9, p, entries.Count, text, "List_With1");
 				}
 
-				S7:
+				S9:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					{
-						entries.Add(new ParserEntry(ParserEntry.LoopExit, 6, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 12, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 6, p, entries.Count, text, "List_With1");
+						Trace("stand exit", 12, p, entries.Count, text, "List_With1");
 					}
 				}
 
@@ -821,13 +821,13 @@ namespace DotGram.Snapshots
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 7, p, call, atomic, repeat, lookahead, 0, 1));
+					entries.Add(new ParserEntry(ParserEntry.Call, 9, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Word", 4, p, entries.Count, text, "List_With1");
-					goto S16;
+					goto S4;
 				}
 
-				S6:
+				S12:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1052,23 +1052,23 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S13;
+					case 3: goto S3;
 					case 6: goto S6;
 					case 7: goto S7;
+					case 9: goto S9;
 					case 12: goto S12;
-					case 14: goto S14;
 					default: expected = null; goto Fail;
 				}
 
-				S13:
+				S3:
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 12, p, call, atomic, repeat, lookahead, 0, 1));
+					entries.Add(new ParserEntry(ParserEntry.Call, 7, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Word", 4, p, entries.Count, text, "List");
 				}
 
-				S16:
+				S4:
 				{
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("open capture", 0, p, entries.Count, text, "Word");
@@ -1093,11 +1093,11 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 14, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 14, p, entries.Count, text, "Word");
+						entries.Add(new ParserEntry(ParserEntry.Run, 6, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 6, p, entries.Count, text, "Word");
 				}
 
-				S14:
+				S6:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -1129,33 +1129,33 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S12:
+				S7:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c == ',') goto S9;
+						if (c == ',') goto S8;
 					}
 					goto Return;
 				}
 
-				S9:
+				S8:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 7, p, entries.Count, text, "List");
+					Trace("enter repeat", 9, p, entries.Count, text, "List");
 				}
 
-				S7:
+				S9:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					{
-						entries.Add(new ParserEntry(ParserEntry.LoopExit, 6, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 12, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 6, p, entries.Count, text, "List");
+						Trace("stand exit", 12, p, entries.Count, text, "List");
 					}
 				}
 
@@ -1177,13 +1177,13 @@ namespace DotGram.Snapshots
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 7, p, call, atomic, repeat, lookahead, 0, 1));
+					entries.Add(new ParserEntry(ParserEntry.Call, 9, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
 					Trace("call Word", 4, p, entries.Count, text, "List");
-					goto S16;
+					goto S4;
 				}
 
-				S6:
+				S12:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1426,37 +1426,37 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S18;
-					case 11: goto S11;
-					case 14: goto S14;
-					case 24: goto S24;
-					case 34: goto S34;
+					case 3: goto S3;
+					case 10: goto S10;
+					case 18: goto S18;
+					case 19: goto S19;
+					case 21: goto S21;
 					default: expected = null; goto Fail;
 				}
 
-				S18:
+				S3:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!((c >= '0' && c <= '9'))) goto S11;
+						if (!((c >= '0' && c <= '9'))) goto S21;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 11, p, call, atomic, repeat, lookahead, 0));
-					Trace("push choice", 12, p, entries.Count, text, "Primary");
+					entries.Add(new ParserEntry(ParserEntry.Choice, 21, p, call, atomic, repeat, lookahead, 0));
+					Trace("push choice", 21, p, entries.Count, text, "Primary");
 				}
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 14, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 19, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					Trace("call Call", 5, p, entries.Count, text, "Primary");
 				}
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 34, p, call, atomic, repeat, lookahead, 0, 1));
+					entries.Add(new ParserEntry(ParserEntry.Call, 10, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
-					Trace("call Number", 4, p, entries.Count, text, "Call");
+					Trace("call Number", 6, p, entries.Count, text, "Call");
 				}
 
 				{
@@ -1480,25 +1480,25 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S21:
+				S8:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Primary_Expected0;
-						goto S19;
+						goto S9;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Primary_Expected0;
-						goto S19;
+						goto S9;
 					}
 					p++;
-					goto S21;
+					goto S8;
 				}
 
-				S19:
+				S9:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;
@@ -1530,7 +1530,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S34:
+				S10:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
@@ -1569,28 +1569,28 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c == '(') goto S27;
+						if (c == '(') goto S14;
 					}
 					goto Return;
 				}
 
-				S27:
+				S14:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 25, p, entries.Count, text, "Call");
+					Trace("enter repeat", 15, p, entries.Count, text, "Call");
 				}
 
-				S25:
+				S15:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					{
-						entries.Add(new ParserEntry(ParserEntry.LoopExit, 24, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 18, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 24, p, entries.Count, text, "Call");
+						Trace("stand exit", 18, p, entries.Count, text, "Call");
 					}
 				}
 
@@ -1618,10 +1618,10 @@ namespace DotGram.Snapshots
 				{
 					entries.Add(new ParserEntry(ParserEntry.Construct, 1, p, call, atomic, repeat, lookahead, 0));
 					Trace("construct", 1, p, entries.Count, text, "Call");
-					goto S25;
+					goto S15;
 				}
 
-				S24:
+				S18:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1634,7 +1634,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S14:
+				S19:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
@@ -1649,7 +1649,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S11:
+				S21:
 				{
 					capture4 = p;
 				}
@@ -1670,25 +1670,25 @@ namespace DotGram.Snapshots
 					p++;
 				}
 
-				S9:
+				S23:
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
 						expected = Recognize_DotGram_Primary_Expected0;
-						goto S7;
+						goto S24;
 					}
 					c = text[p];
 					if (!(((c >= '0' && c <= '9'))))
 					{
 						expected = Recognize_DotGram_Primary_Expected0;
-						goto S7;
+						goto S24;
 					}
 					p++;
-					goto S9;
+					goto S23;
 				}
 
-				S7:
+				S24:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, capture4, call, atomic, repeat, lookahead, p));
 					Trace("capture", 4, p, entries.Count, text, "Primary");
@@ -1888,12 +1888,12 @@ namespace DotGram.Snapshots
 					case 0: goto Return;
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
-					case 3: goto S6;
-					case 4: goto S4;
+					case 3: goto S3;
+					case 5: goto S5;
 					default: expected = null; goto Fail;
 				}
 
-				S6:
+				S3:
 				{
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 0, p, call, atomic, repeat, lookahead, 0));
 					Trace("open capture", 0, p, entries.Count, text, "Word");
@@ -1918,11 +1918,11 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					if (p > runStart + 1)
-						entries.Add(new ParserEntry(ParserEntry.Run, 4, runStart + 1, call, atomic, repeat, lookahead, p));
-					Trace("run", 4, p, entries.Count, text, "Word");
+						entries.Add(new ParserEntry(ParserEntry.Run, 5, runStart + 1, call, atomic, repeat, lookahead, p));
+					Trace("run", 5, p, entries.Count, text, "Word");
 				}
 
-				S4:
+				S5:
 				{
 					var closed  = 0;
 					var openedAt = entries.Count - 1;

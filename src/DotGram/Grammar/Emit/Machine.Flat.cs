@@ -104,7 +104,7 @@ sealed partial class Machine
 
 			if (!falls)
 			{
-				file.Line($"goto {Label(Resolved(entry))};");
+				file.Line($"goto {Label(Numbered(entry))};");
 				_namedOutside.Add(entry);
 			}
 
@@ -162,7 +162,7 @@ sealed partial class Machine
 							for (var at = 0; at < site.Retries.Count; at++)
 								file.Line(
 									$"if (alt{site.Id} == {at + 1}) " +
-									$"goto {Label(Resolved(site.Retries[at]))};");
+									$"goto {Label(Numbered(site.Retries[at]))};");
 							file.Line($"pending = over{site.Id};");
 							file.Line("goto Resume;");
 						}
@@ -432,7 +432,7 @@ sealed partial class Machine
 
 			if (!falls)
 			{
-				file.Line($"goto {Label(Resolved(entry))};");
+				file.Line($"goto {Label(Numbered(entry))};");
 				_namedOutside.Add(entry);
 			}
 

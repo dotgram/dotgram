@@ -184,11 +184,11 @@ sealed partial class Machine
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Keyed by what an arena entry or a departure actually says, which is not always where
-	/// control ends up: a state that does nothing but jump somewhere is collapsed, and the
-	/// dispatch answers to its old number while going to the state it really is. Keying this
-	/// by the resolved state instead loses the case for every collapsed one — the dispatch
-	/// then falls to its default and the parse refuses input it should accept.
+	/// Keyed by what an arena entry, a departure or a wrapper actually says, which is where
+	/// control ends up and not where it was compiled to go: a state that does nothing but
+	/// jump somewhere is collapsed, and everything that names one names what it collapsed
+	/// into. Keys are therefore states that are written, which is what lets them be numbered
+	/// in written order — see <see cref="Renumber"/>.
 	/// </para>
 	/// <para>
 	/// Two things need a case. A resume lands on one, which is what <see cref="Dispatched"/>
@@ -232,8 +232,13 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a jump from one state to another leaves the part it is written in.</summary>
+	/// <remarks>
+	/// The target is read back out of a finished body, so it is the number the state is
+	/// written under rather than the one it was compiled as, and the parts are kept in the
+	/// latter.
+	/// </remarks>
 	bool Departs(int index, int target) =>
-		target >= First && PartOf(target) != PartOf(index + First);
+		target >= First && PartOf(Denumber(target)) != PartOf(index + First);
 
 	/// <summary>
 	/// The same text with every jump that leaves the part turned into a departure.

@@ -63,6 +63,11 @@ sealed partial class Machine
 		_bodies = new string[_states.Count];
 		_resumed.Clear();
 
+		// Nothing is renumbered while the layout is being decided: every number written or
+		// read back between here and `Renumber` is the one compilation gave it.
+		_numbers  = [];
+		_internal = [];
+
 		_raw = new string[_states.Count];
 
 		for (var i = 0; i < _states.Count; i++)
@@ -178,6 +183,11 @@ sealed partial class Machine
 
 		_written = reachable;
 
+		// Now that it is settled which states are written and in what order, they are given
+		// the numbers they are written under — and every body is settled again to say them.
+		Renumber();
+		Rewrite(null);
+
 		PlanParts();
 
 		// Everything worked out from the finished bodies and the finished parts is worked
@@ -187,6 +197,113 @@ sealed partial class Machine
 		_dispatched    = null;
 		_dispatching   = null;
 		_namedForRender = null;
+	}
+
+	/// <summary>The number a state is written under, by its index.</summary>
+	int[] _numbers = [];
+
+	/// <summary>And the state a written number is, which is the same map read backwards.</summary>
+	int[] _internal = [];
+
+	/// <summary>
+	/// Gives the states the numbers they are written under: the order they are written in.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Compilation reserves a state whenever it needs somewhere to come back to and numbers
+	/// them as it goes, so the numbers are dealt out before anything is known about which
+	/// states survive. Layout then collapses the signposts and drops whatever nothing can
+	/// reach — three states in five, across the grammars here — and the numbers that are
+	/// left are what a sieve leaves: `Rfc3986` wrote 532 states numbered up to 1304.
+	/// </para>
+	/// <para>
+	/// What that costs is the dispatch. It is a <c>switch</c> over the numbers something can
+	/// resume at, and over holes like those the C# compiler cannot lay one jump table: it
+	/// bisects instead, and where the table is written in parts it bisects a second time
+	/// inside each of them. Numbered in written order the same set is contiguous, each part
+	/// is a run of it, and both switches become what a run of consecutive labels compiles
+	/// to — a bounds check and an index.
+	/// </para>
+	/// <para>
+	/// A pure renaming: only the numbers change, and every one of them is written by
+	/// <see cref="Settle"/> from a mark holding the state it was compiled as. Nothing outside
+	/// this file needs to know the difference, and <see cref="Numbered"/> is how the wrappers
+	/// ask for it.
+	/// </para>
+	/// </remarks>
+	void Renumber()
+	{
+		_numbers  = new int[_states.Count];
+		_internal = new int[_states.Count];
+
+		var given = 0;
+
+		foreach (var index in _order)
+		{
+			_numbers[index]  = given + First;
+			_internal[given] = index;
+
+			given++;
+		}
+
+		// Everything else is a signpost or unreachable, and no state that is written names
+		// one — so these numbers reach no file. They are dealt out all the same, because a
+		// map with a hole in it is a map that answers wrongly rather than not at all.
+		for (var index = 0; index < _states.Count; index++)
+			if (_numbers[index] == 0)
+			{
+				_numbers[index]  = given + First;
+				_internal[given] = index;
+
+				given++;
+			}
+	}
+
+	/// <summary>The number a state is written under.</summary>
+	/// <remarks>
+	/// The three fixed states are below <see cref="First"/> and are not renamed: they are
+	/// not states of the table but the three ways out of it.
+	/// </remarks>
+	int Number(int state) =>
+		state - First is var index && index >= 0 && index < _numbers.Length ? _numbers[index] : state;
+
+	/// <summary>And the state a number written in the file is.</summary>
+	int Denumber(int number) =>
+		number - First is var index && index >= 0 && index < _internal.Length
+			? _internal[index] + First
+			: number;
+
+	/// <summary>
+	/// What something outside the table has to say to arrive at a state: where the state
+	/// really is, under the number it is written with.
+	/// </summary>
+	public int Numbered(int state) => Number(Resolved(state));
+
+	/// <summary>The numbers a set of states is written under, ascending.</summary>
+	List<int> Numbering(IEnumerable<int> states)
+	{
+		var numbers = new List<int>();
+
+		foreach (var state in states)
+			numbers.Add(Number(state));
+
+		numbers.Sort();
+
+		return numbers;
+	}
+
+	/// <summary>The same, for the states of one part — which is a run of them.</summary>
+	List<int> Numbering(SortedDictionary<int, int> cases, int part)
+	{
+		var numbers = new List<int>();
+
+		foreach (var one in cases)
+			if (one.Value == part)
+				numbers.Add(Number(one.Key));
+
+		numbers.Sort();
+
+		return numbers;
 	}
 
 	/// <summary>
@@ -338,17 +455,26 @@ sealed partial class Machine
 		// recognizer for each of its rules rather than for what was asked for.
 		if (_roots.Count == 0)
 		{
+			var all = new SortedSet<int>();
+
 			for (var i = 0; i < _states.Count; i++)
-				if (Written(Resolved(i + First)))
-					yield return i + First;
+				if (Resolved(i + First) is var landed && Written(landed))
+					all.Add(landed);
+
+			foreach (var state in all)
+				yield return state;
 
 			yield break;
 		}
 
-		// The roots are named from outside and are named unresolved, which is how the
-		// wrapper passes them; everything else was read back out of a body that Redirect
-		// had already been over.
-		var live = new SortedSet<int>(_roots);
+		// Resolved, and so is everything else here: what a state resolves to is where it
+		// really is, two roots may resolve to the same place, and a case for a signpost is a
+		// case for a state that is not written. <see cref="Numbered"/> is how the wrappers
+		// say the same thing from outside.
+		var live = new SortedSet<int>();
+
+		foreach (var root in _roots)
+			live.Add(Resolved(root));
 
 		foreach (var state in _resumed)
 			live.Add(state);
@@ -357,7 +483,7 @@ sealed partial class Machine
 			// Below `First` are the three fixed cases, which are written whatever happens —
 			// a rule's own continuation is `Return`, so entries name them — and the two
 			// kinds that carry a nesting count rather than a state, which is always 0.
-			if (state >= First && Written(Resolved(state)))
+			if (state >= First && Written(state))
 				yield return state;
 	}
 
