@@ -94,31 +94,60 @@ static class SqlAgainst
 	{
 		Agree();
 
+		Console.WriteLine();
+		Console.WriteLine(
+			$"{"",-36} {"generated",11} {"by hand",11} {"scannerless",12} {"its lexer",11}   ratio");
+
 		foreach (var input in Inputs)
 		{
-			var generated = new List<double>();
-			var handed    = new List<double>();
-			var costs     = new List<double>();
+			var taken = new List<double>[Methods.Length];
 
-			// Warmed together and to full size, so that neither is measured at tier zero
+			for (var i = 0; i < Methods.Length; i++)
+				taken[i] = [];
+
+			var costs = new List<double>();
+
+			// Warmed together and to full size, so that none is measured at tier zero
 			// beside a neighbour that is not.
 			for (var warm = 0; warm < 2; warm++)
 			{
 				Time(input, Nothing, iterations);
-				Time(input, Generated, iterations);
-				Time(input, Handed, iterations);
+
+				foreach (var (_, measure) in Methods)
+					Time(input, measure, iterations);
 			}
 
 			for (var round = 0; round < rounds; round++)
 			{
 				costs.Add(Time(input, Nothing, iterations));
-				generated.Add(Time(input, Generated, iterations));
-				handed.Add(Time(input, Handed, iterations));
+
+				for (var i = 0; i < Methods.Length; i++)
+					taken[i].Add(Time(input, Methods[i].Measure, iterations));
 			}
 
-			Report(input, Median(generated) - Median(costs), Median(handed) - Median(costs));
+			var overhead = Median(costs);
+
+			Report(input, [.. taken.Select(times => Median(times) - overhead)]);
 		}
 	}
+
+	/// <summary>
+	/// The three readings of the same language, and the hand-written lexer alone.
+	/// </summary>
+	/// <remarks>
+	/// The first two are the comparison: both tokenize and then read tokens, so what is
+	/// between them is the reader. The third is the same parser written scannerless, which
+	/// is what the ratio used to be taken against and is why it was measuring the lexical
+	/// split instead. The fourth is there so the reader's own share of the second can be
+	/// had by subtraction.
+	/// </remarks>
+	static readonly (string Name, Func<string, int> Measure)[] Methods =
+	[
+		("generated",   static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("by hand",     static input => HandSqlTokens.Parse(input) ? 1 : 0),
+		("scannerless", static input => HandSql.Parse(input) ? 1 : 0),
+		("its lexer",   static input => HandSqlTokens.LexOnly(input)),
+	];
 
 	/// <summary>
 	/// The two answering the same about every shape, before anything is timed. Throws
@@ -129,24 +158,23 @@ static class SqlAgainst
 	{
 		foreach (var text in Corpus.Concat(Inputs))
 		{
-			var generated = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
-			var handed    = HandSql.Parse(text);
+			var generated   = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
+			var handed      = HandSqlTokens.Parse(text);
+			var scannerless = HandSql.Parse(text);
 
-			if (generated != handed)
+			if (generated != handed || generated != scannerless)
 			{
 				throw new InvalidOperationException(
-					$"The generated parser says {(generated ? "yes" : "no")} and the hand-written one " +
-					$"says {(handed ? "yes" : "no")} about \"{text}\". " +
-					"One of them reads a language the other does not, and the ratio would be a fiction.");
+					$"About \"{text}\": the generated parser says {Said(generated)}, the hand-written " +
+					$"one over tokens says {Said(handed)}, and the scannerless one says {Said(scannerless)}. " +
+					"They do not read the same language, and a ratio between them would be a fiction.");
 			}
 		}
 
-		Console.WriteLine($"Both read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine($"All three read the same language over {Corpus.Length + Inputs.Length} shapes.");
+
+		static string Said(bool yes) => yes ? "yes" : "no";
 	}
-
-	static int Generated(string input) => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0;
-
-	static int Handed(string input) => HandSql.Parse(input) ? 1 : 0;
 
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>
 	static int Nothing(string input) => input.Length & 1;
@@ -165,12 +193,16 @@ static class SqlAgainst
 		return watch.Elapsed.TotalMilliseconds * 1e6 / iterations;
 	}
 
-	static void Report(string input, double generated, double handed)
+	static void Report(string input, IReadOnlyList<double> medians)
 	{
 		var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
 
-		Console.WriteLine(
-			$"{shown,-36} {generated,9:N1} ns {handed,9:N1} ns   {generated / handed,5:N2}x");
+		Console.Write($"{shown,-36}");
+
+		foreach (var median in medians)
+			Console.Write($" {median,8:N1} ns");
+
+		Console.WriteLine($"   {medians[0] / medians[1],5:N2}x");
 	}
 
 	static double Median(List<double> times)
