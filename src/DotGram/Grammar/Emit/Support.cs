@@ -1192,7 +1192,7 @@ public static partial class CSharpEmitter
 	/// <c>Parser</c>, kept here without the arena around them. Rented per parse and kept
 	/// per thread, cleared on the way back so a pooled table holds no document alive.
 	/// </summary>
-	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes)
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
 	{
 		var text = new StringBuilder();
 
@@ -1212,6 +1212,13 @@ public static partial class CSharpEmitter
 
 		text.Append("\tinternal bool[] Live   = new bool[16];\n");
 		text.Append("\tinternal int[]  Starts = new int[16];\n");
+		text.Append("\tinternal bool[] Built  = new bool[16];\n");
+
+		if (stateType is not null)
+		{
+			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ").Append(stateType).Append("[8];\n");
+		}
+
 		text.Append("\tint _used;\n\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
 		text.Append("\tinternal static DirectValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new DirectValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
@@ -1220,10 +1227,12 @@ public static partial class CSharpEmitter
 		for (var i = 0; i < valueTypes.Count; i++)
 			text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
 
+		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
+
 		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
-		text.Append("\t/// <summary>Room for a value at every index below the count.</summary>\n");
-		text.Append("\tinternal void Room(int count)\n\t{\n\t\t_used = count;\n");
-		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
+		text.Append("\tinternal void Room(int count)\n\t{\n\t\tif (count > _used) _used = count;\n");
+		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
@@ -1362,6 +1371,13 @@ public static partial class CSharpEmitter
 			internal int Last = -1;
 
 			/// <summary>
+			/// How much of the log the values built for a guard still stand for: a record
+			/// below this that was built need not be built again, and one above it was
+			/// written since — the log was put back past it and has grown again.
+			/// </summary>
+			internal int Built;
+
+			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
 			/// </summary>
@@ -1389,6 +1405,7 @@ public static partial class CSharpEmitter
 				spare.LogCount  = 0;
 				spare.RefsCount = 0;
 				spare.Last      = -1;
+				spare.Built     = 0;
 
 				return spare;
 			}
@@ -1495,6 +1512,23 @@ public static partial class CSharpEmitter
 				Log[_record] = LogCount - _record;
 				Last         = _record;
 				RefsCount    = refs;
+			}
+
+			/// <summary>
+			/// A mark placed or taken away (docs/syntax.md §7.8): a record of its own in the
+			/// log, so that what was put back with the log takes its marks with it. The kind
+			/// is -1 where the mark opens and -2 where it closes; nothing captures one.
+			/// </summary>
+			internal void Mark(int kind, int site, int at)
+			{
+				if (LogCount + 5 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Log[LogCount++] = 5;
+				Log[LogCount++] = kind;
+				Log[LogCount++] = site;
+				Log[LogCount++] = at;
+				Log[LogCount++] = at;
 			}
 
 			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>

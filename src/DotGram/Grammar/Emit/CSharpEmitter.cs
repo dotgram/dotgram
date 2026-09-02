@@ -463,7 +463,7 @@ public static partial class CSharpEmitter
 			file.Write(DirectSupport);
 			file.Line();
 
-			file.Write(DirectValuesClass(tables));
+			file.Write(DirectValuesClass(tables, graph.State));
 			file.Line();
 		}
 

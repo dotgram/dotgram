@@ -288,7 +288,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Feed_Direct(ways, text, values);
+				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0);
 				value = values.V0[ways.Last];
 
 				return end;
@@ -1041,20 +1041,23 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Feed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values)
+		static void Materialize_DotGram_Feed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
 		{
 			values.Room(ways.LogCount);
 
-			var log  = ways.Log;
-			var live = values.Live;
+			var log   = ways.Log;
+			var live  = values.Live;
+			var built = values.Built;
+
+			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
 
-			for (var at = 0; at < ways.LogCount; at += log[at])
+			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[ways.Last] = true;
+			live[root] = true;
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -1100,14 +1103,16 @@ namespace DotGram.Snapshots
 			var values2 = values.V2;
 			var values3 = values.V3;
 
-			for (var at = 0; at < ways.LogCount; at += log[at])
+			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at]) continue;
+				if (!live[at] || built[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
+
+				built[at] = true;
 
 				switch (log[at + 1])
 				{
@@ -1171,6 +1176,8 @@ namespace DotGram.Snapshots
 					}
 				}
 			}
+
+			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_DotGram_Name(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
@@ -2518,6 +2525,13 @@ namespace DotGram.Snapshots
 			internal int Last = -1;
 
 			/// <summary>
+			/// How much of the log the values built for a guard still stand for: a record
+			/// below this that was built need not be built again, and one above it was
+			/// written since — the log was put back past it and has grown again.
+			/// </summary>
+			internal int Built;
+
+			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
 			/// </summary>
@@ -2545,6 +2559,7 @@ namespace DotGram.Snapshots
 				spare.LogCount  = 0;
 				spare.RefsCount = 0;
 				spare.Last      = -1;
+				spare.Built     = 0;
 
 				return spare;
 			}
@@ -2653,6 +2668,23 @@ namespace DotGram.Snapshots
 				RefsCount    = refs;
 			}
 
+			/// <summary>
+			/// A mark placed or taken away (docs/syntax.md §7.8): a record of its own in the
+			/// log, so that what was put back with the log takes its marks with it. The kind
+			/// is -1 where the mark opens and -2 where it closes; nothing captures one.
+			/// </summary>
+			internal void Mark(int kind, int site, int at)
+			{
+				if (LogCount + 5 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Log[LogCount++] = 5;
+				Log[LogCount++] = kind;
+				Log[LogCount++] = site;
+				Log[LogCount++] = at;
+				Log[LogCount++] = at;
+			}
+
 			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>
 			internal void Push(int slot, int a, int b)
 			{
@@ -2733,6 +2765,7 @@ namespace DotGram.Snapshots
 			internal global::DotGram.Snapshots.Feed.Header[] V3 = new global::DotGram.Snapshots.Feed.Header[16];
 			internal bool[] Live   = new bool[16];
 			internal int[]  Starts = new int[16];
+			internal bool[] Built  = new bool[16];
 			int _used;
 
 			[global::System.ThreadStatic]
@@ -2756,18 +2789,22 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
 				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));
 				global::System.Array.Clear(values.V3, 0, global::System.Math.Min(values._used, values.V3.Length));
+				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
 				values._used = 0;
 				_spare = values;
 			}
 
-			/// <summary>Room for a value at every index below the count.</summary>
+			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
 			internal void Room(int count)
 			{
-				_used = count;
+				if (count > _used) _used = count;
 				if (Live.Length < count)
 				{
 					Live   = new bool[global::System.Math.Max(count, Live.Length * 2)];
 					Starts = new int[Live.Length];
+					var built = new bool[Live.Length];
+					global::System.Array.Copy(Built, built, Built.Length);
+					Built  = built;
 				}
 				else
 					global::System.Array.Clear(Live, 0, count);

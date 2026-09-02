@@ -11007,3 +11007,62 @@ found on the way, each worth its line:
 **What it hands back to the engine still**: folds, guards, marks, a context, externals
 with values, captured lookaheads, and `find` — which between them keep ExpressionLanguage
 on the automaton. Those are next, folds and guards first.
+
+## Built: folds, guards, marks and a context on the direct path — ExpressionLanguage read by methods
+
+What kept ExpressionLanguage on the automaton was four things the first two renderings
+handed back, and each turned out to have a natural place in the log.
+
+**A fold is its loop, and its records lead with the value so far.** §4.3 already rewrote
+a left-recursive rule into `base & (step)*`, so the readers had been reading folds all
+along; what they did not do was record them. Now the base writes an ordinary record and
+keeps its index in a local, and each step's record puts that index first and holds the
+step's own captures — those its factory was written against, each as the one thing the
+step captured, which is how the step's factory takes them. The base's record keeps the
+rule's own shapes, sequences included, because that is how the base's factory takes
+them. Two mistakes on the way, both found by a test and not by thought: a step's record
+held the base's members as `-1`, which the materializer read as records; and then it held
+every step's captures, not this step's — `x is Type` handing `Type` to the step for `<`.
+
+**A guard runs where it stands, with what the rule holds so far.** A text capture is cut
+from the locals that hold it. A captured rule's value is built now, from the records
+already in the log, by the same materializer told a root and a place to start — the
+rule's own log mark, since nothing before it reaches them — and it stays built: a flag
+per record says so, the final walk skips what a guard built, and a watermark on the tape
+says how far the flags still stand for the records under them. Every place the log is put
+back lowers the watermark, in the renderings that build anything and nowhere else. A
+rule with a guard or a mark is never written in place, because both need the rule's own
+start.
+
+**A mark is a record of its own.** `with state` writes one where it opens and one where
+it closes, so it goes wherever the log goes: an abandoned reading takes its marks with it
+by being put back, which is the whole of what §7.8 asks. The walk keeps a stack of the
+marks standing open, and a factory that names `parserState` is handed it as a span.
+The stack's depth is a local of the walk. It was a field beside the array, and Windows
+Defender's AMSI heuristics called the compiled parser `Trojan:MSIL/AgentTesla.MVR!MTB`
+for the pair — one test failing under every antivirus signature update, bisected down
+to those two fields. A local it is.
+
+**A context is a parameter**, of the entry and, where a guard names it or builds a value,
+of every reader. **A rule too large for one method is split by alternative**: `Primary`
+of an expression language, thirty-five alternatives each building its own value, was
+2,300 blocks with everything called, so each alternative becomes a method of its own
+and the choice keeps the dispatch. Sound where every reading of an alternative ends by
+writing a record, which the shared-head shape the factoring pass leaves also does.
+
+**Measured**, ExpressionLanguage on the token path, the automaton against the methods:
+
+    input                              automaton     methods
+    (int x) => x + x                    1,949 ns     1,143 ns
+    8 terms                             6,801        3,422
+    128 terms                         222,138       39,187
+    Math.Max(x, 1) once                 8,348        4,420
+    Math.Max(x, 1), 32 terms        1,257,733      155,418
+
+Linear where the automaton was not: 300 ns a term at every size. What remains on the
+read side is a few hundred bytes a parse the automaton does not allocate — a guard cuts
+`head` and `part` to ask whether a dotted name resolves, and the walk at the end cuts
+them again where the automaton keeps what a guard built for text too.
+
+**What still hands back to the engine**: a captured lookahead, an external with a value,
+`find`, and a guard that names a capture repeated inside a loop or asks for the input.

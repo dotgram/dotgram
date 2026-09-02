@@ -64,7 +64,11 @@ sealed partial class Machine
 			if (publication.Kind != PublishKind.Parse || !DirectReachable(publication.Rule))
 				return false;
 
-		return true;
+		// A guard handed a value builds it from the log while the text is read, and a
+		// factory that asks for the input would have to be handed it there: not yet.
+		DirectGuardNeeds(DirectRules(publications));
+
+		return !(_directBuilds && UsesInput);
 	}
 
 	bool DirectReachable(RuleSymbol root)
@@ -112,7 +116,13 @@ sealed partial class Machine
 						case Node.Capture(_, Node.Lookahead):
 							return false;
 
-						case Node.Capture or Node.Construct:
+						case Node.Capture or Node.Construct or Node.Marked:
+							break;
+
+						case Node.Guard guard:
+							if (!DirectGuard(rule, guard))
+								return false;
+
 							break;
 
 						case Node.Call(var called, var arguments):
@@ -130,6 +140,185 @@ sealed partial class Machine
 
 		return true;
 	}
+
+	/// <summary>
+	/// Whether a guard can be run by a reader: what it names has to be something the
+	/// reader's locals can hand it, and a capture repeated inside a loop is not — its
+	/// pieces are on the side stack, gathered only when the rule ends.
+	/// </summary>
+	bool DirectGuard(RuleSymbol rule, Node.Guard guard)
+	{
+		if (CSharpEmitter.Uses(_graph, guard.Text, "parserInput"))
+			return false;
+
+		foreach (var (member, _) in GuardMembers(rule, guard))
+			if (member.Rule is null && DirectRepeated(rule).Overlaps(member.Slots))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The members a guard is handed: those captured before it that its condition names,
+	/// each with the slots that stand before it. Read as text, as the engine reads it — a
+	/// name inside a string literal costs one value built for nothing.
+	/// </summary>
+	List<(ResultMember Member, IReadOnlyList<int> Slots)> GuardMembers(RuleSymbol rule, Node.Guard guard)
+	{
+		var layout = CaptureLayout.Of(
+			_graph.Bodies[rule],
+			other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+			_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+		var before  = layout.Before(guard);
+		var visible = new List<(ResultMember, IReadOnlyList<int>)>();
+
+		foreach (var member in _graph.Results[rule])
+		{
+			var slots = new List<int>();
+
+			foreach (var slot in member.Slots)
+				if (slot < before)
+					slots.Add(slot);
+
+			if (slots.Count == 0 || !guard.Text.Contains(ResultTypes.ParameterOf(member)))
+				continue;
+
+			var optional = member.IsOptional || slots.Count != member.Slots.Count;
+
+			visible.Add((member with { IsOptional = optional }, slots));
+		}
+
+		return visible;
+	}
+
+	/// <summary>Whether any guard the readers run is handed a value, which the reader then builds from the log.</summary>
+	bool _directBuilds;
+
+	/// <summary>Whether any guard the readers run names the context.</summary>
+	bool _directGuardContext;
+
+	/// <summary>Whether the readers run a guard at all.</summary>
+	bool _directGuards;
+
+	void DirectGuardNeeds(IReadOnlyList<RuleSymbol> rules)
+	{
+		_directBuilds = _directGuardContext = _directGuards = false;
+
+		foreach (var rule in rules)
+			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+				if (node is Node.Guard guard)
+				{
+					_directGuards = true;
+
+					if (_graph.ContextOf(rule) is not null && CSharpEmitter.Uses(_graph, guard.Text, "context"))
+						_directGuardContext = true;
+
+					foreach (var (member, _) in GuardMembers(rule, guard))
+						if (member.Rule is not null)
+							_directBuilds = true;
+				}
+	}
+
+	/// <summary>Whether the readers carry the context: a guard names it, or a guard builds a value whose factory might.</summary>
+	bool DirectReaderContext => UsesContext && (_directGuardContext || _directBuilds);
+
+	/// <summary>What a reader takes beyond the text, the position, the failure and the tape.</summary>
+	string DirectReaderParameters =>
+		(_directBuilds ? ", DirectValues values" : "") +
+		(_directGuards && OverKinds ? TokensParameter : "") +
+		(DirectReaderContext ? ContextParameter : "");
+
+	string DirectReaderArguments =>
+		(_directBuilds ? ", values" : "") +
+		(_directGuards && OverKinds ? TokensArgument : "") +
+		(DirectReaderContext ? ContextArgument : "");
+
+	/// <summary>What the entry's own reader takes: the tokens whenever there are tokens, and what the readers take.</summary>
+	string DirectCoreParameters =>
+		TokensParameter +
+		(_directBuilds ? ", DirectValues values" : "") +
+		(DirectReaderContext ? ContextParameter : "");
+
+	string DirectCoreArguments =>
+		TokensArgument +
+		(_directBuilds ? ", values" : "") +
+		(DirectReaderContext ? ContextArgument : "");
+
+	/// <summary>
+	/// Whether a rule the plan writes in place may be written in place here: one with a
+	/// guard or a mark in it may not, because both need the rule's own start.
+	/// </summary>
+	bool DirectInlinable(RuleSymbol rule) =>
+		!NodeWalk.Descendants(_graph.Bodies[rule]).Any(static node => node is Node.Guard or Node.Marked);
+
+	/// <summary>
+	/// The capture slots of a rule that a turn of a loop writes again — a fold's loop
+	/// excepted, whose turns are steps that each consume what they captured (§4.3).
+	/// </summary>
+	HashSet<int> DirectRepeated(RuleSymbol rule)
+	{
+		if (_directRepeated.TryGetValue(rule, out var known))
+			return known;
+
+		var found   = new HashSet<int>();
+		var offset  = _captureOffsets[rule];
+		var loop    = _graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null;
+		var pending = new Stack<(Node Node, bool Inside)>();
+
+		pending.Push((_graph.Bodies[rule], false));
+
+		while (pending.Count > 0)
+		{
+			var (node, inside) = pending.Pop();
+
+			if (inside && node is Node.Capture && _captureSlots.TryGetValue(node, out var slot))
+				found.Add(slot - offset);
+
+			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, loop);
+
+			foreach (var child in node.Children)
+				pending.Push((child, inside || loops));
+		}
+
+		_directRepeated[rule] = found;
+
+		return found;
+	}
+
+	readonly Dictionary<RuleSymbol, HashSet<int>> _directRepeated = [];
+
+	/// <summary>
+	/// Whether a rule's alternatives can each be read by a method of its own: the body is
+	/// a choice, not a fold's, and every alternative builds its own value or none does —
+	/// a record written where the rule ends would need the alternatives' captures, which
+	/// would then be locals of another method.
+	/// </summary>
+	bool DirectSplittable(RuleSymbol rule)
+	{
+		if (_graph.Folds.ContainsKey(rule) || _graph.Bodies[rule] is not Node.Choice(var alternatives) || alternatives.Count < 2)
+			return false;
+
+		if (!Valued(rule))
+			return _graph.Results[rule].Count == 0;
+
+		return alternatives.All(EndsInConstructs);
+	}
+
+	/// <summary>
+	/// Whether every reading of a node ends by writing a record: a construct, or a
+	/// sequence ending in a choice of them — the shape a shared head leaves behind
+	/// (GrammarNormalizer.Factoring.cs), with the head's captures and the constructs that
+	/// consume them together in one method.
+	/// </summary>
+	static bool EndsInConstructs(Node node) =>
+		node switch
+		{
+			Node.Construct                       => true,
+			Node.Sequence(var parts)             => parts.Count > 0 && EndsInConstructs(parts[parts.Count - 1]),
+			Node.Choice(var alternatives)        => alternatives.All(EndsInConstructs),
+			Node.Atomic(var kept)                => EndsInConstructs(kept),
+			_                                    => false,
+		};
 
 	/// <summary>The rules a group of publications reaches, in a stable order.</summary>
 	List<RuleSymbol> DirectRules(IReadOnlyList<Publication> publications)
@@ -172,6 +361,11 @@ sealed partial class Machine
 		var rules   = DirectRules(publications);
 
 		BackEdges(publications);
+		DirectGuardNeeds(rules);
+
+		// Cleared before the entries: an entry's call to a rule written in place that
+		// still needs a reader is a wanted reader too.
+		_readersWanted.Clear();
 
 		foreach (var publication in publications)
 		{
@@ -186,6 +380,9 @@ sealed partial class Machine
 		// reader is rendered, so the queue grows as it is drained.
 		var pending  = new Queue<RuleSymbol>(rules.Where(rule => !CanInline(rule)));
 		var rendered = new HashSet<RuleSymbol>();
+
+		foreach (var wanted in _readersWanted)
+			pending.Enqueue(wanted);
 
 		_readersWanted.Clear();
 
@@ -209,17 +406,56 @@ sealed partial class Machine
 				body   = writer.Render(_graph.Bodies[rule], FollowOf(rule), whole: false, rule);
 			}
 
+			// Still over it with nothing left to call: a choice of many alternatives, each
+			// building its own value — Primary in an expression language. Each alternative
+			// becomes a method of its own, called where it stood, and the choice keeps only
+			// the dispatch. An alternative is a body like any rule's: it begins where the
+			// rule began, and what it records it records itself.
+			var parts = new List<(string Name, string Body)>();
+
+			if (Branches(body) > Budget && DirectSplittable(rule))
+			{
+				var alternatives = ((Node.Choice)_graph.Bodies[rule]).Nodes;
+				var named        = new Dictionary<Node, string>(NodeIdentity.Instance);
+
+				for (var i = 0; i < alternatives.Count; i++)
+					named[alternatives[i]] = ReaderOf(rule) + "_Part" + i;
+
+				writer = new DirectWriter(this) { Inline = false, Parts = named };
+				body   = writer.Render(_graph.Bodies[rule], FollowOf(rule), whole: false, rule);
+
+				foreach (var alternative in alternatives)
+					parts.Add((
+						named[alternative],
+						new DirectWriter(this) { Inline = false }.Render(alternative, FollowOf(rule), whole: false, rule)));
+			}
+
 			file.Line($"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
 
 			using (file.Block(
 				$"static int {ReaderOf(rule)}(" +
 				$"global::System.ReadOnlySpan<char> text, int pos, " +
-				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways)"))
+				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
 			{
 				file.Write(body);
 			}
 
 			file.Line();
+
+			foreach (var (name, part) in parts)
+			{
+				file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
+
+				using (file.Block(
+					$"static int {name}(" +
+					$"global::System.ReadOnlySpan<char> text, int pos, " +
+					$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+				{
+					file.Write(part);
+				}
+
+				file.Line();
+			}
 
 			foreach (var wanted in _readersWanted)
 				if (!rendered.Contains(wanted))
@@ -257,14 +493,16 @@ sealed partial class Machine
 
 		file.Line($"/// <summary>The whole input as <c>{rule.Name}</c>, read by methods.</summary>");
 
+		// The parameters in the order the wrapper hands them: the value, the input, the
+		// tokens, the context (CSharpEmitter.EmitPublication).
 		using (file.Block(
 			$"static int {CSharpEmitter.MethodOf(rule)}_Whole(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{value}{TokensParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line($"var ways = {WaysType}.Rent();");
 
-			if (valued)
+			if (valued || _directBuilds)
 				file.Line("var values = DirectValues.Rent();");
 
 			file.Line();
@@ -277,7 +515,7 @@ sealed partial class Machine
 				file.Line("try");
 
 				using (file.Block(""))
-					file.Line($"end = {core}(text, pos, ref failure, ways{TokensArgument});");
+					file.Line($"end = {core}(text, pos, ref failure, ways{DirectCoreArguments});");
 
 				// An input nested deeper than this thread's stack allows is read again on a
 				// thread with a deep one. The span cannot cross to another thread, so the
@@ -299,12 +537,20 @@ sealed partial class Machine
 						file.Line("var lexedLengths = parserLengths;");
 					}
 
+					if (_directBuilds)
+						file.Line("var built  = values;");
+
+					if (DirectReaderContext)
+						file.Line("var held   = context;");
+
 					file.Line("var copied = text.ToArray();");
 					file.Line("var deep   = failure;");
 					file.Line($"var deeper = {WaysType}.Rent();");
 					file.Line("var got    = -1;");
 					file.Line("var reader = new global::System.Threading.Thread(");
-					file.Line($"\t() => got = {core}(copied, from, ref deep, deeper{TokensLocals}),");
+					file.Line(
+						$"\t() => got = {core}(copied, from, ref deep, deeper{TokensLocals}" +
+						$"{(_directBuilds ? ", built" : "")}{(DirectReaderContext ? ", held" : "")}),");
 					file.Line($"\t{DeepStack});");
 					file.Line();
 					file.Line("reader.Start();");
@@ -326,7 +572,7 @@ sealed partial class Machine
 					}
 
 					file.Line();
-					file.Line($"{DirectMaterializer}(ways, text, values{TokensArgument});");
+					file.Line($"{DirectMaterializer}(ways, text, values, ways.Last, 0{InputArgument}{TokensArgument}{ContextArgument});");
 					file.Line(
 						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : ValueFrom(type!, "ways.Last").Replace("values", "values.V"))};");
 					file.Line();
@@ -341,7 +587,7 @@ sealed partial class Machine
 			{
 				file.Line($"{WaysType}.Return(ways);");
 
-				if (valued)
+				if (valued || _directBuilds)
 					file.Line("DirectValues.Return(values);");
 			}
 		}
@@ -352,7 +598,7 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {core}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{TokensParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectCoreParameters})"))
 		{
 			file.Write(new DirectWriter(this).Render(body, FollowSets.Continuation.End, whole: true));
 		}
@@ -467,6 +713,10 @@ sealed partial class Machine
 			var segment = Segment();
 			var valued  = owner is not null && machine.Valued(owner);
 
+			// A guard reads the side stack and the log from where the rule began, whether
+			// or not the rule keeps a value of its own.
+			var guarded = owner is not null && NodeWalk.Descendants(body).Any(static node => node is Node.Guard);
+
 			var inner = new Writer(0);
 
 			Emit(inner, body, "Fail", following);
@@ -491,7 +741,7 @@ sealed partial class Machine
 
 			if (valued)
 			{
-				code.Line("ways.LogCount  = lm;");
+				LogBack(code, "lm");
 				code.Line("ways.RefsCount = rb;");
 			}
 
@@ -506,7 +756,7 @@ sealed partial class Machine
 
 				if (valued)
 				{
-					code.Line("ways.LogCount  = lm;");
+					LogBack(code, "lm");
 					code.Line("ways.RefsCount = rb;");
 				}
 
@@ -523,7 +773,7 @@ sealed partial class Machine
 
 			head.Line($"var {segment} = ways.Cursor;");
 
-			if (valued)
+			if (valued || guarded)
 			{
 				head.Line("var lm = ways.LogCount;");
 				head.Line("var rb = ways.RefsCount;");
@@ -567,6 +817,10 @@ sealed partial class Machine
 				foreach (var prefix in new[] { "a", "b", "r" })
 					if (Mentions(written, $"{prefix}{slot}"))
 						captures.Add($"{prefix}{slot}");
+
+			// A fold's value so far: the record of the base, then of each step (§4.3).
+			if (Mentions(written, "fold"))
+				captures.Add("fold");
 
 			foreach (var local in captures)
 				head.Line($"var {local} = -1;");
@@ -724,21 +978,44 @@ sealed partial class Machine
 		static bool Writes(string written) =>
 			written.Contains("ways.Begin(", StringComparison.Ordinal) ||
 			written.Contains("ways.Push(", StringComparison.Ordinal) ||
+			written.Contains("ways.Mark(", StringComparison.Ordinal) ||
 			written.Contains("= Read_", StringComparison.Ordinal);
 
 		/// <summary>The log put back to where a segment began, on the paths that give its reading up.</summary>
-		static void Unwritten(Writer code, string segment, bool writes, string written = "")
+		void Unwritten(Writer code, string segment, bool writes, string written = "")
 		{
 			if (writes)
 			{
-				code.Line($"ways.LogCount  = lm{segment.Substring(1)};");
+				LogBack(code, $"lm{segment.Substring(1)}");
 				code.Line($"ways.RefsCount = rr{segment.Substring(1)};");
 			}
 
 			// A capture made inside the reading given up is not a capture: its locals go back
 			// to nothing, the way the engine takes its entries off the arena.
+			foreach (var local in Assigned(written))
+				code.Line($"{local} = -1;");
+		}
+
+		/// <summary>The capture locals a piece of written code assigns, each once.</summary>
+		static IEnumerable<string> Assigned(string written)
+		{
+			var seen = new HashSet<string>();
+
 			foreach (System.Text.RegularExpressions.Match assigned in System.Text.RegularExpressions.Regex.Matches(written, @"\b([abr]\d+) = "))
-				code.Line($"{assigned.Groups[1].Value} = -1;");
+				if (seen.Add(assigned.Groups[1].Value))
+					yield return assigned.Groups[1].Value;
+		}
+
+		/// <summary>
+		/// The log put back to a count — and with it the watermark of what a guard built,
+		/// where anything builds: a record above the watermark is one written since.
+		/// </summary>
+		void LogBack(Writer code, string count)
+		{
+			code.Line($"ways.LogCount  = {count};");
+
+			if (machine._directBuilds)
+				code.Line($"if (ways.Built > {count}) ways.Built = {count};");
 		}
 
 		/// <summary>Where the log stood when a segment began, kept beside its way-back segment.</summary>
@@ -756,8 +1033,22 @@ sealed partial class Machine
 		/// bounds — true right after a choice's front test, and carried only as far as
 		/// nothing has consumed.
 		/// </param>
+		/// <summary>The alternatives read by a method of their own, where the rule's are (Machine.Direct.cs, the budget).</summary>
+		public IReadOnlyDictionary<Node, string>? Parts { get; set; }
+
 		void Emit(Writer code, Node node, string fail, FollowSets.Continuation following, bool loaded = false)
 		{
+			if (Parts is not null && Parts.TryGetValue(node, out var part))
+			{
+				var result = $"q{_calls++}";
+
+				code.Line($"{result} = {part}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+				code.Line($"if ({result} < 0) goto {fail};");
+				Consumed(code, $"p = {result};");
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Empty:
@@ -838,6 +1129,23 @@ sealed partial class Machine
 					EmitAtomic(code, kept, fail, following, loaded);
 					break;
 
+				case Node.Guard guard:
+					EmitGuard(code, guard, fail);
+					break;
+
+				// A mark is a record of its own: it goes with the log wherever the log is put
+				// back, which is the whole of what an abandoned reading owes it (§7.8).
+				case Node.Marked(var marked, var text):
+				{
+					var site = machine.MarkSite(text);
+
+					code.Line($"ways.Mark(-1, {site}, p);");
+					Emit(code, marked, fail, following, loaded);
+					code.Line($"ways.Mark(-2, {site}, p);");
+
+					break;
+				}
+
 				case Node.External(var method):
 					code.Line($"if (!{method}(text, ref p))");
 					using (code.Block(""))
@@ -849,7 +1157,7 @@ sealed partial class Machine
 
 				case Node.Call(var called, _):
 				{
-					if (Inline && machine.CanInline(called))
+					if (Inline && machine.CanInline(called) && machine.DirectInlinable(called))
 					{
 						Emit(code, _graph.Bodies[called], fail, following, loaded);
 
@@ -866,7 +1174,7 @@ sealed partial class Machine
 					if (_owner is not null && machine._backEdges.Contains((_owner, called)))
 						code.Line("global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
 
-					code.Line($"{result} = {machine.ReaderOf(called)}(text, p, ref failure, ways);");
+					code.Line($"{result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments});");
 					code.Line($"if ({result} < 0) goto {fail};");
 					Consumed(code, $"p = {result};");
 
@@ -939,7 +1247,13 @@ sealed partial class Machine
 
 			code.Line($"ways.Begin({machine._ruleIds[_owner]}, {factory}, pos, p);");
 
-			foreach (var member in machine.DirectMembers(_owner))
+			// A fold step's first member is the value so far — the record of the base or of
+			// the step before it — and each of its members is the one thing the step
+			// captured (§4.3).
+			if (machine.IsStep(_owner, factory))
+				code.Line("ways.Put(fold);");
+
+			foreach (var member in machine.DirectMembers(_owner, factory))
 				switch (member.Shape)
 				{
 					case MemberShape.Text:
@@ -960,7 +1274,131 @@ sealed partial class Machine
 				}
 
 			code.Line("ways.End(rb);");
+
+			if (_graph.Folds.ContainsKey(_owner))
+				code.Line("fold = ways.Last;");
 		}
+
+		/// <summary>
+		/// A <c>when</c>, run where it stands with what the rule has captured so far (§7.7).
+		/// A text capture is cut from the locals that hold it; a captured rule's value is
+		/// built now, from the records already in the log, and stays built — the walk at
+		/// the end skips what a guard built, so no factory runs twice.
+		/// </summary>
+		void EmitGuard(Writer code, Node.Guard guard, string fail)
+		{
+			var rule       = machine._owners[guard];
+			var method     = $"Recognize_DotGram{machine._tag}_Guard" + machine._guards++;
+			var helper     = new Writer(0);
+			var parameters = new List<string>();
+			var arguments  = new List<string>();
+			var text       = guard.Text;
+
+			if (CSharpEmitter.Uses(_graph, text, "parserText"))
+			{
+				parameters.Add("string parserText");
+				arguments.Add(machine.Cut("pos", "p - pos"));
+			}
+
+			// The rule from where it began to where the parse now stands: what "the
+			// current rule's span" means at a point that is not its end.
+			if (CSharpEmitter.Uses(_graph, text, "parserSpan"))
+			{
+				parameters.Add("SourceSpan parserSpan");
+				arguments.Add(machine.Span("pos", "p - pos"));
+			}
+
+			// Typed by this rule's own contract; the argument upcasts.
+			if (_graph.ContextOf(rule) is { } contract && CSharpEmitter.Uses(_graph, text, "context"))
+			{
+				parameters.Add($"{contract} context");
+				arguments.Add("context");
+			}
+
+			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
+			{
+				var handed = $"g{_guardLocals++}";
+				var type   = member.Rule is null ? "string" : machine._results.ValueOf(member.Rule);
+
+				parameters.Add(
+					$"{type}{(member.IsSequence ? "[]" : member.IsOptional ? "?" : "")} " +
+					ResultTypes.ParameterOf(member));
+				arguments.Add(handed);
+
+				if (member.Rule is null)
+				{
+					code.Line($"var {handed}From = {First("a", "a", slots)};");
+					code.Line($"var {handed}To   = {First("a", "b", slots)};");
+					code.Line(
+						$"var {handed} = {handed}From < 0 ? {(member.IsOptional ? "null" : "string.Empty")} : " +
+						machine.Cut($"{handed}From", $"{handed}To - {handed}From") + ";");
+
+					continue;
+				}
+
+				var build = type == "SourceSpan"
+					? ""
+					: $"{machine.DirectMaterializer}(ways, text, values, {{0}}, lm" +
+						$"{machine.TokensArgument}{machine.ContextArgument});";
+
+				if (!member.IsSequence)
+				{
+					code.Line($"var {handed}At = {First("r", "r", slots)};");
+
+					if (build.Length > 0)
+						code.Line($"if ({handed}At >= 0) {string.Format(build, handed + "At")}");
+
+					code.Line(member.IsOptional
+						? $"{type}? {handed} = {handed}At < 0 ? default({type}?) : {ValueAt(type, handed + "At")};"
+						: $"var {handed} = {ValueAt(type, handed + "At")};");
+
+					continue;
+				}
+
+				// Collected turn by turn on the side stack, and gathered here the way the
+				// rule's end would gather them.
+				var mask    = 0L;
+				var bracket = type.IndexOf('[');
+
+				foreach (var slot in slots)
+					mask |= 1L << slot;
+
+				code.Line($"var {handed}Count = 0;");
+				code.Line("for (var at = rb; at < ways.RefsCount; at += 3)");
+				code.Then($"if (({mask}L & (1L << ways.Refs[at])) != 0) {handed}Count++;");
+				code.Line(
+					$"var {handed} = new {(bracket < 0 ? type : type.Substring(0, bracket))}[{handed}Count]" +
+					$"{(bracket < 0 ? "" : type.Substring(bracket))};");
+				code.Line($"{handed}Count = 0;");
+
+				using (code.Block("for (var at = rb; at < ways.RefsCount; at += 3)"))
+				{
+					code.Line($"if (({mask}L & (1L << ways.Refs[at])) == 0) continue;");
+
+					if (build.Length > 0)
+						code.Line(string.Format(build, "ways.Refs[at + 1]"));
+
+					code.Line($"{handed}[{handed}Count++] = {ValueAt(type, "ways.Refs[at + 1]")};");
+				}
+			}
+
+			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+			CSharpEmitter.Handed(helper, machine._lines, guard.At, text + ";");
+			machine._extra.Add(helper.ToString());
+
+			// A refused guard is a failure with nothing expected, as the engine has it.
+			code.Line($"if (!{method}({string.Join(", ", arguments)}))");
+			using (code.Block(""))
+				Refused(code, "p", null, fail);
+		}
+
+		int _guardLocals;
+
+		/// <summary>A record's value as a reader sees it: from the tables, or for an extent the record itself.</summary>
+		string ValueAt(string type, string record) =>
+			type == "SourceSpan"
+				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
+				: $"values.V{machine.TableFor(type)}[{record}]";
 
 		/// <summary>
 		/// The local of the first slot that was captured, where a member has several — one
@@ -1144,7 +1582,9 @@ sealed partial class Machine
 			{
 				_character = true;
 
-				var name   = Expected(alternatives.Select(static one => one.ToString()).ToList());
+				// The union of what the alternatives could have begun with, as the engine
+				// displays a dispatch that found none of them.
+				var name   = Expected([machine.PredictedDisplay(alternatives)]);
 				var labels = alternatives.Select(_ => Label("alt")).ToList();
 
 				code.Line($"{mark} = p;");
@@ -1405,6 +1845,12 @@ sealed partial class Machine
 				code.Line($"t{turn} = 0;");
 
 			code.Line($"{loop}:");
+
+			// A fold's step captures afresh each turn: what the step before captured is not
+			// this step's, and a member this step does not write reads as not captured.
+			if (_owner is not null && _graph.Folds.TryGetValue(_owner, out var fold) && ReferenceEquals(fold.Loop, repeat))
+				foreach (var local in Assigned(written))
+					code.Line($"{local} = -1;");
 
 			if (max is { } limit)
 				code.Line($"if (t{turn} >= {limit}) goto {done};");
