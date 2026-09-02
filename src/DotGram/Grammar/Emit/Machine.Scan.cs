@@ -393,8 +393,54 @@ sealed partial class Machine
 		if (!FirstSets.Of(one, _graph).Overlaps(FirstSets.Of(other, _graph)))
 			return true;
 
-		return LeadingLiteral(one) is { } mine && LeadingLiteral(other) is { } theirs &&
-			Differ(mine, theirs);
+		if (LeadingLiteral(one) is not { } mine || LeadingLiteral(other) is not { } theirs)
+			return false;
+
+		if (Differ(mine, theirs))
+			return true;
+
+		// The same literal in front of both: what stands after it decides, where each must
+		// read something there and the two cannot read the same thing — `'(' & Expression
+		// & ')'` against `'(' & "SELECT" & …` part ways at the second token, and a choice
+		// between them needs no way back. The trivia both read after the literal decides
+		// nothing and is looked past.
+		return mine == theirs &&
+			PastLiteral(one) is { } restOne && PastLiteral(other) is { } restOther &&
+			!FirstSets.Nullable(restOne, _graph) && !FirstSets.Nullable(restOther, _graph) &&
+			FirstSets.Of(restOne, _graph).IsKnown && FirstSets.Of(restOther, _graph).IsKnown &&
+			Exclusive(restOne, restOther);
+	}
+
+	/// <summary>
+	/// The node with its leading literal taken off, and the seam behind that literal with
+	/// it — or null where the front is not a literal that stands as a part of its own.
+	/// </summary>
+	Node? PastLiteral(Node node)
+	{
+		switch (node)
+		{
+			case Node.Sequence(var parts) when parts.Count > 1 && parts[0] is Node.Literal { IgnoreCase: false }:
+			{
+				var rest = parts.Skip(1).ToList();
+
+				if (rest.Count > 1 && _seam is not null &&
+					rest[0] is Node.Call(var called, { Count: 0 }) && ReferenceEquals(called, _seam))
+				{
+					rest.RemoveAt(0);
+				}
+
+				return rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
+			}
+
+			case Node.Sequence(var parts) when parts.Count > 1 && PastLiteral(parts[0]) is { } front:
+				return new Node.Sequence([front, .. parts.Skip(1)]);
+
+			case Node.Call(var called, _) when _graph.Bodies.TryGetValue(called, out var body):
+				return PastLiteral(body);
+
+			default:
+				return null;
+		}
 	}
 
 	/// <summary>Neither begins the other: they part ways within the shorter's length.</summary>

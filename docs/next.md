@@ -11066,3 +11066,58 @@ them again where the automaton keeps what a guard built for text too.
 
 **What still hands back to the engine**: a captured lookahead, an external with a value,
 `find`, and a guard that names a capture repeated inside a loop or asks for the input.
+
+## Where SQL lost its factor of five: the ways back that a token could have settled
+
+The hand-written SQL parser was measured seven times faster than the methods on
+`((((a + 1) * 2) - 3) / 4) + b > 0` and under three times on everything flat. Counted
+rather than guessed — one counter per reader entered, one per way opened — the nested
+input entered `Factor` seventy-four times for its six operands. Each level of parentheses
+opened a way back, and taking one re-executes everything after it, so the levels
+multiplied. Three things were behind it, two of them the grammar's and one the proofs'.
+
+**A subquery that matched any balanced parentheses.** The stub stood for a query and
+accepted anything in brackets, so `'(' & ValueExpression & ')'` and `ScalarSubquery`
+matched the same text and every parenthesized operand kept a way to the other. Now the
+stub opens with one of the three words a query begins with, and the proof of an
+exclusive choice looks past a literal the alternatives share: `'(' & Expression` against
+`'(' & "SELECT"` part ways at the second token, where each must read something and the
+two cannot read the same thing. 1,142 ns to 652.
+
+**A row read to its end before a single value was tried.** `RowValueConstructor` listed
+the row of several first, so `(a + 1) * 2` was read as the first element of a row,
+refused at the missing comma, and read again as a value — once per level. A row of
+several needs the comma the single form cannot read, so the two never match the same
+text and either order accepts the same language; the single value now stands first.
+652 ns to 227, and the flat inputs a third faster with it.
+
+**A negative lookahead the first sets ignored.** Over kinds a word is one kind whether
+it is reserved or not — `case` is both an identifier and `CASE` to the lexer, and the
+syntax tells them apart by `?!Reserved`. First sets read past a lookahead, so an
+identifier began with every keyword and a primary's eight alternatives overlapped
+pairwise; the way back that bought was opened at every operand. A negative lookahead
+whose every reading is exactly one character — a keyword over kinds, a literal, a
+class — now subtracts what it refuses from what follows it. Sound over characters too:
+`?!"CASE"` over characters is four of them and subtracts nothing. With the functions
+reserved as the standard reserves them, the choice of a primary is decided by its first
+token, and the ways opened on the 64-term input went from 640 to 256.
+
+**And a table that stopped at ASCII.** The narrowed sets were full of holes — every
+reserved kind punched out of the identifiers — and a set of that many ranges was
+rendered as a binary search in a call, which cost more than the way it replaced. The
+class tables now reach 255, which is where the kinds of a token path live.
+
+**Measured**, alternating with the hand-written parser on the same run:
+
+    input                          before     after     by hand
+    a = 1                            76 ns     68 ns      26 ns
+    (a + b) * c > d                 134       115         74
+    ((((a + 1) * 2) - 3) / 4) …   1,142       201        129
+    x = 1 AND y IS NOT NULL         143       130         67
+    a0 = 1 AND … (64 terms)       4,693     4,075      2,164
+    a0 + a1 + … (64 terms)        1,372     1,190        641
+    (a + b) * c >   refused         360       252         96
+
+What is left on `a = 1` is fixed cost: thirteen readers entered for two operands, a
+refusal at each door the hand-written parser walks past, and the lexer's thirteen
+nanoseconds. The next factor is in the calls, not in the ways.

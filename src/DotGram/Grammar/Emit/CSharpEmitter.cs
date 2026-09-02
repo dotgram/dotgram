@@ -2138,7 +2138,7 @@ public static partial class CSharpEmitter
 			element is { IsNegated: false, Categories.Count: 0, References.Count: 0 } &&
 			tabulate(element.Ranges) is { } table)
 		{
-			return $"c <= 127 && {table}[c] != 0";
+			return $"c <= {Machine.TableSize - 1} && {table}[c] != 0";
 		}
 
 		foreach (var range in element.Ranges)

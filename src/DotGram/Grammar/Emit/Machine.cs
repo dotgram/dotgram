@@ -4536,8 +4536,8 @@ sealed partial class Machine
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Only for a class that is entirely ASCII, which is what makes the table 128 bytes and
-	/// the guard one comparison. A class reaching past that would need either a table too
+	/// Only for a class within <see cref="TableSize"/>, which is what makes the table a few
+	/// hundred bytes and the guard one comparison. A class reaching past that would need either a table too
 	/// large to be worth it or a second test for the tail, and the classes that do — a
 	/// Unicode category, an inverted class — are not the ones that cost the most branches.
 	/// </para>
@@ -4553,11 +4553,11 @@ sealed partial class Machine
 		if (ranges.Count < Tabulated)
 			return null;
 
-		var table = new byte[128];
+		var table = new byte[TableSize];
 
 		foreach (var range in ranges)
 		{
-			if (range.To > 127)
+			if (range.To >= TableSize)
 				return null;
 
 			for (int c = range.From; c <= range.To; c++)
@@ -4660,7 +4660,14 @@ sealed partial class Machine
 	int _setCount;
 
 	/// <summary>The test a tabulated class is, over <c>c</c>.</summary>
-	static string TableTest(string name) => $"c <= 127 && {name}[c] != 0";
+	static string TableTest(string name) => $"c <= {TableSize - 1} && {name}[c] != 0";
+
+	/// <summary>
+	/// How far a class table reaches: the whole of Latin-1, which is also where the kinds
+	/// of a token path live — a grammar with more than a hundred reserved words is past
+	/// ASCII there, and a set read from a table is one load where a search is a call.
+	/// </summary>
+	internal const int TableSize = 256;
 
 	string DeclareExpected(IReadOnlyList<string> display)
 	{

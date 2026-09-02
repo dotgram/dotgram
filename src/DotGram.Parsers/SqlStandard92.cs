@@ -181,11 +181,17 @@ namespace DotGram.Parsers;
 	//
 	// A predicate compares rows, and a single value is a row of one — which is why
 	// `a = 1` and `(a, b) = (1, 2)` are one production in the standard rather than two.
+	//
+	// The single value stands first, and the order is about cost and not about meaning:
+	// a row of several needs a comma the single form cannot read, so the two never match
+	// the same text and either order accepts the same language. Written the other way
+	// round, `(a + 1) * 2` was read to its end as the first element of a row, refused at
+	// the missing comma, and read again as a value — once per level of parentheses.
 
-	RowValueConstructor = '(' & RowValueConstructorElement
+	RowValueConstructor = RowValueConstructorElement
+	                    | '(' & RowValueConstructorElement
 	                          & (',' & RowValueConstructorElement)+ & ')'
 	                    | TableSubquery
-	                    | RowValueConstructorElement
 
 	RowValueConstructorElement = ValueExpression | "NULL"i | "DEFAULT"i
 
@@ -349,30 +355,40 @@ namespace DotGram.Parsers;
 	// run rather than a query — so the language is closed and testable now, and the seam
 	// is visible in the text rather than being a hole nobody remembers.
 	//
-	// What it accepts is wider than SQL, deliberately: anything balanced. That is the one
-	// place this grammar is knowingly wrong, and it is wrong in the direction that cannot
-	// mask a bug in the rest of it.
+	// What it accepts is wider than SQL, deliberately: anything balanced that opens with
+	// one of the three words a query begins with. That is the one place this grammar is
+	// knowingly wrong, and it is wrong in the direction that cannot mask a bug in the rest
+	// of it. The opening word is what tells a subquery from a parenthesized expression at
+	// the second token, so the choice between them needs no way back; a query expression
+	// that is itself parenthesized, `((SELECT 1))`, is the one form this leaves out.
 	TableSubquery  = Subquery
 	ScalarSubquery = Subquery
 
-	Subquery = '(' & (Balanced | [^ '(' | ')'])* & ')'
+	Subquery = '(' & ("SELECT"i | "VALUES"i | "TABLE"i) & (Balanced | [^ '(' | ')'])* & ')'
 	Balanced = '(' & (Balanced | [^ '(' | ')'])* & ')'
 
 	// ── §5.2 Reserved words ────────────────────────────────────────────────────
 	//
 	// What an identifier may not be. The standard's list is long and most of it belongs
 	// to the statement level; what is here is the part this layer can be confused by —
-	// a word that begins or continues an expression or a predicate.
-	Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "BETWEEN"i | "BOTH"i | "BY"i
-	         | "CASE"i | "CAST"i | "COALESCE"i | "CROSS"i | "CURRENT_DATE"i
+	// a word that begins or continues an expression or a predicate, the functions
+	// included: with them reserved, a name and a function begin with different tokens,
+	// and the choice of a primary is decided by its first token without a way back.
+	Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "AVG"i | "BETWEEN"i | "BIT_LENGTH"i
+	         | "BOTH"i | "BY"i
+	         | "CASE"i | "CAST"i | "CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "COALESCE"i
+	         | "CONVERT"i | "COUNT"i | "CROSS"i | "CURRENT_DATE"i
 	         | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
 	         | "DEFAULT"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXISTS"i
-	         | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i | "IN"i
-	         | "INTERVAL"i | "IS"i | "JOIN"i | "LEADING"i | "LIKE"i | "MATCH"i
-	         | "NOT"i | "NULL"i | "NULLIF"i | "ON"i | "OR"i | "ORDER"i | "OVERLAPS"i
-	         | "PARTIAL"i | "SELECT"i | "SESSION_USER"i | "SOME"i | "SYSTEM_USER"i
-	         | "THEN"i | "TRAILING"i | "TRUE"i | "UNIQUE"i | "UNKNOWN"i | "USER"i
-	         | "USING"i | "VALUE"i | "WHEN"i | "WHERE"i)
+	         | "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
+	         | "IN"i | "INTERVAL"i | "IS"i | "JOIN"i | "LEADING"i | "LIKE"i | "LOWER"i
+	         | "MATCH"i | "MAX"i | "MIN"i
+	         | "NOT"i | "NULL"i | "NULLIF"i | "OCTET_LENGTH"i | "ON"i | "OR"i | "ORDER"i
+	         | "OVERLAPS"i
+	         | "PARTIAL"i | "POSITION"i | "SELECT"i | "SESSION_USER"i | "SOME"i
+	         | "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
+	         | "THEN"i | "TRAILING"i | "TRANSLATE"i | "TRIM"i | "TRUE"i | "UNIQUE"i | "UNKNOWN"i
+	         | "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
 	         & ?!IdentifierPart
 
 	parse SearchCondition as ParseSearchCondition

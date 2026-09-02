@@ -325,7 +325,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class6[c] != 0) goto S191;
+						if (c <= 255 && Recognize_DotGram_Class6[c] != 0) goto S191;
 					}
 				}
 
@@ -374,7 +374,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S55;
+						if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto S55;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 55, p, entries.Count, text, "IPv6");
@@ -449,7 +449,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto S24;
+						if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto S24;
 						if (!((c >= '0' && c <= '9'))) goto S21;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
@@ -855,7 +855,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 71, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 71, p, entries.Count, text, "IPv6");
@@ -865,7 +865,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S70;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S70;
 					}
 				}
 
@@ -961,7 +961,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 86, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 86, p, entries.Count, text, "IPv6");
@@ -971,7 +971,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S79;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S79;
 					}
 				}
 
@@ -1054,7 +1054,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S81;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S81;
 					}
 				}
 
@@ -1125,7 +1125,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 101, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 101, p, entries.Count, text, "IPv6");
@@ -1135,7 +1135,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S94;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S94;
 					}
 				}
 
@@ -1218,7 +1218,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S96;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S96;
 					}
 				}
 
@@ -1289,7 +1289,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 113, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 113, p, entries.Count, text, "IPv6");
@@ -1299,7 +1299,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S106;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S106;
 					}
 				}
 
@@ -1358,7 +1358,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S108;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S108;
 					}
 				}
 
@@ -1429,7 +1429,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 123, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 123, p, entries.Count, text, "IPv6");
@@ -1439,7 +1439,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S116;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S116;
 					}
 				}
 
@@ -1471,7 +1471,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S118;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S118;
 					}
 				}
 
@@ -1542,7 +1542,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (!(c <= 127 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+						if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 133, p, call, atomic, repeat, lookahead, 0));
 					Trace("push choice", 133, p, entries.Count, text, "IPv6");
@@ -1552,7 +1552,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S126;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S126;
 					}
 				}
 
@@ -1584,7 +1584,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S128;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S128;
 					}
 				}
 
@@ -1655,7 +1655,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S135;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S135;
 					}
 				}
 
@@ -1687,7 +1687,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class7[c] != 0) goto S137;
+						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S137;
 					}
 				}
 
@@ -2194,8 +2194,8 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (c <= 127 && Recognize_DotGram_Class0[c] != 0) goto S189;
-					if (c <= 127 && Recognize_DotGram_Class1[c] != 0) goto S188;
+					if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S189;
+					if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S188;
 					if (c == '%') goto S186;
 					expected = Recognize_DotGram_Expected16;
 					goto Fail;
@@ -2474,7 +2474,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S212;
+						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S212;
 					}
 				}
 
@@ -2538,10 +2538,10 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (c <= 127 && Recognize_DotGram_Class0[c] != 0) goto S218;
-					if (c <= 127 && Recognize_DotGram_Class1[c] != 0) goto S217;
+					if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S218;
+					if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S217;
 					if (c == '%') goto S216;
-					if (c <= 127 && Recognize_DotGram_Class2[c] != 0) goto S215;
+					if (c <= 255 && Recognize_DotGram_Class2[c] != 0) goto S215;
 					expected = Recognize_DotGram_Expected4;
 					goto Fail;
 				}
@@ -2555,7 +2555,7 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!(c <= 127 && Recognize_DotGram_Class2[c] != 0))
+					if (!(c <= 255 && Recognize_DotGram_Class2[c] != 0))
 					{
 						expected = Recognize_DotGram_Expected3;
 						goto Fail;
@@ -2671,7 +2671,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class3[c] != 0) goto S228;
+						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S228;
 					}
 				}
 
@@ -2735,10 +2735,10 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (c <= 127 && Recognize_DotGram_Class0[c] != 0) goto S234;
-					if (c <= 127 && Recognize_DotGram_Class1[c] != 0) goto S233;
+					if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S234;
+					if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S233;
 					if (c == '%') goto S232;
-					if (c <= 127 && Recognize_DotGram_Class2[c] != 0) goto S231;
+					if (c <= 255 && Recognize_DotGram_Class2[c] != 0) goto S231;
 					expected = Recognize_DotGram_Expected4;
 					goto Fail;
 				}
@@ -2752,7 +2752,7 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (!(c <= 127 && Recognize_DotGram_Class2[c] != 0))
+					if (!(c <= 255 && Recognize_DotGram_Class2[c] != 0))
 					{
 						expected = Recognize_DotGram_Expected3;
 						goto Fail;
@@ -2859,7 +2859,7 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if (c <= 127 && Recognize_DotGram_Class4[c] != 0) goto S241;
+						if (c <= 255 && Recognize_DotGram_Class4[c] != 0) goto S241;
 					}
 					goto S238;
 				}
@@ -2885,8 +2885,8 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					c = text[p];
-					if (c <= 127 && Recognize_DotGram_Class0[c] != 0) goto S246;
-					if (c <= 127 && Recognize_DotGram_Class1[c] != 0) goto S245;
+					if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S246;
+					if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S245;
 					if (c == '%') goto S244;
 					if (c == ':' || c == '@') { p++; goto S242; }
 					expected = Recognize_DotGram_Expected7;
@@ -3124,7 +3124,7 @@ namespace DotGram.Snapshots
 
 			if ((uint)p >= (uint)text.Length) goto Refuse;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class0[c] != 0)) goto Refuse;
+			if (!(c <= 255 && Recognize_DotGram_Class0[c] != 0)) goto Refuse;
 			p++;
 
 			return p;
@@ -3141,7 +3141,7 @@ namespace DotGram.Snapshots
 
 			if ((uint)p >= (uint)text.Length) goto Refuse;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class1[c] != 0)) goto Refuse;
+			if (!(c <= 255 && Recognize_DotGram_Class1[c] != 0)) goto Refuse;
 			p++;
 
 			return p;
@@ -3164,11 +3164,11 @@ namespace DotGram.Snapshots
 			p += 1;
 			if ((uint)p >= (uint)text.Length) goto L0_undo;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
 			p++;
 			if ((uint)p >= (uint)text.Length) goto L0_undo;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
 			p++;
 			goto L1_on;
 			L0_undo:
@@ -3215,12 +3215,12 @@ namespace DotGram.Snapshots
 			L0_turn:
 			if ((uint)p >= (uint)text.Length) goto L1_done;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class6[c] != 0)) goto L1_done;
-			if (!(c <= 127 && Recognize_DotGram_Class0[c] != 0)) goto L3_or;
+			if (!(c <= 255 && Recognize_DotGram_Class6[c] != 0)) goto L1_done;
+			if (!(c <= 255 && Recognize_DotGram_Class0[c] != 0)) goto L3_or;
 			p++;
 			goto L2_took;
 			L3_or: ;
-			if (!(c <= 127 && Recognize_DotGram_Class1[c] != 0)) goto L4_or;
+			if (!(c <= 255 && Recognize_DotGram_Class1[c] != 0)) goto L4_or;
 			p++;
 			goto L2_took;
 			L4_or: ;
@@ -3229,11 +3229,11 @@ namespace DotGram.Snapshots
 			p += 1;
 			if ((uint)p >= (uint)text.Length) goto L6_undo;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
 			p++;
 			if ((uint)p >= (uint)text.Length) goto L6_undo;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
 			p++;
 			goto L2_took;
 			L6_undo:
@@ -3268,7 +3268,7 @@ namespace DotGram.Snapshots
 			if (turns0 >= 4) goto L1_done;
 			if ((uint)p >= (uint)text.Length) goto L1_done;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L1_done;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L1_done;
 			p++;
 			turns0++;
 			goto L0_turn;
@@ -3296,7 +3296,7 @@ namespace DotGram.Snapshots
 			if (turns0 >= 4) goto L3_done;
 			if ((uint)p >= (uint)text.Length) goto L3_done;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto L3_done;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L3_done;
 			p++;
 			turns0++;
 			goto L2_turn;
@@ -3328,7 +3328,7 @@ namespace DotGram.Snapshots
 
 			if ((uint)p >= (uint)text.Length) goto Refuse;
 			c = text[p];
-			if (!(c <= 127 && Recognize_DotGram_Class7[c] != 0)) goto Refuse;
+			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto Refuse;
 			p++;
 
 			return p;
@@ -3736,23 +3736,23 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Expected31 = { "['!' | '$' | '&'..',' | ';' | '=']" };
 
-		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class1 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] Recognize_DotGram_Class1 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class2 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] Recognize_DotGram_Class2 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class3 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class3 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class4 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class4 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class5 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class5 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class6 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0 };
+		static readonly byte[] Recognize_DotGram_Class6 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class7 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] Recognize_DotGram_Class7 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Class8 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] Recognize_DotGram_Class8 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome
