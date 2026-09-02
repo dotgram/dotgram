@@ -131,9 +131,11 @@ namespace DotGram.Examples;
 		& ("as" & alias: Identifier & (':' & type: Type)?)?
 		=> @(new GramPublication(kind, target, alias, type))
 
+	// `?` after the name says the rule may give back (§4); over characters, where this
+	// grammar reads, every rule does, and the mark is kept for what it says.
 	Rule : @GramDecl
-		= name: Identifier & Parameters? & (':' & type: Type)? & '=' & body: Body
-		=> @(new GramRule(name, type, body))
+		= name: Identifier & back: '?'? & Parameters? & (':' & type: Type)? & '=' & body: Body
+		=> @(new GramRule(name, type, body, back is not null))
 
 	Parameters     = '(' & (Parameter & (',' & Parameter)*)? & ')'
 	Parameter      = Identifier & (':' & Type)?
@@ -263,7 +265,7 @@ public partial class GramGrammar
 
 	public sealed record GramPublication(string Kind, GramExpr Target, string? Alias, string? Type) : GramDecl;
 
-	public sealed record GramRule(string Name, string? Type, GramExpr Body) : GramDecl;
+	public sealed record GramRule(string Name, string? Type, GramExpr Body, bool GivesBack) : GramDecl;
 
 	/// <summary>A `context : @T` or a `state : @T` — §7.7 and §7.8.</summary>
 	public sealed record GramSupplied(string Kind, string Type) : GramDecl;

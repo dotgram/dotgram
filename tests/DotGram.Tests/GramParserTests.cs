@@ -36,6 +36,20 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void Parses_a_rule_that_gives_back()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "Name" ?
+					Sequence
+						Reference "Word"
+						Char "."
+			""",
+			Parse("""Name? = Word & '.'"""));
+	}
+
+	[Fact]
 	public void Parses_a_typed_rule_with_parameters()
 	{
 		Assert.Equal(

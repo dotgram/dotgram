@@ -11336,3 +11336,64 @@ that. The emitter test that used `Parser` as its raw-literal block at depth two 
 Nothing measured moves: the class was never entered. The SQL file is 35,197 lines against
 37,364 before the last two entries — the shared frame took the declarations, this took
 the class — and every test the suite has stands.
+
+## Built: over kinds a rule's answer stands
+
+The way back was never the cost. Three entries above took the tape apart — opened at
+the alternative taken, shared across a choice, the dead arena gone — and won fifteen
+percent, and `{ }` around every choice the hand-written parser commits at made the SQL
+recognizer *slower*: minus the ways, plus a segment and a `Seal` per group, seven of
+them per predicate. Then the whole emitter was switched to commit by default for an
+afternoon, every choice and every turn, and the SQL numbers did not move either, with
+`Open` at zero. What the tape costs is not the entries. It is the scaffolding a reader
+keeps so that it *could* be sent back: a mark, a segment, a log watermark and a side
+stack watermark per sequence, per alternative, per group, and a retry on every failure
+path. As long as the language says a caller may resume a choice inside a callee, every
+reader carries that, whether or not anything in the parse ever comes back.
+
+**So the language says something else now, over kinds.** In the syntactic half of a
+split grammar a rule's answer stands: a choice is decided by the token in front of it
+and never revisited, and nothing that fails after a rule has matched sends the parse
+back into it. That is what a parser written by hand does at every choice — sees the
+token, enters, never looks back — and it is the default because it is what nearly every
+rule over tokens wants. A rule that needs to give back says so on its name, `Name? = …`,
+and gives back inside itself: the greedy dotted name in `ExpressionLanguage` hands a
+part back at a time until reflection says the type resolves, and once it has answered,
+the answer stands at its boundary. Over characters nothing changed — every rule gives
+back, `?` is accepted and means what it already is — because that is where backtracking
+is understood and wanted: a regular expression, a feed, an RFC transcribed in the order
+its ABNF lists the alternatives.
+
+The experiment said where the old semantics was actually used, over kinds, in this
+repository: five tests of `ExpressionLanguage`, two shapes. A loop giving back its
+last turn to the caller's continuation — `Name ('.' Name)*` before `'.' Member`, and
+`Type` reading `int[]` before a `"[]"` written after it — and a branch read as the
+statement `0;` when the declaration around the `if` needed the `;`. The first is what
+`?` is for and marks one rule. The other two are the caller's to read, and were
+rewritten the way one writes them by hand: `new int[] { … }` reads the array type and
+asks the guard whether it is one, and `if` in value position has branches that are
+values, so the `;` is the declaration's. `SqlStandard92` needed nothing: its choices
+were already ordered the way a committed parser reads them, which is why the commented
+"read it again per level of parentheses" in that grammar was ever written.
+
+**What the emitter does with it.** A reader over kinds whose rule is not marked writes
+no tape: no way back, no segment, no retry on a failure path, no seal, and an atomic
+group is its body. A failure is the position put back and the log put back, which is
+what values still need. A `?` reader is the reader of before, and seals its ways when
+it answers rather than dropping them, so that a replay of the rule reads the same
+decisions in the same places; a rule that commits stays committed where it is written
+in place inside a `?` reader, and a `?` rule is never written in place inside a reader
+that commits. The core of a publication commits with the half it reads.
+
+The SQL recognizer: 41 ns on `a = 1` against 63 the entry before, 2,568 against 3,561
+on the sixty-four predicates, 938 against 1,266 on the sixty-four operands — and the
+last is the first input on which the generated parser is *ahead* of the hand-written
+one, at 0.79 of its time. Against the yardstick the recognizer stands at 1.2 to 2.2
+times, from 2 to 4. What is left on the short inputs is the ladder — ten readers for
+`a = 1` where the hand-written parser climbs three — and that is the grammar's shape.
+
+**A gap, named.** The statement is about the language and the readers honour it; a
+syntactic half that cannot be read by methods — `find`, `stream`, `recover`, a climb —
+still runs on the engine, which backtracks as it always did. Neither split grammar in
+the repository has such a rule, and the day one does is the day the engine learns to
+commit or the compiler learns to say no.

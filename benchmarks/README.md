@@ -421,6 +421,30 @@ that two lexers doing the same work cost about the same* leaves 58 and 2,261. Th
 assumption: the generated tokenizer is not reachable from this project, so it cannot be
 measured directly. The totals rest on nothing and are what to quote.
 
+### 2026-09-03, later: the readers commit
+
+Over kinds a rule's answer stands now (`docs/syntax.md` §4): the syntactic half of a
+split grammar reads tokens the way a hand-written parser does — the token in front of a
+choice decides it, and nothing that fails later comes back — unless a rule says `?` on
+its name. The SQL recognizer's readers write no tape at all: no way back, no segment to
+retry from, no seal. Same discipline, same inputs, same yardstick:
+
+| input | generated | by hand | the hand lexer | day one | ratio |
+| --- | --: | --: | --: | --: | --: |
+| `a = 1` | 41 ns | 19 ns | 14 ns | 38 ns | 2.2 |
+| `(a + b) * c > d` | 76 | 50 | 28 | 81 | 1.5 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 135 | 85 | 44 | 142 | 1.6 |
+| `x = 1 AND y IS NOT NULL` | 82 | 66 | 50 | 80 | 1.2 |
+| 64 predicates joined by `AND` | 2,568 | 2,220 | 1,688 | 2,606 | 1.16 |
+| 64 operands joined by `+` | 938 | 1,187 | 912 | 726 | 0.79 |
+| `(a + b) * c >`, refused | 95 | 60 | 25 | 113 | 1.6 |
+
+**1.2 to 2.2 times behind, and ahead on the sixty-four operands** — the first input on
+which the generated parser beats the hand-written one. The tape was the whole of the
+difference on the long inputs. What remains on the short ones is the ladder of readers a
+token passes through — ten for `a = 1` where the hand-written parser climbs three — which
+is the grammar's shape, and the next thing to look at.
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

@@ -18,6 +18,9 @@ public sealed record RuleSymbol(
 {
 	public bool IsBuiltIn => Declaration is null;
 
+	/// <summary>Declared <c>Name? = …</c>: may give back what it read (§4).</summary>
+	public bool GivesBack => Declaration is { GivesBack: true };
+
 	public override string ToString() => Name;
 }
 

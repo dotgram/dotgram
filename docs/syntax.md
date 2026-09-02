@@ -229,6 +229,11 @@ A connector between operands is always required. `.Gram` has no juxtaposition: t
 expressions cannot sit side by side without `&` or `|`. That is precisely why rules
 need no separator (§4.4).
 
+`|` is ordered choice. What happens once an alternative has matched depends on what is
+being read: over characters a failure further on comes back and tries the next
+alternative; over kinds — the syntactic half of a split grammar — it does not, and the
+first alternative that matches is the one (§4).
+
 `trivia` is inserted between the operands of a sequence — an empty rule by default,
 so by default nothing is inserted (§4.5).
 
@@ -443,9 +448,9 @@ Date : @DateOnly = y: Digit{4} & '-' & m: Digit{2} & '-' & d: Digit{2}
 expression position `[` opens an element set; the positions do not overlap, just as
 an array type and an indexer do not overlap in C#.
 
-**A rule call is transparent to backtracking.** If a later expression fails, the parser
-may resume a choice or repetition inside a called rule just as it may resume one written
-inline.
+**Over characters, a rule call is transparent to backtracking.** If a later expression
+fails, the parser may resume a choice or repetition inside a called rule just as it may
+resume one written inline.
 
 ```dotgram
 Start = Name & 'y'
@@ -463,6 +468,32 @@ Use `{ ... }` where success must commit. For example, `{ "xy" | "x" } & 'y'` fai
 `xy`: once the atomic group succeeds as `"xy"`, later failure cannot reopen choices made
 inside that group. Rule extraction by itself never introduces such a commit.
 
+**Over kinds, a rule's answer stands.** In a grammar split into a lexer and a syntactic
+half (`Lexical = true` on the host attribute), the syntactic half reads tokens, and there
+a choice is decided by the token in front of it and never revisited: once a rule has
+matched, nothing that fails after it sends the parse back into it, and `|` takes the
+first alternative that matches. This is what a parser written by hand does at every
+choice — sees the token, enters, never looks back — and it is the default because it is
+what nearly every rule over tokens wants. `{ }` there says what is already so.
+
+A rule that needs to give back says so on its name:
+
+```dotgram
+NamedType? : @Type
+    = head: Word & ('.' & part: NamePart)*
+    & when @(ExpressionLanguage.Resolves(ExpressionLanguage.Dotted(head, part)))
+    => ...
+```
+
+Inside a rule marked `?`, a choice or a repetition may be revisited when something later
+*in the same rule* fails — here the greedy dotted name gives a part back at a time until
+the guard is satisfied. Its answer still stands at its boundary: a caller that fails
+after it is not sent back into it. What a caller needs given back it has to read itself:
+`"new" & type: Type & "[]"` cannot have `Type` hand back the `[]` it read, and is written
+`"new" & type: Type & when @(type.IsArray)` instead, which is how one writes it by hand.
+Over characters `?` is accepted and changes nothing, since every rule there gives back
+already.
+
 **This is the language, not the engine.** A rule is a function from a position to a
 match, and the rest of the language rests on that. What a match records is which
 alternative it came through — one number per call — and that is what lets construction
@@ -474,7 +505,8 @@ one of those would have to be built again around it.
 None of which costs the freedom to refactor. Lifting part of an expression into a rule
 of its own does not change what it matches, and inlining a rule back does not either:
 that is what a transparent call means, and it is the property the whole of this section
-is about. A rule earns its own commit only by being written inside `{ }`.
+is about. Over characters a rule earns its own commit only by being written inside
+`{ }`; over kinds it has one, and gives it up only by being marked `?`.
 
 ### 4.1 A rule's result
 
@@ -2126,8 +2158,10 @@ None of what follows changes the notation described above.
   them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
-  where one literal alternative is a prefix of another. A prefix does not shadow
-  anything, because backtracking is what ordered choice means here.
+  where one literal alternative is a prefix of another. Over characters a prefix does
+  not shadow anything, because backtracking is what ordered choice means there; over
+  kinds the first alternative that matches is the one (§4), and an alternative written
+  first does shadow what follows it — as it does in a parser written by hand.
 
   The rule is **the first alternative that succeeds**, and what counts as succeeding is
   the directive's business rather than the choice's. `parse` needs the whole input, so
