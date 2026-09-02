@@ -7,6 +7,8 @@ using DotGram.Grammar;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.Text;
 
 namespace DotGram.VisualStudio;
 
@@ -27,6 +29,8 @@ public sealed class EmbeddedGrammar(
 public static class EmbeddedGrammarFinder
 {
 	const string GramAttribute = "DotGram.GramAttribute";
+	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
+	const string DotGramSyntax = "DotGram";
 
 	public static IReadOnlyList<EmbeddedGrammar> Find(
 		SemanticModel model, SyntaxNode root, CancellationToken cancellationToken = default)
@@ -38,6 +42,7 @@ public static class EmbeddedGrammarFinder
 			throw new ArgumentNullException(nameof(root));
 
 		var grammars = new List<EmbeddedGrammar>();
+		var seen = new HashSet<TextSpan>();
 
 		foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>())
 		{
@@ -57,6 +62,25 @@ public static class EmbeddedGrammarFinder
 				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included).Text;
 
 			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText));
+			seen.Add(literal.Token.Span);
+		}
+
+		foreach (var argument in root.DescendantNodes().OfType<ArgumentSyntax>())
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if (argument.Expression is not LiteralExpressionSyntax literal ||
+				seen.Contains(literal.Token.Span) ||
+				model.GetOperation(argument, cancellationToken) is not IArgumentOperation
+				{
+					Parameter: { Type.SpecialType: SpecialType.System_String } parameter,
+				} ||
+				!HasDotGramStringSyntax(parameter) ||
+				!CSharpStringMap.TryCreate(literal.Token, out var map))
+				continue;
+
+			grammars.Add(new EmbeddedGrammar(literal.Token.ValueText, literal.Token, map!));
+			seen.Add(literal.Token.Span);
 		}
 
 		return grammars;
@@ -95,6 +119,12 @@ public static class EmbeddedGrammarFinder
 
 		return grammars;
 	}
+
+	static bool HasDotGramStringSyntax(IParameterSymbol parameter) =>
+		parameter.GetAttributes().Any(static attribute =>
+			attribute.AttributeClass?.ToDisplayString() == StringSyntaxAttribute &&
+			attribute.ConstructorArguments is [{ Value: string syntax }] &&
+			string.Equals(syntax, DotGramSyntax, StringComparison.OrdinalIgnoreCase));
 
 	static bool IsGramAttribute(
 		SemanticModel model, AttributeSyntax attribute, CancellationToken cancellationToken)

@@ -107,6 +107,43 @@ public sealed class EmbeddedGrammarFinderTests
 		Assert.Contains("namespace Lexical\n{\nWord = ['a'..'z']+", derived.AnalysisText, StringComparison.Ordinal);
 	}
 
+	[Fact]
+	public void FindsArgumentsMarkedWithDotGramStringSyntax()
+	{
+		var source = """"
+			namespace System.Diagnostics.CodeAnalysis
+			{
+				[System.AttributeUsage(System.AttributeTargets.Parameter)]
+				sealed class StringSyntaxAttribute(string syntax) : System.Attribute;
+			}
+
+			class GrammarText(
+				[System.Diagnostics.CodeAnalysis.StringSyntax("DotGram")] string source);
+
+			class Consumer
+			{
+				static void Read(
+					[System.Diagnostics.CodeAnalysis.StringSyntax("dotgram")] string source) { }
+				static void Plain(string source) { }
+
+				static void Use()
+				{
+					Read("""
+						Word = ['a'..'z']+
+						""");
+					_ = new GrammarText("Start = Word");
+					Plain("Not = Grammar");
+				}
+			}
+			"""";
+
+		var grammars = Find(source);
+
+		Assert.Equal(
+			new[] { "Word = ['a'..'z']+", "Start = Word" },
+			grammars.Select(grammar => grammar.Text));
+	}
+
 	static EmbeddedGrammar[] Find(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(source);

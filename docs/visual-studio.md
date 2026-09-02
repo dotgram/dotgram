@@ -3,6 +3,20 @@
 `DotGram.VisualStudio` provides language support for standalone `.gram` files and
 DotGram grammars embedded in C# `GramAttribute` strings.
 
+An API that accepts DotGram source text directly can opt a string parameter into the
+same tooling with the standard annotation:
+
+```csharp
+using System.Diagnostics.CodeAnalysis;
+
+void Inspect([StringSyntax("DotGram")] string grammar);
+```
+
+String literals passed to that parameter receive DotGram classification, diagnostics,
+Quick Info, navigation, completion, brace matching, and folding. This annotation marks
+the DotGram grammar notation itself; generated DSL strings use `GramLanguageMarker`
+instead.
+
 ## Build the VSIX
 
 From the repository root:

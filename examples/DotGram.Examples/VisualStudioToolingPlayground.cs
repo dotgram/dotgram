@@ -1,5 +1,7 @@
 ﻿using System;
 
+using System.Diagnostics.CodeAnalysis;
+
 using DotGram;
 
 namespace DotGram.Examples;
@@ -71,6 +73,23 @@ public static partial class VisualStudioToolingPlayground
 	// F12 on ToolingEvaluate should return to its publication inside the Gram string.
 	public static decimal EvaluateForTooling(string expression) =>
 		ToolingEvaluate(expression);
+}
+
+public static class GramStringSyntaxExample
+{
+	// A regular API can opt its string parameter into DotGram's own grammar tooling
+	// without defining a generated DSL language.
+	static void Inspect([StringSyntax("DotGram")] string grammar)
+	{
+	}
+
+	// This raw string should have the same colors, diagnostics, hover and navigation
+	// as the grammar inside [Gram] above.
+	public static void Use() => Inspect("""
+		Word = ['a'..'z']+
+		Start = Word
+		parse Start
+		""");
 }
 
 // Custom-attribute DSL check. In the ToolingQuery string below, `select` should use the
