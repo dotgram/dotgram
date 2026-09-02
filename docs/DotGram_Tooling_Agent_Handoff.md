@@ -850,32 +850,22 @@ This is much stronger than searching C# source for string patterns.
 
 ---
 
-# 18. User-defined attributes that mark DSL parameters
+# 18. StringSyntax values that mark DSL parameters
 
-Tooling should support user-owned marker attributes on string parameters.
+Tooling uses the standard `StringSyntaxAttribute` on string parameters.
 
 Conceptual API:
 
 ```csharp
 [Gram("Filter.gram")]
 [GramLanguage("filter")]
-[GramLanguageMarker(typeof(FilterAttribute))]
 public partial class FilterParser;
 ```
 
 and:
 
 ```csharp
-[AttributeUsage(AttributeTargets.Parameter)]
-public sealed class FilterAttribute : Attribute
-{
-}
-```
-
-Then:
-
-```csharp
-public Query([Filter] string text);
+public Query([StringSyntax("filter")] string text);
 
 new Query("""
     Price > 100 AND Country = "US"
@@ -887,9 +877,9 @@ can be identified as Filter DSL.
 The important relationship is explicit:
 
 ```text
-FilterAttribute
+StringSyntax("filter")
     ↓
-FilterParser
+GramLanguage("filter") on FilterParser
     ↓
 Filter.gram / generated language descriptor
 ```
@@ -1133,7 +1123,6 @@ Conceptual attributes discussed so far include:
 ```csharp
 [GramClassify(...)]
 [GramLanguage(...)]
-[GramLanguageMarker(...)]
 ```
 
 These names are proposals, not frozen public API.
@@ -1145,7 +1134,7 @@ classification:
     grammar symbol/use site → semantic role
 
 language marker:
-    user parameter attribute type → language descriptor
+    StringSyntax value → language descriptor
 
 language identity:
     parser → stable language id / extensions / metadata

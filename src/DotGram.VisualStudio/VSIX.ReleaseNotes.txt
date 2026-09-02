@@ -1,4 +1,4 @@
-DotGram language support 0.1.36
+DotGram language support 0.1.37
 
 Initial preview for Visual Studio 18.
 
@@ -6,7 +6,7 @@ Initial preview for Visual Studio 18.
 - Completion, signature help, Quick Info, brace matching, and folding.
 - Go To Definition, Find References, reference highlighting, and Rename.
 - Navigation between grammar publications and generated C# APIs.
-- Generated DSL discovery for parser APIs and user-marked string parameters.
+- Generated DSL discovery through `StringSyntax` language ids and parser APIs.
 - Semantic classification, diagnostics, completion, and Quick Info inside DSL strings.
 - Versioned referenced-assembly descriptors with classification and non-executing
   guard/external-recognizer contracts.
@@ -18,3 +18,5 @@ Initial preview for Visual Studio 18.
 - Invalid case-insensitive character-set bounds receive precise suffix diagnostics.
 - Parameters annotated with `StringSyntax("DotGram")` or `StringSyntax(".gram")`
   enable DotGram grammar tooling.
+- DSL `StringSyntax` annotations also work on extension receivers and immediate field
+  or property initializers.

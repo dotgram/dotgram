@@ -93,35 +93,40 @@ public static class GramStringSyntaxExample
 		""");
 }
 
-// Custom-attribute DSL check. In the ToolingQuery string below, `select` should use the
+// StringSyntax DSL check. In the ToolingQuery string below, `select` should use the
 // standard keyword color and `customer` the standard local/variable color. Replacing
 // `customer` with `123` should underline the failure position with GRAM5101.
 [Gram("ToolingQuery.gram")]
 [GramLanguage("dotgram.tooling.query")]
 [GramClassify("Keyword", GramClassification.Keyword)]
 [GramClassify("Query.field", GramClassification.Variable)]
-[GramLanguageMarker(typeof(ToolingQueryAttribute))]
 public static partial class ToolingQueryLanguage
-{
-}
-
-[AttributeUsage(AttributeTargets.Parameter)]
-public sealed class ToolingQueryAttribute : Attribute
 {
 }
 
 public sealed class ToolingQuery
 {
-	public ToolingQuery([ToolingQuery] string text) => Text = text;
+	public ToolingQuery([StringSyntax("dotgram.tooling.query")] string text) => Text = text;
 
 	public string Text { get; }
+}
+
+public static class ToolingQuerySyntax
+{
+	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+	public static string AsToolingQuery(
+		[StringSyntax("dotgram.tooling.query")] this string text) => text;
 }
 
 public static class ToolingQueryExample
 {
 	public static readonly ToolingQuery Query = new("select customer");
+	public static readonly string ExtensionQuery = "select customer".AsToolingQuery();
 
-	// Generated publication calls route their input without a marker attribute.
+	[StringSyntax("dotgram.tooling.query")]
+	public const string FieldQuery = "select customer";
+
+	// Generated publication calls route their input from parser publication metadata.
 	// Both strings should have the same DSL colors and diagnostics as Query above.
 	public static object ParseDirect() => ToolingQueryLanguage.ParseQuery("select customer");
 	public static object TryParseDirect() => ToolingQueryLanguage.TryParseQuery("select customer");

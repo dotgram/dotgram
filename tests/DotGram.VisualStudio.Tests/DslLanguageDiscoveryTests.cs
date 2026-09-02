@@ -15,7 +15,7 @@ namespace DotGram.VisualStudio.Tests;
 public sealed class DslLanguageDiscoveryTests
 {
 	[Fact]
-	public void DiscoversLanguageClassificationsAndAttributeCarrierByShape()
+	public void DiscoversLanguageAndClassificationsByShape()
 	{
 		var catalog = Discover(Support + """
 
@@ -29,10 +29,7 @@ public sealed class DslLanguageDiscoveryTests
 				[DG.GramClassify("Start.name", DG.GramClassification.Variable)]
 				[DG.GramToolingGuard("@(Enabled)", true)]
 				[DG.GramToolingExternal("Read", "Identifier")]
-				[DG.GramLanguageMarker(typeof(FilterAttribute))]
 				public static class FilterParser;
-
-				public sealed class FilterAttribute(string source) : System.Attribute;
 			}
 			""");
 
@@ -47,10 +44,6 @@ public sealed class DslLanguageDiscoveryTests
 			language.Classifications.Select(item => (item.Target, item.Role)));
 		Assert.True(language.RecognitionContract.Guards["@(Enabled)"]);
 		Assert.Equal("Identifier", language.RecognitionContract.Externals["Read"]);
-
-		var carrier = Assert.Single(catalog.AttributeCarriers);
-		Assert.Equal("FilterAttribute", carrier.AttributeType.Name);
-		Assert.Same(language, carrier.Language);
 	}
 
 	[Fact]
@@ -109,28 +102,10 @@ public sealed class DslLanguageDiscoveryTests
 			""");
 
 		Assert.Empty(catalog.Languages);
-		Assert.Empty(catalog.AttributeCarriers);
 	}
 
 	[Fact]
-	public void IgnoresMarkerTypeThatIsNotAnAttribute()
-	{
-		var catalog = Discover(Support + """
-
-			class NotAnAttribute;
-
-			[DotGram.Gram("Start = 'x'")]
-			[DotGram.GramLanguage("filter")]
-			[DotGram.GramLanguageMarker(typeof(NotAnAttribute))]
-			sealed class FilterParser;
-			""");
-
-		Assert.Single(catalog.Languages);
-		Assert.Empty(catalog.AttributeCarriers);
-	}
-
-	[Fact]
-	public void FindsNestedParserAndCarrierTypes()
+	public void FindsNestedParserTypes()
 	{
 		var catalog = Discover(Support + """
 
@@ -138,15 +113,11 @@ public sealed class DslLanguageDiscoveryTests
 			{
 				[DotGram.Gram("Start = 'x'")]
 				[DotGram.GramLanguage("nested")]
-				[DotGram.GramLanguageMarker(typeof(SyntaxAttribute))]
 				public class Parser;
-
-				public sealed class SyntaxAttribute(string source) : System.Attribute;
 			}
 			""");
 
 		Assert.Equal("Parser", Assert.Single(catalog.Languages).ParserType.Name);
-		Assert.Equal("SyntaxAttribute", Assert.Single(catalog.AttributeCarriers).AttributeType.Name);
 	}
 
 	[Fact]

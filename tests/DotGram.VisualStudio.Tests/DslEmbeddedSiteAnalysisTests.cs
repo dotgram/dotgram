@@ -17,7 +17,7 @@ namespace DotGram.VisualStudio.Tests;
 public sealed class DslEmbeddedSiteAnalysisTests
 {
 	[Fact]
-	public async Task ClassifiesCustomAttributeStringByRuleAndCaptureRoles()
+	public async Task ClassifiesStringSyntaxArgumentByRuleAndCaptureRoles()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var document = Document(Source("let total"));
@@ -64,24 +64,20 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			"Start = Keyword & ' ' & name: Identifier\n" +
 			"parse Start";
 		const string path = @"P:\Dsl\Filter.gram";
-		var source = SupportEmitter.Attributes + """
+		var source = Support + """
 
 			[DotGram.Gram("Filter.gram")]
 			[DotGram.GramLanguage("dotgram.test.filter")]
 			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-			[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
 			static class FilterParser
 			{
 				public static string ParseStart(string input) => input;
 			}
 
-			[System.AttributeUsage(System.AttributeTargets.Parameter)]
-			sealed class FilterAttribute : System.Attribute { }
-
 			static class Example
 			{
-				static void Run([Filter] string text) { }
+				static void Run([System.Diagnostics.CodeAnalysis.StringSyntax("dotgram.test.filter")] string text) { }
 				static void Test() => Run("let customer");
 			}
 			""";
@@ -125,7 +121,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
-	public async Task ReportsRecognitionFailureInsideCustomAttributeString()
+	public async Task ReportsRecognitionFailureInsideStringSyntaxArgument()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var document = Document(Source("let 123"));
@@ -167,12 +163,12 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
-	public async Task ResolvesNamedMethodArgumentThroughItsMarkedParameter()
+	public async Task ResolvesNamedMethodArgumentThroughItsStringSyntaxParameter()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var source = Source("let total").Replace(
 			"static void Test() => Run(new Query(\"let total\"));",
-			"static void Test() => Execute(text: \"let total\");\n\tstatic void Execute([Filter] string text) { }");
+			"static void Test() => Execute(text: \"let total\");\n\tstatic void Execute([System.Diagnostics.CodeAnalysis.StringSyntax(\"dotgram.test.filter\")] string text) { }");
 		var document = Document(source);
 		var text     = await document.GetTextAsync(cancellationToken);
 		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
@@ -185,6 +181,54 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			new[] { ("Keyword", "let"), ("Variable", "total") },
 			result.Classifications.OrderBy(item => item.Span.Start)
 				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
+	[Fact]
+	public async Task ClassifiesLiteralReceiverOfReducedExtensionMethod()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total").Replace(
+			"static void Test() => Run(new Query(\"let total\"));",
+			"static void Test() => \"let total\".AsFilter();\n" +
+			"\tstatic string AsFilter([System.Diagnostics.CodeAnalysis.StringSyntax(\"dotgram.test.filter\")] this string text) => text;");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal("let total", text.ToString(Assert.Single(result.Sites).Span));
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "total") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
+	[Fact]
+	public async Task ClassifiesOnlyDirectFieldAndPropertyInitializers()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("unused").Replace(
+			"static void Test() => Run(new Query(\"unused\"));",
+			"[System.Diagnostics.CodeAnalysis.StringSyntax(\"dotgram.test.filter\")]\n" +
+			"\tstatic string Field = \"let field\";\n" +
+			"\t[System.Diagnostics.CodeAnalysis.StringSyntax(\"dotgram.test.filter\")]\n" +
+			"\tstatic string Property { get; } = \"let property\";\n" +
+			"\tstatic void Test() => Field = \"let assignment\";");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal(
+			new[] { "let field", "let property" },
+			result.Sites.OrderBy(item => item.Span.Start).Select(item => text.ToString(item.Span)));
+		Assert.DoesNotContain(result.Sites, item => text.ToString(item.Span) == "let assignment");
 	}
 
 	[Theory]
@@ -241,7 +285,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	public async Task RoutesInputThroughAParserWithAnInheritedGrammar()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
-		var source = SupportEmitter.Attributes + """
+		var source = Support + """
 
 			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
 			class LexicalParser;
@@ -288,7 +332,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			System.Text.Encoding.UTF8.GetBytes("ParseStart\tParse\tStart"));
 		var classificationsPayload = Convert.ToBase64String(
 			System.Text.Encoding.UTF8.GetBytes("Keyword\tKeyword\nStart.name\tVariable"));
-		var reference = Reference(SupportEmitter.Attributes + $$"""
+		var reference = Reference(Support + $$"""
 
 			[DotGram.GramLanguage("package.filter")]
 			[DotGram.GramLanguageDescriptor(2, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}", "{{classificationsPayload}}")]
@@ -322,8 +366,8 @@ public sealed class DslEmbeddedSiteAnalysisTests
 
 	[Theory]
 	[InlineData("static void Test() => new PackagedQuery(\"let customer\");")]
-	[InlineData("static void Test() => Execute(\"let customer\"); static void Execute([Filter] string text) { }")]
-	public async Task UsesReferencedLanguageMarkerAttribute(string consumerMember)
+	[InlineData("static void Test() => Execute(\"let customer\"); static void Execute([System.Diagnostics.CodeAnalysis.StringSyntax(\"package.filter\")] string text) { }")]
+	public async Task UsesReferencedLanguageThroughStringSyntax(string consumerMember)
 	{
 		const string grammar =
 			"trivia = ' '*\n" +
@@ -334,21 +378,17 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var sourcePayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
 		var entriesPayload = Convert.ToBase64String(
 			System.Text.Encoding.UTF8.GetBytes("ParseStart\tParse\tStart"));
-		var reference = Reference(SupportEmitter.Attributes + $$"""
-
-			[System.AttributeUsage(System.AttributeTargets.Parameter)]
-			public sealed class FilterAttribute : System.Attribute;
+		var reference = Reference(Support + $$"""
 
 			[DotGram.GramLanguage("package.filter")]
 			[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-			[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
 			[DotGram.GramLanguageDescriptor(1, "package.filter", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
 			public class PackagedParser;
 
 			public sealed class PackagedQuery
 			{
-				public PackagedQuery([Filter] string text) { }
+				public PackagedQuery([System.Diagnostics.CodeAnalysis.StringSyntax("package.filter")] string text) { }
 			}
 			""");
 		var source = $$"""
@@ -461,7 +501,23 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			.Select(static item => item.ToString("x2")));
 	}
 
-	static string Source(string value) => SupportEmitter.Attributes + $$""""
+	static string Support => SupportEmitter.Attributes + """
+
+		namespace System.Diagnostics.CodeAnalysis
+		{
+			[System.AttributeUsage(
+				System.AttributeTargets.Parameter |
+				System.AttributeTargets.Field |
+				System.AttributeTargets.Property)]
+			public sealed class StringSyntaxAttribute : System.Attribute
+			{
+				public StringSyntaxAttribute(string syntax) => Syntax = syntax;
+				public string Syntax { get; }
+			}
+		}
+		""";
+
+	static string Source(string value) => Support + $$""""
 
 		[DotGram.Gram("""
 			trivia     = [' ' | '\t']*
@@ -473,7 +529,6 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		[DotGram.GramLanguage("dotgram.test.filter")]
 		[DotGram.GramClassify("Keyword", DotGram.GramClassification.Keyword)]
 		[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-		[DotGram.GramLanguageMarker(typeof(FilterAttribute))]
 		static class FilterParser
 		{
 			public static string ParseStart(string input) => input;
@@ -481,14 +536,9 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			public static string ParseOther(string input) => input;
 		}
 
-		[System.AttributeUsage(System.AttributeTargets.Parameter)]
-		sealed class FilterAttribute : System.Attribute
-		{
-		}
-
 		sealed class Query
 		{
-			public Query([Filter] string text) { }
+			public Query([System.Diagnostics.CodeAnalysis.StringSyntax("dotgram.test.filter")] string text) { }
 		}
 
 		static class Example

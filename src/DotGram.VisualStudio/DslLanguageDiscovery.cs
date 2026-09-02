@@ -76,20 +76,9 @@ public sealed class DslLanguageDefinition(
 		recognitionContract ?? DslRecognitionContractDefinition.Empty;
 }
 
-public sealed class DslAttributeCarrier(
-	INamedTypeSymbol attributeType,
-	DslLanguageDefinition language)
-{
-	public INamedTypeSymbol AttributeType { get; } = attributeType;
-	public DslLanguageDefinition Language { get; } = language;
-}
-
-public sealed class DslLanguageCatalog(
-	IReadOnlyList<DslLanguageDefinition> languages,
-	IReadOnlyList<DslAttributeCarrier> attributeCarriers)
+public sealed class DslLanguageCatalog(IReadOnlyList<DslLanguageDefinition> languages)
 {
 	public IReadOnlyList<DslLanguageDefinition> Languages { get; } = languages;
-	public IReadOnlyList<DslAttributeCarrier> AttributeCarriers { get; } = attributeCarriers;
 }
 
 /// <summary>
@@ -105,7 +94,6 @@ public static class DslLanguageDiscovery
 	const string LanguageAttribute             = "DotGram.GramLanguageAttribute";
 	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
 	const string Classification                = "DotGram.GramClassification";
-	const string LanguageMarkerAttribute       = "DotGram.GramLanguageMarkerAttribute";
 	const string LanguageDescriptorAttribute   = "DotGram.GramLanguageDescriptorAttribute";
 	const string ToolingGuardAttribute         = "DotGram.GramToolingGuardAttribute";
 	const string ToolingExternalAttribute      = "DotGram.GramToolingExternalAttribute";
@@ -205,20 +193,7 @@ public static class DslLanguageDiscovery
 				recognitionContract));
 		}
 
-		var carriers = new List<DslAttributeCarrier>();
-		foreach (var language in languages)
-		foreach (var marker in language.ParserType.GetAttributes().Where(IsLanguageMarkerAttribute))
-		{
-			cancellationToken.ThrowIfCancellationRequested();
-
-			if (marker.ConstructorArguments is not [{ Value: INamedTypeSymbol markerType }] ||
-				!IsAttribute(markerType))
-				continue;
-
-			carriers.Add(new DslAttributeCarrier(markerType, language));
-		}
-
-		return new DslLanguageCatalog(languages, carriers);
+		return new DslLanguageCatalog(languages);
 	}
 
 	sealed class GeneratedDescriptor(
@@ -470,12 +445,6 @@ public static class DslLanguageDiscovery
 		type.GetMembers("Role").OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && IsClassification(property.Type));
 
-	static bool IsLanguageMarkerAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, LanguageMarkerAttribute) &&
-		attribute.AttributeClass is { } type &&
-		HasConstructor(type, "System.Type") &&
-		HasProperty(type, "Marker", "System.Type", writable: false);
-
 	static bool IsDescriptorAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
 		attribute.AttributeConstructor?.Parameters is { } parameters &&
@@ -504,10 +473,6 @@ public static class DslLanguageDiscovery
 	static bool HasConstructor(INamedTypeSymbol type, SpecialType parameter) =>
 		type.InstanceConstructors.Any(constructor =>
 			constructor.Parameters is [{ Type.SpecialType: var specialType }] && specialType == parameter);
-
-	static bool HasConstructor(INamedTypeSymbol type, string parameter) =>
-		type.InstanceConstructors.Any(constructor =>
-			constructor.Parameters is [{ Type: var parameterType }] && parameterType.ToDisplayString() == parameter);
 
 	static bool HasProperty(
 		INamedTypeSymbol type,

@@ -228,20 +228,6 @@ public static class SupportEmitter
 				public string Rule { get; }
 			}
 
-			/// <summary>
-			/// Associates this generated language with a user attribute that marks string
-			/// parameters whose arguments are written in the language.
-			/// </summary>
-			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-			internal sealed class GramLanguageMarkerAttribute : global::System.Attribute
-			{
-				/// <param name="marker">An attribute type applied to DSL-bearing string parameters.</param>
-				public GramLanguageMarkerAttribute(global::System.Type marker) => Marker = marker;
-
-				public global::System.Type Marker { get; }
-			}
-
 			/// <summary>Locates the versioned language descriptor carried by a generated parser.</summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]

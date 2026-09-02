@@ -90,6 +90,7 @@ internal sealed class DslEmbeddedSiteCache
 internal static class DslEmbeddedSiteAnalysis
 {
 	const string RecognitionDiagnostic = "GRAM5101";
+	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 
 	public static async Task<DslEmbeddedSiteResult> AnalyzeAsync(
 		Document document,
@@ -103,6 +104,7 @@ internal static class DslEmbeddedSiteAnalysis
 		var symbols = new List<HostDslSymbol>();
 		var diagnostics = new List<HostDiagnostic>();
 		var sites = new List<HostDslSite>();
+		var candidates = new List<(LiteralExpressionSyntax Literal, ISymbol Annotation, IMethodSymbol? Method)>();
 
 		foreach (var argument in root.DescendantNodes().OfType<ArgumentSyntax>())
 		{
@@ -115,24 +117,78 @@ internal static class DslEmbeddedSiteAnalysis
 						Type.SpecialType: SpecialType.System_String,
 					} parameter,
 				} ||
-				argument.Expression is not LiteralExpressionSyntax literal ||
-				!CSharpStringMap.TryCreate(literal.Token, out var sourceMap))
+				argument.Expression is not LiteralExpressionSyntax literal)
 				continue;
 
-			var markerTypes = parameter.GetAttributes()
-				.Select(static attribute => attribute.AttributeClass)
-				.Where(static type => type is not null)
-				.Cast<INamedTypeSymbol>()
-				.ToArray();
-			var markedLanguages = catalog.AttributeCarriers
-				.Where(candidate => markerTypes.Any(marker => SymbolEqualityComparer.Default.Equals(
-					candidate.AttributeType,
-					marker)))
-				.Select(static candidate => candidate.Language)
+			candidates.Add((literal, parameter, parameter.ContainingSymbol as IMethodSymbol));
+		}
+
+		foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if ((model.GetSymbolInfo(invocation, cancellationToken).Symbol as IMethodSymbol) is not
+				{
+					ReducedFrom.Parameters:
+					[
+						{ Type.SpecialType: SpecialType.System_String } receiver,
+						..
+					],
+				} ||
+				invocation.Expression is not MemberAccessExpressionSyntax
+				{
+					Expression: LiteralExpressionSyntax literal,
+				})
+				continue;
+
+			candidates.Add((literal, receiver, null));
+		}
+
+		foreach (var declarator in root.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if (declarator.Initializer?.Value is LiteralExpressionSyntax literal &&
+				model.GetDeclaredSymbol(declarator, cancellationToken) is IFieldSymbol
+				{
+					Type.SpecialType: SpecialType.System_String,
+				} field)
+				candidates.Add((literal, field, null));
+		}
+
+		foreach (var property in root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if (property.Initializer?.Value is LiteralExpressionSyntax literal &&
+				model.GetDeclaredSymbol(property, cancellationToken) is IPropertySymbol
+				{
+					Type.SpecialType: SpecialType.System_String,
+				} symbol)
+				candidates.Add((literal, symbol, null));
+		}
+
+		foreach (var (literal, annotation, method) in candidates)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if (!CSharpStringMap.TryCreate(literal.Token, out var sourceMap))
+				continue;
+
+			var syntaxIds = annotation.GetAttributes()
+				.Where(static attribute =>
+					attribute.AttributeClass?.ToDisplayString() == StringSyntaxAttribute &&
+					attribute.ConstructorArguments is [{ Value: string }, ..])
+				.Select(static attribute => attribute.ConstructorArguments[0].Value as string)
+				.Where(static id => !string.IsNullOrWhiteSpace(id))
+				.Cast<string>()
+				.ToHashSet(StringComparer.Ordinal);
+			var syntaxLanguages = catalog.Languages
+				.Where(candidate => syntaxIds.Contains(candidate.Id))
 				.ToList();
-			var method = parameter.ContainingSymbol as IMethodSymbol;
-			var languages = markedLanguages.ToList();
-			if (method is not null && parameter.Name == "input")
+			var languages = syntaxLanguages.ToList();
+			var generatedApiParameter = annotation is IParameterSymbol { Name: "input" };
+			if (method is not null && generatedApiParameter)
 				languages.AddRange(catalog.Languages.Where(language => SymbolEqualityComparer.Default.Equals(
 					language.ParserType,
 					method.ContainingType)));
@@ -157,7 +213,7 @@ internal static class DslEmbeddedSiteAnalysis
 				if (candidate is null)
 					continue;
 
-				var generatedApi = method is not null && parameter.Name == "input" &&
+				var generatedApi = method is not null && generatedApiParameter &&
 					SymbolEqualityComparer.Default.Equals(language.ParserType, method.ContainingType);
 				var publications = generatedApi
 					? candidate.Publications.Where(publication =>
@@ -165,7 +221,7 @@ internal static class DslEmbeddedSiteAnalysis
 							? publication.Rule.Name == descriptorEntry
 							: method!.Name == publication.MethodName ||
 								method.Name == "Try" + publication.MethodName).ToArray()
-					: markedLanguages.Contains(language) && candidate.Publications.Count == 1
+					: syntaxLanguages.Contains(language) && candidate.Publications.Count == 1
 						? candidate.Publications
 						: [];
 				if (publications is [{ } selectedPublication])

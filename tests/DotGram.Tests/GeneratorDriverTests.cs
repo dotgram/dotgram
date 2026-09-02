@@ -31,6 +31,7 @@ public sealed class GeneratorDriverTests
 		var source = GetGeneratedSource(RunGenerator(""), "DotGram.Attributes.g.cs");
 
 		Assert.Contains("internal sealed class GramAttribute", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("GramLanguageMarker",            source, StringComparison.Ordinal);
 		Assert.DoesNotContain("struct SourceSpan",             source, StringComparison.Ordinal);
 	}
 
