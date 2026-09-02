@@ -114,6 +114,16 @@ static class Questions
 			foreach (var type in declared)
 				questions.Add(Question.Fits(type, element));
 
+		// And every declared type against every other. A rebinding is checked by asking
+		// whether what replaces a rule produces something the replaced one's callers can
+		// still use (§5.1), which pairs two declared types the way nothing else here does —
+		// and a rebinding that changes a type is exactly what a `with` on a publication is
+		// for, so the pair has to be foreseen rather than discovered in a consumer's build.
+		foreach (var one in declared)
+			foreach (var other in declared)
+				if (one != other)
+					questions.Add(Question.Fits(one, other));
+
 		// Both ways round, because the effective contract is whichever of them satisfies the
 		// rest and that is what the answers are for deciding.
 		foreach (var one in contexts)

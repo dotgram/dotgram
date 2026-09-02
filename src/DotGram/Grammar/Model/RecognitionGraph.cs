@@ -185,6 +185,34 @@ public abstract record Node
 		public override string ToString() => $"?<!{Test}";
 	}
 
+	/// <summary>
+	/// Nothing may have been skipped here: what stands at this position began exactly
+	/// where what stands before it ended (§4.5's <c>~</c>).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Reading nothing and consuming nothing, like a look. What it asserts is about the
+	/// gap rather than the input: the normalizer weaves no trivia across a <c>~</c>, and
+	/// over characters that is the whole of it — two operands with no seam between them
+	/// are adjacent because there is nowhere for anything to go. Over kinds a token
+	/// boundary is invisible, the scanner having skipped the trivia before the token was
+	/// made, so the gap has to be asked about: a token records where it began and how
+	/// long it is, and adjacency is one comparison over the two.
+	/// </para>
+	/// <para>
+	/// Which is why this is one node and not two spellings. <c>'&gt;' ~ '&gt;'</c> means
+	/// the same thing in both halves of a split grammar — the shift operator and not two
+	/// closing angle brackets — and the emitter renders it as nothing where the positions
+	/// are already characters.
+	/// </para>
+	/// </remarks>
+	public sealed record Glue : Node
+	{
+		public static readonly Glue Instance = new();
+
+		public override string ToString() => "~";
+	}
+
 	public sealed record Capture(string Name, Node Body) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];

@@ -247,11 +247,11 @@ public sealed class SpliceTests
 	[InlineData(
 		"context : @C\nValue = ['0'..'9']+ & when @(context.Ok())\nparse Value",
 		"ref Failure failure, C context)")]
-	// The general engine: left recursion puts it there.
+	// Left recursion, read by methods: the fold step's factory is handed it.
 	[InlineData(
 		"context : @C\nSum : @int = l: Sum & '+' & r: D => @(context.Add(l, r)) | d: D => @(d)\n" +
 			"D : @int = t: ['0'..'9'] => @(t.Length)\nparse Sum",
-		"static int Recognize_DotGram(")]
+		"Construct_Sum_1(context, ")]
 	// A captured call to a flat-valued rule, compiled where the call was.
 	[InlineData(
 		"context : @C\nOuter : @int = v: Value & '!' => @(v)\n" +

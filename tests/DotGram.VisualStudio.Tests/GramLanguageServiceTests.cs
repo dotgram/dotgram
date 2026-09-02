@@ -77,7 +77,7 @@ public sealed class GramLanguageServiceTests
 	[Fact]
 	public void ClassifiesGrammarMetacharactersAsSpecialSymbols()
 	{
-		const string source = "Start = 'a'* | ?! 'b'";
+		const string source = "Start = 'a'* | ?! 'b' ~ 'c'";
 
 		var classified = GramLanguageService.Analyze(source).Classifications
 			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
@@ -86,6 +86,7 @@ public sealed class GramLanguageServiceTests
 		Assert.Contains(("*", GramSyntaxKind.SpecialSymbol), classified);
 		Assert.Contains(("|", GramSyntaxKind.SpecialSymbol), classified);
 		Assert.Contains(("?!", GramSyntaxKind.SpecialSymbol), classified);
+		Assert.Contains(("~", GramSyntaxKind.SpecialSymbol), classified);
 	}
 
 	[Fact]

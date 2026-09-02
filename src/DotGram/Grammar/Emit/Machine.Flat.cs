@@ -32,11 +32,15 @@ sealed partial class Machine
 		_namedOutside.Clear();
 		_checkpointIds      = 0;
 		_seam               = FollowSets.SeamOf(rule, _graph);
-		_checkpointsAllowed = true;
+		int entry;
 
-		var entry = Compile(BodyOf(rule, whole), Accept, seed);
+		using (var modes = Keeping())
+		{
+			_checkpointsAllowed = true;
+			_lowering           = true;
 
-		_checkpointsAllowed = false;
+			entry = Compile(BodyOf(rule, whole), Accept, seed);
+		}
 
 		_roots.Add(entry);
 
@@ -100,7 +104,7 @@ sealed partial class Machine
 
 			if (!falls)
 			{
-				file.Line($"goto {Label(Resolved(entry))};");
+				file.Line($"goto {Label(Numbered(entry))};");
 				_namedOutside.Add(entry);
 			}
 
@@ -158,7 +162,7 @@ sealed partial class Machine
 							for (var at = 0; at < site.Retries.Count; at++)
 								file.Line(
 									$"if (alt{site.Id} == {at + 1}) " +
-									$"goto {Label(Resolved(site.Retries[at]))};");
+									$"goto {Label(Numbered(site.Retries[at]))};");
 							file.Line($"pending = over{site.Id};");
 							file.Line("goto Resume;");
 						}
@@ -195,16 +199,13 @@ sealed partial class Machine
 		if (UsesInput || ReadsState || !FlatValued(rule))
 			return false;
 
+		using var modes = Keeping();
+
 		_valuesInLocals = true;
 
-		try
-		{
-			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
-		}
-		finally
-		{
-			_valuesInLocals = false;
-		}
+		return Silent(
+			BodyOf(rule, whole),
+			whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 	}
 
 	/// <summary>
@@ -331,7 +332,7 @@ sealed partial class Machine
 	bool Extent(Node node) =>
 		node switch
 		{
-			Node.Empty or Node.Literal or Node.Element or Node.Behind => true,
+			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
 			Node.Sequence(var parts)      => parts.All(Extent),
 			Node.Choice(var alternatives) => alternatives.All(Extent),
 			Node.Repeat(var body, _, _)   => Extent(body),
@@ -377,10 +378,12 @@ sealed partial class Machine
 		_flatRuleOf[0]  = rule;
 		_seam           = FollowSets.SeamOf(rule, _graph);
 		_valuesInLocals = true;
+		_lowering       = true;
 
 		var entry = Compile(BodyOf(rule, whole), Accept, seed);
 
 		_valuesInLocals = false;
+		_lowering       = false;
 
 		_roots.Add(entry);
 
@@ -429,7 +432,7 @@ sealed partial class Machine
 
 			if (!falls)
 			{
-				file.Line($"goto {Label(Resolved(entry))};");
+				file.Line($"goto {Label(Numbered(entry))};");
 				_namedOutside.Add(entry);
 			}
 
@@ -538,7 +541,7 @@ sealed partial class Machine
 
 					expression =
 						$"{start} < 0 ? {expression} : " +
-						$"text.Slice({start}, flat{instance}_{slot}End - {start}).ToString()";
+						Cut(start, $"flat{instance}_{slot}End - {start}");
 				}
 
 				file.Line($"var {local} = {expression};");

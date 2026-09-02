@@ -138,6 +138,11 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 	[InlineData("state : @int\nStart = ('a' & 'b') with state @(1) & 'c'\n")]
 	[InlineData("state : @int\nStart = x: 'a'+ with state @(Overflow.Checked)\n")]
 	[InlineData("state : @int\nA = 'a'\nStart = A with (A = 'b') with state @(1)\n")]
+	// §4.5's `~`, which binds tighter than `&`: both halves have to read it that way, or
+	// the same grammar means two things.
+	[InlineData("Start = 'a' ~ 'b'\n")]
+	[InlineData("Start = 'a' & 'b' ~ 'c' & 'd'\n")]
+	[InlineData("Shift = left: Shift & '>' ~ '>' & right: Shift | 'x'\n")]
 	public void Both_implementations_read_the_supplied_declarations(string text)
 	{
 		Assert.True(GramGrammar.TryParseFile(text).IsSuccess, "generated");

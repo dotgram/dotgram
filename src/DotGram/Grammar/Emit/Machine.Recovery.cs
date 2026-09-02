@@ -46,40 +46,40 @@ sealed partial class Machine
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"goto {Label(loop)};");
+		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		atLoop.Line("var repeating = entries[repeat];");
 
 		if (max is { } limit)
-			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
+			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(atLoop, exit)};");
 
 		atLoop.Line($"if (repeating.Value >= {min})");
-		atLoop.Then($"entries.Add(new ParserEntry(ParserEntry.Choice, {attempt}, p, call, atomic, repeat, lookahead, 0));");
-		atLoop.Line($"if (repeating.Value >= {min}) goto {Label(exit)};");
-		atLoop.Line($"goto {Label(attempt)};");
+		atLoop.Then($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, attempt)}, p, call, atomic, repeat, lookahead, 0));");
+		atLoop.Line($"if (repeating.Value >= {min}) goto {Label(atLoop, exit)};");
+		atLoop.Line($"goto {Label(atLoop, attempt)};");
 
 		atAttempt.Line("reach = p;");
 		atAttempt.Line("owned = false;");
-		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {asked}, p, call, atomic, repeat, lookahead, 0));");
-		atAttempt.Line($"goto {Label(inner)};");
+		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atAttempt, asked)}, p, call, atomic, repeat, lookahead, 0));");
+		atAttempt.Line($"goto {Label(atAttempt, inner)};");
 
 		atAsked.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		atAsked.Line("if (!owned && reach <= p) { expected = null; goto Fail; }");
 		atAsked.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {asked}, p, call, reach, repeat, lookahead, 0));");
-		atAsked.Line($"goto {Label(scan)};");
+			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
+		atAsked.Line($"goto {Label(atAsked, scan)};");
 
-		atScan.Line($"if ((uint)p >= (uint)text.Length) goto {Label(recovered)};");
+		atScan.Line($"if ((uint)p >= (uint)text.Length) goto {Label(atScan, recovered)};");
 		atScan.Line("syncFrom = p;");
-		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {advance}, p, call, atomic, repeat, lookahead, 0));");
-		atScan.Line($"goto {Label(sync)};");
+		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
+		atScan.Line($"goto {Label(atScan, sync)};");
 
 		atSynced.Line($"if (p <= syncFrom) {{ expected = null; goto Fail; }}");
-		atSynced.Line($"goto {Label(recovered)};");
+		atSynced.Line($"goto {Label(atSynced, recovered)};");
 
 		atAdvance.Line("p++;");
-		atAdvance.Line($"goto {Label(scan)};");
+		atAdvance.Line($"goto {Label(atAdvance, scan)};");
 
 		atRecovered.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		atRecovered.Line("var recoveryFrom = p;");
@@ -90,13 +90,18 @@ sealed partial class Machine
 		using (atRecovered.Block(""))
 		{
 			atRecovered.Line("var candidate = entries[recoveryAt];");
-			atRecovered.Line($"if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == {asked})");
+			// Against the mark and not the number: what the entry holds is what `Resuming`
+			// wrote above, and that is the state under the number it is written with.
+			atRecovered.Line(
+				$"if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == {Mark(Lands, asked)})");
 			using (atRecovered.Block(""))
 			{
 				atRecovered.Line("recoveryFrom = candidate.Position;");
 				atRecovered.Line("recoveryReach = candidate.AtomicIndex;");
 			}
-			atRecovered.Line($"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && candidate.State == {advance})");
+			atRecovered.Line(
+				"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && " +
+				$"candidate.State == {Mark(Lands, advance)})");
 			using (atRecovered.Block(""))
 			{
 				atRecovered.Line("recoveryTo = candidate.Position;");
@@ -112,7 +117,7 @@ sealed partial class Machine
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +
 			"recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, " +
 			"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);");
-		atRecovered.Line($"goto {Label(loop)};");
+		atRecovered.Line($"goto {Label(atRecovered, loop)};");
 
 		DeactivateChoices(atAfter, "repeat");
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
@@ -120,7 +125,7 @@ sealed partial class Machine
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
 			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +
 			"acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);");
-		atAfter.Line($"goto {Label(loop)};");
+		atAfter.Line($"goto {Label(atAfter, loop)};");
 
 		LeaveRepeat(atExit, next);
 
@@ -192,14 +197,24 @@ sealed partial class Machine
 		}
 	}
 
-	static string RecoverySupplied(string name, RecoveryPlan plan) => name switch
+	/// <summary>
+	/// What a recovery hands its handler, said in characters however the machine reads.
+	/// </summary>
+	/// <remarks>
+	/// Everything here is about <em>the input the author wrote</em> and not about what the
+	/// parser is walking: a handler is given a message to show a person. So over kinds each
+	/// of the five is mapped back — the position of a token is the position of its first
+	/// character, and a line and a column are counted in the source rather than in the
+	/// kinds, where they would all be one.
+	/// </remarks>
+	string RecoverySupplied(string name, RecoveryPlan plan) => name switch
 	{
-		"parserText"     => "text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString()",
-		"parserPosition" => "recovered.Position",
+		"parserText"     => Cut("recovered.Position", "recovered.Value - recovered.Position"),
+		"parserPosition" => At("recovered.Position"),
 		"parserOrdinal"  => "recovered.RuleIndex",
-		"parserLine"     => "LineAt(text, recovered.Position)",
-		"parserColumn"   => "ColumnAt(text, recovered.Position)",
-		"parserSpan"     => "new SourceSpan(recovered.Position, recovered.Value - recovered.Position)",
+		"parserLine"     => $"LineAt({Source}, {At("recovered.Position")})",
+		"parserColumn"   => $"ColumnAt({Source}, {At("recovered.Position")})",
+		"parserSpan"     => Span("recovered.Position", "recovered.Value - recovered.Position"),
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
 		"parserInput"    => "parserInput",

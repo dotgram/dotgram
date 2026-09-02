@@ -60,6 +60,12 @@ public sealed partial class GrammarNormalizer
 
 	readonly ISymbolResolver _resolver;
 
+	/// <summary>
+	/// Asked which names a guard uses, where the fold weighs whether a committed residue
+	/// could be seen through a value a guard reads. Null answers conservatively.
+	/// </summary>
+	ICSharpScanner? _scanner;
+
 	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver)
 	{
 		_model    = model;
@@ -83,7 +89,10 @@ public sealed partial class GrammarNormalizer
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance);
+		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance)
+		{
+			_scanner = scanner,
+		};
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
@@ -121,6 +130,11 @@ public sealed partial class GrammarNormalizer
 		// of a lexeme — and after the sequence captures exist, so the implicit capture
 		// of a collection is inside the seam it gets here.
 		normalizer.SpaceLists();
+
+		// After the seams are all in, because this takes some of them back out: §4.5 weaves
+		// trivia into the rules that trivia is made of, which is a rule woven with itself
+		// and says nothing (GrammarNormalizer.Trivia.cs).
+		normalizer.UnweaveTrivia();
 
 		// Before the results are computed from the captures, so that they are computed
 		// from the hoisted shape: a capture repeated is recorded once, around the loop,

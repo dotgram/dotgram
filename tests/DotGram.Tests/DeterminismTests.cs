@@ -31,7 +31,7 @@ public sealed class DeterminismTests
 	{
 		var graph = Graph("Item = '(' & Item & ')' | ['a'..'z']\nStart = Item & ';'");
 
-		Assert.True(Determinism.Of(Body(graph, "Item"), Ends(';'), graph));
+		Assert.True(Determinism.Of(Body(graph, "Item"), Ends(';'), graph, null));
 	}
 
 	/// <summary>And one whose choice a character cannot settle is not.</summary>
@@ -40,18 +40,25 @@ public sealed class DeterminismTests
 	{
 		var graph = Graph("Item = 'a' & Item | 'a'\nStart = Item & ';'");
 
-		Assert.False(Determinism.Of(Body(graph, "Item"), Ends(';'), graph));
+		Assert.False(Determinism.Of(Body(graph, "Item"), Ends(';'), graph, null));
 	}
 
 	/// <summary>
 	/// How wide a first set is says nothing about whether it decides anything.
 	/// </summary>
 	/// <remarks>
-	/// The cap is a fact about what a rendering will spell out — a Unicode category is a few
-	/// hundred ranges, and a dispatch written over them is a page of comparisons where the
-	/// alternative's own test is one call. It used to sit inside the proof, so a choice that
-	/// one character plainly settles was called undecidable because writing the decision down
-	/// would have been long.
+	/// <para>
+	/// The proof is over the sets themselves, which are exact: a Unicode category is a few
+	/// hundred ranges and every one of them is known. What used to sit inside the proof was a
+	/// fact about the rendering — a dispatch written over a few hundred ranges is a page of
+	/// comparisons — so a choice that one character plainly settles was called undecidable
+	/// because writing the decision down would have been long.
+	/// </para>
+	/// <para>
+	/// It is not written down that way any more: a set too wide to read is held as its bounds
+	/// and searched, which is one call however wide it is. The rendering no longer declines,
+	/// so the proof no longer has to be asked how long its answer would be.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void A_category_beside_a_range_is_told_apart_however_long_the_answer_is()
@@ -64,13 +71,14 @@ public sealed class DeterminismTests
 		var body  = (Node.Choice)Body(graph, "Item");
 
 		Assert.True(Determinism.Distinguishable(body.Nodes, graph));
-
-		// And the caller that has to write it out still declines, which is the whole reason
-		// the two are separate questions.
-		Assert.False(Determinism.Distinguishable(body.Nodes, graph, 8));
 	}
 
-	static FirstSets.First Ends(char c) => FirstSets.First.Chars([new CharRange(c, c)]);
+	static FollowSets.Continuation Ends(char c)
+	{
+		var only = FirstSets.First.Chars([new CharRange(c, c)]);
+
+		return new FollowSets.Continuation(only, only);
+	}
 
 	static Node Body(RecognitionGraph graph, string rule) =>
 		graph.Bodies[graph.Rules.First(one => one.Name == rule)];

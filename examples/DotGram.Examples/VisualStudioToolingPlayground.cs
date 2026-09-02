@@ -42,8 +42,8 @@ namespace DotGram.Examples;
 
 	// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should
 	// include its occurrence inside this C# expression and its capture definition.
-	Power   : @decimal = left: Primary & '^' & right: Unary               => @(Raise(left, right))
-	                   | value: Primary                                   => @(value)
+	Power   : @decimal = left: Primary & ('^' & right: Unary)?
+	                   => @(right is { } exponent ? Raise(left, exponent) : left)
 
 	// F12 on ToolingEvaluate should open the generated C# publication method.
 	parse Sum as ToolingEvaluate

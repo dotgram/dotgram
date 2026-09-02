@@ -173,9 +173,26 @@ public enum Side
 	Sep     = '|'
 
 	parse Feed
-	""")]
+	""", PartSize = 1500)]
 public static partial class Settlements
 {
+	// The first grammar here that wants the size set, and it wants the coarse one. Most
+	// grammars gain from being divided small — `ExpressionLanguage` is two to five times
+	// faster for it — because their hot path is a fraction of a large machine and the
+	// division puts that fraction in a method the JIT can hold in registers. This one is
+	// the other shape: `Row` is a straight line of fifty fields and every record walks all
+	// of it, so the hot path *is* the machine and cutting it finely only adds boundaries
+	// to something that has to cross them anyway.
+	//
+	// Measured, interleaved in one process against a copy of this grammar differing only
+	// in this number: four parts against twenty-two is 1.05, 0.99, 0.99, 1.00 at twenty
+	// thousand records and 0.94, 0.98, 0.96, 0.96 at a hundred thousand — nothing to gain
+	// and about four per cent to lose. A line-by-line profile says why: of four parts a
+	// parse enters two, 3,015 times; of twenty-two it enters ten, 13,525 times.
+	//
+	// 1500 is what the generator did before whether-to-divide and how-large-a-part became
+	// two numbers, so this is that shape asked for by name.
+
 	static long     Big(string digits)   => long.Parse(digits, CultureInfo.InvariantCulture);
 	static int      Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 	static decimal  Amount(string money) => decimal.Parse(money, CultureInfo.InvariantCulture);

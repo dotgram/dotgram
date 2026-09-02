@@ -309,7 +309,7 @@ sealed partial class Machine
 			atOpen.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {site.Boundary}, p, " +
 				"call, atomic, repeat, lookahead, 0));");
-			atOpen.Line($"goto {Label(inlined)};");
+			atOpen.Line($"goto {Label(atOpen, inlined)};");
 
 			atClose.Line("var closed  = 0;");
 			atClose.Line("var openedAt = entries.Count - 1;");
@@ -343,17 +343,17 @@ sealed partial class Machine
 			atClose.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
 				"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
-			atClose.Line($"goto {Label(next)};");
+			atClose.Line($"goto {Label(atClose, next)};");
 		}
 		else
 		{
 			atOpen.Line($"capture{site.Boundary} = p;");
-			atOpen.Line($"goto {Label(inlined)};");
+			atOpen.Line($"goto {Label(atOpen, inlined)};");
 
 			atClose.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
 				$"capture{site.Boundary}, call, atomic, repeat, lookahead, p));");
-			atClose.Line($"goto {Label(next)};");
+			atClose.Line($"goto {Label(atClose, next)};");
 		}
 
 		return entered;

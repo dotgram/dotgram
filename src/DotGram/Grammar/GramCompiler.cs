@@ -79,21 +79,92 @@ public static class GramCompiler
 		// should still report what is wrong with the other twelve (implementation.md §0).
 		// Only emission is skipped, because code built from a broken grammar would bury
 		// the real message under compiler errors in the consumer's build.
+		// The grammar cut in two, where the host asked and the grammar allows it. Asked
+		// after the diagnostics because it is a question about a sound grammar, and answered
+		// with the character machine where it cannot be: that machine is correct and right
+		// there, so a refusal is worth a word rather than a failed build.
+		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				$"{options.ClassName}.gram.g.cs",
 				CSharpEmitter.Emit(
-					graph,
-					options.ClassName,
-					options.Namespace,
-					options.LineMap,
-					options.LanguageId,
-					options.LanguageSource,
-					options.LanguageClassifications,
+					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
+					diagnostics, options.PartSize, lexical, options.Direct,
+					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}
+
+	/// <summary>A grammar cut in two, or null with a word about why it was not.</summary>
+	/// <remarks>
+	/// <para>
+	/// Four things stop it and each is said in its own words. A grammar with no trivia is
+	/// already where it belongs — a URL is characters — and asking for a split there is a
+	/// misunderstanding rather than a fault. A terminal that is not a regular language cannot
+	/// be read together with the others. A <c>find</c> hunts through characters for a place
+	/// to begin, which is not a thing to do to a stream of tokens. And <c>trivia</c> not
+	/// written in braces is not a scanner, and the seam between tokens is skipped by one.
+	/// </para>
+	/// <para>
+	/// Information and not a warning: the parser that comes out is the one that would have
+	/// come out anyway, and nothing the author did is wrong.
+	/// </para>
+	/// </remarks>
+	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics)
+	{
+		void Say(string why) =>
+			diagnostics.Add(new GramDiagnostic(
+				NotCut,
+				"This grammar is compiled over characters rather than tokens: " + why + ". " +
+				"The parser is the one it would have been without the request.",
+				0,
+				0,
+				GramSeverity.Info));
+
+		if (graph.Publications.Any(one => one.Kind == PublishKind.Find))
+		{
+			Say("`find` hunts through characters for a place to begin, and a stream of tokens " +
+				"has no such places");
+
+			return null;
+		}
+
+		var split = LexicalSplit.Of(graph);
+
+		if (split is null)
+		{
+			var inventory = TerminalInventory.Of(graph);
+
+			Say(inventory.Applies
+				? "its terminals cannot all be read together — " +
+					string.Join("; ", inventory.Blocked.Take(3))
+				: "no rule carries trivia, so there is nothing to tell a token from a character");
+
+			return null;
+		}
+
+		if (split.Blocked.Count > 0)
+		{
+			Say(string.Join("; ", split.Blocked.Distinct().Take(3)));
+
+			return null;
+		}
+
+		if (!split.Trivia.Any(rule => graph.Bodies.TryGetValue(rule, out var body) && body is Node.Atomic))
+		{
+			Say("`trivia` is not written in braces, and the seam between tokens is skipped by " +
+				"the scanner braces ask for (§4.5)");
+
+			return null;
+		}
+
+		return split;
+	}
+
+	/// <summary>The grammar was sound and still could not be cut in two.</summary>
+	public const string NotCut = "GRAM5004";
 
 	/// <summary>
 	/// One error per position, in the order they were raised.

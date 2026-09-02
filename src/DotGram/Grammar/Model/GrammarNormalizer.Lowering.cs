@@ -106,6 +106,7 @@ public sealed partial class GrammarNormalizer
 				ns),
 
 		Expr.Sequence (var operands)              => LowerSequence(operands, ns),
+		Expr.Glued    (var operands)              => LowerGlued(operands, ns),
 		Expr.Choice   (var alternatives)          => LowerChoice(alternatives, ns),
 		Expr.Call     (var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
 		Expr.Reference(_, var name, _)            => LowerReference(expression, name),
@@ -1013,7 +1014,16 @@ public sealed partial class GrammarNormalizer
 			// without multiplying readings — `trivia & trivia` is one seam, and every
 			// spelling of it the search would otherwise walk is the same span split two
 			// ways.
-			if (nodes.Count > 0 && trivia is not null &&
+			//
+			// And not before a `when`. §4.5 separates operands, and a guard is not one:
+			// it reads nothing, so there is no token on its other side for a seam to
+			// separate. Weaving one anyway cost a trivia scan per guard and did
+			// something worse than cost — it made the extent of an alternative depend
+			// on whether its guard stood last, so a rule read more input when a guard
+			// passed than when its unguarded twin matched the same text. The guard
+			// evaluates where the operand before it ended, which is also what its
+			// `parserSpan` now says.
+			if (nodes.Count > 0 && trivia is not null && lowered is not Node.Guard &&
 				!IsSeam(nodes[^1], trivia) && !IsSeam(lowered, trivia))
 				nodes.Add(trivia);
 
@@ -1021,6 +1031,35 @@ public sealed partial class GrammarNormalizer
 		}
 
 		return Flatten(MergeLiterals(nodes));
+	}
+
+	/// <summary>
+	/// <c>a ~ b</c> — the operands in order with no seam between them, and a node that
+	/// says so where a seam would otherwise be invisible (§4.5).
+	/// </summary>
+	/// <remarks>
+	/// The whole of what <c>~</c> withholds is <see cref="LowerSequence"/>'s insertion.
+	/// Over characters that is enough by itself: with nothing woven between them the
+	/// operands are adjacent because there is nowhere for anything to stand. Over kinds
+	/// the scanner skipped the trivia before the tokens were made, so the two operands
+	/// are two tokens whether or not anything stood between them, and the gap has to be
+	/// asked about — which is what <see cref="Node.Glue"/> is, and why it is written here
+	/// rather than left to the split: the notation means one thing, and a grammar that is
+	/// lexically split reads the same language as one that is not.
+	/// </remarks>
+	Node LowerGlued(IReadOnlyList<Expr> operands, GrammarNamespace ns)
+	{
+		var nodes = new List<Node>();
+
+		foreach (var operand in operands)
+		{
+			if (nodes.Count > 0)
+				nodes.Add(Node.Glue.Instance);
+
+			nodes.Add(Lower(operand, ns));
+		}
+
+		return Flatten(nodes);
 	}
 
 	/// <summary>Whether a node is a bare application of the namespace's own trivia.</summary>

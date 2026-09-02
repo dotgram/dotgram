@@ -51,6 +51,7 @@ public enum TokenKind
 	Less,               // <
 	Greater,            // >
 	At,                 // @
+	Tilde,              // ~
 	PositiveLookahead,  // ?=
 	NegativeLookahead,  // ?!
 }
@@ -61,6 +62,7 @@ public static class TokenKindExtensions
 	public static string? Spelling(this TokenKind kind) => kind switch
 	{
 		TokenKind.Ampersand         => "&",
+		TokenKind.Tilde             => "~",
 		TokenKind.Bar               => "|",
 		TokenKind.OpenParen         => "(",
 		TokenKind.CloseParen        => ")",

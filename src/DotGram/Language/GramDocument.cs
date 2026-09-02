@@ -606,6 +606,9 @@ public static class GramLanguageService
 				case Expr.Sequence sequence:
 					foreach (var operand in sequence.Operands) Visit(operand);
 					break;
+				case Expr.Glued glued:
+					foreach (var operand in glued.Operands) Visit(operand);
+					break;
 				case Expr.Construct construct:
 					Visit(construct.Pattern);
 					Visit(construct.Value);
@@ -779,6 +782,9 @@ public static class GramLanguageService
 				case Expr.Sequence sequence:
 					foreach (var operand in sequence.Operands) Visit(operand);
 					break;
+				case Expr.Glued glued:
+					foreach (var operand in glued.Operands) Visit(operand);
+					break;
 				case Expr.Construct construct:
 					Visit(construct.Pattern);
 					Visit(construct.Value);
@@ -931,7 +937,7 @@ public static class GramLanguageService
 			TokenKind.OpenBrace or TokenKind.CloseBrace => GramSyntaxKind.Punctuation,
 			TokenKind.Comma or TokenKind.Semicolon => GramSyntaxKind.Punctuation,
 			TokenKind.At => GramSyntaxKind.Transition,
-			TokenKind.Ampersand or TokenKind.Bar => GramSyntaxKind.SpecialSymbol,
+			TokenKind.Ampersand or TokenKind.Tilde or TokenKind.Bar => GramSyntaxKind.SpecialSymbol,
 			TokenKind.Question or TokenKind.Star or TokenKind.Plus or TokenKind.Caret => GramSyntaxKind.SpecialSymbol,
 			TokenKind.DotDot or TokenKind.Less or TokenKind.Greater => GramSyntaxKind.SpecialSymbol,
 			TokenKind.PositiveLookahead or TokenKind.NegativeLookahead => GramSyntaxKind.SpecialSymbol,

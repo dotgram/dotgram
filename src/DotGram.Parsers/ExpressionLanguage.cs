@@ -165,10 +165,6 @@ namespace DotGram.Parsers;
 			|  "ushort"  | "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
-		// A type's name, dotted. Lexical for the same reason a suffix is: `System . Text`
-		// would be captured with the spaces in it, and nothing is named that.
-		TypeName = Word & ('.' & Word)*
-
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
 
 		Digit    = ['0'..'9']
@@ -178,7 +174,7 @@ namespace DotGram.Parsers;
 		// A separator stands between digits and is no part of the value, so every rule
 		// below hands back the digits with them taken out: `long.Parse` reads a number,
 		// not a number and an underscore.
-		DecRun = Digit    & ('_'* & Digit)*
+		DecRun = { Digit  & ('_'* & Digit)* }
 		HexRun = HexDigit & ('_'* & HexDigit)*
 		BinRun = BinDigit & ('_'* & BinDigit)*
 
@@ -298,8 +294,39 @@ namespace DotGram.Parsers;
 	// what the text said, and the arguments here are types the `=>` has not built yet. It
 	// needs no guard either — nothing else in this language is a name followed by `<`, a
 	// type, and `>`, so a reading that gets that far is a generic type or is nothing.
-	NamedType : @Type = name: TypeName & '<' & first: Type & (',' & rest: Type)* & '>' => @(ExpressionLanguage.Generic(name, ExpressionLanguage.Types(first, rest)))
-		      | name: TypeName & when @(ExpressionLanguage.Resolves(name))             => @(ExpressionLanguage.TypeNamed(name))
+	// The type arguments are an optional tail rather than a second alternative: written as
+	// two, the dotted name is read once for each, and it is the most expensive operand
+	// here. One reading is the same language because arguments begin with '<', which a
+	// dotted name cannot contain.
+	//
+	// The guard keeps the place it had, which is load-bearing: a generic form needs no
+	// name that resolves on its own — `List<int>` resolves and `List` does not — so it
+	// asks only where there are no arguments to say what the name is.
+	// The dotted name is read here rather than lexed, and that is a correction. As a lexeme
+	// it was one unit that had to hand its own tail back when the guard below said the whole
+	// of it named no type — `Math.PI` read as `Math.PI`, refused, then re-read as `Math` with
+	// `.PI` left for member access. That works only where a lexeme may be taken apart again,
+	// which is to say only over characters: a tokenizer decides where a token ends once, and
+	// `Math.PI` arriving whole is a member access that can never be read.
+	//
+	// Written as words with dots between them it is the same language and gives the same
+	// answer by the same means — the repetition hands a turn back where the lexeme handed a
+	// suffix back — and the parts are captured rather than the run, so `System . Text` names
+	// `System.Text` and the spaces the author put in are nowhere in the string.
+	// One word of a dotted name, given a type so that the parts arrive one at a time. A bare
+	// `part: Word` under a repetition captures the run between the first and the last, spaces
+	// and dots and all; a typed part is an array of words, and a name assembled from those
+	// has nothing in it the author did not name.
+	NamePart : @string = w: Word => @(w)
+
+	NamedType : @Type
+		= head: Word & ('.' & part: NamePart)*
+		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
+		  & when @(args != null || ExpressionLanguage.Resolves(ExpressionLanguage.Dotted(head, part)))
+		  => @(args is null
+		       ? ExpressionLanguage.TypeNamed(ExpressionLanguage.Dotted(head, part))
+		       : ExpressionLanguage.Generic(
+		           ExpressionLanguage.Dotted(head, part), ExpressionLanguage.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
@@ -494,13 +521,10 @@ namespace DotGram.Parsers;
 	// Three factories and three shapes, so the grammar says which by what is written and
 	// nothing here has to ask. The bodies are blocks and so are worth something, which
 	// `TryCatch` requires them to agree on — the API's rule, in the API's words.
-	Try : @Expression
-		= "try" & body: Block & handlers: Catch+ & "finally" & final: Block
-		  => @(Expression.TryCatchFinally(body, final, handlers))
-		| "try" & body: Block & handlers: Catch+
-		  => @(Expression.TryCatch(body, handlers))
-		| "try" & body: Block & "finally" & final: Block
-		  => @(Expression.TryFinally(body, final))
+	Try : @Expression =
+		  "try" & body: Block & handlers: Catch+ & "finally" & final: Block => @(Expression.TryCatchFinally(body, final, handlers))
+		| "try" & body: Block & handlers: Catch+                            => @(Expression.TryCatch(body, handlers))
+		| "try" & body: Block &                    "finally" & final: Block => @(Expression.TryFinally(body, final))
 
 	// The caught variable belongs to the handler and not to what is around it, so the
 	// `catch` records a scope of its own — the `(` it is declared in stands outside the
@@ -554,9 +578,13 @@ namespace DotGram.Parsers;
 	// What may be written to. An element is read one way and written another — `ArrayIndex`
 	// answers with a value and `ArrayAccess` with a place — and which is wanted is decided
 	// by where it stands, which is a thing the grammar knows and the API does not.
+	// The member is an optional tail rather than a second alternative: written as two, the
+	// name is read once for each and so is every alternative of `Assignment` that begins
+	// with this. One reading is the same language here because a member begins with '.',
+	// which a name cannot contain.
 	Target : @Expression
-		= n: Name & '.' & member: Word => @(ExpressionLanguage.Member(n, member))
-		| n: Name                      => @(n)
+		= n: Name & ('.' & member: Word)?
+		=> @(member is null ? n : ExpressionLanguage.Member(n, member))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -607,19 +635,26 @@ namespace DotGram.Parsers;
 	// `>` and `>>` are told apart the same way, and here the lookahead earns more: the
 	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
 	// the second `>` says otherwise.
+	//
+	// The shift below is written as two `>` glued rather than as one `">>"`, and that is
+	// what lets `List<List<int>>` close two argument lists with the same two characters
+	// C# closes them with. A literal `">>"` is a token, and a token cannot be half spent:
+	// the type argument list wants one `>` and would be handed a shift. Written this way
+	// there is no `>>` for the lexer to make, `~` says the two stand with nothing between
+	// them, and `a > > b` is refused exactly as C# refuses it.
 	Relational : @Expression
-		= left: Relational & "is" & type: Type => @(Expression.TypeIs(left, type))
-		| left: Relational & "as" & type: Type => @(Expression.TypeAs(left, type))
-		| left: Relational & "<=" & right: Shift        => @(Expression.LessThanOrEqual(left, right))
-		| left: Relational & ">=" & right: Shift        => @(Expression.GreaterThanOrEqual(left, right))
+		= left: Relational & "is" &        type : Type  => @(Expression.TypeIs(left, type))
+		| left: Relational & "as" &        type : Type  => @(Expression.TypeAs(left, type))
+		| left: Relational & "<=" &        right: Shift => @(Expression.LessThanOrEqual(left, right))
+		| left: Relational & ">=" &        right: Shift => @(Expression.GreaterThanOrEqual(left, right))
 		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
 		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
 		| s: Shift                                      => @(s)
 
 	Shift : @Expression
-		= left: Shift & "<<" & right: Additive => @(Expression.LeftShift(left, right))
-		| left: Shift & ">>" & right: Additive => @(Expression.RightShift(left, right))
-		| a: Additive                          => @(a)
+		= left: Shift & '<' ~ '<' & right: Additive => @(Expression.LeftShift(left, right))
+		| left: Shift & '>' ~ '>' & right: Additive => @(Expression.RightShift(left, right))
+		| a: Additive                               => @(a)
 
 	Additive : @Expression
 		= left: Additive & '+' & right: Multiplicative
@@ -688,7 +723,11 @@ namespace DotGram.Parsers;
 	Primary : @Expression
 		= "new" & type: Type & '[' & size: Expression & ']'
 		  => @(Expression.NewArrayBounds(type, size))
-		| "new" & type: Type & '[' & ']'
+		// `"[]"` and not `'[' & ']'`, which is the same thing said the other way and the way
+		// that cannot be read as tokens: a lexer takes the longest match, `Type` above names
+		// `"[]"` as one, and two marks written apart here are one token by the time this rule
+		// sees them. One spelling for one thing.
+		| "new" & type: Type & "[]"
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
 		  => @(Expression.NewArrayInit(type, ExpressionLanguage.Listed(first, rest)))
 		// An initializer is written after the constructor's own arguments, and which of the
@@ -704,10 +743,14 @@ namespace DotGram.Parsers;
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
 		// is a type where it names one, and an expression where it does not.
-		| type: NamedType & '.' & member: Word & args: Arguments
-		  => @(Expression.Call(type, member, null, args))
-		| type: NamedType & '.' & member: Word
-		  => @(ExpressionLanguage.StaticMember(type, member))
+		// The arguments are an optional tail rather than a second alternative: written as
+		// two, the type and the member are read once for each, and a dotted type name is
+		// not cheap to read. One reading is the same language because arguments begin with
+		// '(', which nothing at the end of a member name can be.
+		| type: NamedType & '.' & member: Word & args: Arguments?
+		  => @(args is null
+		       ? ExpressionLanguage.StaticMember(type, member)
+		       : Expression.Call(type, member, null, args))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary
@@ -746,6 +789,14 @@ namespace DotGram.Parsers;
 		// not, which is C#'s own rule. `int.TryParse` is what knows, asked while the text
 		// is read (§8.1) — so the two are two readings of the same digits, and not a
 		// helper this class would otherwise have to hold.
+		//
+		// A pair like this is what the fold's committed residue exists for. Both
+		// alternatives read the same digits, so past them the choice is about which
+		// factory runs and not about the text — and left uncommitted it once left a live
+		// way back at every literal, which made refusing exponential: 2^(literals)
+		// rereadings of everything after, 74/327/1299 us at two, four and six
+		// parentheses. `ExpressionBenchmarks` holds the refusals that would say if that
+		// ever comes back.
 		| token: Dec & when @(int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
 		                   => @(Expression.Constant(int.Parse(token, CultureInfo.InvariantCulture)))
 		| token: Dec       => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
@@ -767,7 +818,7 @@ namespace DotGram.Parsers;
 	Name : @Expression = ?!Keyword & name: Word => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
-	""")]
+	""", Lexical = true)]
 public static partial class ExpressionLanguage
 {
 	// ParseLambda and TryParseLambda are generated here.
@@ -842,6 +893,15 @@ public static partial class ExpressionLanguage
 	/// not, and the guard answering no is what sends the parse to the other reading.
 	/// </remarks>
 	public static bool Resolves(string name) => Lookup(name) is not null;
+
+	/// <summary>A dotted name from the words the grammar read, and nothing between them.</summary>
+	/// <remarks>
+	/// The parts and not the run: the words are captured one at a time, so whatever spacing
+	/// stood between them in the text is not in the name. `System . Text` is `System.Text`,
+	/// which is what it means and what the lookup below can answer about.
+	/// </remarks>
+	public static string Dotted(string head, string[]? tail) =>
+		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 
 	/// <summary>The type that name means.</summary>
 	/// <exception cref="FormatException">It means none.</exception>

@@ -39,6 +39,11 @@ target framework, next to the consumer's own code. That changes the rules.
   they do observe — the shape of an emitted type (a `record` and a class differ in equality
   and `ToString`), a signature, a diagnostic's text. Vary one of those by language version
   and the same grammar really does mean two different things.
+- **The consumer's build configuration changes nothing that runs.** Diagnostics and
+  the like may differ between Debug and Release; algorithms and behaviour may not.
+  A generated parser is one parser, and the one stepped through in a debugger has to
+  be the one that ships — an optimization that pays only under an optimizing compiler
+  is still emitted where there is none, and costs what it costs there.
 - **Fully qualify with `global::`** — the consumer's usings are unknown and their
   type names may collide with ours.
 - **Public API of a generated parser uses BCL types only** in the default mode:

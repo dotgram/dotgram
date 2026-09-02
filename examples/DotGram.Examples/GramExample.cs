@@ -159,8 +159,14 @@ namespace DotGram.Examples;
 	Binding        = ("<<" | ">>") & Int
 
 	Sequence : @GramExpr
-		= first: Operand & ('&' & rest: Operand)*
+		= first: Glued & ('&' & rest: Glued)*
 		=> @(GramGrammar.Sequence(first, rest))
+
+	// Tighter than `&`, so `a & b ~ c` is `a & (b ~ c)` — which is the whole of what
+	// makes it an operator of its own rather than a spelling of the seam (§4.5).
+	Glued : @GramExpr
+		= first: Operand & ('~' & rest: Operand)*
+		=> @(GramGrammar.Glued(first, rest))
 
 	Operand : @GramExpr = o: Guard => @(o) | o: Quantified => @(o)
 
@@ -218,6 +224,13 @@ namespace DotGram.Examples;
 	// references are most of what a grammar is made of. The hand-written parser makes the
 	// same move under the name `ParseReferenceOrCall`; §11's ordered choice is not
 	// obliged to be spelled with the prefix shared.
+	//
+	// It no longer has to be written this way. Spelled out as `Call | Reference`, with
+	// braces on `Name` and `Reference` saying they are read once (§4.5), the compiler
+	// shares the operand itself and reads the name once. Measured against this: the same
+	// time on every file of the corpus, and 3.6% more generated code, the atomic groups
+	// carrying machinery this shape does not otherwise need. So it stays written by hand
+	// here — the choice is now which of two readable spellings, not whether to know a trick.
 	RefOrCall : @GramExpr
 		= target: Reference & (open: '(' & (first: Argument & (',' & rest: Argument)*)? & ')')?
 		=> @(open is null ? target : GramGrammar.Call(target, first, rest))
@@ -261,6 +274,9 @@ public partial class GramGrammar
 
 	public sealed record GramSequence(GramExpr[] Operands) : GramExpr;
 
+	/// <summary>Operands with no trivia between them — <c>a ~ b</c> (§4.5).</summary>
+	public sealed record GramGlued(GramExpr[] Operands) : GramExpr;
+
 	/// <summary>A quantifier, a <c>recover</c> or a <c>with</c> wrapped around an operand.</summary>
 	public sealed record GramQuantified(GramExpr Body, string? Quantifier, GramExpr? Recovery, bool Rebound) : GramExpr;
 
@@ -303,6 +319,9 @@ public partial class GramGrammar
 
 	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
 		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
+
+	public static GramExpr Glued(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramGlued(Joined(first, rest));
 
 	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
 		quantifier is null && recovery is null

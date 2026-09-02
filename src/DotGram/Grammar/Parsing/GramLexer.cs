@@ -211,6 +211,7 @@ public static class GramLexer
 		kind = text[position] switch
 		{
 			'&' => TokenKind.Ampersand,
+			'~' => TokenKind.Tilde,
 			'|' => TokenKind.Bar,
 			'(' => TokenKind.OpenParen,
 			')' => TokenKind.CloseParen,

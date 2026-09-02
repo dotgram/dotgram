@@ -1037,6 +1037,56 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
 	}
 
+	/// <summary>An operand one call down is a shared operand too.</summary>
+	/// <remarks>
+	/// The shape the whole of left-factoring was for, and the one nothing about the choice
+	/// says out loud: `Primary` offers `Call` and `Reference`, and it is `Call`'s own first
+	/// operand that makes every bare reference read twice — once inside the `Call` that then
+	/// fails for want of a bracket, once as itself. An alternative that does nothing with a
+	/// call but hand its value on is replaced by the body it would have called, and then the
+	/// prefix is where the fold can see it.
+	/// </remarks>
+	[Fact]
+	public void A_prefix_one_call_down_is_read_once_too()
+	{
+		var type = Read("NestedPrefix");
+
+		// No brackets, so the longer alternative fails and the shorter one is the answer.
+		Assert.Equal("ab", type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["ab"]));
+
+		// Once. `Word` used to be read inside the `Call` that then fails for want of a
+		// bracket, and then again as itself.
+		Assert.Equal(1, type.GetField("Reads")!.GetValue(null));
+	}
+
+	/// <summary>And the longer alternative still wins where it fits.</summary>
+	[Fact]
+	public void And_the_longer_reading_is_still_preferred()
+	{
+		var type = Read("NestedPrefixTaken");
+
+		Assert.Equal("ab()", type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["ab()"]));
+		Assert.Equal(1, type.GetField("Reads")!.GetValue(null));
+	}
+
+	/// <summary>
+	/// The grammar both of those read, with a guard counting what the parse actually does.
+	/// </summary>
+	/// <remarks>
+	/// A <c>=&gt;</c> would count nothing: construction is deferred to acceptance, so a
+	/// factory runs once however many readings were tried and thrown away. A <c>when</c>
+	/// runs while the text is read, which is the work being saved.
+	/// </remarks>
+	static Type Read(string name) =>
+		Build($$"""
+			[DotGram.Gram("Word : @string = t: ['a'..'z']+ & when @({{name}}.Seen()) => @(t)\nCall : @string = target: Word & '(' & ')' => @(target + \"()\")\nPrimary : @string = c: Call => @(c) | r: Word => @(r)\nStart : @string = p: Primary => @(p)\nparse Start")]
+			public partial class {{name}}
+			{
+				public static int Reads;
+				public static bool Seen() { Reads++; return true; }
+			}
+			""").GetType(name)!;
+
 	/// <summary>And the same grammar with the operand shared reads it once.</summary>
 	/// <remarks>
 	/// The same two alternatives, naming the operand the same thing. `Number` has one

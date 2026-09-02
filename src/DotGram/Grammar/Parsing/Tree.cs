@@ -96,6 +96,9 @@ public abstract record Expr : ILocated
 
 	public sealed record Choice    (IReadOnlyList<Expr> Alternatives)          : Expr;
 	public sealed record Sequence  (IReadOnlyList<Expr> Operands)              : Expr;
+
+	/// <summary><c>a ~ b</c> — a sequence with no trivia between its operands (§4.5).</summary>
+	public sealed record Glued     (IReadOnlyList<Expr> Operands)              : Expr;
 	public sealed record Construct (Expr Pattern, Expr Value)                  : Expr;
 
 	/// <summary>An alternative that states its own binding power (§4.3.1).</summary>
@@ -272,6 +275,7 @@ static class Dump
 	{
 		Expr.Choice(var alternatives)       => alternatives,
 		Expr.Sequence(var operands)         => operands,
+		Expr.Glued(var operands)            => operands,
 		Expr.Construct(var pattern, var value) => [pattern, value],
 		Expr.Guard(var value)               => [value],
 		Expr.Capture(_, var operand)        => [operand],
@@ -306,6 +310,7 @@ static class Dump
 		Expr.Bound(_, var isLeft, var level)      => (isLeft ? "Left " : "Right ") + level,
 		Expr.Recovering                           => "Recovering",
 		Expr.Sequence                             => "Sequence",
+		Expr.Glued                                => "Glued",
 		Expr.Guard                                => "Guard",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
 		Expr.Group                                => "Group",

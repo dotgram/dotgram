@@ -26,7 +26,7 @@ public sealed class CSharpEmitterTests
 	{
 		var result = GramCompiler.Compile(
 			grammar,
-			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = false });
 
 		// Anything but information. A grammar is allowed to be told what it did not get and
 		// still be a grammar the emitter should be asked about — that is what `Info` is
@@ -1197,17 +1197,70 @@ public sealed class CSharpEmitterTests
 
 	// ── Case-insensitive literals ─────────────────────────────────────────────────
 
+	/// <summary>
+	/// A case-insensitive literal of ASCII is one comparison, like a case-sensitive one,
+	/// and works out which character differed only where it has already failed.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// It used to be a comparison per character with a failure block beside each, on the
+	/// stated grounds that folding "is not the comparison any span method makes". It is:
+	/// <c>MemoryExtensions.Equals</c> with <c>OrdinalIgnoreCase</c>, on the netstandard2.0
+	/// floor through System.Memory, which the emitted code already needs for the span.
+	/// </para>
+	/// <para>
+	/// Measured before it was believed, because a span method that is not folded into
+	/// register compares the way <c>SequenceEqual</c> is could have cost more than the
+	/// chain it replaces. Nanoseconds a call on a seven-character word:
+	/// </para>
+	/// <code>
+	///                          chain   folded   exact
+	///   a hit                   4.02     2.10    1.90
+	///   a miss, first char      2.04     2.10    1.90
+	///   a miss, last char       4.03     2.10    1.91
+	/// </code>
+	/// <para>
+	/// Twice as fast on a hit and on a late miss, and within 3% of the chain on an early
+	/// miss — which is the case a keyword list is mostly made of, fifty-nine of sixty
+	/// words failing at their first character. And within 0.2 ns of the exact compare, so
+	/// the folding costs nothing worth naming.
+	/// </para>
+	/// </remarks>
 	[Fact]
 	public void A_case_insensitive_literal_compares_folded()
 	{
-		// ToUpperInvariant on both sides, so one comparison shape covers every character
-		// — the constant side is folded once, at generation time.
 		var source = Emit("""Start = "http"i""");
 
 		Assert.Matches(
 			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""\\""http\\""i"" \};", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p + 3]) != 'P'", source);
+
+		Assert.Contains(
+			"global::System.MemoryExtensions.Equals(text.Slice(p, 4), " +
+			"global::System.MemoryExtensions.AsSpan(\"http\"), " +
+			"global::System.StringComparison.OrdinalIgnoreCase)",
+			source, StringComparison.Ordinal);
+
+		// And the per-character work is on the failing branch, folded there too.
+		Assert.Contains(
+			"global::System.Char.ToUpperInvariant(text[p]) == 'H'", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Beyond ASCII it keeps the chain, because that is where the two foldings part.
+	/// </summary>
+	/// <remarks>
+	/// Ordinal case folding and per-character <c>ToUpperInvariant</c> agree on ASCII and
+	/// not everywhere: a surrogate pair has no per-<c>char</c> answer at all. A literal in
+	/// somebody's own alphabet keeps the comparison it always had rather than quietly
+	/// changing what it accepts.
+	/// </remarks>
+	[Fact]
+	public void A_case_insensitive_literal_beyond_ascii_keeps_the_chain()
+	{
+		var source = Emit("""Start = "привет"i""");
+
+		Assert.DoesNotContain("OrdinalIgnoreCase", source, StringComparison.Ordinal);
+		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) !=", source, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -1222,7 +1275,9 @@ public sealed class CSharpEmitterTests
 			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
 			source);
 		Assert.Contains("AsSpan(\"http\")", source);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) != 'H'", source);
+
+		// The case-folded site is its own, and it is one comparison rather than four.
+		Assert.Contains("OrdinalIgnoreCase", source, StringComparison.Ordinal);
 	}
 
 	// ── A rule that scans ──────────────────────────────────────────────────
@@ -1720,4 +1775,203 @@ public sealed class CSharpEmitterTests
 		Assert.Matches(@"else if \(text\[p \+ 2\] != 'c'\)\s*p \+= 2;", source);
 		Assert.Matches(@"else\s*p \+= 3;", source);
 	}
+
+	/// <summary>
+	/// Two published rules that can each reach the other share one machine, entered at two
+	/// states, rather than each getting a machine that compiles the same grammar.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same rule published twice has always shared one. This is the other case, and it
+	/// arrived with the expression layer of standard SQL: `<search condition>` reaches
+	/// `<value expression>` through its predicates and `<value expression>` reaches back
+	/// through `CASE`, so publishing both — which a SQL parser wants, since a caller has
+	/// either a condition or an expression in hand — wrote the whole grammar twice. 119,722
+	/// lines against 60,317.
+	/// </para>
+	/// <para>
+	/// Mutual reachability is the condition and not one-way: a machine is compiled over what
+	/// its root reaches, and only where each reaches the other are those two sets the same.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Two_publications_that_reach_each_other_share_one_machine()
+	{
+		var source = Emit("""
+			Condition = Value & '=' & Value | '(' & Condition & ')'
+			Value     = ['0'..'9']+ | "if" & Condition
+			parse Condition
+			parse Value
+			""");
+
+		// One machine is one untagged recognizer; two would be tagged with their rules.
+		Assert.Contains("int Recognize_DotGram(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Recognize_DotGram_Condition(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Recognize_DotGram_Value(", source, StringComparison.Ordinal);
+
+		// And both are still entry points of their own.
+		Assert.Contains("ParseCondition", source, StringComparison.Ordinal);
+		Assert.Contains("ParseValue", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And two that cannot still get a machine each.</summary>
+	/// <remarks>
+	/// `Left` reaches nothing of `Right` and neither reaches the other, so one machine over
+	/// either would compile a grammar the other's entry state is not in. The tagged pair is
+	/// what that has always produced and what it must go on producing.
+	/// </remarks>
+	[Fact]
+	public void Two_publications_that_do_not_reach_each_other_get_one_each()
+	{
+		var source = Emit("""
+			Left  = 'a'+
+			Right = 'b'+
+			parse Left
+			parse Right
+			""");
+
+		Assert.Contains("Recognize_DotGram_Left", source, StringComparison.Ordinal);
+		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>A list of keywords is entered through a switch on the first character.</summary>
+	/// <remarks>
+	/// The alternatives do not have to be told apart by one character — <c>and</c> and
+	/// <c>all</c> are not — only the groups do, and a keyword list is a partition by first
+	/// letter whether or not any two words share one.
+	/// </remarks>
+	[Fact]
+	public void A_keyword_list_is_entered_through_a_switch()
+	{
+		var source = Emit("""Start = "and" | "all" | "between" | "case" | "cast" | "default"    """);
+
+		Assert.Contains("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("case 'a':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'b':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'c':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'd':", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A case-insensitive one switches on both cases, and on whatever else folds to them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// U+017F LATIN SMALL LETTER LONG S is the one that surprises: ordinal case folding puts
+	/// it with <c>S</c>, so it is in the first set and has to be in the switch. Missing it
+	/// would refuse a word the comparison beneath would have accepted.
+	/// </para>
+	/// <para>
+	/// The recursion is there to get the engine rendering. A choice of case-insensitive
+	/// literals with nothing around it is one the checkpoint class takes first — a way back
+	/// three locals hold, cheaper than anything dispatch could put in its place — and that
+	/// class is admitted only where failure routes through <c>Fail:</c>, which the lowered
+	/// rendering has and the engine does not.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_case_insensitive_keyword_list_switches_on_every_folding()
+	{
+		var source = Emit("""
+			Word  = "select"i | "some"i | "and"i | "between"i | "case"i
+			Start = Word | '(' & Start & ')'
+			parse Start
+			""");
+
+		Assert.Contains("case 'S': case 's': case '\\u017F':", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// And inside a group nothing tests the character the switch already tested.
+	/// </summary>
+	/// <remarks>
+	/// The saving is both halves of what the chain used to ask per alternative: that there
+	/// is a character at all, and that it is this alternative's. Neither survives, because
+	/// the switch made both and is the only way in.
+	/// </remarks>
+	[Fact]
+	public void A_dispatched_group_tests_its_first_character_no_further()
+	{
+		var source = Emit("""
+			Word  = "select"i | "some"i | "and"i | "between"i | "case"i
+			Start = Word | '(' & Start & ')'
+			parse Start
+			""");
+
+		// Followed from the switch's own `S` arm to the state it names, because the states
+		// are laid out by number and the other groups sit in between.
+		var arm   = source.IndexOf("case 'S': case 's':", StringComparison.Ordinal);
+		var jump  = source.IndexOf("goto ", arm, StringComparison.Ordinal) + "goto ".Length;
+		var label = source[jump..source.IndexOf(';', jump)];
+		var head  = source.IndexOf(label + ":", StringComparison.Ordinal);
+
+		Assert.True(arm >= 0 && head > 0);
+
+		// From there to the word itself nothing asks again. The literal's own length check
+		// stays — that is about what follows the first character, which nothing has proven.
+		var group = source[head..source.IndexOf("AsSpan(", head, StringComparison.Ordinal)];
+
+		Assert.DoesNotContain("(uint)p", group, StringComparison.Ordinal);
+		Assert.DoesNotContain("ToUpperInvariant", group, StringComparison.Ordinal);
+	}
+
+	/// <summary>Too few groups and the chain stands: it is already about that short.</summary>
+	/// <remarks>
+	/// A chain does not test the alternatives one by one but the groups one by one, since a
+	/// failed character test jumps past everything that begins the same way. Three groups
+	/// are three tests, and a switch is not obviously fewer instructions than that.
+	/// </remarks>
+	[Fact]
+	public void Three_groups_are_not_worth_a_switch()
+	{
+		var source = Emit("""Start = "and" | "all" | "between" | "case" | "cast"    """);
+
+		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Sets that overlap without being equal are not dispatched at all.
+	/// </summary>
+	/// <remarks>
+	/// A character in two groups would have to pick one, and either pick skips an
+	/// alternative that could have matched. Nothing here tries to be clever about it: the
+	/// chain is compiled, which is what always happened.
+	/// </remarks>
+	[Fact]
+	public void Overlapping_groups_keep_the_chain()
+	{
+		var source = Emit("""
+			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
+			""");
+
+		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Written order is kept inside a group, which is the whole of what has to be preserved.
+	/// </summary>
+	/// <remarks>
+	/// Between groups order cannot matter — one character decides which group, and no
+	/// alternative outside it could have matched. Inside one it matters as much as it ever
+	/// did: <c>in</c> written before <c>int</c> takes the input <c>int</c> as <c>in</c> and
+	/// leaves <c>t</c>, and the way back to <c>int</c> has to still be there for the <c>&amp;
+	/// end</c> to find.
+	/// </remarks>
+	[Theory]
+	[InlineData("in",  true)]
+	[InlineData("int", true)]
+	[InlineData("is",  true)]
+	[InlineData("on",  true)]
+	[InlineData("or",  true)]
+	[InlineData("to",  true)]
+	[InlineData("i",   false)]
+	[InlineData("ins", false)]
+	public void A_dispatched_choice_keeps_the_order_inside_a_group(string input, bool matches)
+	{
+		// A publication reads the whole input, so nothing has to be written to say so.
+		var (matched, _) = Run("""Start = "in" | "int" | "is" | "on" | "or" | "to" | "up" """, input);
+
+		Assert.Equal(matches, matched);
+	}
+
 }

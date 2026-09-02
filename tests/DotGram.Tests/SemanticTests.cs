@@ -23,7 +23,28 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class SemanticTests
 {
-	/// <summary>Compiles, compiles the result, and runs it. Fails if the grammar does not compile.</summary>
+	/// <summary>
+	/// A name whose type arguments and whose invocation are both optional reads every way it
+	/// can begin, and the compiler survives compiling it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The shape a grammar of a programming language always has, and the one that has broken
+	/// the most: `Call` begins with a `Reference` and stands beside a bare `Reference`, and a
+	/// `Reference` ends with an optional `&lt;…&gt;` whose first character also begins other
+	/// things. `Type` reaches back to `Reference`, so the whole of it is a cycle with two
+	/// optionals in it — which is where the analyses that decide what may be folded, lowered
+	/// or read without a way back all have to agree.
+	/// </para>
+	/// <para>
+	/// The inputs are the readings that separate them. `x` takes neither optional; `x&lt;y&gt;`
+	/// takes the type arguments; `x&lt;` and `x&lt;&lt;` and `x&lt;&lt;1` offer a `&lt;` that
+	/// is not the start of any; `x()` takes the invocation and not the arguments; `x&lt;y&gt;()`
+	/// takes both. It asserts only that nothing throws — the grammar compiles and the parse
+	/// runs — because what it is guarding against is a compiler defect rather than a wrong
+	/// answer, and every one it has caught has been one.
+	/// </para>
+	/// </remarks>
 	[Theory]
 	[InlineData("x")]
 	[InlineData("x<y>")]
@@ -32,7 +53,7 @@ public sealed class SemanticTests
 	[InlineData("x<<1")]
 	[InlineData("x()")]
 	[InlineData("x<y>()")]
-	public void TEMPORARY_probe(string input)
+	public void A_name_with_optional_arguments_reads_every_way_it_can(string input)
 	{
 		var grammar =
 			"trivia = none" + '\n' +
@@ -143,6 +164,67 @@ public sealed class SemanticTests
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (trivia & A)*" + '\n' +
 			"A = ['a'..'z']", input));
+
+	// ── §4.5: `~`, where trivia may not go ──────────────────────────────────
+
+	/// <summary>
+	/// The angle brackets, which is what <c>~</c> was written for.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A shift is two <c>&gt;</c> with nothing between them and a nested type argument
+	/// list closes with two that are each their own; a language with both cannot spell
+	/// the shift <c>"&gt;&gt;"</c>, because a token cannot be half spent. Written as
+	/// <c>'&gt;' ~ '&gt;'</c> there is no <c>&gt;&gt;</c> to make, and what tells the two
+	/// apart is the gap: C++ needed a space here until C++11 and C# never did.
+	/// </para>
+	/// <para>
+	/// Asked of both halves, because <c>~</c> means one thing and a grammar must read the
+	/// same language whether or not it is lexically split. Over characters it is the seam
+	/// the normalizer withheld; over kinds the trivia was skipped before the tokens were
+	/// made, so the same statement is a question about where each token began.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(true,  "a >> b",              true)]
+	[InlineData(true,  "a>>b",                true)]
+	[InlineData(true,  "a > > b",             false)]
+	[InlineData(true,  "list<list<int>>",     true)]
+	[InlineData(true,  "list<list<int> >",    true)]
+	[InlineData(false, "a >> b",              true)]
+	[InlineData(false, "a>>b",                true)]
+	[InlineData(false, "a > > b",             false)]
+	[InlineData(false, "list<list<int>>",     true)]
+	[InlineData(false, "list<list<int> >",    true)]
+	public void Glue_tells_a_shift_from_two_closing_brackets(bool lexical, string input, bool expected)
+	{
+		var angles =
+			"trivia = { ' '* }" + '\n' +
+			"namespace Lexical" + '\n' +
+			"{" + '\n' +
+			"\ttrivia = none" + '\n' +
+			"\tName = ['a'..'z']+" + '\n' +
+			"}" + '\n' +
+			"Type = Lexical.Name & ('<' & Type & (',' & Type)* & '>')?" + '\n' +
+			"Expr = Expr & '>' ~ '>' & Prim | Prim" + '\n' +
+			"Prim = Lexical.Name" + '\n' +
+			"Start = Type & eof | Expr & eof" + '\n' +
+			"parse Start";
+
+		var result = GramCompiler.Compile(
+			angles,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+
+		var match = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+		Assert.Equal(expected, match.IsSuccess);
+	}
 
 	// ── A settled repetition keeps one way back ─────────────────────────────
 
@@ -270,11 +352,15 @@ public sealed class SemanticTests
 
 	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
 
-	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(string grammar, string input)
+	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(
+		string grammar, string input, string? expected = null)
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(result.Diagnostics);
+		Assert.Empty(
+			expected is null
+				? result.Diagnostics
+				: result.Diagnostics.Where(one => one.Id != expected).ToArray());
 
 		return EmittedCode.Match(
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
@@ -298,7 +384,7 @@ public sealed class SemanticTests
 		"Row     = \"R\" & '|' & name: Text & eol\n" +
 		"Text    = [^ '|']+\n" +
 		"Feed    = header: Header & rows: Row* & eof\n" +
-		"Header  = \"H\" ~ '|' & date: Digit{4} & eol\n" +
+		"Header  = \"H\" % '|' & date: Digit{4} & eol\n" +
 		"Digit   = ['0'..'9']\n" +
 		"parse Feed";
 
@@ -554,11 +640,13 @@ public sealed class SemanticTests
 			""");
 
 	[Fact]
-	public void And_a_shared_beginning_that_leads_nowhere_back_is_not() =>
+	public void And_a_shared_beginning_that_leads_nowhere_back_is_said_too() =>
 		// Splitting the last segment off a path: two alternatives are the only way to say
-		// it, the operand gives back so the tail fits, and nothing here reads anything
-		// twice per level because nothing nests. Reporting this would be noise.
-		Accepted(
+		// it, and the operand gives back so the tail fits. This used to go unreported on
+		// the grounds that nothing nests here and so nothing doubles per level — until a
+		// profile of `ExpressionLanguage` found a flat eleven readings of one operand
+		// costing most of a parse. Flat is still worth saying.
+		Reported(
 			"""
 			Name     = ['a'..'z']+
 			Segments = Name & ('/' & Name)*
@@ -576,6 +664,14 @@ public sealed class SemanticTests
 		var diagnostics = Compile(grammar).Diagnostics;
 
 		Assert.DoesNotContain(
+			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
+	}
+
+	static void Reported(string grammar)
+	{
+		var diagnostics = Compile(grammar).Diagnostics;
+
+		Assert.Contains(
 			diagnostics, diagnostic => diagnostic.Id == GrammarNormalizer.SharedPrefix);
 	}
 
@@ -1332,6 +1428,82 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A turn that carries a seam of its own is spaced from the next one (§4.5).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The seam inside a turn and the seam between turns are the same question. `Item` is
+	/// two operands with a space allowed between them, so a space between one `Item` and the
+	/// next is the same permission; refusing it read the first turn and stopped.
+	/// </para>
+	/// <para>
+	/// It is written as a rule rather than inline because that is where it hid: the spacing
+	/// of a repetition whose body is a sequence has always been done, and a call is not a
+	/// sequence to look at. `SqlStandard92` refused `CASE WHEN a &gt; 1 THEN 'big' WHEN a
+	/// &gt; 0 THEN 'small' END` for exactly this, on both of its `WHEN` forms.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("case when a end",              true)]
+	[InlineData("case when a when b end",       true)]
+	[InlineData("case when a when b when c end", true)]
+	[InlineData("casewhenaend",                 true)]   // the seams are all optional
+	[InlineData("case when end",                false)]  // a turn still needs its operand
+	public void A_turn_that_holds_a_seam_is_spaced_from_the_next(string input, bool expected)
+	{
+		Assert.Equal(expected, Matches(
+			"trivia = ' '*\n" +
+			"Item  = \"when\" & ['a'..'z']\n" +
+			"Start = \"case\" & Item+ & \"end\"",
+			input));
+	}
+
+	/// <summary>And the same with a word boundary, which is how it was found.</summary>
+	/// <remarks>
+	/// §4.6 weaves `?&lt;!wordboundary` in front of a word literal, and without the seam
+	/// that check ran on the character before the *space* — the last letter of the previous
+	/// turn — so the second turn was refused before its literal was ever compared. The
+	/// boundary still does its own work here: `casewhen` is one word and not two.
+	/// </remarks>
+	[Theory]
+	[InlineData("case when a when b end", true)]
+	[InlineData("casewhen a end",         false)]
+	[InlineData("case when aend",         false)]
+	public void A_word_boundary_does_not_stop_the_second_turn(string input, bool expected)
+	{
+		Assert.Equal(expected, Matches(
+			"wordboundary = ['a'..'z' | '0'..'9' | '_']\n" +
+			"trivia = ' '*\n" +
+			"Item  = \"when\" & ['a'..'z']\n" +
+			"Start = \"case\" & Item+ & \"end\"",
+			input));
+	}
+
+	/// <summary>
+	/// A turn with no seam of its own is still not spaced, which is what keeps a lexeme one.
+	/// </summary>
+	/// <remarks>
+	/// The seam is looked for in the callee's own body and against the callee's own trivia.
+	/// `Word` is declared where trivia is empty, so there is none to find and none to insert
+	/// — `ab cd` stays two words and never becomes one.
+	/// </remarks>
+	[Fact]
+	public void A_turn_with_no_seam_of_its_own_is_left_alone()
+	{
+		// A sequence this time, not `['a'..'z']+`: the body being a sequence is exactly what
+		// would have made the caller space it, and the empty trivia is what stops it.
+		Assert.False(Matches(
+			"trivia = ' '*\n" +
+			"namespace Lexical\n" +
+			"{\n" +
+			"\ttrivia = none\n" +
+			"\tWord = ['a'..'z'] & ['a'..'z']*\n" +
+			"}\n" +
+			"Start = Lexical.Word*",
+			"ab cd"));
+	}
+
+	/// <summary>
 	/// A repetition of a valued rule is a collection, and a grammar that separates its
 	/// operands separates its collections the same way (§4.5). Valuedness is the line:
 	/// `Word*` above stays a lexeme-shaped run because `Word` builds nothing, while
@@ -2066,7 +2238,11 @@ public sealed class SemanticTests
 					= a: Chunk & "xy" => @("first:" + a)
 					| a: Chunk & "y"  => @("second:" + a)
 				""",
-				"xxy"));
+				"xxy",
+				// And says that it declined, which it did not use to: the operand does not
+				// lead back to the rule, and reporting only where the cost compounds is the
+				// scope this widened out of.
+				GrammarNormalizer.SharedPrefix));
 
 	/// <summary>And one that cannot is, with nothing to show for it but the reading saved.</summary>
 	/// <remarks>
@@ -2088,9 +2264,9 @@ public sealed class SemanticTests
 				""",
 				"abce"));
 
-	static object? Built(string grammar, string input)
+	static object? Built(string grammar, string input, string? expected = null)
 	{
-		var (isSuccess, value, _, _) = Parsed(grammar, input);
+		var (isSuccess, value, _, _) = Parsed(grammar, input, expected);
 
 		Assert.True(isSuccess, input);
 

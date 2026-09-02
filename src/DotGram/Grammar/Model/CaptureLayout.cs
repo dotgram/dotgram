@@ -178,7 +178,11 @@ public sealed class CaptureLayout
 				foreach (var child in nodes)
 					Walk(child, buildsValue, repeated, inFold);
 
-				if (nodes.Count > 1 && nodes[^1] is Node.Choice(var behind))
+				// The residue may be committed — wrapped in an atomic group where coming
+				// back to it could never change the parse — and is the same residue.
+				var residue = nodes[^1] is Node.Atomic(var committed) ? committed : nodes[^1];
+
+				if (nodes.Count > 1 && residue is Node.Choice(var behind))
 				{
 					var head = nodes.Count == 2 ? nodes[0] : new Node.Sequence([.. nodes.Take(nodes.Count - 1)]);
 
@@ -368,9 +372,15 @@ public sealed record Fold(Node Loop, IReadOnlyDictionary<Node, string> Accumulat
 	/// </remarks>
 	static IReadOnlyList<Node>? Shared(Node alternative)
 	{
-		if (alternative is not Node.Sequence(var parts) ||
-			parts.Count == 0 ||
-			parts[^1] is not Node.Choice(var behind))
+		if (alternative is not Node.Sequence(var parts) || parts.Count == 0)
+			return null;
+
+		// A committed residue — wrapped in an atomic group where coming back to it could
+		// never change the parse — offers the same alternatives. As unwritable by hand as
+		// the bare shape: a construction inside braces is refused before anything folds.
+		var last = parts[^1] is Node.Atomic(var committed) ? committed : parts[^1];
+
+		if (last is not Node.Choice(var behind))
 			return null;
 
 		foreach (var one in behind)

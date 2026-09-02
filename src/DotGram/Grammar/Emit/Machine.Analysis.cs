@@ -46,21 +46,6 @@ sealed partial class Machine
 			first;
 	}
 
-	int WeightOfAll(IReadOnlyList<Node> nodes, int budget)
-	{
-		var total = 0;
-
-		foreach (var node in nodes)
-		{
-			total += Weight(node, budget - total);
-
-			if (total > budget)
-				break;
-		}
-
-		return total;
-	}
-
 	/// <summary>
 	/// Whether a node writes nothing into the arena, so that its failure is nobody's business
 	/// but its own.
@@ -87,7 +72,7 @@ sealed partial class Machine
 	/// an optional two rules away from the climb was found renting a parser.
 	/// </para>
 	/// </remarks>
-	bool Silent(Node node, FirstSets.First following) =>
+	bool Silent(Node node, FollowSets.Continuation following) =>
 		!(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{
@@ -97,12 +82,15 @@ sealed partial class Machine
 			// routes failure through `_fail` like every other silent node.
 			Node.Behind                                => true,
 
+			// Nothing read and nothing kept, whichever half of a split grammar it lands in.
+			Node.Glue                                  => true,
+
 			// A lookahead over a silent body needs no entry either: the body writes
 			// nothing, so entering is a checkpoint local and leaving is putting the
 			// position back — both directions, since a negative lookahead's failure is
 			// its body succeeding. "Anything" for the body's own continuation: what
 			// follows the lookahead does not follow the body, which is rewound.
-			Node.Lookahead(_, var seen)                => SilentWithin(seen, FirstSets.First.All),
+			Node.Lookahead(_, var seen)                => SilentWithin(seen, FollowSets.Continuation.All),
 
 			// A capture kept in locals writes nothing — sound only where nothing ever
 			// backtracks over it, which is what every other case here already proves,
@@ -132,7 +120,7 @@ sealed partial class Machine
 			                                              LiteralRun(
 			                                                  alternatives,
 			                                                  alternatives.Count - 1,
-			                                                  following) == alternatives.Count ||
+			                                                  following.Plain) == alternatives.Count ||
 			                                              CheckpointSilent(alternatives, following),
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
@@ -169,7 +157,7 @@ sealed partial class Machine
 	/// <c>Failure</c> struct and the wrapper both need to know before a line of the
 	/// method is rendered.
 	/// </summary>
-	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	bool CheckpointSilent(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 	{
 		if (!_checkpointsAllowed || _valuesInLocals ||
 			!AllSilent(alternatives, following, sequence: false))
@@ -185,7 +173,7 @@ sealed partial class Machine
 	/// than through <c>Fail:</c> — where a pending checkpoint site would be jumped past,
 	/// so none may open. The compile of each such construct puts the same flag down.
 	/// </summary>
-	bool SilentWithin(Node node, FirstSets.First following)
+	bool SilentWithin(Node node, FollowSets.Continuation following)
 	{
 		var checkpoints = _checkpointsAllowed;
 
@@ -202,7 +190,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>The alternatives' half of <see cref="SilentWithin"/>.</summary>
-	bool AllSilentWithin(IReadOnlyList<Node> nodes, FirstSets.First following)
+	bool AllSilentWithin(IReadOnlyList<Node> nodes, FollowSets.Continuation following)
 	{
 		var checkpoints = _checkpointsAllowed;
 
@@ -226,10 +214,17 @@ sealed partial class Machine
 	/// thing around it writes nothing, and at the point of compiling it, to decide what to
 	/// write. Different answers would mean jumping past entries that were made after all.
 	/// </remarks>
-	bool SilentRepeat(Node.Repeat repeat, FirstSets.First following) =>
-		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable &&
+	bool SilentRepeat(Node.Repeat repeat, FollowSets.Continuation following) =>
+		// One estimate and two proofs, and the order is not an accident: the estimate only
+		// chooses between two shapes that both mean the repetition, and the proofs are what
+		// say the silent one is available at all. Too heavy to unroll answers no here and
+		// the general machinery stays, which is the safe direction for a guess to fail in.
+		Unrolls(repeat) &&
 		Possessive(repeat.Body, following) &&
-		SilentWithin(repeat.Body, FirstSets.Of(repeat.Body, _graph).Or(following));
+		SilentWithin(
+			repeat.Body,
+			following.Or(new FollowSets.Continuation(
+				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
 
 	/// <summary>
 	/// Every one of them, each followed by what follows it.
@@ -239,7 +234,7 @@ sealed partial class Machine
 	/// same nodes: a part of a sequence is followed by the rest of the sequence, and an
 	/// alternative of a choice is followed by whatever the choice is.
 	/// </remarks>
-	bool AllSilent(IReadOnlyList<Node> nodes, FirstSets.First following, bool sequence = true)
+	bool AllSilent(IReadOnlyList<Node> nodes, FollowSets.Continuation following, bool sequence = true)
 	{
 		var after = following;
 
@@ -249,197 +244,18 @@ sealed partial class Machine
 				return false;
 
 			if (sequence)
-				after = Precedes(nodes[i], after);
+				after = FollowSets.Precedes(nodes[i], after, _graph, _seam);
 		}
 
 		return true;
 	}
 
 	/// <summary>
-	/// How much a repetition may be written out one after another rather than looped, counted
-	/// in the states the turns would come to.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Unrolling is what removes the count, and with it the last thing the arena was holding
-	/// for a repetition that needs it for nothing else. Generated size is not a cost this
-	/// project minimizes, but it is not unbounded either, and it does not add — it multiplies.
-	/// <c>(H16 &amp; ':'){6}</c> is six copies of <c>H16</c>, each of which is
-	/// <c>Hex{1,4}</c>, and the rule that holds it has nine alternatives; counting turns
-	/// alone would call each of those small and arrive at hundreds of copies of one character
-	/// test.
-	/// </para>
-	/// <para>
-	/// So the budget is turns times what a turn weighs, and a turn weighs what it will
-	/// actually be written as — through the calls that are compiled in place, and through the
-	/// repetitions inside it, which multiply in their turn.
-	/// </para>
-	/// </remarks>
-	const int Unrollable = 24;
-
-	/// <summary>
-	/// About how many states a node will come to, stopping once that is more than is being
-	/// asked about.
-	/// </summary>
-	int Weight(Node node, int budget)
-	{
-		if (budget <= 0)
-			return 1;
-
-		switch (node)
-		{
-			case Node.Empty:
-				return 0;
-
-			case Node.Sequence(var parts):
-				return WeightOfAll(parts, budget);
-
-			case Node.Choice(var alternatives):
-				return WeightOfAll(alternatives, budget);
-
-			case Node.Capture(_, var captured):
-				return 1 + Weight(captured, budget - 1);
-
-			case Node.Construct(var built, _):
-				return 1 + Weight(built, budget - 1);
-
-			case Node.Atomic(var kept):
-				return 1 + Weight(kept, budget - 1);
-
-			case Node.Marked(var kept, _):
-				return 1 + Weight(kept, budget - 1);
-
-			case Node.Lookahead(_, var seen):
-				return 1 + Weight(seen, budget - 1);
-
-			// An unbounded one is written once and gone round, so what it weighs is a turn
-			// and the going round; a bounded one is written out as many times as it is
-			// allowed to happen.
-			case Node.Repeat(var body, _, var max):
-				return (max ?? 2) * Weight(body, budget);
-
-			case Node.Call(var rule, _) when CanInline(rule) && _graph.Bodies.TryGetValue(rule, out var called):
-				return Weight(called, budget);
-
-			default:
-				return 1;
-		}
-	}
-
-	/// <summary>
-	/// Whether a repetition can be run to its end and never asked to give any of it back.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A repetition normally leaves one resume point per turn, because a later failure may
-	/// mean it went one turn too far. Two facts together say it never did.
-	/// </para>
-	/// <para>
-	/// The first is that what follows cannot begin with what the body begins with. Every
-	/// place the repetition could stop short is a place a turn began, so the character there
-	/// is one the body starts with; the continuation would have to start with that same
-	/// character and, by disjointness, cannot. The second is that the body matches in one way
-	/// only. Without it the first is not enough: a body that can match two lengths can end
-	/// the repetition somewhere no turn ever began, and nothing has been said about the
-	/// character there. <c>("ab" | "a")*</c> against <c>aab</c> is that case, and it is why
-	/// the length has to be settled before the first sets are allowed to decide anything.
-	/// </para>
-	/// <para>
-	/// Both are asked of what is known here. An unknown first set is "anything", which
-	/// overlaps; an unknown continuation is nothing, which proves nothing; either answers no,
-	/// and the general machinery stays.
-	/// </para>
-	/// </remarks>
-	/// <summary>
-	/// Whether a repetition need never hand a completed turn back.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Weaker than <see cref="Possessive"/>, deliberately. That one licenses compiling a
-	/// repetition as a plain loop with nothing recorded, so the body must match one way
-	/// only. This licenses removing just the repetition's own ways back — everything the
-	/// body records stays recorded — and for that the first sets suffice: an exit at a
-	/// completed turn's start would have the continuation begin where the turn began,
-	/// on a character the turn's first element read, and disjointness says it cannot.
-	/// </para>
-	/// <para>
-	/// A body that leads with the seam is compared past it. Both the turn and the
-	/// continuation begin by reading the same trivia, so the characters that decide are
-	/// the ones after it — <see cref="FollowSets.Continuation.AfterSeam"/>'s half. Two
-	/// more things must then hold: the continuation must not be able to start <em>inside</em>
-	/// what the seam consumed, which <see cref="Contained"/> bounds, and the rest of the
-	/// turn must consume — a turn that is all trivia decides nothing.
-	/// </para>
-	/// </remarks>
-	bool NeverGivesBack(Node.Repeat repeat, FollowSets.Continuation following)
-	{
-		var body = repeat.Body;
-
-		if (FirstSets.Nullable(body, _graph))
-			return false;
-
-		if (_seam is not null &&
-			body is Node.Sequence(var parts) && parts.Count > 1 &&
-			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, _seam))
-		{
-			var contained = Contained(_seam);
-			var rest      = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
-			var decides   = FirstSets.Of(rest, _graph);
-
-			return !FirstSets.Nullable(rest, _graph) &&
-				!decides.Overlaps(following.AfterSeam) &&
-				!following.AfterSeam.Overlaps(contained);
-		}
-
-		return !FirstSets.Of(body, _graph).Overlaps(following.Plain);
-	}
-
-	/// <summary>
-	/// The characters a continuation could meet by starting inside a span the seam
-	/// consumed, rather than after it.
-	/// </summary>
-	/// <remarks>
-	/// A star's shorter readings stop at unit boundaries, so what a boundary can stand
-	/// before is a unit's first character — as long as every unit is rigid. A unit that
-	/// can itself match several lengths, a comment with a body being the one that
-	/// matters, makes a boundary of every position it spans, and everything it can hold
-	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
-	/// the door §3's braces already give an author whose trivia holds comments.
-	/// </remarks>
-	FirstSets.First Contained(RuleSymbol seam)
-	{
-		if (!_graph.Bodies.TryGetValue(seam, out var body))
-			return FirstSets.First.All;
-
-		return body switch
-		{
-			Node.Atomic                 => FirstSets.First.None,
-			Node.Empty                  => FirstSets.First.None,
-			Node.Repeat(var unit, _, _) => Boundaries(unit),
-			_                           => FirstSets.First.All,
-		};
-	}
-
-	FirstSets.First Boundaries(Node unit) => unit switch
-	{
-		Node.Element                => FirstSets.Of(unit, _graph),
-		Node.Literal(var text)      => text.Length == 0
-			? FirstSets.First.None
-			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
-		Node.Choice(var alternatives) => alternatives.Aggregate(
-			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative))),
-		Node.Sequence(var sequenceParts) when sequenceParts.All(
-			static part => part is Node.Literal or Node.Element)
-			=> FirstSets.Of(unit, _graph),
-		_ => FirstSets.First.All,
-	};
-
-	/// <summary>
 	/// Whether a repetition of this body may run to its end and never be asked to give a
 	/// turn back — asked of the model, which is where the question lives now.
 	/// </summary>
-	bool Possessive(Node body, FirstSets.First following) =>
-		Determinism.Possessive(body, following, _graph);
+	bool Possessive(Node body, FollowSets.Continuation following) =>
+		Determinism.Possessive(body, following, _graph, _seam);
 
 	/// <summary>
 	/// The character tests that decide a choice outright, or null where the input does not.
@@ -469,15 +285,109 @@ sealed partial class Machine
 	/// </remarks>
 	string[]? Predictive(IReadOnlyList<Node> alternatives)
 	{
-		if (!Determinism.Distinguishable(alternatives, _graph, Emitted))
+		if (!Determinism.Distinguishable(alternatives, _graph))
 			return null;
 
 		var tests = new string[alternatives.Count];
 
 		for (var i = 0; i < alternatives.Count; i++)
-			tests[i] = RangesTest(FirstSets.Of(alternatives[i], _graph).Ranges);
+			tests[i] = RangesTest(FirstSets.Of(alternatives[i], _graph).Ranges, Tabulate);
 
 		return tests;
+	}
+
+	/// <summary>
+	/// How many groups of alternatives make a first character worth switching on, and how
+	/// many characters that switch may name.
+	/// </summary>
+	/// <remarks>
+	/// Below four groups the chain is already about as short: it does not test the
+	/// alternatives one by one but the <em>groups</em> one by one, because
+	/// <see cref="Skipped"/> jumps a failed character test past everything that begins the
+	/// same way. Four groups is four tests against one switch, and that is where a switch
+	/// starts being the shorter road rather than merely a different one.
+	///
+	/// The character cap is what keeps a switch a switch. A jump table is a table, and a
+	/// group whose first set is a Unicode letter category would name tens of thousands of
+	/// them; the sets this is aimed at are alphabets — fifty-two characters for a list of
+	/// case-insensitive keywords, which is what standard SQL's reserved words come to.
+	/// </remarks>
+	const int Grouped = 4;
+	const int Switched = 128;
+
+	/// <summary>
+	/// The alternatives gathered by what they can begin with — or null where the first
+	/// character does not divide them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Predictive"/> asks whether one character decides <em>which</em> alternative
+	/// this is, and a list of keywords never lets it: <c>AND</c>, <c>ALL</c>, <c>ANY</c> and
+	/// <c>AS</c> all begin with <c>A</c>. But one character does decide which <em>group</em>
+	/// it is, and that is the useful half of the same fact. Sixty keywords are twenty-six
+	/// groups, and the parse can be put into the right one by a switch rather than walked
+	/// into by testing the groups in turn.
+	/// </para>
+	/// <para>
+	/// What has to hold is that the sets partition: any two are the same set or share no
+	/// character. Then an alternative outside the chosen group cannot match here whatever
+	/// order it was written in, so leaving it untried is not a reordering of the choice but
+	/// the removal of alternatives that were going to fail. Within a group the written order
+	/// is kept exactly, and so is every way back between them.
+	/// </para>
+	/// <para>
+	/// The partition is also what makes the group's own chain cheaper than the same chain
+	/// standing alone — see the <c>proven</c> argument of <c>CompileChainedChoice</c>. Both
+	/// halves of that follow from the switch being the only way in.
+	/// </para>
+	/// </remarks>
+	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives)
+	{
+		if (alternatives.Count < Grouped)
+			return null;
+
+		var groups = new List<(FirstSets.First Set, List<Node> Members)>();
+		var named  = 0;
+
+		foreach (var alternative in alternatives)
+		{
+			// `Ends` is not a character and cannot be switched on; the rest of what makes a
+			// first set unusable `Decidable` already refuses.
+			if (Decidable(alternative) is not { Ends: false } set)
+				return null;
+
+			var joined = false;
+
+			foreach (var group in groups)
+			{
+				if (FirstSets.Same(group.Set, set))
+				{
+					group.Members.Add(alternative);
+					joined = true;
+
+					break;
+				}
+
+				// Overlapping without being equal is the one shape that cannot be dispatched:
+				// a character in both would have to choose a group, and either choice skips
+				// an alternative that could have matched.
+				if (group.Set.Overlaps(set))
+					return null;
+			}
+
+			if (joined)
+				continue;
+
+			foreach (var range in set.Ranges)
+				named += range.To - range.From + 1;
+
+			if (named > Switched)
+				return null;
+
+			groups.Add((set, [alternative]));
+		}
+
+		return groups.Count < Grouped ? null : groups;
 	}
 
 	/// <summary>
@@ -643,25 +553,27 @@ sealed partial class Machine
 	{
 		var first = FirstSets.Of(alternative, _graph);
 
-		return first.Anything || first.Nothing || first.Ranges.Count > Emitted ||
-			FirstSets.Nullable(alternative, _graph)
-				? null
-				: first;
+		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph)
+			? null
+			: first;
 	}
 
-	/// <summary>
-	/// The widest first set a rendered test may be written from.
-	/// </summary>
-	/// <remarks>
-	/// Guards the two places an analysis result becomes source text — <see cref="Predictive"/>
-	/// and <see cref="Decidable"/> — and nothing else: an analysis that only compares sets is
-	/// better off exact whatever their size.
-	/// </remarks>
-	const int Emitted = 8;
-
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
-	static string RangesTest(IReadOnlyList<CharRange> ranges)
+	/// <remarks>
+	/// Three shapes and the widest set has one too: comparisons while there are few enough
+	/// to read, a table while the set stays inside ASCII, and a searched array of bounds for
+	/// everything else — which is what a Unicode category is, and what used to be rendered
+	/// as nothing at all.
+	/// </remarks>
+	string RangesTest(
+		IReadOnlyList<CharRange> ranges, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
+		if (tabulate?.Invoke(ranges) is { } table)
+			return TableTest(table);
+
+		if (ranges.Count > Emitted)
+			return $"{Search}({Wide(ranges)}, c)";
+
 		var tests = new string[ranges.Count];
 
 		for (var i = 0; i < ranges.Count; i++)
@@ -687,7 +599,7 @@ sealed partial class Machine
 		{
 			case Node.Element element:
 			{
-				var test = CSharpEmitter.Test(element);
+				var test = CSharpEmitter.Test(element, Tabulate);
 
 				return test == "false" ? null : test;
 			}

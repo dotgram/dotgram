@@ -80,6 +80,55 @@ public static class SupportEmitter
 				/// on the answer.
 				/// </remarks>
 				public string? IncludedAs { get; set; }
+
+				/// <summary>
+				/// How large the parts of a divided recognizer are aimed to be, in the
+				/// generator's estimate of basic blocks. Zero takes the measured default.
+				/// </summary>
+				/// <remarks>
+				/// A recognizer too large for one method is written in several, and how
+				/// large each should be was measured flat anywhere between sixty and two
+				/// hundred and fifty — flat, but on grammars that are not yours. Set this
+				/// where yours turns out to want something else.
+				///
+				/// It is a wish rather than a setting: every value generates a parser.
+				/// Below one asks for the finest division there is, past the size of the
+				/// recognizer asks for one part, and nothing written here can fail a
+				/// build.
+				/// </remarks>
+				public int PartSize { get; set; }
+
+				/// <summary>
+				/// Compile as methods where the automaton is not needed. On unless set off;
+				/// off keeps the automaton for every publication.
+				/// </summary>
+				public bool Direct { get; set; } = true;
+
+				/// <summary>
+				/// Read the input as tokens rather than as characters.
+				/// </summary>
+				/// <remarks>
+				/// The grammar is cut in two: a lexical machine over characters that
+				/// answers with token kinds, and the same syntactic machine over those
+				/// (docs/lexical-adt-design.md). Nothing about the grammar changes and
+				/// nothing about the published methods changes — they take a string and
+				/// answer as they did.
+				///
+				/// Off by default and a request rather than a setting: a grammar that
+				/// cannot be cut is compiled over characters and told why. What cannot
+				/// be cut is a grammar with no trivia at all — a URL is characters and
+				/// there is nothing to gain — one whose terminals are not regular
+				/// languages, one that publishes `find`, and one whose `trivia` is not
+				/// written in braces, since the seam is skipped by the scanner those
+				/// braces ask for.
+				///
+				/// Worth it where the input is long or is refused: measured against the
+				/// character machine on standard SQL, an accepted condition runs 1.05 to
+				/// 2.45 times faster and a refused one 1.35 to 3.85, the gain growing
+				/// with the input because the syntactic machine reads a fifth as many
+				/// items and keeps a fifth as many ways back.
+				/// </remarks>
+				public bool Lexical { get; set; }
 			}
 
 			/// <summary>

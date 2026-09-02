@@ -617,14 +617,31 @@ public sealed class GramParser
 	Expr ParseSequence()
 	{
 		var start    = Current.Position;
-		var operands = new List<Expr> { ParseOperand() };
+		var operands = new List<Expr> { ParseGlued() };
 
 		while (!_panic && TakeIf(TokenKind.Ampersand))
-			operands.Add(ParseOperand());
+			operands.Add(ParseGlued());
 
 		return operands.Count == 1
 			? operands[0]
 			: new Expr.Sequence(operands) { At = From(start) };
+	}
+
+	/// <summary>
+	/// <c>a ~ b</c> — the same order as <c>&amp;</c> with nothing allowed between, and
+	/// tighter, so <c>a &amp; b ~ c</c> is <c>a &amp; (b ~ c)</c>.
+	/// </summary>
+	Expr ParseGlued()
+	{
+		var start    = Current.Position;
+		var operands = new List<Expr> { ParseOperand() };
+
+		while (!_panic && TakeIf(TokenKind.Tilde))
+			operands.Add(ParseOperand());
+
+		return operands.Count == 1
+			? operands[0]
+			: new Expr.Glued(operands) { At = From(start) };
 	}
 
 	Expr ParseOperand()

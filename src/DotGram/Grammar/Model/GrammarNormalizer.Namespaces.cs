@@ -306,6 +306,29 @@ public sealed partial class GrammarNormalizer
 
 			if (_types.TryGetValue(rule, out var type))
 				_types[clone] = type;
+
+			// §4.1 case 3: a rule whose type is another rule's takes it from whichever rule
+			// this specialization put in that one's place. Resolved here rather than left to
+			// `ComputeTypes`, which looks the name up in the rule's own namespace and would
+			// find the original — the very rule this clone no longer calls.
+			//
+			// Without it a `parse Calc with (Value = DecimalNumber)` kept `Calc`'s original
+			// type while its body built the replacement's, and the two disagreed only in the
+			// emitted C#: no diagnostic here, and `CS0266` in the consumer's build about code
+			// they did not write. Every clone is allocated before any body is cloned, so the
+			// replacement's own clone is already in the map by the time this asks for it.
+			if (!_produces.ContainsKey(clone) &&
+				rule.Declaration?.Type is { IsCSharp: false } declared &&
+				!IsCSharpKeyword(declared.Name) &&
+				!rule.Declaration.Params.Any(one => one.Name == declared.Name) &&
+				rule.Namespace.LookupQualified(declared.Name) is { } produced)
+			{
+				var replaced = targets.TryGetValue(produced, out var target) ? target : produced;
+
+				_produces[clone] = (
+					cloneMap.TryGetValue(replaced, out var cloned) ? cloned : replaced,
+					declared.IsSequence);
+			}
 		}
 
 		return cloneMap;
@@ -541,12 +564,56 @@ public sealed partial class GrammarNormalizer
 		if (actual is null)
 			return;
 
+		// Nothing is expecting the old type where everything that reads this rule takes its
+		// own type from it: those follow the replacement, and a rebinding that changes the
+		// type is what a `with` on a publication is for — one grammar, an `int` calculator
+		// and a `decimal` one, differing in the rule that says what a number is.
+		if (Follows(binding.Left))
+			return;
+
 		if (!_resolver.IsAssignable(actual, expected))
 			Report(
 				IncompatibleRebinding,
 				$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
 				$"compatible with '{expected}', found '{actual}'.",
 				binding.At);
+	}
+
+	/// <summary>
+	/// Whether everything that reads a rule's value takes its own type from that rule.
+	/// </summary>
+	/// <remarks>
+	/// A capture is where a rule's value lands, and where it lands is what a replacement has
+	/// to fit. Where every one of those landings belongs to a rule declared <c>: R</c> — §4.1
+	/// case 3, "my value is R's" — there is no fixed type to fit: they are all following R,
+	/// and they follow it to the replacement too. A rule that captures it into a declared C#
+	/// type, or into a sequence, or hands it to a constructor, is expecting something
+	/// particular, and then the check stands.
+	/// </remarks>
+	bool Follows(RuleSymbol replaced)
+	{
+		var read = false;
+
+		foreach (var rule in _rules)
+		{
+			if (!_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				if (node is not Node.Capture(_, Node.Call(var called, _)) ||
+					!ReferenceEquals(called, replaced))
+					continue;
+
+				if (!_produces.TryGetValue(rule, out var produces) ||
+					!ReferenceEquals(produces.Produces, replaced))
+					return false;
+
+				read = true;
+			}
+		}
+
+		return read;
 	}
 
 	/// <summary>A parameterized rule's declared type, where it is concrete C#.</summary>

@@ -22,6 +22,20 @@ sealed partial class Machine
 
 	readonly RecognitionGraph _graph;
 	readonly ResultTypes _results;
+
+	/// <summary>
+	/// The terminals whose value is not built here but read again from their own text.
+	/// </summary>
+	/// <remarks>
+	/// One token stands where a whole rule used to, so the captures its <c>=&gt;</c> was
+	/// written against are inside it and out of reach. What this machine records is the
+	/// extent; a second machine over characters turns that extent into the value
+	/// (`LexicalSplit.Valued`).
+	/// </remarks>
+	readonly IReadOnlyCollection<RuleSymbol>? _reread;
+
+	/// <summary>The types this machine builds, for whoever renders a way into it.</summary>
+	public ResultTypes Results => _results;
 	readonly List<Writer> _states = [];
 	readonly Dictionary<RuleSymbol, int> _entries = [];
 	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
@@ -73,6 +87,16 @@ sealed partial class Machine
 	/// <summary>One name per distinct set, so the same list is not written out twice.</summary>
 	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
 	int _expectedCount;
+
+	/// <summary>The character classes read from a table rather than written out.</summary>
+	readonly List<(string Name, string Declaration)> _classes = [];
+
+	/// <summary>The same set of ranges asked for twice is the same table.</summary>
+	readonly Dictionary<string, string> _classesByRanges = new(StringComparer.Ordinal);
+
+	readonly HashSet<string> _classesUsed = [];
+
+	int _classCount;
 	readonly ILineMap? _lines;
 	readonly bool _starves;
 	bool _usesChar;
@@ -140,6 +164,41 @@ sealed partial class Machine
 	/// </remarks>
 	bool _checkpointsAllowed;
 
+	/// <summary>
+	/// Whatever the compilation modes are now, put back on the way out of the block.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="_checkpointsAllowed"/> and <see cref="_valuesInLocals"/> are the mode the
+	/// compiler is in, and the analyses read them because what may be lowered depends on what
+	/// the compiler is about to do. Entering a shape that changes the mode therefore means
+	/// putting the old one back, and the sites that do it by hand had written it three ways:
+	/// saving and restoring, restoring to a constant, and not restoring at all.
+	/// </para>
+	/// <para>
+	/// Restoring to a constant is the one that can be wrong — it says "false afterwards"
+	/// rather than "as it was", and would silently change the mode for everything after it if
+	/// the block were ever entered with the flag already up. Nothing enters these from inside
+	/// a compilation today, so it is a trap rather than a defect; this closes it, and closes
+	/// the one that did not restore on the way out of an exception at the same time.
+	/// </para>
+	/// </remarks>
+	Modes Keeping() => new(this);
+
+	readonly ref struct Modes(Machine machine)
+	{
+		readonly bool _checkpointsAllowed = machine._checkpointsAllowed;
+		readonly bool _valuesInLocals     = machine._valuesInLocals;
+		readonly bool _lowering           = machine._lowering;
+
+		public void Dispose()
+		{
+			machine._checkpointsAllowed = _checkpointsAllowed;
+			machine._valuesInLocals     = _valuesInLocals;
+			machine._lowering           = _lowering;
+		}
+	}
+
 	/// <summary>A choice compiled with its way back in locals — one per static site.</summary>
 	/// <param name="Id">The site's number, which its locals are named under.</param>
 	/// <param name="Count">How many alternatives it has.</param>
@@ -171,13 +230,17 @@ sealed partial class Machine
 	/// </param>
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
-		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "")
+		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
+		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null)
 	{
 		_graph = graph;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
 		_tag = tag;
+		OverKinds = overKinds;
+		_reread = reread;
+		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
 
@@ -333,7 +396,7 @@ sealed partial class Machine
 			// and a block for the second saying of it. What the trace loses is the root
 			// entry, which is not reached from a call site; that one is written once at the
 			// top of the method instead.
-			entry.Line($"goto {Label(body)};");
+			entry.Line($"goto {Label(entry, body)};");
 		}
 	}
 
@@ -444,8 +507,19 @@ sealed partial class Machine
 		{
 			var kept = new List<string>(_extra);
 
+			// The one thing a machine over kinds needs that a machine over characters does
+			// not: a way from two token positions to the text between them. Emitted here
+			// rather than beside the support types because it is tagged like everything else
+			// this machine writes, and two machines in one class must not collide.
+			if (OverKinds)
+				kept.Add(Provenance());
+
 			foreach (var (name, declaration) in _expected)
 				if (_expectedUsed.Contains(name))
+					kept.Add(declaration);
+
+			foreach (var (name, declaration) in _classes)
+				if (_classesUsed.Contains(name))
 					kept.Add(declaration);
 
 			return kept;
@@ -577,16 +651,13 @@ sealed partial class Machine
 	/// </remarks>
 	public bool CanLower(RuleSymbol rule, bool whole)
 	{
+		using var modes = Keeping();
+
 		_checkpointsAllowed = true;
 
-		try
-		{
-			return Silent(BodyOf(rule, whole), whole ? FirstSets.First.End : FirstSets.First.All);
-		}
-		finally
-		{
-			_checkpointsAllowed = false;
-		}
+		return Silent(
+			BodyOf(rule, whole),
+			whole ? FollowSets.Continuation.End : FollowSets.Continuation.All);
 	}
 
 	public int Register(Node node)
@@ -625,6 +696,17 @@ sealed partial class Machine
 	/// </summary>
 	bool _valuesInLocals;
 
+	/// <summary>
+	/// Whether what is being compiled is a lowered recognizer rather than the engine.
+	/// </summary>
+	/// <remarks>
+	/// The two report a failure differently, and one line of emitted code turns on which:
+	/// the engine's <c>Fail:</c> reads the position only outside a lookahead — the
+	/// <c>lookahead</c> local it tests belongs to the engine and does not exist in a
+	/// lowered method, whose own <c>Fail:</c> reads the position unconditionally.
+	/// </remarks>
+	bool _lowering;
+
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
 
@@ -659,6 +741,141 @@ sealed partial class Machine
 	string InputParameter => UsesInput ? ", string parserInput" : "";
 
 	string InputArgument  => UsesInput ? ", parserInput" : "";
+
+	/// <summary>
+	/// Whether this machine reads token kinds rather than characters
+	/// (docs/lexical-adt-design.md).
+	/// </summary>
+	/// <remarks>
+	/// It changes one thing and only one: a position is a token and not a character, so
+	/// nothing may cut a value out of what it is reading. The text and the extents travel
+	/// beside the kinds, the same way the whole input already travels for §8.2, and the six
+	/// places that cut a value go through <see cref="Cut"/> so that the care is taken in one
+	/// place rather than six.
+	/// </remarks>
+	/// <summary>Whether what this machine reads is token kinds rather than characters.</summary>
+	/// <remarks>
+	/// A constructor argument and not an <c>init</c> property, which it was until it was
+	/// wrong: this class does its work <em>in the constructor</em>, so an initializer runs
+	/// after every state has already been written. The declaration of the materializer is
+	/// emitted late enough to have seen the property and the calls to it early enough not
+	/// to, and a guard called one with four arguments where seven were declared.
+	/// </remarks>
+	public bool OverKinds { get; }
+
+	string TokensParameter =>
+		OverKinds ? ", string parserSource, int[] parserStarts, int[] parserLengths" : "";
+
+	string TokensArgument => OverKinds ? ", parserSource, parserStarts, parserLengths" : "";
+
+	/// <summary>The tokens as locals a lambda may capture without hoisting the closure.</summary>
+	string TokensLocals => OverKinds ? ", lexedSource, lexedStarts, lexedLengths" : "";
+
+	/// <summary>
+	/// What a run of tokens came from: its text, and where in the input it stood.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first token's start and the last one's end, so that trivia standing after the run
+	/// is left out — a capture is what was written, not what was written plus the space
+	/// following it. A run of none is the empty string and an empty span at where it would
+	/// have begun, which is what an optional capture that never ran hands over.
+	/// </para>
+	/// <para>
+	/// Both are emitted whenever a machine reads kinds, because whether the grammar asks for
+	/// a span is known here only per site and a static nobody calls costs a build warning at
+	/// worst. Over characters neither exists: a position already is one.
+	/// </para>
+	/// </remarks>
+	string Provenance()
+	{
+		var helper = new Writer(1);
+
+		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
+
+		using (helper.Block(
+			$"static string Text_DotGram{_tag}(" +
+			"string source, int[] starts, int[] lengths, int from, int length)"))
+		{
+			helper.Line("if (length <= 0)");
+			helper.Then("return string.Empty;");
+			helper.Line();
+			helper.Line("var began = starts[from];");
+			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+			helper.Line("return source.Substring(began, ended - began);");
+		}
+
+		if (!_spans)
+			return helper.ToString();
+
+		helper.Line();
+		helper.Line("/// <summary>Where in the input a run of tokens stood.</summary>");
+
+		using (helper.Block(
+			$"static SourceSpan Span_DotGram{_tag}(" +
+			"int[] starts, int[] lengths, int from, int length)"))
+		{
+			// A run of none still has a place: where the next token begins, or the end of
+			// the last one when there is no next. A span with no length and no place would
+			// say the input began there, which is a different and wrong thing.
+			helper.Line("if (length <= 0)");
+			using (helper.Block(""))
+			{
+				helper.Line("var at = from < starts.Length ? starts[from] : 0;");
+				helper.Line();
+				helper.Line("return new SourceSpan(at, 0);");
+			}
+
+			helper.Line();
+			helper.Line("var began = starts[from];");
+			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+			helper.Line("return new SourceSpan(began, ended - began);");
+		}
+
+		return helper.ToString();
+	}
+
+	/// <summary>The text between a position and a length, whatever a position is.</summary>
+	/// <remarks>
+	/// Over characters a position indexes what is being read, so the cut is a slice of it.
+	/// Over kinds it indexes a token and the text is somewhere else entirely — which is the
+	/// one thing a split grammar has to be careful about, and the reason this is a method.
+	/// </remarks>
+	string Cut(string from, string length) =>
+		OverKinds
+			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
+			: $"text.Slice({from}, {length}).ToString()";
+
+	/// <summary>Where one position of the machine's own stands in the input.</summary>
+	/// <remarks>
+	/// A token's position is its first character's. Past the last token it is the end of the
+	/// input, which is where a refusal for running out has to point.
+	/// </remarks>
+	string At(string position) =>
+		OverKinds
+			? $"({position} < parserStarts.Length ? parserStarts[{position}] : parserSource.Length)"
+			: position;
+
+	/// <summary>The input as characters — what it is being read as, or what it came from.</summary>
+	string Source => OverKinds ? "global::System.MemoryExtensions.AsSpan(parserSource)" : "text";
+
+	/// <summary>And where that was, which over kinds is not where the machine is.</summary>
+	string Span(string from, string length)
+	{
+		if (!OverKinds)
+			return $"new SourceSpan({from}, {length})";
+
+		// `SourceSpan` is emitted only for a grammar that asks for one, so a helper returning
+		// it must be emitted only where one was asked for too — `Extra` reads this after every
+		// state is written, the way it already does for the expectation tables.
+		_spans = true;
+
+		return $"Span_DotGram{_tag}(parserStarts, parserLengths, {from}, {length})";
+	}
+
+	bool _spans;
 
 	/// <summary>
 	/// Whether anything in this machine names the grammar's own state (§7.7).
@@ -754,7 +971,7 @@ sealed partial class Machine
 		var file  = new Writer(0);
 		var type  = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
-		var entry = whole ? _wholeEntries[root] : _entries[root];
+		var entry = Numbered(whole ? _wholeEntries[root] : _entries[root]);
 		var strength = _graph.Climbing.ContainsKey(root) ? ", int power" : "";
 		var enginePower = _graph.Climbing.Count > 0
 			? ", " + (_graph.Climbing.ContainsKey(root) ? "power" : "0")
@@ -763,17 +980,17 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}{ContextArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
-				file.Line("value = end < 0 ? default : new SourceSpan(pos, end - pos);");
+				file.Line($"value = end < 0 ? default : {Span("pos", "end - pos")};");
 			else if (type is not null)
 				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
 
@@ -797,7 +1014,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{ContextParameter}, " +
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -883,13 +1100,60 @@ sealed partial class Machine
 
 					// Only the states something can actually arrive at through the dispatch,
 					// which is far from all of them: see `Dispatched`.
-					foreach (var state in Dispatched())
-						file.Line($"case {state}: goto {Label(Resolved(state))};");
+					if (!Divided)
+					{
+						foreach (var state in Numbering(Dispatched()))
+							file.Line($"case {state}: goto {Label(state)};");
+					}
+					else
+					{
+						// Written in more than one method, so the dispatch calls the one a
+						// state is written in rather than jumping to it. What comes back is
+						// where to go on from, which is this same dispatch again — except a
+						// failure, which carries what it was expecting and must not go
+						// through the case below that clears it.
+						//
+						// Left as a switch, and measured: numbering the states in written
+						// order makes each part's cases a run, which is what lets the C#
+						// compiler lay one jump table over them. Asking the same question as
+						// a bisected chain of range tests — the shape the generated lexer's
+						// transition table was chosen over a switch for — cost 5-8% on every
+						// `SqlStandard92` input but the two shortest. The lexer's answer does
+						// not carry: there the next state varies with the character and the
+						// indirect branch is unpredictable, and here the parse returns to a
+						// handful of the same states over and over, which is the case a
+						// branch predictor has no trouble with and four unpredictable
+						// comparisons cannot beat.
+						var cases = Dispatching();
+
+						for (var part = 0; part < _parts.Count; part++)
+						{
+							var any = false;
+
+							foreach (var one in Numbering(cases, part))
+							{
+								file.Line($"case {one}:");
+
+								any = true;
+							}
+
+							if (!any)
+								continue;
+
+							using (file.Indent())
+							{
+								file.Line($"state = {name}_Part{part}(text, ref failure);");
+								file.Line($"if (state == {Fail}) goto Fail;");
+								file.Line("goto Dispatch;");
+							}
+						}
+					}
 
 					file.Line("default: expected = null; goto Fail;");
 				}
 
-				RenderStates(file, dispatched: true);
+				if (!Divided)
+					RenderStates(file, dispatched: true);
 
 				file.Line();
 				file.Line("Return:");
@@ -961,7 +1225,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{ContextArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument});");
 								RootValue(file);
 							}
 						}
@@ -1184,6 +1448,35 @@ sealed partial class Machine
 				file.Line();
 				file.Line("return -1;");
 
+				// Local functions, so that the C# compiler writes the frame carrying what
+				// crosses between them and every state goes on naming the same variables.
+				// `text` is the one thing that cannot be carried in it — a ref struct is not
+				// a field of anything — so it is handed over instead.
+				if (Divided)
+				{
+					for (var part = 0; part < _parts.Count; part++)
+					{
+						file.Line();
+
+						using (file.Block(
+							$"int {name}_Part{part}(global::System.ReadOnlySpan<char> text, " +
+							$"ref {CSharpEmitter.FailureType} failure)"))
+						{
+							using (file.Block("switch (state)"))
+								foreach (var one in Numbering(Dispatching(), part))
+									file.Line($"case {one}: goto {Label(one)};");
+
+							file.Line("goto Leave;");
+
+							RenderStates(file, dispatched: true, part);
+
+							file.Line();
+							file.Line("Leave:");
+							file.Line("return state;");
+						}
+					}
+				}
+
 			}
 
 			file.Line("finally");
@@ -1211,44 +1504,47 @@ sealed partial class Machine
 	/// Whether a dispatch is written above these states, and so names some of them from
 	/// outside. True for the engine; false for a lowered recognizer, which has none.
 	/// </param>
-	void RenderStates(Writer file, bool dispatched)
+	void RenderStates(Writer file, bool dispatched, int part = -1)
 	{
+		var order = part < 0 ? _order : _parts[part];
+
 		// Which labels anything still names, once the jumps this method is about to drop are
 		// gone. A state reached only by falling into it from the one above needs no label,
 		// and writing one is a label C# warns about and a consumer's build may refuse. The
 		// engine used to be exempt because its dispatch had a case for every written state;
 		// now that it has one only for the states that can be resumed at, it needs the same
 		// count as anything else — plus the labels those cases name.
-		var named = Named();
+		//
+		// Worked out once for the whole machine. Not one of the four things that go into it
+		// depends on which part is being written — they are the jumps in the finished
+		// bodies, the states the dispatch lands on, the ones named from outside it, and the
+		// ones a part is entered at — so computing it per part was the same answer found
+		// again, over every body, with a regex, once per part.
+		var named = NamedForRender(dispatched);
 
-		if (dispatched)
-			foreach (var state in Dispatched())
-				named.Add(Resolved(state));
-
-		// Named from outside the state bodies — a checkpoint site's retries, which only
-		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
-		// layout did not put it first.
-		foreach (var state in _namedOutside)
-			named.Add(Resolved(state));
-
-		for (var written = 0; written < _order.Count; written++)
+		for (var written = 0; written < order.Count; written++)
 		{
-			var i    = _order[written];
+			var i    = order[written];
 			var body = _bodies[i];
 
 			// Chained: what this state ends by jumping to is the state written next, so the
-			// jump is the line after it either way.
-			if (written + 1 < _order.Count &&
+			// jump is the line after it either way. Within the part it is written in: the
+			// state after the last of one part is the first of the next, and the jump
+			// between them is a departure rather than a line that can be dropped.
+			if (written + 1 < order.Count &&
 				Tail(body) is { } onward &&
-				onward == _order[written + 1] + First)
+				onward == Number(order[written + 1] + First))
 			{
 				body = body.Substring(0, body.LastIndexOf($"goto {Label(onward)};", StringComparison.Ordinal));
 			}
 
+			if (part >= 0)
+				body = Departing(body, i);
+
 			file.Line();
 
-			if (named.Contains(i + First))
-				file.Line($"S{i + First}:");
+			if (named.Contains(Number(i + First)))
+				file.Line($"S{Number(i + First)}:");
 
 			using (file.Block(""))
 				file.Write(body);
@@ -1272,7 +1568,7 @@ sealed partial class Machine
 			var state = Reserve(out var writer);
 
 			writer.Line($"if ({level} < power) {{ expected = null; goto Fail; }}");
-			writer.Line($"goto {Label(inner)};");
+			writer.Line($"goto {Label(writer, inner)};");
 
 			return state;
 		}
@@ -1304,9 +1600,25 @@ sealed partial class Machine
 				// branches with an order that is observable, and only what the JIT
 				// recognizes as one comparison is emitted as one.
 				//
-				// Case-insensitive stays as it was. What it compares is each character
-				// folded, which is not the comparison any span method makes.
-				if (value.Length > 1 && !ignoreCase)
+				// Case-insensitive goes the same way where the text is ASCII, and that is
+				// where the comment here used to stop: "not the comparison any span method
+				// makes" was wrong — `MemoryExtensions.Equals` with `OrdinalIgnoreCase` is
+				// exactly it, is vectorized, and is on the netstandard2.0 floor through
+				// System.Memory, which the emitted code already needs for the span itself.
+				//
+				// ASCII, because that is where the two agree. Ordinal case folding and
+				// per-character `ToUpperInvariant` part company outside it — surrogate
+				// pairs have no per-`char` answer at all — so a literal that reaches beyond
+				// ASCII keeps the chain rather than quietly changing what it accepts. Every
+				// keyword of every language this is likely to meet is ASCII; what is not is
+				// a literal in someone's own alphabet, and it stays as it was.
+				//
+				// What it saves is the shape a keyword list is made of. Standard SQL writes
+				// 192 case-insensitive literals averaging seven characters, and each was
+				// seven comparisons with a five-line failure block beside every one of
+				// them — where the whole of the reporting belongs on the branch that has
+				// already failed.
+				if (value.Length > 1 && (!ignoreCase || Ascii(value)))
 				{
 					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
@@ -1318,9 +1630,12 @@ sealed partial class Machine
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
-					writer.Line(
-						"if (!global::System.MemoryExtensions.SequenceEqual(" +
-						$"text.Slice(p, {value.Length}), {Spanned(value)}))");
+					writer.Line(ignoreCase
+						? "if (!global::System.MemoryExtensions.Equals(" +
+						  $"text.Slice(p, {value.Length}), {Spanned(value)}, " +
+						  "global::System.StringComparison.OrdinalIgnoreCase))"
+						: "if (!global::System.MemoryExtensions.SequenceEqual(" +
+						  $"text.Slice(p, {value.Length}), {Spanned(value)}))");
 
 					using (writer.Block(""))
 					{
@@ -1328,13 +1643,48 @@ sealed partial class Machine
 						// branch already taken rather than on the way in. The comparison has
 						// said they differ; this only says where, and nothing reaches it
 						// unless the parse is failing anyway.
-						Sharpen(writer, value);
+						//
+						// And only where anything will read it. `p` at a terminal failure is
+						// what the caller is told; a failure routed anywhere else is a door
+						// that restores `p` from a local — a lookahead rewinding, an atomic
+						// group trying its next alternative — and this would be overwritten
+						// by the next line to run. Inside `?!Reserved`, which is how a
+						// keyword list is usually reached, every one of sixty words walks a
+						// ladder to a position nobody reads.
+						//
+						// A literal run has always been guarded this way; a literal on its
+						// own was not, and the two are the same question.
+						//
+						// And inside a lookahead nothing reads it either, which the engine's
+						// own `Fail:` says out loud — `if (lookahead < 0 && p >
+						// failure.Position)` — six comparisons after this ladder has run.
+						// Asked here instead, it costs one comparison on a branch that is
+						// already failing and saves the ladder every time; and a keyword list
+						// is reached through `?!Reserved`, where it is *always* inside one.
+						//
+						// A rule cannot know this about its callers — `Reserved` is compiled
+						// once and every caller of it discards the answer — so the question
+						// is asked at run time rather than worked out over the graph.
+						if (_fail == Fail)
+						{
+							if (_lowering)
+							{
+								Sharpen(writer, value, ignoreCase);
+							}
+							else
+							{
+								writer.Line("if (lookahead < 0)");
+
+								using (writer.Block(""))
+									Sharpen(writer, value, ignoreCase);
+							}
+						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
 					writer.Line($"p += {value.Length};");
-					writer.Line($"goto {Label(next)};");
+					writer.Line($"goto {Label(writer, next)};");
 
 					return state;
 				}
@@ -1391,7 +1741,7 @@ sealed partial class Machine
 				}
 
 				writer.Line($"p += {value.Length};");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -1399,7 +1749,7 @@ sealed partial class Machine
 			case Node.Element element:
 			{
 				var state     = Reserve(out var writer);
-				var test      = CSharpEmitter.Test(element);
+				var test      = CSharpEmitter.Test(element, Tabulate);
 				var arrayName = DeclareExpected([node.ToString()]);
 
 				if (test == "false")
@@ -1430,7 +1780,7 @@ sealed partial class Machine
 				}
 
 				writer.Line("p++;");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -1460,115 +1810,15 @@ sealed partial class Machine
 				// compiled below as it always was, and only a choice that does need
 				// coming back to is given its doors.
 				if (LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
-					CheckpointSilent(alternatives, following.Plain))
+					CheckpointSilent(alternatives, following))
 					return CompileCheckpointChoice(alternatives, next, following);
 
-				var last   = alternatives.Count - 1;
-				var run    = LiteralGroup(alternatives, last, following.Plain);
-				var target = run > 0
-					? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
-					: Compile(alternatives[last], next, following);
-				var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
+				// One character cannot say which alternative this is, but it can say which
+				// group, and for a list of keywords that is nearly the same saving.
+				if (Dispatchable(alternatives) is { } groups)
+					return CompileDispatchedChoice(alternatives, groups, next, following);
 
-				for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
-				{
-					// Alternatives that are all text need neither. Nothing is written down to
-					// come back to and the position is not moved until one of them has
-					// matched, so where they differ is where the next is tried — which is
-					// what a common prefix is worth, and it is worth it whether or not there
-					// is one.
-					if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
-					{
-						var from = i - here + 1;
-
-						rest   = Begins(alternatives, from, i).Or(rest is null ? FirstSets.First.All : rest);
-						target = CompileLiterals(alternatives, from, i, next, target);
-						i      = from;
-
-						continue;
-					}
-
-					var first = Compile(alternatives[i], next, following);
-					var mine  = Decidable(alternatives[i]);
-					var state = Reserve(out var writer);
-
-					// One character can say two things here, and each saves something
-					// different. That this alternative cannot begin here saves going into it;
-					// that none of the ones after it can saves the entry that would have let
-					// the parse come back for them.
-					//
-					// Both are kept because both were measured. Keeping only the second — on
-					// the reasoning that the first merely repeats the test the alternative
-					// makes anyway — came out level with doing neither: what going in costs
-					// is not the character test but everything around it, the frame and the
-					// setup of a rule that was never going to match.
-					//
-					// Neither is `Predictive`, which needs every alternative told apart from
-					// every other. This asks about one at a time and takes what it is given.
-					// And only at a character there is: at the end of the input nothing is
-					// asked and the entry is written, which is what always happened.
-					if (mine is not null || rest is not null)
-					{
-						_usesChar = true;
-
-						using (writer.Block("if ((uint)p < (uint)text.Length)"))
-						{
-							writer.Line("c = text[p];");
-
-							// Not to the next alternative's own test but past it, wherever
-							// that test is one this jump has already answered. Reaching it
-							// means `c` is outside this alternative's set, so a next one
-							// whose set is inside this one asks a question with a known
-							// answer and jumps straight on — which was two states and two
-							// reads of the same character to arrive where one goes now.
-							//
-							// The way back written below is untouched, and not because
-							// nothing is known there — something is. It is pushed only on
-							// the path this test let through, so whatever resumes at it
-							// resumes with `c` inside this alternative's set, and the link
-							// it names asks a question it could answer. What stops the same
-							// trick there is the other way in: the entry is pushed at the
-							// end of the input too, where no test ran, and that path goes
-							// through the link rather than past it. Skipping it would drop a
-							// failure the parse reports, so `expected` would change even
-							// though what is accepted would not. Left, with the trap named
-							// (docs/next.md).
-							if (mine is { } begins)
-								writer.Line($"if (!({RangesTest(begins.Ranges)})) goto {Label(Skipped(begins, target))};");
-
-							// The second is read knowing the first did not fire, where there
-							// was a first: `c` is in this alternative's own set by then, so
-							// what is being asked is whether that set holds anything outside
-							// the later ones'. Written as it stood, the two ignored each
-							// other and said things that could not be true — `if (!(c ==
-							// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
-							// second cannot fire at all.
-							if (rest is { } after)
-							{
-								if (mine is not { } known)
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
-								else if (!known.Overlaps(after))
-									writer.Line($"goto {Label(first)};");     // always fires
-								else if (!after.Covers(known))               // never fires: not written
-									writer.Line($"if (!({RangesTest(after.Ranges)})) goto {Label(first)};");
-							}
-						}
-					}
-
-					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {target}, p, call, atomic, " +
-						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {target}, p, entries.Count{Traced});");
-					writer.Line($"goto {Label(first)};");
-
-					if (mine is not null)
-						_dispatchers[state] = (mine, target);
-
-					target = state;
-					rest   = mine is null || rest is null ? null : mine.Or(rest);
-				}
-
-				return target;
+				return CompileChainedChoice(alternatives, next, following);
 			}
 
 			case Node.Capture(_, var body):
@@ -1602,7 +1852,7 @@ sealed partial class Machine
 						var siteState = Reserve(out var atSiteOpen);
 
 						atSiteOpen.Line($"flat{parent}_{slot}Start = p;");
-						atSiteOpen.Line($"goto {Label(siteBody)};");
+						atSiteOpen.Line($"goto {Label(atSiteOpen, siteBody)};");
 
 						return siteState;
 					}
@@ -1614,10 +1864,10 @@ sealed partial class Machine
 					var flatState = Reserve(out var atFlatOpen);
 
 					atFlatOpen.Line($"flat{_flatInstance}_{slot}Start = p;");
-					atFlatOpen.Line($"goto {Label(flatInner)};");
+					atFlatOpen.Line($"goto {Label(atFlatOpen, flatInner)};");
 
 					atFlatClose.Line($"flat{_flatInstance}_{slot}End = p;");
-					atFlatClose.Line($"goto {Label(next)};");
+					atFlatClose.Line($"goto {Label(atFlatClose, next)};");
 
 					return flatState;
 				}
@@ -1642,7 +1892,7 @@ sealed partial class Machine
 				{
 					_usesCompleted = true;
 
-					writer.Line($"goto {Label(inner)};");
+					writer.Line($"goto {Label(writer, inner)};");
 
 					// The entry to record is the one the call just turned into, and `Return`
 					// has its index in hand at the moment it turns it. Searching back for it
@@ -1660,7 +1910,7 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count{Traced});");
-					atClose.Line($"goto {Label(next)};");
+					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
 				}
@@ -1678,7 +1928,7 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
 						"call, atomic, repeat, lookahead, 0));");
 					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
-					writer.Line($"goto {Label(inner)};");
+					writer.Line($"goto {Label(writer, inner)};");
 
 					atClose.Line("var closed  = 0;");
 					atClose.Line("var openedAt = entries.Count - 1;");
@@ -1713,19 +1963,19 @@ sealed partial class Machine
 						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
 						"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
 					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
-					atClose.Line($"goto {Label(next)};");
+					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
 				}
 
 				writer.Line($"capture{slot} = p;");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
 				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
 			}
@@ -1750,7 +2000,7 @@ sealed partial class Machine
 						var tagged = Reserve(out var atTag);
 
 						atTag.Line($"flatWhich{_flatInstance} = {IndexOf(_factories[owner], node, owner)};");
-						atTag.Line($"goto {Label(next)};");
+						atTag.Line($"goto {Label(atTag, next)};");
 
 						return Compile(body, tagged, following);
 					}
@@ -1772,12 +2022,12 @@ sealed partial class Machine
 				var inner   = Compile(body, close, following);
 				var state   = Reserve(out var writer);
 
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"goto {Label(writer, inner)};");
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
 			}
@@ -1791,9 +2041,12 @@ sealed partial class Machine
 				{
 					var scanned = Reserve(out var atScan);
 
-					if (FirstSets.Nullable(_graph.Bodies[rule] is Node.Atomic(var inside)
+					// Without the check only where there is nothing to check: a scanner that
+					// cannot refuse. Nullable is a different question and was the wrong one —
+					// see `Infallible`.
+					if (Infallible(_graph.Bodies[rule] is Node.Atomic(var inside)
 							? inside
-							: _graph.Bodies[rule], _graph))
+							: _graph.Bodies[rule]))
 					{
 						atScan.Line($"p = {scanner}(text, p);");
 					}
@@ -1803,12 +2056,20 @@ sealed partial class Machine
 
 						atScan.Line($"var scanned = {scanner}(text, p);");
 						atScan.Line("if (scanned < 0)");
+
 						using (atScan.Block(""))
+						{
+							// A refusal comes back negated and carrying how far the scan
+							// reached, so the failure is recorded there rather than where the
+							// rule began — which is all the caller would otherwise know.
+							atScan.Line("p = -1 - scanned;");
 							EmitTerminalFailure(atScan, _fail, arrayName);
+						}
+
 						atScan.Line("p = scanned;");
 					}
 
-					atScan.Line($"goto {Label(next)};");
+					atScan.Line($"goto {Label(atScan, next)};");
 
 					return scanned;
 				}
@@ -1841,14 +2102,15 @@ sealed partial class Machine
 
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.Call, {next}, p, call, atomic, repeat, " +
+					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
 					$"lookahead, 0, {ValueRule(rule)}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
-				writer.Line($"Trace(\"call {Escape(rule.Name)}\", {_entries[rule]}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(_entries[rule])};");
+				writer.Line(
+					$"Trace(\"call {Escape(rule.Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
+				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;
 			}
@@ -1864,7 +2126,7 @@ sealed partial class Machine
 				writer.Line(hasValue
 					? $"if (!{method}(text, ref p, out _)) {{ expected = null; goto Fail; }}"
 					: $"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -1888,7 +2150,7 @@ sealed partial class Machine
 				if (node is Node.Guard { Text: var guardText } && CSharpEmitter.Uses(_graph, guardText, "parserText"))
 				{
 					parameters.Add("string parserText");
-					arguments.Add("text.Slice(ruleStart, p - ruleStart).ToString()");
+					arguments.Add(Cut("ruleStart", "p - ruleStart"));
 				}
 
 				// The same extent unread. A guard runs before its rule is finished, so this
@@ -1898,7 +2160,7 @@ sealed partial class Machine
 				if (node is Node.Guard { Text: var spanning } && CSharpEmitter.Uses(_graph, spanning, "parserSpan"))
 				{
 					parameters.Add("SourceSpan parserSpan");
-					arguments.Add("new SourceSpan(ruleStart, p - ruleStart)");
+					arguments.Add(Span("ruleStart", "p - ruleStart"));
 				}
 
 				// The grammar's own state (§7.7), where the condition names it. A guard is
@@ -2025,9 +2287,10 @@ sealed partial class Machine
 						writer.Line(
 							$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
 							(member.IsOptional ? "null" : "string.Empty") + " : " +
-							$"text.Slice(entries[guardCaptured{memberIndex}At].Position, " +
-							$"entries[guardCaptured{memberIndex}At].Value - " +
-							$"entries[guardCaptured{memberIndex}At].Position).ToString();");
+							Cut(
+								$"entries[guardCaptured{memberIndex}At].Position",
+								$"entries[guardCaptured{memberIndex}At].Value - " +
+								$"entries[guardCaptured{memberIndex}At].Position") + ";");
 					else
 						using (writer.Block(
 							$"if (guardCaptured{memberIndex}At >= 0 && !guardBuilt[guardCaptured{memberIndex}At])"))
@@ -2041,7 +2304,7 @@ sealed partial class Machine
 				{
 					writer.Line(
 						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
-						$"entries{InputArgument}{ContextArgument});");
+						$"entries{InputArgument}{TokensArgument}{ContextArgument});");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{
@@ -2100,8 +2363,14 @@ sealed partial class Machine
 					}
 				}
 
-				writer.Line($"if (!{method}({string.Join(", ", arguments)})) {{ expected = null; goto Fail; }}");
-				writer.Line($"goto {Label(next)};");
+				// To wherever failure is routed, like a terminal test — which today is
+				// `Fail:` everywhere but inside a committed choice, where a refused guard
+				// falls to the next tail rather than into the unwinder. A guard reads
+				// nothing and records nothing, so there is nothing to unwind past.
+				writer.Line(
+					$"if (!{method}({string.Join(", ", arguments)})) " +
+					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -2122,27 +2391,52 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.StateSet, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atOpen.Line($"Trace(\"set state\", {site}, p, entries.Count{Traced});");
-				atOpen.Line($"goto {Label(inner)};");
+				atOpen.Line($"goto {Label(atOpen, inner)};");
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.StateEnd, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
 				atClose.Line($"Trace(\"end state\", {site}, p, entries.Count{Traced});");
-				atClose.Line($"goto {Label(next)};");
+				atClose.Line($"goto {Label(atClose, next)};");
 
 				return opened;
 			}
 
 			case Node.Atomic(var body):
 			{
+				// A committed choice whose tails read nothing — the fold's residue, where
+				// past the shared operand the alternatives differ in which factory runs
+				// and not in what the text says. Compiled as the decision it is: each
+				// guard is evaluated where it stands and the first tail to pass is taken,
+				// with a refused guard falling to the tail behind it. No choice entry, no
+				// atomic boundary, no commit walk — nothing is written that a commit
+				// would have to put out, which is the whole of what the braces meant.
+				if (_recoveries.Count == 0 &&
+					body is Node.Choice(var decided) && decided.Count > 1 &&
+					decided.All(Weightless))
+				{
+					var chosen = Compile(decided[decided.Count - 1], next, following);
+
+					for (var at = decided.Count - 2; at >= 0; at--)
+					{
+						var saved = _fail;
+
+						_fail  = chosen;
+						chosen = Compile(decided[at], next, following);
+						_fail  = saved;
+					}
+
+					return chosen;
+				}
+
 				// First-match-commits held in locals: each alternative is tried through
 				// the give-back door, and the first that matches is final. The same test
 				// `Silent`'s own Atomic case asks — recoveries included, whose owned
 				// mark only the engine's commit writes — so the two agree.
 				if (_recoveries.Count == 0 &&
 					(body is Node.Choice(var options)
-						? AllSilent(options, following.Plain, sequence: false)
-						: Silent(body, following.Plain)))
+						? AllSilent(options, following, sequence: false)
+						: Silent(body, following)))
 				{
 					// No pending site may open inside: the chain's doors are where a
 					// failure goes here, and a way back they jumped past would stand
@@ -2195,7 +2489,7 @@ sealed partial class Machine
 
 					if (doors)
 						atEnter.Line($"turn{mine} = p;");
-					atEnter.Line($"goto {Label(target)};");
+					atEnter.Line($"goto {Label(atEnter, target)};");
 
 					_depth = mine;
 					_checkpointsAllowed = checkpoints;
@@ -2210,8 +2504,8 @@ sealed partial class Machine
 				writer.Line("var atomicIndex = entries.Count;");
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Trace(\"enter atomic\", {inner}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"Trace(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
 				atCommit.Line("var boundary = entries[atomic];");
@@ -2257,8 +2551,8 @@ sealed partial class Machine
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Trace(\"commit\", {next}, p, entries.Count{Traced});");
-				atCommit.Line($"goto {Label(next)};");
+				atCommit.Line($"Trace(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+				atCommit.Line($"goto {Label(atCommit, next)};");
 
 				return state;
 			}
@@ -2268,12 +2562,34 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
-				if (SilentRepeat(repeat, following.Plain))
+				if (SilentRepeat(repeat, following))
 					return CompileSilentRepeat(repeat, next, following);
 
 				return RunTest(repeat.Body) is { } runTest
 					? CompileRun(repeat, runTest, next, following)
 					: CompileRepeat(repeat, next, following);
+			}
+
+			// Nothing was skipped here (§4.5's `~`). Over characters the seam was never
+			// woven and there is nothing to ask, so this is not a state at all; over kinds
+			// the tokens carry where each began and how long it is, and adjacency is the
+			// one comparison over the pair.
+			case Node.Glue:
+			{
+				if (!OverKinds)
+					return next;
+
+				var glued = Reserve(out var atGlue);
+
+				atGlue.Line(
+					"if (p > 0 && p < text.Length && " +
+					"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])");
+				using (atGlue.Block(""))
+					EmitTerminalFailure(atGlue, _fail, DeclareExpected([node.ToString()]));
+
+				atGlue.Line($"goto {Label(atGlue, next)};");
+
+				return glued;
 			}
 
 			// One comparison against the character behind, and nothing else: no entry,
@@ -2288,12 +2604,12 @@ sealed partial class Machine
 				using (writer.Block("if (p > 0)"))
 				{
 					writer.Line("c = text[p - 1];");
-					writer.Line($"if ({CSharpEmitter.Test(boundary)})");
+					writer.Line($"if ({CSharpEmitter.Test(boundary, Tabulate)})");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
 
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
 			}
@@ -2303,7 +2619,7 @@ sealed partial class Machine
 				// A silent body needs no entry: entering is a checkpoint local, leaving is
 				// putting the position back — the same door a possessive turn leaves by.
 				// The same test `Silent`'s own Lookahead case asks, so the two agree.
-				if (Silent(body, FirstSets.First.All))
+				if (Silent(body, FollowSets.Continuation.All))
 				{
 					// A body one character decides needs no checkpoint either: the
 					// lookahead is its test and nothing else — no local, no consuming,
@@ -2337,7 +2653,7 @@ sealed partial class Machine
 							}
 						}
 
-						atAsk.Line($"goto {Label(next)};");
+						atAsk.Line($"goto {Label(atAsk, next)};");
 
 						return predicate;
 					}
@@ -2369,7 +2685,7 @@ sealed partial class Machine
 						var flatState = Reserve(out var atFlatEnter);
 
 						atFlatEnter.Line($"{start} = p;");
-						atFlatEnter.Line($"goto {Label(flatInner)};");
+						atFlatEnter.Line($"goto {Label(atFlatEnter, flatInner)};");
 
 						_depth = mine;
 						_checkpointsAllowed = checkpoints;
@@ -2394,7 +2710,7 @@ sealed partial class Machine
 					var entered = Reserve(out var atEnter);
 
 					atEnter.Line($"{begun} = p;");
-					atEnter.Line($"goto {Label(refused)};");
+					atEnter.Line($"goto {Label(atEnter, refused)};");
 
 					atMatched.Line($"p = {begun};");
 					EmitTerminalFailure(atMatched, _fail, arrayName);
@@ -2410,11 +2726,11 @@ sealed partial class Machine
 
 				writer.Line("var lookaheadIndex = entries.Count;");
 				writer.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
-				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {inner}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(inner)};");
+				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+				writer.Line($"goto {Label(writer, inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 				atSuccess.Line("var looked = entries[lookahead];");
@@ -2427,8 +2743,8 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
-				atSuccess.Line($"Trace(\"lookahead body matched\", {next}, p, entries.Count{Traced});");
-				atSuccess.Line($"goto {(isPositive ? Label(next) : "Fail")};");
+				atSuccess.Line($"Trace(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
 				return state;
 			}
@@ -2469,11 +2785,11 @@ sealed partial class Machine
 
 		writer.Line("var lookaheadIndex = entries.Count;");
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured positive lookahead\", {inner}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(inner)};");
+		writer.Line($"Trace(\"enter captured positive lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atSuccess.Line("var seenTo = p;");
@@ -2491,7 +2807,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
 			"repeat, lookahead, seenTo));");
 		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
-		atSuccess.Line($"goto {Label(next)};");
+		atSuccess.Line($"goto {Label(atSuccess, next)};");
 
 		return state;
 	}
@@ -2529,11 +2845,11 @@ sealed partial class Machine
 
 		writer.Line("var lookaheadIndex = entries.Count;");
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {next}, p, call, atomic, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured negative lookahead\", {inner}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(inner)};");
+		writer.Line($"Trace(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atMatched.Line("var looked = entries[lookahead];");
@@ -2599,7 +2915,7 @@ sealed partial class Machine
 			using (writer.Block($"if ({string.Join(" && ", tests)})"))
 			{
 				writer.Line($"p += {rest.Length};");
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 			}
 		}
 
@@ -2771,12 +3087,12 @@ sealed partial class Machine
 					var carry = CompileCarries(text.Length, carries, displays, next, fail);
 
 					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Choice, {carry}, p, call, atomic, " +
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {carry}, p, entries.Count{Traced});");
+					writer.Line($"Trace(\"push choice\", {Mark(Lands, carry)}, p, entries.Count{Traced});");
 				}
 
-				writer.Line($"goto {Label(next)};");
+				writer.Line($"goto {Label(writer, next)};");
 			}
 
 			if (settled)
@@ -2808,7 +3124,7 @@ sealed partial class Machine
 
 				SharpenAll(writer, texts, displays);
 
-				writer.Line($"goto {Label(fail)};");
+				writer.Line($"goto {Label(writer, fail)};");
 			}
 			else
 				EmitTerminalFailure(writer, fail, arrayName);
@@ -2858,7 +3174,7 @@ sealed partial class Machine
 
 			atRetry.Line($"p = way{id};");
 			atRetry.Line($"alt{id} = {at + 1};");
-			atRetry.Line($"goto {Label(entries[at])};");
+			atRetry.Line($"goto {Label(atRetry, entries[at])};");
 
 			retries[at - 1] = retry;
 			_roots.Add(retry);
@@ -2873,7 +3189,7 @@ sealed partial class Machine
 		writer.Line($"alt{id} = 1;");
 		writer.Line($"over{id} = pending;");
 		writer.Line($"pending = {id};");
-		writer.Line($"goto {Label(entries[0])};");
+		writer.Line($"goto {Label(writer, entries[0])};");
 
 		return state;
 	}
@@ -2881,6 +3197,230 @@ sealed partial class Machine
 	/// <summary>
 	/// A choice one character decides: read it, jump to the alternative it belongs to.
 	/// </summary>
+	/// <summary>
+	/// A choice as a chain: each alternative tried in turn, with a way back to the next.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The general form, and what every other one is measured against. It is also what a
+	/// dispatched choice's groups are made of — a group is a choice of its own members and
+	/// nothing else, so the same code writes it.
+	/// </para>
+	/// <para>
+	/// <paramref name="proven"/> is what the caller has already established about the
+	/// character at <c>p</c>: that there is one, and that it is in this set. Only a
+	/// dispatched group can say it, and it is worth saying — an alternative whose own first
+	/// set covers what is proven asks a question with a known answer, so neither the test
+	/// nor the bounds check around it is written at all. That the elision is sound rests on
+	/// the switch being the only way in: the ways back written below name states in this
+	/// same group and carry the position the switch tested, and the one path that used to
+	/// arrive untested — the end of the input — now fails at the switch before any of them
+	/// exists.
+	/// </para>
+	/// </remarks>
+	int CompileChainedChoice(
+		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
+		FirstSets.First? proven = null)
+	{
+		var last   = alternatives.Count - 1;
+		var run    = LiteralGroup(alternatives, last, following.Plain);
+		var target = run > 0
+			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
+			: Compile(alternatives[last], next, following);
+		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
+
+		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
+		{
+			// Alternatives that are all text need neither. Nothing is written down to
+			// come back to and the position is not moved until one of them has
+			// matched, so where they differ is where the next is tried — which is
+			// what a common prefix is worth, and it is worth it whether or not there
+			// is one.
+			if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
+			{
+				var from = i - here + 1;
+
+				rest   = Begins(alternatives, from, i).Or(rest is null ? FirstSets.First.All : rest);
+				target = CompileLiterals(alternatives, from, i, next, target);
+				i      = from;
+
+				continue;
+			}
+
+			var first = Compile(alternatives[i], next, following);
+			var mine  = Decidable(alternatives[i]);
+			var state = Reserve(out var writer);
+
+			// What is already proven about the character is not asked about again. A
+			// set that covers the proven one holds every character the parse can be
+			// standing on, so its test cannot fire; and with both tests gone the bounds
+			// check they sat inside goes too, the switch that let the parse in having
+			// already made it.
+			//
+			// The accumulators keep the unelided sets — they say what is *known* at the
+			// next alternative, which eliding a test does not change. `_dispatchers`
+			// takes the elided one, because `Skipped` jumps from a test and there is
+			// none to jump from.
+			var asked  = proven is { } sure    && mine is { } opens && opens.Covers(sure)   ? null : mine;
+			var others = proven is { } settled && rest is { } later && later.Covers(settled) ? null : rest;
+
+			// One character can say two things here, and each saves something
+			// different. That this alternative cannot begin here saves going into it;
+			// that none of the ones after it can saves the entry that would have let
+			// the parse come back for them.
+			//
+			// Both are kept because both were measured. Keeping only the second — on
+			// the reasoning that the first merely repeats the test the alternative
+			// makes anyway — came out level with doing neither: what going in costs
+			// is not the character test but everything around it, the frame and the
+			// setup of a rule that was never going to match.
+			//
+			// Neither is `Predictive`, which needs every alternative told apart from
+			// every other. This asks about one at a time and takes what it is given.
+			// And only at a character there is: at the end of the input nothing is
+			// asked and the entry is written, which is what always happened.
+			if (asked is not null || others is not null)
+			{
+				_usesChar = true;
+
+				using (writer.Block("if ((uint)p < (uint)text.Length)"))
+				{
+					writer.Line("c = text[p];");
+
+					// Not to the next alternative's own test but past it, wherever
+					// that test is one this jump has already answered. Reaching it
+					// means `c` is outside this alternative's set, so a next one
+					// whose set is inside this one asks a question with a known
+					// answer and jumps straight on — which was two states and two
+					// reads of the same character to arrive where one goes now.
+					//
+					// The way back written below is untouched, and not because
+					// nothing is known there — something is. It is pushed only on
+					// the path this test let through, so whatever resumes at it
+					// resumes with `c` inside this alternative's set, and the link
+					// it names asks a question it could answer. What stops the same
+					// trick there is the other way in: the entry is pushed at the
+					// end of the input too, where no test ran, and that path goes
+					// through the link rather than past it. Skipping it would drop a
+					// failure the parse reports, so `expected` would change even
+					// though what is accepted would not. Left, with the trap named
+					// (docs/next.md).
+					if (asked is { } begins)
+						writer.Line($"if (!({RangesTest(begins.Ranges, Tabulate)})) goto {Label(writer, Skipped(begins, target))};");
+
+					// The second is read knowing the first did not fire, where there
+					// was a first: `c` is in this alternative's own set by then, so
+					// what is being asked is whether that set holds anything outside
+					// the later ones'. Written as it stood, the two ignored each
+					// other and said things that could not be true — `if (!(c ==
+					// 'h')) goto X; if (!(c == 'h' || c == 'f')) goto Y;`, where the
+					// second cannot fire at all.
+					if (others is { } after)
+					{
+						if (asked is not { } known)
+							writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
+						else if (!known.Overlaps(after))
+							writer.Line($"goto {Label(writer, first)};");     // always fires
+						else if (!after.Covers(known))               // never fires: not written
+							writer.Line($"if (!({RangesTest(after.Ranges, Tabulate)})) goto {Label(writer, first)};");
+					}
+				}
+			}
+
+			writer.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
+				"repeat, lookahead, 0));");
+			writer.Line($"Trace(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
+			writer.Line($"goto {Label(writer, first)};");
+
+			if (asked is not null)
+				_dispatchers[state] = (asked, target);
+
+			target = state;
+			rest   = mine is null || rest is null ? null : mine.Or(rest);
+		}
+
+		return target;
+	}
+
+	/// <summary>
+	/// A choice entered through a switch on its first character.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The chain <see cref="CompileChainedChoice"/> writes asks the alternatives one group
+	/// at a time — <see cref="Skipped"/> makes a failed character test jump past everything
+	/// that begins the same way — so a list of sixty keywords costs twenty-six tests to
+	/// refuse. This asks once. The switch is over a partition
+	/// (<see cref="Dispatchable"/>), so the group it lands in holds every alternative that
+	/// could match here and the ones it skips could not have.
+	/// </para>
+	/// <para>
+	/// It is also what makes the groups themselves cheaper. The switch proves both halves
+	/// of what each alternative in a group was testing — that there is a character, and
+	/// that it is this one's — so neither the bounds check nor the first-character test is
+	/// written inside the group at all. A group of eight keywords loses eight of each.
+	/// </para>
+	/// <para>
+	/// What is expected here is every alternative, spelled out. The chain would have named
+	/// only the ones it actually entered, which is a subset that depends on where the
+	/// skipping stopped; naming all of them is both the simpler rule and the more useful
+	/// message — a reader who wrote <c>SELCT</c> wants the list of words, not the set of
+	/// letters one may start with.
+	/// </para>
+	/// </remarks>
+	int CompileDispatchedChoice(
+		IReadOnlyList<Node> alternatives,
+		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
+		int next,
+		FollowSets.Continuation following)
+	{
+		var heads = new int[groups.Count];
+
+		for (var i = 0; i < groups.Count; i++)
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
+
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected([.. alternatives.Select(alternative => alternative.ToString())]);
+
+		_usesChar = true;
+
+		writer.Line("if ((uint)p >= (uint)text.Length)");
+		using (writer.Block(""))
+		{
+			if (_starves)
+				writer.Line("failure.Starved = true;");
+
+			EmitTerminalFailure(writer, _fail, arrayName);
+		}
+
+		writer.Line("c = text[p];");
+
+		using (writer.Block("switch (c)"))
+		{
+			for (var i = 0; i < groups.Count; i++)
+			{
+				var labels = "";
+
+				foreach (var range in groups[i].Set.Ranges)
+					for (var c = range.From; ; c++)
+					{
+						labels += $"case {CSharpEmitter.Char(c)}: ";
+
+						if (c == range.To)
+							break;
+					}
+
+				writer.Line($"{labels}goto {Label(writer, heads[i])};");
+			}
+		}
+
+		// No `default:` — falling out of the switch is the default, and it is here.
+		EmitTerminalFailure(writer, _fail, arrayName);
+
+		return state;
+	}
+
 	int CompilePredictedChoice(
 		IReadOnlyList<Node> alternatives, string[] tests, int next, FollowSets.Continuation following)
 	{
@@ -2918,8 +3458,8 @@ sealed partial class Machine
 
 		for (var i = 0; i < targets.Length; i++)
 			writer.Line(advanced[i]
-				? $"if ({tests[i]}) {{ p++; goto {Label(targets[i])}; }}"
-				: $"if ({tests[i]}) goto {Label(targets[i])};");
+				? $"if ({tests[i]}) {{ p++; goto {Label(writer, targets[i])}; }}"
+				: $"if ({tests[i]}) goto {Label(writer, targets[i])};");
 
 		EmitTerminalFailure(writer, _fail, arrayName);
 
@@ -3114,11 +3654,11 @@ sealed partial class Machine
 
 		writer.Line($"if (p > {floor})");
 		writer.Then(
-			$"entries.Add(new ParserEntry(ParserEntry.Run, {next}, {floor}, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
 
-		writer.Line($"Trace(\"run\", {next}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, next)};");
 
 		return state;
 	}
@@ -3166,6 +3706,7 @@ sealed partial class Machine
 		node switch
 		{
 			Node.Empty or Node.Behind => true,
+			Node.Glue                 => true,
 			Node.Element              => true,
 			Node.Literal(var text)    => text.Length == 1,
 			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
@@ -3188,7 +3729,7 @@ sealed partial class Machine
 			foreach (var local in resetLocals)
 				writer.Line($"{local} = -1;");
 
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"goto {Label(writer, next)};");
 
 		_turns.Add((depth, state));
 
@@ -3245,7 +3786,7 @@ sealed partial class Machine
 
 			if (!direct)
 				atLoop.Line($"turn{mine} = p;");
-			atLoop.Line($"goto {Label(inner)};");
+			atLoop.Line($"goto {Label(atLoop, inner)};");
 
 			target = loop;
 		}
@@ -3263,7 +3804,7 @@ sealed partial class Machine
 
 				if (!direct)
 					atBegan.Line($"turn{mine} = p;");
-				atBegan.Line($"goto {Label(target)};");
+				atBegan.Line($"goto {Label(atBegan, target)};");
 
 				target = began;
 			}
@@ -3292,7 +3833,7 @@ sealed partial class Machine
 		// three of them in a row are eight readings of the same failure. The mechanism
 		// already handles a bounded loop — the count-exit marks the standing exit spent —
 		// so nothing excludes them.
-		var settled = NeverGivesBack(repeatNode, following);
+		var settled = Determinism.NeverGivesBack(repeatNode, following, _graph, _seam);
 
 		// A settled optional whose body one character decides needs no arena at all. The
 		// character says whether the body is entered; entered, it must finish, because
@@ -3310,10 +3851,10 @@ sealed partial class Machine
 			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atTest.Line("c = text[p];");
-				atTest.Line($"if ({RangesTest(begins.Ranges)}) goto {Label(entered)};");
+				atTest.Line($"if ({RangesTest(begins.Ranges, Tabulate)}) goto {Label(atTest, entered)};");
 			}
 
-			atTest.Line($"goto {Label(next)};");
+			atTest.Line($"goto {Label(atTest, next)};");
 
 			return state;
 		}
@@ -3341,8 +3882,8 @@ sealed partial class Machine
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {loop}, p, entries.Count{Traced});");
-		atEntry.Line($"goto {Label(loop)};");
+		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
+		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		if (settled || min > 0 || max is not null)
 		{
@@ -3352,7 +3893,7 @@ sealed partial class Machine
 		}
 
 		if (max is { } limit)
-			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(exit)};");
+			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(atLoop, exit)};");
 
 		if (settled)
 		{
@@ -3363,13 +3904,13 @@ sealed partial class Machine
 			using (atLoop.Block(min == 0 ? "" : $"if (repeating.Value >= {min})"))
 			{
 				atLoop.Line(
-					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {exit}, p, call, atomic, " +
+					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {Resuming(atLoop, exit)}, p, call, atomic, " +
 					"repeat, lookahead, 0));");
 				atLoop.Line(
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
 					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
 					"repeating.LookaheadIndex, repeating.Value, p);");
-				atLoop.Line($"Trace(\"stand exit\", {exit}, p, entries.Count{Traced});");
+				atLoop.Line($"Trace(\"stand exit\", {Mark(Lands, exit)}, p, entries.Count{Traced});");
 			}
 		}
 		else if (min == 0)
@@ -3378,11 +3919,11 @@ sealed partial class Machine
 		{
 			atLoop.Line($"if (repeating.Value >= {min})");
 			atLoop.Then(
-				$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, " +
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, exit)}, p, call, atomic, repeat, " +
 				"lookahead, 0));");
 		}
 
-		atLoop.Line($"goto {Label(inner)};");
+		atLoop.Line($"goto {Label(atLoop, inner)};");
 
 		// The count is only ever read to decide whether a bound has been reached. An
 		// unbounded repetition with nothing to reach has no such decision to make, and
@@ -3408,7 +3949,7 @@ sealed partial class Machine
 				"lookahead, 0));");
 		}
 
-		atAfter.Line($"goto {Label(loop)};");
+		atAfter.Line($"goto {Label(atAfter, loop)};");
 
 		// Out through the count rather than through the standing exit, which is the one
 		// path that leaves it standing and valid. Marked spent, or a failure after the
@@ -3434,7 +3975,7 @@ sealed partial class Machine
 		// must not match empty: taking nothing and matching nothing differ by exactly
 		// the records §10 tells apart, and only the first may be chosen here.
 		var barred = Decidable(body) is { } heads
-			? RangesTest(heads.Ranges)
+			? RangesTest(heads.Ranges, Tabulate)
 			: !FirstSets.Nullable(body, _graph)
 				? EntryTest(body)
 				: null;
@@ -3448,10 +3989,10 @@ sealed partial class Machine
 			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
 			{
 				atProbe.Line("c = text[p];");
-				atProbe.Line($"if ({could}) goto {Label(entry)};");
+				atProbe.Line($"if ({could}) goto {Label(atProbe, entry)};");
 			}
 
-			atProbe.Line($"goto {Label(next)};");
+			atProbe.Line($"goto {Label(atProbe, next)};");
 
 			return probed;
 		}
@@ -3482,7 +4023,7 @@ sealed partial class Machine
 
 			case Node.Element element:
 			{
-				var test = CSharpEmitter.Test(element);
+				var test = CSharpEmitter.Test(element, Tabulate);
 
 				return test == "false" ? null : test;
 			}
@@ -3533,7 +4074,7 @@ sealed partial class Machine
 
 				foreach (var part in parts)
 				{
-					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard)
+					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard or Node.Glue)
 						continue;
 
 					if (EntryTest(part, seen) is not { } head)
@@ -3581,8 +4122,8 @@ sealed partial class Machine
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
-		writer.Line($"Trace(\"leave repeat\", {next}, p, entries.Count{Traced});");
-		writer.Line($"goto {Label(next)};");
+		writer.Line($"Trace(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, next)};");
 	}
 
 	int ValueRule(RuleSymbol rule) =>
@@ -3596,6 +4137,65 @@ sealed partial class Machine
 	/// laying the states out in execution order made common — so this has to be worked out
 	/// against the same order rather than against the bodies as compiled.
 	/// </remarks>
+	/// <summary>
+	/// Every label a render writes, worked out once for the machine rather than once per
+	/// part.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The four sets that go into it are all facts about the finished bodies and the
+	/// finished layout — the jumps a body still holds, the states the dispatch lands on,
+	/// the ones named from outside it, and the ones a part is entered at. None is a fact
+	/// about which part is being written, so the answer is the same every time and was
+	/// found again every time, with a regex over every body.
+	/// </para>
+	/// <para>
+	/// Keyed by <paramref name="dispatched"/> rather than assumed constant: a machine
+	/// renders its engine and the lowered recognizers beside it, and those two answer it
+	/// differently. Cleared where the bodies change, which is <see cref="PlanLayout"/>.
+	/// </para>
+	/// </remarks>
+	HashSet<int> NamedForRender(bool dispatched)
+	{
+		if (_namedForRender is { } held && _namedDispatched == dispatched)
+			return held;
+
+		var named = Named();
+
+		if (dispatched)
+			foreach (var state in Dispatched())
+				named.Add(Numbered(state));
+
+		// Named from outside the state bodies — a checkpoint site's retries, which only
+		// the dispatcher below `Fail:` jumps to, and a flat method's entry where the
+		// layout did not put it first.
+		foreach (var state in _namedOutside)
+			named.Add(Numbered(state));
+
+		// A part is entered at its own label, and the jump that used to name it is a
+		// departure now — so nothing inside the text names it any more, and the chain the
+		// layout threaded runs across the cut where the jump was dropped for being the next
+		// line. Both leave a state the dispatch jumps to with no label to jump to.
+		//
+		// Only where there is a dispatch to jump from. `Divided` is a fact about this
+		// machine's engine, and a lowered recognizer written beside it is one method with
+		// no dispatch and no parts — so the states the engine's dispatch reaches name
+		// nothing here, and labelling them writes labels nobody jumps to. That is a
+		// warning in a consumer's build and an error in one that treats warnings as
+		// errors, and it only appears once a grammar is divided finely enough for a
+		// dispatched state to fall inside a flat method's own run.
+		if (dispatched && Divided)
+			foreach (var one in Dispatching())
+				named.Add(Numbered(one.Key));
+
+		_namedDispatched = dispatched;
+
+		return _namedForRender = named;
+	}
+
+	HashSet<int>? _namedForRender;
+	bool          _namedDispatched;
+
 	HashSet<int> Named()
 	{
 		var named = new HashSet<int>();
@@ -3603,7 +4203,7 @@ sealed partial class Machine
 		for (var written = 0; written < _order.Count; written++)
 		{
 			var body = _bodies[_order[written]];
-			var next = written + 1 < _order.Count ? _order[written + 1] + First : -1;
+			var next = written + 1 < _order.Count ? Number(_order[written + 1] + First) : -1;
 			var tail = Tail(body);
 
 			foreach (Match match in Gotos.Matches(body))
@@ -3859,9 +4459,20 @@ sealed partial class Machine
 		}
 	}
 
-	static void Sharpen(Writer writer, string value)
+	/// <summary>Whether every character is ASCII, which is where ordinal folding agrees
+	/// with per-character `ToUpperInvariant`.</summary>
+	static bool Ascii(string value)
 	{
-		writer.Line($"if ({At(0)} == {CSharpEmitter.Char(value[0])})");
+		foreach (var character in value)
+			if (character > 0x7F)
+				return false;
+
+		return true;
+	}
+
+	static void Sharpen(Writer writer, string value, bool ignoreCase = false)
+	{
+		writer.Line($"if ({Folded(At(0), ignoreCase)} == {Folded(value[0], ignoreCase)})");
 
 		if (value.Length == 2)
 		{
@@ -3874,7 +4485,9 @@ sealed partial class Machine
 		{
 			for (var i = 1; i < value.Length - 1; i++)
 			{
-				writer.Line($"{(i == 1 ? "if" : "else if")} ({At(i)} != {CSharpEmitter.Char(value[i])})");
+				writer.Line(
+					$"{(i == 1 ? "if" : "else if")} " +
+					$"({Folded(At(i), ignoreCase)} != {Folded(value[i], ignoreCase)})");
 				writer.Then($"p += {i};");
 			}
 
@@ -3883,13 +4496,35 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>A character read, folded where the literal ignores case.</summary>
+	static string Folded(string read, bool ignoreCase) =>
+		ignoreCase ? $"global::System.Char.ToUpperInvariant({read})" : read;
+
+	/// <summary>And the constant it is compared against, folded the same way.</summary>
+	static string Folded(char value, bool ignoreCase) =>
+		CSharpEmitter.Char(ignoreCase ? char.ToUpperInvariant(value) : value);
+
 	int Reserve(out Writer writer)
 	{
 		writer = new Writer(0);
 		_states.Add(writer);
+		_edges.Add(writer, new Edges());
 
 		return _states.Count - 1 + First;
 	}
+
+	/// <summary>
+	/// Whether a tail reads nothing at all — guards, factories, <c>none</c> — so that a
+	/// committed choice of such tails can be compiled as a plain decision. The emitter's
+	/// answer to the shape the fold's <c>Committed</c> builds, asked of the same tails.
+	/// </summary>
+	static bool Weightless(Node node) => node switch
+	{
+		Node.Empty or Node.Guard    => true,
+		Node.Construct(var body, _) => Weightless(body),
+		Node.Sequence(var parts)    => parts.All(Weightless),
+		_                           => false,
+	};
 
 	bool KeepsRecords(Node body)
 	{
@@ -3919,6 +4554,144 @@ sealed partial class Machine
 	/// other per-occurrence `Reserve`, and for the same reason: two occurrences of `'a'`
 	/// in different places are two different things that can fail.
 	/// </remarks>
+	/// <summary>
+	/// The table a character class is read from, or null where it is written out instead.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only for a class within <see cref="TableSize"/>, which is what makes the table a few
+	/// hundred bytes and the guard one comparison. A class reaching past that would need either a table too
+	/// large to be worth it or a second test for the tail, and the classes that do — a
+	/// Unicode category, an inverted class — are not the ones that cost the most branches.
+	/// </para>
+	/// <para>
+	/// A plain array rather than a <c>ReadOnlySpan&lt;byte&gt;</c> over a literal: the span
+	/// form is the one that costs no allocation, but it leans on the RVA lowering, and the
+	/// floor this emits for (§netstandard2.0) is not where that can be relied on. One
+	/// array per distinct class, built once.
+	/// </para>
+	/// </remarks>
+	string? Tabulate(IReadOnlyList<CharRange> ranges)
+	{
+		if (ranges.Count < Tabulated)
+			return null;
+
+		var table = new byte[TableSize];
+
+		foreach (var range in ranges)
+		{
+			if (range.To >= TableSize)
+				return null;
+
+			for (int c = range.From; c <= range.To; c++)
+				table[c] = 1;
+		}
+
+		var items = string.Join(",", table);
+
+		if (_classesByRanges.TryGetValue(items, out var already))
+		{
+			_classesUsed.Add(already);
+
+			return already;
+		}
+
+		var name = $"Recognize_DotGram{_tag}_Class" + _classCount++;
+
+		_classesByRanges[items] = name;
+		_classesUsed.Add(name);
+		_classes.Add((name, $"static readonly byte[] {name} = {{ {items} }};"));
+
+		return name;
+	}
+
+	/// <summary>
+	/// The name of an array holding a set's ranges, for a set too wide to write out and too
+	/// wide to tabulate.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A Unicode category is a few hundred ranges. Written out it is a page of comparisons,
+	/// which is why the analyses declined to render one at all and every alternative
+	/// beginning with an identifier went unpredicted — the set was exact and the spelling was
+	/// the problem. Held as bounds and searched, any set is one call however wide it is.
+	/// </para>
+	/// <para>
+	/// Bounds in pairs and a binary search over them: a hundred ranges is seven steps, on a
+	/// path that is taken once per alternative rather than once per character. The table is
+	/// still the better answer where the set fits in it, and this is what the ones that do
+	/// not get instead of nothing.
+	/// </para>
+	/// </remarks>
+	string Wide(IReadOnlyList<CharRange> ranges)
+	{
+		var bounds = new List<string>(ranges.Count * 2);
+
+		foreach (var range in ranges)
+		{
+			bounds.Add(CSharpEmitter.Char(range.From));
+			bounds.Add(CSharpEmitter.Char(range.To));
+		}
+
+		var items = string.Join(", ", bounds);
+
+		if (_setsByRanges.TryGetValue(items, out var already))
+		{
+			_classesUsed.Add(already);
+
+			return already;
+		}
+
+		var name = $"Recognize_DotGram{_tag}_Set" + _setCount++;
+
+		_setsByRanges[items] = name;
+		_classesUsed.Add(name);
+		_classes.Add((name, $"static readonly char[] {name} = {{ {items} }};"));
+
+		if (_classesUsed.Add(Search))
+			_classes.Add((Search, SearchMethod));
+
+		return name;
+	}
+
+	string Search => $"Recognize_DotGram{_tag}_In";
+
+	/// <summary>Whether a character stands in one of a set's ranges.</summary>
+	string SearchMethod =>
+		$"static bool {Search}(char[] set, char c)\n" +
+		"{\n" +
+		"\tvar low  = 0;\n" +
+		"\tvar high = set.Length / 2 - 1;\n" +
+		"\n" +
+		"\twhile (low <= high)\n" +
+		"\t{\n" +
+		"\t\tvar mid = (low + high) / 2;\n" +
+		"\n" +
+		"\t\tif (c < set[mid * 2])\n" +
+		"\t\t\thigh = mid - 1;\n" +
+		"\t\telse if (c > set[mid * 2 + 1])\n" +
+		"\t\t\tlow = mid + 1;\n" +
+		"\t\telse\n" +
+		"\t\t\treturn true;\n" +
+		"\t}\n" +
+		"\n" +
+		"\treturn false;\n" +
+		"}";
+
+	readonly Dictionary<string, string> _setsByRanges = new(StringComparer.Ordinal);
+
+	int _setCount;
+
+	/// <summary>The test a tabulated class is, over <c>c</c>.</summary>
+	static string TableTest(string name) => $"c <= {TableSize - 1} && {name}[c] != 0";
+
+	/// <summary>
+	/// How far a class table reaches: the whole of Latin-1, which is also where the kinds
+	/// of a token path live — a grammar with more than a hundred reserved words is past
+	/// ASCII there, and a set read from a table is one load where a search is a call.
+	/// </summary>
+	internal const int TableSize = 256;
+
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
 		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));
@@ -3982,7 +4755,7 @@ sealed partial class Machine
 		_expectedUsed.Add(arrayName);
 
 		writer.Line($"expected = {arrayName};");
-		writer.Line($"goto {Label(fail)};");
+		writer.Line($"goto {Label(writer, fail)};");
 	}
 
 	/// <summary>
@@ -3992,15 +4765,15 @@ sealed partial class Machine
 	/// last terminal test set: `Fail:` cannot otherwise tell a stale value from one that
 	/// belongs to this failure.
 	/// </summary>
-	static void EmitFailure(Writer writer, int fail)
+	void EmitFailure(Writer writer, int fail)
 	{
 		writer.Line("expected = null;");
-		writer.Line($"goto {Label(fail)};");
+		writer.Line($"goto {Label(writer, fail)};");
 	}
 
-	static void PushRepeatExit(Writer writer, int exit) =>
+	void PushRepeatExit(Writer writer, int exit) =>
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Choice, {exit}, p, call, atomic, repeat, lookahead, 0));");
+			$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, exit)}, p, call, atomic, repeat, lookahead, 0));");
 
 	static string Label(int state) => state switch
 	{

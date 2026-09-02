@@ -11,3 +11,4 @@ Initial preview for Visual Studio 18.
 - Versioned referenced-assembly descriptors with classification and non-executing
   guard/external-recognizer contracts.
 - The `@` C# transition marker now uses the theme's keyword color.
+- The `~` no-trivia sequence operator is classified and described in Quick Info.

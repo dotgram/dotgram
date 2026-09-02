@@ -40,5 +40,9 @@ Power   : @decimal = value: Primary                                   => @(Raise
 Digits(n) = ['0'..'9']{n}
 Fixed     = Digits(4)
 
+// `~` is a sequence with no trivia seam. It should use the special-symbol color;
+// hovering it should say "sequence without trivia".
+Shift = '>' ~ '>'
+
 // F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate

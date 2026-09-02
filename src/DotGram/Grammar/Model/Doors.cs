@@ -75,7 +75,12 @@ public static class Doors
 			Node.Choice(var alternatives)   => alternatives.Count > 1 ||
 			                                   alternatives.Any(one => LeavesOne(one, doors)),
 			Node.Sequence(var parts)        => parts.Any(part => LeavesOne(part, doors)),
-			Node.Atomic(var body)           => LeavesOne(body, doors),
+			// Nothing comes back into the middle of one: an atomic group commits its
+			// first reading, so a failure that reaches past it has the group to give
+			// back and nowhere inside it to resume. Walking in asks what the braces
+			// have already answered — the same question `Determinism` used to ask of
+			// them and stopped.
+			Node.Atomic                     => false,
 			Node.Marked(var body, _)        => LeavesOne(body, doors),
 			Node.Capture(_, var captured)   => LeavesOne(captured, doors),
 			Node.Construct(var built, _)    => LeavesOne(built, doors),

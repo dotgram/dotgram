@@ -63,35 +63,28 @@ sealed partial class Machine
 		_bodies = new string[_states.Count];
 		_resumed.Clear();
 
+		// Nothing is renumbered while the layout is being decided: every number written or
+		// read back between here and `Renumber` is the one compilation gave it.
+		_numbers  = [];
+		_internal = [];
+
+		_raw = new string[_states.Count];
+
 		for (var i = 0; i < _states.Count; i++)
 		{
-			_bodies[i]   = _states[i].ToString();
+			_raw[i]      = _states[i].ToString();
+			_bodies[i]   = _raw[i];
 			signposts[i] = JumpOnly(_bodies[i]);
 		}
 
-		// Follow each chain of signposts to its end. The guard is against a grammar whose
-		// states point round in a circle, which nothing should produce and which would
-		// otherwise not terminate.
-		_resolved = new int[_states.Count];
+		Resolve(signposts);
+		Rewrite(null);
 
-		for (var i = 0; i < _states.Count; i++)
-		{
-			var at    = i + First;
-			var steps = 0;
-
-			while (at - First is var index and >= 0 &&
-				index < signposts.Length &&
-				signposts[index] is { } onward &&
-				steps++ <= signposts.Length)
-			{
-				at = onward;
-			}
-
-			_resolved[i] = at;
-		}
-
-		for (var i = 0; i < _bodies.Length; i++)
-			_bodies[i] = Redirect(_bodies[i]);
+		// Collapsing one state into another can leave two more saying the same thing, so
+		// this runs until it stops finding any. It converges because a state is only ever
+		// pointed at an earlier one.
+		while (Merge(signposts))
+			Rewrite(Resolve(signposts));
 
 		// What is left is what can still be got to. A rule compiled into every one of its
 		// callers is called from nowhere, and its own copy — entry, body and all — is text
@@ -120,18 +113,17 @@ sealed partial class Machine
 
 			reachable[index] = true;
 
-			foreach (Match match in Gotos.Matches(_bodies[index]))
-				pending.Push(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+			// What the sites that wrote this state said about where it can go. Only a
+			// resumable kind was ever recorded as a resume: the others name a capture slot
+			// or a factory, and there is nothing here to mistake one for the other.
+			var edges = Recorded(index);
 
-			foreach (Match match in Resumes.Matches(_bodies[index]))
+			foreach (var target in edges.Jumps)
+				pending.Push(Resolved(target));
+
+			foreach (var target in edges.Resumes)
 			{
-				// Only a resumable kind names a state there. The others name a capture slot
-				// or a factory, and reading one as a state kept whatever state happened to
-				// share its number alive — text nothing could reach.
-				if (!MeansAState(match.Groups[1].Value))
-					continue;
-
-				var resumed = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+				var resumed = Resolved(target);
 
 				_resumed.Add(resumed);
 				pending.Push(resumed);
@@ -170,18 +162,14 @@ sealed partial class Machine
 				// it can reach is a chain of its own, started once this one runs out.
 				var tail = Tail(_bodies[at]) is { } ends ? Resolved(ends) : (int?)null;
 
-				foreach (Match match in Gotos.Matches(_bodies[at]))
-				{
-					var target = Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+				var edges = Recorded(at);
 
-					if (target != tail)
+				foreach (var jump in edges.Jumps)
+					if (Resolved(jump) is var target && target != tail)
 						waiting.Push(target);
-				}
 
-				foreach (Match match in Resumes.Matches(_bodies[at]))
-					if (MeansAState(match.Groups[1].Value))
-						waiting.Push(
-							Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)));
+				foreach (var resume in edges.Resumes)
+					waiting.Push(Resolved(resume));
 
 				at = tail is { } onward ? onward - First : -1;
 			}
@@ -194,6 +182,254 @@ sealed partial class Machine
 				_order.Add(i);
 
 		_written = reachable;
+
+		// Now that it is settled which states are written and in what order, they are given
+		// the numbers they are written under — and every body is settled again to say them.
+		Renumber();
+		Rewrite(null);
+
+		PlanParts();
+
+		// Everything worked out from the finished bodies and the finished parts is worked
+		// out once and held; this is the one moment either of those changes. A machine
+		// plans a layout for its engine and again for each lowered recognizer beside it,
+		// so the answers do not survive between them.
+		_dispatched    = null;
+		_dispatching   = null;
+		_namedForRender = null;
+	}
+
+	/// <summary>The number a state is written under, by its index.</summary>
+	int[] _numbers = [];
+
+	/// <summary>And the state a written number is, which is the same map read backwards.</summary>
+	int[] _internal = [];
+
+	/// <summary>
+	/// Gives the states the numbers they are written under: the order they are written in.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Compilation reserves a state whenever it needs somewhere to come back to and numbers
+	/// them as it goes, so the numbers are dealt out before anything is known about which
+	/// states survive. Layout then collapses the signposts and drops whatever nothing can
+	/// reach — three states in five, across the grammars here — and the numbers that are
+	/// left are what a sieve leaves: `Rfc3986` wrote 532 states numbered up to 1304.
+	/// </para>
+	/// <para>
+	/// What that costs is the dispatch. It is a <c>switch</c> over the numbers something can
+	/// resume at, and over holes like those the C# compiler cannot lay one jump table: it
+	/// bisects instead, and where the table is written in parts it bisects a second time
+	/// inside each of them. Numbered in written order the same set is contiguous, each part
+	/// is a run of it, and both switches become what a run of consecutive labels compiles
+	/// to — a bounds check and an index.
+	/// </para>
+	/// <para>
+	/// A pure renaming: only the numbers change, and every one of them is written by
+	/// <see cref="Settle"/> from a mark holding the state it was compiled as. Nothing outside
+	/// this file needs to know the difference, and <see cref="Numbered"/> is how the wrappers
+	/// ask for it.
+	/// </para>
+	/// </remarks>
+	void Renumber()
+	{
+		_numbers  = new int[_states.Count];
+		_internal = new int[_states.Count];
+
+		var given = 0;
+
+		foreach (var index in _order)
+		{
+			_numbers[index]  = given + First;
+			_internal[given] = index;
+
+			given++;
+		}
+
+		// Everything else is a signpost or unreachable, and no state that is written names
+		// one — so these numbers reach no file. They are dealt out all the same, because a
+		// map with a hole in it is a map that answers wrongly rather than not at all.
+		for (var index = 0; index < _states.Count; index++)
+			if (_numbers[index] == 0)
+			{
+				_numbers[index]  = given + First;
+				_internal[given] = index;
+
+				given++;
+			}
+	}
+
+	/// <summary>The number a state is written under.</summary>
+	/// <remarks>
+	/// The three fixed states are below <see cref="First"/> and are not renamed: they are
+	/// not states of the table but the three ways out of it.
+	/// </remarks>
+	int Number(int state) =>
+		state - First is var index && index >= 0 && index < _numbers.Length ? _numbers[index] : state;
+
+	/// <summary>And the state a number written in the file is.</summary>
+	int Denumber(int number) =>
+		number - First is var index && index >= 0 && index < _internal.Length
+			? _internal[index] + First
+			: number;
+
+	/// <summary>
+	/// What something outside the table has to say to arrive at a state: where the state
+	/// really is, under the number it is written with.
+	/// </summary>
+	public int Numbered(int state) => Number(Resolved(state));
+
+	/// <summary>The numbers a set of states is written under, ascending.</summary>
+	List<int> Numbering(IEnumerable<int> states)
+	{
+		var numbers = new List<int>();
+
+		foreach (var state in states)
+			numbers.Add(Number(state));
+
+		numbers.Sort();
+
+		return numbers;
+	}
+
+	/// <summary>The same, for the states of one part — which is a run of them.</summary>
+	List<int> Numbering(SortedDictionary<int, int> cases, int part)
+	{
+		var numbers = new List<int>();
+
+		foreach (var one in cases)
+			if (one.Value == part)
+				numbers.Add(Number(one.Key));
+
+		numbers.Sort();
+
+		return numbers;
+	}
+
+	/// <summary>
+	/// Points every state that does exactly what an earlier one does at that earlier one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Compilation writes a rule's shape wherever the rule is used, so the same few lines
+	/// come out over and over with only the states around them differing. Once redirection
+	/// has been over the bodies those differences are gone as well, and what is left is the
+	/// same block written many times. A state cannot know that: it is written by whichever
+	/// site needed it, and no site can see the others. It takes the whole table at once, and
+	/// this is the first thing here that is an optimization rather than a tidying.
+	/// </para>
+	/// <para>
+	/// Two conditions, and the second is the one that is easy to miss. The bodies have to be
+	/// the same text, which after redirection means they do the same thing — every state
+	/// either names is the state it really is, and everything else was already literal. And
+	/// the body has to end by jumping somewhere, because a body that can fall out of itself
+	/// does not say where it goes: what follows it is a matter of layout, two states that
+	/// read the same can be laid out before different things, and merging them would send
+	/// one of them somewhere it never went.
+	/// </para>
+	/// </remarks>
+	bool Merge(int?[] signposts)
+	{
+		var first  = new Dictionary<string, int>(StringComparer.Ordinal);
+		var merged = false;
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			// A signpost is on its way somewhere else already.
+			if (signposts[i] is not null || Tail(_bodies[i]) is null)
+				continue;
+
+			if (first.TryGetValue(_bodies[i], out var same))
+			{
+				signposts[i] = same + First;
+				merged       = true;
+			}
+			else
+			{
+				first.Add(_bodies[i], i);
+			}
+		}
+
+		return merged;
+	}
+
+	/// <summary>
+	/// Follows each chain of signposts to its end, so that every state says where it really
+	/// is.
+	/// </summary>
+	/// <remarks>
+	/// The guard is against a grammar whose states point round in a circle, which nothing
+	/// should produce and which would otherwise not terminate.
+	/// </remarks>
+	HashSet<int> Resolve(int?[] signposts)
+	{
+		var before = _resolved;
+
+		_resolved = new int[_states.Count];
+
+		for (var i = 0; i < _states.Count; i++)
+		{
+			var at    = i + First;
+			var steps = 0;
+
+			while (at - First is var index and >= 0 &&
+				index < signposts.Length &&
+				signposts[index] is { } onward &&
+				steps++ <= signposts.Length)
+			{
+				at = onward;
+			}
+
+			_resolved[i] = at;
+		}
+
+		var moved = new HashSet<int>();
+
+		for (var i = 0; i < _resolved.Length; i++)
+			if (i >= before.Length || before[i] != _resolved[i])
+				moved.Add(i + First);
+
+		return moved;
+	}
+
+	/// <summary>What each state was written as, before any of it was redirected.</summary>
+	string[] _raw = [];
+
+	/// <summary>
+	/// The bodies that name a state which has moved, written again to name where it moved to.
+	/// </summary>
+	/// <remarks>
+	/// Redirection is two passes of a regular expression over a body, and merging asks for it
+	/// again every time it collapses anything — so doing it to every body each round is most
+	/// of the cost of merging and almost all of it is wasted. What a body names is recorded,
+	/// so the ones that have to be written again can be asked for by name.
+	/// </remarks>
+	/// <remarks>
+	/// <paramref name="moved"/> null is every body, which the first pass has to be: a body
+	/// whose only named state is <c>Return</c> names nothing that can move, and selecting on
+	/// what moved would leave its marks standing — in the file, where a mark is not C#.
+	/// </remarks>
+	void Rewrite(HashSet<int>? moved)
+	{
+		for (var i = 0; i < _states.Count; i++)
+			if (moved is null || Names(i, moved))
+				_bodies[i] = Settle(_raw[i]);
+	}
+
+	/// <summary>Whether a state names any of them.</summary>
+	bool Names(int index, HashSet<int> moved)
+	{
+		var edges = Recorded(index);
+
+		foreach (var jump in edges.Jumps)
+			if (moved.Contains(jump))
+				return true;
+
+		foreach (var resume in edges.Resumes)
+			if (moved.Contains(resume))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -206,7 +442,12 @@ sealed partial class Machine
 	/// a slot in the jump table and a jump stub that nothing can execute. Across every
 	/// grammar in this repository that was 82% of the table — 677 cases of 735 in `Url`.
 	/// </remarks>
-	IEnumerable<int> Dispatched()
+	IEnumerable<int> Dispatched() => _dispatched ??= [.. DispatchedNow()];
+
+	/// <summary>The same, held: three places ask and two of them ask once per part.</summary>
+	IReadOnlyList<int>? _dispatched;
+
+	IEnumerable<int> DispatchedNow()
 	{
 		// Nothing said where the parse begins, so anything could be a beginning. `PlanLayout`
 		// kept every state for that same reason; the dispatch has to be able to land on every
@@ -214,17 +455,26 @@ sealed partial class Machine
 		// recognizer for each of its rules rather than for what was asked for.
 		if (_roots.Count == 0)
 		{
+			var all = new SortedSet<int>();
+
 			for (var i = 0; i < _states.Count; i++)
-				if (Written(Resolved(i + First)))
-					yield return i + First;
+				if (Resolved(i + First) is var landed && Written(landed))
+					all.Add(landed);
+
+			foreach (var state in all)
+				yield return state;
 
 			yield break;
 		}
 
-		// The roots are named from outside and are named unresolved, which is how the
-		// wrapper passes them; everything else was read back out of a body that Redirect
-		// had already been over.
-		var live = new SortedSet<int>(_roots);
+		// Resolved, and so is everything else here: what a state resolves to is where it
+		// really is, two roots may resolve to the same place, and a case for a signpost is a
+		// case for a state that is not written. <see cref="Numbered"/> is how the wrappers
+		// say the same thing from outside.
+		var live = new SortedSet<int>();
+
+		foreach (var root in _roots)
+			live.Add(Resolved(root));
 
 		foreach (var state in _resumed)
 			live.Add(state);
@@ -233,7 +483,7 @@ sealed partial class Machine
 			// Below `First` are the three fixed cases, which are written whatever happens —
 			// a rule's own continuation is `Return`, so entries name them — and the two
 			// kinds that carry a nesting count rather than a state, which is always 0.
-			if (state >= First && Written(Resolved(state)))
+			if (state >= First && Written(state))
 				yield return state;
 	}
 
@@ -290,7 +540,11 @@ sealed partial class Machine
 		return null;
 	}
 
-	/// <summary>The state a single <c>goto</c> statement names, by label or by number.</summary>
+	/// <summary>The state a single <c>goto</c> statement names, by mark, label or number.</summary>
+	/// <remarks>
+	/// Both spellings, because both are asked: a body is read before it has been settled,
+	/// where the state it names is a mark, and again afterwards, where it is the name.
+	/// </remarks>
 	static int? Jump(string statement)
 	{
 		if (!statement.StartsWith("goto ", StringComparison.Ordinal) ||
@@ -300,6 +554,17 @@ sealed partial class Machine
 		}
 
 		var label = statement.Substring("goto ".Length, statement.Length - "goto ".Length - 1);
+
+		if (label.Length > 3 && label[0] == Fence && label[^1] == Fence && label[1] == Jumps)
+		{
+			return int.TryParse(
+				label.Substring(2, label.Length - 3),
+				NumberStyles.None,
+				CultureInfo.InvariantCulture,
+				out var marked)
+				? marked
+				: null;
+		}
 
 		return label switch
 		{
@@ -314,101 +579,8 @@ sealed partial class Machine
 		};
 	}
 
-	/// <summary>
-	/// The same text with every state it names replaced by the state that one really is.
-	/// </summary>
-	/// <remarks>
-	/// Two places name a state: a <c>goto</c>, and the second argument of a
-	/// <c>ParserEntry</c>, which is where the parse resumes. The second matters as much as
-	/// the first — a resume point pointing at a signpost pays the dispatch twice.
-	/// </remarks>
-	string Redirect(string body)
-	{
-		body = Gotos.Replace(body, match =>
-			$"goto {Label(Resolved(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)))};");
-
-		return Resumes.Replace(body, match =>
-			!MeansAState(match.Groups[1].Value)
-				? match.Value
-				:
-			$"new ParserEntry(ParserEntry.{match.Groups[1].Value}, " +
-			Resolved(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)) + ",");
-	}
-
 	int Resolved(int state) =>
 		state - First is var index && index >= 0 && index < _resolved.Length ? _resolved[index] : state;
 
 	static readonly Regex Gotos   = new(@"goto S(\d+);", RegexOptions.Compiled);
-	static readonly Regex Resumes = new(@"new ParserEntry\(ParserEntry\.(\w+), (\d+),", RegexOptions.Compiled);
-
-	/// <summary>The entry kinds whose second field is a state, and not something else.</summary>
-	/// <remarks>
-	/// It is not a state in four of them, and rewriting it as one is silent corruption:
-	/// <c>Capture</c> and <c>RuleCapture</c> hold a capture slot there, <c>Construct</c> a
-	/// factory's number and <c>Recovery</c> a recovery's. A slot that happened to equal a
-	/// collapsed state's number came back as that state's, so the value it named was never
-	/// built and the construction was handed a null.
-	///
-	/// Latent until something made a rule's entry state collapsible — the collapse is what
-	/// makes a rewrite happen at all — and found by trying to take a `Trace` call out of one.
-	/// </remarks>
-	/// <summary>What an arena entry's second field means, for each kind there is.</summary>
-	/// <remarks>
-	/// One entry per kind and no default: <see cref="MeansAState"/> throws for a kind nobody
-	/// has decided about. The list this replaces named the eight resumable kinds and said
-	/// nothing about the other ten, so a kind added later carrying a state there would have
-	/// had its target quietly collapse — and one added carrying something else would have
-	/// been read as a state if anyone had put it in by reflex. Two kinds were added this
-	/// week.
-	/// </remarks>
-	enum Second
-	{
-		/// <summary>A state to resume at. These are the ones layout must follow.</summary>
-		State,
-
-		/// <summary>A capture's slot.</summary>
-		Slot,
-
-		/// <summary>Which factory, or which recovery, or which `with state` site.</summary>
-		Choice,
-
-		/// <summary>Nothing that is numbered — a marker, whose second field is always zero.</summary>
-		Nothing,
-	}
-
-	static readonly Dictionary<string, Second> SecondField = new()
-	{
-		["Choice"]          = Second.State,
-		["Call"]            = Second.State,
-		["Lookahead"]       = Second.State,
-		["Completed"]       = Second.State,
-		["Dead"]            = Second.State,
-		["Run"]             = Second.State,
-		["PendingRecovery"] = Second.State,
-		["LoopExit"]        = Second.State,
-
-		["Capture"]         = Second.Slot,
-		["RuleCapture"]     = Second.Slot,
-		["CaptureOpen"]     = Second.Slot,
-
-		["Construct"]       = Second.Choice,
-		["Recovery"]        = Second.Choice,
-		["StateSet"]        = Second.Choice,
-		["StateEnd"]        = Second.Choice,
-
-		["Atomic"]          = Second.Nothing,
-		["Repeat"]          = Second.Nothing,
-		["TurnDone"]        = Second.Nothing,
-	};
-
-	/// <summary>Whether this kind's second field is a state to resume at.</summary>
-	/// <exception cref="InvalidOperationException">Nobody has decided.</exception>
-	static bool MeansAState(string kind) =>
-		SecondField.TryGetValue(kind, out var means)
-			? means == Second.State
-			: throw new InvalidOperationException(
-				$"No decision about what a '{kind}' entry's second field is. Layout rewrites " +
-				"state numbers and follows them; a slot or a factory read as one is silent " +
-				"corruption, and a state not read as one is text nothing can reach " +
-				"(Machine.Layout.cs).");
 }

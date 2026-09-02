@@ -6546,3 +6546,4690 @@ grammar, I kept trying to diagnose it through a suite that could not run, rather
 reproducing the break on a grammar that stands on its own. The dump above earns its place for
 the same reason it was written — it puts the shape where it is read — and not as a way around
 a build.
+
+## Built: a prefix one call down, and the shape that hid it
+
+The case left-factoring was for is not two alternatives sharing an operand. It is one
+alternative whose prefix *is* the other alternative, a call down:
+
+```dotgram
+Primary   = … | c: Call | r: Reference | …
+Call      = target: Reference & '(' & … & ')' => …
+Reference = …
+```
+
+Every bare reference is read twice — once inside the `Call` that then fails for want of a
+bracket, once as itself — and references are most of what a grammar is made of. Nothing where
+the two alternatives are written says so; what says it is `Call`'s own first operand.
+
+So an alternative that does nothing with a call but hand its value on is replaced by the body
+it would have called. That is an equality: the alternative built the rule's value out of the
+callee's value and nothing else, and the callee's body builds the callee's value. The prefix
+is then a prefix where the fold can see it, and the fold decides on its own terms whether
+sharing it is invisible. An inline the fold does not then take is put back — on its own it
+duplicates a body and saves nothing.
+
+Both alternatives have to hand on a call, the two rules and the one holding them have to
+declare the same type, and nothing the body captures may already be captured in the rule it
+moves into.
+
+### The shape that hid it, and what it cost
+
+`CollapseTransparent` writes a forwarding rule's choice into its caller, which leaves one
+`=>` outside a choice rather than one on each alternative — `(p: Call | p: Reference) => @(p)`.
+Nothing matches an alternative there, so the construction is given to each alternative first,
+which says the same thing in the shape the rest of the pass reads.
+
+**And only on a rule's own body.** An alternative that is itself a choice — which is what
+collapsing a forwarding rule into one alternative among several leaves — would become a choice
+of constructions nested inside the choice above it, and the alternatives of a rule are the
+ones at the top. Nothing would ever give those constructions a factory, and nothing did: the
+expression language failed to generate on `Statement`, whose fourth alternative is a collapsed
+`Control`.
+
+That defect took an afternoon the first time and one run the second, which is the whole
+argument for the dump above it. The first attempt was abandoned and reverted; what found it
+was a throwaway tool outside the repository that runs the compiler on a grammar and prints the
+lowered tree — no consumer project, so nothing about a broken parser stops it.
+
+### What it is worth
+
+The generated expression language changes: 645 bytes smaller, and `Primary` most of all. A
+driver test counts what is actually saved, with a `when` rather than a `=>` — construction is
+deferred to acceptance, so a factory runs once however many readings were tried and thrown
+away, while a guard runs while the text is read. Two readings become one, and the longer
+alternative still wins where it fits.
+
+## Built: four widenings of what the fold can reach, and the measurement that did not close
+
+Set out to answer one question with a number — write the notation's own grammar the way §11
+does not oblige anyone to avoid, `Call | Reference` instead of the hand-written `RefOrCall`,
+and see whether the compiler now gives back what the author gave up an afternoon to. It does
+not, yet. Four things were in the way; three of them are gone.
+
+**A rebuild must carry what a node carried.** The pass refused to run on a left-recursive or
+a climbing rule at all, because their shape is named elsewhere by node identity. That is two
+different problems wearing one coat. Rebuilding a node is bookkeeping and `Carry` — the
+registry written for exactly this — answers it, so every rebuild here goes through it now.
+Folding *alternatives* of such a rule is not bookkeeping: an alternative of a climbing rule
+carries a binding power and a step of a fold carries its accumulator's name, facts about that
+alternative which folding a run of them into one would destroy rather than move. So those
+alternatives are refused one at a time, and the rest of the rule is walked.
+
+**A name that is only handed back can be renamed.** One operand survives a fold and the rest
+are dropped, so the survivor's name is what everything in the run will see. An alternative
+that uses another name has to be rewritten, and the case that can be rewritten with certainty
+is the one whose whole `=>` is that name. Anything else names its capture inside C# the author
+wrote, and renaming it would mean editing that text — declined, not attempted.
+
+**A rule reached under a different continuation is a question, not a refusal.** It used to be
+answered no on the grounds that the walk had no answer yet, and that refusal is exactly what a
+real grammar runs into: a reference whose type arguments are optional reaches itself through
+them under a continuation of their own. It is asked now. The walk still terminates for the
+reason the same-question case does — a pair goes on the path before it is walked and comes off
+after, and there are finitely many.
+
+**An atomic group has one reading because that is what atomic means.** `Determinism` looked
+inside the braces, which asks a harder question than the braces already answer, and answered
+it badly wherever the body was a choice or a star. That is every `trivia` written the way §4.5
+recommends — `trivia = { (Space | LineComment | BlockComment)* }` — and so nearly every
+grammar. `Name = Identifier & ('.' & Identifier)*` went from unprovable to determinate on this
+one line.
+
+### Where it still stops
+
+`Reference` in the notation's grammar is still not proved to have one reading, through
+`Reference → TypeArgs → Type → Reference`. Two of the links in that chain were the two
+findings above; at least one more is in there. The corpus barely moves — 782,412 bytes of
+expression language against 782,408 before these four and 783,053 with the pass off — which is
+the honest shape of it: these widen what can be proved rather than what happens to be there.
+
+The number the exercise was for is still owed. What it took to get this far is written down
+so the next attempt starts from the chain rather than from the beginning.
+
+## Built: the comparison is made past the trivia both sides read
+
+The chain the previous entry left open — `Reference → TypeArgs → Type → Reference` — had one
+more link, and bisection named it exactly. A cut-down grammar folds; add `trivia` and it stops;
+take the inner repetition out of `TypeArgs` and it folds again:
+
+```dotgram
+TypeArgs = '<' & Type & (',' & Type)* & '>'   // not proved
+TypeArgs = '<' & Type & '>'                   // proved
+```
+
+§4.5 weaves `trivia` between every pair of operands, so the loop is lowered with one at the
+head of each turn and another standing after the loop:
+
+```text
+Sequence '<', trivia, Type, trivia,
+  Repeat 0..*  Sequence  trivia, ',', trivia, Type
+  trivia, '>'
+```
+
+`trivia` is nullable, so its characters join the first set of everything it leads, and the
+ordinary test sees a turn beginning with whitespace and a continuation beginning with
+whitespace and concludes the loop might give a turn back. On a grammar that follows §4.5's own
+recommendation that is nearly every loop there is.
+
+They do not begin alike. `trivia` is an atomic group — it commits its first reading and never
+gives it back — so the same run of it is consumed whether the loop takes another turn or
+stops, and what decides between them is what stands after it: a `','` against a `'>'`, which
+share nothing. So the comparison is made there, and only where both sides really do open with
+a call to the same atomic rule. Only the comparison moves: whether a turn can match nothing,
+and whether a turn is determinate in itself, are asked of the whole turn as before.
+
+### And the link after that one
+
+The notation's `Reference` is still not proved, and the shape is now named: a repetition that
+*ends* its rule.
+
+```text
+Name = Identifier & trivia & (trivia & '.' & trivia & Identifier)*
+```
+
+There is no node after the loop to read the shared trivia from — what follows is the caller's,
+and the caller weaves a `trivia` there that this rule cannot see. The argument is the same and
+the structure is not available: it needs follow sets computed *past* the trivia, which is a
+second flavour of `FOLLOW` and a design rather than a line.
+
+The corpus is unchanged by this — 782,412 bytes of expression language, the same as before it,
+against 783,053 with the fold off — which is what a sharper proof looks like when the thing it
+newly proves is not on the path anything took.
+
+## Built: the continuation carried whole, and the boundary that is not an analysis gap
+
+The previous entry called the next step a design — follow sets computed past the trivia. It was
+written already. `FollowSets.Continuation` is a pair, and its second half is exactly that, with
+a doc comment describing the case bisection had just found:
+
+> What the continuation can begin with once a leading application of the namespace's trivia has
+> consumed what it consumes. §4.5 puts that application at the head of every spaced seam, so a
+> repetition whose turns lead with the trivia and the continuation behind it both start by
+> reading the same run of it — and the question that decides whether a turn could instead have
+> been the continuation is asked of what each reads *next*.
+
+`NeverGivesBack` in the emitter has used it all along. `Determinism` could not, because it
+carried a bare first set, which is why the previous commit needed a structural special case:
+in a set the shared trivia can no longer be told from anything else.
+
+So the walk carries the whole continuation now, threads it with `FollowSets.Precedes`, and
+asks the seam-aware half where a turn leads with the seam. The special case is gone — the
+general mechanism subsumes it, and it reaches the shape the special case could not: a
+repetition that *ends* its rule, where what follows is the caller's and only `FOLLOW` knows it.
+`TypeArgs` in the notation's grammar is proved determinate now, where before it was not.
+
+The emitter is handed `Continuation(following, following)` for the present. Over-approximating
+the seam-aware half by the plain one is sound — what can follow past the seam is a subset of
+what can follow — so nothing it used to prove is lost. Threading the real pair through `Silent`
+is a separate step and a larger one.
+
+### And the boundary, which is not an analysis gap
+
+`Primary` in the notation still does not fold, and the reason has changed kind. It is no longer
+a set poisoned by trivia; it is that `Name` is genuinely not determinate under its own
+continuation:
+
+```dotgram
+Name = Identifier & ('.' & Identifier)*
+```
+
+`FOLLOW(Name)` contains letters, because `trivia` is nullable and nothing in the grammar says a
+name is read to its end. The hand-written parser reads one greedily and never gives it back;
+the grammar does not say so, so nothing can prove it. `wordboundary` exists and applies to word
+*literals* (§4.6) — a rule that spells a lexeme out gets no such protection.
+
+That is the lexical layer, named in the memory of this project long ago and not yet built: a
+rule that is a token, read once and to its end. The fold is waiting on the notation, not on the
+analysis, and that is a better place for it to be waiting.
+
+## Found: the notation already says it, and two grammars here did not
+
+The last entry concluded that left-factoring was waiting on a lexical layer. It was not. The
+notation has said the thing all along: an atomic group commits its first reading, and
+`Determinism` answers `true` for one outright. So a rule that spells a lexeme can say it is
+read once, and where it does, everything above it follows.
+
+Written unfolded — `Call | Reference` rather than the hand-written `RefOrCall` — and with
+`Name` and `Reference` wearing braces, the notation's own `Primary` comes out as:
+
+```text
+Sequence
+  Capture 'target' → Call Reference
+  Choice
+    Construct => (GramGrammar.Call(target, first, rest))   ← '(' … ')'
+    Construct => (target)                                  ← nothing
+```
+
+Which is `RefOrCall`, written by the compiler. Without the braces it does not fold; with them
+it does. That is the number the exercise was for, and it took two pairs of braces rather than
+a lexical layer.
+
+### The diagnostic that was built, measured, and thrown away
+
+A warning was written to say so: where a fold is declined and the operand is a rule that
+recognizes text and builds nothing, name it. It fired on exactly three rules in the whole
+repository — `FilterExample.Name`, `ExpressionLanguage.Dec`, `ExpressionLanguage.TypeName` —
+which is precise rather than noisy, and the first two took the braces and were better for it.
+
+The third broke two tests. `TypeName = Word & ('.' & Word)*` is *supposed* to give characters
+back: a dotted name is a type only as far as it resolves, and the rest is member access. So
+the advice was wrong on one real grammar in three, and being a warning in a repository that
+treats warnings as errors, it failed the build of the grammar whose author was right.
+
+It is not a diagnostic, then. The two rules are structurally identical to the one that must
+not change; what separates them is what the author meant, which the compiler cannot see. The
+guidance went into §4.5 beside the one about `trivia`, with the counter-example beside it.
+
+### What the braces bought
+
+`DecRun` alone: the generated expression language went from 782,412 bytes to 768,650 — 1.8%,
+for saying what the grammar already meant. `FilterExample.Name` likewise.
+
+`TypeName` is left alone, and now has a comment saying why.
+
+## Measured: the notation written the natural way, against the notation written by hand
+
+The question the whole factoring program was for, put to the instrument that answers it —
+`SelfHostingTests.And_this_is_what_each_costs`, the hand-written front end against the
+generated one, medians of sixty parses per file, three runs each way.
+
+`GramExample`'s grammar was rewritten to the spelling §11 does not oblige anyone to avoid:
+`Invocation | Reference` in place of the hand-factored `RefOrCall`, with braces on `Name` and
+`Reference` saying they are read once. The compiler folds it — `Primary` comes out with one
+read of `Reference` and a choice of what may follow.
+
+| file | hand-factored, generated | spelled out, generated |
+| --- | --- | --- |
+| Csv.gram | 0.035 ms | 0.033 ms |
+| Feed.gram | 0.060 ms | 0.060 ms |
+| Minimal.gram | 0.161 ms | 0.162 ms |
+| Notation.gram | 0.062 ms | 0.062 ms |
+| Url.gram | 0.170 ms | 0.170 ms |
+
+The same, within the noise of the runs themselves. Which is the answer: **the author no longer
+has to know the trick.** Written the way it reads, the grammar gets the parser the hand-factored
+one got.
+
+**And the change was reverted anyway.** Generated code went from 283,084 bytes to 293,145 —
+3.6% more, the atomic groups carrying commit machinery this shape does not otherwise need. Same
+time, more code, so there was nothing to take. The example keeps the hand-written form and its
+comment now says what the alternative costs, which is more use to a reader than either spelling
+alone.
+
+The differential against the hand-written parser passed throughout, on both spellings, which is
+what makes the comparison worth anything.
+
+## Built: a rebinding may change a type, which is what a `with` on a publication is for
+
+`parse Sum with (Value = IntNumber) as EvaluateInt` beside `parse Sum with (Value =
+DecimalNumber) as EvaluateDecimal` — one grammar, two calculators, one working in `int` and
+one in `decimal`. The syntax was already there (`Notation.gram` publishes `parse List with
+(Sep = …) as Loose`). What was not there was the type following.
+
+**Three things stood in the way, and the first was a defect of the worst kind here.**
+
+A rule declared `Sum : Value` — §4.1 case 3, "my value is `Value`'s" — resolved that name
+through its own namespace, so a specialization made for `Value = DecimalNumber` kept the
+original `Value`'s `int` while its body built a `decimal`. No diagnostic, and the consumer's
+build failed with `CS0266: Cannot implicitly convert type 'decimal' to 'int'` about code they
+did not write. The clone resolves it against what the specialization actually put in that
+rule's place now; every clone is allocated before any body is cloned, so the replacement's own
+clone is already in the map.
+
+**The question collector had never paired two declared types.** It crosses declared types with
+sequence element types (§4.1 case 2) and nothing else, so the assignability question the
+rebinding check asks — is what replaces this compatible with what it replaces — reached the
+pure half unanswered and threw. Every declared type is now crossed with every other, which is
+the same superset that file already takes everywhere else.
+
+**And the check itself refused the feature.** `'DecimalNumber' cannot replace 'Value': expected
+a result compatible with 'int', found 'decimal'` — correct about a replacement that has to fit
+somewhere fixed, and wrong here, because nothing was expecting the old type. A capture is where
+a rule's value lands, and where every landing belongs to a rule declared `: Value`, they are
+all following `Value` and follow it to the replacement too. Where one of them captures into a
+declared C# type, or into a sequence, or hands it to a constructor, something *is* expecting
+that type and the check stands.
+
+`examples/DotGram.Examples/TwoCalculatorsExample.cs` is the whole of it: four arithmetic rules
+whose `=>` bodies name no type, one rule that says what a number is, and two publications. The
+tests hold it to `7/2` being `3` in one and `3.5` in the other, and to the `int` calculator
+refusing `1.5` outright.
+
+## Measured: the parser's own method is too big for the compiler below it to optimize
+
+The question was narrow — does RyuJIT already remove the bounds checks and character reads
+that a block repeats after its predecessors have done them? `Rfc3986` writes 1706 bounds
+checks and 1801 reads of `text[p]` against 1364 advances of `p`, so at least 342 checks and
+437 reads are made at a position that has not moved.
+
+The answer is that it removes nothing, for a reason that is worth more than the question.
+
+    Recognize_DotGram_Uri ... [Instrumented Tier0,       IL size=63423]
+    Recognize_DotGram_Uri ... [Instrumented Tier0,       IL size=63423]
+    Recognize_DotGram_Uri ... [Tier-0 switched MinOpts,  IL size=63423]
+
+The method is compiled three times and, on the attempt to promote it, the JIT switches it to
+MinOpts: no common-subexpression elimination, no bounds-check elimination, no assertion
+propagation. The threshold is 60000 bytes of IL, and the recognizer is 5.7% past it.
+`ExpressionLanguage`'s is 95267 bytes, 59% past. In the same run 59 methods reach Tier1 and
+exactly one is switched to MinOpts — the one where all of the work happens.
+
+What that costs, measured on the same engine and the same emission style under the threshold
+(the `Links` recognizer of `examples/UrlExample.cs`, 9869 bytes of IL): 566-589 ns/parse as
+compiled, 3311-3341 ns/parse with the JIT forced to MinOpts. The whole workload is in that
+comparison, not the recognizer alone, so the factor for the recognizer by itself is smaller —
+but it is a factor, not a margin.
+
+This makes the size of an emitted method a first-order constraint rather than a matter of
+taste, and it puts a step in the middle of it: a recognizer under the threshold is optimized
+and one over it is not. `Rfc3986` needs 5.7% removed. It is also a candidate explanation for
+the residue against a hand-written parser that `Url.gram` still shows — a hand-written parser
+is small enough to be optimized, and this one is not.
+
+## Built: the state graph is recorded where it is written, and held against the one read back
+
+`Machine.Layout` needed to know where each state can go and recovered it by reading the
+finished text back with two regular expressions — `goto S(\d+);` and the second field of a
+`ParserEntry`. That made every jump's spelling load-bearing, and the two halves fail
+differently when one drifts.
+
+A missed `goto` leaves its target judged unreachable and so unwritten, and the jump then names
+a label that is not there: the C# compiler says so. A missed resume leaves the state out of
+the dispatch instead. The block is written, the code compiles, and a parse that should have
+resumed there falls to the default and refuses input it ought to accept. Written out as a
+plain readability edit — naming the second argument, `ParserEntry.Choice, state: 41` — the
+whole solution still built and the parsers were silently wrong.
+
+So the edge is now recorded by the same call that writes the text. `Label(at, state)` returns
+the label and says that `at` can jump there; `Resuming(at, state)` returns the state and says
+that `at` can put it in the arena. There is no second spelling to keep in step, because the
+recording and the text come out of one call.
+
+Both graphs exist for now, and `Verify` holds them against each other at the end of
+`PlanLayout` — which every rendering that uses the state table goes through, the general
+engine and both flat ones. It says which way they differ, because the two directions are
+different defects: a state recorded and not recovered is the one that would have shipped, and
+a state recovered and not recorded means the record is no longer the whole graph. Both were
+watched to fail before this was written down.
+
+Then layout was moved onto it. What is written at all, what order it is written in, and which
+states the dispatch has a case for are now decided from the recorded edges rather than from
+reading the text; the corpus is byte-identical through both steps, which is what says the two
+graphs were the same graph.
+
+`Tail`, `JumpOnly` and `Named` still read the text, and deliberately. Each needs where in a
+body something stands, which a list of edges does not carry — and each fails in a direction
+worth having: miss one and a jump is not dropped or a signpost is not collapsed, which is
+larger output and not wrong output, while the one under-reporting failure there is names a
+label that is not written, which the C# compiler refuses. That is a different class from the
+one this closed.
+
+`Redirect` still rewrites the text, and `Verify` now covers it too: the recorded side is
+resolved and the recovered side is read after redirection, so a rewrite that failed to happen
+shows up as the two disagreeing.
+
+What the graph is for is what comes next — the things a local emitter cannot do: merging
+blocks that are the same body to the same successor (77 of 1442 in `Rfc3986`), removing a
+check or a read that every path in has already made, and getting under the threshold the entry
+above measures.
+
+## Built: two states that do the same thing are one state
+
+Compilation writes a rule's shape wherever the rule is used, so the table it leaves holds the
+same few lines over and over with only the states around them differing. Once redirection has
+been over the bodies those differences are gone too, and what is left is one block written
+many times. No site can see that: each is written by whoever needed it. It takes the whole
+table at once, which is what the recorded graph is for, and it is the first thing in layout
+that is an optimization rather than a tidying.
+
+The criterion is two conditions and the second is the one that is easy to miss. The bodies
+have to be the same text, which after redirection means they do the same thing. And the body
+has to end by jumping somewhere — a body that can fall out of itself does not say where it
+goes, two states that read the same can be laid out before different things, and merging them
+would send one of them somewhere it never went. That guard does not fire on anything here:
+bodies are compiled continuation-passing and end with a jump, and layout only drops that jump
+later. It stays because the reasoning is not obvious and the next emitter to write a body that
+falls through would not think of it.
+
+    Url snapshot        427 states -> 254        9875 lines -> 6534
+    Rfc3986             1442 states -> 1205      63423 bytes of IL -> 47463
+
+Every behavioural test was green through the change; only the three snapshots moved, which is
+what says the parsers do the same thing and only the text of them is smaller.
+
+**It converges in one round.** Collapsing one state into another can leave two more identical,
+so it runs to a fixed point — but capped at one round the output is byte-for-byte what it is
+uncapped, on every grammar here. The loop stays for the case that is not here yet; it costs
+one more pass that finds nothing.
+
+**What it cost, and what it bought.** Redirection is two passes of a regular expression over a
+body, and doing that to every body each round was most of the cost of merging. The recorded
+graph says what a body names, so only the bodies naming a state that has moved are written
+again. After that the generator does more work and the consumer's build is faster anyway:
+3669 ms to 3076 ms for `DotGram.Parsers`, because the C# compiler is handed a quarter less
+code than it was.
+
+**What it did not buy, yet.** `Rfc3986` is now well under the 60000-byte threshold the entry
+above measures, and the JIT still switches it to MinOpts — so a second one of that mechanism's
+limits is binding, and the parse time is unchanged. Which limit, and what it would take to get
+under it, is the next question rather than an answered one.
+
+## Measured: what the JIT gives up on is branches, not size
+
+The entry above left the wrong number to aim at. `Rfc3986` was brought well under the
+60000-byte threshold and RyuJIT went on refusing to optimize it, so a second limit was
+binding and it was worth finding out which rather than guessing.
+
+A harness generates grammars of a given size, compiles each, loads it and runs it hot, and
+reads the counts back out of the IL — size, instructions, references to locals, and basic
+blocks — beside what the JIT decided to do with it. Two shapes: a flat one and a recursive
+one that compiles through the arena, which is the engine the real parsers use.
+
+    flat    G44  IL 24923  instrs 11607  lvRefs 4102  blocks 1981   optimized
+            G45  IL 25511  instrs 11884  lvRefs 4199  blocks 2028   MinOpts
+    arena  R120  IL 39171  instrs 16344  lvRefs 7268  blocks 1986   optimized
+           R122  IL 39894  instrs 16656  lvRefs 7394  blocks 2022   MinOpts
+
+The two shapes differ by 57% in IL and 41% in instructions at the point they cross, and
+agree on basic blocks to within 2%. Nothing else is even close to its documented limit —
+instructions 11884 of 20000, references 4199 of 8000, locals 9 of 2000, size 25511 of 60000.
+The count that binds is basic blocks. RyuJIT's own limit is 5000 of its blocks against the
+~2000 IL leaders counted here, so it makes about two and a half of its own per leader; that
+ratio is inferred, and the crossing itself is measured.
+
+It is not about instrumentation. With tiering off, 9649 methods in the same run compile at
+FullOpts and exactly one is switched to MinOpts — the one where all the work happens.
+
+Where the real parsers stand, on the same counter:
+
+    Rfc3986.Recognize_DotGram_Uri            blocks 3918   x2.0 over
+    ExpressionLanguage.Recognize_DotGram     blocks 4486   x2.2 over
+    Rfc3986.Recognize_DotGram_UriReference   blocks 7755   x3.9 over
+
+So the thing to cut is branches, and the two ways to cut them are fewer branches per state
+and fewer states per method. Only the second is certain to be enough.
+
+## Built: a character class wider than two ranges is read from a table
+
+A class was written out as comparisons — `(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+|| …` — and every `||` and `&&` in it is a branch. `Recognize_DotGram_Uri` held 1232 of
+them. Read from a table the class is one test whatever it contains:
+
+    if (!(c <= 127 && Recognize_DotGram_Uri_Class3[c] != 0))
+
+Only for a class that is entirely ASCII, which is what makes the table 128 bytes and the
+guard one comparison; a Unicode category or an inverted class keeps the comparisons. A plain
+`byte[]` rather than a span over a literal, because the span form leans on RVA lowering and
+netstandard2.0 is the floor this emits for. One table per distinct class — `Rfc3986` declares
+twelve.
+
+**Three ranges is where it starts to pay, and that was measured rather than reasoned.** Two
+would already win on branches and loses anyway — a narrow class is comparisons on values
+already in registers against a load that may not be in cache:
+
+    threshold 2   blocks 3344
+    threshold 3   blocks 3291
+    threshold 4   blocks 3835
+
+    branch operators in one method   1232 -> 501
+    Rfc3986.Recognize_DotGram_Uri    3918 -> 3291 blocks   (-16%)
+    Rfc3986.…_UriReference           7755 -> 6518
+    ExpressionLanguage               4486 -> 4275
+    parse                            1226 -> 951 ns        (-22%)
+
+The parse got faster without crossing the threshold at all — it is still MinOpts, and fewer
+comparisons per character is worth that much on its own. The generated file grew by the
+tables (`Url`: 6534 lines to 6804) while its IL shrank, which is the trade being made.
+
+What it does not do is close the threshold: 3291 against ~2000. It changes what closing it
+takes — two parts rather than three for `Uri`, and with margin instead of on the line.
+
+## Built: a recognizer too big for the compiler below it is written in several methods
+
+The limit is per method, so the answer is more methods. They are local functions, which the
+C# compiler gives a method of their own — and so a budget of their own — while writing the
+frame that carries what crosses between them. Nothing about the states changed: they go on
+naming the same variables, which are the enclosing method's now rather than their own.
+
+    Rfc3986.Recognize_DotGram_Uri     one method   3291 blocks   MinOpts
+                                      driver        344 blocks   FullOpts
+                                      part 0       1114 blocks   FullOpts
+                                      part 1       1244 blocks   FullOpts
+                                      part 2        936 blocks   FullOpts
+
+    parse   951 ns -> 344 ns          nothing in the run switched to MinOpts
+
+Two and a half times, and three and a half against where this began. The whole of it is the
+compiler below being willing to look at the method at all.
+
+**Two things cannot be captured, and both were found by the compiler rather than by
+thinking.** A `ReadOnlySpan<char>` is a ref struct and is not a field of any frame, so `text`
+is handed to each part instead. A `ref` parameter cannot be captured either, so `failure`
+goes the same way. Everything else — the position, the arena indices, the turn counters, the
+capture slots — the frame carries.
+
+**Where the cut falls matters more than where the budget wants it.** Control reaches the
+dispatch about four times in a whole parse — measured, on a URL — so a crossing that goes
+through it costs nothing worth counting. A `goto` that crosses is another matter: those run
+per character. So the budget says roughly where to divide and the cut then moves to where the
+fewest jumps cross it. They are never zero: the layout threads states into chains and the
+chains are woven, so the cleanest cut in `Rfc3986` still has 59 jumps across it. It is fast
+anyway, which says those jumps are not the ones being taken.
+
+**Two defects on the way, and the first is the one worth writing down.** The dispatch answers
+to what an arena entry says, and what it says is not always where control ends up: a state
+that does nothing but jump somewhere is collapsed, and its old number still has to be
+answered. Keying the new dispatch by the resolved state lost the case for every collapsed one
+— 78 tests, all of them a parse refusing input it should accept. The second was quieter and
+louder at once: a chain the layout threaded across a cut has its jump dropped for being the
+next line, and the next line is in another method now, so the state it named lost the only
+thing that named it — and the C# compiler said `No such label`.
+
+**What it costs.** A build without optimization gets slower, and by about what it gains with
+one: the `Url` benchmark in the test suite went from 2.87 times a hand-written parser to
+5.51. In a Debug build the extra call and the second dispatch are paid and nothing is
+optimized in return.
+
+That is the price and it is paid. Dividing only where the consumer's compilation is optimized
+was raised and refused: a build configuration may change diagnostics and it may not change
+algorithms or behaviour, so the parser stepped through in a debugger is the parser that ships.
+Written down in `.claude/rules/emitted-code.md`, where the appeal to a rule that had permitted
+this was wrong — that rule is about the language version, and names Debug and Release only as
+an analogy for two spellings of one thing.
+
+**And one method is still over.** `ExpressionLanguage`'s materializer is 2004 blocks and is
+not a recognizer, so nothing divides it. That is the next one of these.
+
+## Measured: what a parser spends its time on is not the same question in two grammars
+
+`Rfc3986` reads a URL in 20 traced steps. `ExpressionLanguage` reads
+`(int x, int y) => (x + y) * 3 - x / 5 + y * (7 - x)` in 1516 — thirty steps a character
+against a third of one. The two are not the same engine doing more of the same work.
+
+    Rfc3986        20 events, 0 failures
+    ET           1516 events: fail 228, push choice 177, resume 176   (38% backtracking)
+                             return 125, rule capture 124, open capture 121
+
+A first pass at this read the static count of emission sites instead and concluded the
+opposite — that ET's arena is mostly captures. At run time it is mostly ways back. A count of
+what is written is a fact about size; only running it says what it does.
+
+**The abandoned attempts are shallow.** Of ET's failures, 33% consumed nothing before failing
+and 49% consumed one character: 82% are settled inside two characters. That is not ambiguity,
+it is prefix overlap — the kind a decision procedure removes.
+
+**And they were not being decided at all.** `Assignment` has twelve alternatives, eleven of
+which begin with a `Name`, and `Name` begins with `Word`, and `Word` begins with `[\p{L} |
+'_']`. `Determinism.Distinguishable` said no, and its own comment said why:
+
+> Knowable is not the same as worth writing down: a Unicode category is a few hundred ranges,
+> exact and useful to the analyses, and a dispatch spelled out over them would be a page of
+> comparisons where the alternative's own test is one call. The set stays precise; only the
+> rendering declines.
+
+The proof was never the problem. `Rfc3986` has no categories at all — every set narrow, every
+choice decided, no backtracking whatever. ET is built on identifiers, and an identifier begins
+with a category, so prediction switched itself off exactly where it was needed.
+
+## Built: a set too wide to write out is held as its bounds and searched
+
+Three renderings now, and the widest set has one too: comparisons while there are few enough
+to read, the ASCII table from the entry above while the set fits in it, and a searched array
+of bounds for everything else. A hundred ranges is seven steps of binary search, on a path
+taken once per alternative rather than once per character.
+
+With that, the width limit inside `Distinguishable` had nothing left to protect and is gone —
+the proof was always over the exact sets. `ExpressionLanguage` now declares five arrays of
+bounds and calls the search from thirty places that used to try an alternative and take it
+back.
+
+    ET, the same input     events   1516 -> 1160   (-23%)
+                           ways back 581 ->  397   (-32%)
+                           failures  228 ->  149   (-35%)
+
+    Rfc3986                unchanged, and expected to be: no categories, nothing was declining
+
+A third of the backtracking, from removing a rendering concession rather than proving anything
+new. The remaining failures are the ones the ceiling above says are worth chasing — one and
+two characters deep — and they are now the ones where the sets really do overlap.
+
+Not measured: what this is worth in wall-clock for ET. `Parse` returns a LINQ expression tree
+and building it dominates the call, so the parse cannot be timed through the public surface as
+`Rfc3986`'s can. The event count is what changed and what is reported.
+
+## Built: the materializer is divided the way the recognizer is, and the estimator learned
+## the shape it was blind to
+
+The entry on dividing recognizers ended with the one method still over the line:
+`ExpressionLanguage`'s materializer, 2004 basic blocks, not a recognizer and so not divided
+by anything. It is now — the same way, local functions the C# compiler writes the frame for,
+each part a switch over its share of the value rules, the driver's switch calling the part a
+rule's case lives in. The case bodies move verbatim: every `continue` in them belongs to an
+inner loop of its own, which was checked before anything was moved, not assumed.
+
+The estimator was the actual work. `Branches` counted `if`, `goto`, `case` and the short
+circuits — the shapes a recognizer is made of — and read the materializer at half its real
+size (1073 against 2004 measured), because a materializer is made of the shapes it did not
+count: 181 `for` loops, three blocks each; 79 conditional expressions, two arms each; 352
+`break`s. Counting those it reads 2126 against 2004, and the split fired.
+
+    Materialize_DotGram      2004 blocks, MinOpts   ->   driver + 938 + 1008, all FullOpts
+
+With that, nothing in a run of either real parser compiles at MinOpts any more — the count
+of methods the JIT gives up on, across `Rfc3986` and `ExpressionLanguage` both, is zero.
+
+The recognizers' own cuts did not move under the widened estimator — the corpus is
+byte-identical and the suite green without a snapshot touched. That is luck as much as
+stability: the estimates all grew, and the cuts happened to land in the same gaps.
+
+## Tried and taken back out: a probe at a settled loop's head
+
+The remaining backtracking in `ExpressionLanguage` divides by the pair of characters an
+abandoned attempt died on, and the census pointed at loop turns: an attempt reads the trivia,
+meets `+` where its own operators live, fails, and pays a standing exit, an unwinding and a
+resume to learn what one character past the trivia already said. So a probe was built at the
+head of a settled star — scan past a nullable leading operand that has a scanner, test the
+character against the remainder's first set, and leave without entering when it says no,
+writing the Repeat entry's last-end on the way out so the previous standing exit stays
+visibly stale.
+
+Measured, it refused itself. The turns it was aimed at are the loops of rewritten left
+recursion, which do not meet its conditions — `ExpressionLanguage`'s event count moved from
+1160 to 1158. And where it did fire, list grammars, it costs an extra scan and test on every
+successful turn to save one refused entry per loop: the exact wrong side of frequency times
+complexity, which is the criterion these have to answer to. Reverted.
+
+What survives is the diagnosis. The one-character failures that remain live in the fold
+loops, and a probe that pays would have to (a) reach those loops and (b) cost nothing on a
+successful turn — enter the body past the trivia the probe already read, instead of reading
+it twice. Both are design work on the fold machinery, not a guard bolted on beside it.
+
+## Built: a method left past the limit is told about, as GRAM5003
+
+The dividing machinery keeps every method of the real parsers under the line the JIT stops
+optimizing at, but the grammar is the consumer's, and one rule big enough on its own can put
+a method past it with nothing said — only a parse that quietly runs several times slower.
+Now it is said: a warning, because the parser is correct, with the numbers the generator
+acted under — the estimate, the ~2000-block line, the 1500 budget it divides under — and the
+remedy, because the remedy is chosen against those numbers.
+
+Emission gained a diagnostics channel to say it through: `CSharpEmitter.Emit` takes an
+optional collection and `GramCompiler` passes its own, which is the first diagnostic to come
+out of the emit stage at all.
+
+**The first detector measured nothing, and the test caught it before it shipped.** It read
+the part costs off the layout's own bookkeeping — and the flat rendering writes straight-line
+code past the state table, so for exactly the method most likely to be left whole the costs
+summed to zero. The detector that stayed sweeps the finished text instead, method by method,
+local functions as methods of their own — which is how the JIT meets them — with the same
+estimator the dividing uses. One detector for every rendering there is and every rendering
+to come, because it measures what was written rather than what a writer remembered doing.
+
+The materializer keeps one detector of its own beside the sweep: a single switch case over
+the limit can name the rule it builds, and the remedy — build the value in a method of your
+own called from the `=>` — is worth saying with the name in it.
+
+Watched to fire on a 1200-literal rule and stay quiet on the whole corpus: the real parsers
+are all under the line now, which is what the last three entries were for.
+
+## Built: the second account of the graph is gone, and so are the patterns that read it
+
+The entry above minted the marks. This deletes what they replace: `Redirect`, both regular
+expressions, `MeansAState` with the table of what each entry kind's second field means, and
+`Verify` with the comparison it existed to make. 258 lines out, 55 in.
+
+`Verify` went because it had nothing left to compare. It held the recorded graph against one
+read back out of the text, and the two now come out of one call with one argument — `Label`
+records the edge and mints the mark, `Resuming` the same — so they cannot disagree. Keeping
+it through the transition earned its place twice on the way here, catching a body left
+unsettled that the balance check would not have seen.
+
+`MeansAState` went because the hazard it guarded is gone by construction. A capture slot
+could be rewritten as a state when that table said the wrong thing about a kind — a silent
+corruption the project has already had once. Nothing rewrites a plain number now; only a
+mark, and only `Resuming` makes one, so a slot cannot be mistaken for a state whatever
+anyone forgets.
+
+**What is left to guard is the forgetting itself, and the two tests that went are replaced by
+one that guards it.** A site that writes a state's number instead of asking for a mark leaves
+a number nothing will move, and what that costs is exact and quiet: the arena resumes at a
+state that was not written, the dispatch has no case, and the parse refuses input it ought to
+accept. So the emitter's own source is read: an arena entry whose kind carries a state must
+write it as `{Resuming(...)}`. The three fixed labels are exempt and say why — they are never
+collapsed, and a mark there would leak, since settling runs over the state bodies and the
+root call is written into the file. Watched to fail by taking one site back to a bare number.
+
+`Gotos` stays, for the two readers that work on the finished text rather than on the graph —
+the departure rewriting a divided method needs, and which labels are still named once the
+chained jumps are dropped. Both are positional questions about the text, and both fail into
+larger output or a label the C# compiler says is missing, which is the other class.
+
+## Profiled: what `ExpressionLanguage` spends a parse on, and the two guesses that were wrong
+
+`Rfc3986` parses a URL in 344 ns. `ExpressionLanguage` takes 13 to 110 microseconds — two
+orders apart — so it is the one to look at. A harness that parses expressions in a loop, a
+dotTrace snapshot, and then, because the snapshot is not readable outside the GUI,
+`dotnet-trace` into speedscope and a reader for it.
+
+**The sampler's leaf attribution is not to be trusted here**, and two hypotheses taken from
+it were refuted by experiment rather than by argument. It puts 89% of self time in a GC poll
+worker and 63% under array copying inside recognition; removing the only list the recognizer
+adds to — the expected-set accumulation on failure — changed nothing at all, and the theory
+that a large earlier parse leaves buffers whose clearing costs a later small one was refuted
+the other way round: after a large parse the small one is *faster*.
+
+What direct measurement says instead:
+
+    (int x) => x            builds        22 563 ns
+    (int x) => ###          builds not     3 883 ns    - never reaches the body
+    ###                     builds not       278 ns
+
+    Expression.Lambda by hand                326 ns    - 1.6% of the parse
+    new State()                                6 ns
+
+So the tree it builds is not the cost, and steady-state allocation is 1.9 KB for the first of
+those — the 76 KB an early measurement showed was the arena growing on a thread's first
+parses, which is not what a parse costs and was my mistake to report. **Reading a body of one
+identifier costs 18 microseconds.** The trace says why: on `(int x) => x * x - 1`, three
+identifiers in the text, `Name` is called seventeen times and `Target` eleven. That is
+`Assignment` — ten compound-assignment alternatives each reading `Target` and failing on the
+operator, and the eleventh reading it again.
+
+`GRAM4016` exists to say exactly this and was silent, because it asked whether the shared
+operand leads back to the rule — whether the cost compounds with nesting. Here it does not
+compound; it is merely paid eleven times, and eleven times was most of the parse.
+
+## Fixed: an atomic group leaves no way back into the middle of it
+
+`Doors` answers "whether matching something can leave a way back into the middle of it", and
+answered it for an atomic group by walking inside the braces — where it finds the repetition
+and says yes. An atomic group commits its first reading: a failure reaching past it has the
+group to give back and nowhere inside it to resume. The same question `Determinism` used to
+ask of braces and stopped asking.
+
+Found while widening `GRAM4016` to the flat case: with the wider check, nine of fourteen
+sites were the trivia §4.5 weaves between operands — which an author cannot factor out and
+which the old `Reaches` condition had excluded by accident — and of the rest,
+`FilterExample`'s `Expr` was reported only because a braced `Name` was said to leave a door.
+
+**What it changes is not what the commit that made it said.** It said the compiler then folds
+that operand and there is nothing left to report. It does not: the fold's own condition is
+`Determinism`, not this, and the fold still declines. What the corrected predicate does is let
+a capture inside the braces live in a variable — `FilterExample`'s parser loses an arena
+entry, a trace call and a backward scan of the arena at every close of `Name`, and goes from
+3433 lines to 3408. The five snapshot grammars are byte-identical.
+
+So with the wider check landed, that site would go quiet while the operand is still read three
+times. The check asks `Doors` and the fold asks `Determinism`, and the two are not the same
+question — which is the thing to settle before the wider check lands, rather than after.
+
+Not measured: what the capture moving out of the arena is worth in time. A harness over
+`Filter` swung between 3.5 and 21 microseconds on the same build across processes, six times
+over, so it says nothing in either direction and no number from it is reported here.
+
+## Built: the JSON example reads its digits once
+
+`Number = Digits & Fraction | Digits` reads the digits once for each alternative. Written with
+the fraction as an optional tail it reads them once, and it is the same language here because
+a fraction begins with `.`, which digits cannot contain — no shorter reading of the digits
+lets a fraction fit that a longer one refuses.
+
+## Built: the fold says what it could not do, and three rules in `ExpressionLanguage` stop
+## reading their operand twice
+
+`GRAM4016` was raised by a check of its own, which had to guess what the folding pass would
+do with the same alternatives — it asked `Doors`, "can this leave a way back into the middle
+of it", where the fold asks `Determinism`, "does this have one reading where it stands".
+Those are different questions, and widening the check to the flat case showed how different:
+of sixteen sites it named across this repository, **nine were the trivia §4.5 weaves between
+operands**, which no author wrote and none can factor out, and **four more were operands the
+fold went on to share anyway**. Three were real.
+
+So the diagnostic moved into `Share`, which is the one place that knows: a run of alternatives
+sharing an operand was found, `Determinism` was asked, and the answer was no. Nothing to
+guess, and the sentence it can now write is the useful one — the remedy is to make the
+operand's reading provable, not to rearrange anything. The check and its `Leading`,
+`SameShape` and `Reaches` go with it.
+
+And the scope is what a profile asked for. `Reaches` used to decide whether to say anything
+at all, on the grounds that a cost compounding with nesting is the one worth interrupting an
+author for. It now decides nothing: `Assignment` reads a non-recursive operand eleven times,
+and reading a body of one identifier cost 18 microseconds.
+
+### The three that were real
+
+    Target      2 readings of `Name`       -> `n: Name & ('.' & member: Word)?`
+    Primary     2 readings of `NamedType`  -> `& args: Arguments?`
+    NamedType   2 readings of `TypeName`   -> `& args: ('<' & ... & '>')?`
+
+`Target` is the one the profile was pointing at: eleven alternatives of `Assignment` begin
+with it, so its own two readings were twenty-two, and folding it folded them — `Assignment`
+went quiet without being touched.
+
+`NamedType` needed care that the shape did not show. Its guard — `when Resolves(name)` — was
+on the plain alternative and not the generic one, and that is load-bearing: `List<int>`
+resolves where `List` alone does not. Moved in front of the arguments it would have refused
+every generic type whose bare name means nothing, which is most of them. It asks where there
+is nothing else to say what the name is: `when args != null || Resolves(name)`.
+
+`TypeName` itself is left alone, and its own comment says why: a dotted name is a type only
+as far as it resolves and the rest is member access, so it has to be able to hand a trailing
+word back. Braces there would be wrong, which is why the remedy was the tail and not the
+lexeme.
+
+    (int x) => x * x - 1                       23 189 ns -> 18 073   -22%
+    (int x, int y) => (x + y) * 3 - x / 5 …    51 500 ns -> 39 650   -23%
+    (int x) => ((((x + 1) * 2) - 3) / 4) + …  109 976 ns -> 83 707   -24%
+
+The shortest input, `(int x) => x`, is not reported: it measured 13 193, 18 515, 20 006 and
+22 421 ns at different points of this session on builds that did not differ in anything it
+touches, so nothing it says now would mean anything.
+
+### Two mistakes on the way, both caught by the corpus
+
+The capture in `Target` was first written `member: ('.' & Word)?`, which captures the group
+and so puts the dot in the member's name — `'.Source' is not a member of type
+'System.Exception'`, said by LINQ rather than by anything here. It belongs on the word:
+`('.' & member: Word)?`.
+
+And the first `NamedType` had the guard in front, which is the generic-type mistake above. It
+compiled, and the corpus caught it.
+
+## Fixed: refusal was exponential in the number of integer literals
+
+The first run of the new `ExpressionBenchmarks` paired each graded nest with itself minus
+its final operand, and the pairs said: accepting is linear, refusing is not. 74, 327,
+1299 us at two, four and six parentheses — a little under four times per two levels, and
+the gap against accepting the same text widened from 2.9x to 17.3x.
+
+### Finding it
+
+A `DOTGRAM_TRACE` build counted rule calls per input: every lexical leaf multiplied by
+four per two levels, and `call Unary at <end>` — the whole failing suffix retried — went
+4, 16, 64. Not the repetitions: the trace holds **no `give a turn back` at all**. The
+walk from one arrival at the end to the next showed the mechanism whole:
+
+    fail state=1 at 25          the parse fails with " + " left over
+    resume state=1593 at 23     ...and lands on a live choice inside the nest,
+    construct in Primary        which succeeds AGAIN over the same span,
+    ...                         closes the outer ')' again, folds '+' again,
+    call Multiplicative at 27   and rereads the suffix to the end
+
+State 1593 named the culprit. `Primary` read a bare integer twice:
+
+    | token: Dec & when @(int.TryParse(...)) => @(int constant)
+    | token: Dec                             => @(long constant)
+
+The fold shared `Dec`, but the choice between the tails stayed live — and both tails read
+nothing, so the second reading consumes exactly the digits the first did and can never
+change what fits after it. It is not a choice about the text at all. Every unsuffixed
+integer literal left one such way back, a refusal walked every combination:
+2^(literals) rereadings of everything after them.
+
+The exponent counts literals, not depth, and that was the test of the diagnosis before
+any fix: the same six-deep nest with names for operands traced 1,813 lines against
+39,838, and with `L`-suffixed literals — one reading each — 2,713.
+
+### The fix
+
+The decision moved into the factory, where it never was a choice:
+
+    | token: Dec => @(int.TryParse(token, ..., out var small)
+                     ? Expression.Constant(small)
+                     : Expression.Constant(long.Parse(token, ...)))
+
+Same language, same values, one reading, nothing left alive. The trace goes 985, 1540,
+2095 lines — +555 per two levels, flat — and the benchmark:
+
+    refusal, 2 parens     73.8 us ->  30.8      5.9 KB -> 2.7
+    refusal, 4 parens    327.1 us ->  47.0     19.4 KB -> 3.6
+    refusal, 6 parens   1299.3 us ->  67.1     70.6 KB -> 4.5
+
+Linear, and now cheaper than accepting at every depth, which is the right way round: it
+reads one character less. Accepting itself moved inside noise (25.9/47.5/75.2 ->
+25.4/45.5/71.4). 1505/1505 green.
+
+### What this generalizes to, not built
+
+The engine keeps every untried alternative of a succeeded choice live, which is ordered
+choice working as specified — the cost shows only where a later alternative can *succeed
+over the same span*, because that retry rereads the whole rest of the input for nothing.
+The `Dec` pair was the one such place on this benchmark's path, but the shape exists
+elsewhere: `If` with and without `else` is two alternatives whose shorter one always fits
+inside the longer, so a refusal past a nest of ifs would pay the same way. Two possible
+answers, neither taken today: the fold could commit the residual choice where every
+remaining tail is provably empty (this case exactly), or general memoization, which is a
+different engine. Worth measuring on an `if` nest before deciding anything.
+
+## Built: the fold commits its residue, and the grammar takes its pair back
+
+The int/long fix of the previous entry was a workaround, and it was called one: "ты
+сейчас замазал проблему пользовательским кодом". Merging the pair into one factory works
+for two alternatives and a ternary; three guards in a row have no such spelling, and the
+engine was the thing being wrong — past the shared operand the choice was about which C#
+runs, not about the text, and the engine kept a way back into a choice that could not
+change anything.
+
+So the fold now commits that residue. `Sharing` wraps the choice of tails in an atomic
+group when three things hold:
+
+- **The tails read nothing** — guards, factories, `none`. Then resuming a later tail
+  lands on the same position with the same text ahead, and can only walk to the same
+  failure.
+- **No value window.** Which factory ran is invisible during recognition with one
+  exception: a `when` elsewhere can materialize a value built over this rule and read
+  the difference. So a rule reachable through calls from any capture a guard names —
+  `FreeNames` says which; no scanner means every capture of a guarded rule — keeps its
+  residue uncommitted, and so does a residue folded inside a capture the rule's own
+  guards name.
+- **Nothing else.** The first cut also demanded that nothing following the choice could
+  begin with a trivia character, because the guarded tail led with a woven seam and the
+  bare tail did not, so the two ended at different positions. That condition drowned:
+  `FOLLOW(Primary).AfterSeam` held whitespace fed in by a nullable operand between two
+  seams somewhere across the grammar, and one polluter anywhere refuses every site.
+
+### The seam that should not have been there
+
+The asymmetry itself was the bug. §4.5 weaves trivia between operands, and a guard is
+not one — it reads nothing, so there is no token on its far side for a seam to separate.
+Weaving one anyway cost a trivia scan per guard evaluation, made `parserSpan` include
+trailing whitespace, and gave an alternative ending in a guard a longer extent than its
+guard-free twin over the same tokens. The weave now skips guards; §4.5 says so; with it
+gone, the guarded pair's tails are both pure epsilon and the commit needs no global
+condition at all.
+
+### What broke on the way
+
+Two shape-matchers knew the fold's residue as `Sequence([..., Choice(Constructs)])` and
+did not see through the atomic: `Fold.Shared` (which offers the tails' factories) and
+`CaptureLayout`'s shared-head detection. "A construction in 'Primary' has no factory"
+named the first; both unwrap the atomic now.
+
+And one non-failure worth writing down: the first run after the change showed the old
+exponential byte for byte, because the compiler server was still holding the old
+generator. `dotnet build-server shutdown` is part of measuring a generator change.
+
+### Measured, with the original pair restored
+
+    trace lines, refusals at 2/4/6 parens:   2,346 / 9,872 / 39,838  ->  991 / 1,552 / 2,113
+    benchmark, same refusals:                  74  /  327 / 1,299 us ->  35  /  55  /  76 us
+    allocation:                               5.9  / 19.4 / 70.6 KB  -> 2.8  / 3.8  /  4.8 KB
+
+Linear in both directions, with the guarded pair written the natural way. 1511/1511
+green, six of them new: the committed shape, both refusal conditions, the answers
+unchanged, and the seam count around a guard.
+
+Against the ternary workaround the committed pair costs about ten percent on this
+parser's refusal path — an atomic entry per literal and the commit walk over the entries
+above it, where the merged factory left nothing in the arena at all. A dedicated
+rendering for an all-epsilon committed choice — evaluate the guards, pick the factory,
+write no entry — would close that; noted, not built.
+
+## Built: a committed choice of weightless tails compiles as a decision
+
+The follow-up the last entry noted. The committed residue was correct but paid rent: an
+atomic entry per literal, a choice entry inside it, and the commit walk that put the
+choice out — machinery for remembering a way back, spent on a choice proven to have
+none.
+
+Two changes, one of them one line. A guard's refusal now goes to wherever failure is
+routed rather than to a hardwired `Fail:` — which today is `Fail:` everywhere else, so
+every existing snapshot is byte-identical; a guard was never compiled under a redirected
+failure before, because `Silent` refuses guards and every `_fail`-setting path demands
+silence. And the emitter's `Atomic` case takes a committed choice of weightless tails —
+guards, factories, `none`, the same shape the fold's `Committed` builds — and compiles
+it as the decision it is: evaluate each guard where it stands, fall to the tail behind
+on refusal, take the first that passes. No choice entry, no atomic boundary, no commit
+walk.
+
+The generated line is the sentence that started this: `if (!Guard10(token)) goto S1583;`
+— worked the `when`, or call the other piece of C#.
+
+### Measured
+
+The trace is the flat answer: 985 / 1,540 / 2,095 lines on the graded refusals —
+character for character the stream the hand-merged ternary produced. The engine now
+compiles the natural two-alternative spelling into what the workaround was by hand.
+
+Wall clock did not move against the previous commit (35/55/77 us), and the previous
+commit's "ten percent against the ternary" deserves a correction: the floor input —
+`(int x) => x`, which none of this touches — drifted 7.2 to 8.0 us across the same three
+runs, so most of that gap was the machine warming through the evening, not the atomic
+entries. What is real and remains is allocation: 2.82 KB against the ternary's 2.73 at
+depth two, which is the guard itself — `when` runs while the text is read (§8.1), so
+`token` is built as a string once per literal to ask it. That is the semantics of
+writing a guard, not a cost of the choice, and the deferred ternary factory is the
+spelling for whoever refuses to pay it.
+
+1511/1511 green, snapshots untouched.
+
+## Measured: what a valued rule boundary costs, and the hypothesis it killed
+
+The self-hosting gap is the project's own criterion and the one number it is behind on, so
+it was the thing to attack next. Attacking it began with a wrong guess, and the value of
+writing this down is which measurement killed it.
+
+### What the trace said, and what I read into it
+
+`GramGrammar` reading `Url.gram` — 3,053 characters, the worst of the corpus:
+
+    call            1020        fail             118
+    return          1017        resume            61
+    rule capture    1014
+
+One arena write per input character, and almost no backtracking: 118 failures in 4,453
+events. And the calls are concentrated — `QuantifiedCore`, `Primary`, `Prefixed`,
+`Captured` and `Quantified` are called 128 to 130 times each, which is one operand walking
+a chain of five rules that each read an optional decoration and, when it is absent, hand
+the body on unchanged. 650 of the 1,020 calls.
+
+So: frame traffic, and the fix is to collapse the chain. That was the hypothesis.
+
+### Why neither existing mechanism collapses it
+
+Worth recording, because it is not what I first thought. `ExecutionPlan.CompiledInPlace`
+refuses a rule that declares a type, has results, or holds a `Construct` — all five do, so
+recursion never even comes into it. `SitedValued` refuses on two counts: every member must
+be a span of the input (`member.Rule is not null` returns false, and each link's value is
+built from the next link's value), and the callee must be outside every cycle (`Primary`
+leads back through `'(' & Body & ')'`). The chain is exactly the shape both passes exclude.
+
+### The measurement
+
+`CallCost` has priced a rule boundary since the first proofs, and what it prices is a
+*valueless* one: its `Letter` writes a `Call` entry that its own return takes straight back
+off the arena and leaves no `RuleCapture`. Every rule in a grammar that builds anything is
+the other kind. So a valued row was added, and the two read against each other:
+
+    compiled in place            648 ns    104 B
+    called                       840 ns    104 B     ->  4.8 ns a boundary
+    called and valued          1,823 ns  1,408 B     ->   29 ns a boundary
+
+Six times, and 29 ns is the one a grammar is made of.
+
+Against the gap: `GramGrammar` writes 1,014 rule captures on that file, so its valued
+boundaries are about **30 of the 113 microseconds** it is behind. A quarter — not the
+answer. Collapsing the five-rule chain to one would take four fifths of the chain's share,
+about 15 us, or **13% of the gap**. A large refactor of two normalization passes for 13%
+is not the thing to do next, and without this number it would have been done.
+
+Where the other three quarters are is not established. What is ruled out: materialization
+(the profile puts 97% of the time inside `Recognize`), and allocation — the generated
+parser allocates **26 KB against the hand-written parser's 64 KB** on the same file, two
+and a half times better while being nearly seven times slower.
+
+### And the standing instrument understates the gap
+
+`SelfHostingTests` reports 3.48x on this file. Warmed properly and run for three seconds a
+side, it is **132 us against 19.4 us — 6.8x**. The test does 60 parses with no warm-up, and
+cold start costs the hand-written side proportionally more, which compresses the ratio.
+The test is a differential first and a timer second, so this is not a bug in it; but 3.5x
+is not the number, and the memory of "2-3x" was formed from readings like it.
+
+### One methodology note, because it nearly shipped
+
+The valued row was first written `Letter : @string = ['a'..'z'] | '!' & Letter`, which is
+not a valued rule: a rule that captures nothing is worth the text it matched (§4.1 case 4),
+the declaration is dropped, and it normalizes to the valueless row character for character.
+It benchmarked at 803 ns against 856 — *faster* than the row it was supposed to be slower
+than, and with identical allocation, which is what said to go and compare the normalized
+shapes. A capture is what makes a rule valued.
+
+## Measured: the self-hosting gap is deferred construction, and the entry above got it wrong
+
+### The correction first
+
+The entry above says "materialization, which the profile puts at 3% against `Recognize`'s
+97%". That is a misreading of my own profile and it is wrong. `Materialize_DotGram` is
+called from *inside* `Recognize_DotGram`, at `Accept:` — so `Recognize`'s 97% contains
+materialization rather than excluding it, and the 29% the same profile gave `Materialize`
+was the number to read. Subtracting one from the other was arithmetic on nested
+quantities.
+
+### What the decomposition says
+
+A profile could not settle it, so an experiment did. Three parsers over the same
+`Url.gram`, in one process, each warmed and run for four seconds:
+
+    hand         17 us     63,680 B      GramParser + GramLexer
+    bare         54 us      2,024 B      the same grammar, every value stripped out
+    generated   137 us     25,976 B      GramGrammar as it stands
+
+`bare` is `GramExample`'s grammar with no declared types, no captures and no factories —
+the same language recognized, nothing built. It is a decomposition tool and not a
+competitor: the hand-written parser builds a tree, so only the third row is a fair
+comparison to it.
+
+    values cost   83 us    69% of the gap
+    engine costs  37 us    31% of the gap
+    whole gap    120 us    ~8x
+
+Stable across three runs (67–70% / 30–33%). **Deferred construction is 61% of what the
+generated parser spends** — 83 of 137 microseconds — and the hand-written parser pays none
+of it, because it builds its tree as it recognizes rather than recording an arena and
+replaying it.
+
+That is the architecture's central claim (implementation.md §3, "Nothing is built while
+matching") priced on a real grammar for the first time. It buys resumability: a step tried
+and given back never ran its factory. On this grammar, which backtracks 118 times in 4,453
+events, almost nothing is given back — so almost all of it is paid for nothing.
+
+### The miniature already predicted it
+
+`CallCost`'s new valued row, from the entry above: 840 ns valueless against 1,823 ns
+valued over the same forty letters, so values are 54% of the valued parse. The self-hosted
+grammar says 61%. A four-rule benchmark and a two-hundred-line grammar agree to within
+seven points, which is the best evidence either of them is measuring what it says.
+
+### Where this points, and what already exists for it
+
+Not the forwarding chain — that was the previous entry's hypothesis and it is worth 13%.
+The target is the value machinery, and the engine already has two answers aimed at exactly
+it, both currently too narrow:
+
+  * `Machine.Sites` compiles a *valued* call in place where the callee's value is built
+    from spans of the input alone. Every member must be a span (`member.Rule is not null`
+    refuses), and the callee must be outside every cycle.
+  * the flat rendering (`_valuesInLocals`) keeps captures in locals and runs one factory
+    at `Accept`, with no arena at all.
+
+`GramExample`'s rules fail both on the same point: each rule's value is built from the
+*next rule's value*, not from text. Widening a site to admit a member that is another
+rule's value — the callee's own site, nested — is the shape to investigate, and 69% is
+what is behind it.
+
+Not started here. The measurement is the deliverable, and it moved the target twice: from
+the forwarding chain to the value machinery, and from a profile reading to an experiment.
+
+## Investigated and ruled out: sites cannot reach the self-hosting gap, nested or not
+
+The previous entry proposed widening `Machine.Sites` to admit a member that is another
+rule's value, and put 69% behind it. Checked against the grammar before writing any code,
+that direction is closed, and the reason is worth recording so it is not proposed a third
+time.
+
+A site refuses a callee on two counts (`ComputeSitedValued`): every member of its value
+must be a span of the input, and the callee must be outside every cycle. `GramExample`'s
+rules fail **both**, and the same rules fail both:
+
+    rule             recursive  members
+    Body             True       [first:Alternative, rest:Alternative[]]
+    Alternative      True       [body:Sequence, value:Value]
+    Sequence         True       [first:Guard, rest:Guard[]]
+    Quantified       True       [body:QuantifiedCore, rebound:text, mark:Marking[]]
+    QuantifiedCore   True       [body:Prefixed, quantifier:Quantifier, recovery:Recovery]
+    Prefixed         True       [prefix:text, body:Captured]
+    Captured         True       [name:text, body:Primary]
+    Primary          True       [text:text, e:ElementSet, cs:CsExpr, body:Body]
+
+Nesting sites answers the first count only. The cycle stands: `Primary` leads back to
+`Body` through `'(' & Body & ')'`, so the chain is one strongly connected component and a
+nested expansion through it does not terminate statically. Twenty-one of the grammar's
+fifty-five rules are in it; twenty-three are already compiled in place.
+
+Relaxing the cycle restriction alone is the other half, and it is worth measuring at
+7%, not 69%: `Reference`, `Type` and `Value` are recursive but every member of each is
+text, so they are what a relaxed cycle rule would admit — and `Reference` is 68 of the
+1,020 calls a parse makes.
+
+So the 69% is not reachable by widening this mechanism. What is left for it is one of two
+larger things, neither started: making the replay itself cheaper — the materializer walks
+a linked list of capture entries per completed call, 1,014 of them — or revisiting eager
+construction with a soundness argument the reverted attempt did not have. `=>` may have
+side effects, which is why §7.2 defers it and why "build it anyway, it is only wasted"
+is not available.
+
+### Found while trying to split the cost: refusal is three times acceptance
+
+The split was attempted with an input that fails at `Accept:` — `whole` is checked before
+the materialize block, so recognition runs and nothing is built. It did not work, because
+refusing is not free:
+
+    accepted                     generated  135 us   bare   53 us
+    refused on '%'                          388.5           177.6
+    refused on ')'                          388.4           174.6
+    refused on '='                          395.7           180.5
+    refused on '&'                          395.0           174.2
+    refused on '|'                          396.0           176.6
+
+One trailing character that cannot begin a declaration costs **2.9x a whole successful
+parse**, and 3.3x in the value-free grammar — so it is the engine's backtracking and not
+construction. Stable across five characters, which says it is the unwinding after `Accept`
+fails rather than anything about what was typed.
+
+That is the shape this session already found and fixed once in `ExpressionLanguage`, on a
+different grammar and a different cause. Worth its own look: an editor parsing an
+incomplete file pays it on every keystroke.
+
+## Measured and dropped: refusal is a constant factor of three, not a growth
+
+The previous entry found that one trailing character costs the self-hosted parser 2.9x a
+whole successful parse, and proposed it as the next thing to fix — "an editor parsing an
+incomplete file pays it on every keystroke". Measured properly, it is not worth engine
+work, and the measurement that says so is the one the proposal should have carried.
+
+### Where it comes from
+
+A trace of the refused parse against the accepted one:
+
+    accepted    1020 call   1017 return   1014 rule capture
+    refused     1243 call   4707 return   4441 rule capture
+
+More returns than calls, because after `Accept:` fails on the leftover character the
+unwinder lands on a resume point inside the already-read file and walks the return path
+again. Where it lands is concentrated: 66 of the resumes are one state, the exit of the
+optional in
+
+    Captured = (name: Identifier & ':')? & body: Primary
+
+— one live "or there is no name here" per operand in the file. `Determinism.NeverGivesBack`
+is asked about it and answers no, correctly: FIRST of the body is letters and so is
+FIRST(`Primary`), so no single character tells the two readings apart. What would tell
+them apart is that the body ends in `':'` and nothing that could follow `Captured`
+consumes one — a fact about what a construct *ends* with, which needs a LAST set this
+compiler does not compute.
+
+### What it is worth, and why that closes it
+
+Committing that one optional by hand — `{ (name: Identifier & ':')? }`, which the notation
+already offers — takes the refusal from 205 us to 152, **26%**. So the cost is real and
+spread over several optionals rather than concentrated in one.
+
+But the shape settles it. The same file repeated, accepted and refused:
+
+     3,053 chars     131 us     393 us     3.0x     129 ns a character
+     6,107           264        781        3.0x     128
+     9,161           392      1,229        3.1x     134
+    12,215           554      1,666        3.0x     136
+
+**Linear**, flat per character across a fourfold range, and the ratio does not move. The
+66 resume points do not compound: each is visited once and the work stays proportional to
+the input. This is a bounded constant of three, not the doubling-per-level that
+`ExpressionLanguage` had and that was worth a night.
+
+So it is not the next thing. An author who minds it has the braces today, at a measured
+26% for one of them, and a LAST-set analysis to shave a linear 3x sits well behind the 69%
+that deferred construction costs on the same grammar.
+
+The proposal in the entry above was made on a ratio without a curve beside it. The ratio
+was right and the conclusion drawn from it was not.
+
+## Profiled properly: it is the recognizer writing the arena, not the materializer reading
+## it — and how three profiling modes disagreed
+
+The value machinery is 69% of the self-hosting gap (two entries above, measured by
+stripping every value out of the grammar and timing what was left). This entry finds where
+inside it, and the finding is the opposite of what the first profile said.
+
+### Three modes, and only one of them to be believed
+
+A **sampling** profiler cannot see inside this engine at all: a generated parser is a few
+very large methods with `goto` between their states, so there are no frames to attribute
+to and the answer comes back as "Recognize 97%". That is what sent the last two entries
+looking for other instruments.
+
+**LineByLine** sees inside, and lies about what it sees. It instruments every line, which
+turns off inlining, so the run took 14.3 ms a parse against 0.135 unprofiled — **106x** —
+and the overhead lands on whatever executes the most lines. It reported
+`Materialize_DotGram` at 42% and `ParserEntry.get_Kind` at 7% over 7.9 million calls; the
+second is a field read that does not exist in a release build, and the first is the
+biggest method in the file paying a probe per line executed.
+
+**Sampling with `Reporter.exe`** is the one to believe, and the check is that it barely
+distorts: 250,000 parses in 35,642 ms is 142 us each, against 135–137 unprofiled. What it
+cannot do is look inside a method; what it can do is say which method, without lying about
+the proportions.
+
+    Reporter.exe report samp.dtp --pattern=all.xml --save-to=report.xml
+
+with `<Patterns><Pattern>.*</Pattern></Patterns>`. `Reporter.exe` sits in the dotTrace
+installation directory, not in the `dottrace` CLI, and an earlier attempt here concluded
+the snapshot was unreadable without the GUI after finding only storage-level types in
+`JetBrains.Profiler.Snapshot.dll`.
+
+### What it says
+
+    Recognize_DotGram_Part0    11,500   32.3%   own
+    Recognize_DotGram_Part1     8,446   23.7%
+    Materialize_DotGram         3,080    8.6%   (13.1% with its subtree)
+    ParserArena.Add             1,652    4.6%
+    Scan_trivia                 1,141    3.2%
+    Recognize_DotGram own       1,128    3.2%
+    ParserEntry..ctor             943    2.6%
+    StelemRef_Helper+StelemRef  1,284    3.6%
+    ClearWithReferences+Reset     765    2.1%
+
+**Materialization is 13%, not 42%.** Recognition is about 70%, and the two parts of the
+state machine are 56% of the parse between them.
+
+That is consistent with the stripped-grammar experiment rather than against it. Values
+cost 83 of the 137 microseconds; materialization is only about 18 of those, so the other
+65 are the arena entries the recognizer writes *because* there are values — the
+`Completed` rewrite and the `RuleCapture` per valued call. **The expensive half of
+deferred construction is recording the derivation, not replaying it.**
+
+### Four hypotheses measured and dropped on the way
+
+Each was plausible and each is now closed by a number rather than by an argument.
+
+  * **The struct copy.** `ParserEntry` is nine ints and the arena's indexer hands it back
+    by value, so every read copies 36 bytes to look at one or two fields — the engine's own
+    comment in `ArenaCost` calls this "the interesting one". `ArenaCost` now runs at two
+    scales, the URL's 172 reads and the self-hosted grammar's 9,972 over a hundred-kilobyte
+    array, and reading in place is within 2% at both. A copy inside the cache is not a cost.
+  * **The pointer chase.** The materializer follows `capturedAt = linkNexts[capturedAt]`,
+    a dependent load per hop that nothing can prefetch. Two new rows read the same entries
+    swept and chained: the chain is not the slower one at either scale.
+  * **The tables cleared between parses.** `Reset` does six `Array.Clear`s and a scalar
+    loop writing −1 into two link tables. Timed at the real arena size it is 3 us of 125,
+    and the profile agrees at 2.1%.
+  * **The factories.** Every `Construct_*` and record constructor together is under 2%.
+    What a `=>` builds is not what deferred construction costs.
+
+### And one that is new
+
+`StelemRef` and its helper are **3.6%** — the covariant store check the CLR runs on every
+write into a reference array. The materializer writes `values[...] = parser` into an
+`object?[]` used as a "already built" marker, and each of the per-type tables takes stores
+of a type the JIT cannot prove exact. Small, but it is pure ceremony and nobody had
+counted it.
+
+### Where this points
+
+At the recognizer, which is where the time is and not where the last three entries were
+looking. Two counts from the line-by-line run are still exact whatever its timings were
+worth: **3,152 arena appends** and **1,367 entries into the two parts** per parse of a
+3,053-character file. The parts are this session's answer to the JIT's block limit, and
+every crossing between them is a return to the driver and a switch over 321 states — a
+cost that grammar pays for a rendering decision made about a different grammar.
+
+## Measured: the method split is calibrated twice too tight, and one grammar pays 47% for it
+
+The sampled profile put 56% of a self-hosted parse inside the two halves of the split
+recognizer, and 1,367 crossings between them per parse. That is a cost this session
+introduced, so the first question is whether the split is paying for itself. On
+`GramGrammar` it is not.
+
+### The two sides, timed identically
+
+`line.exe`, 40,000 parses of `Url.gram` after 2,000 warm-up, in-process timer, three runs:
+
+    split, two parts       125.9   126.5   128.4 us
+    one method             85.0    86.1    86.6 us
+
+**The split costs 47%**, and the estimator refuses the fast one: `GRAM5003` says the
+undivided recognizer is 2,113 basic blocks, past the 2,000 where "the JIT compiles a
+method without optimization and this one will run several times slower".
+
+### What the JIT actually did
+
+`DOTNET_JitDisasmSummary=1` with `DOTNET_JitStdOutFile` answers it directly, and both
+sides are fully optimized:
+
+    one method   Tier1-OSR with Synthesized PGO, IL size=33326, code size=90196
+    two parts    Tier1 with Synthesized PGO, IL 30358 + 24463, code 46147 + 36335
+
+No MinOpts anywhere. The premise the split was made under does not hold for this grammar,
+and the total code is the same either way — 90,196 bytes against 86,846. The split buys
+nothing and adds 1,367 returns to the driver and switches over 321 states per parse.
+`Tier1-OSR` is the reason: a method whose body is one long dispatch loop is exactly what
+on-stack replacement is for, and it gets promoted mid-run however large it is.
+
+### And the other side, where the split earns everything
+
+`ExpressionLanguage` at a budget of 4,000 — two parts instead of seven:
+
+    (int x) => x                          11.5 us  ->   30.4
+    (int x) => ((((x + 1) * 2) - 3) / 4)   67.9    ->  343.4
+    the same six deep                     120.9    ->  522.6
+    the same six deep, refused             90.5    ->  311.9
+
+Three to five times slower, and the JIT says why:
+
+    Part0  Tier-0 switched MinOpts, IL size=71017
+    Part1  Tier-0 switched MinOpts, IL size=70186
+
+**So the gate is IL size against `JITMinOptsCodeSize`, which is 60,000 bytes** — 71,017
+is over it and 33,326 is not. Not a basic-block count, and not 2,000 of anything.
+
+### The calibration
+
+Two points, from the diagnostic and the JIT:
+
+    GramGrammar     2,113 estimated blocks   ->   33,326 IL   ~15.8 bytes a block
+    ExpressionLanguage's largest machine
+                    6,708 estimated blocks   ->  ~141,000 IL  ~21 bytes a block
+
+At the worse ratio, 60,000 IL is about **2,850 estimated blocks**. `Budget` is 1,500 and
+divides to nine tenths of it, so a part comes out around 1,350 blocks — some 28,000 IL,
+**less than half the gate**. The margin was set as "a quarter under" a `Limit` of 2,000
+that was itself fitted to two grammars; measured against what the runtime actually
+switches on, the whole scale is about twice too tight.
+
+Five parsers in this repository are divided today: `Rfc3986` into nine, `ExpressionLanguage`
+into seven, `Settlements` into four, `UrlGrammar` and `GramGrammar` into two. The two-part
+ones are the ones to suspect — a machine only just over the budget is divided into halves
+that were never in danger.
+
+### Not changed here
+
+Raising `Budget` changes the generated code of every consumer, and the number wants
+choosing against the IL gate rather than nudging: an estimator that predicts IL bytes and
+aims under 60,000 with a margin is a different heuristic from one that counts branches and
+aims under a fitted 2,000. Recorded for that decision, with the tree restored to `Budget =
+1500` and 1511/1511 green.
+
+## Measured: finer is better all the way down, and the budget is leaving 2-3x on the table
+
+The entry above found the split costing `GramGrammar` 47% and proposed separating two
+decisions — whether to divide at all, and how large a part should be — with the second
+left where it stood, because two data points bracketed an optimum near it. **That model
+was wrong.** A sweep says the curve does not turn: it falls until the parts are tiny and
+then flattens.
+
+Both grammars, all timings in microseconds, `Budget` swept while everything else stands:
+
+    Budget    ET parts   nest 4   nest 6   refused    GramGrammar
+      1500        7        72.1    116.4     88.1        120.0
+       700       14        40.4     68.6     37.5         51.7
+       350       25        36.4     58.1     28.5         51.9
+       200       44        37.0     69.7     27.2         48.9
+       100       86        23.6     41.1     18.5         49.1
+        50      167        24.7     39.9     19.6         49.1
+
+`ExpressionLanguage` is **three times faster** at a budget of 100 than at the shipping
+1500, and its refusal path three and a half. `GramGrammar` is **2.4 times faster**, and it
+flattens by 700. Nothing turns back up as far down as 50, where the largest grammar is in
+167 methods.
+
+`GramGrammar` is the one that kills the previous entry's model outright: undivided it is
+86 us, in two parts 126, and in four parts 51.7. Not a U with an optimum in the middle —
+two parts is simply a bad place to be, and more is better than either.
+
+### Why the old model was wrong
+
+The reasoning was that a part's code quality falls off with size and crossings cost, so
+there is an optimum in between. The first half is right and the second is much weaker
+than assumed: at a budget of 50 the parsers cross constantly — `ExpressionLanguage`
+already crosses 520 times per parse of a fifty-character input at a budget of 1500, ten
+crossings per input character — and going finer still does not hurt. Whatever a crossing
+costs, it is dominated by what the JIT does with a method small enough to hold in
+registers.
+
+### The concept this came from, and the one it points to
+
+The engine is one large method because rules became states rather than methods, and that
+was the answer to recursion: a method cannot be suspended and resumed, and resuming across
+a rule boundary is what backtracking is. That reason is about the **arena**, which holds
+the frames — not about how the emitted code is laid out. The one-method shape was never
+required by it; it was what fell out of it.
+
+So the shape can change, and the sweep says it should: **extract into methods everything
+that extracts naturally**, which is to say per rule, rather than cutting the state list at
+whatever index a budget lands on. Rules are the grammar's own boundaries, diagnostics are
+already phrased in terms of them, a cut there is stable under an edit that adds a rule,
+and each method comes out small — which is the thing the sweep says matters.
+
+### What a fine split breaks today, and it is not semantics
+
+At a budget of 100 the suite fails four: three snapshots, which is the generated code
+changing as it should, and `ReferenceDifferentialTests` — not on a disagreement about what
+the automaton accepts, but on `CS0164: This label has not been referenced`. A state whose
+label is emitted in one part and only ever jumped to from the driver leaves an unreferenced
+label behind, and the differential test holds the emitted source to compiling cleanly. The
+same family as the `CS0159` this session already fixed at a part boundary. It has to be
+solved for any finer division, and it is a codegen tidiness problem rather than a
+correctness one.
+
+Nothing changed here: the tree is back at `Budget = 1500`, 1511/1511 green. What is
+recorded is that the constant is not the thing to tune — the shape is.
+
+## Corrected: finer is better only for a grammar large enough to need dividing at all
+
+The entry above swept the part budget over `ExpressionLanguage` and `GramGrammar`, found
+the curve falling all the way down, and concluded that the constant is not the thing to
+tune. The sweep had no small grammar in it, and with one the conclusion does not hold.
+
+The URL grammar of `benchmarks/Urls.cs` is not divided at the shipping budget — one method,
+and the flagship numbers of this project are made of it. Divided, it gets worse at every
+input:
+
+    input                    1500, one method   350, two parts   150, five parts
+    http://example.com             154.6 ns        187.2  +21%      202.1  +31%
+    every part named               315.2           366.8  +16%      420.9  +34%
+    an IP host                     168.0           196.5  +17%      237.8  +42%
+    eight path segments            251.6           368.7  +47%      333.7  +33%
+    the refusal                    102.3           138.2  +35%      160.3  +57%
+
+So a budget low enough to make `ExpressionLanguage` three times faster would cost the URL
+grammar between a sixth and half of everything it has, on the comparison against
+`RegexOptions.Compiled` that the README leads with.
+
+### What the three grammars say together
+
+    URL             ~600 estimated blocks    one method is best; every division costs
+    GramGrammar     2,113                    86 us undivided, 126 in two, 51.7 in four
+    ExpressionLanguage 6,708                 141 KB of IL undivided, MinOpts, and hopeless
+
+Dividing is not free and not always worth it. It buys better code inside each method and
+costs a crossing; which wins depends on how large the whole would have been. The
+**two decisions** the earlier entry proposed and then withdrew are back, and now with a
+third point to place them:
+
+  * **Whether to divide at all** is a real threshold, somewhere between the URL grammar's
+    six hundred blocks and `GramGrammar`'s two thousand. Below it a single method wins by
+    16 to 57%; above it dividing wins by up to a factor of three.
+  * **How large a part should be, once dividing**, is the flat basin the last sweep
+    found — anywhere from about 350 blocks down to 50 measures the same, and the shipping
+    1500 is far above it.
+
+### And why today's shape is the worst of both
+
+`parts = ceil(whole / (Budget * 9/10))` makes those one decision. A grammar just over the
+budget is divided into **two** parts — which every measurement here says is the worst
+place to be: `GramGrammar` at two parts is slower than at one *and* slower than at four.
+Being just over the line does not cost a little, it costs the most.
+
+Divide finely once the decision to divide is made, and that disappears: a grammar just
+over the threshold gets many small parts, which is the good configuration, and the
+threshold becomes a crossing between two costs rather than a cliff.
+
+### Not built
+
+Placing the first threshold wants a fourth and fifth point between six hundred and two
+thousand blocks, which no grammar in this repository provides — it wants a synthetic
+grammar swept by size. Recorded with the tree at `Budget = 1500` and 1511/1511 green.
+
+## Built: whether to divide and how large a part is are two numbers now, and it is worth
+## two to four times
+
+The synthetic sweep the last entry asked for. A grammar of a fixed hot core — an
+expression ladder — and a ballast of cold rules grown from nothing to four hundred, timing
+an input that touches only the core, so what moves is the size of the machine around a hot
+path that does not change:
+
+    ballast      one method   parts of 150   parts
+        0           379 ns        519 ns        2
+       20           545           593           9
+       50         2,199           586          18
+      100         2,474           591          32
+      200         2,708           555          61
+      400         3,423           575         118
+
+**Divided into small parts the hot path is flat — 519 to 593 ns whatever the grammar
+is.** Undivided it holds while the machine is small and then falls off a cliff between
+twenty and fifty ballast rules, ending four times worse.
+
+Two things follow. The crossing is between about 1,150 and 2,350 estimated blocks, so the
+`Budget` of 1,500 was **standing in the right place all along**. And the asymmetry is
+sharp: dividing a machine that did not need it costs about a quarter, leaving one
+undivided that needed it costs four times over.
+
+So what was wrong was never the threshold. It was that `parts = ceil(whole / Budget)` made
+one number answer two questions, and a machine only just over the line came out in **two
+parts** — the worst arrangement there is, slower than one and slower than many.
+
+### The change
+
+One line, and a constant beside it. `Budget` still says whether to divide; a new `Part`,
+150, says how large a piece should be. Everything else stands.
+
+    URL grammar (~600 blocks)      undivided before and after, same code
+    Url.gram snapshot              2 parts -> 13
+    GramGrammar                    120.0 us -> 48.1      2.5x
+    ExpressionLanguage             7 parts -> 42
+      (int x) => x                  11.5 us ->  3.9      2.9x
+      x * x - 1                     15.1    ->  4.6      3.3x
+      four parentheses deep         72.1    -> 26.5      2.7x
+      six deep                     116.4    -> 49.0      2.4x
+      six deep, refused             88.1    -> 23.3      3.8x
+    Rfc3986                        9 parts -> 81
+
+The URL grammar is the check that matters as much as the speedups: it is under the
+threshold, so it is still one method and its generated code is unchanged, which is what
+keeps the comparison against `RegexOptions.Compiled` where it was. A budget low enough to
+divide it costs it 16 to 57%, and that is why the threshold is kept rather than lowered.
+
+One snapshot moved, `Url.gram`, from two parts to thirteen — the shape this fixes, caught
+by the file that exists to catch it.
+
+### What is still owed
+
+The number should be a setting rather than a constant, and a wish rather than a
+requirement: a consumer tuning for their own grammar should be able to ask for anything,
+including nothing and a million, and get a working parser either way — the generator
+dividing as near to what was asked as it can and never failing because it could not.
+That is the next piece.
+
+## Built: `PartSize`, an attribute option that is a wish rather than a setting
+
+The measurements say the part size sits in a wide flat basin — sixty to two hundred and
+fifty estimated blocks all measure alike, on `ExpressionLanguage`, on the self-hosted
+grammar and on a synthetic one:
+
+    Part   ET nest 6   ET refused   GramGrammar
+      60      48.3 us      20.4 us      48.0 us
+     100      44.9        19.8         47.2
+     150      44.5        19.2         48.6
+     250      46.4        19.8         50.9
+
+Flat, and the same shape for grammars that differ in kind — so there is nothing to compute
+from a grammar and the default is a constant. Wide is not universal, though, and the three
+grammars measured are not a consumer's, so the number is theirs to change.
+
+**On the attribute, not in the build.** It was written as an MSBuild property first, and
+that was the wrong channel: a build property is per project and this is per grammar, and
+it would have added a packaged `build/` folder to a package that has none. `[Gram("…",
+PartSize = 80)]` puts it where the grammar is.
+
+**A wish, and that is the load-bearing part.** Nothing an author writes there may fail a
+build, because a knob that can break a compilation is one nobody can safely turn. Below
+one asks for the finest division there is, anything past the size of the recognizer asks
+for one part, zero is what the attribute holds when nobody set it and means the default,
+and everything between is taken at its word. Measured on a grammar of three hundred
+ballast alternatives:
+
+    PartSize        parts   hot path
+    (unset)            61     554 ns
+    40                220     570
+    0                  61     561
+    1,000,000           4  20,791
+    -5              1,452   1,996
+
+The last two are what "as near as it can" looks like: both are answered, both parse, and
+both are slow in the direction asked for.
+
+Seven tests hold it — every value in that table generating a parser that parses, compiled
+by the C# compiler rather than merely emitted, because an unreferenced label or a jump
+with no target is exactly the failure a fine division produces and only a compiler finds
+it. The test grammar had to be rebuilt twice on the way: a choice of four hundred literals
+is settled enough to be lowered to one flat method, which has no parts at all and would
+have measured nothing whatever the size said. Recursion with values is what asks for the
+engine.
+
+§6.4 documents it, and says the other half out loud: whether to divide at all is not
+tunable and is a different question, decided from the estimate, because dividing a grammar
+that did not need it costs a quarter and failing to divide one that did costs four times.
+
+## Measured: the default is right for both parsers, and the first sweep that said otherwise
+## was measuring the machine
+
+The option exists so a grammar that wants something else can say so. Asked of the two
+parsers this repository has numbers for, neither does.
+
+### The URL grammar has nothing to tune
+
+It sits under the divide-or-not threshold, so it is one method and `PartSize` is inert —
+setting it to forty still emits nought parts. The question worth re-asking was whether
+that is right, because the measurement behind it was taken when `Budget` was both the
+threshold and the part size and so could not tell the two apart. Forced to divide, with
+the two now separate:
+
+    parts        short    full     IP host   long path   refused
+    one (as is)  130.2    302.4    149.3     216.3        86.8 ns
+    two          164.3    355.4    185.5     280.1       116.6
+    five         179.1    401.6    201.0     290.7       131.6
+    eight        296.3    455.8    388.8     426.7       164.6
+    sixteen      227.4    490.6    312.9     873.8       166.2
+
+Worse at every size and worse the finer it is cut. Its optimum is the arrangement it
+already has, and the threshold that gives it that is doing its job.
+
+### `ExpressionLanguage` has nothing to tune either
+
+Swept through its own attribute, sixty to three hundred, the numbers are flat. A first
+reading put a shallow optimum at ninety — about 3% better than the default over the five
+inputs — and interleaving 90, 150, 90, 150 dissolved it: the first pair goes to ninety by
+0.4% and the second to a hundred and fifty by 3%. There is no difference to find.
+
+### What made the first sweep lie
+
+Worth writing down, because it nearly produced a tuned constant out of noise. The harness
+timed one window and reported its mean, and on this machine the spread between runs of
+**one** build was larger than the spread between builds — the same default measured 44.5,
+49.0 and 51.4 microseconds on the same input across the evening. A mean over that cannot
+separate two configurations.
+
+The fix is two lines: take the **best of several short windows** rather than the mean of
+one long one — no run is ever faster than the work takes, so the minimum is the one least
+interfered with — and **interleave** the configurations rather than running all of one and
+then all of the other. Repeatability went from ±15% to ±0.8% on the shortest input and
+±2.4% on the longest, which is what made the answer legible: there is nothing there.
+
+So the option stays for a grammar that turns out to want it, and the two grammars measured
+here are not it.
+
+## Measured: the full suite after the division change, and what it can and cannot say
+
+### `ExpressionBenchmarks`, which is where the change lands
+
+    input                            before      after     times   allocation
+    six deep                       80,280 ns   40,630 ns    2.0x   unchanged
+    six deep, refused              76,982      16,700       4.6x   unchanged
+    four deep, refused             54,515      11,520       4.7x   unchanged
+    four deep                      52,231      23,101       2.3x   unchanged
+    two deep, refused              35,383       6,956       5.1x   unchanged
+    two parameters, parenthesized  28,522       9,264       3.1x   unchanged
+    two deep                       28,197      10,348       2.7x   unchanged
+    a block, through Assignment    24,976       8,478       2.9x   unchanged
+    Math.Max, through NamedType    24,175       9,270       2.6x   unchanged
+    the operator ladder            13,941       4,244       3.3x   unchanged
+    a member read                  10,895       3,119       3.5x   unchanged
+    the floor                       7,970       2,297       3.5x   unchanged
+
+**Two to five times, and the allocation column is the control.** Byte for byte the same
+at every input — 1.16, 1.59, 1.8, 2.59, 2.82 KB and the rest — so the two builds do the
+same work and record the same derivation. What changed is only how the emitted C# was
+compiled, which is what a division is.
+
+Refusal is now cheaper than acceptance at every depth (6.96 against 10.35, 11.52 against
+23.10, 16.70 against 40.63), which is the right way round: a refused input is one
+character shorter and reads one operand less.
+
+### What the full run cannot say
+
+Everything in it moved down between eight and thirty per cent, including `Regex`,
+`RegexOptions.Compiled` and the BCL's own `File.ReadLines` — none of which this repository
+touched. That is the machine, and the third time this session it has moved by more than
+the effect being looked for.
+
+So the URL numbers are read as ratios, and they hold: `.Gram` against
+`RegexOptions.Compiled` is 2.66 / 1.78 / 1.22 / 2.72 / 2.49 against the previous run's
+2.49 / 1.81 / 1.26 / 2.92 / 2.32, scattered both ways within a few per cent. Which is
+what should happen — the URL grammar is under the divide threshold, so its generated code
+is unchanged, and an unchanged parser measuring the same is the check that the threshold
+did its job.
+
+And one honest gap: `Settlements`, the only benchmarked grammar that did change (four
+parts to twenty-two), shows its `WideFeedBenchmarks` rows down 8.5 to 18.3% at the small
+sizes — inside the same band the untouched `Regex` rows moved by. **That improvement
+cannot be claimed from this run.** Separating it wants the two builds interleaved on one
+machine state, the way `ExpressionBenchmarks` was measured, and that was not done.
+
+## A/B, interleaved: the division is a large win on one grammar and nothing on another,
+## and the synthetic experiment could not have told me
+
+The previous entry declined to claim `Settlements`' 8.5 to 18.3% because the untouched
+`Regex` rows moved by as much. Measured properly it was right to decline.
+
+### How
+
+The `PartSize` option makes the A/B possible in one process: `PartSize = 1500` reproduces
+exactly what the generator did when one number answered both questions — `parts =
+ceil(whole / (Budget * 9/10))` — so two copies of the benchmarks' own grammar, generated
+from the one source and differing in that number alone, are the two builds. Four parts
+against twenty-two, alternating which goes first each round, best of several rounds.
+
+    20,000 records     1.05x   0.99x   0.99x   1.00x
+    100,000 records    0.94x   0.98x   0.96x   0.96x
+
+**Nothing at the small size and about 4% *worse* at the large one**, reproducibly, at a
+spread of ±1%. Against `ExpressionBenchmarks`' two to five times on the same change.
+
+### Why
+
+A line-by-line profile counts the crossings, and they are the whole story:
+
+    four parts    2 of them ever entered      3,015 entries
+    twenty-two   10 of them ever entered     13,525 entries
+
+Four and a half times the crossings, for no gain in code quality — the coarse parts were
+already small enough to be compiled well. `Settlements` is one enormous `Row` rule, a
+straight line of fifty fields that every record walks end to end, so its hot path *is* the
+machine: dividing it finely can only add boundaries to something that has to cross them
+all anyway. `ExpressionLanguage` is the other shape — a small operator ladder inside a
+large machine most of which a given parse never touches.
+
+### What that says about the experiment that set the number
+
+The synthetic grammar built to place the threshold was **a fixed hot core with cold
+ballast grown around it**, which is exactly the shape where dividing helps most. It could
+not have shown this, and I generalized from it. The honest statement of the change is
+narrower than the last entry's: two to five times where a grammar's hot path is a small
+part of a large machine, inert where the machine is not divided at all, and a few per cent
+worse where the hot path is the whole machine.
+
+`Settlements` is therefore the first grammar here that would set `PartSize` for itself —
+which is what the option is for, and the first evidence that it was worth having rather
+than a knob added because it could be.
+
+## Probed: a SQL-sized grammar, and the emitter is quadratic
+
+Before writing any SQL. `TSql170.g` is 35,800 lines of ANTLR grammar against this
+repository's largest at 683, so the first question is whether the generator survives that
+at all. A synthetic grammar shaped like a dialect — one shared expression ladder and a
+growing number of statement forms, each with keywords, an option list and captures that
+build — answers it.
+
+    forms   grammar   generated    parts   generate   compile C#
+       10        99      19,039       72       0.4s        3.2s
+       40       309      65,367      268       1.9s        4.3s
+      100       729     157,935      650       4.2s       12.6s
+      200     1,429     313,667    1,298      11.5s       17.0s
+      400     2,829     625,171    2,594      56.7s       52.3s
+
+Every one of them generates, compiles and parses. What they do not do is scale: the
+generator's exponent climbs 0.9, 1.6, **2.3** as the grammar grows.
+
+### Where, exactly
+
+Stage by stage, and it is not where I would have guessed:
+
+    forms   rules    lex   parse   bind   normalize      emit
+       40      97     22       4      7         367     1,099 ms
+      100     217      6       1      1         239     2,448
+      200     417      2       4      2         228    10,357
+      400     817      1       0      1         327    47,208
+
+**Normalization is flat** — 230 to 370 ms whatever the size, so its fixed points are not
+the problem. All of it is the emitter: 3.8 times the rules for 19.3 times the time.
+
+A sampling profile names the methods:
+
+    Machine.Dispatching        16.6%
+    Machine.Named              11.8%
+    String.SplitInternal       11.2%
+    regex MatchCollection       5.3%
+
+`RenderStates` is called once per part, and it calls `Named()` — which runs a regex over
+every body — and `Dispatching()` — which walks every state and every jump. Neither
+depends on which part is being written; both are pure functions of the finished bodies.
+With parts growing in proportion to states, computing them per part is O(states²), and
+that is the whole of it. **Cacheable once per machine**, which is the fix.
+
+### What it says about SQL
+
+Two blockers, and only one is ours.
+
+Ours is the quadratic above, and it looks cheap to remove.
+
+The other is not: 625,171 lines of C# took Roslyn 52 seconds, growing at about n^1.6, and
+this synthetic grammar expands at **221 lines of C# per line of grammar**. Full T-SQL at
+that ratio is millions of lines and minutes of the consumer's build, every build.
+
+But the ratio is a property of how a grammar is written, not a constant:
+`ExpressionLanguage` expands at 37, `Rfc3986` at 262, and this probe — many small rules of
+literal alternatives — at 221. A SQL grammar written as fewer, richer rules would land
+somewhere else entirely, and **which** is the next thing worth measuring, on a real
+`SELECT` subset rather than on a synthetic.
+
+So: not a no, and not a yes yet. The order is the emitter's quadratic first, because it is
+ours and it is bounded; then a `SELECT` subset to find the real expansion ratio; then the
+comparison against ScriptDom.
+
+### And one correction to the framing
+
+ScriptDom is built on **ANTLR 2**, not ANTLR 4 — `antlr.Tool`, a vendored
+`antlr/antlr/*.cs` runtime, `options { k = 2; }`, LL(2) with hand-written syntactic
+predicates, and a separate lexer. Beating it would be worth saying, because it is the
+production T-SQL parser with 27.8 million downloads; "faster than ANTLR" would not be,
+because that is not the ANTLR anyone means today.
+
+## Built: the emitter's answers are worked out once, and it stops being quadratic
+
+The probe above put the whole of the generator's superlinearity in `CSharpEmitter`, and a
+sampling profile named `Machine.Dispatching` at 16.6% and `Machine.Named` at 11.8%, with
+`String.SplitInternal` and a regex behind them. The reason is one line of structure:
+`RenderStates` is called once per part, and each call worked those out again.
+
+Neither depends on which part is being written. `Dispatching` is a map for the whole
+machine; `Dispatched` is a list of the states the dispatch can land on; and the label set
+`RenderStates` builds is four sets united, none of which is a fact about a part — the
+jumps the finished bodies hold, the states the dispatch lands on, the ones named from
+outside, and the ones a part is entered at. Each is now worked out once and held, and
+cleared in `PlanLayout`, which is the one moment the bodies or the parts change.
+
+    forms   rules   emit before   emit after
+       40      97      1,099 ms       342 ms
+      100     217      2,448          609
+      200     417     10,357          963
+      400     817     47,208        2,164
+
+**Twenty-two times at the largest point**, and the shape changed rather than the constant:
+3.8 times the rules now costs 3.55 times the time, an exponent of 0.96 against the 2.2 it
+was. End to end the generator goes from 56.7 seconds to 2.5 on the largest grammar
+measured.
+
+The check that matters is that the emitted code did not move: caching a pure function
+cannot change its answer, so every snapshot must be byte identical, and they are —
+including `Url.gram`, which is seven thousand lines in thirteen parts. 1518/1518 green.
+
+### What is now in the way of a SQL-sized grammar
+
+Not us. At 625,171 lines of generated C# the generator takes 2.5 seconds and **Roslyn
+takes 41.6**. The wall moved to the C# compiler, and the only lever on it is emitting
+less: this synthetic grammar expands at 221 lines of C# per line of grammar, where
+`ExpressionLanguage` expands at 37. Which of those a real SQL grammar is like decides
+everything, and it is measured by writing one rather than by arguing about it.
+
+## Built: the expression layer of standard SQL, recognizing
+
+The bottom level first, which is the right order and not only because the standard is
+layered that way: a `SELECT` is mostly places where an expression stands, so writing the
+query level first means writing expressions anyway, badly scoped.
+
+**The rule names are the standard's, production for production** — `SearchCondition`,
+`BooleanTerm`, `BooleanFactor`, `BooleanTest`, `BooleanPrimary`, `Predicate`,
+`RowValueConstructor`, `ValueExpression`, `Term`, `Factor`, `ValueExpressionPrimary`. Not
+an implementation's object model: what I first proposed used `BooleanExpression`, which is
+Microsoft's DOM name and not a name in ISO/IEC 9075 at all. The standard calls it
+`<search condition>`, and in SQL-92 there is no `<boolean value expression>` to confuse it
+with.
+
+Two things the reading corrected beyond the naming. `<value expression>` in SQL-92 is the
+four value categories and nothing else — `<search condition>` stands beside it as its own
+nonterminal rather than being a branch of it, which is SQL:2003's arrangement and what I
+had described. And a predicate compares `<row value constructor>`, not a value expression,
+which is why `a = 1` and `(a, b) = (1, 2)` are one production rather than two.
+
+### The one divergence, written where it happens
+
+§6.11 gives four towers — numeric, string, datetime, interval — that share a bottom, so
+`a + b` belongs to two at once and only the types of `a` and `b` say which. That is not a
+defect in the standard: it describes syntax modulo type resolution, and a parser has no
+types. One untyped ladder here, as in every implementation, and the grammar says so at the
+place it does it.
+
+### What it recognizes
+
+Twenty-eight of thirty-one sample conditions, and the three refused are the three written
+to be refused. Comparisons, `AND`/`OR`/`NOT`, `IS TRUE`, `BETWEEN`, `IN` both ways, `LIKE
+… ESCAPE`, `IS NULL`, `EXISTS`, quantified comparison, row constructors, `CASE` both
+forms, `CAST`, `EXTRACT`, `SUBSTRING`, `COALESCE`, set functions with `DISTINCT`, typed
+literals, intervals, concatenation, delimited identifiers, parameters.
+
+Nothing is built. The tree comes when its shape is decided; getting the language right
+first is what keeps that decision about the tree rather than about the parse.
+
+### Two defects it found on the way
+
+**Mine, and the notation caught it:** `Identifier = RegularIdentifier & ?!Reserved` asks
+whether a reserved word *follows* an identifier, where §5.2 says an identifier is a word
+that *is not* one. In front, it reads; behind, it refuses `x IN (1, 2)` and `LIKE 'A%'
+ESCAPE ''` — two failures from one transposition.
+
+**The generator's, and nothing caught it:** a capture whose name is already capitalised
+makes the emitted class use one name for both the property and the constructor parameter,
+so the constructor comes out as `EXISTS = EXISTS;` — CS1717, uncompilable, with no
+diagnostic from us. The same family as the CS0164 fixed earlier this session: emitted code
+that does not compile and is not refused. Recorded here; not fixed yet.
+
+### And the measurement it was written for
+
+    grammar   generated    ratio
+      334      119,722      358x    SqlExpressions
+      683       25,349       37x    ExpressionLanguage
+      126       33,024      262x    Rfc3986
+
+**358 to one**, worse than the synthetic probe's 221 and ten times `ExpressionLanguage`.
+So the answer to the question the probe left open is the unwelcome one: a real SQL grammar
+expands like `Rfc3986` and not like `ExpressionLanguage`, and the C# compiler is the wall
+that matters.
+
+Where it goes is not yet measured, but the shape of the grammar says where to look: sixty
+reserved words tried in order behind every identifier, and case-insensitive keyword
+literals that expand per character. Both are size and both are speed.
+
+## Built: two published rules that reach each other share one machine
+
+`SqlStandard92` publishes both of its roots — a caller has either a condition or an
+expression in hand — and that wrote the grammar **twice**: 119,722 lines against 60,317,
+the second entry point costing a complete second copy.
+
+The emitter grouped publications by rule identity. `parse R` and `find R` shared a machine
+and always had; two *different* rules got one each, "even where both call a third rule,
+which is then compiled into both", as its own comment said. `<search condition>` reaches
+`<value expression>` through its predicates and `<value expression>` reaches back through
+`CASE`, so each machine compiled everything.
+
+They share one now, on the condition that each can reach the other. Mutual reachability is
+the right test and one-way is not: a machine is compiled over what its root reaches, and
+only where the reaching goes both ways are the two sets equal — so the two roots are two
+entry states of one machine, which is a shape `Register` already had. `CallGraph.Together`
+is the predicate, and it was already there, meaning the same components Tarjan finds for
+recursion.
+
+    two publications, two machines   119,722 lines   308 parts
+    two publications, one machine     60,317         154
+
+Nothing in the repository changed — no grammar here had two mutually reachable
+publications, which is why the snapshots did not move and why two tests were added rather
+than relying on them.
+
+### And the headline of the entry above was wrong twice
+
+It said a real SQL grammar expands at 358 lines of C# per line of grammar against
+`ExpressionLanguage`'s 37. Half of that was this duplication. The other half was the
+measure: **grammar lines say more about how an author wrapped them than about how much
+grammar there is** — `SqlStandard92` writes 60 reserved words as one rule over ten lines,
+where `ExpressionLanguage` spreads comparable content over many more. Counted in nodes of
+the lowered tree, which is what the emitter is actually given:
+
+    grammar              rules   nodes   C# lines   per node
+    SqlStandard92           70   1,558     60,317       38.7
+    ExpressionLanguage      86   1,713     25,349       14.8
+    Rfc3986                 36     322     33,024      102.6
+
+The two grammars are nearly the same size — 1,558 nodes against 1,713 — and SQL emits 2.4
+times as much, not ten times. `Rfc3986` is worse than either, which says the shape that
+costs is character-level recognition rather than SQL.
+
+Of the remainder, one part is measured: making the 192 case-insensitive keyword literals
+case-sensitive takes 60,317 lines to 51,976 — **case insensitivity is 14%**, which is a
+real cost and not the difference.
+
+## Built: a rule is written where it is called only while it is small
+
+`ExecutionPlan.CompiledInPlace` had no size in it. Any rule that keeps no value, holds no
+capture and sits outside every cycle was written at each of its call sites, and its own
+comment said why that was safe — "what the duplication costs is generated text" — as
+though text were free. For the helpers it was aimed at, four to six nodes each, it is.
+
+Standard SQL's reserved-word list is 285 nodes, and the expansion is compositional:
+`Reserved` is written into `Identifier`, `Identifier` into `QualifiedName` and three other
+places, `QualifiedName` into four more, and `QualifiedName` holds `Identifier` twice. About
+a dozen copies of a sixty-way choice.
+
+    60 keywords          60,317 lines
+     4 keywords          24,503
+     no reserved check   22,228
+
+**Fifty-nine per cent of the file.** So a boundary is kept where the body is large, at
+sixty-four nodes — measured rather than chosen, because there is no continuum to cut in
+the middle of. Across the three parsers here the rules this admits have a median of four
+to six nodes, and what stands above the line stands well above it: 92 for `Rfc3986`'s IPv6
+address, 228 and 285 for SQL's data types and reserved words. `ExpressionLanguage`'s
+keyword list is 42 and stays inlined.
+
+    SqlStandard92        60,317 -> 26,473    -56%    154 parts -> 62
+    Rfc3986              33,024 -> 25,571    -23%
+    ExpressionLanguage   25,349 -> 25,349      0%
+
+One snapshot moved, `Url.gram`, by five lines and a full renumbering of states — which is
+what a rule leaving the inline set does to everything written after it. Behaviour is the
+other 1,519 tests, and the SQL grammar still accepts the twenty-eight of thirty-one it did.
+
+### What a keyword actually costs, since the last entry said it badly
+
+"640 lines per keyword" divided a total by a count and hid two different multipliers. What
+is emitted for `"SET"` is twenty lines: one comparison per character, and beside each a
+five-line block recording *which* character did not match.
+
+    if (text.Length - p < 3 || ToUpperInvariant(text[p]) != 'S')
+    {
+        if (text.Length - p < 3) failure.OutOfInput = p + 1;
+        expected = Recognize_DotGram_Expected144;
+        { state = 2; goto Leave; }
+    }
+    …
+
+So it is about six and a half lines per character of keyword, per copy, and there were a
+dozen copies. Three of the twenty lines recognize; the rest report. Counted over the whole
+file, **31% of it is failure reporting** — which is not a defect but the price
+`implementation.md` §0 names out loud, and this is the first time it has been counted.
+
+### And the answer to whether predicted dispatch helps here
+
+Not as it stands. `Predictive` requires `Determinism.Distinguishable` — every pair of
+alternatives with disjoint first sets — and a keyword list never has that: `AND`, `ALL`,
+`ANY` and `AS` all begin with `A`. What is emitted instead is a chain of first-character
+tests, one per alternative, each falling to the next. A jump table on the first character,
+or a trie over the whole set, is the thing that shape wants, and neither exists here.
+Recorded rather than built: the size problem above was worth more and cost less.
+
+## Built: a case-insensitive literal is one comparison too
+
+The entry above counted 31% of the generated file as failure reporting and left it there
+as the price §0 names. Igor's reading of it was sharper: most of the time nobody needs to
+know *which character* did not match, and it was being worked out after every comparison —
+where the whole of it belongs on the branch that has already failed.
+
+Which is exactly what a case-*sensitive* literal already did. One `SequenceEqual`, and
+`Sharpen` inside the failing branch to say where. The case-insensitive one did not, on a
+stated ground:
+
+> Case-insensitive stays as it was. What it compares is each character folded, which is
+> not the comparison any span method makes.
+
+That is wrong. `MemoryExtensions.Equals` with `OrdinalIgnoreCase` is exactly it, and it is
+on the netstandard2.0 floor through System.Memory, which the emitted code already needs
+for the span.
+
+### Measured before believed, because the fear was reasonable
+
+`SequenceEqual` against a constant is folded by the JIT into word-sized compares; a call
+into a runtime routine might not be, and a keyword list is mostly *misses* — fifty-nine of
+sixty words failing at their first character, where the chain stops after one comparison
+and a call cannot. Nanoseconds a call on a seven-character word:
+
+                             chain   folded   exact
+      a hit                   4.02     2.10    1.90
+      a miss, first char      2.04     2.10    1.90
+      a miss, last char       4.03     2.10    1.91
+
+Twice as fast on a hit and on a late miss, within 3% on an early miss, and within 0.2 ns
+of the exact compare. A win or a wash everywhere.
+
+### How it gets there, since it is not the JIT
+
+`Ordinal.EqualsIgnoreCase` is hand-written and the trick is that ASCII letters differ by
+one bit: `c | 0x20` lowercases both sides with no table. One OR is not enough — `'@' |
+0x20` is a backtick — so every difference is checked against `(v - 'a') <= ('z' - 'a')`
+before being forgiven. Under `Vector128<ushort>.Count`, which is eight characters and so
+every keyword worth the name, it takes the scalar path: 64 bits at a time, four characters
+a chunk. "DEFAULT" is two chunks where the chain was seven `ToUpperInvariant` calls.
+
+And the runtime falls back to full Unicode comparison the moment the data is not ASCII —
+which is the same line the emitter now draws. Beyond ASCII the two foldings genuinely
+part company (a surrogate pair has no per-`char` answer at all), so a literal in somebody
+else's alphabet keeps the chain rather than quietly changing what it accepts.
+
+    SqlStandard92        26,473 -> 23,837    -10%
+    ExpressionLanguage   25,349 -> 25,358      0%
+    Rfc3986              25,571 -> 25,571      0%
+
+Only SQL moves, because only SQL is made of case-insensitive keywords — 192 of them. Two
+snapshots moved with it and both diffs are the intended shape.
+
+## Fixed: the failing position is worked out only where something reads it
+
+Igor, reading the emitted `BETWEEN`: "in this code we work out which character we broke
+on — how is that information used afterwards? Not in general, in this particular place.
+Here it looks like a vestigial pattern, done because everything is done this way, and
+nobody needs it."
+
+Right, and the emitter agreed with him in one of the two places it does this. A literal
+*run* guards the work with `if (fail == Fail)`; a literal on its own did not. `p` at a
+terminal failure is what the caller is told; a failure routed anywhere else goes to a door
+that opens with `p = turn{n};` — a lookahead rewinding, an atomic group trying the next
+alternative — so the ladder is overwritten by the next line to run.
+
+No correctness was at stake: `FailsWhereItBegan`, which is what admits a failure target
+with no give-back, is true for a literal only at length one, and a literal of one never
+sharpens. The two sites are the same question and now answer it the same way.
+
+    SqlStandard92   23,837 -> 23,703
+
+**134 lines, and the smallness is the finding.** The case it was aimed at is not fixed by
+it: `?!Reserved` is where a keyword list is usually reached and where every one of sixty
+ladders leads to a position nobody reads — but `Reserved` is over the inlining threshold
+now, so it is a rule compiled once, in its own context, where `_fail` *is* `Fail`. The
+emitter cannot see from inside a shared body that every caller will discard the answer.
+That is a fact about the whole graph — "is this rule reached only from negative
+lookaheads" — and a different pass from this one.
+
+## Built: a choice of keywords is entered through a switch
+
+Igor: «давай таблицу переходов по первому символу».
+
+`Predictive` asks whether one character says *which* alternative this is, and a keyword
+list never lets it: `AND`, `ALL`, `ANY` and `AS` all begin with `A`. But one character
+does say which *group*, and that is the useful half of the same fact. So `Dispatchable`
+gathers the alternatives by first set, admits the gathering only where the sets partition
+— any two equal or disjoint — and `CompileDispatchedChoice` writes a `switch (c)` that
+lands in the right group. The groups themselves are the same chain as before; the chain
+moved into `CompileChainedChoice` so both callers write it.
+
+Order is kept where order can matter. Between groups it cannot: one character decides,
+and no alternative outside the chosen group could have matched whatever it was written
+after. Inside a group the written order and every way back are exactly what they were.
+
+**The second half is worth more than the switch.** A dispatched group is entered only
+through the switch, and the switch proves both halves of what each alternative was about
+to ask — that there is a character, and that it is this one's. So neither the test nor the
+bounds check around it is written inside the group at all, which is what the `proven`
+argument of `CompileChainedChoice` is for. The elision is sound *because* dispatch is the
+only way in: the ways back a group writes name states in that same group and carry the
+position the switch tested, and the one path that used to arrive untested — the end of the
+input — now fails at the switch before any of them exists. The general chain cannot do
+this, and says so where it declines (`Machine.cs`, the way-back comment).
+
+    SqlStandard92   24,418 -> 23,500 lines
+
+Interleaved A/B, best of three windows each, nanoseconds:
+
+                                                       chain   switch
+      a = 1                                              454      458
+      salary BETWEEN 1000 AND 2000                       983      935
+      x IN (1, 2, 3) AND y IS NOT NULL                 1,098    1,003
+      (quantity + weight) * rate - … < offset          5,306    5,033
+      warehouse.zip_code = 'X' AND vendor_key IS …     2,170    2,005
+
+**Five per cent, and the smallness is again the finding.** Two reasons, both worth
+writing down.
+
+The first is that the chain was never sixty tests. `Skipped` makes a failed character
+test jump past everything that begins the same way, so sixty keywords cost twenty-six
+tests, not sixty — and `Grouped = 4` is set where four tests stop being obviously cheaper
+than a jump table. The identifiers in the first run of this benchmark were `a`, `b`, `c`,
+`x`, `y`, which met the chain at its first tests; spread across the alphabet the gain is
+consistent and still small.
+
+The second is that most of a SQL parse is not the keyword list. `?!Reserved` runs once per
+identifier, and twenty-six tests saved there is five per cent of the whole.
+
+**Two things it does not reach, both deliberate.**
+
+`ExpressionLanguage` is flat — 0.97x to 1.03x, which is this machine's noise. Its keywords
+are case-sensitive, so `CompileLiterals` had them already: a run of plain literals shares
+its prefix and decides where the texts differ, without entries and without a first-set
+test per alternative. A switch in front of that is a jump table in front of something that
+was already deciding on the first character. It is not a loss, and it is not a win.
+
+A bare list of case-insensitive literals never reaches the dispatcher at all: the
+checkpoint class takes it first, and that class is the better machine — a way back three
+locals hold rather than an arena entry. SQL's reserved words reach dispatch only because
+`wordboundary` puts a look-behind in front of each one, which is not checkpoint-silent.
+Left as it is on purpose: dispatch is the fallback for a choice that was going to write
+entries anyway, not a replacement for a choice that writes none. Dispatching *into*
+checkpoint groups is the shape that would have both, and it is a bigger change than this
+one.
+
+And one thing left on the floor: `CompileLiterals` does not take `proven`, so a
+case-sensitive group re-reads the character the switch tested — `if ((uint)p >=
+(uint)text.Length || text[p] != 'a')` right after `case 'a':`. One predictable branch, and
+the measurement above is what it is worth.
+
+## Measured: the syntactic machine over token kinds, and what it costs today not to have one
+
+Igor: «мы занимаемся фигнёй… главное развязать логику выделения токенов и основную логику
+парсера. мы смешали эти вещи и теперь никак не можем выйти ни на нормальный объём кода, ни
+на нормальную производительность».
+
+He is right, and the last three entries in this file are the evidence: each attacked the
+keyword list from inside the character machine, and each ends by saying how small the win
+was. So the question was put to a probe instead of to another optimization.
+
+**What was built.** `.work/kinds`, scratch and not in git. `SqlStandard92`'s syntactic half
+— the forty rules from `SearchCondition` through `Subquery` — transcribed *mechanically*
+onto an alphabet of one character per token kind, compiled by the **unmodified** generator,
+and fed by a hand-written SQL-92 tokenizer. Mechanically because a grammar retyped by hand
+is a grammar that might be subtly easier than the one that ships.
+
+Nothing in the compiler had to change, and that is the first finding. `CharRange` is
+`(char From, char To)`, so `FirstSets`, `FollowSets`, `Determinism`, `Doors`, `RangesTest`,
+`Predictive`, `Skipped` and the `Dispatchable` switch built two entries ago are **already a
+machine over a 16-bit alphabet**. Handing them kinds instead of characters is a matter of
+what the input string holds.
+
+**A gate ran first and blocked.** Forty-two inputs — nine search conditions, their refusals
+derived by cutting the last token, and adversarial ones — had to get the same verdict from
+both parsers before a nanosecond was reported. A probe measuring a weaker grammar measures
+nothing.
+
+**What the arena holds:**
+
+                                  chars    kinds
+      generated lines            23,500    6,580   3.6x
+      Choice entries written        143       19   7.5x
+      Call entries written          299       64   4.7x
+      Run / Lookahead / Atomic       20        0
+      reads of text[p]              692      320
+
+**Time**, nanoseconds, min of seven windows, three runs in agreement — `lex` the tokenizer,
+`kinds` the parse alone, `total` both, `!` a refusal:
+
+           chars        lex      kinds      total
+            464n        85n       209n       294n   1.58x  a = 1
+            919n       132n       282n       414n   2.22x  salary BETWEEN 1000 AND 2000
+          4,533n       727n     1,007n     1,734n   2.61x  (a + b) * c - d / e > f AND …
+          5,287n       843n       994n     1,837n   2.88x  (quantity + weight) * rate …
+            777n        92n       137n       229n   3.39x  ! a =
+         11,518n       637n     1,836n     2,473n   4.66x  ! (a + b) * c - d / e > f AND …
+         19,248n       767n     1,800n     2,567n   7.50x  ! (quantity + weight) * rate …
+
+Accepted 1.49x to 2.88x, median 2.22x. Refused 2.08x to 7.50x, median 4.27x. The bar set
+before the measurement was 2x end to end **or** 3x smaller with no slowdown; both were met.
+
+**Refusals gain most, and that is the arena numbers showing through.** Refusal is where a
+backtracking engine walks every reading still alive, and there are seven times fewer ways
+back to walk. It is also the case the last three entries were chipping at from the wrong
+side.
+
+**Two biases, opposite, both stated.** The tokenizer is hand-written, so a generated one is
+unlikely to beat it — optimistic. It also builds three buffers and a string per call,
+because the generated parser takes a `string` where the design wants a virtual stream —
+conservative. An attempt to measure the second directly gave numbers that contradicted
+themselves across two runs, so it was dropped rather than explained: `bare` came out
+*slower* than the allocating path in a third of the rows, which is not physically possible,
+and no explanation was found that survived a second run.
+
+**What it does not show.** There is no generated lexer, so "the lexer needs no arena" is
+asserted by construction. And 143-to-19 compares a whole parser, lexical rules included,
+against a syntactic half that has none — the gap is wide enough that the conclusion holds,
+but it is not like for like.
+
+## Found: a repetition led by a word literal takes one turn, and the boundary is why
+
+Turned up by the transcription above, unrelated to it, and larger than SQL. The smallest
+form has no SQL in it at all:
+
+```dotgram
+wordboundary = ['a'..'z' | '0'..'9' | '_']
+trivia = { ' '* }
+
+Item  = "when" & ['a'..'z']
+Start = "case" & Item+ & "end"
+```
+
+`case when a end` reads. `case when a when b end` does not, nor does three of them. Strip
+the trivia and the word boundary, write the same shape over single characters, and it reads
+any number.
+
+So `SqlStandard92` refuses `CASE WHEN a > 1 THEN 'big' WHEN a > 0 THEN 'small' ELSE 'none'
+END` — ordinary SQL — and refuses `CASE a WHEN 1 THEN 2 WHEN 3 THEN 4 END` the same way.
+Both `SimpleWhen+` and `SearchedWhen+` are hit, and both begin with a word literal. The
+transcription accepts them, having no word literals and therefore no weaving, which is how
+the gate caught it: the one input of forty-two where the two parsers disagreed, and the
+probe was the one that was right.
+
+Not fixed here — this entry is the probe's, and `src/` was deliberately untouched by it —
+but it goes first in what comes next. It is a correctness bug in shipping code, and where
+it lives is worth noticing: in the seam machinery, which exists only because lexing and
+parsing are the same machine.
+
+## Fixed: a turn that holds a seam is spaced from the next one
+
+The defect the probe turned up, and the first thing done about it.
+
+Two passes space the turns of a repetition and neither saw this shape. `Repeated`, during
+lowering, spaces a repetition whose body is a **sequence** — an author who wrote a seam
+inside a turn has already allowed one at the join. `SpaceLists`, after the types exist,
+spaces a repetition whose turn is a **valued rule** — a collection's elements are spaced.
+A call to a *valueless* rule whose body is a sequence is neither, and fell between them:
+
+```dotgram
+trivia = ' '*
+Item  = "when" & ['a'..'z']
+Start = "case" & Item+ & "end"
+```
+
+`Repeated` saw a `Call`, not a `Sequence`, and looked no further. So the loop body began
+with `"when"` where `p` still stood on the space, the literal failed, and `Item+` ended
+after one turn. With `wordboundary` on, as `SqlStandard92` has it, it failed one step
+earlier and more confusingly: §4.6's `?<!wordboundary` read `text[p - 1]`, found the last
+letter of the previous turn, and refused the second turn before its literal was compared
+at all.
+
+The fix reaches one step further, in `SpaceLists` where the bodies already exist: a turn
+that calls a rule **whose own body carries the seam** is spaced, for exactly the reason
+`Repeated` gives. Valuedness stays as the other half of the same predicate — a valued rule
+is a list's element and is spaced whatever its body looks like.
+
+**What decides it is the callee's seam, not the caller's.** A rule declared where `trivia`
+is empty has no seam to find, so `Word*` over a lexical `Word` is untouched and `ab cd`
+stays two words. That is the whole of what keeps a lexeme a lexeme, and it is why the
+existing `Assert.False(Matches("trivia = ' '*\nStart = Word*\nWord = ['a'..'z']+", "ab cd"))`
+still holds — along with a new test that puts a *sequence* body in a `trivia = none`
+namespace, since a sequence is precisely what would otherwise have tempted the spacing.
+
+    SqlStandard92   23,500 -> 23,524 lines
+
+Twenty-four lines, and two sites: `SimpleWhen+` and `SearchedWhen+`. `ExpressionLanguage`
+and `Rfc3986` are byte for byte what they were, and so are both snapshots. So
+`SqlStandard92` now reads `CASE WHEN a > 1 THEN 'big' WHEN a > 0 THEN 'small' ELSE 'none'
+END` and `CASE a WHEN 1 THEN 2 WHEN 3 THEN 4 END`, which it refused before.
+
+Nine tests, and they were checked the only way a regression test can be: by turning the
+fix off and watching three of them fail. Timings after the fix sit about five per cent
+above the ones measured earlier the same day, uniformly and including inputs with no
+`CASE` in them at all — inputs the change cannot reach — so that is the machine drifting,
+not the seam costing.
+
+## Built: the terminal inventory, and it disagreed with me twice
+
+The first pass of the lexical split (`docs/lexical-adt-design.md`, phase 1). A pure
+function of the graph in `Grammar/TerminalInventory.cs`: it emits nothing and rewrites
+nothing, and answers three questions — what a lexical machine would have to recognize, what
+numbers those results carry, and what in this grammar stands in the way.
+
+**The boundary is a reference, not a file.** A rule is syntactic where it carries trivia
+(§4.5) and lexical where it does not, and a terminal is a call that crosses from the first
+to the second. Nothing has to be declared, which is the whole point: an author who wrote
+`namespace Lexical { trivia = none }` has drawn the line already, and one whose grammar has
+no trivia at all has said the thing is lexical from end to end. `Rfc3986` answers
+"scannerless: no rule carries trivia, so there is no boundary" and pays nothing.
+
+**A word is told from a mark by the shape §4.6 already left.** `Bounded` weaves
+`?<!boundary & literal & ?!boundary` round a literal whose every character continues a
+word, and leaves `'('` alone — so the lowered graph carries the answer and the boundary
+rule need not be asked again.
+
+    SqlStandard92     106 Word    17 Mark    12 Class    135 terminals
+    ExpressionLanguage 38 Word    47 Mark    22 Class    107 terminals
+    Rfc3986            scannerless
+
+**The 106 and the 17 are the finding.** Yesterday's probe derived the same two numbers by
+hand from the grammar text — 56 reserved words plus 50 that SQL-92 does not reserve, and
+seventeen symbols — and this pass reached them from the graph without being told. Two
+readings of the same grammar agreeing is worth more than either.
+
+**It disagreed with me twice on the way, and both times it was right.**
+
+The first run put `"OR"`, `"AND"`, `"IS"` and thirty more in *both* the word group and the
+mark group, and had `'\t'`, `"--"` and `"/*"` among SQL's terminals. Two mistakes, and both
+were mine. Normalization flattens §4.6's woven triple into whatever sequence surrounded it,
+so matching it as a whole rule body found only the keywords that stood alone — the shape
+has to be looked for at every position. And `trivia` and `wordboundary` are ordinary rules
+in the same spaced namespace as the syntax, so they were walked like syntax; excluding the
+two roots is not enough, because `trivia = { (Whitespace | LineComment | BlockComment)* }`
+is three more rules with trivia entries of their own. It is the closure that has to go.
+
+**And it named something the design had not.** `ExpressionLanguage`'s `Keyword` lists
+thirty-eight words inside a lexical namespace, reached only through `Name = ?!Keyword &
+Word` — and every one of those words also stands in the syntax as a literal of its own.
+Give `Keyword` a kind and the lexer has to decide whether `if` is the word or the class,
+and either answer breaks the other reading. The design's answer is that it is neither: it
+is the range those words already occupy, and `?!Keyword & Word` becomes one set difference
+over integers. So it is reported rather than numbered.
+
+`SqlStandard92` does not have the problem, and why not is worth reading: its `Reserved`
+sits where trivia is *not* empty, so it is syntax, and its words are walked into the word
+group like any others. The same list, one namespace apart, is two different problems.
+
+**What is still blocked, and it is honest that it is.** SQL has two: `[^ '(' | ')']` in
+`Subquery` and `Balanced`, sixty-five thousand characters each. Over kinds that means "any
+token but a bracket", which is a different statement, and this is the rule the grammar's own
+comment already calls "the one place this grammar is knowingly wrong". `ExpressionLanguage`
+has nothing blocked but the `Keyword` overlap.
+
+Eight tests, on the model rather than on generated code, because nothing is generated yet.
+
+## Built: a rule that is a choice of literals is a set, and a set is a range
+
+The inventory's own report said what to do next, so this does it. `TruthValue`, `CompOp`,
+`Quantifier`, `Reserved`, `Keyword` — a rule written as a choice of literals recognizes
+nothing its literals do not recognize already. Over characters that is a choice and costs a
+choice. Over integers it is a *set*, and a set that occupies one run of kinds is a subtract
+and a compare.
+
+So the numbering is arranged for it. Greedy and laminar: take the largest set that divides
+what is left, put its members before the rest, and order each half the same way inside.
+Every set nested in another comes out whole, and so does every set disjoint from the rest.
+
+    SqlStandard92                                ExpressionLanguage
+      Reserved           56   1 range   1..56      Keyword  38   1 range   1..38
+      ExtractField        8   1 range  57..64
+      SetFunctionType     5   1 range  65..69
+      TruthValue          3   1 range   1..3
+      Quantifier          3   1 range   4..6
+      TrimSpecification   3   1 range   7..9
+      SetQuantifier       2   2 ranges  4..4, 10..10
+
+**`Reserved` in one run is the whole point.** `Identifier = ?!Reserved & RegularIdentifier`
+runs a fifty-six-way negative lookahead at every identifier position today; over kinds it
+is `(uint)(kind - 1) > 55`. Yesterday's probe numbered exactly this way by hand, from the
+grammar text; this reaches it from the graph.
+
+And the three that sit *inside* `Reserved` — `TruthValue` at 1..3, `Quantifier` at 4..6,
+`TrimSpecification` at 7..9 — are whole because they are nested, which is the laminar
+ordering earning its keep rather than a coincidence.
+
+**`SetQuantifier` is two ranges, and that is the honest answer rather than a complaint.**
+It is `DISTINCT | ALL`, `Quantifier` is `ALL | SOME | ANY`, they share a word and neither
+contains the other, so no ordering makes both a single run. The one that loses carries two
+ranges: two comparisons, and still not a fifty-way choice. The design's lowering ladder has
+a rung for it.
+
+**`ExpressionLanguage` now has nothing blocked at all.** `Keyword` was the only entry, and
+it was the entry precisely because it was being made a class while its strings were already
+terminals — `if` with two kinds. As a range it is neither a kind nor a lookahead, which is
+what the previous entry said the answer would be.
+
+A set is recorded only where every one of its literals is already a terminal. A rule listing
+a word that no syntax ever writes has a string in it that nothing else numbers, and
+promoting it here would invent a terminal out of a lookahead; such a rule stays a class and
+is reported as one.
+
+Nine tests. `SqlStandard92`'s two blocked entries are unchanged and still the `Subquery`
+rule its own comment calls knowingly wrong.
+
+## Built: the syntactic machine over kinds, and three things it taught while being built
+
+`LexicalSplit` rewrites a graph so its terminals are token kinds instead of characters.
+The machine underneath does not change at all, which is the point: `CharRange` is
+`(char From, char To)`, so a graph over kinds is a graph, and `FirstSets`, `FollowSets`,
+`Determinism`, `Doors`, `Predictive` and `Dispatchable` all run over it without being told.
+
+    "SELECT"                 -> one character standing for that kind
+    ?<!b & "SELECT" & ?!b    -> the same; the boundary was the lexer's all along
+    ['+' | '-']              -> the kinds those characters carry
+    RegularIdentifier        -> the kind of the class
+    Reserved                 -> the range those fifty-six words occupy
+    trivia                   -> nothing
+
+Emitted with the unmodified emitter and run against `SqlStandard92` on the probe's
+forty-six inputs, the tokenizer being the hand-written one from `.work/kinds` now driven by
+the *generated* numbering:
+
+    SqlStandard92     23,500 lines -> 6,182       44 of 46 inputs agree
+
+**Three things the design did not know, each found by running it rather than reasoning.**
+
+**A class stands for itself and for the words it would have matched.** `zone` is a word of
+SQL-92 — `WITH TIME ZONE` — and is not reserved, so `Identifier = ?!Reserved &
+RegularIdentifier` takes it over characters. Over kinds it arrives as that keyword's kind
+and never reaches `RegularIdentifier`. The gate said so precisely: one input failed, and
+`zone` was the only word in it that could have been the reason. So a crossing rewrites to a
+set — the class plus every word the class accepts — with `?!Reserved` in front taking the
+reserved ones back out. That union is the set difference this file promised two entries
+ago, reached from the other side, and it is the general answer to contextual keywords.
+Deciding it wanted a matcher over the lexical rules; the strings are keywords and the rules
+are small, so it answers exactly rather than approximating, which matters because
+approximating one way refuses valid programs and the other way accepts invalid ones.
+
+**Nothing may rewrite to nothing where nothing means something else.** `?!wordboundary` has
+an operand that is entirely the lexer's, and rewriting it away leaves a negative lookahead
+over what matches the empty string — which refuses everywhere. The first run cut half of SQL
+out of the machine that way and *looked like a triumph*: 3,313 lines, `Choice` entries down
+to 15. Then the gate refused all forty-six inputs. The number was measuring a machine that
+accepted nothing.
+
+**Two classes that accept the same string cannot both be numbered.** A token carries one
+kind. `Digits` and `UnsignedNumericLiteral` both accept `0`, longest match gives the
+second, and `Length = '(' & Digits & ')'` — the precision of a `NUMERIC` or a `VARCHAR` —
+stops reading. That is the two inputs of forty-six that still disagree, and it is not the
+compiler's to fix: one kind for both widens the language, choosing one narrows it. So it is
+refused, with the string as the witness.
+
+The check found three:
+
+    SqlStandard92        Digits / UnsignedNumericLiteral         both accept "0"
+                         CharacterStringLiteral / QuotedString   both accept "''"
+    ExpressionLanguage   TypeName / Word                         both accept "A"
+
+**And the third one moved an item up the plan.** `TypeName = Word & ('.' & Word)*` is not a
+token; it is syntax living in a lexical namespace only so that `System . Text` will not read
+with the spaces in it. Which says that **`trivia = none` marks where trivia is off, and that
+is not the same line as where tokens end** — inference from it picks up rules that are not
+terminals. Notation for an explicit lexical root was last on the list of what to do; it is
+now third, because no analysis can tell `Word` from `TypeName` without being told.
+
+Ten tests over the two passes. Nothing under `src/` outside the two new model files
+changed, and the three shipping parsers are byte for byte what they were: this is a
+function of a graph that nothing calls yet.
+
+## Fixed: a kind is a set of patterns, not a pattern
+
+Igor, on the claim that `INTERVAL '1' DAY` would stop reading: «почему? … это - keyword,
+строка, keyword». He was right, and the reason is worth the entry.
+
+The previous two entries numbered one kind per *pattern* — per keyword, per mark, per
+class. But `SELECT` is matched by the keyword **and** by `RegularIdentifier`; `0` by
+`Digits` **and** by `UnsignedNumericLiteral`; `'x'` by `QuotedString` **and** by
+`CharacterStringLiteral`. A lexer that has to answer with one of them makes every syntactic
+position that wanted the other stop reading — so the check written last time refused three
+grammars, and all three were fine.
+
+A kind is the **set** that matched:
+
+    10          {Digits, UnsignedNumericLiteral}
+    1.5         {UnsignedNumericLiteral}
+    SELECT      {"SELECT", RegularIdentifier}
+    zone        {"ZONE", RegularIdentifier}
+
+`Length = '(' & Digits & ')'` takes the first. A value position takes the first and the
+second. An identifier position takes the third and the fourth, and `?!Reserved` takes the
+third back out again. The test for a pattern is "the kind's set holds it" — a set of kinds,
+worked out here and lowered to a range test, so it costs what one comparison cost before.
+
+**Contextual keywords, overlapping literal classes and the reserved-word lookahead turn out
+to be one mechanism seen from three sides.** The union written by hand last time — a class
+standing for the words it would have matched — is what falls out of this rather than
+something added to it.
+
+    SqlStandard92     135 patterns -> 137 kinds     46 of 46 inputs agree
+    ExpressionLanguage 106 patterns -> 107 kinds     nothing blocked
+
+Forty-six of forty-six, where the pattern model managed forty-four and refused to run at
+all once its own overlap check was added. And the two extra kinds are exactly the two
+overlaps: `{Digits, UnsignedNumericLiteral}` and `{QuotedString, CharacterStringLiteral}`.
+
+**Time**, min of seven windows, the hand tokenizer now driven by the generated numbering
+and the syntactic machine emitted from the rewritten graph by the unmodified emitter:
+
+           chars        lex      kinds      total
+            457n        98n       157n       255n   1.80x  a = 1
+          4,728n       802n       819n     1,621n   2.92x  (quantity + weight) * rate …
+          3,043n       517n       525n     1,043n   2.92x  amount * 1.05 + tax >= total …
+          9,798n       674n     2,211n     2,885n   3.40x  ! (a + b) * c - d / e > f AND …
+         16,880n       726n     2,211n     2,937n   5.75x  ! (quantity + weight) * rate …
+          5,223n       507n       570n     1,077n   4.85x  ! amount * 1.05 + tax >= total …
+
+    SqlStandard92     23,500 lines -> 6,217
+
+**How the sets are found, and what is still approximate.** A literal's set is exact: its
+text is known, so which classes accept it is a question with an answer, and `Language`
+answers it by running the rule against the string. A class's sets are the cliques of the
+classes it overlaps, and overlap is witnessed by the shortest string either accepts —
+sound where it fires, and it fires on all three of the real cases. A clique that turns out
+never to occur is a number nothing emits, which costs nothing; a set with *no* number would
+be a string the lexer recognized and could not report, and that is what must not happen.
+
+The exact enumeration is the automaton's, which is the next thing to build: one machine
+over all the patterns, its accepting states carrying the sets. Which is what Igor asked for
+two entries ago — «получить полный список всех правил, соптимизировать их» — and it turns
+out to be the same construction as the numbering rather than a step after it.
+
+Also settled by the same reasoning, and no longer needing anything from the language: a
+negated class names what it *excludes*, so `[^ '(' | ')']` is "any token but a bracket";
+and `List<List<int>>` needs no lexer state, because `>` is a declared pattern and a cursor
+that can be asked for a particular kind splits `>>` by rescanning. Notation for a lexical
+root, which the last entry moved up to third, moves back off the list entirely.
+
+## Built: one automaton over all the patterns, and the kinds stop being a guess
+
+The last entry worked out the kinds from witnesses — a clique for every pair of classes one
+of which accepts the other's shortest string. Sound where it fired, and coarse: a clique
+that no string can produce still got a number.
+
+Now they come from the machine. Thompson over all the patterns at once, then a subset
+construction, and the accepting sets *are* the kinds. Over an alphabet of atoms rather than
+characters: cut at every boundary any pattern's element set has, and what lies between two
+neighbouring cuts is inside all the same sets, so `\p{L}` costs one symbol per interval it
+already had rather than one per letter.
+
+    SqlStandard92      135 patterns -> 135 kinds     (the witnesses guessed 137)
+    ExpressionLanguage 106 patterns -> 106 kinds
+
+**The two that went are the finding.** `{Digits}` and `{QuotedString}` were numbered by the
+approximation and are impossible: every string `Digits` accepts is also an
+`UnsignedNumericLiteral`, and every `QuotedString` is also a `CharacterStringLiteral`, so
+neither can ever accept alone. That is a fact about two languages and no witness can reach
+it — only reading them together can. It cost nothing to be wrong about (a number nothing
+emits), but being right about it is the difference between a construction and a heuristic.
+
+Forty-six of forty-six inputs still agree against the shipping parser, and the whole of it —
+parse, bind, normalize, build the automaton, emit six thousand lines — takes 1.45 seconds.
+
+**One thing had to be put back.** The kinds come out in the order the subset construction
+meets them, which is not the order the patterns are in — and the laminar ordering that makes
+a named set one run of kinds only survives if the kinds follow the patterns. So they are
+renumbered by the lowest pattern each set holds, which puts the word kinds in word order and
+the class kinds after them. Two tests caught it: `Keyword` came back as `2..4` where it had
+been `1..3`.
+
+**What it refuses, and why refusing is right.** A pattern is a regular language or it is not
+a pattern: a lookahead, an external recognizer or a rule that reaches itself is none of the
+shapes a Thompson construction has. Rather than approximate them the split declines and the
+grammar keeps the character machine, which is correct and right there. `BlockComment`'s
+`(?!"*/" & any)*` is the shape that would come up, and it never does — it is trivia, which
+is skipped rather than tokenized.
+
+The lexer itself is next, and most of it now exists: the states are built, and what is
+missing is writing them out.
+
+## Built: the lexer, generated — and it is faster than the one it replaces
+
+The automaton was already there; this writes it out. One method, one array of accepting
+kinds, and a static field per wide character set.
+
+    SqlStandard92    528 states, 2,222 lines, no arena write
+
+**Direct code and not a table, and it was measured before it was chosen.** Over an alphabet
+of 897 atoms a dense table is 473,616 cells and out of the question. Merging atoms that
+neighbour each other leaves 186,342 tests, because the atoms alternate — a keyword's letters
+cut the alphabet everywhere a category is dense. Grouping the ways out of a state by *where
+they lead* leaves **1,034**, forty-three at the widest state, and each of those is the
+character set the grammar wrote, lowered the way every other character set is: comparisons
+while there are few, a searched array of bounds beyond that.
+
+**No arena write survives in it**, which is what the design asked for as the correctness
+signal. Not an optimization: a lexical machine that needed a way back would mean a pattern
+had been admitted that is not a regular language, and the split would be wrong upstream. It
+is checked by a test, not by reading.
+
+**And it is faster than the hand-written tokenizer it replaces**, which every earlier
+measurement had treated as an optimistic bound:
+
+           chars        lex      kinds      total
+            460n        69n       163n       232n   1.98x  a = 1
+          3,891n       412n       838n     1,250n   3.11x  (a + b) * c - d / e > f AND NOT g < h
+          4,767n       872n       828n     1,700n   2.80x  (quantity + weight) * rate …
+          9,656n       394n     2,236n     2,630n   3.67x  ! (a + b) * c - d / e > f AND NOT g <
+         16,676n       794n     2,244n     3,038n   5.49x  ! (quantity + weight) * rate …
+
+The hand tokenizer took 710 nanoseconds on the fifth line where this takes 412. Forty-six
+of forty-six inputs still agree with the shipping parser, and the only hand-written thing
+left in `.work/kinds` is the trivia skip.
+
+**Two things nearly sank it, and both were caught by running it.**
+
+The wide sets were written inline — `new char[] { … }` inside the scanning loop, an
+allocation per character per test. The first generated lexer came out **seventeen times
+slower** than the hand one, 8,997 nanoseconds against 510, slow enough to make the whole
+split a loss. Hoisted into static fields it is faster than hand-written. A generated lexer
+that allocates in its inner loop is not a lexer, and nothing but running it would have said
+so.
+
+And there were two numberings. The automaton met its accepting sets in whatever order the
+alphabet took it; the inventory sorted them so a named set stays one run of kinds. That was
+fine while the tokenizer was hand-written against the inventory, and became nineteen
+disagreements the moment the scanner printed its own numbers. The sort belongs in the
+automaton, which is the only place that can promise there is one numbering.
+
+## Found: what a grammar that builds values still needs, by splitting one
+
+The next step is the cursor, and its real content is not laziness but *provenance*: a
+syntactic machine over kinds has no text, and every value a grammar builds is cut from
+text. Rather than guess at what that costs, the smallest grammar with a capture and a
+factory was split and emitted:
+
+```dotgram
+Pair  : @string   = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+Start : @string[] = (p: Pair)* & eof => @(p)
+```
+
+**Two things had to be fixed before it would split at all, and both were about built-ins.**
+
+`eof` came back as a *class* — a terminal of its own. A built-in carries no declaration and
+therefore no trivia entry, so every call to one looked like a crossing into the lexical
+half. And since `eof` is `?!any`, the automaton then refused the whole grammar for holding
+a lookahead inside a pattern. A built-in is a shape and not a terminal; it is walked through
+now, in both passes.
+
+`any` is `[^ ]` — a negation of nothing. The negation handling added two entries ago asks
+what a negated class *excludes*, and an empty exclusion came back as "cannot be listed".
+Over kinds `any` means one of whatever the alphabet holds, which names no terminal, so
+there is nothing to number and nothing to refuse.
+
+Neither would have been found by SQL: it never writes `eof` or `any` in syntactic position.
+It took the first grammar that builds a value to write them, which is a reason to keep
+reaching for a *different* grammar rather than a bigger one.
+
+**And then the list, which is the point of the exercise.** The grammar splits, the machine
+builds, the lexer is six states — and what is wrong is exactly and only provenance, at four
+kinds of site:
+
+    var captured0 = text.Slice(captured0From, captured0To - captured0From).ToString();
+
+`text` is the kinds, so `k` comes back as the character standing for `Name` rather than as
+`a`. The same slice appears in the constructed value, in the streamed form, and in the
+failure message that quotes what was found; and `Match<T>.Position` is a token index rather
+than a character one.
+
+So the cursor's work is: carry `kind + start + length`, thread the original text into the
+machine beside the kinds, and route every position-to-text and position-to-report through
+it. Four kinds of site, enumerated by running a grammar that has them rather than by
+reading the emitter. That is the next thing, and it is now a list rather than a worry.
+
+## Built: a value cut from the text the tokens came from
+
+The list the last entry made, done. A machine over kinds has positions that are tokens, so
+nothing may cut a value out of what it is reading — the text and the extents travel beside
+the kinds, and every cut goes through one place.
+
+**It is threaded the way the whole input already was.** §8.2's `parserInput` has carried a
+string from the publication down to the materializer since it existed; `parserSource`,
+`parserStarts` and `parserLengths` ride the same five sites. What changes inside is one
+method, `Cut(from, length)`, and the six places that used to write `text.Slice(...)` now ask
+it — over characters it answers the slice it always did, over kinds it answers a call to a
+helper that finds the first token's start and the last one's end.
+
+The last one's *end* and not the next one's start, so that trivia standing after a run is
+left out: a capture is what was written, not what was written plus the space after it.
+
+    Pair : @string = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+
+    a=1              -> a:1
+    a=1 bb=22        -> a:1|bb:22
+      x=9  y=10      -> x:9|y:10
+
+**And the position was wrong in a way only the character parser could show.** A refusal came
+back at character zero however far in the trouble was, while the same grammar over
+characters said six and fourteen. The mapping measured `starts.Length` — the array, sized
+for the worst case and filled at the front — instead of the token count, and past the count
+the array holds zeros. The count is the length of the kinds, there being one character a
+token. That is what the test compares now: not a value typed into it, but what the character
+parser makes of the same input, value and refusal position alike.
+
+**Two things had to be turned off rather than made to work.** A split grammar cannot stream:
+a window is a stretch of characters, and a machine over tokens is handed what a lexer
+already found — there is nothing to grow. It was found the way these things are found, as
+three call sites in the streamed forms that handed the recognizer characters where it now
+wants the text. And with streaming off, `Failure.Starved` is never assigned, which the test
+harness rightly calls a warning and a warning is a failure: the field is not emitted either.
+
+Every character grammar is byte for byte what it was — `SqlStandard92` 23,524 lines,
+`ExpressionLanguage` 25,804, `Rfc3986` 25,771 — because all of this is behind a flag that
+only a split graph sets.
+
+**What is left before a grammar can ask for this in its own text.** Trivia: it is skipped
+rather than reported, so it is no pattern and has no kind, and until the lexer eats it the
+entry point takes four arguments — the source, the kinds, and where each one was — rather
+than one string. That is the last hand-written thing in the probe and the last thing between
+here and an opt-in.
+
+## Fixed: trivia was woven into the rules that are trivia
+
+Found while asking why a lexical machine cannot recognize whitespace. §4.5 weaves the seam
+between the operands of every sequence in a spaced namespace, and the rules `trivia` is
+*made of* are sequences in that namespace like any others:
+
+    LineComment  = "--" & [^ '\n']*        ->  "--" & trivia & [^ '\n']*
+    BlockComment = "/*" & (?!"*/" & any)* & "*/"
+
+    BlockComment:
+      Sequence
+        Literal "/*"
+        Call trivia          <- and `trivia` is a choice that holds BlockComment
+        Repeat 0..*
+          Sequence
+            Call trivia
+            Lookahead "*/"
+            Call trivia
+            Call any
+        Call trivia
+        Literal "*/"
+
+A rule woven with itself. It says nothing — a seam is `trivia`, `trivia` matches the empty
+string, and `A & trivia & B` accepts exactly what `A & B` accepts — and it costs a call at
+every seam inside every comment and every run of whitespace, compiled into a scanner that
+then calls itself.
+
+    SqlStandard92   23,524 -> 21,773 lines
+
+**Seven per cent of the file, and nothing else moved.** `ExpressionLanguage` and `Rfc3986`
+are byte for byte what they were: their trivia is a repetition of one operand, which has no
+seam to weave. Both snapshots are unchanged and all 1,579 tests pass, which is what one
+expects of removing something that accepts the same language.
+
+Only where the seam is nullable, which is where taking it out changes nothing. A grammar
+whose `trivia` must match something has said that operands are separated, and that would be
+a statement about its own rules too — however odd it would be to mean it.
+
+**How it was noticed is the part worth keeping.** Nothing about the size. A lexical machine
+reads its patterns together as one automaton, and a rule that reaches itself is not a shape
+a Thompson construction has — so `trivia` could not be a pattern, and a split grammar had to
+be handed its tokens with the whitespace already skipped by hand. Chasing that found a rule
+that had been calling itself for no reason since §4.5 existed.
+
+What is left in the way of trivia becoming a pattern is now only the idiom
+`(?!"*/" & any)*` — "characters up to a delimiter" — which is a regular language and not one
+a Thompson construction reaches without being told. That is the next thing.
+
+## Built: "everything up to a delimiter" is a pattern, though a lookahead is not
+
+    Comment = "/*" & (?!"*/" & any)* & "*/"
+    Text    = '"'  & (?!'"'  & any)* & '"'
+
+Half the grammars there are write a string this way and all of them write a comment this
+way. The language is regular — the strings in which the delimiter does not occur — but it
+is not one a Thompson construction reaches by following the shape, because the shape is a
+lookahead and a lookahead is none of its three cases. So the idiom is recognized and built
+as Knuth, Morris and Pratt's automaton with its accepting state taken out, which is exactly
+"the delimiter does not occur". Anything else wearing a lookahead is still refused, and the
+test that used to prove that had to be rewritten around recursion, which no automaton can
+count.
+
+Exact where the repetition is followed by the delimiter, which is the only way anyone writes
+it. Standing alone it admits a little more, because the operand's lookahead sees past what
+the repetition consumed and an automaton cannot; what it admits is a longer run, and the
+delimiter that follows cuts it back.
+
+**The failure links are the whole of it and I got them wrong first.** Written in one pass,
+`*/` came out with a link from one matched character back to one matched character, and a
+link to itself is a loop the builder never leaves — the test hung for ten minutes rather
+than failing. The prefix function is computed the standard way now, and `/*a**/` is the case
+that proves it: after `*` and then another `*`, one `*` is still matched.
+
+## Not built: trivia as a pattern
+
+Igor: «можно же было просто вызвать существующий метод тривии».
+
+Right, and the attempt said so too. Adding trivia to the patterns made the subset
+construction run for ten minutes without finishing — a comment's `any` crosses every atom
+of every other pattern, which is a product nobody needs. And there was no reason to build
+it: §4.5's trivia is already compiled to a scanner (`Machine.Scan.cs`), atomic-braced and
+with nothing written down, and a tokenizer that wants whitespace skipped can call it.
+
+So the lexer recognizes terminals and the trivia scanner skips between them, which is what
+the two were already for. What is left before a grammar can ask for the split in its own
+text is emitting that scanner beside the lexer — the machine that renders it exists and is
+reached through a rule rather than through the graph, so it is a matter of asking it, not of
+building anything.
+
+## Built: a split grammar reads one string
+
+Igor's point about calling the existing trivia scanner is what made this short. The lexical
+half of a generated file is now three things and none of them new: the machine
+`LexerEmitter` writes, §4.5's `trivia` asked for as the scanner it already compiles to, and
+the loop between them.
+
+    public static Match<string[]> TryParseStart(string input)
+    {
+        var source = input;
+
+        input = Tokenize_DotGram(source, out var starts, out var lengths, out var stopped);
+
+        if (stopped >= 0)
+            return Match<string[]>.Failed(Outcome.NoMatch, "…", stopped, null, null);
+        …
+
+The seam is asked for by rule rather than found by compiling — a lexical machine has no
+calls to compile and still needs it — and the machine that renders it is built over the
+original graph restricted to the trivia rules, so what it costs is the scanner and not the
+parser it could have been. Tagged `_Seam`, because everything a machine emits is named after
+its tag and this one lands in a file another machine has already filled: without it the two
+sets of character tables collide name for name.
+
+**A grammar with values, from one string:**
+
+    Pair : @string = k: Lexical.Name & '=' & v: Lexical.Digits => @(k + ":" + v)
+
+    TryParseStart("a=1 bb=22")  ->  a:1 | bb:22
+    TryParseStart("a=1 b=")     ->  refused at character 6
+
+Forty-six of forty-six on SQL, against the shipping parser, with no hand-written tokenizer
+anywhere.
+
+**And the advantage narrowed, which is the honest part.**
+
+           chars      kinds
+            573n       718n   0.80x  x IN (1, 2, 3) AND y IS NOT NULL
+          1,118n     1,234n   0.91x  warehouse.zip_code = 'X' AND …
+          2,517n     1,317n   1.91x  (a + b) * c - d / e > f AND NOT g < h
+          6,832n     2,714n   2.52x  ! (a + b) * c - d / e > f AND NOT g <
+         10,726n     3,133n   3.42x  ! (quantity + weight) * rate - zone / …
+
+Accepted inputs run 0.80x to 1.91x where the hand-tokenizer measurement said 1.47x to 3.11x,
+and two of nine are now *slower*. Two reasons and both are worth saying. The character
+parser got faster: unweaving trivia took seven per cent off it, so the thing being beaten
+improved. And this measures one call rather than two, which means it includes the three
+allocations a tokenized parse makes — a `char[]` and two `int[]` sized for the input — that
+the earlier figure split out. On a short condition that is most of the difference.
+
+So the lazy cursor stops being an optimization looking for a reason: three allocations per
+parse is the reason.
+
+**One more number, from a diagnostic the build raised on its own.** The lexer's `Scan` is
+estimated at 3,669 basic blocks, past the ~2,000 where the JIT stops optimizing (GRAM5003).
+Direct code was chosen over a table on the strength of 1,034 tests against 473,616 table
+cells, and 1,034 tests is right — but 528 `case` labels is a lot of *blocks*, which is a
+different measure and the one the JIT reads. The design said the lexer wants a table; that
+was overridden on size, and the size argument was about the wrong size.
+
+## Built: the token buffers are kept, and the answer is that they were not the problem
+
+Three allocations a parse — a `char[]` and two `int[]` sized to the input — were named last
+entry as the reason a split grammar could lose to a character one on a short condition. They
+are kept now, in one `[ThreadStatic]` slot taken out while in use, exactly as the parser
+itself is: a parse reached from inside another gets its own, and a set grown past what an
+ordinary input needs is let go rather than pinned to the thread for ever.
+
+           before      after
+             233n       220n   a = 1
+           1,317n     1,258n   (a + b) * c - d / e > f AND NOT g < h
+             718n       684n   x IN (1, 2, 3) AND y IS NOT NULL
+
+**Five per cent, and the two rows that were slower are still slower.** So the allocations
+were not what was costing the short inputs, and saying they were — which the last entry
+did — was a guess that measuring has now corrected.
+
+           chars      kinds
+            533n       684n   0.78x  x IN (1, 2, 3) AND y IS NOT NULL
+          1,077n     1,177n   0.92x  warehouse.zip_code = 'X' AND …
+          2,485n     1,258n   1.98x  (a + b) * c - d / e > f AND NOT g < h
+          6,299n     2,627n   2.40x  ! (a + b) * c - d / e > f AND NOT g <
+         10,264n     3,017n   3.40x  ! (quantity + weight) * rate - zone / …
+
+What is left is the tokenizer's own work. On `x IN (1, 2, 3) AND y IS NOT NULL` the earlier
+split measurement had the lexer at about three hundred nanoseconds and the parse at about
+the same — so tokenizing is half of it, and the character parser does the whole thing in
+less. A short input is where reading it twice cannot pay: the second reading is cheap, but
+the first is not free, and the character machine reads once.
+
+That is a real limit and it is worth stating rather than optimizing around. Where the split
+wins it wins for a reason that grows with the input — a refusal walks a fifth as many ways
+back, a long expression reads a fifth as many items — and where it loses it loses by a fixed
+cost that does not.
+
+## Fixed: the lexer was never optimized, and dividing it is what a table would have been for
+
+The last entry left a diagnostic unexplained — the scanner estimated at 3,669 basic blocks,
+past where the JIT stops optimizing. Asked directly, with `DOTNET_JitDisasmSummary`:
+
+    Kinds.SqlKinds:Scan(…)              [Tier-0 switched MinOpts, IL size=26637]
+    Kinds.SqlKinds:Recognize_DotGram(…) [Tier1 with Synthesized PGO, IL size=3980]
+
+So the lexer never reached Tier1 at all, and when it was compiled again it was compiled
+*worse*, while the syntactic machine beside it — divided into parts by machinery that has
+been there for months — reached Tier1 with PGO. Direct code was chosen over a table on the
+strength of 1,034 tests against 473,616 table cells; the 1,034 was right and the conclusion
+was wrong, because a test is not a block and 528 `case` labels are a great many blocks.
+
+The answer was not a table. It was the division the syntactic machine already had: ninety-six
+states to a method, and the loop picks the part by state range.
+
+           before      after    against the character parser
+             684n       513n    0.78x -> 1.05x   x IN (1, 2, 3) AND y IS NOT NULL
+           1,177n       891n    0.92x -> 1.23x   warehouse.zip_code = 'X' AND …
+           1,258n     1,033n    1.98x -> 2.45x   (a + b) * c - d / e > f AND NOT g < h
+           1,268n       973n    2.89x -> 3.85x   ! amount * 1.05 + tax >= total AND …
+           3,017n     2,752n    3.40x -> 3.74x   ! (quantity + weight) * rate - zone / …
+
+**No `MinOpts` anywhere in the run, and no input is slower than the character parser any
+more.** Accepted 1.05x to 2.45x, refused 1.35x to 3.85x. The two rows that lost last entry
+were not losing to allocation and were not losing to the idea; they were losing to a method
+the JIT had given up on.
+
+Which is the third time this session a number has been believed and then measured. The size
+of a method has three meanings — lines, IL bytes, basic blocks — and only the last one is
+the one that decides.
+
+## Done: a split grammar end to end
+
+`ProvenanceTests` no longer carries a tokenizer. It emits one file, compiles it, and calls
+`TryParseStart(input)` — the same signature the character parser has — and compares the
+answer with the character parser's, value and refusal position alike. What is left of the
+plan is the lazy cursor, and after this it is an optimization again rather than a repair.
+
+## Built: `Lexical = true`, and SqlStandard92 asks for it
+
+The split is a word in the grammar's own attribute now, plumbed the way `PartSize` is:
+
+    [Gram("""
+        …
+        parse SearchCondition as ParseSearchCondition
+        """, Lexical = true)]
+
+A request and not a setting. Four things stop it and each says so in its own words
+(`GRAM5004`, information rather than a warning, because the parser that comes out is the
+one that would have come out anyway):
+
+- no rule carries trivia — a URL is characters, and there is nothing to tell a token from
+  one;
+- a terminal that is not a regular language, so the patterns cannot be read together;
+- a `find`, which hunts through characters for a place to begin, and a stream of tokens has
+  no such places;
+- a `trivia` not written in braces, the seam between tokens being skipped by the scanner
+  braces ask for.
+
+**`SqlStandard92` asks for it, and what that is worth:**
+
+    21,773 -> 8,673 lines                      2.5x smaller
+
+           chars      kinds
+          2,532n     1,065n   2.38x  (a + b) * c - d / e > f AND NOT g < h
+          2,175n       978n   2.22x  amount * 1.05 + tax >= total AND …
+         10,307n     2,752n   3.74x  ! (quantity + weight) * rate - zone / …
+          3,748n       973n   3.85x  ! amount * 1.05 + tax >= total AND …
+
+`ExpressionLanguage` and `Rfc3986` are untouched and stay on the character path — the first
+because its `TypeName` is syntax in a lexical namespace and wants moving first, the second
+because a URL is characters. Which leaves both machines exercised by a real grammar, the
+larger of the two still on the older path.
+
+**And the thing that had to be built before the switch could be believed.** The suite did
+not read a single string with `SqlStandard92`. It compiled it and nothing more, so "1,586
+green" said only that the generator had not crashed — and on that evidence switching a
+shipping parser to a newer code path is not a decision, it is a hope. Thirty-two tests now:
+the corpus the split was measured against, the non-reserved words that are names (`zone`,
+`year`), the reserved ones that are not (`having`, `select`) and the one that is reserved
+and reads anyway (`value`, which §6.3 makes a niladic function — the test expected a refusal
+and the parser was right), a `CASE` with two `WHEN`s, and refusals whose position has to
+move with the input.
+
+They pass with `Lexical = true` and they pass without it, which is the point: they are about
+the grammar and not about which machine read it.
+
+## What the second grammar found
+
+`ExpressionLanguage` was asked to split, and did not — but not before turning up five
+defects that `SqlStandard92` had no way to show, four of them in the emitter and one that
+would have been wrong in silence.
+
+**`OverKinds` was an `init` property, and a `Machine` does its work in its constructor.**
+So the object initializer ran after every state had already been written. The materializer's
+*declaration* is emitted late enough to have seen it and the *calls* to it early enough not
+to: a guard called a seven-parameter method with four arguments. It is a constructor
+argument now, which is what it always was.
+
+**Four things a rewritten graph dropped.** `State` and `Context` are `init` properties of
+`RecognitionGraph` that the split simply did not carry, and dropping `State` changes the
+publication's signature — the author's own calls stop compiling. Worse were `Climbing`,
+`Powers`, `Recoveries` and each rule's `Fold`, which are keyed by *node*: a `Node` is a
+record, so they key by structure, and changing structure is the whole of what the split
+does. Carried across they key nothing, and a left-recursive rule is then emitted as a plain
+repetition — the tail's capture becomes an array and the accumulator is never bound, so
+`=> @(Expression.OrElse(left, right))` names a `left` that does not exist. The rewrite now
+records what each node became and says the four dictionaries again in those terms.
+
+**And `SourceSpan` was carrying token indices.** `Cut` had been given seven sites and the
+spans beside them none, so a grammar over kinds that asked `parserSpan` where something
+stood would have been told which token, in an interface documented as characters. There is
+a `Span` beside `Cut` now, and a `Span_DotGram` emitted only where one is asked for, plus
+`At` for a position and `Source` for the input a line and a column are counted in — which
+is what a recovery hands its handler, and recovery was reporting all four in kinds.
+
+**What actually stopped it, and why it stays stopped.** `Hex : @string = "0x"i & t: HexRun
+=> @(t.Replace("_", ""))` is three statements at once: what a hexadecimal literal looks
+like, which part of it is the number, and that the separators come out. The lexer answers
+the first; the token it hands over is `0x_1F` whole, and the other two are gone with the
+parts they named. Six of `ExpressionLanguage`'s terminals are written that way.
+
+Refused, and named — `GRAM5004` says which rule. Handing back the token's own text instead
+would be a different parser that compiles, which is the worst of the three answers. The fix
+is a rule read twice, once by the lexer for its extent and once by its own character machine
+for its value, which is item 6 of `docs/lexical-adt-design.md` and not yet written.
+
+`SqlStandard92` could not have found any of this. It builds no values, declares no state,
+climbs no precedence and recovers from nothing — it answers yes or no. The second grammar
+was worth more than the first measurement.
+
+## A terminal read twice
+
+`Hex : @string = "0x"i & '_'* & t: HexRun => @(t.Replace("_", ""))` is three statements at
+once, and the previous entry recorded that the lexer can answer only the first. That was
+the honest place to stop and it is not where this stops.
+
+The rule is read twice now. Once by the lexer, which says where it ends; once by **its own
+character machine, over exactly the text the token covers**, which says what it is worth.
+The second read runs the same states an unsplit parser would have run, so whatever the
+author wrote in `=> @(...)` runs against the captures it was written for.
+
+It is the shape the seam already had. A `Machine` over the original graph, restricted to the
+terminals that build and what they reach, tagged `_Value` so its tables and states do not
+collide with the syntax's, and one way in per rule:
+
+    static string Value_Lexical_Hex_DotGram(string token)
+
+The syntactic materializer calls it in place of the factories it no longer has — the same
+line the external-recognizer case has always written, for the same reason: no captures to
+walk, and a value recovered by asking again from what the arena recorded.
+
+**Three things had to change for it to work at all.**
+
+The rule has to stay a *call*. Every other terminal is replaced by its kind test where it is
+called from — the rule was only ever a name for a set of characters — and doing that to one
+of these leaves nothing to read again: no entry, no extent, no case in the materializer. It
+took an hour to find, because the parser compiled and ran and simply built empty strings.
+
+It has to keep its declared type and lose all its members. The type is what makes the call
+a valued one and gives the caller something to read; the members are what would make the
+syntactic machine try to build it out of parts that are inside a token.
+
+And the value machine has to join the file's value tables before anything is rendered. A
+machine names a type by where it sits in one list they all agree on, and a second read
+writing into `values11` while its caller reads `values9` is a defect that no test shape
+catches except running it.
+
+**Where `ExpressionLanguage` now stands.** 127 of its tests failed the first time it was
+asked to split; 11 fail now, and all eleven are one thing:
+
+    () => Math.PI            refused
+    (string s) => s.Length   refused
+    () => new int[] { 1, 2 } refused
+
+`TypeName = Word & ('.' & Word)*` is lexical, and deliberately: without it `System . Text`
+would be captured with the spaces in it. Over kinds the lexer therefore takes `Math.PI`
+whole and `Postfix` never gets to read the dot as member access. That is not a defect of the
+second read — it is a grammar that says a dotted name is a lexeme, which is true of a type
+and false of a member access, and only a symbol resolver knows which it was looking at.
+
+So `ExpressionLanguage` stays on characters, and the second read is covered by a grammar of
+its own instead: `RereadTests` runs both parsers over the same inputs and requires the same
+answer, and then requires that the answer is what the rules say — the separators come out of
+`0x_1f`, the base is read, the quotes are gone. Values, and not merely agreement, because
+two parsers agreeing on nothing would pass the first half.
+
+## The scanner reads a row where it was asking forty-four questions
+
+`Scan_Part0`'s first state was every mark SQL-92 writes and both cases of every letter a
+keyword begins with, asked one at a time:
+
+    case 0:
+        if (c == '"') return 1;
+        if (c == '\'') return 2;
+        …
+        if (c == 'A' || c == 'a') return 17;
+        …                                       // forty-four of them
+
+It is now one subtraction, one unsigned compare and one load. **The licence for that is
+determinism**: this is a machine over an alphabet of atoms, each character belongs to
+exactly one atom and each atom leads to one state, so no character satisfies two of a
+state's tests. The chain's order carries no meaning, and any subset of it can be lifted into
+a row with the rest left where it was.
+
+What is lifted is what fits a small window — an edge every range of which lies under Latin
+Extended-A. That is what keeps this from becoming the dense table the design rejected: a
+Unicode category, or the "anything but a quote" of a string body, stays a chain, because a
+row for one of those is most of a plane and the binary search it already uses is short.
+
+**The threshold was measured rather than reasoned about, and the reasoning was wrong.** The
+first guess was six ways out; then three, then two, then one — each beat the last, and rowing
+every state that has a near edge beat rowing only the wide ones. Two comparisons are not
+cheaper than a subtraction and a load, and 528 chains that each predict well still occupy the
+predictor. What is left is a threshold on *comparisons* and not on ways out: a single
+character is one comparison and a range is two, and a row replaces two or more. That never
+turns one compare into three operations, and it is a wash against rowing everything.
+
+    chain    row
+      201    205   0.98x  a = 1
+      398    383   1.04x  salary BETWEEN 1000 AND 2000
+      464    387   1.20x  x IN (1, 2, 3) AND y IS NOT NULL
+      985    970   1.02x  (a + b) * c - d / e > f AND NOT g < h
+      913    870   1.05x  amount * 1.05 + tax >= total AND …
+      839    787   1.07x  warehouse.zip_code = 'X' AND …
+      881    711   1.24x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1447   1346   1.08x  (quantity + weight) * rate - zone / 2 > …
+       23     19   1.21x  ! amount * 1.05 + tax >= total AND …
+
+Interleaved binaries, five rounds each, min of all — because sequential runs of the same
+binary drifted by five to eight percent, which is more than the effect. The one input that
+is slower is the shortest, and it is slower in every variant tried.
+
+367 rows and 12,000 cells, `short` where the states fit in one, which is 24 kilobytes. The
+generated file goes from 8,647 lines to 10,726. No part of the scanner fell out of
+optimization: every `Scan_Part` still reaches `Tier1 with Dynamic PGO`, and nothing anywhere
+says `MinOpts`.
+
+## And then the loop stopped asking which state it was in
+
+The rows of the previous entry were per state, so reading a transition meant finding the
+state's row first: a chain of range tests to pick which of six methods held it, a call, and
+a `switch` over ninety-six labels — a jump table, and an indirect jump the predictor cannot
+help with, once per character.
+
+All of it is gone. There is one array of cells for the whole machine and one number per
+state saying where that state's row begins:
+
+    var c    = text[p];
+    var row  = Scan_States[state];
+    var at   = c - (int)(row >> 32);
+
+    if ((uint)at < 128u)
+        next = Scan_Cells[(int)row + at];
+    else
+        next = <the chain, for what a row cannot hold>;
+
+One load, one subtract, one compare against a constant, one load. Every row is the same
+width, so only where it *starts* has to be looked up — which is the half of the descriptor
+worth loading, and the half that makes this work for an alphabet that is not ASCII.
+
+**Three things were wrong before they were right.**
+
+The first table was anchored at zero and 128 wide, which is a table for English. A grammar
+whose words are Cyrillic got rows that were entirely -1 and took the chain for every
+character of every word. The row is placed now, not assumed.
+
+Placing it by the state's *first* character was the second wrong answer. A state admitting
+`'='` and а..я has an alphabet a thousand apart, and a window at the `'='` answers for one
+character and sends the whole language to the chain. So the window is chosen to cover the
+most of what the grammar named — the most **ranges**, and the widest where two windows tie.
+Ranges and not characters, because a Unicode category is a great many characters in a great
+many scattered pieces and counting characters drags every window into the middle of one.
+
+And then it is slid as far down as it can go without dropping any range it was chosen for.
+That was the third: `SqlStandard92`'s first state begins at `'"'`, and an input beginning
+with `!` fell past the table to be refused by a chain that the table already knew the answer
+to. The room below is free — those cells refuse, which is what the chain would have said —
+and it is where the characters that end a token live. That one change took the immediate
+refusal from 0.85x of the old code to 1.77x.
+
+    chain    rows   table   vs chain
+      201     204     194      1.04x  a = 1
+      391     373     357      1.10x  salary BETWEEN 1000 AND 2000
+      449     389     394      1.14x  x IN (1, 2, 3) AND y IS NOT NULL
+      975     946     926      1.05x  (a + b) * c - d / e > f AND NOT g < h
+      899     860     768      1.17x  amount * 1.05 + tax >= total AND …
+      829     759     691      1.20x  warehouse.zip_code = 'X' AND …
+      858     709     745      1.15x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1425    1319    1244      1.15x  (quantity + weight) * rate - zone / 2 > …
+       23      19      13      1.77x  ! amount * 1.05 + tax >= total AND …
+
+Interleaved, five rounds each, min of all. It is also **smaller than what it replaced**:
+53 distinct rows and 6,784 cells — thirteen kilobytes — where the per-state rows were 367
+fields and 24, and the generated file goes from 10,726 lines back to 9,078, against 8,647
+for the plain chain. A keyword trie has a great many states that admit exactly the letters
+continuing a word, and at a fixed width those states share one row.
+
+Every `Scan_Part` still reaches `Tier1 with Dynamic PGO`; nothing says `MinOpts`.
+
+## SqlStandard92 gets a benchmark, and the benchmark says something
+
+Every number the lexical split has been justified by — the split itself, the inventory, the
+generated lexer, its division into methods, the transition table that replaced its `switch` —
+came from a throwaway program that no longer exists. A parser whose numbers live nowhere is
+one whose next change is measured against a memory. So `SqlBenchmarks` now holds the corpus,
+graded nests and their refusals, and the input that stops being this language at its first
+character.
+
+It earned its keep on the first run.
+
+    input                                accepted    refused
+    a = 1                                    167n          —
+    salary BETWEEN 1000 AND 2000             321n          —
+    CAST(x AS INTEGER) = 5 OR SUBSTRING(…)   740n          —
+    (a + b) * c > d                          540n      1,274n
+    ((((a + 1) * 2) - 3) / 4) + b > 0      1,904n      8,457n
+    ((((((a + 1) * 2) …) * 6) + b > 0      3,892n     20,736n
+    ! a = 1                                    —           7n
+
+A short condition allocates nothing, which is the token buffers being rented and handed back
+working as intended. A refusal at depth allocates 2,520 bytes against the accepted parse's
+328, and costs five times as much.
+
+**And the shape underneath it.** Not an exponential — the ratios between successive depths
+fall away (1.88, 1.69, 1.59, 1.49, 1.42, 1.36, 1.36), which is a polynomial and not the
+thing this repository has twice found and fixed. What it is, is quadratic in *nesting*:
+
+     n   parentheses        AND chain          a + 0 + 1 + …
+     2   17ch     609n      27ch     569n      13ch    254n
+    32  220ch  56,168n     401ch   6,434n     155ch  1,456n
+
+The `AND` chain is fifteen times longer and eleven times slower — linear. The sum is twelve
+times longer and six times slower. The parenthesis nest is thirteen times longer and
+**ninety-two** times slower. Length is not the variable; depth is.
+
+**It is the engine and not the split.** `ExpressionLanguage`, which reads characters and has
+never been near any of this, has the same exponent — 40.8x for eight times the depth against
+the split parser's 39.3x. So this is how the recognizer has always behaved and nothing
+measured it, which is the same sentence as the first paragraph and the reason the file
+exists.
+
+## What the quadratic was, and it was one alternative
+
+The recognizer is not quadratic in nesting. One rule is, and finding out which took four
+ablations of the same grammar rather than any reasoning about the engine.
+
+**Everything synthetic was linear.** A bare parenthesis recursion, the same with an operator
+written as a repetition, the same written left-recursively, a ladder of six precedence
+levels, that ladder with a woven seam, and that ladder with a lexical namespace — all of
+them double when the depth doubles. So the engine's arena, its unwinding and its left-
+recursion folding are not it, which is what the first hour was spent suspecting.
+
+**Then the layers, and only one of them.** `SqlStandard92` publishes two rules, and they
+disagree: over the same nest `ValueExpression` is linear (2,970 / 5,679 / 11,256 at depth 32,
+64, 128) and `SearchCondition` is quadratic (71,379 / 273,343 / 1,072,011 — a clean factor
+of four for a doubling). So the cost is in the predicate layer above the expression ladder.
+
+**Then the shape of the input.** `nest > 0`, `0 > nest` and `nest IS NULL` cost the same, so
+it is not the tail; and `(a, nest) = (1, 2)` is linear, which is the pair that names it — a
+list with a comma in it is recognized straight away, and a bare parenthesis is not.
+
+**Then the rule, by removing one alternative at a time:**
+
+     n      whole   no subquery      no list   element only
+    32    58,556n      63,008n       1,608n         3,286n
+   128   867,543n     891,265n       5,799n        12,247n
+
+    RowValueConstructor = '(' & RowValueConstructorElement
+                              & (',' & RowValueConstructorElement)+ & ')'
+                        | TableSubquery
+                        | RowValueConstructorElement
+
+The first alternative is the whole of it. `TableSubquery` — the balanced-bracket scan that
+was the obvious suspect, being the one place this grammar is knowingly wider than SQL — costs
+nothing at all.
+
+**Why it costs what it costs.** On `(((a+a)+a)+a)` the alternative takes the `'('`, reads an
+element, and asks for a comma that is not there. So it fails — and then the engine tries the
+element *shorter*: a `+` chain of length n offers n places to stop, and after each of them
+the comma is asked for again. n attempts over n characters is the square, and the nesting
+supplies a fresh chain at every level.
+
+That is a real property of the machine and not of this grammar: a sequence whose second half
+fails is retried against every shorter reading of its first half. A PEG would have committed
+after the first reading; this engine explores. Which of the two is wanted is a decision about
+the notation — §4.4's atomic braces already say "do not come back here", and writing them
+around the element would end this instance today. What they would not do is find the next
+one, and nothing in the compiler currently can: no rule warns that an alternative may consume
+an unbounded prefix before deciding.
+
+## A faster set test, and why it is not being written
+
+`Scan_Between` answers whether a character is in a set by binary search over the set's
+boundaries, which alternate: a character is inside exactly where the count of bounds at or
+below it is odd. `SqlStandard92`'s widest set is 382 ranges, so that is about ten dependent
+loads with ten branches nothing can predict.
+
+A page table is the obvious better shape, and it is what the runtime itself uses for
+`char.IsLetter`: the top byte of the character picks a page, the page is 256 bits, and pages
+that are equal are shared. Measured over the real set, on random characters:
+
+    input             searched       paged    IsLetter
+    ASCII letters        8.68n       2.56n       2.24n
+    ASCII marks          4.81n       1.96n       2.43n
+    Cyrillic             5.41n       1.37n       2.78n
+    CJK                  5.19n       1.36n       2.78n
+
+Three and a half to four times faster, and faster than `char.IsLetter` on everything that is
+not ASCII — two levels against the runtime's three plus a category to decode. It costs 1,856
+bytes where the bounds cost 1,528, because fifty distinct pages is all a set like this needs.
+
+**And it is worth nothing at all.** Both machines already tabulate ASCII — the lexer in its
+transition rows and the parser in `Recognize_DotGram_Class`, 128 bytes apiece — so a search
+runs only for a character outside them. Timed end to end on the case that should show it
+most, the same expression with Latin and with Cyrillic identifiers:
+
+    shape              latin       other
+    short name        8,654n      8,433n   0.97x
+    long name        10,744n     12,208n   1.14x
+    many names       16,512n     14,664n   0.89x
+
+Noise, in both directions. A few nanoseconds against a parse of eight to sixteen
+microseconds is a tenth of a percent, and the direction closes here rather than in the
+emitter.
+
+**One thing the measurement did settle**, which was the reason for looking. The set and
+`char.IsLetter` disagree on 56 of the 65,536 characters. Forty-eight are the letters the
+keyword trie took for itself, in both cases. The other eight are `U+1C89`, `U+1C8A`,
+`U+A7CB`–`U+A7CD` and `U+A7DA`–`U+A7DC` — Cyrillic and Latin Extended-D letters added in
+Unicode 16.0. The generator's tables know them; the consumer's `net8.0` runtime does not.
+
+So calling `char.IsLetter` from emitted code would make the language a parser accepts a
+function of the framework it is running on: the same assembly would take `U+A7CB` in an
+identifier on one machine and refuse it on another. Expanding `\p{L}` into ranges at
+generation time is what freezes it, and those eight characters are what that is worth.
+
+## Two thirds of the generated SQL parser was one set, written out sixty-seven times
+
+Chasing a faster membership test turned up something much larger than the test. The 67
+`Scan_Set` declarations were **65% of the file** — 532,823 characters of 816,461.
+
+They are that many because a keyword trie has a state per prefix, and each state's "any
+letter that is not one I branch on" is a set of its own: four hundred ranges, written out
+again for every state. And they are nearly the same set. A trie branches on the letters that
+begin the words of a language, and those are ASCII in every language that has keywords —
+so above `U+0080` all sixty-seven are the same Unicode letters. Cut there, **three** distinct
+upper halves remain among the sixty-seven, and one of them covers sixty-four.
+
+So each set is emitted as two fields and searched as two: `c < 128 ? below : above`, the
+same parity rule on whichever half. The half that is enormous is written three times, and
+the half that differs is a handful of characters.
+
+    816,461 -> 312,933 characters, 62% smaller
+
+The line count barely moves — 9,078 to 9,088 — because a set was always one very long line;
+what shrank is what is on them. And reading got *faster* rather than merely no slower, 1.01x
+to 1.13x over the corpus, which is half a megabyte of static data no longer competing for
+cache with everything else.
+
+The same shape is in the character parser's `Recognize_DotGram_Set`, where `ExpressionLanguage`
+has five of them rather than sixty-seven — a few percent rather than two thirds, and not yet
+done.
+
+## The set test is a bit, and the bits are printed
+
+The binary search is gone. A set is two halves, and each is read as one bit:
+
+    (c < 128
+        ? (Scan_Low1[c >> 6] & (1UL << (c & 63))) != 0
+        : (Scan_High0[c >> 3] & (1 << (c & 7))) != 0)
+
+Below ASCII a set is 128 bits, which is two numbers — `Scan_Low1` is
+`{ 0x03FF000000000000UL, 0x07B7AFFE87B7AFFEUL }`, the digits and the letters this state does
+not branch on. Above it a set is eight kilobytes, which is every script of the plane, and it
+is printed as it stands rather than searched or rebuilt: a `ReadOnlySpan<byte>` over a byte
+literal is data in the assembly, so nothing is allocated and nothing runs at type load.
+
+**It was worth measuring twice, because the first measurement asked the wrong parser.** A
+membership test looked like a tenth of a percent when timed through `ExpressionLanguage`,
+where a parse is eight to sixteen microseconds and mostly builds expression trees. Through
+the SQL lexer, where a parse is two to six hundred nanoseconds, a bare non-Latin identifier
+cost half as much again:
+
+    shape           latin   cyrillic     before    after
+    one name         207n       261n      1.26x    1.02x
+    three names      655n       874n      1.33x    1.05x
+    long name        361n       566n      1.57x    1.00x
+
+The long name — fifty-two Cyrillic letters — went from 566 nanoseconds to 279. The penalty
+for not writing in Latin is now nothing at all, and the ASCII corpus is 0.97x to 1.12x,
+which is to say unchanged to better.
+
+**One thing had to be written out rather than called.** Behind a method taking a
+`ReadOnlySpan<byte>`, every ASCII character paid for materializing the span of the half it
+was never going to read — a fifth of the time on an input that is all keywords, where the
+answer is always on the first line. As an expression at the call site it costs nothing,
+because the branch that touches the span is the branch not taken.
+
+The file grows from 310,106 characters to 401,442 — three eight-kilobyte halves printed
+instead of three sets of bounds, and the test written out at sixty-seven call sites instead
+of called. Against the 816,461 it was this morning that is still half.
+
+## The table was working for eighty-eight states out of five hundred
+
+A question about whether the bitmap's bytes were really all letters turned into finding that
+the transition table was mostly not being used. Its rows are placed by a heuristic, and the
+heuristic was wrong three times over.
+
+**Counted in ranges.** A row is 128 characters wide and the window is chosen to hold the most
+of what a state admits — counted, at first, in *ranges*. That put 440 of `SqlStandard92`'s
+528 rows at `U+0B25`, entirely above ASCII: a window there holds more separate pieces of
+`\p{L}` than the whole of ASCII holds, and every ASCII character in those states missed the
+table and took the chain. A range is an artefact of how a set is written; a way out is a
+decision the machine makes, and that is what is worth counting.
+
+**Slid by characters.** Counting ways out fixed 440 rows and left the windows anchored at
+`'+'`, because a window from 43 holds forty-three more Latin-1 letters than a window from 0.
+It also puts the space outside, and the space is what ends every token — so each token paid a
+chain call to find out it had finished, and `a = 1` got three times slower. Sliding must
+preserve ways out, not characters.
+
+**Scored by how many ways rather than which.** That left 95 rows at `U+00F8`. They are the
+states whose only way out is "any identifier character": ASCII holds sixty-three of those and
+a window in Latin-1 holds a hundred and twenty-eight, so the count of characters chose
+Latin-1, where nobody types. Two windows admitting the *same ways* are the same answer and the
+lower is the better of two same answers — what the higher holds extra belongs to a way the row
+already answers for, and the chain answers for it exactly as well. Where the ways genuinely
+differ, the characters still decide, which is what keeps a Cyrillic grammar's row on its
+letters rather than on the `'='` beside them.
+
+All 528 rows sit at `U+0000` now, and what that was worth against the chain the day began
+with:
+
+    chain     now
+      203     193   1.05x  a = 1
+      400     275   1.45x  salary BETWEEN 1000 AND 2000
+      453     306   1.48x  x IN (1, 2, 3) AND y IS NOT NULL
+      907     601   1.51x  amount * 1.05 + tax >= total AND …
+      837     493   1.70x  warehouse.zip_code = 'X' AND …
+      876     583   1.50x  CAST(x AS INTEGER) = 5 OR SUBSTRING(…)
+     1457     976   1.49x  (quantity + weight) * rate - zone / 2 > …
+       22      14   1.57x  ! amount * 1.05 + tax >= total AND …
+
+Non-Latin identifiers cost 1.03x, 1.04x and 0.92x of their Latin twins, which is to say
+nothing. The earlier "1.02x to 1.20x" was a table answering for eighty-eight states.
+
+**And what the question was actually about.** `Scan_High0` is 5,924 bytes of `0xFF` out of
+8,192, and they are letters: `U+4E00..U+A48C` is 22,157 unbroken ideographs, `U+AC00..U+D7A3`
+is 11,172 Hangul syllables, `U+3400..U+4DBF` is 6,592 more ideographs. Of the 48,921
+characters the set holds, Unicode 15.1 declines to call eight of them letters, and those
+eight are the ones added in 16.0.
+
+## Where ASCII cannot arrive there is nothing to choose between
+
+Every row now begins at `U+0000` and is 128 wide, so the table answers for the whole of
+ASCII and a character reaching the chain is above it by construction. Which makes the lower
+half of every set test dead: the state cannot be asked about a character the table already
+answered for. So the test is one line and no branch —
+
+    if ((Scan_High1[c >> 3] & (1 << (c & 7))) != 0) return 126;
+
+— and the sixty-seven `Scan_Low` fields are gone with it. It is emitted per state and not
+by rule: a state whose row sits above ASCII keeps both halves, because there ASCII really
+can arrive.
+
+**And the storage was wrong, which only measuring found.** The halves were
+`static ReadOnlySpan<byte> X => new byte[] { … }`, which the compiler puts in the assembly's
+data — no allocation, nothing at type load, and the right answer on paper. At 457 call sites
+it is the wrong one: materializing the span per use made a short non-Latin identifier 1.66x
+its Latin twin, where the branchy version had been 1.03x. A plain `static readonly byte[]`
+costs three eight-kilobyte allocations once and puts it back to 1.04x.
+
+Against the chain the day began with, and against the branchy version:
+
+    chain  branch    none
+      200     196     196   1.02x  a = 1
+      393     275     279   1.41x  salary BETWEEN 1000 AND 2000
+      840     489     492   1.71x  warehouse.zip_code = 'X' AND …
+     1454     986     980   1.48x  (quantity + weight) * rate - zone / 2 > …
+       23      14      14   1.64x  ! amount * 1.05 + tax >= total AND …
+
+Removing the branch bought nothing — it was perfectly predicted, being always false. What
+it bought is the file: 580,503 characters to 547,119, and sixty-seven fields nothing read.
+
+## A bitmap only where eight kilobytes are paid for
+
+A bitmap costs eight kilobytes whatever it holds, and one of `SqlStandard92`'s three held
+360 characters and was read from a single place. A grammar naming many small classes would
+put one in the assembly for each of them, which is a data segment growing with the grammar
+rather than with the alphabet.
+
+So it is spent by weight: above sixty-four ranges a set gets a bitmap, below it the parity
+search over bounds. There is no continuum to cut in the middle of — a Unicode category is
+four hundred ranges and a class somebody wrote out is a dozen — so the number only has to
+fall between them. `SqlStandard92` keeps two bitmaps and one 144-byte bounds array where it
+had three bitmaps, and the file goes from 547,029 characters to 531,106.
+
+**What the three were**, since it is the clearest picture of what a lexer's wide sets
+actually are:
+
+    Scan_High0   48,921 characters   \p{L}              2 sites    identifier start
+    Scan_High1   49,281 characters   \p{L} | \p{Nd}   457 sites    identifier continuation
+    Scan_High2      360 characters   \p{Nd}             1 site     inside a number
+
+The 360 are every decimal digit outside ASCII — Arabic-Indic, Devanagari, Thai and the rest.
+That is the one that is bounds now.
+
+**And against the runtime's own predicates**, which was the other question:
+
+    input             bounds     bitmap   IsLetter    IsDigit     either
+    ASCII letters      9.19n      2.13n      2.28n      2.02n      2.23n
+    ASCII marks        4.97n      1.51n      1.69n      1.31n      1.32n
+    Cyrillic           5.26n      1.12n      2.81n      2.82n      2.81n
+    CJK                5.05n      1.11n      2.80n      2.82n      2.85n
+
+Level on ASCII, where `char.IsLetter` is one arithmetic test and the bitmap is one load, and
+two and a half times faster above it, where the runtime walks three levels of page table and
+decodes a category and the bitmap still does one load. Which is what a table answering one
+question beats a table answering every question by.
+
+Not that speed is why the emitted code cannot call them. `\p{L}` is expanded from the
+generator's Unicode tables at generation time, and `char.IsLetter` reads the consumer's — the
+same assembly would take `U+A7CB` in an identifier on one runtime and refuse it on another.
+
+## Forty-four questions, and the answer to forty-three was already known
+
+The chain for `SqlStandard92`'s first state was every mark the language writes and both cases
+of every letter a keyword begins with. None of it could run. The state's row covers
+`[0,127]`, so a character reaching the chain is above ASCII by construction, and forty-three
+of those forty-four tests ask about characters that were answered before the call.
+
+A state's tests are clipped to the outside of its own window now, and what clips to nothing
+is not written. The case that was forty-five lines is two:
+
+    case 0:
+        if ((Scan_High0[c >> 3] & (1 << (c & 7))) != 0) return 27;
+        return -1;
+
+And then what is left is shared. There is one question left in most states — "is this more
+of the identifier I am reading" — and hundreds of trie states ask it and go to the same
+place, so **480 case labels stand over 11 bodies**. `Scan_Part0` goes from 221 lines to 91.
+
+**Which also ended the division into methods.** Six of them existed because one method was
+26,637 bytes of IL and the runtime said `Tier-0 switched MinOpts`. There is nothing left to
+divide: every state fits in one method, the six-way `state < 96 ? … : …` chain is gone from
+the hot loop, and `Scan` drops from 214 bytes of IL to 121 — still `Tier1 with Dynamic PGO`,
+still no `MinOpts` anywhere.
+
+    531,106 -> 468,130 characters
+
+Speed is unchanged, 1.00x to 1.05x, which is what removing unreachable code should do.
+
+**On making the chain a `switch (c)` instead**, which is what prompted this: there is nothing
+left to switch on. The dense run of `c == '('`, `c == ')'`, `c == '*'` was exactly the part
+the row had already answered, and what survives clipping is one test against a Unicode
+bitmap — a switch of no cases and a `default`. The table in front is the jump table, and it
+is a direct load rather than an indirect branch.
+
+## What a switch would cost, and how far the table can grow
+
+Two questions about the table, both answerable by measuring.
+
+**A `switch (c)` instead of the row.** The compiler turns a dense one into a jump table, and
+a jump table is an *indirect branch*. The target changes with every character, so nothing
+predicts it, and every miss is a pipeline. The row is a data dependency instead — a load
+from a hot line, which the machine carries on around. Over `SqlStandard92`'s first state,
+forty-four ways out:
+
+    input               table     switch      chain
+    letters            2.02n      8.05n      7.43n
+    marks              2.07n      6.62n      1.87n
+    digits             1.12n      1.29n      1.49n
+    as SQL runs        1.12n      6.22n      3.25n
+    refused            1.51n      1.90n      8.05n
+
+Five and a half times, on the mixture that looks like SQL. And it is worst exactly where a
+switch was supposed to help: the more keywords a grammar has, the more different letters the
+first state admits, the more places the jump goes and the less any of it predicts. The table
+does not care how many ways there are.
+
+**And what the loop actually waits on**, which is the same answer from the other side. There
+are four branches per character and all of them predict: the input is not finished, the
+character is inside the row, the transition is not a refusal, the state does not accept.
+What costs is the chain of loads — the state's row, then the cell, then the *next* state's
+row — each address known only once the last has arrived. Pointer chasing, which no
+prefetcher helps with, because a prefetcher can guess a stride and not a value.
+
+Which is why compacting the table is not free. Characters that lead to the same place from
+every state are one column, and `SqlStandard92` has 47 of them where it has 128 characters —
+so a class map turns 50,560 cells into 18,565, 101 kilobytes into 37. It also makes the
+chain three loads instead of two, and that measured five percent:
+
+     direct  classed
+        191      200   0.95x  a = 1
+        303      370   0.82x  x IN (1, 2, 3) AND y IS NOT NULL
+        980     1030   0.95x  (quantity + weight) * rate - zone / 2 > …
+
+**So the size question decides it.** A lexical machine has about five and a half states per
+keyword and the table is states by row width, so it grows linearly with the language:
+
+    words  states   rows  classes    direct  classed  state x atom
+       25     163    135       32       34K      34K         279K
+      100     618    515       32      129K     129K        1056K
+      200    1229   1026       32      256K      64K        2100K
+      800    4506   3706       32      926K     232K        7701K
+
+The classes do not grow. They are bounded by what the machine can tell apart, which is
+thirty-odd for anything written in Latin letters and never more than 128 — so compacting is
+worth a quarter of the table however large the grammar. Under 256 kilobytes the direct table
+is kept and the five percent with it; over that, a grammar of some six hundred words, it is
+compacted. The last column is the dense state-by-atom table this design rejected in its first
+week: 7.7 megabytes where the row table is 232 kilobytes.
+
+## The scannerless parsers are not one lexeme, and the measurement says why
+
+A lexical machine is a DFA and a table falls out of it. The proposal was that a scannerless
+grammar is just one big lexeme and should have the same table, which for `Rfc3986` — a URL
+parser with ten call sites in 25,771 lines — looked very likely.
+
+**Statically it is.** Of its 978 states, 770 do nothing a transition table could not say:
+they read a character and jump. Only 79 write the arena.
+
+    parser                states   only read and jump   write the arena
+    Rfc3986                  978           770  (79%)         79  (8%)
+    SqlStandard92            276           179  (65%)         83 (30%)
+    ExpressionLanguage       696           268  (39%)        421 (60%)
+
+**Dynamically it is not.** Counting steps rather than states, a corpus of eight URLs spends
+37% of them in those states — and, decisively, they do not come in runs:
+
+    parser              steps   pure   runs   mean  median  longest   in runs of 4+
+    Rfc3986             1,478    37%    394    1.4       1        9              8%
+    SqlStandard92         642    50%    121    2.7       1       13             60%
+    ExpressionLanguage  1,734    28%    209    2.3       2       13             44%
+
+A table pays for itself by being stayed in. The lexer's inner loop reads a token — a dozen
+characters, a dozen table steps, no exit. A URL parser's pure states last **1.4 steps** on
+average and a single step at the median: the loop would spend more on entering and leaving
+than the chain of comparisons costs. Eight percent of its pure steps are in runs of four or
+more.
+
+Which is the answer to why a scannerless grammar is not one lexeme. A lexeme is regular
+*and produces nothing*: the lexer writes no arena, so its states are pure by construction and
+its runs are as long as a token. A parser records where every capture began, and in a URL
+grammar a capture begins every few characters — so the pure states are real but scattered one
+at a time between the writes, and there is no run to put a loop around.
+
+**Where the time actually is.** Sixty per cent of `ExpressionLanguage`'s steps and half of
+`Rfc3986`'s go to arena traffic, not to deciding which character was read. That is the target
+the measurement points at, and it is a different piece of work from this one.
+
+## And the same question asked properly: cut out the regular parts and scan them
+
+The entry above measured the wrong thing. It asked how long the runs of pure states are *in
+the machine as it stands*, found them 1.4 states long, and concluded there was nothing to put
+a loop around. But what breaks those runs is not the captures — it is the machine's own
+per-turn bookkeeping. A repetition writes down where each turn began, so a `Pchar*` scanning
+a path alternates: test a character, record the turn, test a character, record the turn. 129
+of `Rfc3986`'s states (13%) do nothing else.
+
+Compiling the fragment as a lexeme removes that record entirely, which is exactly what the
+question was. The right experiment is to try it, and DotGram already has the mechanism: a rule
+written in braces is atomic, and an atomic rule that keeps no records compiles to a scanner —
+one run of a machine with nothing written down. `Rfc3986` has no braces anywhere, which is
+why it had no scanners.
+
+A copy of it with braces round the twenty-two regular rules:
+
+    url                                            plain   braced
+    http://example.com/                             442n     188n   2.35x
+    https://a.example/very/long/path/…              361n     248n   1.46x
+    https://user:pass@www.example.co.uk:8443/…      331n     265n   1.25x
+    http://[2001:db8::7]/c=GB?objectClass?one       979n     819n   1.20x
+    //relative/reference?only                       239n     203n   1.18x
+    mailto:someone@example.com                      146n     138n   1.06x
+
+and the two agree on every input, accepted and refused. Thirty scanners, 25,771 lines down to
+20,907, and 1,358 reads of `text[p]` down to 1,139.
+
+**What stands between this and doing it automatically** is that braces are *possessive*.
+`{ A }` does not give input back, and a rule that would have needed to is a rule the automatic
+version would silently change the meaning of. It happened to be safe for all twenty-two here,
+which is a fact about RFC 3986 and not a licence.
+
+The compiler can prove it in the cases that matter: making a fragment possessive changes
+nothing when what follows it cannot begin with what it consumes, which is `FollowSets` and
+`Determinism.Distinguishable` — the same pair that already warns about an ambiguous repetition
+(`GRAM5002`). So the rule would be: a fragment becomes a scanner when it is `Scannable`, keeps
+no records, **and** giving input back could never have helped. The first two are written; the
+third is the work.
+
+## The proof is not the follow set, and the differential test said so in seconds
+
+The plan was: a rule becomes a scanner when it is `Scannable`, keeps no records, and giving
+input back could never have helped — the last being the follow set handed to `Scannable`
+where braces hand it nothing.
+
+It admits a great deal. `Rfc3986` goes from no scanners to **44**, and from 25,771 lines to
+19,037; `SqlStandard92` to fifteen, `ExpressionLanguage` to eight. More than the twenty-two
+that were braced by hand.
+
+And it is wrong. `ReferenceDifferentialTests` — random grammars, random inputs, the engine
+against the reference semantics — found a disagreement on the first seed it tried:
+
+    trivia = [' ']*
+    Start = (?! ['b'..'c' | 'x'] & (R1 | R1) & R2) & ({ ['b'..'c' | 'x'] } | { ['a'..'b'] })
+    R1 = "c"i
+    R2 = 'b'
+    parse Start
+
+    input " cba": the semantics say it matches, the engine says it does not.
+
+Excluding published rules — a scanner answers where it stopped and a publication has to say
+what it expected and whether the whole input was read — was the obvious first guess and did
+not fix it. At that point the next move would have been a third guess, so the branch was
+reverted instead.
+
+**What the failure is worth knowing.** The follow set says what characters may come after a
+rule. `Scannable`'s `after` says what still has to match *inside the group being committed*.
+They are not the same question, and handing one to the other is a category error that happens
+to be right most of the time — which is the worst kind, and exactly what a differential test
+is for. The right condition has to be about the *call site*: a rule may commit where every
+path that reaches it can live with the longest match, and that is a property of the graph
+around it rather than of the characters after it.
+
+What is not in doubt is the payoff. Braced by hand, the same twenty-two rules made `Rfc3986`
+1.06x to 2.35x faster and agreed on every input. The mechanism works; the licence to apply it
+without being asked is what is missing.
+
+## Which of the two was wrong, and it was the engine
+
+The entry above stopped at "the differential test refuses it" and offered a diagnostic
+instead. That was ducking the question: an engine that disagrees with the semantics is wrong
+somewhere, and finding out where is the work. So the counterexample was run rather than
+abandoned.
+
+    trivia = [' ']*
+    Start = (?! ['b'..'c' | 'x'] & (R1 | R1) & R2) & ({ ['b'..'c' | 'x'] } | { ['a'..'b'] })
+    R1 = "c"i
+    R2 = 'b'
+    parse Start
+
+`Start`'s body, as the normalizer leaves it, is
+
+    ?!['b'..'c' | 'x'] & trivia & R1 & { (none | none) } & trivia & R2 & trivia & ( … )
+
+and the rules turned into scanners are `trivia`, `R1`, `R2`.
+
+**The semantics is right and the engine was wrong.** On `" cba"` the reading that works has
+the *leading* seam match nothing at all: `Start` begins at zero, `?!['b'..'c'|'x']` passes on
+the space, and then the woven `trivia` inside eats it, `R1` takes `c`, `R2` takes `b`, the
+group takes `a`, and the input ends. A possessive `trivia` cannot do that — it eats the space
+at the leading seam and cannot give it back, so `Start` is forced to begin at `c` and the
+lookahead refuses.
+
+**And the reason is exact.** `FollowSets.Of` computes what may follow a rule from its call
+sites *in the graph*. A publication weaves the seam around what it publishes, and that is not
+a call site the graph records — so the follow set of `trivia` has never heard of the one place
+where giving the space back is the whole parse. Excluding the seam makes that grammar agree,
+and the whole differential suite with it.
+
+**A second boundary, found the same way.** Over token kinds a scanner breaks the provenance:
+a split grammar cuts its values out of the extents of the tokens it ran over, and a scanner
+swallows tokens without recording any. `RereadTests` crashed in the materializer, which is the
+right way to find out.
+
+**And one that is not a boundary but a debt.** A scanner writes nothing down, so when it
+refuses, the caller can only report the failure where the rule *began* — position 0 where the
+machine used to say 3. That is a documented promise of this parser broken quietly, and it is
+not fixed by excluding anything: it needs the scanner to carry how far it got. Returning `p`
+at its `Refuse:` label is not that, because the scan restores `p` on its own backtracking; it
+needs a furthest-reached local, which costs the hot path something and wants measuring.
+
+So the state of it: the condition is sound where it is allowed to run — the differential suite
+agrees on every seed with the seam and the split excluded — and it turns `Rfc3986` from no
+scanners into forty-four, 25,771 lines into 19,037, for the 1.06x to 2.35x that hand-written
+braces measured. What it still costs is the refusal position, and that is the piece to build
+before any of this is turned on.
+
+## The furthest a scanner came, and why it is three pieces and not one
+
+Building it turned the debt into a shape, and the shape is worth writing down because the
+next attempt should start from here rather than from the beginning.
+
+**The scanner can carry it, and the successful path pays nothing.** A `furthest` local
+starting at `pos`, raised wherever the scan gives input back to itself, and a refusal that
+comes back as `-1 - furthest` — one return saying both that it refused and where it reached,
+with `< 0` still meaning the first. The caller sets `p` from it before recording the failure.
+Everything on the path that succeeds is untouched.
+
+**Which was not enough, and the counterexample says why.** `"abqy"` and `"abcdefx"` both begin
+`ab`; on `abqzzz` the message must name the one that got to the fourth character. But a
+literal does not give input back — it refuses outright — so `furthest` never moves, and the
+failure is reported where the literal began. The offset is right there at the emit site and
+threading it in works, for the branch that walks a literal character by character. The branch
+that compares the whole run with one `SequenceEqual` has no offset to thread, and that is the
+branch a seven-character literal takes. Making it walk instead would be trading the scan's
+speed for the message's precision, which is a decision and wants measuring.
+
+**And a third piece, found by the split tests.** Over token kinds a refusal position is a
+token index mapped back through the extents, so a scanner's `furthest` would have to be mapped
+too. Excluding kinds — which this needed anyway, for provenance — leaves that alone.
+
+**Two other things the build taught, both real defects rather than obstacles.**
+
+A scanner's caller skips the failure check when the rule is nullable, on the reasoning that
+something matching the empty string cannot fail. That is the wrong question: `?= X` matches
+the empty string when it succeeds and refuses when it does not, and reading its refusal as a
+position made a parse succeed on input the grammar refuses. The predicate wanted is
+*infallible* — a repetition of none, a sequence of those, a choice with one — and nullability
+is not it. `ReferenceDifferentialTests` found it on the first seed.
+
+And a local emitted at a backtrack site must be declared wherever it is written, not only
+where the label that reads it exists. Obvious once the build says so, in eight grammars at
+once.
+
+So the state: the condition is sound, the scanner can report where it reached, and what is
+left is the literal run's bulk compare and the split path's mapping. `Rfc3986` is 44 scanners
+and 19,037 lines against 25,771 whenever those two are done.
+
+## Nullable is not the same question as infallible
+
+Two things were called defects in the entry above and only one of them was. The local
+declared where its label is rather than where it is written was my own code, half-built and
+not compiling; the emitter has always declared its scanner locals by whether the body writes
+them. That claim is withdrawn.
+
+The other is real, and reachable without any of the scanner work. A rule in braces compiles
+to a scanner, and the caller skips asking whether the scanner refused when the rule is
+*nullable* — reasoning that something matching the empty string cannot fail:
+
+    Ahead = { ?= 'a' }
+    Start = Ahead & ['a'..'z']
+
+`?= 'a'` matches the empty string when the lookahead passes and refuses when it does not. So
+the caller writes `p = Scan_Ahead(text, p);` with no check, `p` becomes -1 on `"b"`, and what
+happens next is whatever the rest of the rule does with a negative position. Here it is the
+right answer by accident: the character test after it fails on a position out of bounds. In
+the grammar that turned this up it was the wrong one — a parse accepting input the grammar
+refuses.
+
+The question wanted is whether the rule can refuse, not whether it can be empty: a repetition
+of none, a sequence of those, a choice with one among them. `Infallible` asks that, and it is
+conservative in the safe direction — a false answer costs a comparison the parse did not need,
+and a true one has to be true.
+
+Nothing in the repository's own grammars changes, snapshots included, because their scanners
+really are infallible — `trivia` is a repetition of none, which is the case this was written
+for and the only one it had ever been asked about.
+
+## The scanner is asked for rather than written, and Rfc3986 never had to know
+
+The three pieces the last entry listed are built, and two more turned up in the building.
+
+**A rule becomes a scanner when the compiler can prove what braces assert.** Braces say
+"commit the first reading"; the proof is that committing loses nothing, which is
+`FollowSets` handed to `Scannable` where braces hand it nothing. The set is the union over
+every call site, so a rule reached from two places is judged against both.
+
+**Where it does not look, and why:**
+
+- *The seam.* A publication weaves trivia around what it publishes, and that is not a call
+  site the graph records — so the follow set has never heard of the one place where giving
+  the spaces back is the whole parse. This was the counterexample two entries ago.
+- *Kinds.* What a scanner is worth is swallowing a run of input in one call; over kinds a
+  step is a whole token and there are no runs, so all that is left is the call. Measured:
+  `SqlStandard92` took **twice as long**. It is excluded, and is unchanged now — 0.97x to
+  1.03x, which is noise.
+- *A body that spells itself.* A scanner is one call, so its refusal can only name the rule.
+  `Expected B.` where the same grammar compiled in place says `Expected "abqy".` is a loss
+  for a literal — and a gain for everything else, since `Expected RegName.` beats a hundred
+  character ranges. So literals and choices of them keep the inline path.
+
+**The refusal position, which was the debt.** A `furthest` local from `pos`, raised wherever
+the scan gives input back, and a refusal returning `-1 - furthest` — one value saying both
+that it refused and where it reached. Three things it needed:
+
+- A literal compared in one `SequenceEqual` has no offset to report, so the run is walked —
+  on the path that was going to refuse anyway, which costs the path that matches nothing.
+- Only where the refusal is the scan's own answer. A literal failing into a loop's exit has
+  refused nothing, and the seam of a spaced grammar ends that way at every operand; computing
+  a reach there would have been pure cost on the hottest thing in the compiler.
+- **A lookahead's advance is not distance covered.** It looked and put the position back.
+  Counting it had `eof` — which is `?!any` — report a refusal one character past where the
+  input failed to end, and that made the split parser and the character parser disagree about
+  the same grammar. `ProvenanceTests` is what says they must not.
+
+**What it is worth**, on a grammar with no braces anywhere and no changes to it:
+
+    before   after
+       206     185   1.11x  http://example.com/
+       243     205   1.19x  urn:isbn:0451450523
+       307     238   1.29x  https://example.com/%D0%BF%D1%83%D1%82%D1%8C/…
+       937     765   1.22x  http://[2001:db8::7]/c=GB?objectClass?one
+       338     248   1.36x  https://a.example/very/long/path/with/many/…
+       335     284   1.18x  http://example.com/ has a space
+
+Forty-four scanners where there were none, and 25,771 lines down to 19,277. The snapshots
+move with it: `Url` from 7,121 lines to 4,656, `Feed` from 3,147 to 3,045.
+
+## TypeName was a lexeme, and that was the mistake
+
+`ExpressionLanguage` had one rule stopping it from being read as tokens:
+
+    namespace Lexical { TypeName = Word & ('.' & Word)* }
+
+A dotted name lexed whole, deliberately without braces so that it could hand its own tail
+back: `Math.PI` is read as `Math.PI`, the guard on `NamedType` asks whether that names a type,
+the answer is no, and the lexeme gives up `.PI` for member access to find. It works, and it
+works **only over characters** — a tokenizer decides where a token ends once, and `Math.PI`
+arriving whole is a member access that can never be read. That is why 11 of the parser's tests
+refused when it was asked to split.
+
+It is read here now, one word at a time, with the dots between them:
+
+    NamePart : @string = w: Word => @(w)
+
+    NamedType : @Type
+        = head: Word & ('.' & part: NamePart)* & args: (…)?
+          & when @(args != null || Resolves(Dotted(head, part)))
+
+Same language and the same means — the repetition hands a turn back where the lexeme handed a
+suffix back — and the comment that argued for the lexeme is answered rather than ignored:
+`System . Text` was going to be captured with its spaces in it, so the *parts* are captured
+and joined, and what the author put between them is nowhere in the name. `NamePart` exists
+for exactly that: a bare `part: Word` under a repetition captures the run from the first to
+the last, dots and spaces and all, where a typed part is an array of words.
+
+**And with it the parser splits.** 25,843 lines become 22,856, and 127 refusals become **nine**
+— all of them one thing, which the first of them names precisely:
+
+    'V' is not a member of type 'System.Int32[]'
+
+There is no `V` in `(int[] a) => a.Length`. It is kind number 86 read as a character: three
+materialization sites still cut their text out of the machine's own input rather than out of
+the extents of the tokens it ran over — the piece a sequence member copies, and the two the
+fold of a left-recursive rule uses. `SqlStandard92` never found them because it builds no
+values, and `Postfix` is the rule that does: left recursive, folded, and its member captured
+as text.
+
+Routing them through `Cut` is the next piece and is not this one — the first attempt at it
+broke the character path, which is what `UrlTests` is for.
+
+## And ExpressionLanguage reads tokens
+
+Four sites still cut their text out of the machine's own input rather than out of the extents
+of the tokens it ran over: the piece a sequence member copies into its buffer, the two a
+left-recursive fold uses, and the one the flat path uses where there is no arena at all. Over
+characters a position is where the text is; over kinds it indexes a token, and the text is
+somewhere else. `SqlStandard92` never found them because it builds no values.
+
+The piece is the one that needed care rather than a substitution. Over characters it is a
+span copied straight out of what is being read, and that must stay — so it is the copy that
+changes alphabet, not the expression around it. The first attempt made both paths go through
+a string and broke `UrlTests`, which is what `UrlTests` is for.
+
+**Then one more thing in the grammar, and it is the same mistake as `TypeName`:**
+
+    | "new" & type: Type & '[' & ']' & '{' … '}'
+
+`Type` above names `"[]"` as a literal, so a lexer takes the longest match and two marks
+written apart here are one token by the time this rule sees them. The same thing said two
+ways, and the second way cannot be read as tokens. One spelling now.
+
+With those, `ExpressionLanguage` reads token kinds: **25,843 lines become 22,840**, and the
+suite is green — the largest grammar in this repository, the one with the state, the guards,
+the precedence climbing, the recovery and the values, on the same path SQL has been on since
+this morning. What it took was two corrections to the grammar and four to provenance, and no
+change at all to what the language accepts.
+
+    input                                   before     after
+    (int x) => x                            2.359us   1.912us   1.23x
+    (int x) => x * x - 1                    4.062us   3.632us   1.12x
+    (string s) => s.Length                  3.120us   2.532us   1.23x
+    (int x) => { x += 1; x *= 2; return x }  8.356us   7.177us   1.16x
+    (int x) => Math.Max(x, 1)               9.348us   8.053us   1.16x
+    two levels of parenthesis               7.378us   4.461us   1.65x
+    four levels                            12.239us   7.347us   1.67x
+    six levels                             17.113us  10.393us   1.65x
+    two levels, refused                    10.565us   9.045us   1.17x
+    six levels, refused                    40.705us  36.777us   1.11x
+
+Between 1.11x and 1.67x, and the nests gain most, which is where the character machine was
+doing the most re-reading. Allocation moves both ways and is worth its own look: four inputs
+allocate a fifth less and four a quarter more, and `x * x - 1` most of all — the token buffers
+are pooled, so what grew is elsewhere.
+
+## The states are numbered in the order they are written
+
+Compilation reserves a state whenever it needs somewhere to come back to and numbers them as
+it goes, so the numbers are dealt out before anything is known about which of them survive.
+Layout then follows the signposts, merges what says the same thing twice and drops whatever
+nothing can reach — three states in five — and what is left is what a sieve leaves.
+`Rfc3986` wrote 532 states numbered up to 1304; `ExpressionLanguage` 648 up to 1441;
+`SqlStandard92` 276 up to 857. Thirty to forty per cent dense, and the holes are not in one
+place: they are wherever a rule was compiled into a caller and its own copy went unread.
+
+The dispatch pays for that. It is a `switch` over the numbers something can resume at, and
+over a set with those holes in it the C# compiler cannot lay one jump table: it bisects
+instead, and where the table is written in parts it bisects a second time inside each of
+them. Numbered in written order the same set is contiguous, each part is a run of it, and
+both switches become what a run of consecutive labels compiles to.
+
+It is a renaming and nothing else. Every state number in the file is written by `Settle`
+from a mark holding the state it was compiled as — that was already true of every jump and
+every arena entry, which is what `Machine.Graph.cs` exists to guarantee — so a map from
+state to written number, applied where the mark is settled, moves all of them at once.
+`Renumber` builds it from `_order` once the layout is decided, and `Rewrite` says every body
+again.
+
+**Two things were writing a state number without a mark**, and one of them was a defect
+waiting for exactly this. Recovery finds the extent of a broken element by walking the arena
+back for two entries it wrote itself, and it named them by their compiled numbers:
+
+    if (candidate.Kind == ParserEntry.PendingRecovery && candidate.State == 19)
+    if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice   && candidate.State == 17)
+
+while the entries themselves were written through `Resuming`, which resolves. The two agreed
+only because nothing had ever moved a written state's number, and a recovered element came
+back with an empty extent the moment something did. Twelve tests said so at once. The other
+was the trace, which named the state a call was about to enter by its unresolved number — a
+trace that cannot be lined up against a label is a trace that says nothing about the machine
+it is tracing.
+
+Both are marks now, and the trace one paid for itself twice over. Two bodies that differ
+only by a number naming the same state are the same body, and `Merge` could not see it while
+the number was the unresolved one. **`Rfc3986` fell from 19,277 lines to 11,635** — five
+copies of the same `IPv6` block collapsed into one — and with them it dropped under the
+budget and is written in one method again rather than twelve.
+
+    grammar               before    after
+    Rfc3986              19,277    11,635    532 states up to 1304 -> 283 up to 411
+    SqlStandard92         9,930     9,856    276 states up to  857 -> 270 up to 440
+    ExpressionLanguage   22,840    22,840    648 states up to 1441 -> 648 up to 974
+
+What it is worth, measured interleaved, best of nine, one variant per process:
+
+    ExpressionLanguage                          before      after
+    (int x) => x                             429,973/s   432,426/s    +0.6%
+    (int x) => x * x - 1                     238,506/s   223,466/s    -6.3%
+    (string s) => s.Length                   258,186/s   269,546/s    +4.4%
+    (int x) => Math.Max(x, 1)                 66,133/s    65,120/s    -1.5%
+    two levels of parenthesis                 77,386/s    85,493/s   +10.5%
+    four levels                               37,248/s    41,653/s   +11.8%
+    six levels                                21,493/s    25,120/s   +16.9%
+    six levels, refused                       82,826/s    84,586/s    +2.1%
+
+`SqlStandard92` is flat within two per cent on every input, and `Rfc3986` half a per cent to
+two. The nests are where it pays, which is where the dispatch is reached most; `x * x - 1`
+is slower by six per cent on three separate runs and is the one number here that is not
+explained.
+
+### And the range chain, which was the point of the exercise, is a loss
+
+A part is now a run, so "which part" can be asked as two comparisons rather than as a jump
+table over every state there is, and bisected it is four comparisons for a machine in
+twenty-three parts. That is the shape the generated lexer's transition table was chosen over
+a `switch` for, where the direct load beat the indirect jump by 5.5x. Written out and
+measured, it costs **five to eight per cent on every `SqlStandard92` input but the two
+shortest**, and on `ExpressionLanguage` it is a wash — up four per cent in the middle of a
+spread from minus seven to plus twelve.
+
+The lexer's answer does not carry, and the reason is worth keeping. There the next state
+varies with the character, so the indirect branch is unpredictable and the load is the
+cheaper of two bad options. Here the parse returns to a handful of the same states over and
+over — a rule returns, a choice resumes — which is the case a branch predictor has no
+trouble with at all, and four comparisons that each mispredict cannot beat one indirect
+branch that does not. Reverted; the numbering stays, and it is the numbering that let the
+compiler lay the jump table in the first place.
+
+## The step profile, taken again on the token path
+
+`docs/next.md`'s "a scannerless grammar is just one big lexeme" entry counted steps on the
+character machine and ended with a sentence pointing somewhere else: sixty per cent of
+`ExpressionLanguage`'s steps and half of `Rfc3986`'s go to arena traffic, not to deciding
+which character was read. Both parsers that could move have moved since — `SqlStandard92`
+and `ExpressionLanguage` read token kinds now — so the question was worth asking again
+before deciding whether the syntactic machine can be a transition table too.
+
+Counted the way it was counted before: a marker in every state body, a corpus run once, the
+sequence of states written out and read back. Eleven search conditions and eleven lambdas,
+each set graded by depth and ending in refusals. A state is **pure** where its body is tests
+and jumps and nothing else, and **arena** where it touches `entries`.
+
+    parser                     states   read and jump   write the arena
+    SqlStandard92 (kinds)         438       261 (60%)        147 (34%)
+    ExpressionLanguage (kinds)    972       237 (24%)        731 (75%)
+
+    parser               steps   pure   arena   runs   mean  median  longest  in runs of 4+
+    SqlStandard92        2,315    34%     61%    489    1.6       1        7           13%
+    ExpressionLanguage   6,545    19%     80%  1,142    1.1       1        3            0%
+
+**The token path did not reduce arena traffic. It removed everything around it.**
+`ExpressionLanguage` went from 60% of its steps in the arena on characters to 80% on kinds,
+and the absolute count fell — which is the split working exactly as it was meant to, and
+also the reason the remaining share is what it is. What a transition table would replace is
+the other fifth, and it does not come in runs: the longest run of pure states anywhere in
+the whole corpus is **three**, and not one pure step of `ExpressionLanguage`'s is in a run of
+four or more. A table pays for itself by being stayed in, and there is nothing here to stay
+in — the same answer the character machine gave, arrived at from further away and more
+sharply.
+
+Both figures above are of states classified by what their bodies can do, which is how the
+earlier entry counted and so what it can be held against. Counted as writes actually made,
+`SqlStandard92` writes the arena 0.30 times per step and `ExpressionLanguage` 0.51 — the
+same shape, and the honest denominator for what follows.
+
+**And then the arena, counted wrong the first time.** The first breakdown here counted
+*steps in states whose body names an entry kind*, and read `Choice` as a third of every
+parse in both machines. It is not: most of those names sit in a branch the visit does not
+take — `if (repeating.Value >= 1) entries.Add(Choice…)` is entered on every turn and writes
+on almost none. Counting the writes themselves, by putting a counter in front of each
+`entries.Add`, says something else entirely:
+
+    SqlStandard92 — 702 writes over 2,315 steps    ExpressionLanguage — 3,315 over 6,545
+      Call              478   68.1%                  Call             1,115   33.6%
+      LoopExit          130   18.5%                  RuleCapture        941   28.4%
+      Repeat             54    7.7%                  Construct          746   22.5%
+      Choice             38    5.4%                  Choice             233    7.0%
+      TurnDone            2    0.3%                  Capture            151    4.6%
+                                                     Repeat              41    1.2%
+                                                     LoopExit            34    1.0%
+                                                     CaptureOpen         52    1.6%
+
+**`Choice` is five to seven per cent, and it is not waste either.** Of the 38 SQL writes 27
+are resumed and of `ExpressionLanguage`'s 233, 191 — 71% and 82%. The way back that ordered
+choice writes is a way back the parse actually takes; there is no speculation to remove and
+no cheaper place to put a record that is going to be read.
+
+So `CompileCheckpointChoice` is not the lever. Extending it to the engine means solving
+three things at once — the interleaving of a stack in locals with a stack in the arena, the
+four indices a resume restores beyond the position, and the truncation that unwinds captures
+made since the site opened — for at most seven per cent of the writes and five per cent of
+`SqlStandard92`'s. Not now. The mechanism keeps its place on the flat path, where there is
+no arena to interleave with and it removes the *only* records there are.
+
+**What the honest count points at is calls, and in `ExpressionLanguage` the value.**
+Two thirds of `SqlStandard92`'s arena traffic is `Call`, and it builds nothing at all: a
+`Call` entry there is pushed with `RuleIndex` −1 and popped again on return, and what it
+carried in between was a return state and five indices for an unwinding that mostly never
+happens. In `ExpressionLanguage` calls are a third and `RuleCapture` and `Construct` another
+half between them — that is the value being recorded, which is what the arena is for and not
+something to remove.
+
+Which makes the two questions worth asking next, and neither is about `Choice`:
+
+  * how many calls does `CanInline` decline that it could take — the threshold is a size
+    budget and the file has just lost 40% of `Rfc3986` and nothing of the others;
+  * whether a call that no open choice sits under needs an entry at all, or only a return
+    state, which is a much narrower record than a `ParserEntry`.
+
+## And a state most of them are reached from one place
+
+Asked while the profile was being read: if a state is jumped to from exactly one place, why
+is it a state at all rather than the next lines of the one that jumps? Counted over the
+labels in the two token parsers, and the answer is that most of them are:
+
+    parser              labelled   in-degree 1   2    3    4   5+
+    SqlStandard92            270      114 (42%) 134    8    9    5
+    ExpressionLanguage       579      387 (67%) 153   29    5    5
+
+What that does *not* buy is a jump. The layout already threads the states into chains and
+drops the trailing jump wherever the state it names is the one written next — which is why
+168 of `SqlStandard92`'s 438 states and 324 of `ExpressionLanguage`'s 972 carry no label at
+all. A state that still has a label with one thing naming it is one the chain could not
+reach that way: its namer's jump is inside an `if` rather than at its end. Splicing the body
+into that branch turns a taken jump into a fall-through, which is a thing the JIT's own
+block layout is already trying to do.
+
+What it does buy is size, and size is the constraint that forced `Budget`, `Part` and
+`PartSize` in the first place. Each splice removes a label, a brace pair, a blank line and a
+`goto` — call it four lines, times 387, on a file of 22,840. And fewer states means fewer
+parts, and every part boundary that disappears takes a set of departures with it, each of
+which is a real call. That is the part of it worth measuring.
+
+Against that: `Merge` collapses states whose bodies are the same text, and it has just been
+shown to be worth 40% of `Rfc3986`. Splicing makes bodies longer and more distinct, so it
+works against exactly that. Which way the file moves is not something to reason out.
+
+## What actually declines a call, and it is not the size threshold
+
+`ExecutionPlan.CompiledInPlace` decides once per rule whether its body is written where it
+is called, and the entry that added `Copied = 64` is about size: the reserved-word list of
+standard SQL is 285 nodes and came to 59% of the generated file. So the first guess at the
+call traffic was that the threshold is too tight. Asked of the three parsers, rule by rule,
+it is not the threshold at all — and the answer is different for each:
+
+    SqlStandard92        70 rules, 45 in place    23 recursive, 2 large
+    ExpressionLanguage   86 rules, 14 in place    72 declared a type
+    Rfc3986              36 rules, 29 in place     6 declared a type, 1 large
+
+**`SqlStandard92` is blocked by recursion, and the rules blocked are tiny** — `Factor` 5
+nodes, `Term` 8, `BooleanPrimary` 8, `ValueExpression` 10, `SearchCondition` 11. Every rung
+of the expression ladder is a handful of nodes and every one of them is on the cycle that
+closes at `'(' ValueExpression ')'`, so `graph.Recursive` refuses them all. Raising `Copied`
+would admit nothing.
+
+The obvious repair is to ask the question per call site instead of per rule — inline unless
+the callee is already on the expansion path, so the ladder unrolls until the cycle really
+closes. Estimated over the graph before writing any of it, that is **2,150x**: 6,044 nodes
+compiled today become 13 million, because the ladder is mutually recursive at a dozen points
+and the expansion multiplies rather than adds. `SearchCondition` alone goes from 43 nodes to
+2.3 million. Closed.
+
+**`ExpressionLanguage` is not blocked by recursion or size at all.** Seventy-two of its
+eighty-six rules declare a type, and a rule that builds a value is never compiled in place —
+which is right, because the value needs a boundary to be built at. Path-sensitive inlining
+there is 1.0x: it changes nothing, because nothing it would admit was refused for a reason
+inlining can address.
+
+**But the ladder is paying three entries a rung to hand a value through unchanged.** Every
+rung is written the way precedence ladders are:
+
+    BitOr : @Expression = left: BitOr & '|' & ?!'|' & right: BitXor => @(Expression.Or(left, right))
+                        | x: BitXor                                => @(x)
+
+and the second alternative is an identity: capture the operand, build the value from it, and
+that value *is* the operand's. Compiled, it is a `Call` frame, a `RuleCapture` of the
+callee's result, a `Construct` naming a factory whose body is `(x)`, and a return. Three
+arena writes and a frame to pass a reference upward.
+
+The counters say how much of the parse that is. One identity factory is shared by
+**twenty-five sites** — `Additive`, `And`, `Assignment`, `BitAnd`, `BitOr`, `BitXor`,
+`Core`, `Equality`, `Multiplicative`, `Or`, `Postfix`, `Primary`, `Relational`, `Shift`,
+`Type`, `Unary` and the rest — and it runs **451 times of 746 constructs**, 60%. With the
+`RuleCapture` beside each, that is a little over nine hundred of the 3,315 arena writes:
+**27% of everything the arena is asked to record, to say that a value is itself.**
+
+So the piece worth doing is not inlining. It is recognizing the identity: an alternative
+whose construction is exactly its one captured call, of the same type, builds nothing — the
+callee's value is the rule's value, and neither the capture nor the construction needs a
+record. Whether the `Call` frame can go with them is a second question and a harder one: the
+alternative is the whole of the rule on that path, so it is a tail call, and the frame is
+also where the failure unwinding stops.
+
+Nothing here helps `SqlStandard92`, which builds no values and whose calls are the ladder
+itself. That one still wants either a narrower record than a `ParserEntry` for a call
+nothing can fail back past, or `<<` on the ladder — which is a change to the transcription
+and not to the engine.
+
+## Built: a publication read by methods, and the tape that keeps it exact
+
+The hand-written recursive descent measured at the end of the last entry was the ceiling,
+and the question was what stood between the automaton and it. Answered by building the
+other thing: `Machine.Direct.cs` renders a publication as one C# method per rule, with a
+call for a call, a local for a mark, and the arena nowhere in it. `SqlStandard92` is the
+first parser through it, because it builds no values and that is the whole of what this
+first rendering leaves out.
+
+**What replaces the arena is a tape of the ways back still open.** A choice the proofs
+cannot settle records one entry — the alternative in force and the last there is — and an
+unsettled repetition records one per turn past its minimum, the option of having stopped
+before it. Every construct is a segment: on failure it asks the tape for the latest way
+opened since it began, takes it, drops what was decided after it, and runs itself again
+from its own mark, replaying the tape up to the way it changed. Nothing is resumed in the
+middle and nothing outside the construct moves; what is re-executed is only the construct
+that failed. The order is the automaton's — innermost way first, latest turn first — and
+`ReferenceDifferentialTests` agrees with the semantics on every seed.
+
+**Four things the differential suite found before any grammar did**, each a rule of the
+tape worth keeping:
+
+- a retry may only look at what stands *before the cursor*. During a replay the tape past
+  the cursor is the future, decisions of what comes after waiting to be read again, and a
+  construct that fails on the way there exactly as it did the first time must leave it
+  alone. Scanning to the end made `(a > 1)` loop for ever with a tape eight entries long;
+- moving a choice on to its next alternative drops what the spent one decided, so the
+  next one starts from nothing and a later replay of it reads its own decisions;
+- an atomic group over a body that cannot fail still seals what was decided inside it: a
+  loop that took its turns may not give one back, and `{ (' ' | …)* }` was giving back
+  a space to a rule that could take it;
+- `c` is only what stands at `p` until something reads another character — a look behind,
+  a lookahead's body, a failed alternative — and every place a construct runs again or
+  moves on reads it again.
+
+**What it costs, and where the rest is.** Over the same inputs, interleaved with the
+automaton and the hand-written parser:
+
+    input                                automaton   methods   by hand
+    a = 1                                    186 ns     78 ns     27 ns
+    (a + b) * c > d                          725        223        88
+    ((((a + 1) * 2) - 3) / 4) + b > 0      2,734      1,057       164
+    x = 1 AND y IS NOT NULL                  378        168        91
+    a0 = 1 AND … (64 terms)               12,075      5,489     2,543
+    a0 + a1 + … (64 terms)                 4,139      1,616       749
+    (a + b) * c >   refused                1,755        467       133
+
+Two to three times the automaton, three times short of the hand. What remains is counted:
+eleven ways opened for `a = 1`, one per level of the ladder whose alternatives genuinely
+overlap — `ValueExpression | NULL | DEFAULT` where `NULL` is also a value — and a refusal
+recorded at every door the hand-written parser walks past in silence. Three things bought
+the rest of the way from the first measurement, which was slower than the automaton:
+§5's filter before each alternative, so an operand no longer walks eight alternatives and
+sixteen more inside one; the stack check on the back edges of the call graph rather than
+in every recursive rule, one per level of nesting instead of a dozen per operand; and the
+door of a settled loop kept quiet, as the engine's is.
+
+**What it hands back to the engine**: values, guards, marks, recovery, streaming, climbing
+and `find`. `CanDirect` refuses rather than guesses, `Direct = false` on the attribute or
+the options keeps the automaton for every publication, and the engine's own tests say so
+to compile against it. An input nested past the thread's stack is read again on a thread
+with a deep one, the input copied once for the crossing.
+
+## Built: values through the methods, on a log beside the tape
+
+The first rendering left values to the engine, and that left every parser that builds
+anything on the automaton. This one records them, as §7.2 requires — nothing is built
+while matching, and a failure takes back what it recorded — but into a log of records
+rather than an arena of entries (`Machine.Direct.Values.cs`).
+
+**A record is what one rule matched, written when it ends.** Five words — length, rule,
+factory, start, end — and then the members: a text capture is its two positions, a
+captured rule is the index of that rule's record, a repeated capture is a count and the
+indexes, gathered from a side stack that the turns pushed on. Post-order, because a rule
+ends after everything it captured. The log and the side stack are two more counts on the
+tape, put back on every path that gives a reading up: a segment that runs again from its
+mark first drops what its first run recorded, exactly as it drops the ways decided after
+it. A capture local made inside the reading given up goes back to nothing for the same
+reason.
+
+**Only what the root reaches is built.** A valued rule that matched without being captured
+— an alternative tried and passed over, a rule read for its extent — is in the log too,
+and its factory must not run. So the materializer marks first, from the last record
+backwards: the root is live, and a live record's members are live. Then one pass forward
+builds the live ones, each into a typed table of its own kind, so a member is read as
+`values3[record]` and nothing is boxed. A terminal that builds — a lexical rule the lexer
+measured — is not walked at all: its record is a span, and the character machine the
+lexer already has builds the value from the text.
+
+**Measured** on the JSON example, interleaved with the automaton, allocation to the byte
+the same:
+
+    input                       automaton    methods
+    {"a": [1, true, null]}         413 ns     307 ns
+    99 characters, nested        1,582         996
+    200 objects, 14 KB         201,759     115,896
+
+Less than the recognizers gained, and the reasons are counted below. Three things were
+found on the way, each worth its line:
+
+- **a run is one way back, not one per character.** `[' ']*` before a separator is not
+  settled — the seam after the list can begin with a space too — and the first rendering
+  opened a way per turn and asked at every door, which for JSON meant a `List<string[]>`
+  of tied expectations allocated on every successful parse. The engine has always written
+  one `Run` entry for a repetition of one character test; now the methods scan the run,
+  open one way whose value is how many characters were handed back, and keep the door
+  quiet, as the engine's is. The dead-mark pass then had to learn that a mark a run
+  measures its length against is read, `p = m;` or not; and `p - m + 1` is not
+  `p - (m + 1)`, which the differential suite said within a seed;
+- **a lambda that captures a parameter costs at the entry of the method.** The deep-stack
+  fallback captured `pos`, so the closure's display class was allocated on every call, for
+  a `catch` that runs once in a lifetime. Sixty-four bytes on every parse, found by
+  counting what `"1"` allocated. The lambda now captures locals of the `catch` block only;
+- the differential suite reports the grammar when a generated parser throws, not just
+  when it answers wrongly.
+
+**What it hands back to the engine still**: folds, guards, marks, a context, externals
+with values, captured lookaheads, and `find` — which between them keep ExpressionLanguage
+on the automaton. Those are next, folds and guards first.
+
+## Built: folds, guards, marks and a context on the direct path — ExpressionLanguage read by methods
+
+What kept ExpressionLanguage on the automaton was four things the first two renderings
+handed back, and each turned out to have a natural place in the log.
+
+**A fold is its loop, and its records lead with the value so far.** §4.3 already rewrote
+a left-recursive rule into `base & (step)*`, so the readers had been reading folds all
+along; what they did not do was record them. Now the base writes an ordinary record and
+keeps its index in a local, and each step's record puts that index first and holds the
+step's own captures — those its factory was written against, each as the one thing the
+step captured, which is how the step's factory takes them. The base's record keeps the
+rule's own shapes, sequences included, because that is how the base's factory takes
+them. Two mistakes on the way, both found by a test and not by thought: a step's record
+held the base's members as `-1`, which the materializer read as records; and then it held
+every step's captures, not this step's — `x is Type` handing `Type` to the step for `<`.
+
+**A guard runs where it stands, with what the rule holds so far.** A text capture is cut
+from the locals that hold it. A captured rule's value is built now, from the records
+already in the log, by the same materializer told a root and a place to start — the
+rule's own log mark, since nothing before it reaches them — and it stays built: a flag
+per record says so, the final walk skips what a guard built, and a watermark on the tape
+says how far the flags still stand for the records under them. Every place the log is put
+back lowers the watermark, in the renderings that build anything and nowhere else. A
+rule with a guard or a mark is never written in place, because both need the rule's own
+start.
+
+**A mark is a record of its own.** `with state` writes one where it opens and one where
+it closes, so it goes wherever the log goes: an abandoned reading takes its marks with it
+by being put back, which is the whole of what §7.8 asks. The walk keeps a stack of the
+marks standing open, and a factory that names `parserState` is handed it as a span.
+The stack's depth is a local of the walk. It was a field beside the array, and Windows
+Defender's AMSI heuristics called the compiled parser `Trojan:MSIL/AgentTesla.MVR!MTB`
+for the pair — one test failing under every antivirus signature update, bisected down
+to those two fields. A local it is.
+
+**A context is a parameter**, of the entry and, where a guard names it or builds a value,
+of every reader. **A rule too large for one method is split by alternative**: `Primary`
+of an expression language, thirty-five alternatives each building its own value, was
+2,300 blocks with everything called, so each alternative becomes a method of its own
+and the choice keeps the dispatch. Sound where every reading of an alternative ends by
+writing a record, which the shared-head shape the factoring pass leaves also does.
+
+**Measured**, ExpressionLanguage on the token path, the automaton against the methods:
+
+    input                              automaton     methods
+    (int x) => x + x                    1,949 ns     1,143 ns
+    8 terms                             6,801        3,422
+    128 terms                         222,138       39,187
+    Math.Max(x, 1) once                 8,348        4,420
+    Math.Max(x, 1), 32 terms        1,257,733      155,418
+
+Linear where the automaton was not: 300 ns a term at every size. What remains on the
+read side is a few hundred bytes a parse the automaton does not allocate — a guard cuts
+`head` and `part` to ask whether a dotted name resolves, and the walk at the end cuts
+them again where the automaton keeps what a guard built for text too.
+
+**What still hands back to the engine**: a captured lookahead, an external with a value,
+`find`, and a guard that names a capture repeated inside a loop or asks for the input.
+
+## Where SQL lost its factor of five: the ways back that a token could have settled
+
+The hand-written SQL parser was measured seven times faster than the methods on
+`((((a + 1) * 2) - 3) / 4) + b > 0` and under three times on everything flat. Counted
+rather than guessed — one counter per reader entered, one per way opened — the nested
+input entered `Factor` seventy-four times for its six operands. Each level of parentheses
+opened a way back, and taking one re-executes everything after it, so the levels
+multiplied. Three things were behind it, two of them the grammar's and one the proofs'.
+
+**A subquery that matched any balanced parentheses.** The stub stood for a query and
+accepted anything in brackets, so `'(' & ValueExpression & ')'` and `ScalarSubquery`
+matched the same text and every parenthesized operand kept a way to the other. Now the
+stub opens with one of the three words a query begins with, and the proof of an
+exclusive choice looks past a literal the alternatives share: `'(' & Expression` against
+`'(' & "SELECT"` part ways at the second token, where each must read something and the
+two cannot read the same thing. 1,142 ns to 652.
+
+**A row read to its end before a single value was tried.** `RowValueConstructor` listed
+the row of several first, so `(a + 1) * 2` was read as the first element of a row,
+refused at the missing comma, and read again as a value — once per level. A row of
+several needs the comma the single form cannot read, so the two never match the same
+text and either order accepts the same language; the single value now stands first.
+652 ns to 227, and the flat inputs a third faster with it.
+
+**A negative lookahead the first sets ignored.** Over kinds a word is one kind whether
+it is reserved or not — `case` is both an identifier and `CASE` to the lexer, and the
+syntax tells them apart by `?!Reserved`. First sets read past a lookahead, so an
+identifier began with every keyword and a primary's eight alternatives overlapped
+pairwise; the way back that bought was opened at every operand. A negative lookahead
+whose every reading is exactly one character — a keyword over kinds, a literal, a
+class — now subtracts what it refuses from what follows it. Sound over characters too:
+`?!"CASE"` over characters is four of them and subtracts nothing. With the functions
+reserved as the standard reserves them, the choice of a primary is decided by its first
+token, and the ways opened on the 64-term input went from 640 to 256.
+
+**And a table that stopped at ASCII.** The narrowed sets were full of holes — every
+reserved kind punched out of the identifiers — and a set of that many ranges was
+rendered as a binary search in a call, which cost more than the way it replaced. The
+class tables now reach 255, which is where the kinds of a token path live.
+
+**Measured**, alternating with the hand-written parser on the same run:
+
+    input                          before     after     by hand
+    a = 1                            76 ns     68 ns      26 ns
+    (a + b) * c > d                 134       115         74
+    ((((a + 1) * 2) - 3) / 4) …   1,142       201        129
+    x = 1 AND y IS NOT NULL         143       130         67
+    a0 = 1 AND … (64 terms)       4,693     4,075      2,164
+    a0 + a1 + … (64 terms)        1,372     1,190        641
+    (a + b) * c >   refused         360       252         96
+
+What is left on `a = 1` is fixed cost: thirteen readers entered for two operands, a
+refusal at each door the hand-written parser walks past, and the lexer's thirteen
+nanoseconds. The next factor is in the calls, not in the ways.
+
+## A ladder written in place, under a budget the JIT counts
+
+`a = 1` entered thirteen readers for its two operands: the boolean ladder down to the
+predicate, the row, the element, the value ladder down to the primary. Each is a frame,
+a prologue and a return around a body that is often one loop, and none of them keeps a
+value. The plan writes a rule in place only where the engine could — small, valueless,
+and not on a cycle, because the engine would need a frame for the cycle — and the
+ladders are cycles by definition.
+
+A method has no such need. A rule already being written in place above the point
+being written is called instead, which breaks every cycle at its first re-entry, and
+that is the whole of what soundness asks. What it asks in return is a budget: the first
+attempt counted grammar nodes and gave the entry reader 2,700 basic blocks, past the
+2,000 the JIT stops optimizing at, and `a = 1` took three times as long. The budget is
+now in the JIT's units — a body is written into a buffer, measured with `Branches`,
+kept if the method has room and thrown away if not — with a floor per rule, measured
+once with everything under it called, so a body that cannot fit is not written at every
+site only to be discarded. What a discarded rendering learned about the method is
+forgotten with it, or `c` is declared for a use that was thrown away, which is the
+warning the differential suite found.
+
+**And only small rules.** Written without a size limit it made ExpressionLanguage a
+quarter slower: `Keyword`, forty alternatives and valueless, was copied into every
+reader that asks whether a word is one, and a large body gains nothing by losing its
+call and costs the method it lands in its registers. A level of a ladder is under a
+hundred branches; the limit sits there.
+
+Measured against the build before, alternating on the same run:
+
+    input                          before     after
+    a = 1                            78 ns     61 ns
+    (a + b) * c > d                 134       112
+    ((((a + 1) * 2) - 3) / 4) …     233       193
+    x = 1 AND y IS NOT NULL         148       122
+    a0 = 1 AND … (64 terms)       4,700     3,800
+    (a + b) * c >   refused         360       241
+
+ExpressionLanguage and JSON are where they were. The lexer emitter's tests have a race
+under the parallel runner — `A_kind_names_every_pattern_that_matched` failed once in a
+full run and passes alone, as `ProvenanceTests` did earlier with "collection was
+modified" — which is the emitter's static state and not this rendering's.
+
+## Built: `~`, and the question a lexer must not be asked
+
+The lexer was worth seventeen times on SQL and the last entry recommended keeping it. The
+question that came back was the right one: how does a lexer, knowing no grammar, tell the
+`>>` that closes two type argument lists from the `>>` that shifts?
+
+It does not, and it must not be asked. What decides is where the thing stands: in
+`List<List<int>>` a type argument list has to close, in `a >> b` a binary operator has to
+go. The parser knows which and the lexer never will. Every compiler that reads both
+resolves this in the parser — javac and Roslyn lex `>>` and split it back, and C++ moved
+the rule into the grammar in C++11, which is why `list<list<int> >` needed its space
+before then and not after.
+
+**The ambiguity was ours, and the lexer made it.** Measured on one grammar in both modes,
+before anything was built:
+
+    input                       over characters   over kinds
+    a >> b                            OK             OK
+    list<int>                         OK             OK
+    list<list<int>>                   OK             FAIL
+    list<list<int> >                  OK             OK
+
+`ExpressionLanguage` failed on `o is List<List<int>>` and passed with a space, which is to
+say it was a pre-C++11 C#. The cause is maximal munch: with `">>"` in the terminal
+inventory the scanner takes both characters, and the inner argument list — which wants one
+`>` — is handed a shift. A token cannot be half spent, so no order of alternatives recovers
+from it. The decision was made before the parser was asked.
+
+**So `>>` stops being a token.** `'>' ~ '>'` is the shift, `~` says the two stand with
+nothing between them, and the lexer is not consulted about anything. Nothing was needed
+from it: a token already records where it began and how long it is, because a capture has
+to be cut from the original text, so the gap between two tokens is one subtraction that
+was already there. Emitting trivia as tokens would have been the expensive answer — it
+roughly doubles the stream and makes every rule step past whitespace itself, which is what
+§4.5 exists to spare the author.
+
+**And it is not a lexer patch.** Over characters §4.5 weaves trivia between operands, so
+`'>' & '>'` accepts `> >` there too, which the same measurement showed. The gap was in the
+notation, not in the scanner: there was no way to say "here, nothing may intervene". So
+`~` is one operator with one meaning in both halves of a split grammar — the seam withheld
+where positions are characters, the same statement asked of the token positions where they
+are kinds — and it binds tighter than `&`, so `a & b ~ c` is `a & (b ~ c)`.
+
+One node carries it, zero-width like the look-behind §4.6 weaves, and the emitter renders
+it as nothing over characters. Two mistakes on the way, both caught by the same
+measurement run again:
+
+- the first patch put the new case beside `Node.Behind` in `LexicalSplit`, which is a
+  *rewrite* and not a walk, so crossing into the kinds half replaced the glue with
+  nothing — erasing it in the one place it does any work;
+- and beside `Node.Behind` in the lexical automaton, which *refuses* what it does not
+  understand, so `~` inside a pattern was reported as a look-behind. Inside a pattern
+  there is no woven seam to withhold, so it is accepted and worth nothing.
+
+`ExpressionLanguage` reads `o is List<List<int>>` now, shifts by `>>`, and refuses
+`a > > b` exactly as C# refuses it. The glued shift costs nothing measurable: a shift is
+two tokens instead of one and the gap is two additions, and every figure of the last entry
+stands. The notation's self-description learned the operator too — `GramGrammar` parses
+`~` at the same precedence, and `SelfHostingTests` holds the two implementations to it,
+because a notation whose own grammar cannot read it is a notation with two meanings.
+
+**What this does not solve**, and the reason to keep it in view. `~` fixes maximal munch
+and only that. A regular expression against a division in JavaScript, a heredoc, JSX: there
+the content of the token differs, and the scanner has to be told what is expected. The seam
+for it exists in shape — an external recognizer is already a rule that reads the input
+itself — but on the token path it is handed the kinds, so re-reading a span as characters
+would need a new external form. And `a<b>c` in C++, where the answer is whether `a` is a
+template, is not a lexical question at all: that is what `when` and `context` are, and
+`ExpressionLanguage` already resolves a dotted name against real reflection while it reads.

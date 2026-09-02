@@ -71,7 +71,23 @@ public sealed class ReferenceDifferentialTests
 			{
 				var input = Input(random);
 
-				var (engine, _, _, _) = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+				bool engine;
+
+				try
+				{
+					engine = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).IsSuccess;
+				}
+				catch (Exception thrown)
+				{
+					// A parser that throws is as wrong as one that answers wrongly, and the
+					// grammar is what the reader needs to see.
+					Assert.Fail(
+						$"seed {seed}: engine threw {thrown.GetType().Name}: {thrown.Message}\n" +
+						$"input: \"{input}\"\ngrammar:\n{grammar}");
+
+					return;
+				}
+
 				var oracle = ReferenceInterpreter.Parses(graph, start, input);
 
 				Assert.True(

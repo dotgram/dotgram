@@ -167,6 +167,44 @@ public sealed class ExampleTests
 	public void The_calculator_computes(string expression, int expected) =>
 		Assert.Equal(expected, Calculator.Evaluate(expression));
 
+	// ── One grammar, two calculators ─────────────────────────────────────────────
+
+	/// <summary>The same four rules, published twice over two different numbers.</summary>
+	/// <remarks>
+	/// What separates the two is one rule and one word: `parse Sum with (Value = …)`. The
+	/// arithmetic is written once and its `=&gt;` bodies name no type, so `left + right` is
+	/// C#'s `+` on whichever number arrived — and `Sum : Value` carries that type out to the
+	/// published method, which is why one of these returns `int` and the other `decimal`.
+	/// </remarks>
+	[Theory]
+	[InlineData("1+2*3",     7)]
+	[InlineData("(1+2)*3",   9)]
+	[InlineData("7/2",       3)]     // integer division, because this one works in int
+	public void One_grammar_publishes_an_int_calculator(string expression, int expected) =>
+		Assert.Equal(expected, TwoCalculators.EvaluateInt(expression));
+
+	[Theory]
+	[InlineData("1+2*3",     "7")]
+	[InlineData("(1+2)*3",   "9")]
+	[InlineData("7/2",       "3.5")]  // and this one in double, from the same four rules
+	[InlineData("1.5*2",     "3")]    // double, so no trailing zero where decimal would keep one
+	public void And_a_double_one_beside_it(string expression, string expected) =>
+		Assert.Equal(
+			expected,
+			TwoCalculators.EvaluateDouble(expression).ToString(CultureInfo.InvariantCulture));
+
+	/// <summary>And the two really are two types, not one with a conversion.</summary>
+	[Fact]
+	public void And_each_hands_back_its_own_type()
+	{
+		Assert.IsType<int>(TwoCalculators.EvaluateInt("1"));
+		Assert.IsType<double>(TwoCalculators.EvaluateDouble("1"));
+
+		// The int one has never heard of a decimal point: `Value` is `IntNumber` there.
+		Assert.False(TwoCalculators.TryEvaluateInt("1.5").IsSuccess);
+		Assert.True(TwoCalculators.TryEvaluateDouble("1.5").IsSuccess);
+	}
+
 	[Fact]
 	public void And_says_where_an_expression_stops_being_one()
 	{

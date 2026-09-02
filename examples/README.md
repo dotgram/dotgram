@@ -24,7 +24,7 @@ against it. `DotGram.Tests` runs them; nothing here knows that.
 Two things, and nothing else:
 
 ```xml
-<PackageReference Include="DotGram" Version="0.1.0-alpha"
+<PackageReference Include="DotGram" Version="0.1.0"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 

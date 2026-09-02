@@ -17,6 +17,50 @@ that thing is what the notation already means in C# or in .NET regular expressio
 
 ---
 
+## Contents
+
+- [1. The file and the host class](#1-the-file-and-the-host-class)
+- [2. Two vocabularies: `@` and its absence](#2-two-vocabularies--and-its-absence)
+- [3. Recognition expressions](#3-recognition-expressions)
+  - [3.1 Elementary](#31-elementary)
+  - [3.2 Composition](#32-composition)
+  - [3.3 Quantifiers — postfix, as in regular expressions](#33-quantifiers--postfix-as-in-regular-expressions)
+  - [3.4 Lookahead](#34-lookahead)
+  - [3.5 Capture](#35-capture)
+  - [3.6 Guard](#36-guard)
+  - [3.7 Construction](#37-construction)
+  - [3.8 Operator precedence](#38-operator-precedence)
+- [4. Rules](#4-rules)
+  - [4.1 A rule's result](#41-a-rules-result)
+  - [4.2 Parameters](#42-parameters)
+  - [4.3 Precedence and associativity](#43-precedence-and-associativity)
+  - [4.4 Rule separator](#44-rule-separator)
+  - [4.5 Trivia — insignificant whitespace and comments](#45-trivia--insignificant-whitespace-and-comments)
+  - [4.6 Keyword boundaries](#46-keyword-boundaries)
+- [5. Namespaces](#5-namespaces)
+  - [5.1 Rebinding](#51-rebinding)
+- [6. Publication](#6-publication)
+  - [6.1 The result](#61-the-result)
+  - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
+  - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
+  - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
+- [7. The bond with C#](#7-the-bond-with-c)
+  - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
+  - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
+  - [7.3 Captures and building the result](#73-captures-and-building-the-result)
+  - [7.4 C# stays C#](#74-c-stays-c)
+  - [7.5 Recognition outcomes](#75-recognition-outcomes)
+  - [7.6 Mapping positions back](#76-mapping-positions-back)
+  - [7.7 What a parse works out and the API has nowhere to keep](#77-what-a-parse-works-out-and-the-api-has-nowhere-to-keep)
+  - [7.8 What holds while something is being read](#78-what-holds-while-something-is-being-read)
+- [8. Failure, recovery and streaming](#8-failure-recovery-and-streaming)
+  - [8.1 Recognition failure and C# exceptions](#81-recognition-failure-and-c-exceptions)
+  - [8.2 `recover` — a repetition that survives a bad element](#82-recover--a-repetition-that-survives-a-bad-element)
+  - [8.3 What a parse hands back](#83-what-a-parse-hands-back)
+- [9. A complete example](#9-a-complete-example)
+- [10. The grammar of `.gram` itself](#10-the-grammar-of-gram-itself)
+- [11. Deliberately out of scope](#11-deliberately-out-of-scope)
+
 ## 1. The file and the host class
 
 A grammar lives in a `*.gram` file beside a partial class:
@@ -583,12 +627,14 @@ Power = left: Unary & '^' & right: Power                => @Raise(left, right)
 ```
 
 reads `Unary` twice: once for an alternative that wants a `^` after it and once for the
-one that does not. That is a factor of two, and it *compounds* — `Unary` leads back to
-`Power` through the parentheses at the bottom of every expression grammar, so the second
-reading reads everything inside them twice again. Sixteen parentheses deep is thirty
-milliseconds written that way and a twentieth of one written as above. `GRAM4016` reports
-the shape, and reports it only where the shared operand leads back to the rule holding
-it, which is where the doubling compounds.
+one that does not. That is a factor of two, and where the shared operand leads back to
+the rule holding it — as `Unary` leads back to `Power` through the parentheses at the
+bottom of every expression grammar — it *compounds*: the second reading reads everything
+inside them twice again. Sixteen parentheses deep is thirty milliseconds written that way
+and a twentieth of one written as above. And a flat cost with no nesting is still a cost
+paid once per alternative: eleven alternatives reading one operand is eleven readings
+where one would do. `GRAM4016` reports the shape wherever the compiler could not share
+the operand itself.
 
 The two are not the same grammar, which is why it is reported rather than rewritten. Two
 alternatives prefer every reading of the first over any reading of the second, so a shared
@@ -731,6 +777,12 @@ seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how 
 who wrote `S & A` has already said that a space may stand between `S` and `A`; refusing one
 between `A` and the next `S` would be the same seam answered two ways.
 
+**Not before a `when`.** A seam separates two readings of text, and a guard reads none:
+there is no token on its far side for trivia to stand in front of. So a guard evaluates
+where the operand before it ended — which is also what its `parserSpan` says — and an
+alternative that ends in a guard ends where its last reading operand did, exactly as its
+guard-free twin does.
+
 ```dotgram
 trivia = Whitespace
 
@@ -786,12 +838,36 @@ list never needs to hand a completed element back, which is the difference betwe
 syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
 needs no braces: single characters leave nothing to re-read.
 
-This rule is narrower than it once was. It used to be "between the operands of a sequence
-and nowhere else", which spaced only a list's first turn — from the sequence around the
-repetition — and refused a space to the left of the second and every later separator:
-silently, and only from the third item on. It went unnoticed in this document, in the
-README, and in two of the examples until a grammar of this notation was written in it
-(`examples/DotGram.Examples/GramExample.cs`).
+**And a rule that spells out a lexeme is worth making atomic for the same reason:**
+
+```dotgram
+DecRun = { Digit & ('_'* & Digit)* }
+Name   = { ['a'..'z' | '_'] & ['a'..'z' | '0'..'9' | '_']* }
+```
+
+A rule like this is meant to read to the end of what it recognizes and never hand a
+character back — that is what its author means by it, and what anyone writing the parser by
+hand would do. Written without braces the grammar does not say so, and nothing downstream
+can prove it: what may follow a name includes a letter, because trivia may match nothing,
+so a reading one character shorter cannot be ruled out. The proofs that rest on it then go
+too — a repetition whose end is not settled writes a way back at every turn, and two
+alternatives that begin with the same lexeme cannot be read as one.
+
+One pair of braces on `DecRun` took 1.8% off the generated expression language, and the
+grammar means what it always meant.
+
+**It is a choice and not a rule of style.** Braces commit the first reading, so a rule that
+is *supposed* to give characters back must not have them:
+
+```dotgram
+TypeName = Word & ('.' & Word)*      // no braces: a dotted name is a type only as far
+                                     // as it resolves, and the rest is member access
+```
+
+`DotGram.Parsers` holds one of each, and the difference between them is not in their shape
+— it is in what the author meant. That is why this is written here rather than diagnosed:
+the compiler can see that the reading is unsettled, and cannot see whether that was the
+intention.
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
@@ -830,6 +906,40 @@ A silent failure is possible here — a lexical rule that ended up by oversight 
 namespace with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism
 catches that, but a warning does: a rule whose operands all test a single input item
 is almost certainly a mistake in such a namespace.
+
+#### `~` — where trivia may not go
+
+`a ~ b` is `a & b` with no seam between them: what `b` matches must begin exactly where
+`a` ended. It binds tighter than `&`, so `a & b ~ c` is `a & (b ~ c)`.
+
+**It exists for the operators that share their characters with something else.** A shift
+is two `>` with nothing between them, and a nested type argument list closes with two
+that each belong to a different level:
+
+```dotgram
+Shift = left: Shift & '>' ~ '>' & right: Additive
+Type  = Name & ('<' & Type & (',' & Type)* & '>')?
+```
+
+`x >> 2` shifts, `List<List<int>>` closes twice, and `a > > b` is refused — which is what
+C# and Java answer, and what C++ answered only from C++11.
+
+**Writing the shift as `">>"` instead cannot work**, and the reason is worth stating
+because it is the whole argument for the operator. A literal is a terminal, a terminal is
+a token, and a token cannot be half spent: with `>>` in the inventory the scanner takes
+both characters and the inner argument list, which wants one `>`, is handed a shift. There
+is no order of alternatives that recovers from that, because the choice was made before
+the parser was asked. With `'>' ~ '>'` there is no `>>` for the scanner to make.
+
+**One meaning in both halves of a split grammar** (§10). Over characters `~` is simply the
+seam withheld: with nothing woven between them the operands are adjacent because there is
+nowhere for anything to stand. Over kinds the trivia was skipped before the tokens were
+made, so two operands are two tokens whether or not anything stood between them — and the
+question is asked of the tokens themselves, each of which records where it began and how
+long it is. The same grammar reads the same language either way, which is the point.
+
+**Inside a lexical namespace it says nothing**, and is allowed for that reason rather than
+refused: `trivia = none` there means there was never a seam to withhold.
 
 ### 4.6 Keyword boundaries
 
@@ -1238,6 +1348,34 @@ a `long` regardless of mode, since even in-memory input could in principle be a 
 an `int` cannot index; it is only ever widened once, at the one place a position
 crosses a publication's own boundary out to the caller, so an error at offset
 8,432,109,553 can be reported as such.
+
+### 6.4 `PartSize`, the one thing a host may tune
+
+A recognizer too large for one method is written in several. Past about sixty thousand
+bytes of IL the JIT stops optimizing a method altogether, and well before that its code
+quality falls off — a synthetic grammar with a fixed hot core measures 379 ns undivided
+while it is small and 3,423 once it is large, against a flat 520 to 590 divided into
+small parts, whatever its size.
+
+How large a part is aimed to be is measured flat anywhere between sixty and two hundred
+and fifty of the generator's estimated basic blocks, and the default sits in the middle
+of that. Measured, but on grammars that are not yours:
+
+```csharp
+[Gram("…", PartSize = 80)]
+public partial class MyParser { }
+```
+
+**It is a wish, not a setting.** Every value generates a parser and none can fail a
+build: below one asks for the finest division there is, anything past the size of the
+recognizer asks for one part, zero means nothing was asked, and everything between is
+taken at its word. A number that made a grammar stop compiling would be a knob nobody
+could safely turn.
+
+Whether to divide *at all* is not tunable and is not the same question — a grammar
+small enough to hold in one method is faster that way, and dividing one that did not
+need it costs about a quarter where failing to divide one that did costs four times
+over. The generator decides that from the size it estimates.
 
 ---
 

@@ -456,6 +456,7 @@ sealed class GramQuickInfoSource(
 		"?=" => "DotGram positive lookahead",
 		"|"  => "DotGram alternative",
 		"&"  => "DotGram sequence",
+		"~"  => "DotGram sequence without trivia",
 		"^"  => "DotGram recovery marker",
 		".." => "DotGram range",
 		_     => $"DotGram special symbol: {text}",

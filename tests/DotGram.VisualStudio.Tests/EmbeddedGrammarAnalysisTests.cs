@@ -51,13 +51,13 @@ public sealed class EmbeddedGrammarAnalysisTests
 	[Fact]
 	public void MapsDiagnosticAcrossRegularStringEscape()
 	{
-		var source   = Host("\"Start = \\u007e\"");
+		var source   = Host("\"Start = \\u0060\"");
 		var analysis = Assert.Single(Analyze(source));
 		var told     = Assert.Single(analysis.Diagnostics);
 
 		Assert.Equal("GRAM1005", told.Diagnostic.Id);
 		Assert.True(told.IsExact);
-		Assert.Equal("\\u007e", source.Substring(told.Span.Start, told.Span.Length));
+		Assert.Equal("\\u0060", source.Substring(told.Span.Start, told.Span.Length));
 	}
 
 	[Fact]

@@ -1,341 +1,513 @@
+*[Русский](README.ru.md)*
+
 # .Gram
 
-A typed grammar notation for .NET, compiled to C# by a source generator.
+**.Gram is a source generator that compiles grammars into strongly typed C# parsers.**
 
-**The grammar is the product; the parser is a generated artifact.** A `.gram` file is
-the one place the language's meaning is written down; everything else — the generated
-code, its speed, static analysis, diagnostics, streaming, tooling, a description handed
-to an agent — exists to agree with that text, not to replace it. That holds even where
-a hand-written parser turns out faster: what a grammar buys is meaning read
-declaratively rather than reconstructed from someone's control flow, and speed does not
-touch that. When the compiler also gets speed right — predictive dispatch, possessive
-repetition, flat lowering, deferred construction — that is a bonus worth
-having, not the reason to reach for this over a parser written by hand.
+The grammar is known at compile time. The generated parser is ordinary C# in your own
+assembly — there is no parser engine, grammar graph, or runtime library to interpret.
 
-## What it looks like
+From a grammar, .Gram can generate:
 
-A grammar lives in a `.gram` file beside a partial class:
+* `Parse`, `TryParse`, and `Find` APIs;
+* strongly typed results from named captures;
+* parsers specialized for different versions of the same grammar;
+* streaming parsers for `TextReader`;
+* error recovery for record-oriented input;
+* compile-time diagnostics that point back into the grammar.
 
-```csharp
-[Gram]                                  // looks for Feed.gram
-public partial class Feed;
+Anything with a grammar is in scope: data formats and feeds, configuration files, wire
+protocols, query and filter languages, template and markup syntaxes, and small languages of
+your own — including ones that compile straight to `System.Linq.Expressions` or to your own
+types. Replacing a regular expression that has become hard to maintain, or a hand-written
+parser that has become hard to trust, is one use among those rather than the boundary.
+
+## Getting started
+
+```xml
+<PackageReference Include="DotGram" Version="0.1.0"
+                  PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
-```dotgram
-Feed    = header: Header & rows: Row* & trailer: Trailer & eof
-Header  = "H" & Sep & date: Date & eol
-Row     = "R" & Sep & name: Name & Sep & amount: Amount & eol
-Trailer = "T" & Sep & count: Count & eol
-
-Sep     = '|'
-Digit   = ['0'..'9']
-Count   = Digit+
-Date    = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
-Amount  = '-'? & Digit+ & ('.' & Digit{2})?
-Name    = [^ '|' | '\n' | '\r']+
-
-parse Feed
-find Row as AllRows
-```
-
-A rule on its own creates no public API — a directive does. There are two, and the
-whole of the difference is whether input that does not match may sit between the
-matches:
+The smallest useful .Gram parser looks much like a regular expression:
 
 ```csharp
-var feed = Feed.ParseFeed(text);            // the whole input is a Feed, or it throws
+using DotGram;
 
-feed.Rows[0].Name;                          // every capture is a property
+[Gram("""
+	Hex = ['0'..'9' | 'a'..'f' | 'A'..'F']
+
+	Color = '#' & value: Hex{6}
+
+	parse Color
+	""")]
+public static partial class CssColor;
+```
+
+Use it as ordinary C#:
+
+```csharp
+var color = CssColor.ParseColor("#12aBcF");
+
+Console.WriteLine(color.Value);       // 12aBcF
+
+var result = CssColor.TryParseColor("#xyz");
+
+Console.WriteLine(result.IsSuccess);  // False
+```
+
+The equivalent regular expression would be roughly:
+
+```text
+^#(?<value>[0-9a-fA-F]{6})$
+```
+
+The familiar pieces mean familiar things: ranges, alternatives, `?`, `*`, `+`, and `{n}`.
+
+But `value:` is not just a regex capture. It becomes a property of the generated result
+type.
+
+For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
+definition and its C# API easy to read together. Larger grammars can also live in `.gram`
+files, listed as `<AdditionalFiles Include="Name.gram" />`.
+
+## One grammar, two parsers
+
+A grammar does not have to describe only one parser. The arithmetic below is written once
+and published twice: once over `int`, and once over `double`.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	@using System.Globalization;
+
+	trivia = [' ' | '\t']*
+
+	Digits = ['0'..'9']+
+
+	Value
+		: @int
+		= d: Digits
+		=> @int.Parse(d)
+
+	Sum
+		: Value
+		= left: Sum & op: ['+' | '-'] & right: Product
+			=> @(op == "+" ? left + right : left - right)
+		| value: Product
+			=> @(value)
+
+	Product
+		: Value
+		= left: Product & op: ['*' | '/'] & right: Unary
+			=> @(op == "*" ? left * right : left / right)
+		| value: Unary
+			=> @(value)
+
+	Unary
+		: Value
+		= '-' & operand: Unary
+			=> @(-operand)
+		| value: Primary
+			=> @(value)
+
+	Primary
+		: Value
+		= '(' & value: Sum & ')'
+			=> @(value)
+		| value: Value
+			=> @(value)
+
+	IntNumber
+		: @int
+		= d: Digits
+		=> @int.Parse(d)
+
+	DoubleNumber
+		: @double
+		= d: (Digits & ('.' & Digits)?)
+		=> @double.Parse(d, CultureInfo.InvariantCulture)
+
+	parse Sum with (Value = IntNumber)    as EvaluateInt
+	parse Sum with (Value = DoubleNumber) as EvaluateDouble
+	""")]
+public static partial class Calculator;
+```
+
+The generated API contains two independently specialized parsers:
+
+```csharp
+Calculator.EvaluateInt("7 / 2");       // 3
+
+Calculator.EvaluateDouble("7 / 2");    // 3.5
+Calculator.EvaluateDouble("1.5 * 4");  // 6
+
+Calculator.TryEvaluateInt("1.5");      // no match
+```
+
+`Sum`, `Product`, `Unary`, and `Primary` are written only once. What separates the two
+parsers is the publication:
+
+```text
+parse Sum with (Value = IntNumber)    as EvaluateInt
+parse Sum with (Value = DoubleNumber) as EvaluateDouble
+```
+
+`with` substitutes a rule through the grammar reachable from that publication.
+
+The result type follows the substitution too. `Sum : Value` means "the type produced by
+`Value`", so the first generated parser returns `int` and the second returns `double`.
+
+There is no runtime generic dispatch and no parser configuration object. Both parsers are
+specialized when the C# is generated.
+
+## Typed parsing
+
+Named captures define the shape of the result.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Feed
+		= header: Header
+		& rows: Row*
+		& trailer: Trailer
+		& eof
+
+	Header
+		= "H" & '|' & date: Date & eol
+
+	Row
+		= "R"
+		& '|' & symbol: Text
+		& '|' & quantity: Digit+
+		& eol
+
+	Trailer
+		= "T" & '|' & count: Digit+ & eol
+
+	Date
+		= year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
+
+	Text  = [^ '|' | '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	parse Feed
+	find Row as AllRows
+	""")]
+public static partial class FeedParser;
+```
+
+The parser returns that structure directly:
+
+```csharp
+var feed = FeedParser.ParseFeed(text);
+
+feed.Header.Date.Year;
+feed.Rows[0].Symbol;
+feed.Rows[0].Quantity;
 feed.Trailer.Count;
-
-if (Feed.TryParseFeed(text) is { IsSuccess: true } match)
-	…                                       // or ask, and get Value, Error, Position
-
-foreach (var row in Feed.AllRows(text))     // occurrences, found as they are asked for
-	…
 ```
 
-Everything else — one value against a lazy sequence, throwing against asking — follows
-from that; none of it is a second decision.
+There is no generic parse tree and no visitor required to turn it into application data.
+Captures can also be matched straight to a constructor or to the `required` properties of
+a type you already have, in which case the grammar contains no construction code at all.
 
-No `out` parameters: what a match has to say is a value, and the next thing it has to
-say is a field on it rather than another parameter on every signature.
+`find` publishes a rule as a lazy search through the input:
 
-## The two ideas
+```csharp
+foreach (var row in FeedParser.AllRows(text))
+	Console.WriteLine(row.Value.Symbol);
+```
 
-**Notation means what it already means.** Quantifiers are postfix and spelled as in
-regular expressions (`X?`, `X*`, `X+`, `X{4}`), lookahead is `?=` and `?!`, `|` is
-ordered choice, and `@` is the one door into C#: a predicate, a recognizer, a guard, a
-construction all cross through it, and it means the same one thing at every one of
-them — what follows is C#. Every piece of syntax was chosen against a single test: it
-means exactly one thing, and that thing is what it means in C# or in .NET regular
-expressions.
+## C# is part of the grammar when you need it
 
-**No runtime assembly ships.** Everything a generated parser needs is emitted into the
-consumer's own compilation, and all of it `internal`. You take one analyzer package,
-acquire no dependency, and there is nowhere for a "generator of one version, runtime of
-another" skew to come from — an internal type is invisible across an assembly boundary,
-so two assemblies that both emit one never have to agree about it.
+`@` is the boundary between grammar and C#.
 
-## Where it stands
+A rule can produce an existing C# type:
 
-Working end to end — a `.gram` file becomes a parser that runs:
+```csharp
+using DotGram;
 
-- literals, element sets with ranges and Unicode categories, complements
-- sequence, ordered choice, quantifiers, lookahead and explicit atomic groups —
-  backtracking crosses ordinary rule calls, so extracting an expression into a rule
-  does not change its meaning
-- rules calling rules, namespaces and shadowing, the standard library
-  (`any`, `none`, `eol`, `eof`, `trivia`)
-- whitespace handling by shadowing `trivia`, which needs no notation of its own
-- **rebinding** — a `namespace` header substitutes a rule across everything it
-  reaches, not just what is written inside the block:
+[Gram("""
+	@using System.Globalization;
 
-  ```dotgram
-  B = 'b'
-  A = B
+	Number
+		: @double
+		= text: (['0'..'9']+ & ('.' & ['0'..'9']+)?)
+		=> @double.Parse(text, CultureInfo.InvariantCulture)
 
-  namespace Ns with (B = D)
-  {
-      E = A                    // E -> A, with B substituted -> D
-  }
+	parse Number
+	""")]
+public static partial class Numbers;
+```
 
-  D = 'd'
-  ```
+A guard can check values while parsing — the thing a grammar cannot say on its own:
 
-  `A` itself is untouched — nothing outside the namespace depends on it existing. The
-  same substitution reuses an already-written rule under a different `trivia`, without a
-  second copy of it
-- both publication directives, and diagnostics that point into the `.gram` file — and
-  a refusal names the furthest position the input could be followed to, and what would
-  have fit there: `"Expected ')'."`, built live at the position rather than guessed
-  afterward
-- **typed results** — a rule with captures gets a type of its own, generated beside the
-  parser, and every published method hands it back:
+```csharp
+using DotGram;
 
-  ```dotgram
-  Url       = scheme: Scheme & "://" & authority: Authority & path: Path
-  Authority = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
-  ```
+[Gram("""
+	Name = ['a'..'z' | 'A'..'Z']+
 
-  ```csharp
-  var url = UrlGrammar.ParseUrl("https://user@example.com:8080/a");
+	Tag
+		= '<' & open: Name & '>'
+		& "</" & close: Name & '>'
+		& when @(open == close)
 
-  url.Authority.Host;   // "example.com"
-  url.Authority.Port;   // "8080"
-  url.Authority.User;   // "user", and null when there is none
-  ```
+	parse Tag
+	""")]
+public static partial class Tags;
+```
 
-  A capture the parser gave back on the way to a match is not in the result — a
-  member's slot is cleared wherever an abandoned attempt is resumed from, which the
-  generator works out while generating rather than the parser tracking as it runs.
+The same boundary calls predicates, external recognizers, constructors, or any API at all.
+Grammar describes the syntax; C# handles the parts that are already better expressed as C#.
 
-- **sequences** — `rows: Row*` is a `Row[]`, so a whole feed comes back from one pass:
+## DotGram.Parsers
 
-  ```dotgram
-  Feed = header: Header & rows: Row* & trailer: Trailer & eof
-  ```
+The repository also contains [`DotGram.Parsers`](src/DotGram.Parsers): real parsers built
+with .Gram rather than small demonstration grammars.
 
-  ```csharp
-  var feed = FeedReader.ParseFeed(text);   // one header, a trailer, nothing after it
+### RFC 3986 URI parser
 
-  feed.Rows[0].Symbol;
-  feed.Trailer.Count;
-  ```
+[`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) follows RFC 3986 closely, including absolute
+URIs, relative references, IPv4, IPv6, `IPvFuture`, authority, paths, queries, fragments,
+and percent encoding.
 
-- **the seam with C#** — a rule names its own type and says how to build it, and a
-  `when` guard asks a question of the values while matching:
+```csharp
+using DotGram.Parsers;
 
-	```dotgram
-	Sum   : @int = left: Sum & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
-	             | value: Product                             => @(value)
-	Tag          = '<' & open: Name & '>' & "</" & close: Name & '>' & when @(open == close)
-	```
+var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
 
-- **left recursion**, which is what makes associativity expressible without notation
-  for it: `1-2-3` is -4 because `Sum` takes its left operand at its own level, and
-  `2^3^2` is 512 because `Power` takes its right one there instead. Two calculators in
-  `examples/` — one with precedence, parentheses and unary minus, one with both
-  groupings side by side
+uri.Scheme;    // https
+uri.UserInfo;  // user
+uri.Host;      // example.com
+uri.Port;      // 8080
+uri.Path;      // /a/b
+uri.Query;     // q=1
+uri.Fragment;  // top
+```
 
-- **binding powers**, for when a whole expression language should be one rule instead of
-  a stack of them. The alternative states its own strength rather than having it implied
-  by which rule calls which:
+URI references can be relative:
 
-  ```dotgram
-  Expr : @decimal = left: Expr & '+' & right: Expr  << 1 => @(left + right)
-                  | left: Expr & '*' & right: Expr  << 2 => @(left * right)
-                  | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
-                  | '-' & operand: Expr             >> 3 => @(-operand)
-  ```
+```csharp
+var reference = Rfc3986.ParseReference("../images/logo.png?size=2");
 
-  `<<` reads the operand to the right one strength tighter, so it groups left; `>>`
-  reads it at the same strength, so it groups right. `examples/` has this calculator
-  and its five-rule twin, tested against each other expression by expression
+reference.Scheme;  // null
+reference.Path;    // ../images/logo.png
+reference.Query;   // size=2
+```
 
-- **`recover`**, which is how a feed survives a bad record. The mark says that inside
-  this repetition an element that starts and then fails is an error rather than the end
-  of the sequence; the parser skips to the next synchronization point and reads on, and
-  the `=>` puts what it skipped into the same sequence as the records:
+Percent decoding is deliberately separate from parsing:
 
-  ```dotgram
-  lines: Row* recover eol => @(new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage))
-  ```
+```csharp
+Rfc3986.Decode("hello%20world"); // hello world
+```
 
-  A rejection arrives in its place, carrying which record it was, where a person would
-  open the file, and why — so nothing has to be joined back up afterwards. At each row
-  boundary the complete continuation after the repetition is tried first, so a trailer
-  wins there even when the row rule itself is broad
+That distinction matters. `%2F` inside a path segment is encoded data during parsing;
+decoding it early would turn it into a path separator it is not.
 
-- **a C# predicate inside an element set** — `bool M(char c)` asks the same question
-  about one input item that a range does. The brackets establish that contract and let
-  the predicate merge with ranges:
+### Expression language
 
-  ```dotgram
-  Start = ([@IsVowel] | ['0'..'9'])+ & [@IsStop]
-  ```
+[`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) is a C#-style expression
+language that produces `System.Linq.Expressions` trees.
 
-- **and a C# method that reads the input itself**, for what a grammar spells badly — a
-  length-prefixed run, a date in ten formats, anything the BCL already knows:
+```csharp
+using DotGram.Parsers;
 
-  ```csharp
-  static bool Blob(ReadOnlySpan<char> input, ref int pos)
-  ```
+var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
 
-  A bare `@Blob` is the corresponding grammar operand. Its position, rather than the
-  method's signature, tells the generator which call to emit.
+square(3); // 8
+```
 
-  The `ref` is the method saying that it moves the position, and it is taken at its word:
-  it is handed the parser's own, and nothing checks what came back. Reaching into the
-  parse means taking the parse's invariants on with it, which §7.1 says in as many words
+It supports parameters, local variables, blocks, and `return`:
 
-- **a rule that takes another rule** — written once, used with whatever it is given:
+```csharp
+var calculate = ExpressionLanguage.Compile<Func<int, int, int>>(
+	"""
+	(int x, int y) =>
+	{
+		int sum = x + y;
+		return sum * sum;
+	}
+	""");
 
-  ```dotgram
-  List(item, sep) = item & (sep & item)*
-  Digits(n)       = ['0'..'9']{n}
+calculate(2, 3); // 25
+```
 
-  Start = List(Word, Comma) & ' ' & Digits(4)
-  ```
+Or keep the expression tree instead of compiling it:
 
-  By substitution: each call becomes a rule of its own with the parameters replaced, so
-  nothing is dispatched at run time and a parameter can be a recognizer. An argument is
-  a piece of grammar or a number, and a repetition count may name one
+```csharp
+var expression = ExpressionLanguage.Parse("(double x) => x / 2.0");
 
-- **a result built without saying how** — a rule that declares its type and writes no
-  `=>` is filled from its captures, matched by name:
+Console.WriteLine(expression);   // x => (x / 2)
+```
 
-  ```dotgram
-  Row : @Trade = symbol: Symbol & ',' & size: Amount & ',' & on: Day & eol
-  ```
+The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
+AST specific to .Gram that must later be translated into an expression tree — which also
+means a factory that does not exist, or one handed the wrong type, is a C# error on the
+line of the grammar that asked for it rather than an exception at run time.
 
-  A constructor those captures cover is called; a type with none and `required`
-  properties is made and written into. What that removes is the line that repeats in
-  the grammar what the C# type already says and goes stale when a parameter is added
+`DotGram.Parsers` is useful in two ways: as a library of actual parsers, and as examples
+of what larger .Gram grammars look like against real specifications and APIs.
 
-- **a rule that is a sequence of what it is made of** — the envelope and the records in
-  one result, in the order they were read, with no `=>` anywhere:
+## Performance
 
-  ```dotgram
-  Feed : @FeedItem[] = Header & Row* & Trailer & eof
-  ```
+.Gram generates parser-specific C#. It does not interpret a grammar at run time.
 
-  Every operand whose value fits `FeedItem` joins; `Row*` contributes all of its
-  elements; `eof` contributes nothing. It is also the shape a streamed parse needs,
-  since a sequence is the only result that can be handed over one element at a time
+The URL benchmark compares a .Gram URL grammar with the **same language transcribed
+rule-for-rule into a regular expression**. Before timing starts, the benchmark verifies
+that both implementations agree on every tested input and on every parsed part.
 
-- **streaming** — both directives read from a `TextReader`, through a buffer that is
-  reused, so what is held is the part being read and not the file:
+| Input | .Gram | `RegexOptions.Compiled` | .Gram advantage |
+| --- | ---: | ---: | ---: |
+| short URL | 133.8 ns | 298.9 ns | 2.23× |
+| host as IPv4 | 146.9 ns | 285.4 ns | 1.94× |
+| invalid URL | 80.2 ns | 113.5 ns | 1.42× |
+| 84-character path | 191.0 ns | 453.0 ns | 2.37× |
 
-  ```csharp
-  using var file = File.OpenText("huge.feed");
+Against interpreted `Regex`, approximately **2.2× to 6.5×**. The benchmark and its
+methodology are in [`benchmarks`](benchmarks/).
 
-  foreach (var item in FeedGrammar.ParseFeed(file))   // header, records, trailer
-      Handle(item);                                   // one at a time
-  ```
+The comparison deliberately uses a URL grammar small enough to transcribe into an
+equivalent regular expression. It is **not** a benchmark of the complete
+[`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) implementation: comparing two different
+languages and calling the result a parser benchmark would make the numbers meaningless.
 
-  A sequence of lines is the same door — `ParseFeed(File.ReadLines(path))` — with the
-  terminators put back, since lines have had them taken off.
+The benchmark also asks both sides for parsed values rather than merely whether the input
+matched. Recognition and parsing are different workloads.
 
-  A `parse` gets the overload when its result is a sequence and every repetition in it
-  ends where the grammar says rather than where backtracking finds — handing an element
-  to the caller cannot be undone. A repetition that cannot tell its own end from what
-  follows it may still be marked `recover`, which commits it (§8.2). A grammar that asks
-  and does not qualify is told why
+## Streaming and recovery
 
-- **`find` over a `TextReader`**, the same thing for occurrences. The input is read
-  through a buffer that is reused, so what is held is the occurrence being read and not
-  the file:
+Where the generator can prove that input may be released as parsing progresses, it emits
+`TextReader` overloads beside the ordinary ones.
 
-  ```csharp
-  using var file = File.OpenText("huge.log");
+```csharp
+using DotGram;
 
-  foreach (var match in LogGrammar.AllUrls(file))   // the same occurrences, one at a time
-      Handle(match.Value, match.Position);          // Position is a long, into the input
-  ```
+[Gram("""
+	Text  = [^ '|' | '\r' | '\n']+
+	Digit = ['0'..'9']
 
-  The overload appears only where the grammar provably works with a reused buffer — a
-  rule that could give back any of the file gets none — and an occurrence straddling a
-  buffer boundary is still one occurrence, which is the part that has to be got right
+	Header          = "H" & '|' & Text & eol
+	Row   : @string = "R" & '|' & t: Text & eol => @(t)
+	Trailer         = "T" & '|' & Digit+ & eol
 
-Not built yet:
+	Feed : @string[] = Header & Row* & Trailer & eof
 
-Each of these is refused with the reason where it can be — a construct that parses and
-then quietly means nothing is the failure this project is most careful about:
+	parse Feed
+	""")]
+public static partial class StreamingFeed;
+```
 
-- a value parameter that is not a number — `Padded(item, pad: char)` handed a literal is
-  refused rather than quietly taken as a recognizer
-- indirect left recursion, except through rules that only forward — `Call` reaching itself
-  through a `Primary` that does nothing but hand its alternatives on is rewritten and works;
-  a chain of rules that recurse through each other, or one where a rule between does
-  something of its own, is refused
-- the allocation-free `Read()`/`Current` and generated-outcome surfaces from §8.3;
-  typed streamed results and the `OnRecovered` sink already work
-- incremental parsing
+`Feed` collects what its operands produce: `Row` builds a `string`, while the header and
+trailer build nothing and so join nothing. Four methods are generated — `ParseFeed` and
+`TryParseFeed` over a `string`, and `ParseFeed` over a `TextReader` and over an
+`IEnumerable<string>`:
+
+```csharp
+using var reader = File.OpenText("large.feed");
+
+foreach (var row in StreamingFeed.ParseFeed(reader))
+	Handle(row);
+```
+
+The input buffer is reused instead of the complete input being held.
+
+Record-oriented formats can also recover after malformed input:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Text = [^ '|' | '\r' | '\n']+
+
+	Row : @string = "R" & '|' & t: Text & eol => @(t)
+
+	Feed : @string[] = Row* recover eol => @(parserText)
+
+	parse Feed
+	""")]
+public static partial class RecoveringFeed;
+```
+
+`recover eol` says where the repetition may pick itself up, and the `=>` says what to make
+of what it rejected — here the text of the bad line, which arrives in the sequence beside
+the good ones. A rejection can just as well become a record of its own carrying
+`parserLine` and `parserMessage`, or go to a `partial void` hook and stay out of the
+result entirely.
+
+A bad record therefore becomes data describing the rejection, instead of ending the feed.
+
+## What .Gram supports
+
+* literals and element sets;
+* ranges and Unicode categories;
+* sequence and ordered choice;
+* `?`, `*`, `+`, and bounded repetition;
+* lookahead and atomic groups;
+* named captures and generated result types;
+* existing C# result types, filled by constructor or by `required` properties;
+* semantic actions and guards;
+* external C# predicates and recognizers;
+* parameterized rules;
+* rule rebinding and parser specialization;
+* left recursion, and binding powers for expression grammars;
+* grammar namespaces and reusable grammar libraries;
+* `Parse`, `TryParse`, and `Find`;
+* streaming from `TextReader`;
+* recovery inside repetitions;
+* parser context and parsing state.
+
+[`docs/status.md`](docs/status.md) is the authoritative feature-by-feature status,
+including current limitations.
+
+## No runtime parser library
+
+`DotGram` is a source-generator package. Everything needed to execute a generated parser
+is emitted into the consuming assembly as internal C#.
+
+```text
+your assembly
+ ├── your code
+ ├── generated parser
+ └── generated parser support
+```
+
+There is no DotGram runtime assembly to deploy, and no generator/runtime version pair that
+can drift apart. The generator does the grammar-specific work during compilation; the
+application executes the generated parser.
 
 ## Examples
 
-Whole parsers, meant to be copied — a grammar, the class it attaches to, and the code
-written against it, with no test framework anywhere near them.
+Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examples/).
 
-| | |
+| Example | What it demonstrates |
 | --- | --- |
-| [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
-| [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
-| [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
-| [`LoggingFeedExample.cs`](examples/DotGram.Examples/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and the `partial void` that vanishes when nobody implements it |
-| [`StreamingFeedExample.cs`](examples/DotGram.Examples/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result that comes in parts, a window that is reused, and a trailer checked against records nobody held |
-| [`CalculatorExample.cs`](examples/DotGram.Examples/CalculatorExample.cs) | arithmetic — precedence, associativity, `: @int` and `=>`, whitespace by shadowing `trivia` |
-| [`DecimalCalculatorExample.cs`](examples/DotGram.Examples/DecimalCalculatorExample.cs) | the same, with `^` — left and right recursion side by side, `: @decimal`, and a namespace that shadows `trivia` back off |
-| [`StrengthCalculatorExample.cs`](examples/DotGram.Examples/StrengthCalculatorExample.cs) | the one before it written the other way — `<< n` and `>> n` in one rule instead of five, checked against it expression by expression |
-| [`LocaleNumberExample.cs`](examples/DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace Name with (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
-| [`ExpressionTreeExample.cs`](examples/DotGram.Examples/ExpressionTreeExample.cs) | the same grammar building a tree instead of a number — one record per operation, patterns back in, and the shape a small DSL wants |
-| [`OneRuleTreeExample.cs`](examples/DotGram.Examples/OneRuleTreeExample.cs) | that tree from one rule of eight lines — the whole of a small DSL in one place, and the same nodes its five-rule twin builds |
-| [`Expression.cs`](examples/DotGram.Examples/Expression.cs) | the tree those two build, and everything it can do. No grammar in it, deliberately |
-| [`JsonExample.cs`](examples/DotGram.Examples/JsonExample.cs) | JSON — a value that is any of six things nested inside itself, and one parameterized list written once for members and elements |
-| [`XmlExample.cs`](examples/DotGram.Examples/XmlExample.cs) | XML — a closing tag checked against the tag it closes with a `when`, which is the thing no grammar can say on its own |
-| [`MarkdownExample.cs`](examples/DotGram.Examples/MarkdownExample.cs) | Markdown blocks — a format where the line is the unit, ordered choice carrying a definition, and every newline written down |
-| [`FixExample.cs`](examples/DotGram.Examples/FixExample.cs) | FIX messages — fields in order because a tag may repeat, and a checksum done in C# because arithmetic over the matched bytes is not a shape |
-| [`FilterExample.cs`](examples/DotGram.Examples/FilterExample.cs) | `Price > 10 AND Country IN ('UK','DE')` — heterogeneous literals, an operator whose right side is a list, and a tree a caller evaluates against their own data |
-| [`NetstringExample.cs`](examples/DotGram.Examples/NetstringExample.cs) | a frame that says how long it is — the one shape a grammar cannot express, handed to a C# recognizer (§7.1) one step at a time |
-| [`FixedWidthExample.cs`](examples/DotGram.Examples/FixedWidthExample.cs) | records with no delimiters at all — widths in the grammar rather than substring arithmetic, and one rule per field kind parameterized by width |
-| [`HttpHeadersExample.cs`](examples/DotGram.Examples/HttpHeadersExample.cs) | header fields, where a value may continue on the next line — the one format here whose value spans lines, and a lookup that ignores case |
-| [`IniExample.cs`](examples/DotGram.Examples/IniExample.cs) | an INI file read into a dictionary of dictionaries — a sequence result folded into the lookup a caller actually wants |
-| [`SqlReadOnlyExample.cs`](examples/DotGram.Examples/SqlReadOnlyExample.cs) | a guard that answers whether a statement can write — exact SQL lexis, because every bypass lives in the strings and comments |
-| [`TypedCsvExample.cs`](examples/DotGram.Examples/TypedCsvExample.cs) | a CSV read into records with no `=>` anywhere — captures matched to a constructor and to `required` properties, and the same feed out of a reader |
+| [`UrlExample.cs`](examples/DotGram.Examples/UrlExample.cs) | URL parsing, typed captures, `find` |
+| [`FeedExample.cs`](examples/DotGram.Examples/FeedExample.cs) | record-oriented input and nested generated types |
+| [`RecoveringFeedExample.cs`](examples/DotGram.Examples/RecoveringFeedExample.cs) | recovery after malformed records |
+| [`StreamingFeedExample.cs`](examples/DotGram.Examples/StreamingFeedExample.cs) | streaming large input |
+| [`TwoCalculatorsExample.cs`](examples/DotGram.Examples/TwoCalculatorsExample.cs) | one grammar specialized into multiple parsers |
+| [`JsonExample.cs`](examples/DotGram.Examples/JsonExample.cs) | recursive structured data |
+| [`XmlExample.cs`](examples/DotGram.Examples/XmlExample.cs) | a closing tag checked against its opening tag |
+| [`FixExample.cs`](examples/DotGram.Examples/FixExample.cs) | FIX messages and C# validation |
+| [`FilterExample.cs`](examples/DotGram.Examples/FilterExample.cs) | a small query language |
+| [`TypedCsvExample.cs`](examples/DotGram.Examples/TypedCsvExample.cs) | construction of existing C# types |
+| [`GramExample.cs`](examples/DotGram.Examples/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) says what to add to a project to take one.
+See [`examples/README.md`](examples/README.md) for the complete list.
 
 ## Documentation
 
-| | |
+| Document | Contents |
 | --- | --- |
-| [`docs/syntax.md`](docs/syntax.md) | the language: the notation and its bond with C# |
-| [`docs/implementation.md`](docs/implementation.md) | the engine: how it executes the language |
-| [`docs/status.md`](docs/status.md) | what actually works, feature by pipeline stage |
-
-Nothing decided in the second is a decision about the first. The second describes how
-the current engine works; the third says how much of the language it covers so far.
+| [`docs/syntax.md`](docs/syntax.md) | grammar notation and generated API |
+| [`docs/implementation.md`](docs/implementation.md) | how the generated parser works |
+| [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
+| [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
 
 ## Building
 
@@ -343,22 +515,6 @@ the current engine works; the third says how much of the language it covers so f
 dotnet build DotGram.slnx
 dotnet test  DotGram.slnx
 ```
-
-Tests run at three levels: direct calls into each stage, the generator driven in
-memory, and the generator attached as an analyzer. `tests/Snapshots` holds a grammar
-and the file it must compile into, so a change to code generation shows up as a diff,
-and `examples/` is compiled and run by the same command.
-
-Benchmarks are run by hand and not by CI — a number from a shared runner is a number
-about the runner:
-
-```sh
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*"
-```
-
-They compare the `Url` grammar against the same language as a regular expression, and a
-feed read three ways — all in memory, from a `TextReader`, and from `File.ReadLines`.
-[`docs/status.md`](docs/status.md) records what they said.
 
 ## License
 

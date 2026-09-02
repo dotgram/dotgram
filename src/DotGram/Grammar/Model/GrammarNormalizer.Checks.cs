@@ -18,7 +18,6 @@ public sealed partial class GrammarNormalizer
 		{
 			CheckRepetitions  (_bodies[rule], rule);
 			CheckCaptures     (_bodies[rule], rule);
-			CheckSharedPrefixes(rule, doors);
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
 			CheckRecovery     (rule);
@@ -116,60 +115,6 @@ public sealed partial class GrammarNormalizer
 	/// <c>recover</c> in the rule it streams would be one that quietly does not happen —
 	/// exactly the failure recovery exists to prevent.
 	/// </remarks>
-	/// <summary>
-	/// Alternatives that begin with the same operand, where beginning twice compounds.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Ordered choice tries an alternative whole before the next one, so two alternatives
-	/// that begin alike read that beginning twice. On its own that is a factor of two and
-	/// nobody's problem. It compounds where the shared operand leads back to the rule
-	/// holding it: then the doubling is per level of nesting, and a short text takes longer
-	/// to read than there is time. Written as one alternative with the rest optional, the
-	/// operand is read once.
-	/// </para>
-	/// <para>
-	/// **The two are not the same grammar**, which is why this reports rather than rewrites.
-	/// Two alternatives prefer every reading of the first over any reading of the second, so
-	/// a shared operand that can give back will give back to let the rest of the first
-	/// alternative fit — `Segments & '/' & Name | Segments` is how the last part of a path
-	/// is split off, and an optional tail cannot say it. Where the operand cannot give back
-	/// it has one reading, the two orders hold the same one thing, and the rewrite is exact
-	/// — which is also when this says nothing, because there is nothing to weigh.
-	/// </para>
-	/// </remarks>
-	void CheckSharedPrefixes(RuleSymbol rule, IReadOnlyDictionary<RuleSymbol, bool> doors)
-	{
-		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
-		{
-			if (node is not Node.Choice(var alternatives))
-				continue;
-
-			for (var i = 1; i < alternatives.Count; i++)
-			{
-				if (Leading(alternatives[i - 1]) is not { } one ||
-					Leading(alternatives[i]) is not { } other ||
-					!SameShape(one, other) ||
-					!Doors.LeavesOne(one, doors) ||
-					!Reaches(one, rule))
-					continue;
-
-				Warn(
-					SharedPrefix,
-					$"Two alternatives of '{rule.Name}' begin with the same operand, and that operand " +
-					$"leads back to '{rule.Name}'. Ordered choice reads it once for each of them, so the " +
-					"reading doubles at every level of nesting and a short text can take longer to read " +
-					"than there is time. Written as one alternative with the rest of the longer one " +
-					"optional, it is read once. That is a different grammar where the operand can give " +
-					"back — two alternatives prefer a shorter reading of it that lets the rest fit, and " +
-					"an optional tail prefers the longer reading — so this is a choice rather than a fix.",
-					rule.Declaration!.At);
-
-				return;
-			}
-		}
-	}
-
 	/// <summary>The operand an alternative begins with, past whatever builds its value.</summary>
 	static Node? Leading(Node alternative)
 	{

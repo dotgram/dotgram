@@ -316,6 +316,30 @@ public static class FirstSets
 	static bool IsSeamCall(Node node, RuleSymbol? seam) =>
 		seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam);
 
+	/// <summary>Whether every reading of a node consumes exactly one character.</summary>
+	static bool OneCharacter(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen) =>
+		node switch
+		{
+			Node.Literal(var text)                  => text.Length == 1,
+			Node.Element(_, _, _, var references)   => references.Count == 0,
+			Node.Choice(var alternatives)           => alternatives.All(one => OneCharacter(one, graph, seen)),
+			Node.Sequence(var parts)                => parts.Count(part => !Silent(part)) == 1 &&
+			                                           parts.All(part => Silent(part) || OneCharacter(part, graph, seen)),
+			Node.Capture(_, var held)               => OneCharacter(held, graph, seen),
+			Node.Atomic(var body)                   => OneCharacter(body, graph, seen),
+			Node.Marked(var body, _)                => OneCharacter(body, graph, seen),
+			Node.Construct(var built, _)            => OneCharacter(built, graph, seen),
+			Node.Repeat(var body, var min, var max) => min == 1 && max == 1 && OneCharacter(body, graph, seen),
+			Node.Call(var called, _)                => seen.Add(called) &&
+			                                           graph.Bodies.TryGetValue(called, out var body) &&
+			                                           OneCharacter(body, graph, seen),
+			_                                       => false,
+		};
+
+	/// <summary>A part that reads nothing: a look, a guard, or nothing at all.</summary>
+	static bool Silent(Node node) =>
+		node is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue;
+
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
 	public static First Following(
 		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam = null) =>
@@ -347,6 +371,25 @@ public static class FirstSets
 				Of(expected, graph, byRule) is { IsKnown: true } ahead)
 			{
 				expects = expects is { } held ? held.And(ahead) : ahead;
+
+				continue;
+			}
+
+			// A negative lookahead of one character is the mirror: the rest may not begin
+			// with what it refuses. Only where every reading of the refused body is exactly
+			// one character — a keyword over kinds, a single literal, a class — does the
+			// refusal say anything about the first character alone: `?!"CASE"` over
+			// characters refuses `CASE`, not every word beginning with `C`. This is what
+			// tells `?!Reserved & Identifier` from the keywords over kinds, where a word is
+			// one kind whether it is reserved or not.
+			if (nothing &&
+				parts[i] is Node.Lookahead(false, var refused) &&
+				OneCharacter(refused, graph, []) &&
+				Of(refused, graph, byRule) is { IsKnown: true } barred)
+			{
+				var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
+
+				expects = expects is { } narrowed ? narrowed.And(admitted) : admitted;
 
 				continue;
 			}
@@ -532,6 +575,7 @@ public static class FirstSets
 			case Node.Guard:
 			case Node.Lookahead:
 			case Node.Behind:
+			case Node.Glue:
 				return First.None;
 
 			case Node.Capture  (_,  var captured): return Of(captured, graph, byRule);
@@ -752,7 +796,7 @@ public static class FirstSets
 	/// </remarks>
 	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule) => node switch
 	{
-		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
+		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue => true,
 		Node.Literal(var text)                       => text.Length == 0,
 		Node.Element                                 => false,
 		Node.Atomic(var body)                        => Nullable(body,     rule),

@@ -41,7 +41,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{ContextParameter})"))
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -195,6 +195,8 @@ sealed partial class Machine
 		// certain about.
 		file.Line();
 
+		var parts = MaterializeParts();
+
 		using (file.Block(cached
 			? "for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"
 			: "for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)"))
@@ -209,13 +211,125 @@ sealed partial class Machine
 				"!global::System.Object.ReferenceEquals(values[completedAt], parser)) continue;");
 
 			using (file.Block("switch (completed.RuleIndex)"))
-				foreach (var rule in _rules)
-					if (ValueRule(rule) >= 0)
+			{
+				if (parts.Count == 1)
+				{
+					foreach (var rule in parts[0])
 						MaterializeRule(file, rule);
+				}
+				else
+				{
+					for (var part = 0; part < parts.Count; part++)
+					{
+						foreach (var rule in parts[part])
+							file.Line($"case {_ruleIds[rule]}:");
+
+						using (file.Indent())
+						{
+							file.Line($"Materialize_DotGram{_tag}_Part{part}(text, completedAt);");
+							file.Line("break;");
+						}
+					}
+				}
+			}
 
 			if (cached)
 				file.Line("built[completedAt] = true;");
 		}
+
+		// Local functions, for the same reason the recognizer is written in them
+		// (Machine.Parts.cs): the compiler below stops optimizing a method past about two
+		// thousand basic blocks, the limit is per method, and `ExpressionLanguage`'s
+		// materializer was past it on its own. The C# compiler writes the frame that
+		// carries the tables and the arena into each part; the span cannot be a field of
+		// any frame and is handed over instead.
+		if (parts.Count > 1)
+			for (var part = 0; part < parts.Count; part++)
+			{
+				file.Line();
+
+				using (file.Block(
+					$"void Materialize_DotGram{_tag}_Part{part}(" +
+					"global::System.ReadOnlySpan<char> text, int completedAt)"))
+				{
+					file.Line("var completed = entries[completedAt];");
+					file.Line();
+
+					using (file.Block("switch (completed.RuleIndex)"))
+						foreach (var rule in parts[part])
+							MaterializeRule(file, rule);
+				}
+			}
+	}
+
+	/// <summary>
+	/// The value rules, in as few groups as will each keep its cases inside the budget.
+	/// </summary>
+	/// <remarks>
+	/// Estimated the way the recognizer's states are — each rule's cases rendered once to
+	/// count what branches — and divided evenly for the same reason `PlanParts` divides
+	/// evenly: filling to the budget leaves the last group nearly empty and the rest on the
+	/// line. One group is the common case and is written exactly as it always was.
+	/// </remarks>
+	List<List<RuleSymbol>> MaterializeParts()
+	{
+		var rules = new List<RuleSymbol>();
+		var costs = new List<int>();
+		var whole = 0;
+
+		foreach (var rule in _rules)
+		{
+			if (ValueRule(rule) < 0)
+				continue;
+
+			var rendered = new Writer(0);
+
+			MaterializeRule(rendered, rule);
+
+			var cost = Branches(rendered.ToString());
+
+			rules.Add(rule);
+			costs.Add(cost);
+
+			whole += cost;
+
+			if (cost > Limit)
+				Oversize(
+					$"Building the value of '{rule.Name}' is estimated at {cost} basic " +
+					$"blocks in one switch case; past about {Limit}, the JIT compiles the " +
+					"method holding it without optimization, and a case cannot be divided. " +
+					"Splitting the rule, or building the value in a method of your own " +
+					"called from its '=>', restores optimization.", rule);
+		}
+
+		if (whole <= Budget || rules.Count < 2)
+			return [rules];
+
+		var parts   = new List<List<RuleSymbol>>();
+		var count   = (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10);
+		var each    = whole / count + 1;
+		var current = new List<RuleSymbol>();
+		var carried = 0;
+
+		for (var at = 0; at < rules.Count; at++)
+		{
+			if (current.Count > 0 && carried + costs[at] > each)
+			{
+				parts.Add(current);
+
+				current = [];
+				carried = 0;
+			}
+
+			current.Add(rules[at]);
+
+			carried += costs[at];
+		}
+
+		if (current.Count > 0)
+			parts.Add(current);
+
+		return parts;
 	}
 
 	bool IsExtent(RuleSymbol rule) =>
@@ -239,7 +353,7 @@ sealed partial class Machine
 	/// </remarks>
 	string ValueFrom(string type, string index) =>
 		type == "SourceSpan"
-			? $"new SourceSpan(entries[{index}].Position, entries[{index}].Value - entries[{index}].Position)"
+			? Span($"entries[{index}].Position", $"entries[{index}].Value - entries[{index}].Position")
 			: TableFor(type) is var table && table >= 0
 				? $"values{table}[{index}]"
 				: $"({type})values[{index}]!";
@@ -321,6 +435,24 @@ sealed partial class Machine
 		{
 			using (file.Block($"case {_ruleIds[rule]}:"))
 				file.Line("break;");
+
+			return;
+		}
+
+		// A terminal the lexer swallowed: what the arena holds is one token, and what the
+		// rule builds was written against parts of it that no longer exist separately. So it
+		// is read again — the rule's own character machine over exactly the text the token
+		// covers, which is the same code an unsplit parser would have run here.
+		if (_reread is not null && _reread.Contains(rule))
+		{
+			using (file.Block($"case {_ruleIds[rule]}:"))
+			{
+				file.Line(
+					$"{ValueInto(type, "completedAt")} = " +
+					$"Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram(" +
+					Cut("completed.Position", "completed.Value - completed.Position") + ");");
+				file.Line("break;");
+			}
 
 			return;
 		}
@@ -500,8 +632,8 @@ sealed partial class Machine
 							arguments.Add(
 								$"captured{memberIndex}_{part}From < 0 ? " +
 								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
-								$"text.Slice(captured{memberIndex}_{part}From, " +
-								$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From).ToString()");
+								Cut($"captured{memberIndex}_{part}From",
+									$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From"));
 
 						var built = $"{_factories[sited.Callee][0].Method}({string.Join(", ", arguments)})";
 
@@ -635,8 +767,8 @@ sealed partial class Machine
 					file.Line(
 						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
 						(member.IsOptional ? "null" : "string.Empty") + " : " +
-						$"text.Slice(captured{memberIndex}From, captured{memberIndex}To - " +
-						$"captured{memberIndex}From).ToString();");
+						Cut($"captured{memberIndex}From",
+							$"captured{memberIndex}To - captured{memberIndex}From") + ";");
 					file.Line();
 
 					continue;
@@ -658,7 +790,7 @@ sealed partial class Machine
 					$"captured{memberIndex}Length)");
 				file.Then(
 					$"captured{memberIndex} = " +
-					$"text.Slice(captured{memberIndex}From, captured{memberIndex}Length).ToString();");
+					Cut($"captured{memberIndex}From", $"captured{memberIndex}Length") + ";");
 
 				using (file.Block("else"))
 				{
@@ -688,8 +820,16 @@ sealed partial class Machine
 						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
 						file.Line();
 						file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
+						// Over characters the piece is a slice of what is being read. Over
+						// kinds it is not there at all: a position indexes a token, and the
+						// text is the extent that token covers.
+						var piece = OverKinds
+							? "global::System.MemoryExtensions.AsSpan(" +
+								Cut("candidate.Position", $"captured{memberIndex}Piece") + ")"
+							: $"text.Slice(candidate.Position, captured{memberIndex}Piece)";
+
 						file.Line(
-							$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
+							$"{piece}.CopyTo(" +
 							$"new global::System.Span<char>(captured{memberIndex}Chars, " +
 							$"captured{memberIndex}At, captured{memberIndex}Piece));");
 					}
@@ -973,13 +1113,10 @@ sealed partial class Machine
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(
-				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(
-				"new SourceSpan(" +
-				"completed.Position, completed.Value - completed.Position)");
+			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -1014,13 +1151,10 @@ sealed partial class Machine
 		// what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(
-				"text.Slice(completed.Position, completed.Value - completed.Position).ToString()");
+			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(
-				"new SourceSpan(" +
-				"completed.Position, completed.Value - completed.Position)");
+			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -1156,7 +1290,7 @@ sealed partial class Machine
 				using (file.Block($"if ({test})"))
 					file.Line(member.Rule is null
 						? $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
-							"text.Slice(candidate.Position, candidate.Value - candidate.Position).ToString();"
+							Cut("candidate.Position", "candidate.Value - candidate.Position") + ";"
 						: $"foldCaptured{memberIndex}[foldCaptured{memberIndex}Item++] = " +
 							ValueFrom(element, "candidate.Position") + ";");
 			}
@@ -1183,9 +1317,10 @@ sealed partial class Machine
 		file.Line(member.Rule is null
 			? $"var foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
 				(member.IsOptional ? "null" : "string.Empty") + " : " +
-				$"text.Slice(entries[foldCaptured{memberIndex}At].Position, " +
-				$"entries[foldCaptured{memberIndex}At].Value - " +
-				$"entries[foldCaptured{memberIndex}At].Position).ToString();"
+				Cut(
+					$"entries[foldCaptured{memberIndex}At].Position",
+					$"entries[foldCaptured{memberIndex}At].Value - " +
+					$"entries[foldCaptured{memberIndex}At].Position") + ";"
 			: member.IsOptional
 				? $"{type}? foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
 					$"default({type}?) : " +

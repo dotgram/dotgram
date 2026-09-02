@@ -1186,6 +1186,63 @@ public static partial class CSharpEmitter
 		return runtime;
 	}
 
+	/// <summary>
+	/// The typed value tables a direct materialization writes into, one per type a rule
+	/// can produce and indexed by record — the same tables the engine keeps in its
+	/// <c>Parser</c>, kept here without the arena around them. Rented per parse and kept
+	/// per thread, cleared on the way back so a pooled table holds no document alive.
+	/// </summary>
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
+	{
+		var text = new StringBuilder();
+
+		text.Append("sealed class DirectValues\n{\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+		{
+			// An element type that is itself an array puts the count before its own brackets.
+			var bracket = valueTypes[i].IndexOf('[');
+			var created = bracket < 0
+				? valueTypes[i] + "[16]"
+				: valueTypes[i].Substring(0, bracket) + "[16]" + valueTypes[i].Substring(bracket);
+
+			text.Append("\tinternal ").Append(valueTypes[i]).Append("[] V").Append(i)
+				.Append(" = new ").Append(created).Append(";\n");
+		}
+
+		text.Append("\tinternal bool[] Live   = new bool[16];\n");
+		text.Append("\tinternal int[]  Starts = new int[16];\n");
+		text.Append("\tinternal bool[] Built  = new bool[16];\n");
+
+		if (stateType is not null)
+		{
+			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ").Append(stateType).Append("[8];\n");
+		}
+
+		text.Append("\tint _used;\n\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
+		text.Append("\tinternal static DirectValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new DirectValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
+
+		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
+
+		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
+		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
+		text.Append("\tinternal void Room(int count)\n\t{\n\t\tif (count > _used) _used = count;\n");
+		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
+				.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
+
+		text.Append("\t}\n}\n");
+
+		return text.ToString().Replace("\n", Lines.Ending);
+	}
+
 	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
 	internal const string RecoveredMethod = "OnRecovered";
 
@@ -1265,6 +1322,285 @@ public static partial class CSharpEmitter
 				column = text[at] == '\n' ? 1 : column + 1;
 
 			return column;
+		}
+		""";
+}
+
+public static partial class CSharpEmitter
+{
+	/// <summary>
+	/// What a direct rendering needs beside the methods it writes: the tape of ways back,
+	/// the refusal recorder, and the walk that says how far a literal run matched.
+	/// </summary>
+	/// <remarks>
+	/// One copy per file, untagged: every direct rendering in the file shares it, and a
+	/// machine rendered the other way never names it. The tape is rented per parse and
+	/// kept per thread, the way the engine keeps its parser.
+	/// </remarks>
+	internal const string DirectSupport = """
+		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
+		/// <remarks>
+		/// Two integers per way: the alternative in force, and the last one there is. A
+		/// way whose two are equal is spent — it stays on the tape so that a replay reads
+		/// the same decisions in the same places, and is never taken again.
+		/// </remarks>
+		sealed class Ways
+		{
+			internal int[] Items = new int[32];
+
+			/// <summary>How many ways are on the tape.</summary>
+			internal int Count;
+
+			/// <summary>The next way a replay reads; equal to <see cref="Count"/> when nothing is being replayed.</summary>
+			internal int Cursor;
+
+			/// <summary>How many lookaheads are open, during which no refusal is recorded.</summary>
+			internal int Lookahead;
+
+			/// <summary>
+			/// What was recognized, for building values with once the parse has accepted: one
+			/// record per completed valued rule, written after its children, each starting
+			/// with its own length so that a walk from the front steps from record to record.
+			/// </summary>
+			internal int[] Log = new int[64];
+
+			/// <summary>How much of the log is written.</summary>
+			internal int LogCount;
+
+			/// <summary>Where the record most recently finished begins: the value a caller captures.</summary>
+			internal int Last = -1;
+
+			/// <summary>
+			/// How much of the log the values built for a guard still stand for: a record
+			/// below this that was built need not be built again, and one above it was
+			/// written since — the log was put back past it and has grown again.
+			/// </summary>
+			internal int Built;
+
+			/// <summary>
+			/// Captures collected while a rule runs and gathered into its record at the end:
+			/// three integers each — the slot, and either a record and -1, or a start and end.
+			/// </summary>
+			internal int[] Refs = new int[48];
+
+			/// <summary>How much of the side stack is in use.</summary>
+			internal int RefsCount;
+
+			int _record;
+
+			[global::System.ThreadStatic]
+			static Ways? _spare;
+
+			internal static Ways Rent()
+			{
+				var spare = _spare;
+
+				if (spare == null)
+					return new Ways();
+
+				_spare = null;
+				spare.Count = 0;
+				spare.Cursor = 0;
+				spare.Lookahead = 0;
+				spare.LogCount  = 0;
+				spare.RefsCount = 0;
+				spare.Last      = -1;
+				spare.Built     = 0;
+
+				return spare;
+			}
+
+			internal static void Return(Ways ways)
+			{
+				_spare = ways;
+			}
+
+			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
+			internal int Open(int last)
+			{
+				if (Count * 2 + 2 > Items.Length)
+					global::System.Array.Resize(ref Items, Items.Length * 2);
+
+				Items[Count * 2]     = 0;
+				Items[Count * 2 + 1] = last;
+				Count++;
+				Cursor = Count;
+
+				return Count - 1;
+			}
+
+			/// <summary>
+			/// Takes the latest way decided since <paramref name="segment"/> that still has an
+			/// alternative left, drops everything decided after it, and sets the replay to
+			/// begin at the segment. False when none is left, and then nothing moves.
+			/// </summary>
+			/// <remarks>
+			/// Only what stands before the cursor is the construct's own. During a replay the
+			/// tape past the cursor is the future — decisions of what comes after, waiting to
+			/// be read again — and a construct that fails on the way there, exactly as it did
+			/// the first time, must leave that future alone.
+			/// </remarks>
+			internal bool Retry(int segment)
+			{
+				for (var way = Cursor - 1; way >= segment; way--)
+				{
+					if (Items[way * 2] < Items[way * 2 + 1])
+					{
+						Items[way * 2]++;
+						Count  = way + 1;
+						Cursor = segment;
+
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			/// <summary>
+			/// Moves a way on to its next alternative once the one in force is spent, and
+			/// drops what that alternative decided: the next one starts from nothing.
+			/// </summary>
+			internal void Next(int way, int value)
+			{
+				Items[way * 2] = value;
+				Count  = way + 1;
+				Cursor = way + 1;
+			}
+
+			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
+			internal void Seal(int segment)
+			{
+				for (var way = segment; way < Cursor; way++)
+					Items[way * 2 + 1] = Items[way * 2];
+			}
+
+			/// <summary>Opens a record: its length is written when it ends.</summary>
+			internal void Begin(int rule, int factory, int start, int end)
+			{
+				if (LogCount + 5 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				_record = LogCount;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = rule;
+				Log[LogCount++] = factory;
+				Log[LogCount++] = start;
+				Log[LogCount++] = end;
+			}
+
+			internal void Put(int value)
+			{
+				if (LogCount + 1 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 1);
+
+				Log[LogCount++] = value;
+			}
+
+			internal void Put(int a, int b)
+			{
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
+
+				Log[LogCount++] = a;
+				Log[LogCount++] = b;
+			}
+
+			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			internal void End(int refs)
+			{
+				Log[_record] = LogCount - _record;
+				Last         = _record;
+				RefsCount    = refs;
+			}
+
+			/// <summary>
+			/// A mark placed or taken away (docs/syntax.md §7.8): a record of its own in the
+			/// log, so that what was put back with the log takes its marks with it. The kind
+			/// is -1 where the mark opens and -2 where it closes; nothing captures one.
+			/// </summary>
+			internal void Mark(int kind, int site, int at)
+			{
+				if (LogCount + 5 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Log[LogCount++] = 5;
+				Log[LogCount++] = kind;
+				Log[LogCount++] = site;
+				Log[LogCount++] = at;
+				Log[LogCount++] = at;
+			}
+
+			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>
+			internal void Push(int slot, int a, int b)
+			{
+				if (RefsCount + 3 > Refs.Length)
+					global::System.Array.Resize(ref Refs, Refs.Length * 2 + 3);
+
+				Refs[RefsCount++] = slot;
+				Refs[RefsCount++] = a;
+				Refs[RefsCount++] = b;
+			}
+
+			/// <summary>
+			/// Writes what was pushed for the given slots since <paramref name="from"/>: how
+			/// many, then each one — the record alone where <paramref name="pairs"/> is false,
+			/// the start and end where it is true.
+			/// </summary>
+			internal void Collect(int from, long slots, bool pairs)
+			{
+				var count = 0;
+
+				for (var at = from; at < RefsCount; at += 3)
+					if ((slots & (1L << Refs[at])) != 0)
+						count++;
+
+				Put(count);
+
+				for (var at = from; at < RefsCount; at += 3)
+					if ((slots & (1L << Refs[at])) != 0)
+					{
+						if (pairs)
+							Put(Refs[at + 1], Refs[at + 2]);
+						else
+							Put(Refs[at + 1]);
+					}
+			}
+		}
+
+		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways ways)
+		{
+			if (ways.Lookahead > 0)
+				return;
+
+			if (at > failure.Position)
+			{
+				failure.Position     = at;
+				failure.Expected     = expected;
+				failure.ExpectedMore = null;
+			}
+			else if (at == failure.Position && expected != null)
+			{
+				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+			}
+		}
+
+		/// <summary>How much of a run matched, asked only when it did not.</summary>
+		static int Reach_DotGram(
+			global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)
+		{
+			var room = text.Length - pos;
+
+			if (want.Length < room)
+				room = want.Length;
+
+			var at = 0;
+
+			while (at < room && text[pos + at] == want[at])
+				at++;
+
+			return pos + at;
 		}
 		""";
 }

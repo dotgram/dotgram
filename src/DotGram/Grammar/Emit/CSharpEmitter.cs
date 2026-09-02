@@ -45,16 +45,114 @@ public static partial class CSharpEmitter
 	/// Where the grammar's own C# came from, for the <c>#line</c> directives of §7.6. Null
 	/// emits none, which is right for a caller with no file to point at.
 	/// </param>
-	public static string Emit(
-		RecognitionGraph graph,
-		string className,
-		string? @namespace = null,
-		ILineMap? lines = null,
-		string? languageId = null,
-		string? languageSource = null,
-		string? languageClassifications = null,
-		string? languageRecognitionContract = null)
+	/// <summary>
+	/// Every method of the finished file held against the size the JIT stops optimizing at.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over the text, because the text is what every rendering produces and the estimate is
+	/// textual anyway — a detector inside one rendering measures that rendering's own
+	/// bookkeeping and misses the next one, which is how the first version of this warned
+	/// about nothing. A local function is a method of its own to the JIT and is measured as
+	/// one here: a header at deeper indent ends the enclosing method's stretch, which is
+	/// exactly how the JIT sees it too.
+	/// </para>
+	/// <para>
+	/// A warning, not an error: the parser is correct and merely compiled the way a method
+	/// is on its first call, several times slower. The message carries the numbers the
+	/// generator acted under, because the remedy is chosen against them.
+	/// </para>
+	/// </remarks>
+	static void Oversee(
+		string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
 	{
+		if (diagnostics is null)
+			return;
+
+		var lines = file.Split('\n');
+		var name  = default(string);
+		var body  = default(StringBuilder);
+
+		for (var i = 0; i <= lines.Length; i++)
+		{
+			var header = i < lines.Length ? MethodHeader(lines[i]) : "";
+
+			if (header is null)
+			{
+				body?.Append(lines[i]).Append('\n');
+
+				continue;
+			}
+
+			if (name is not null && Machine.Branches(body!.ToString()) is var cost && cost > 2000)
+			{
+				var at = anchor?.Declaration?.At ?? default;
+
+				diagnostics.Add(new GramDiagnostic(
+					Machine.Unoptimized,
+					$"The generated method '{name}' is estimated at {cost} basic blocks; " +
+					"past about 2000, the JIT compiles a method without optimization and " +
+					"this one will run several times slower than it needs to. The " +
+					"generator divides what it can under a budget of 1500 per method; " +
+					"what is left this large cannot be divided — usually one rule or one " +
+					"alternative whose compiled body is over the budget by itself. " +
+					"Splitting that rule restores optimization.",
+					at.Position, at.Length, GramSeverity.Warning));
+			}
+
+			name = header.Length > 0 ? header : null;
+			body = header.Length > 0 ? new StringBuilder() : null;
+		}
+	}
+
+	/// <summary>The name a line declares a method or local function under, if it does.</summary>
+	static string? MethodHeader(string line)
+	{
+		var text = line.TrimStart();
+
+		foreach (var opening in Openings)
+		{
+			if (!text.StartsWith(opening, StringComparison.Ordinal))
+				continue;
+
+			var rest  = text.Substring(opening.Length);
+			var paren = rest.IndexOf('(');
+
+			if (paren > 0 && rest.Take(paren).All(c => char.IsLetterOrDigit(c) || c == '_'))
+				return rest.Substring(0, paren);
+		}
+
+		return null;
+	}
+
+	static readonly string[] Openings =
+	[
+		"static int ", "static bool ", "static void ", "static string ",
+		"internal static int ", "internal static bool ", "internal static void ",
+		"public static ",
+		"int ", "bool ", "void ",
+	];
+
+	/// <param name="partSize">
+	/// How large a divided recognizer's parts should be aimed to be, or null for the
+	/// measured default. A wish rather than a requirement — see <c>Machine.PartSize</c>.
+	/// </param>
+	/// <param name="lexical">
+	/// The split this graph is the syntactic half of, where it is one. Then the file carries
+	/// a lexical machine as well, the seam is skipped rather than woven, and a position is a
+	/// token — so the text a value is cut from travels beside the kinds rather than being what
+	/// is read (docs/lexical-adt-design.md).
+	/// </param>
+	public static string Emit(
+		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
+		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
+		LexicalSplit? lexical = null, bool direct = true,
+		string? languageId = null, string? languageSource = null,
+		string? languageClassifications = null, string? languageRecognitionContract = null)
+	{
+		var overKinds = lexical is not null;
+		var directAllowed = direct;
+
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
@@ -76,7 +174,9 @@ public static partial class CSharpEmitter
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
-			var made = new Machine(graph, results, lines, Streaming(graph), only, tag);
+			var made = new Machine(
+				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
+				lexical?.Valued);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -87,22 +187,58 @@ public static partial class CSharpEmitter
 			var lowered = group.Publications.Count > 0 &&
 				!RecoversWithin(graph, only) &&
 				!ClimbsWithin(graph, only) &&
-				!group.Publications.Any(publication => Streams(graph, publication)) &&
+				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
 				group.Publications.All(
 					publication =>
 						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
 						made.CanLowerValued(publication.Rule, publication.Kind == PublishKind.Parse));
 
-			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered));
+			made.Anchor = group.Publications.Count > 0 ? group.Publications[0].Rule : group.Rule;
+
+			// Methods where the flat path cannot go and the engine need not: the rules this
+			// machine reaches recognize and build nothing, and every publication reads the
+			// whole input (Machine.Direct.cs).
+			var asMethods = !lowered && directAllowed &&
+				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
+				made.CanDirect(group.Publications);
+
+			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
 		}
+
+		// A second machine over the characters, for the terminals whose value the lexer
+		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
+		// what that rule builds, which is the same code the character parser would have run
+		// and is reached from the syntactic machine's materializer.
+		//
+		// Built here rather than beside the lexer because it has to join the file's value
+		// tables: it writes into the same parser, and a machine numbers a type by where it
+		// sits in one list they all agree on.
+		var valuing = lexical is { Valued.Count: > 0 }
+			? new Machine(
+				lexical.Source,
+				new ResultTypes(lexical.Source, className, @namespace),
+				lines,
+				only: Rereads(lexical),
+				tag: "_Value")
+			: null;
+
+		// Each terminal that builds is a root of its own, and a whole one: the text handed to
+		// it is exactly what the lexer measured, so anything left over is the two machines
+		// disagreeing rather than a longer match. Registered before the tables are gathered,
+		// because compiling a root is what discovers the types under it.
+		if (valuing is not null && lexical is not null)
+			foreach (var rule in lexical.Valued)
+				valuing.Register(rule, whole: true);
 
 		// Every machine numbers a value type by where it sits in one list, because the parser
 		// they share holds one table per entry. The union is only knowable once they all
 		// exist, so it is handed back to each of them before a line is rendered.
-		var tables = ValueTables(machines);
+		var tables = ValueTables(machines, valuing);
 
 		foreach (var compiled in machines)
 			compiled.Machine.ShareValueTables(tables);
+
+		valuing?.ShareValueTables(tables);
 
 		file.Line("// <auto-generated/>");
 		file.Line("#nullable enable");
@@ -146,11 +282,12 @@ public static partial class CSharpEmitter
 					publication,
 					results,
 					graph.Climbing.ContainsKey(publication.Rule),
-					Streams(graph, publication),
+					Streams(graph, publication, overKinds),
 					compiled.Flat,
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
-					compiled.Machine.UsesContext ? graph.Context : null);
+					compiled.Machine.UsesContext ? graph.Context : null,
+					overKinds);
 
 				file.Line();
 			}
@@ -172,6 +309,22 @@ public static partial class CSharpEmitter
 				file.Line();
 			}
 		}
+
+		// And the ones the second read calls. A terminal that builds keeps its `=>` where the
+		// captures it names still exist, which is over characters — the syntactic graph holds
+		// that rule with no members at all, so nothing above would write these.
+		if (valuing is not null && lexical is not null)
+			foreach (var rule in Rereads(lexical))
+			{
+				if (!lexical.Source.Types.ContainsKey(rule))
+					continue;
+
+				foreach (var factory in FactoriesOf(lexical.Source, valuing.Results, rule))
+				{
+					EmitFactory(file, lexical.Source, rule, factory, valuing.Results, lines);
+					file.Line();
+				}
+			}
 
 		if (machines.Count > 0)
 			foreach (var rule in graph.Rules)
@@ -195,7 +348,7 @@ public static partial class CSharpEmitter
 		foreach (var compiled in machines)
 			EmitRecognizers(
 				file, graph, results, compiled,
-				continuationProbes, streamedParts, streamedSyncs);
+				continuationProbes, streamedParts, streamedSyncs, overKinds);
 
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -210,7 +363,7 @@ public static partial class CSharpEmitter
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
 			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
-			if (Streams(graph, publication) && StagesOf(graph, publication.Rule) is { } stages)
+			if (Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
 			{
 				var parts = new List<string>(stages.Count);
 
@@ -258,7 +411,9 @@ public static partial class CSharpEmitter
 				file.Write(extra);
 				file.Line();
 			}
-		if (UsesSourceSpan(graph))
+		// The source graph too, where there is one: a rule that names a span may have moved
+		// into the second read, and the type it names is the file's either way.
+		if (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source))
 		{
 			file.Write(SourceSpanStruct);
 			file.Line();
@@ -275,15 +430,15 @@ public static partial class CSharpEmitter
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0 && Streaming(graph),
-				starved: Streaming(graph),
+				reach: graph.Recoveries.Count > 0 && Streaming(graph, overKinds),
+				starved: Streaming(graph, overKinds),
 				expected: true,
 				expectedMore: machines.Exists(static compiled =>
 					!compiled.Flat || compiled.Machine.Ties)));
 			file.Line();
 		}
 
-		if (Streaming(graph))
+		if (Streaming(graph, overKinds))
 		{
 			file.Write(WindowClass);
 			file.Line();
@@ -303,10 +458,31 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// The lexical half: the machine that reads characters and answers with kinds, the
+		// seam it skips between them, and the loop that puts the two together. Written here
+		// rather than beside the publications because every publication of a split grammar
+		// calls the same one.
+		if (lexical is not null)
+		{
+			file.Write(Lexical(lexical, valuing));
+			file.Line();
+		}
+
 		// One runtime for the file however many machines there are: the arena, the value
 		// tables and the links are the parser's, not a machine's, and a machine that lowered
 		// needs none of them. The tables have to be the union — every machine numbers a type
 		// by where it sits in this list, so they must all be looking at the same list.
+		if (machines.Exists(static compiled => compiled.Direct))
+		{
+			file.Write(DirectSupport);
+			file.Line();
+
+			file.Write(DirectValuesClass(tables, graph.State));
+			file.Line();
+		}
+
+		// A direct rendering needs none of this, but a host may have implemented the pooling
+		// hooks over `Parser`, and what it compiled against yesterday must compile today.
 		if (machines.Exists(static compiled => !compiled.Flat))
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
@@ -317,7 +493,30 @@ public static partial class CSharpEmitter
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
 
-		return file.ToString();
+		var written = file.ToString();
+
+		// A mark stands for a state whose final name was not known when it was written, and
+		// `Settle` puts the name in. One that reaches here would be a control character in
+		// the consumer's source — so it is caught here, where the failure names the
+		// generator, rather than there, where it names nothing.
+		if (written.IndexOf('\u0001') >= 0)
+			throw new InvalidOperationException(
+				"A state mark reached the generated file, which means a body was written " +
+				"and never settled (Machine.Graph.cs).");
+
+		if (diagnostics is not null)
+		{
+			foreach (var compiled in machines)
+				foreach (var warning in compiled.Machine.Oversized)
+					diagnostics.Add(warning);
+
+			Oversee(
+				written,
+				machines.Count > 0 ? machines[0].Machine.Anchor : null,
+				diagnostics);
+		}
+
+		return written;
 	}
 
 	static string LanguageDescriptorAttribute(
@@ -379,7 +578,8 @@ public static partial class CSharpEmitter
 		Compiled compiled,
 		Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)> continuationProbes,
 		Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)> streamedParts,
-		Dictionary<RuleSymbol, (string Name, int Entry)> streamedSyncs)
+		Dictionary<RuleSymbol, (string Name, int Entry)> streamedSyncs,
+		bool overKinds)
 	{
 		var machine = compiled.Machine;
 		var engine  = compiled.Engine;
@@ -394,6 +594,13 @@ public static partial class CSharpEmitter
 		// every machine writes into them, but each may only emit its own — a probe
 		// belongs to the states it probes.
 		var mine = new List<(string Name, int Entry, bool Sync)>();
+
+		if (compiled.Direct)
+		{
+			file.Write(machine.RenderDirect(compiled.Publications));
+
+			return;
+		}
 
 		if (compiled.Flat)
 		{
@@ -427,7 +634,7 @@ public static partial class CSharpEmitter
 
 
 
-		if (!compiled.Flat)
+		if (!compiled.Flat && !compiled.Direct)
 
 		{
 
@@ -439,7 +646,7 @@ public static partial class CSharpEmitter
 
 
 
-				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication) ||
+				if (publication.Kind != PublishKind.Parse || !Streams(graph, publication, overKinds) ||
 
 					StagesOf(graph, publication.Rule) is not { } stages)
 
@@ -616,11 +823,13 @@ public static partial class CSharpEmitter
 
 			foreach (var probe in mine)
 			{
+				var entry = machine.Numbered(probe.Entry);
+
 				file.Write(probe.Sync
 					? Machine.RenderSyncProbe(
-						probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput)
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput)
 					: Machine.RenderProbe(
-						probe.Name, engine, probe.Entry, graph.Climbing.Count > 0, machine.UsesInput));
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput));
 				file.Line();
 			}
 		}
@@ -628,7 +837,7 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input, string? context)
+		bool ties, bool input, string? context, bool overKinds = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -647,7 +856,7 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "") + gives;
+			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives;
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -661,8 +870,13 @@ public static partial class CSharpEmitter
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
 			(input ? ", null!" : "") + gives;
 
+		// Over kinds a position is a token, so what a publication hands back has to be cut
+		// from the text the tokens came from rather than from what the machine was reading —
+		// the same care the machine takes for a capture, taken once more at the edge.
 		string Recognized(string from, string to) =>
-			built is null ? $"input.Substring({from}, {to})" : "recognized";
+			built is not null ? "recognized" :
+			overKinds        ? $"Text_DotGram(source, starts, lengths, {from}, {to})" :
+			$"input.Substring({from}, {to})";
 
 		if (publication.Kind == PublishKind.Find)
 		{
@@ -699,9 +913,39 @@ public static partial class CSharpEmitter
 
 		using (file.Block($"public static {match} Try{method}(string input{takes})"))
 		{
+			// A split grammar reads its input twice: once into kinds and once as kinds. What
+			// the caller hands over is a string either way — the two halves are the parser's
+			// business and not theirs.
+			if (overKinds)
+			{
+				file.Line("var source = input;");
+				file.Line("var tokens = Tokenize_DotGram(source);");
+				file.Line();
+				file.Line("var starts  = tokens.Starts;");
+				file.Line("var lengths = tokens.Lengths;");
+				file.Line("var count   = tokens.Count;");
+				file.Line();
+
+				using (file.Block("if (tokens.Stopped >= 0)"))
+				{
+					file.Line("var at = tokens.Stopped;");
+					file.Line();
+					file.Line("Recycle_DotGram(tokens);");
+					file.Line();
+					file.Line(
+						$"return {match}.Failed({OutcomeType}.NoMatch, " +
+						$"\"Input does not match '{name}'.\", at, null, null);");
+				}
+
+				file.Line();
+			}
+
 			// Fully qualified, and as a static call rather than an extension method:
 			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
-			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line(
+				overKinds
+					? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
+					: "var text    = global::System.MemoryExtensions.AsSpan(input);");
 
 			// Carried through every recognizer this call reaches, so that what comes back
 			// is the furthest the input was followed and not merely "no".
@@ -732,15 +976,223 @@ public static partial class CSharpEmitter
 				file.Then("? \"Expected more input.\"");
 				file.Then($": \"Input does not match '{name}'.\";");
 				file.Line();
+				if (overKinds)
+				{
+					file.Line("var at = failure.Position < count ? starts[failure.Position] : source.Length;");
+					file.Line();
+					file.Line("Recycle_DotGram(tokens);");
+					file.Line();
+				}
+
 				file.Line(
 					$"return {match}.Failed(" +
 					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
-					"otherwise, failure.Position, failure.Expected, " +
+					"otherwise, " +
+					// Against the token count and not the array's length: the caller sizes the
+					// arrays for the worst case and fills the front of them, so past the count
+					// they hold zeros — and a refusal at the end came back as a refusal at the
+					// beginning, which the character parser next door reported correctly. The
+					// count is the length of the kinds, there being one character a token.
+					(overKinds ? "at, " : "failure.Position, ") +
+					"failure.Expected, " +
 					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
 			}
 			file.Line();
-			file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
+			if (overKinds)
+			{
+				// Both read the arrays, so both are worked out before the set goes back.
+				file.Line($"var whole = {Recognized("0", "end")};");
+				file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
+				file.Line();
+				file.Line("Recycle_DotGram(tokens);");
+				file.Line();
+				file.Line($"return {match}.Success(whole, 0, over);");
+			}
+			else
+			{
+				file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
+			}
 		}
+	}
+
+	/// <summary>
+	/// The lexical half of a split grammar: the scanner, the seam, and the loop.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Three things and none of them new. <c>LexerEmitter</c> writes the machine that reads
+	/// the patterns together; §4.5's <c>trivia</c> is already an atomic-braced rule that
+	/// compiles to a scanner with nothing written down, so it is asked for rather than
+	/// recognized again; and the loop between them is what a tokenizer is.
+	/// </para>
+	/// <para>
+	/// Whitespace is skipped and not reported, which is why it is not a pattern. Making it
+	/// one was tried: the subset construction crosses a comment's <c>any</c> with every atom
+	/// of every other pattern, and it ran for ten minutes without finishing.
+	/// </para>
+	/// </remarks>
+	static string Lexical(LexicalSplit lexical, Machine? valuing)
+	{
+		var file = new Writer(0);
+
+		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!));
+		file.Line();
+
+		// A machine over the original graph, asked for one rule. Only the seam is compiled:
+		// what it costs is the scanner it renders, not the parser it could have.
+		var seam = new Machine(
+			lexical.Source,
+			new ResultTypes(lexical.Source, "Lexical", null),
+			null,
+			only: lexical.Trivia,
+			// Tagged, because everything a machine emits is named after its tag and this one
+			// stands in a file another machine has already filled: without it the seam's
+			// character tables collide with the syntax's, name for name.
+			tag: "_Seam");
+
+		var skipping = lexical.Trivia
+			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
+			.FirstOrDefault(one => one.Name is not null);
+
+		foreach (var extra in seam.Extra)
+		{
+			file.Write(extra);
+			file.Line();
+		}
+
+		file.Write(seam.RenderScanners());
+
+		if (valuing is not null)
+			file.Write(Rereading(lexical, valuing));
+
+		file.Line("/// <summary>What a tokenized parse reads: the kinds, and where each one was.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// Three arrays and a count, kept for the next parse on this thread the way the");
+		file.Line("/// parser itself is. Allocated afresh they were the whole of what a split grammar");
+		file.Line("/// cost over a character one on a short input — three allocations sized to the");
+		file.Line("/// input, against a parse that reads a dozen tokens.");
+		file.Line("/// </remarks>");
+
+		using (file.Block("sealed class Tokens_DotGram"))
+		{
+			file.Line("internal char[] Kinds   = new char[0];");
+			file.Line("internal int[]  Starts  = new int[0];");
+			file.Line("internal int[]  Lengths = new int[0];");
+			file.Line("internal int    Count;");
+			file.Line("internal int    Stopped;");
+			file.Line();
+
+			using (file.Block("internal void Room(int length)"))
+			{
+				file.Line("if (Kinds.Length >= length)");
+				file.Then("return;");
+				file.Line();
+				file.Line("Kinds   = new char[length];");
+				file.Line("Starts  = new int[length];");
+				file.Line("Lengths = new int[length];");
+			}
+		}
+
+		file.Line();
+		file.Line("/// <summary>The last set this thread used — one slot, taken out while in use.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// Taken out rather than shared, so a parse reached from inside another — a guard");
+		file.Line("/// that parses, a value that does — gets its own. Let go rather than kept when it");
+		file.Line("/// grew past what an ordinary input needs, so one outsized document does not leave");
+		file.Line("/// every thread holding its buffers for ever.");
+		file.Line("/// </remarks>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static Tokens_DotGram? _spareTokens;");
+		file.Line();
+		file.Line("const int KeptTokens = 65536;");
+		file.Line();
+
+		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
+		{
+			file.Line("var spare = _spareTokens;");
+			file.Line();
+			file.Line("if (spare == null)");
+			file.Then("return new Tokens_DotGram();");
+			file.Line();
+			file.Line("_spareTokens = null;");
+			file.Line();
+			file.Line("return spare;");
+		}
+
+		file.Line();
+
+		using (file.Block("static void Recycle_DotGram(Tokens_DotGram tokens)"))
+		{
+			file.Line("if (tokens.Kinds.Length <= KeptTokens)");
+			file.Then("_spareTokens = tokens;");
+		}
+
+		file.Line();
+		file.Line("/// <summary>The input as kinds, with where each one was.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// The seam first and then a terminal, which is §4.5 read from the other side:");
+		file.Line("/// trivia stands between operands, so between tokens is exactly where it stands.");
+		file.Line("/// A character that begins no terminal stops the scan and is reported as where");
+		file.Line("/// the input stopped being this language.");
+		file.Line("/// </remarks>");
+
+		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input)"))
+		{
+			file.Line("var tokens = Rented_DotGram();");
+			file.Line();
+			file.Line("tokens.Room(input.Length + 1);");
+			file.Line();
+			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line("var kinds   = tokens.Kinds;");
+			file.Line("var starts  = tokens.Starts;");
+			file.Line("var lengths = tokens.Lengths;");
+			file.Line();
+			file.Line("var count = 0;");
+			file.Line("var p     = 0;");
+			file.Line();
+
+			using (file.Block("while (true)"))
+			{
+				if (skipping.Name is { } scanner)
+				{
+					file.Line($"var skipped = {scanner}(text, p);");
+					file.Line();
+					file.Line("if (skipped > p)");
+					file.Then("p = skipped;");
+					file.Line();
+				}
+
+				file.Line("if (p >= text.Length)");
+				file.Then("break;");
+				file.Line();
+				file.Line("var end = Scan(text, p, out var kind);");
+				file.Line();
+
+				using (file.Block("if (kind == 0 || end <= p)"))
+				{
+					file.Line("tokens.Count   = count;");
+					file.Line("tokens.Stopped = p;");
+					file.Line();
+					file.Line("return tokens;");
+				}
+
+				file.Line();
+				file.Line("kinds  [count] = (char)kind;");
+				file.Line("starts [count] = p;");
+				file.Line("lengths[count] = end - p;");
+				file.Line("count++;");
+				file.Line();
+				file.Line("p = end;");
+			}
+
+			file.Line();
+			file.Line("tokens.Count   = count;");
+			file.Line("tokens.Stopped = -1;");
+			file.Line();
+			file.Line("return tokens;");
+		}
+
+		return file.ToString();
 	}
 
 	/// <summary>
@@ -1421,7 +1873,8 @@ public static partial class CSharpEmitter
 		IReadOnlyList<Publication> Publications,
 		string Engine,
 		string Tag,
-		bool Flat);
+		bool Flat,
+		bool Direct = false);
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.
@@ -1438,22 +1891,61 @@ public static partial class CSharpEmitter
 		var byRule = new Dictionary<RuleSymbol, List<Publication>>();
 
 		foreach (var publication in graph.Publications)
-			if (byRule.TryGetValue(publication.Rule, out var already))
-			{
-				already.Add(publication);
-			}
-			else
-			{
-				var mine = new List<Publication> { publication };
+		{
+			// The same rule published twice — `parse R` and `find R` — has always shared a
+			// machine, entered at two states. Two *different* rules that can each reach the
+			// other share one now, and for the same reason: a machine is built over what its
+			// root reaches, mutual reachability makes those sets equal, and what used to
+			// happen instead was the whole grammar compiled once per publication.
+			//
+			// The expression layer of standard SQL is what made that visible. `SearchCondition`
+			// reaches `ValueExpression` through its predicates and `ValueExpression` reaches
+			// back through `CASE`, so publishing both wrote 119,722 lines where one machine
+			// writes 60,150 — the second entry point cost a complete second copy.
+			var host = byRule.TryGetValue(publication.Rule, out var already)
+				? already
+				: Sharing(groups, graph, publication.Rule);
 
-				byRule[publication.Rule] = mine;
-				groups.Add((publication.Rule, mine));
+			if (host is not null)
+			{
+				host.Add(publication);
+				byRule[publication.Rule] = host;
+
+				continue;
 			}
+
+			var mine = new List<Publication> { publication };
+
+			byRule[publication.Rule] = mine;
+			groups.Add((publication.Rule, mine));
+		}
 
 		if (groups.Count == 0 && graph.Rules.Count > 0)
 			groups.Add((null, []));
 
 		return groups;
+	}
+
+	/// <summary>
+	/// The publications a rule may join: those of a rule it can reach and which can reach
+	/// it, or null where there are none.
+	/// </summary>
+	/// <remarks>
+	/// Mutual reachability and not one-way: a machine is compiled over what its root
+	/// reaches, so two rules can share one exactly when each reaches what the other does.
+	/// One-way would put a rule's machine inside another's and leave the smaller with no
+	/// entry of its own.
+	/// </remarks>
+	static List<Publication>? Sharing(
+		List<(RuleSymbol? Rule, IReadOnlyList<Publication> Publications)> groups,
+		RecognitionGraph graph,
+		RuleSymbol rule)
+	{
+		foreach (var (owner, publications) in groups)
+			if (owner is not null && graph.Calls.Together(owner, rule))
+				return (List<Publication>)publications;
+
+		return null;
 	}
 
 	/// <summary>
@@ -1465,7 +1957,7 @@ public static partial class CSharpEmitter
 	/// other's table. Built by taking them in machine order and keeping the first sighting,
 	/// which is the order a single machine produced before there was more than one.
 	/// </remarks>
-	static IReadOnlyList<string> ValueTables(IReadOnlyList<Compiled> machines)
+	static IReadOnlyList<string> ValueTables(IReadOnlyList<Compiled> machines, Machine? valuing)
 	{
 		var tables = new List<string>();
 
@@ -1474,7 +1966,104 @@ public static partial class CSharpEmitter
 				if (!tables.Contains(type))
 					tables.Add(type);
 
+		// Last, so that adding a second read to a grammar never renumbers what the syntactic
+		// machines had already agreed on.
+		if (valuing is not null)
+			foreach (var type in valuing.ValueTypes)
+				if (!tables.Contains(type))
+					tables.Add(type);
+
 		return tables;
+	}
+
+	/// <summary>
+	/// The second read: one character machine, and a way in for each terminal that builds.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The lexer says where a terminal ended; this says what it was worth. It is the rule's
+	/// own character machine — the same states the unsplit parser would have run — over
+	/// exactly the text of the one token, so whatever the author wrote in <c>=&gt; @(...)</c>
+	/// runs with the captures it was written against.
+	/// </para>
+	/// <para>
+	/// It cannot fail and is not asked to: the extent is known, and the lexer accepted it by
+	/// this very rule. A refusal would mean the two machines disagree about a language they
+	/// were built from one grammar, so the value comes back as the type's default and the
+	/// parse carries on rather than a parser throwing at its own inconsistency.
+	/// </para>
+	/// </remarks>
+	static string Rereading(LexicalSplit lexical, Machine valuing)
+	{
+		var file   = new Writer(1);
+		var engine = "Recognize_DotGram_Value";
+
+		// The engine first, and written last: rendering it is what decides this machine
+		// needs a materializer at all, and `Extra` is where that then is.
+		var body     = valuing.RenderEngine(engine);
+		var scanners = valuing.RenderScanners();
+
+		foreach (var extra in valuing.Extra)
+		{
+			file.Write(extra);
+			file.Line();
+		}
+
+		file.Write(body);
+		file.Line();
+
+		if (scanners.Length > 0)
+		{
+			file.Write(scanners);
+			file.Line();
+		}
+
+		foreach (var rule in lexical.Valued)
+		{
+			var type = valuing.Results.QualifiedOf(rule)!;
+			var read = "Reread_" + IdentifierOf(rule) + "_DotGram";
+
+			file.Write(valuing.RenderWrapper(rule, read, engine, whole: true));
+			file.Line();
+
+			file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
+
+			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string token)"))
+			{
+				file.Line($"var failure = new {FailureType}();");
+				file.Line();
+				file.Line(
+					$"return {read}(global::System.MemoryExtensions.AsSpan(token), 0, " +
+					$"ref failure, out {type} value) < 0 ? default! : value;");
+			}
+
+			file.Line();
+		}
+
+		return file.ToString();
+	}
+
+	/// <summary>
+	/// Every rule the second read compiles: the terminals that build, and what they reach.
+	/// </summary>
+	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
+	{
+		var reached = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>(lexical.Valued);
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!reached.Add(rule) || !lexical.Source.Bodies.TryGetValue(rule, out var body))
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Call(var called, _))
+					pending.Push(called);
+		}
+
+		return reached;
 	}
 
 	/// <summary>Every rule a published one reaches, its own trivia included.</summary>
@@ -1585,9 +2174,20 @@ public static partial class CSharpEmitter
 	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
 	static string WholeOf(RuleSymbol rule) => MethodOf(rule) + "_Whole";
 
-	internal static string Test(Node.Element element)
+	internal static string Test(Node.Element element, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
 		var tests = new List<string>();
+
+		// A class of any width is one test when it is read from a table, and the caller
+		// that can declare one says so by handing the means to. Only where there is
+		// nothing else in the element: a Unicode category is not in the table, and an
+		// inversion is about what the table does not hold.
+		if (tabulate is not null &&
+			element is { IsNegated: false, Categories.Count: 0, References.Count: 0 } &&
+			tabulate(element.Ranges) is { } table)
+		{
+			return $"c <= {Machine.TableSize - 1} && {table}[c] != 0";
+		}
 
 		foreach (var range in element.Ranges)
 			tests.Add(range.IsSingle

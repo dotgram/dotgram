@@ -129,7 +129,7 @@ public sealed partial class GrammarNormalizer
 	bool PureText(Node node) =>
 		node switch
 		{
-			Node.Empty or Node.Literal or Node.Element or Node.Behind => true,
+			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
 			Node.Sequence(var parts)        => parts.All(PureText),
 			Node.Choice(var alternatives)   => alternatives.All(PureText),
 			Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),

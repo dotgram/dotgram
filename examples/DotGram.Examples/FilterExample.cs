@@ -76,7 +76,7 @@ namespace DotGram.Examples;
 
 	Body : @string = text: ([^ '\''] | "''")* => @(text.Replace("''", "'"))
 
-	Name : @string = text: (['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '.']*)
+	Name : @string = text: { ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '.']* }
 	                   => @(text)
 
 	parse Filter

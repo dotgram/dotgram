@@ -43,12 +43,42 @@ public sealed class ExecutionPlan
 	/// of their own.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// A rule that keeps no value buys nothing by having a boundary: the call costs a frame
 	/// in the arena, a jump away and a dispatch back, and none of it is doing anything. The
 	/// expansion terminates because the call graph beneath a rule outside every cycle is a
 	/// DAG, and what the duplication costs is generated text.
+	/// </para>
+	/// <para>
+	/// <b>Up to a size.</b> "What the duplication costs is generated text" was written as
+	/// though text were free, and for the helper rules this was aimed at — a digit run, an
+	/// octet, a set of comparison operators, four or six nodes each — it is. It is not free
+	/// for a large one, and the expansion is compositional: a rule inlined into a rule that
+	/// is itself inlined at a dozen sites is written a dozen times. The reserved-word list
+	/// of standard SQL is 285 nodes and reaches a dozen places through the identifier that
+	/// names it, and it came to <b>59% of the generated file</b> — 60,317 lines against
+	/// 22,228 with the list removed altogether.
+	/// </para>
+	/// <para>
+	/// So a boundary is kept where the body is large, and the trade is measured on both
+	/// sides: a valueless call is 4.8 ns (<c>benchmarks/CallCost.cs</c>) and a copy is its
+	/// size in emitted code, times however many places reach it.
+	/// </para>
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> CompiledInPlace { get; }
+
+	/// <summary>
+	/// How large a body may be, in nodes, and still be written where it is called.
+	/// </summary>
+	/// <remarks>
+	/// Measured rather than chosen: across the three parsers in this repository the rules
+	/// this admits have a median of four to six nodes, and the ones worth keeping a
+	/// boundary for stand well clear — 42 for the keyword list of
+	/// <c>ExpressionLanguage</c>, 92 for <c>Rfc3986</c>'s IPv6 address, 228 and 285 for
+	/// standard SQL's data types and reserved words. There is no continuum here to cut in
+	/// the middle of; there are small helpers and there are tables.
+	/// </remarks>
+	const int Copied = 64;
 
 	/// <summary>Works out the plan for a graph.</summary>
 	public static ExecutionPlan Of(RecognitionGraph graph)
@@ -64,7 +94,8 @@ public sealed class ExecutionPlan
 				!graph.Recursive.Contains(rule)               &&
 				!graph.Climbing.ContainsKey(rule)             &&
 				 graph.Bodies.TryGetValue(rule, out var body) &&
-				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct))
+				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct) &&
+				 NodeWalk.Descendants(body).Take(Copied + 1).Count() <= Copied)
 			{
 				inPlace.Add(rule);
 			}

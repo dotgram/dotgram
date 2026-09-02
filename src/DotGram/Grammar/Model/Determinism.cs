@@ -32,79 +32,244 @@ public static class Determinism
 {
 	/// <summary>Whether this node has at most one match, given what follows it.</summary>
 	public static bool Of(
-		Node node, FirstSets.First following, RecognitionGraph graph) =>
-		Of(node, [], following, graph);
+		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		Of(node, [], following, graph, seam);
 
 	/// <summary>
-	/// Whether a repetition of this body may run to its end and never be asked to give a
-	/// turn back.
+	/// Whether a repetition can be run to its end and never asked to give any of it back.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A repetition normally leaves one resume point per turn, because a later failure may
+	/// mean it went one turn too far. Two facts together say it never did.
+	/// </para>
+	/// <para>
+	/// The first is that what follows cannot begin with what the body begins with. Every
+	/// place the repetition could stop short is a place a turn began, so the character there
+	/// is one the body starts with; the continuation would have to start with that same
+	/// character and, by disjointness, cannot. The second is that the body matches in one way
+	/// only. Without it the first is not enough: a body that can match two lengths can end
+	/// the repetition somewhere no turn ever began, and nothing has been said about the
+	/// character there. <c>("ab" | "a")*</c> against <c>aab</c> is that case, and it is why
+	/// the length has to be settled before the first sets are allowed to decide anything.
+	/// </para>
+	/// <para>
+	/// Both are asked of what is known here. An unknown first set is "anything", which
+	/// overlaps; an unknown continuation is nothing, which proves nothing; either answers no,
+	/// and the general machinery stays.
+	/// </para>
+	/// </remarks>
 	public static bool Possessive(
-		Node body, FirstSets.First following, RecognitionGraph graph) =>
-		Possessive(body, [], following, graph);
+		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		Possessive(body, [], following, graph, seam);
+
+	/// <summary>
+	/// Whether a repetition need never hand a completed turn back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Weaker than <see cref="Possessive"/>, deliberately. That one licenses compiling a
+	/// repetition as a plain loop with nothing recorded, so the body must match one way
+	/// only. This licenses removing just the repetition's own ways back — everything the
+	/// body records stays recorded — and for that the first sets suffice: an exit at a
+	/// completed turn's start would have the continuation begin where the turn began,
+	/// on a character the turn's first element read, and disjointness says it cannot.
+	/// </para>
+	/// <para>
+	/// A body that leads with the seam is compared past it. Both the turn and the
+	/// continuation begin by reading the same trivia, so the characters that decide are
+	/// the ones after it — <see cref="FollowSets.Continuation.AfterSeam"/>'s half. Two
+	/// more things must then hold: the continuation must not be able to start <em>inside</em>
+	/// what the seam consumed, which <see cref="Contained"/> bounds, and the rest of the
+	/// turn must consume — a turn that is all trivia decides nothing.
+	/// </para>
+	/// </remarks>
+	public static bool NeverGivesBack(
+		Node.Repeat repeat, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		var body = repeat.Body;
+
+		if (FirstSets.Nullable(body, graph))
+			return false;
+
+		if (seam is not null &&
+			body is Node.Sequence(var parts) && parts.Count > 1 &&
+			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
+		{
+			var contained = Contained(seam, graph);
+			var rest      = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
+			var decides   = FirstSets.Of(rest, graph);
+
+			return !FirstSets.Nullable(rest, graph) &&
+				!decides.Overlaps(following.AfterSeam) &&
+				!following.AfterSeam.Overlaps(contained);
+		}
+
+		return !FirstSets.Of(body, graph).Overlaps(following.Plain);
+	}
+
+	/// <summary>
+	/// The characters a continuation could meet by starting inside a span the seam
+	/// consumed, rather than after it.
+	/// </summary>
+	/// <remarks>
+	/// A star's shorter readings stop at unit boundaries, so what a boundary can stand
+	/// before is a unit's first character — as long as every unit is rigid. A unit that
+	/// can itself match several lengths, a comment with a body being the one that
+	/// matters, makes a boundary of every position it spans, and everything it can hold
+	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
+	/// the door §3's braces already give an author whose trivia holds comments.
+	/// </remarks>
+	static FirstSets.First Contained(RuleSymbol seam, RecognitionGraph graph)
+	{
+		if (!graph.Bodies.TryGetValue(seam, out var body))
+			return FirstSets.First.All;
+
+		return body switch
+		{
+			Node.Atomic                 => FirstSets.First.None,
+			Node.Empty                  => FirstSets.First.None,
+			Node.Repeat(var unit, _, _) => Boundaries(unit, graph),
+			_                           => FirstSets.First.All,
+		};
+	}
+
+	static FirstSets.First Boundaries(Node unit, RecognitionGraph graph) => unit switch
+	{
+		Node.Element                => FirstSets.Of(unit, graph),
+		Node.Literal(var text)      => text.Length == 0
+			? FirstSets.First.None
+			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
+		Node.Choice(var alternatives) => alternatives.Aggregate(
+			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative, graph))),
+		Node.Sequence(var sequenceParts) when sequenceParts.All(
+			static part => part is Node.Literal or Node.Element)
+			=> FirstSets.Of(unit, graph),
+		_ => FirstSets.First.All,
+	};
+
 
 	static bool Possessive(
-		Node body, Asked asked, FirstSets.First following, RecognitionGraph graph) =>
-		following.IsKnown &&
+		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
+		following.Plain.IsKnown &&
 		!FirstSets.Nullable(body, graph) &&
-		!FirstSets.Of(body, graph).Overlaps(following) &&
-		Of(body, asked, FirstSets.Of(body, graph).Or(following), graph);
+		!Decides(body, graph, seam).Overlaps(Against(body, following, seam)) &&
+		Of(body, asked, following.Or(new FollowSets.Continuation(
+			FirstSets.Of(body, graph), FirstSets.Of(body, graph))), graph, seam);
+
+	/// <summary>
+	/// What tells a turn from the continuation behind it: the turn's own first set, or what
+	/// it reads after the trivia where it leads with the trivia.
+	/// </summary>
+	/// <remarks>
+	/// §4.5 weaves <c>trivia</c> between every pair of operands, so a turn and the
+	/// continuation behind it both open by reading the same run of it. `trivia` is an atomic
+	/// group — it commits its first reading and never gives it back — so that run is the same
+	/// either way, and what decides between them is what each reads next. Compared plainly
+	/// the two overlap on the trivia itself and the comparison says nothing, which on a
+	/// grammar written the way §4.5 recommends is nearly every loop there is.
+	/// </remarks>
+	static FirstSets.First Decides(Node body, RecognitionGraph graph, RuleSymbol? seam) =>
+		Past(body, seam) is { } past ? FirstSets.Of(past, graph) : FirstSets.Of(body, graph);
+
+	/// <summary>And the half of the continuation it is compared against.</summary>
+	static FirstSets.First Against(Node body, FollowSets.Continuation following, RuleSymbol? seam) =>
+		Past(body, seam) is null ? following.Plain : following.AfterSeam;
+
+	/// <summary>A turn with the trivia it leads with taken off, or null where it leads with none.</summary>
+	static Node? Past(Node body, RuleSymbol? seam) =>
+		seam is not null &&
+		body is Node.Sequence(var parts) &&
+		parts.Count > 1 &&
+		parts[0] is Node.Call(var called, { Count: 0 }) &&
+		ReferenceEquals(called, seam)
+			? parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)])
+			: null;
 
 	static bool Of(
-		Node node, Asked asked, FirstSets.First following, RecognitionGraph graph) =>
+		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
 		node switch
 		{
-			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind => true,
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue => true,
 			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture  (_, var body)   => Of(body, asked, following, graph),
-			Node.Construct(var body, _)   => Of(body, asked, following, graph),
-			Node.Atomic   (var body)      => Of(body, asked, following, graph),
-			Node.Marked   (var body, _)   => Of(body, asked, following, graph),
-			Node.Sequence (var parts)     => All(parts, asked, following, graph),
+			Node.Capture  (_, var body)   => Of(body, asked, following, graph, seam),
+			Node.Construct(var body, _)   => Of(body, asked, following, graph, seam),
+			// An atomic group commits its first reading and never gives one back, which is
+			// what "at most one match" says. Looking inside asked a harder question than the
+			// braces already answer, and answered it badly wherever the body was a choice or
+			// a star — which is every trivia written the way §4.5 recommends, and so nearly
+			// every grammar.
+			Node.Atomic                   => true,
+			Node.Marked   (var body, _)   => Of(body, asked, following, graph, seam),
+			Node.Sequence (var parts)     => All(parts, asked, following, graph, seam),
 			Node.Choice   (var options)   => Distinguishable(options, graph) &&
-			                                 All(options, asked, following, graph, sequence: false),
-			Node.Repeat   (var body, _, _) => Possessive(body, asked, following, graph),
-			Node.Call     (var rule, _)   => Of(rule, asked, following, graph),
+			                                 All(options, asked, following, graph, seam, sequence: false),
+			Node.Repeat   (var body, _, _) => Possessive(body, asked, following, graph, seam),
+			Node.Call     (var rule, _)   => Of(rule, asked, following, graph, seam),
 			_                             => false,
 		};
 
 	/// <summary>Whether a call is to something determinate, guarded against calling round.</summary>
 	/// <remarks>
-	/// Met again on the way down, and followed by the same thing: the question is the one
-	/// already being answered, so it is assumed answered yes and the walk goes on. If the
-	/// rest agrees the assumption held; if anything says no this says no with it, and the
-	/// assumption goes with the path that made it. Assuming yes and checking is how "never
-	/// more than one" is proved of a cycle at all.
+	/// <para>
+	/// Met again on the way down, followed by the same thing: the question is the one already
+	/// being answered, so it is assumed answered yes and the walk goes on. If the rest agrees
+	/// the assumption held; if anything says no this says no with it, and the assumption goes
+	/// with the path that made it. Assuming yes and checking is how "never more than one" is
+	/// proved of a cycle at all.
+	/// </para>
+	/// <para>
+	/// Followed by something else, it is a different question about the same rule, and it is
+	/// asked. It used to be refused instead, and that refusal is what a real grammar runs
+	/// into: a reference whose type arguments are optional reaches itself through them under
+	/// a continuation of their own — <c>Reference</c>, <c>TypeArgs</c>, <c>Type</c>,
+	/// <c>Reference</c> — so the one question that mattered was the one being declined.
+	/// </para>
+	/// <para>
+	/// It terminates for the reason the same-question case does: a pair is put on the path
+	/// before it is walked and taken off after, so no pair is entered twice on one path, and
+	/// there are finitely many — a continuation is a union of the grammar's own first sets
+	/// and there are finitely many of those.
+	/// </para>
 	/// </remarks>
 	static bool Of(
-		RuleSymbol rule, Asked asked, FirstSets.First following, RecognitionGraph graph)
+		RuleSymbol rule, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
 		if (asked.TryGetValue(rule, out var already))
-			return FirstSets.Same(already, following);
+		{
+			foreach (var seen in already)
+				if (FirstSets.Same(seen.Plain, following.Plain) &&
+					FirstSets.Same(seen.AfterSeam, following.AfterSeam))
+					return true;
+		}
+		else
+		{
+			asked[rule] = already = [];
+		}
 
-		asked[rule] = following;
+		already.Add(following);
 
 		var settled = graph.Bodies.TryGetValue(rule, out var body) &&
-			Of(body, asked, following, graph);
+			Of(body, asked, following, graph, seam);
 
-		asked.Remove(rule);
+		already.RemoveAt(already.Count - 1);
 
 		return settled;
 	}
 
 	static bool All(
-		IReadOnlyList<Node> nodes, Asked asked, FirstSets.First following, RecognitionGraph graph,
+		IReadOnlyList<Node> nodes, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam,
 		bool sequence = true)
 	{
 		var after = following;
 
 		for (var at = nodes.Count - 1; at >= 0; at--)
 		{
-			if (!Of(nodes[at], asked, after, graph))
+			if (!Of(nodes[at], asked, after, graph, seam))
 				return false;
 
 			if (sequence)
-				after = FirstSets.Precedes(nodes[at], after, graph);
+				after = FollowSets.Precedes(nodes[at], after, graph, seam);
 		}
 
 		return true;
@@ -117,19 +282,7 @@ public static class Determinism
 	/// say "anything" where they are unsure, and two of those overlap, so an alternative
 	/// this cannot read gives up rather than claims something false.
 	/// </remarks>
-	public static bool Distinguishable(IReadOnlyList<Node> alternatives, RecognitionGraph graph) =>
-		Distinguishable(alternatives, graph, int.MaxValue);
-
-	/// <param name="spelled">
-	/// The widest first set the answer may be written out from. A cap on what a rendering
-	/// will spell, and a caller that only compares sets passes none: a Unicode category is a
-	/// few hundred ranges, exact and useful to a proof, and a page of comparisons where the
-	/// alternative's own test is one call. It used to sit inside the proof, so a choice this
-	/// could tell apart was called undecidable because writing the decision down would have
-	/// been long — a fact about C# deciding a fact about the grammar.
-	/// </param>
-	public static bool Distinguishable(
-		IReadOnlyList<Node> alternatives, RecognitionGraph graph, int spelled)
+	public static bool Distinguishable(IReadOnlyList<Node> alternatives, RecognitionGraph graph)
 	{
 		if (alternatives is null)
 			throw new ArgumentNullException(nameof(alternatives));
@@ -149,13 +302,6 @@ public static class Determinism
 			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[at], graph))
 				return false;
 
-			// Knowable is not the same as worth writing down: a Unicode category is a few
-			// hundred ranges, exact and useful to the analyses, and a dispatch spelled out
-			// over them would be a page of comparisons where the alternative's own test is
-			// one call. The set stays precise; only the rendering declines.
-			if (first.Ranges.Count > spelled)
-				return false;
-
 			firsts[at] = first;
 		}
 
@@ -167,10 +313,12 @@ public static class Determinism
 		return true;
 	}
 
-	/// <summary>Which rules the walk is inside, and what followed each where it went in.</summary>
+	/// <summary>Which rules the walk is inside, and under what continuations.</summary>
 	/// <remarks>
-	/// The path down rather than everything met on the way: a rule is taken off again on
-	/// the way out, so meeting it twice in two places is not mistaken for recursion.
+	/// The path down rather than everything met on the way: a rule is taken off again on the
+	/// way out, so meeting it twice in two places is not mistaken for recursion. More than one
+	/// continuation per rule, because a rule reached again under a different one is a
+	/// different question and gets asked.
 	/// </remarks>
-	sealed class Asked : Dictionary<RuleSymbol, FirstSets.First>;
+	sealed class Asked : Dictionary<RuleSymbol, List<FollowSets.Continuation>>;
 }

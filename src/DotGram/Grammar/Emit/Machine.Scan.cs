@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -35,10 +36,7 @@ sealed partial class Machine
 			return known;
 
 		var name =
-			_graph.Bodies.TryGetValue(rule, out var body) &&
-			body is Node.Atomic(var kept) &&
-			!KeepsRecords(kept) &&
-			Scannable(kept, FirstSets.First.None)
+			_graph.Bodies.TryGetValue(rule, out var body) && Scans(rule, body)
 				// Tagged like every other name this machine emits: a grammar with two
 				// publications has two machines in one class, and both may reach the same
 				// scanner — `trivia` does, in every spaced grammar with more than one
@@ -53,20 +51,150 @@ sealed partial class Machine
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
 
+	/// <summary>
+	/// Whether a rule may be read by committing, and so compiled with nothing written down.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Braces are the author saying so: an atomic group commits its first reading by
+	/// definition, so nothing after it can force this search back, and <see cref="Scannable"/>
+	/// is asked with nothing following.
+	/// </para>
+	/// <para>
+	/// Without braces the compiler proves the same sentence. What may follow the rule is
+	/// <see cref="FollowSets"/>, and <see cref="Scannable"/> already knows what to do with it
+	/// — a greedy repetition is safe exactly where what comes after cannot begin where a turn
+	/// begins. The set is the union over every call site, so a rule reached from two places
+	/// is judged against both, and one place needing the input back keeps it out. `Rfc3986`
+	/// has no braces anywhere and forty-four rules that qualify.
+	/// </para>
+	/// <para>
+	/// Two things the proof cannot see, both found by a test rather than by reasoning.
+	/// <b>The seam</b>: §4.5 weaves it between operands, and a publication weaves it again
+	/// around what it publishes — and that last is not a call site the graph records, so the
+	/// follow set has never heard of the one place where giving the spaces back is the whole
+	/// parse. <b>Kinds</b>: a split grammar cuts its values out of the extents of the tokens
+	/// it ran over, and a scanner swallows tokens without recording any.
+	/// </para>
+	/// </remarks>
+	bool Scans(RuleSymbol rule, Node body)
+	{
+		if (body is Node.Atomic(var kept))
+			return !KeepsRecords(kept) && Scannable(kept, FirstSets.First.None);
+
+		if (KeepsRecords(body))
+			return false;
+
+		// Not over kinds. What a scanner is worth is swallowing a run of input in one call
+		// with nothing written down, and over kinds a step is a whole token — there are no
+		// runs to swallow, so all that is left is the call. Measured, it made `SqlStandard92`
+		// take twice as long.
+		if (OverKinds)
+			return false;
+
+		// Not a rule whose body names itself better than the rule does. A scanner is one
+		// call, so the only thing its refusal can name is the rule — `Expected B.` where the
+		// same grammar compiled in place says `Expected "abqy".`, which is what a reader
+		// wanted. That is a loss for a literal and a gain for everything else: `Expected
+		// RegName.` beats a hundred character ranges, and a class or a repetition has no
+		// name of its own to lose.
+		if (Spells(body))
+			return false;
+
+		foreach (var seam in _graph.Trivia.Values)
+			if (seam is Node.Call(var woven, _) && woven == rule)
+				return false;
+
+		_follows ??= FollowSets.Of(_graph);
+
+		// Both readings of what follows, with a seam woven in and without: a rule whose
+		// callers disagree about the seam is judged against the wider of the two.
+		return _follows.TryGetValue(rule, out var following) &&
+			Scannable(body, following.Plain.Or(following.AfterSeam));
+	}
+
+	IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation>? _follows;
+
+	/// <summary>Whether what a body would have said about itself beats naming the rule.</summary>
+	/// <remarks>
+	/// Literals, and choices of them. Those are the shapes whose expectation is worth
+	/// reading — a run of text somebody can look for — and the shapes a scanner would
+	/// flatten into its own name.
+	/// </remarks>
+	static bool Spells(Node node) =>
+		node switch
+		{
+			Node.Literal(var text)        => text.Length > 0,
+			Node.Choice(var alternatives) => alternatives.All(Spells),
+			Node.Atomic(var kept)         => Spells(kept),
+			Node.Marked(var kept, _)      => Spells(kept),
+			_                             => false,
+		};
+
+	/// <summary>Whether a node matches at every position — whether it cannot refuse.</summary>
+	/// <remarks>
+	/// <para>
+	/// Not "can it match the empty string", which is what <c>FirstSets.Nullable</c> answers
+	/// and what the scanner's caller used to ask. A lookahead matches the empty string when
+	/// it succeeds and refuses when it does not: nullable and fallible at once. Reading such
+	/// a scanner's answer as a position without asking whether it is one puts <c>-1</c> in
+	/// <c>p</c>, and what happens next is whatever the rest of the rule does with a negative
+	/// position — in the grammar that found this, the right answer by accident, and in the
+	/// one before it the wrong one.
+	/// </para>
+	/// <para>
+	/// Conservative in the safe direction: a false answer costs a comparison the parse did
+	/// not need, and a true one has to be true.
+	/// </para>
+	/// </remarks>
+	bool Infallible(Node node) => Infallible(node, []);
+
+	bool Infallible(Node node, HashSet<RuleSymbol> seen) =>
+		node switch
+		{
+			Node.Empty                    => true,
+			Node.Literal(var text)        => text.Length == 0,
+			Node.Repeat(_, var min, _)    => min == 0,
+			Node.Sequence(var parts)      => parts.All(part => Infallible(part, seen)),
+			Node.Choice(var alternatives) => alternatives.Any(one => Infallible(one, seen)),
+			Node.Atomic(var kept)         => Infallible(kept, seen),
+			Node.Marked(var kept, _)      => Infallible(kept, seen),
+			Node.Capture(_, var held)     => Infallible(held, seen),
+			Node.Construct(var built, _)  => Infallible(built, seen),
+			Node.Call(var called, _)      => seen.Add(called) &&
+				_graph.Bodies.TryGetValue(called, out var body) &&
+				Infallible(body, seen),
+			_                             => false,
+		};
+
+	/// <summary>
+	/// The scanner one rule becomes, asked for rather than found by compiling.
+	/// </summary>
+	/// <remarks>
+	/// A machine registers a scanner when it compiles a call to one. A lexical machine has
+	/// no calls to compile and still needs the seam — the tokenizer skips trivia between
+	/// terminals — so it asks for the one rule it wants and renders that.
+	/// </remarks>
+	public string? Scanner(RuleSymbol rule) => ScannerOf(rule);
+
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	public string RenderScanners()
 	{
-		var file = new Writer(0);
+		var file    = new Writer(0);
+		var reaches = false;
 
 		foreach (var pair in _scanners)
 		{
-			if (pair.Value is not { } name || _graph.Bodies[pair.Key] is not Node.Atomic(var body))
+			if (pair.Value is not { } name)
 				continue;
 
 			var rule = pair.Key;
+			var body = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
 
-			var scan  = new ScanWriter(_graph);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag);
 			var inner = scan.Render(body);
+
+			reaches |= scan.Reaches;
 
 			file.Line($"/// <summary><c>{rule.Name}</c>, recognized with nothing written down.</summary>");
 
@@ -74,6 +202,35 @@ sealed partial class Machine
 				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos)"))
 			{
 				file.Write(inner);
+			}
+
+			file.Line();
+		}
+
+		if (reaches)
+		{
+			file.Line("/// <summary>How much of a run matched, asked only when it did not.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// A scanner compares a literal run in one go, which is what it costs when the");
+			file.Line("/// run matches. When it does not, a refusal has to say how far it came — so");
+			file.Line("/// this walks the run, on the path that was going to refuse anyway.");
+			file.Line("/// </remarks>");
+
+			using (file.Block(
+				$"static int Reach_DotGram{_tag}(" +
+				"global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)"))
+			{
+				file.Line("var room = text.Length - pos;");
+				file.Line();
+				file.Line("if (want.Length < room)");
+				file.Then("room = want.Length;");
+				file.Line();
+				file.Line("var at = 0;");
+				file.Line();
+				file.Line("while (at < room && text[pos + at] == want[at])");
+				file.Then("at++;");
+				file.Line();
+				file.Line("return pos + at;");
 			}
 
 			file.Line();
@@ -169,6 +326,12 @@ sealed partial class Machine
 			case Node.Behind:
 				return true;
 
+			// Over characters the seam was never woven and there is nothing left to ask,
+			// so a glued sequence scans like any other. Over kinds it is a question about
+			// the tokens, which this rendering does not carry.
+			case Node.Glue:
+				return !OverKinds;
+
 			case Node.Atomic(var kept):
 				return Scannable(kept, after, seen);
 
@@ -236,8 +399,54 @@ sealed partial class Machine
 		if (!FirstSets.Of(one, _graph).Overlaps(FirstSets.Of(other, _graph)))
 			return true;
 
-		return LeadingLiteral(one) is { } mine && LeadingLiteral(other) is { } theirs &&
-			Differ(mine, theirs);
+		if (LeadingLiteral(one) is not { } mine || LeadingLiteral(other) is not { } theirs)
+			return false;
+
+		if (Differ(mine, theirs))
+			return true;
+
+		// The same literal in front of both: what stands after it decides, where each must
+		// read something there and the two cannot read the same thing — `'(' & Expression
+		// & ')'` against `'(' & "SELECT" & …` part ways at the second token, and a choice
+		// between them needs no way back. The trivia both read after the literal decides
+		// nothing and is looked past.
+		return mine == theirs &&
+			PastLiteral(one) is { } restOne && PastLiteral(other) is { } restOther &&
+			!FirstSets.Nullable(restOne, _graph) && !FirstSets.Nullable(restOther, _graph) &&
+			FirstSets.Of(restOne, _graph).IsKnown && FirstSets.Of(restOther, _graph).IsKnown &&
+			Exclusive(restOne, restOther);
+	}
+
+	/// <summary>
+	/// The node with its leading literal taken off, and the seam behind that literal with
+	/// it — or null where the front is not a literal that stands as a part of its own.
+	/// </summary>
+	Node? PastLiteral(Node node)
+	{
+		switch (node)
+		{
+			case Node.Sequence(var parts) when parts.Count > 1 && parts[0] is Node.Literal { IgnoreCase: false }:
+			{
+				var rest = parts.Skip(1).ToList();
+
+				if (rest.Count > 1 && _seam is not null &&
+					rest[0] is Node.Call(var called, { Count: 0 }) && ReferenceEquals(called, _seam))
+				{
+					rest.RemoveAt(0);
+				}
+
+				return rest.Count == 1 ? rest[0] : new Node.Sequence(rest);
+			}
+
+			case Node.Sequence(var parts) when parts.Count > 1 && PastLiteral(parts[0]) is { } front:
+				return new Node.Sequence([front, .. parts.Skip(1)]);
+
+			case Node.Call(var called, _) when _graph.Bodies.TryGetValue(called, out var body):
+				return PastLiteral(body);
+
+			default:
+				return null;
+		}
 	}
 
 	/// <summary>Neither begins the other: they part ways within the shorter's length.</summary>
@@ -265,13 +474,21 @@ sealed partial class Machine
 	/// The checkpoint emitter. Every node's code either falls through with <c>p</c>
 	/// advanced past it, or jumps to its fail label with <c>p</c> exactly where it was.
 	/// </summary>
-	sealed class ScanWriter(RecognitionGraph graph)
+	sealed class ScanWriter(
+		RecognitionGraph graph,
+		Func<IReadOnlyList<CharRange>, string?> tabulate,
+		Func<IReadOnlyList<CharRange>, string> ranges,
+		string tag = "")
 	{
 		int _labels;
 		int _marks;
 		int _deepestMark;
 		int _turns;
 		bool _character;
+		bool _reaches;
+
+		/// <summary>Whether anything written asked how far a literal run matched.</summary>
+		public bool Reaches => _reaches;
 
 		public string Render(Node body)
 		{
@@ -298,6 +515,13 @@ sealed partial class Machine
 				if (written.Contains($"turns{i}", StringComparison.Ordinal))
 				head.Line($"var turns{i} = 0;");
 
+			// How far the scan ever came, which is not where it ends up: a scanner gives
+			// input back to itself as it tries the ways through, and what a refusal has to
+			// report is the furthest it reached and not the place it happened to stop.
+			// Declared where it is written, the same as every other local here.
+			if (written.Contains("furthest", StringComparison.Ordinal))
+				head.Line("var furthest = pos;");
+
 			head.Line();
 			head.Write(written);
 			head.Line();
@@ -307,7 +531,20 @@ sealed partial class Machine
 			{
 				head.Line();
 				head.Line("Refuse:");
-				head.Line("return -1;");
+
+				if (written.Contains("furthest", StringComparison.Ordinal))
+				{
+					head.Line("if (p > furthest) furthest = p;");
+					head.Line();
+
+					// Negated, so one value says both that it refused and where it reached,
+					// and a caller wanting only the first can still ask `< 0`.
+					head.Line("return -1 - furthest;");
+				}
+				else
+				{
+					head.Line("return -1 - p;");
+				}
 			}
 
 			return head.ToString();
@@ -341,11 +578,35 @@ sealed partial class Machine
 
 					if (!folded && text.Length > 1)
 					{
+						// One comparison for the whole run, which is what it costs when it
+						// matches. When it does not, how much of it did is worth knowing —
+						// `"abqy"` and `"abcdefx"` both begin `ab`, and a message should name
+						// the one that got furthest — and working that out on the path that
+						// is about to refuse anyway costs the path that matches nothing.
 						code.Line(
 							$"if ({Short(text.Length)} || " +
 							"!global::System.MemoryExtensions.SequenceEqual(" +
 							$"text.Slice(p, {text.Length}), {Spanned(text)}))");
-						code.Then($"goto {fail};");
+
+						// Only where this refusal is the scan's answer. A literal that fails
+						// into a loop's exit has not refused anything — the loop simply ends,
+						// and the seam a spaced grammar skips at every operand ends that way
+						// on every character that is not the comment it was looking for.
+						if (fail == "Refuse")
+						{
+							using (code.Block(""))
+							{
+								_reaches = true;
+
+								code.Line($"var reached = Reach_DotGram{tag}(text, p, {Spanned(text)});");
+								code.Line("if (reached > furthest) furthest = reached;");
+								code.Line($"goto {fail};");
+							}
+						}
+						else
+						{
+							code.Then($"goto {fail};");
+						}
 					}
 					else
 					{
@@ -358,7 +619,12 @@ sealed partial class Machine
 								: $"text[p + {i}]";
 							var want = CSharpEmitter.Char(folded ? char.ToUpperInvariant(text[i]) : text[i]);
 
-							code.Line($"if ({read} != {want}) goto {fail};");
+							// The offset is known here and no walk is needed: a run refusing
+							// at its fourth character reached its fourth character.
+							code.Line(
+								i == 0 || fail != "Refuse"
+									? $"if ({read} != {want}) goto {fail};"
+									: $"if ({read} != {want}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}");
 						}
 					}
 
@@ -369,7 +635,7 @@ sealed partial class Machine
 
 				case Node.Element element:
 				{
-					var test = CSharpEmitter.Test(element);
+					var test = CSharpEmitter.Test(element, tabulate);
 
 					if (!loaded)
 						code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
@@ -435,7 +701,7 @@ sealed partial class Machine
 						Emit(buffer, parts[i], i == 0 ? fail : restore, carry);
 
 						// The invariant survives only what consumes nothing.
-						carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind;
+						carry = carry && parts[i] is Node.Empty or Node.Lookahead or Node.Behind or Node.Glue;
 					}
 
 					var written = buffer.ToString();
@@ -446,6 +712,7 @@ sealed partial class Machine
 						code.Write(written);
 						code.Line($"goto {over};");
 						code.Line($"{restore}:");
+						code.Line("if (p > furthest) furthest = p;");
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {fail};");
 						code.Line($"{over}: ;");
@@ -524,6 +791,10 @@ sealed partial class Machine
 						var seen = $"L{_labels++}_seen";
 
 						Emit(code, inside, seen, loaded);
+						// A lookahead's own advance is not distance covered: it looked and
+						// put the position back. Counting it would have `eof` — which is
+						// `?!any` — report a refusal one character past where the input
+						// failed to end.
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {over};");
 						code.Line($"{seen}:");
@@ -545,6 +816,11 @@ sealed partial class Machine
 					break;
 				}
 
+				// Only ever reached over characters (see `Scannable`), where the seam was
+				// never woven and adjacency is what the absence of one already says.
+				case Node.Glue:
+					break;
+
 				case Node.Behind(var boundary):
 					_character = true;
 
@@ -552,7 +828,7 @@ sealed partial class Machine
 					using (code.Block(""))
 					{
 						code.Line("c = text[p - 1];");
-						code.Line($"if ({CSharpEmitter.Test(boundary)}) goto {fail};");
+						code.Line($"if ({CSharpEmitter.Test(boundary, tabulate)}) goto {fail};");
 					}
 
 					break;
@@ -672,7 +948,7 @@ sealed partial class Machine
 		string? FrontTest(IReadOnlyList<Node> alternatives) =>
 			Front(alternatives) is { Anything: false, Nothing: false, Ends: false } union &&
 			union.Ranges.Count is > 0 and <= Emitted
-				? RangesTest(union.Ranges)
+				? ranges(union.Ranges)
 				: null;
 
 		int Mark()
@@ -694,7 +970,7 @@ sealed partial class Machine
 		/// straight into the loop's own back-edge — so the seams it leaves are threaded
 		/// here, over the finished text, where following a chain is following lines.
 		/// </summary>
-		static string Threaded(string written)
+		internal static string Threaded(string written)
 		{
 			var lines = new List<string>(written.Split('\n'));
 
@@ -874,7 +1150,7 @@ sealed partial class Machine
 			return string.Join("\r\n", kept) + "\r\n";
 		}
 
-		static bool IsLabel(string line, out string name, out string rest)
+		internal static bool IsLabel(string line, out string name, out string rest)
 		{
 			name = "";
 			rest = "";
@@ -884,6 +1160,10 @@ sealed partial class Machine
 
 			if (colon <= 0 || trimmed.Contains("goto ", StringComparison.Ordinal) &&
 				trimmed.IndexOf("goto ", StringComparison.Ordinal) < colon)
+				return false;
+
+			// `global::System` is a name, not a label: a label's colon stands alone.
+			if (colon + 1 < trimmed.Length && trimmed[colon + 1] == ':')
 				return false;
 
 			var candidate = trimmed[..colon];

@@ -73,10 +73,12 @@ namespace DotGram.Examples;
 
 	Text   : @JsonText = '"' & body: Lexical.Body & '"' => @(new JsonText(body))
 
-	Number : @JsonValue = digits: Lexical.Digits & fraction: Lexical.Fraction
+	// The fraction is an optional tail rather than a second alternative: written as two,
+	// the digits are read once for each and GRAM4016 says so. Reading them once is the
+	// same language here because a fraction begins with '.', which digits cannot contain
+	// — no shorter reading of the digits lets a fraction fit that a longer one refuses.
+	Number : @JsonValue = digits: Lexical.Digits & fraction: Lexical.Fraction?
 	                        => @(new JsonNumber(double.Parse(digits + fraction, CultureInfo.InvariantCulture)))
-	                    | digits: Lexical.Digits
-	                        => @(new JsonNumber(double.Parse(digits, CultureInfo.InvariantCulture)))
 
 	parse Json
 	""")]

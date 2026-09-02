@@ -19,6 +19,8 @@ architecture and possible VS Code/LSP/metadata work remain in
 - Matching braces for grammar and embedded C# expressions.
 - Folding for multiline rules, groups/blocks, and block comments.
 - `namespace`, expression-scoped `with`, and publication-scoped `with` support.
+- No-trivia sequences with `~`, including classification, navigation traversal, and
+  Quick Info.
 
 ## Current milestone: document structure
 
