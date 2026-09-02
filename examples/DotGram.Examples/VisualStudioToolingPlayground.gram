@@ -44,5 +44,9 @@ Fixed     = Digits(4)
 // hovering it should say "sequence without trivia".
 Shift = '>' ~ '>'
 
+// Case-insensitive literals should retain a string-like theme color while remaining
+// visually distinct from ordinary literals.
+Insensitive = "select"i | 'x'i
+
 // F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate

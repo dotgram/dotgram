@@ -62,6 +62,8 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 			[GramSyntaxKind.Number]         = Type(classifications, GramClassificationTypes.Number),
 			[GramSyntaxKind.Character]      = Type(classifications, GramClassificationTypes.Literal),
 			[GramSyntaxKind.String]         = Type(classifications, GramClassificationTypes.Literal),
+			[GramSyntaxKind.CaseInsensitiveCharacter] = Type(classifications, GramClassificationTypes.CaseInsensitiveLiteral),
+			[GramSyntaxKind.CaseInsensitiveString] = Type(classifications, GramClassificationTypes.CaseInsensitiveLiteral),
 			[GramSyntaxKind.CharacterClass] = Type(classifications, GramClassificationTypes.Literal),
 			[GramSyntaxKind.EmbeddedCode]   = Type(classifications, GramClassificationTypes.EmbeddedCode),
 			[GramSyntaxKind.Transition]     = Type(classifications, GramClassificationTypes.TransitionStyle),

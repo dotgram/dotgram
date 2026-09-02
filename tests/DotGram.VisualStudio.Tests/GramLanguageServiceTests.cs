@@ -90,6 +90,19 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesCaseInsensitiveLiteralsSeparately()
+	{
+		const string source = "Start = \"select\"i | 'x'i";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Contains(("\"select\"i", GramSyntaxKind.CaseInsensitiveString), classified);
+		Assert.Contains(("'x'i", GramSyntaxKind.CaseInsensitiveCharacter), classified);
+	}
+
+	[Fact]
 	public void ReportsBracePairsAndMultilineFoldingRanges()
 	{
 		const string source = "/* heading\n   text */\nStart(value) = (\n  ['a'] & value\n) => @(Call(value))";

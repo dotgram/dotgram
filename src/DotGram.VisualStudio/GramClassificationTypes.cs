@@ -14,6 +14,7 @@ static class GramClassificationTypes
 	public const string Identifier   = "DotGram identifier";
 	public const string Number       = "DotGram number";
 	public const string Literal      = "DotGram literal";
+	public const string CaseInsensitiveLiteral = "DotGram case-insensitive literal";
 	public const string EmbeddedCode = "DotGram embedded code";
 	public const string Transition   = "DotGram transition";
 	public const string TransitionStyle = PredefinedClassificationTypeNames.Keyword;
@@ -47,6 +48,9 @@ static class GramClassificationTypes
 
 	[Export, Name(Literal), BaseDefinition(PredefinedClassificationTypeNames.String)]
 	static readonly ClassificationTypeDefinition LiteralDefinition = null!;
+
+	[Export, Name(CaseInsensitiveLiteral), BaseDefinition("string - escape character")]
+	static readonly ClassificationTypeDefinition CaseInsensitiveLiteralDefinition = null!;
 
 	[Export, Name(EmbeddedCode), BaseDefinition(PredefinedClassificationTypeNames.FormalLanguage)]
 	static readonly ClassificationTypeDefinition EmbeddedCodeDefinition = null!;
@@ -147,6 +151,16 @@ sealed class GramNumberFormat : GramFormatDefinition
 sealed class GramLiteralFormat : GramFormatDefinition
 {
 	public GramLiteralFormat() : base("DotGram Literal") { }
+}
+
+[Export(typeof(EditorFormatDefinition))]
+[ClassificationType(ClassificationTypeNames = GramClassificationTypes.CaseInsensitiveLiteral)]
+[Name(GramClassificationTypes.CaseInsensitiveLiteral)]
+[UserVisible(true)]
+[Order(Before = Priority.Default)]
+sealed class GramCaseInsensitiveLiteralFormat : GramFormatDefinition
+{
+	public GramCaseInsensitiveLiteralFormat() : base("DotGram Case-insensitive Literal") { }
 }
 
 [Export(typeof(EditorFormatDefinition))]

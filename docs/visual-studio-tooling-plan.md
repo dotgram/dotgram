@@ -21,6 +21,7 @@ architecture and possible VS Code/LSP/metadata work remain in
 - `namespace`, expression-scoped `with`, and publication-scoped `with` support.
 - No-trivia sequences with `~`, including classification, navigation traversal, and
   Quick Info.
+- Distinct theme-derived classification and Quick Info for case-insensitive literals.
 
 ## Current milestone: document structure
 
