@@ -96,7 +96,7 @@ static class SqlAgainst
 
 		Console.WriteLine();
 		Console.WriteLine(
-			$"{"",-36} {"generated",11} {"by hand",11} {"scannerless",12} {"its lexer",11}   ratio");
+			$"{"",-36} {"generated",11} {"by hand",11} {"scannerless",12} {"its lexer",11} {"day one",11}   ratio");
 
 		foreach (var input in Inputs)
 		{
@@ -147,6 +147,7 @@ static class SqlAgainst
 		("by hand",     static input => HandSqlTokens.Parse(input) ? 1 : 0),
 		("scannerless", static input => HandSql.Parse(input) ? 1 : 0),
 		("its lexer",   static input => HandSqlTokens.LexOnly(input)),
+		("day one",     static input => HandSqlOriginal.Parse(input) ? 1 : 0),
 	];
 
 	/// <summary>
@@ -156,11 +157,14 @@ static class SqlAgainst
 	/// </summary>
 	public static void Agree()
 	{
+		var parted = new List<string>();
+
 		foreach (var text in Corpus.Concat(Inputs))
 		{
 			var generated   = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
 			var handed      = HandSqlTokens.Parse(text);
 			var scannerless = HandSql.Parse(text);
+			var original    = HandSqlOriginal.Parse(text);
 
 			if (generated != handed || generated != scannerless)
 			{
@@ -169,9 +173,26 @@ static class SqlAgainst
 					$"one over tokens says {Said(handed)}, and the scannerless one says {Said(scannerless)}. " +
 					"They do not read the same language, and a ratio between them would be a fiction.");
 			}
+
+			// The first day's parser is held only to what it was ever checked against — the
+			// benchmark inputs — and its departures over the corpus are shown, because they
+			// are what the old ratio was made of.
+			if (original != generated)
+			{
+				if (Array.IndexOf(Inputs, text) >= 0)
+					throw new InvalidOperationException(
+						$"The first day's parser says {Said(original)} about the benchmark input \"{text}\" " +
+						$"and the generated one says {Said(generated)}; it did not on the day.");
+
+				parted.Add($"  {Said(original),-3} instead of {Said(generated),-3} about \"{text.Replace('\n', ' ')}\"");
+			}
 		}
 
-		Console.WriteLine($"All three read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine($"Three read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine($"The first day's parser reads the {Inputs.Length} benchmark inputs and parts from them on {parted.Count}:");
+
+		foreach (var line in parted)
+			Console.WriteLine(line);
 
 		static string Said(bool yes) => yes ? "yes" : "no";
 	}

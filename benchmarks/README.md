@@ -381,17 +381,19 @@ corpus, comments, delimited identifiers, exponent and leading-point numerals, an
 inputs that must be refused. **The same answer**: all three recognize and none builds.
 **The same input**: a string in, a bool out, each lexing inside itself.
 
-### 2026-09-02, 7 rounds of 300,000, the loop's own cost subtracted
+### 2026-09-03, 7 rounds of 300,000, the loop's own cost subtracted
 
-| input | generated | by hand | scannerless | the hand lexer | ratio |
-| --- | --: | --: | --: | --: | --: |
-| `a = 1` | 68 ns | 23 ns | 92 ns | 15 ns | 2.9 |
-| `(a + b) * c > d` | 117 | 62 | 250 | 42 | 1.9 |
-| `((((a + 1) * 2) - 3) / 4) + b > 0` | 202 | 96 | 359 | 50 | 2.1 |
-| `x = 1 AND y IS NOT NULL` | 128 | 96 | 204 | 76 | 1.3 |
-| 64 predicates joined by `AND` | 3,917 | 2,502 | 7,315 | 2,085 | 1.6 |
-| 64 operands joined by `+` | 1,370 | 1,038 | 3,029 | 774 | 1.3 |
-| `(a + b) * c >`, refused | 274 | 78 | 404 | 34 | 3.5 |
+| input | generated | by hand | scannerless | the hand lexer | day one | ratio |
+| --- | --: | --: | --: | --: | --: | --: |
+| `a = 1` | 68 ns | 22 ns | 92 ns | 15 ns | 30 ns | 3.1 |
+| `(a + b) * c > d` | 115 | 60 | 240 | 40 | 79 | 1.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 210 | 89 | 358 | 45 | 150 | 2.4 |
+| `x = 1 AND y IS NOT NULL` | 134 | 100 | 205 | 78 | 82 | 1.3 |
+| 64 predicates joined by `AND` | 3,856 | 2,742 | 7,072 | 2,089 | 2,614 | 1.4 |
+| 64 operands joined by `+` | 1,274 | 969 | 2,787 | 720 | 654 | 1.3 |
+| `(a + b) * c >`, refused | 267 | 69 | 379 | 32 | 105 | 3.9 |
+
+The ratio is the first column over the second.
 
 **On equal footing the hand-written parser is 1.3 to 3.5 times faster, and it is not the
 lexer.** Both sides tokenize; what is left between them is the reader.
@@ -403,6 +405,29 @@ that two lexers doing the same work cost about the same* leaves 53 and 1,832. Th
 **two to six times on the reader alone**, and it is the one figure here that rests on an
 assumption: the generated tokenizer is not reachable from this project, so it cannot be
 measured directly. The totals rest on nothing and are what to quote.
+
+### The first day's parser, recovered
+
+`HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from
+the session transcript byte for byte after the scratch directory holding it was cleared.
+It reproduces its own figures — 30 ns on `a = 1` against the 27 recorded, 2,614 on the
+sixty-four predicates against 2,543 — which is what says the two days' measurements are
+comparable and the generator's gain since is real: 186 ns to 68 on `a = 1`, 2,734 to 210
+on the nested input, 12,075 to 3,856 on the sixty-four predicates.
+
+**It reads a fraction of the language, by its own admission** — its first comment ends
+"Only what the benchmark inputs need" — and `--hand` prints where: 17 of the 42 shapes,
+every `BETWEEN`, `IN` and `LIKE`, every `CAST`, `CASE` and function, both kinds of
+comment, delimited identifiers, and exponent numerals. It was checked against the
+generated parser on the seven benchmark inputs and on nothing else, so it is held to those
+seven and no more.
+
+Which settles what the old ratio was made of. Against the full language, read by
+`HandSqlTokens.cs`, it is *slower* on five inputs of seven — tokenizing pays for itself
+once there is a keyword to recognize — and faster only where whitespace is the whole of
+the trivia and every word is a name. The first day's "seven to seventeen times" was two
+things at once: a generator that has since become three to thirteen times faster, and a
+yardstick reading a quarter of the grammar.
 
 ### What this does not license
 

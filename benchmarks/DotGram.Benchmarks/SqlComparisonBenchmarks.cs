@@ -70,4 +70,8 @@ public class SqlComparisonBenchmarks
 
 	[Benchmark(Description = "the hand-written lexer alone")]
 	public int Lexer() => HandSqlTokens.LexOnly(Input);
+
+	/// <summary>What the first day's ratio was divided by; it reads a fraction of the language.</summary>
+	[Benchmark(Description = "day one, recovered")]
+	public bool DayOne() => HandSqlOriginal.Parse(Input);
 }
