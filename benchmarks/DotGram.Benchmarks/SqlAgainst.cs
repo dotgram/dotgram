@@ -138,11 +138,12 @@ static class SqlAgainst
 	/// day's parser.
 	/// </summary>
 	/// <remarks>
-	/// The first two are the comparison: both tokenize and then read tokens, so what is
-	/// between them is the reader. The third is there so the reader's own share of the
-	/// second can be had by subtraction. The fourth reads a fraction of the language and
-	/// is what the first day's ratios were divided by, kept so a reader can see what they
-	/// were made of.
+	/// The first two are the comparison: both tokenize, read tokens and build the same
+	/// tree, so what is between them is the reader and the building. The third is there so
+	/// the lexer's share can be taken off both. The fourth reads a fraction of the
+	/// language and builds nothing — it is what the first day's ratios were divided by,
+	/// kept so a reader can see what they were made of, and it is not a yardstick for
+	/// anything measured now.
 	/// </remarks>
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
@@ -163,8 +164,10 @@ static class SqlAgainst
 
 		foreach (var text in Corpus.Concat(Inputs))
 		{
-			var generated = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
-			var handed    = HandSqlTokens.Parse(text);
+			var made      = SqlStandard92.TryParseSearchCondition(text);
+			var built     = HandSqlTokens.Build(text);
+			var generated = made.IsSuccess;
+			var handed    = built is not null;
 			var original  = HandSqlOriginal.Parse(text);
 
 			if (generated != handed)
@@ -173,6 +176,17 @@ static class SqlAgainst
 					$"About \"{text}\": the generated parser says {Said(generated)} and the hand-written " +
 					$"one says {Said(handed)}. They do not read the same language, and a ratio between " +
 					"them would be a fiction.");
+			}
+
+			// And the same tree, not merely the same answer: both build now, and building
+			// is most of what is being measured.
+			if (generated && SqlTree.Show(made.Value) is var one && SqlTree.Show(built) is var other &&
+				one != other)
+			{
+				throw new InvalidOperationException(
+					$"About \"{text}\": the two parsers read it the same and build it differently.\n" +
+					$"  generated {one}\n" +
+					$"  by hand   {other}");
 			}
 
 			// The first day's parser is held only to what it was ever checked against — the
@@ -189,7 +203,8 @@ static class SqlAgainst
 			}
 		}
 
-		Console.WriteLine($"Both read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine(
+			$"Both read the same language and build the same tree over {Corpus.Length + Inputs.Length} shapes.");
 		Console.WriteLine($"The first day's parser reads the {Inputs.Length} benchmark inputs and parts from them on {parted.Count}:");
 
 		foreach (var line in parted)

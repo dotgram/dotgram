@@ -445,6 +445,42 @@ difference on the long inputs. What remains on the short ones is the ladder of r
 token passes through — ten for `a = 1` where the hand-written parser climbs three — which
 is the grammar's shape, and the next thing to look at.
 
+### 2026-09-03, later still: both build a tree, and that is a different picture
+
+Everything above measures recognition. Both sides answered yes or no and neither built
+anything, which is not what a consumer does and is not what the generator mostly is: a
+parse records what it read and materializes the value afterwards, and none of that
+machinery had ever appeared in a number.
+
+`SqlStandard92` builds now — `docs/syntax.md`'s constructions on every production of §6
+through §8, into the flat tree in `SqlSyntax.cs` — and `HandSqlTokens` builds the same
+tree, node for node. `Agree()` holds them to it: over all forty-two shapes the two
+answer the same *and* render identically (`SqlTree.cs`), so a difference in the numbers
+below is a difference in how the same tree gets made.
+
+| input | generated | by hand | the hand lexer | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 465 ns | 46 ns | 11 ns | 10.1 |
+| `(a + b) * c > d` | 803 | 101 | 27 | 7.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 1,564 | 181 | 41 | 8.7 |
+| `x = 1 AND y IS NOT NULL` | 789 | 121 | 49 | 6.5 |
+| 64 predicates joined by `AND` | 26,016 | 4,282 | 1,628 | 6.1 |
+| 64 operands joined by `+` | 8,177 | 1,933 | 939 | 4.2 |
+| `(a + b) * c >`, refused | 314 | 126 | 24 | 2.5 |
+
+**Four to ten times, where recognition was one to two.** Building is where this generator
+actually stands against a person, and it had never been measured. The allocation is not
+the reason: a parse of `a` allocates 72 bytes, which is the node and its string and
+nothing else, and sixty-four operands allocate 9,176 bytes for a hundred and ninety
+objects — what the tree weighs, to the byte. The time is about thirty-five nanoseconds
+per node beyond what allocating it costs, spent walking the log the parse wrote: sizing
+the tables, clearing the built marks, listing the records, marking the live ones, and
+then a switch per record to call the factory.
+
+The day-one column is dropped from this table. It builds nothing and reads a quarter of
+the language, so beside two parsers that build the whole of it, it would be three
+different questions in one row. It keeps its own section below.
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

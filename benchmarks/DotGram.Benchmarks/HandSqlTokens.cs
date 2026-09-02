@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+
+using DotGram.Parsers;
 
 namespace DotGram.Benchmarks;
 
@@ -638,19 +641,30 @@ static class HandSqlTokens
 
 	// ── The parser, over kinds ──────────────────────────────────────────────────
 
-	/// <summary>Whether the whole input is a search condition.</summary>
-	public static bool Parse(string text)
+	/// <summary>The whole input as a search condition, or null where it is not one.</summary>
+	public static SqlNode? Build(string text)
 	{
 		var tokens = Rented();
 
 		if (!Lex(text, tokens))
-			return false;
+			return null;
 
 		var reader = new Reader(tokens, text);
-		var end    = reader.SearchCondition(0);
+		var end    = reader.SearchCondition(0, out var node);
 
-		return end >= 0 && end == tokens.Count;
+		return end >= 0 && end == tokens.Count ? node : null;
 	}
+
+	/// <summary>Whether the whole input is a search condition, tree and all.</summary>
+	public static bool Parse(string text) => Build(text) is not null;
+
+	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
+	static readonly SqlNode[] None = [];
+
+	/// <summary>The nodes that are always the same node, built once.</summary>
+	static readonly SqlNode NullValue    = new SqlLiteral(SqlLiteralKind.Null,      "NULL");
+	static readonly SqlNode DefaultValue = new SqlLiteral(SqlLiteralKind.Default,   "DEFAULT");
+	static readonly SqlNode Parameter    = new SqlLiteral(SqlLiteralKind.Parameter, "?");
 
 	/// <summary>What the lexer alone costs, so the reader's share can be had by subtraction.</summary>
 	public static int LexOnly(string text)
@@ -660,7 +674,16 @@ static class HandSqlTokens
 		return Lex(text, tokens) ? tokens.Count : -1;
 	}
 
-	readonly ref struct Reader(Tokens tokens, string text)
+	/// <summary>
+	/// The reader, over kinds, building the same tree the generated parser builds.
+	/// </summary>
+	/// <remarks>
+	/// Every method hands back the token it stopped at, or -1, and writes what it read
+	/// into an <c>out</c> parameter. That is how a person writes a recursive descent in
+	/// C#: the position is the return value because every caller needs it, and the node
+	/// is an argument because only some do.
+	/// </remarks>
+	ref struct Reader(Tokens tokens, string text)
 	{
 		readonly byte[] _kinds   = tokens.Kinds;
 		readonly int[]  _starts  = tokens.Starts;
@@ -679,9 +702,13 @@ static class HandSqlTokens
 				? i + 1
 				: -1;
 
+		/// <summary>The text the tokens from one to another stand on, as it was written.</summary>
+		readonly string Cut(int from, int to) =>
+			_text.Substring(_starts[from], _starts[to - 1] + _lengths[to - 1] - _starts[from]);
+
 		// ── §8.12 Search condition ──────────────────────────────────────────────
 
-		public int SearchCondition(int i) => Condition(i, 1);
+		public int SearchCondition(int i, out SqlNode? node) => Condition(i, 1, out node);
 
 		/// <remarks>
 		/// <c>OR</c> and <c>AND</c> in one loop over a precedence rather than a rule each.
@@ -690,56 +717,72 @@ static class HandSqlTokens
 		/// accept the same language. What it saves is a call and a frame per operand per
 		/// level, which is the shape of every expression ladder there is.
 		/// </remarks>
-		int Condition(int i, int least)
+		int Condition(int i, int least, out SqlNode? node)
 		{
-			var at = BooleanFactor(i);
+			var at = BooleanFactor(i, out node);
 
 			if (at < 0)
 				return -1;
 
 			while (true)
 			{
-				var kind = Kind(at);
+				var kind  = Kind(at);
 				var binds = kind == Or ? 1 : kind == And ? 2 : 0;
 
 				if (binds < least)
 					return at;
 
-				var right = Condition(at + 1, binds + 1);
+				var right = Condition(at + 1, binds + 1, out var operand);
 
 				if (right < 0)
 					return at;
 
-				at = right;
+				node = new SqlBinary(binds == 1 ? SqlOperator.Or : SqlOperator.And, node!, operand!);
+				at   = right;
 			}
 		}
 
-		int BooleanFactor(int i) => BooleanTest(Kind(i) == Not ? i + 1 : i);
-
-		int BooleanTest(int i)
+		int BooleanFactor(int i, out SqlNode? node)
 		{
-			var at = BooleanPrimary(i);
+			if (Kind(i) != Not)
+				return BooleanTest(i, out node);
+
+			var at = BooleanTest(i + 1, out node);
+
+			if (at >= 0)
+				node = new SqlUnary(SqlOperator.Not, node!);
+
+			return at;
+		}
+
+		int BooleanTest(int i, out SqlNode? node)
+		{
+			var at = BooleanPrimary(i, out node);
 
 			if (at < 0)
 				return -1;
 
 			while (Kind(at) == Is)
 			{
-				var next  = Kind(at + 1) == Not ? at + 2 : at + 1;
-				var value = Kind(next);
+				var negated = Kind(at + 1) == Not;
+				var next    = negated ? at + 2 : at + 1;
+				var value   = Kind(next);
 
 				if (value != True && value != False && value != Unknown)
 					return at;
 
-				at = next + 1;
+				node = new SqlTruthTest(
+					node!, negated,
+					value == True ? SqlTruth.True : value == False ? SqlTruth.False : SqlTruth.Unknown);
+				at   = next + 1;
 			}
 
 			return at;
 		}
 
-		int BooleanPrimary(int i)
+		int BooleanPrimary(int i, out SqlNode? node)
 		{
-			var at = Predicate(i);
+			var at = Predicate(i, out node);
 
 			if (at >= 0)
 				return at;
@@ -747,111 +790,213 @@ static class HandSqlTokens
 			if (Kind(i) != Open)
 				return -1;
 
-			at = SearchCondition(i + 1);
+			at = SearchCondition(i + 1, out node);
 
 			return at < 0 ? -1 : At(at, Close);
 		}
 
 		// ── §8.1 Predicate ──────────────────────────────────────────────────────
 
-		int Predicate(int i)
+		int Predicate(int i, out SqlNode? node)
 		{
 			var kind = Kind(i);
 
 			if (kind == Exists || kind == Unique)
 			{
-				var sub = Subquery(i + 1);
+				var sub = Subquery(i + 1, out var query);
 
 				if (sub >= 0)
+				{
+					node = new SqlPredicate(
+						kind == Exists ? SqlPredicateKind.Exists : SqlPredicateKind.Unique,
+						false, new[] { query! });
+
 					return sub;
+				}
 			}
 
-			var at = RowValueConstructor(i);
+			var at = RowValueConstructor(i, out var left);
 
-			return at < 0 ? -1 : PredicateTail(at);
+			if (at < 0)
+			{
+				node = null;
+
+				return -1;
+			}
+
+			return PredicateTail(at, left!, out node);
 		}
 
-		int PredicateTail(int i)
+		/// <remarks>
+		/// The row on the left is handed in rather than filled in afterwards: a person
+		/// reading a predicate has it in a local already, and there is no rule boundary
+		/// here to stop them from passing it.
+		/// </remarks>
+		int PredicateTail(int i, SqlNode left, out SqlNode? node)
 		{
+			node = null;
+
 			var kind = Kind(i);
 
-			if (kind is var c && (c == Eq || c == Lt || c == Gt || c == Le || c == Ge || c == Ne))
+			if (kind == Eq || kind == Lt || kind == Gt || kind == Le || kind == Ge || kind == Ne)
 			{
+				var compared = kind switch
+				{
+					Eq => SqlOperator.Equal,
+					Ne => SqlOperator.NotEqual,
+					Lt => SqlOperator.Less,
+					Le => SqlOperator.LessOrEqual,
+					Gt => SqlOperator.Greater,
+					_  => SqlOperator.GreaterOrEqual,
+				};
 				var after = i + 1;
 				var many  = Kind(after);
 
 				if (many == All || many == Some || many == Any)
 				{
-					var sub = Subquery(after + 1);
+					var sub = Subquery(after + 1, out var query);
 
 					if (sub >= 0)
+					{
+						node = new SqlPredicate(
+							SqlPredicateKind.Quantified, false, new[] { left, query! },
+							compared, many == All ? "ALL" : many == Some ? "SOME" : "ANY");
+
 						return sub;
+					}
 				}
 
-				return RowValueConstructor(after);
+				var end = RowValueConstructor(after, out var right);
+
+				if (end < 0)
+					return -1;
+
+				node = new SqlPredicate(
+					SqlPredicateKind.Comparison, false, new[] { left, right! }, compared);
+
+				return end;
 			}
 
-			var not   = kind == Not;
-			var after2 = not ? i + 1 : i;
-			var second = Kind(after2);
+			var negated = kind == Not;
+			var word    = negated ? i + 1 : i;
+			var second  = Kind(word);
 
 			if (second == Between)
 			{
-				var low = RowValueConstructor(after2 + 1);
+				var low = RowValueConstructor(word + 1, out var lowest);
 
 				if (low < 0 || Kind(low) != And)
 					return -1;
 
-				return RowValueConstructor(low + 1);
+				var high = RowValueConstructor(low + 1, out var highest);
+
+				if (high < 0)
+					return -1;
+
+				node = new SqlPredicate(
+					SqlPredicateKind.Between, negated, new[] { left, lowest!, highest! });
+
+				return high;
 			}
 
 			if (second == In)
-				return InPredicateValue(after2 + 1);
+			{
+				var end = InPredicateValue(word + 1, out var values);
+
+				if (end < 0)
+					return -1;
+
+				node = new SqlPredicate(SqlPredicateKind.In, negated, new[] { left, values! });
+
+				return end;
+			}
 
 			if (second == Like)
 			{
-				var pattern = ValueExpression(after2 + 1);
+				var end = ValueExpression(word + 1, out var pattern);
 
-				if (pattern < 0)
+				if (end < 0)
 					return -1;
 
-				if (Kind(pattern) != Escape)
-					return pattern;
+				if (Kind(end) == Escape)
+				{
+					var how = ValueExpression(end + 1, out var escape);
 
-				var how = ValueExpression(pattern + 1);
+					if (how >= 0)
+					{
+						node = new SqlPredicate(
+							SqlPredicateKind.Like, negated, new[] { left, pattern!, escape! });
 
-				return how < 0 ? pattern : how;
+						return how;
+					}
+				}
+
+				node = new SqlPredicate(SqlPredicateKind.Like, negated, new[] { left, pattern! });
+
+				return end;
 			}
 
-			if (not)
+			if (negated)
 				return -1;
 
 			if (kind == Is)
 			{
-				var next = Kind(i + 1) == Not ? i + 2 : i + 1;
+				var no   = Kind(i + 1) == Not;
+				var next = no ? i + 2 : i + 1;
+				var end  = At(next, Null);
 
-				return At(next, Null);
+				if (end < 0)
+					return -1;
+
+				node = new SqlPredicate(SqlPredicateKind.IsNull, no, new[] { left });
+
+				return end;
 			}
 
 			if (kind == Match)
 			{
-				var at = i + 1;
+				var at     = i + 1;
+				var unique = Kind(at) == Unique;
 
-				if (Kind(at) == Unique)
+				if (unique)
 					at++;
 
-				if (Kind(at) == Partial || Kind(at) == Full)
+				var partial = Kind(at) == Partial;
+				var full    = Kind(at) == Full;
+
+				if (partial || full)
 					at++;
 
-				return Subquery(at);
+				var end = Subquery(at, out var query);
+
+				if (end < 0)
+					return -1;
+
+				node = new SqlPredicate(
+					SqlPredicateKind.Match, false, new[] { left, query! }, null,
+					unique
+						? partial ? "UNIQUE PARTIAL" : full ? "UNIQUE FULL" : "UNIQUE"
+						: partial ? "PARTIAL" : full ? "FULL" : null);
+
+				return end;
 			}
 
-			return kind == Overlaps ? RowValueConstructor(i + 1) : -1;
+			if (kind != Overlaps)
+				return -1;
+
+			var over = RowValueConstructor(i + 1, out var other);
+
+			if (over < 0)
+				return -1;
+
+			node = new SqlPredicate(SqlPredicateKind.Overlaps, false, new[] { left, other! });
+
+			return over;
 		}
 
-		int InPredicateValue(int i)
+		int InPredicateValue(int i, out SqlNode? node)
 		{
-			var sub = Subquery(i);
+			var sub = Subquery(i, out node);
 
 			if (sub >= 0)
 				return sub;
@@ -859,29 +1004,39 @@ static class HandSqlTokens
 			if (Kind(i) != Open)
 				return -1;
 
-			var at = ValueExpression(i + 1);
+			var at = ValueExpression(i + 1, out var first);
 
 			if (at < 0)
 				return -1;
 
+			var values = new List<SqlNode> { first! };
+
 			while (Kind(at) == Comma)
 			{
-				var next = ValueExpression(at + 1);
+				var next = ValueExpression(at + 1, out var more);
 
 				if (next < 0)
 					break;
 
+				values.Add(more!);
 				at = next;
 			}
 
-			return At(at, Close);
+			var close = At(at, Close);
+
+			if (close < 0)
+				return -1;
+
+			node = new SqlRow(values.ToArray());
+
+			return close;
 		}
 
 		// ── §7.1 Row value constructor ──────────────────────────────────────────
 
-		int RowValueConstructor(int i)
+		int RowValueConstructor(int i, out SqlNode? node)
 		{
-			var at = RowValueConstructorElement(i);
+			var at = RowValueConstructorElement(i, out node);
 
 			if (at >= 0)
 				return at;
@@ -889,52 +1044,70 @@ static class HandSqlTokens
 			// Only a `(` can open a row of several or a subquery, so nothing else is tried.
 			if (Kind(i) == Open)
 			{
-				var first = RowValueConstructorElement(i + 1);
+				var first = RowValueConstructorElement(i + 1, out var head);
 
-				if (first >= 0)
+				if (first >= 0 && Kind(first) == Comma)
 				{
-					var rest  = first;
-					var count = 0;
+					var values = new List<SqlNode> { head! };
+					var rest   = first;
 
 					while (Kind(rest) == Comma)
 					{
-						var next = RowValueConstructorElement(rest + 1);
+						var next = RowValueConstructorElement(rest + 1, out var more);
 
 						if (next < 0)
 							break;
 
+						values.Add(more!);
 						rest = next;
-						count++;
 					}
 
-					if (count > 0 && At(rest, Close) is var close && close >= 0)
+					var close = At(rest, Close);
+
+					if (values.Count > 1 && close >= 0)
+					{
+						node = new SqlRow(values.ToArray());
+
 						return close;
+					}
 				}
 			}
 
-			return Subquery(i);
+			return Subquery(i, out node);
 		}
 
-		int RowValueConstructorElement(int i)
+		int RowValueConstructorElement(int i, out SqlNode? node)
 		{
-			var at = ValueExpression(i);
+			var at = ValueExpression(i, out node);
 
 			if (at >= 0)
 				return at;
 
 			var kind = Kind(i);
 
-			return kind == Null || kind == Default ? i + 1 : -1;
+			if (kind == Null)
+			{
+				node = NullValue;
+
+				return i + 1;
+			}
+
+			if (kind != Default)
+				return -1;
+
+			node = DefaultValue;
+
+			return i + 1;
 		}
 
 		// ── §6.11 Value expression ──────────────────────────────────────────────
 
-		public int ValueExpression(int i) => Value(i, 1);
+		public int ValueExpression(int i, out SqlNode? node) => Value(i, 1, out node);
 
 		/// <remarks><c>+ - ||</c> and <c>* /</c> the same way, for the same saving.</remarks>
-		int Value(int i, int least)
+		int Value(int i, int least, out SqlNode? node)
 		{
-			var at = Factor(i);
+			var at = Factor(i, out node);
 
 			if (at < 0)
 				return -1;
@@ -949,47 +1122,81 @@ static class HandSqlTokens
 				if (binds < least)
 					return at;
 
-				var right = Value(at + 1, binds + 1);
+				var right = Value(at + 1, binds + 1, out var operand);
 
 				if (right < 0)
 					return at;
 
+				node = new SqlBinary(
+					kind switch
+					{
+						Plus   => SqlOperator.Add,
+						Minus  => SqlOperator.Subtract,
+						Concat => SqlOperator.Concatenate,
+						Star   => SqlOperator.Multiply,
+						_      => SqlOperator.Divide,
+					},
+					node!, operand!);
 				at = right;
 			}
 		}
 
-		int Factor(int i)
+		int Factor(int i, out SqlNode? node)
 		{
 			var kind = Kind(i);
 
-			return Primary(kind == Plus || kind == Minus ? i + 1 : i);
+			if (kind != Plus && kind != Minus)
+				return Primary(i, out node);
+
+			var at = Primary(i + 1, out node);
+
+			if (at >= 0)
+				node = new SqlUnary(kind == Minus ? SqlOperator.Negate : SqlOperator.Identity, node!);
+
+			return at;
 		}
 
 		/// <remarks>
 		/// One switch on the token standing here, which is the whole of what a person does
 		/// that the grammar's eight-way ordered choice does not.
 		/// </remarks>
-		int Primary(int i)
+		int Primary(int i, out SqlNode? node)
 		{
+			node = null;
+
 			var kind = Kind(i);
 
 			if (kind == Open)
 			{
-				var sub = Subquery(i);
+				var sub = Subquery(i, out node);
 
 				if (sub >= 0)
 					return sub;
 
-				var inner = ValueExpression(i + 1);
+				var inner = ValueExpression(i + 1, out node);
 
 				return inner < 0 ? -1 : At(inner, Close);
 			}
 
 			if (kind == Number || kind == Text)
+			{
+				node = new SqlLiteral(
+					kind == Number ? SqlLiteralKind.Number : SqlLiteralKind.Text, Cut(i, i + 1));
+
 				return i + 1;
+			}
 
 			if (kind == Identifier)
-				return QualifiedName(i);
+			{
+				var at = QualifiedName(i);
+
+				if (at < 0)
+					return -1;
+
+				node = new SqlName(Cut(i, at));
+
+				return at;
+			}
 
 			if (kind == Colon)
 			{
@@ -1000,36 +1207,53 @@ static class HandSqlTokens
 
 				var indicator = Word(name, "INDICATOR");
 				var colon     = At(indicator < 0 ? name : indicator, Colon);
+				var at        = name;
 
-				if (colon < 0)
-					return name;
+				if (colon >= 0 && At(colon, Identifier) is var second && second >= 0)
+					at = second;
 
-				var second = At(colon, Identifier);
+				node = new SqlLiteral(SqlLiteralKind.Parameter, Cut(i, at));
 
-				return second < 0 ? name : second;
+				return at;
 			}
 
 			if (kind == Query)
+			{
+				node = Parameter;
+
 				return i + 1;
+			}
 
 			if (kind == Case || kind == Coalesce || kind == NullIf)
-				return CaseExpression(i);
+				return CaseExpression(i, out node);
 
 			if (kind == Cast)
-				return CastSpecification(i);
+				return CastSpecification(i, out node);
 
 			if (kind == Avg || kind == Max || kind == Min || kind == Sum || kind == Count)
-				return SetFunction(i);
+				return SetFunction(i, out node);
 
 			if (kind == User || kind == CurrentUser || kind == SessionUser ||
-				kind == SystemUser || kind == ValueWord || kind == CurrentDate)
+				kind == SystemUser || kind == ValueWord)
 			{
+				node = new SqlLiteral(SqlLiteralKind.Special, Cut(i, i + 1));
+
+				return i + 1;
+			}
+
+			if (kind == CurrentDate)
+			{
+				node = new SqlCall("CURRENT_DATE", None);
+
 				return i + 1;
 			}
 
 			if (kind == CurrentTime || kind == CurrentTimestamp)
 			{
+				var name      = kind == CurrentTime ? "CURRENT_TIME" : "CURRENT_TIMESTAMP";
 				var precision = Length(i + 1);
+
+				node = new SqlCall(name, None, precision < 0 ? null : Cut(i + 2, i + 3));
 
 				return precision < 0 ? i + 1 : precision;
 			}
@@ -1040,36 +1264,74 @@ static class HandSqlTokens
 
 				at = At(at, Text);
 
-				return at < 0 ? -1 : IntervalQualifier(at);
+				if (at < 0)
+					return -1;
+
+				var end = IntervalQualifier(at);
+
+				if (end < 0)
+					return -1;
+
+				node = new SqlLiteral(SqlLiteralKind.Interval, Cut(i, end));
+
+				return end;
 			}
 
-			return ValueFunction(i);
+			return ValueFunction(i, out node);
 		}
 
 		// ── §6.9 Set function, §6.16-6.18 value functions ───────────────────────
 
-		int SetFunction(int i)
+		int SetFunction(int i, out SqlNode? node)
 		{
+			node = null;
+
 			var kind = Kind(i);
 
 			if (kind == Count && Kind(i + 1) == Open && Kind(i + 2) == Star)
-				return At(i + 3, Close);
+			{
+				var star = At(i + 3, Close);
+
+				if (star < 0)
+					return -1;
+
+				node = new SqlCall("COUNT", None, "*");
+
+				return star;
+			}
 
 			if (Kind(i + 1) != Open)
 				return -1;
 
-			var at = i + 2;
+			var at         = i + 2;
+			var quantifier = Kind(at);
+			var distinctly = quantifier == Distinct ? "DISTINCT" : quantifier == All ? "ALL" : null;
 
-			if (Kind(at) == Distinct || Kind(at) == All)
+			if (distinctly is not null)
 				at++;
 
-			var value = ValueExpression(at);
+			var value = ValueExpression(at, out var argument);
 
-			return value < 0 ? -1 : At(value, Close);
+			if (value < 0)
+				return -1;
+
+			var close = At(value, Close);
+
+			if (close < 0)
+				return -1;
+
+			node = new SqlCall(
+				kind == Avg ? "AVG" : kind == Max ? "MAX" : kind == Min ? "MIN" : kind == Sum ? "SUM" : "COUNT",
+				new[] { argument! },
+				distinctly);
+
+			return close;
 		}
 
-		int ValueFunction(int i)
+		int ValueFunction(int i, out SqlNode? node)
 		{
+			node = null;
+
 			var kind = Kind(i);
 
 			if (kind == Position)
@@ -1077,14 +1339,24 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var what = ValueExpression(i + 2);
+				var what = ValueExpression(i + 2, out var needle);
 
 				if (what < 0 || Kind(what) != In)
 					return -1;
 
-				var where = ValueExpression(what + 1);
+				var where = ValueExpression(what + 1, out var haystack);
 
-				return where < 0 ? -1 : At(where, Close);
+				if (where < 0)
+					return -1;
+
+				var close = At(where, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall("POSITION", new[] { needle!, haystack! });
+
+				return close;
 			}
 
 			if (kind == Extract)
@@ -1097,9 +1369,19 @@ static class HandSqlTokens
 				if (field < 0 || Kind(field) != From)
 					return -1;
 
-				var source = ValueExpression(field + 1);
+				var source = ValueExpression(field + 1, out var from);
 
-				return source < 0 ? -1 : At(source, Close);
+				if (source < 0)
+					return -1;
+
+				var close = At(source, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall("EXTRACT", new[] { from! }, Cut(i + 2, field));
+
+				return close;
 			}
 
 			if (kind == CharLength || kind == CharacterLength || kind == OctetLength ||
@@ -1108,9 +1390,25 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var only = ValueExpression(i + 2);
+				var only = ValueExpression(i + 2, out var argument);
 
-				return only < 0 ? -1 : At(only, Close);
+				if (only < 0)
+					return -1;
+
+				var close = At(only, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall(
+					kind == CharLength ? "CHAR_LENGTH"
+						: kind == CharacterLength ? "CHARACTER_LENGTH"
+						: kind == OctetLength ? "OCTET_LENGTH"
+						: kind == BitLength ? "BIT_LENGTH"
+						: kind == Upper ? "UPPER" : "LOWER",
+					new[] { argument! });
+
+				return close;
 			}
 
 			if (kind == Substring)
@@ -1118,25 +1416,36 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var source = ValueExpression(i + 2);
+				var source = ValueExpression(i + 2, out var subject);
 
 				if (source < 0 || Kind(source) != From)
 					return -1;
 
-				var start = ValueExpression(source + 1);
+				var start = ValueExpression(source + 1, out var from);
 
 				if (start < 0)
 					return -1;
 
+				SqlNode? length = null;
+
 				if (Kind(start) == For)
 				{
-					var length = ValueExpression(start + 1);
+					var counted = ValueExpression(start + 1, out length);
 
-					if (length >= 0)
-						start = length;
+					if (counted >= 0)
+						start = counted;
 				}
 
-				return At(start, Close);
+				var close = At(start, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall(
+					"SUBSTRING",
+					length is null ? new[] { subject!, from! } : new[] { subject!, from!, length });
+
+				return close;
 			}
 
 			if (kind == Convert || kind == Translate)
@@ -1144,35 +1453,68 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var value = ValueExpression(i + 2);
+				var value = ValueExpression(i + 2, out var argument);
 
 				if (value < 0 || Kind(value) != Using_)
 					return -1;
 
 				var name = QualifiedName(value + 1);
 
-				return name < 0 ? -1 : At(name, Close);
+				if (name < 0)
+					return -1;
+
+				var close = At(name, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall(
+					kind == Convert ? "CONVERT" : "TRANSLATE", new[] { argument! },
+					Cut(value + 1, name));
+
+				return close;
 			}
 
-			if (kind != Trim)
+			if (kind != Trim || Kind(i + 1) != Open)
 				return -1;
 
-			if (Kind(i + 1) != Open)
-				return -1;
+			var how     = Kind(i + 2);
+			var trimmed = how == Leading || how == Trailing || how == Both;
+			var at      = trimmed ? i + 3 : i + 2;
+			var one     = ValueExpression(at, out var first);
+			var next    = Kind(one < 0 ? at : one);
 
-			var how = Kind(i + 2);
-			var at  = how == Leading || how == Trailing || how == Both ? i + 3 : i + 2;
-			var one = ValueExpression(at);
-			var from = Kind(one < 0 ? at : one);
-
-			if (from == From)
+			if (next == From)
 			{
-				var target = ValueExpression((one < 0 ? at : one) + 1);
+				var target = ValueExpression((one < 0 ? at : one) + 1, out var subject);
 
-				return target < 0 ? -1 : At(target, Close);
+				if (target < 0)
+					return -1;
+
+				var closed = At(target, Close);
+
+				if (closed < 0)
+					return -1;
+
+				node = new SqlCall(
+					"TRIM",
+					one < 0 ? new[] { subject! } : new[] { first!, subject! },
+					trimmed ? Cut(i + 2, i + 3) : null);
+
+				return closed;
 			}
 
-			return one < 0 ? -1 : At(one, Close);
+			if (one < 0)
+				return -1;
+
+			var end = At(one, Close);
+
+			if (end < 0)
+				return -1;
+
+			node = new SqlCall("TRIM", new[] { first! });
+
+			return end;
 		}
 
 		int ExtractField(int i)
@@ -1186,8 +1528,10 @@ static class HandSqlTokens
 
 		// ── §6.9 Case, §6.10 Cast ───────────────────────────────────────────────
 
-		int CaseExpression(int i)
+		int CaseExpression(int i, out SqlNode? node)
 		{
+			node = null;
+
 			var kind = Kind(i);
 
 			if (kind == NullIf)
@@ -1195,14 +1539,24 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var left = ValueExpression(i + 2);
+				var left = ValueExpression(i + 2, out var first);
 
 				if (left < 0 || Kind(left) != Comma)
 					return -1;
 
-				var right = ValueExpression(left + 1);
+				var right = ValueExpression(left + 1, out var second);
 
-				return right < 0 ? -1 : At(right, Close);
+				if (right < 0)
+					return -1;
+
+				var close = At(right, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall("NULLIF", new[] { first!, second! });
+
+				return close;
 			}
 
 			if (kind == Coalesce)
@@ -1210,87 +1564,132 @@ static class HandSqlTokens
 				if (Kind(i + 1) != Open)
 					return -1;
 
-				var one = ValueExpression(i + 2);
+				var one = ValueExpression(i + 2, out var first);
 
 				if (one < 0)
 					return -1;
 
+				var values = new List<SqlNode> { first! };
+
 				while (Kind(one) == Comma)
 				{
-					var more = ValueExpression(one + 1);
+					var more = ValueExpression(one + 1, out var next);
 
 					if (more < 0)
 						break;
 
+					values.Add(next!);
 					one = more;
 				}
 
-				return At(one, Close);
+				var close = At(one, Close);
+
+				if (close < 0)
+					return -1;
+
+				node = new SqlCall("COALESCE", values.ToArray());
+
+				return close;
 			}
 
 			// `CASE x WHEN ...` where an operand stands before the first `WHEN`, and the
 			// searched form where none does.
-			var at = Kind(i + 1) == When ? i + 1 : ValueExpression(i + 1);
+			SqlNode? operand = null;
+
+			var at       = Kind(i + 1) == When ? i + 1 : ValueExpression(i + 1, out operand);
+			var searched = at == i + 1;
 
 			if (at < 0)
 				return -1;
 
-			var searched = at == i + 1;
-			var count    = 0;
+			var whens = new List<SqlWhen>();
 
 			while (Kind(at) == When)
 			{
-				var test = searched ? SearchCondition(at + 1) : ValueExpression(at + 1);
+				var test = searched
+					? SearchCondition(at + 1, out var asked)
+					: ValueExpression(at + 1, out asked);
 
 				if (test < 0 || Kind(test) != Then)
 					break;
 
-				var result = Result(test + 1);
+				var result = Result(test + 1, out var answer);
 
 				if (result < 0)
 					break;
 
+				whens.Add(new SqlWhen(asked!, answer!));
 				at = result;
-				count++;
 			}
 
-			if (count == 0)
+			if (whens.Count == 0)
 				return -1;
+
+			SqlNode? otherwise = null;
 
 			if (Kind(at) == Else)
 			{
-				var otherwise = Result(at + 1);
+				var last = Result(at + 1, out otherwise);
 
-				if (otherwise >= 0)
-					at = otherwise;
+				if (last >= 0)
+					at = last;
 			}
 
-			return At(at, EndWord);
+			var end = At(at, EndWord);
+
+			if (end < 0)
+				return -1;
+
+			node = new SqlCase(operand, whens.ToArray(), otherwise);
+
+			return end;
 		}
 
-		int Result(int i)
+		int Result(int i, out SqlNode? node)
 		{
-			var at = ValueExpression(i);
+			var at = ValueExpression(i, out node);
 
-			return at >= 0 ? at : At(i, Null);
+			if (at >= 0)
+				return at;
+
+			var end = At(i, Null);
+
+			node = end < 0 ? null : NullValue;
+
+			return end;
 		}
 
-		int CastSpecification(int i)
+		int CastSpecification(int i, out SqlNode? node)
 		{
+			node = null;
+
 			if (Kind(i + 1) != Open)
 				return -1;
 
-			var operand = ValueExpression(i + 2);
+			var operand = ValueExpression(i + 2, out var value);
 
 			if (operand < 0)
+			{
 				operand = At(i + 2, Null);
+				value   = NullValue;
+			}
 
 			if (operand < 0 || Kind(operand) != As)
 				return -1;
 
 			var type = DataType(operand + 1);
 
-			return type < 0 ? -1 : At(type, Close);
+			if (type < 0)
+				return -1;
+
+			var close = At(type, Close);
+
+			if (close < 0)
+				return -1;
+
+			node = new SqlCall("CAST", new[] { value! }, Cut(operand + 1, type));
+
+			return close;
 		}
 
 		// ── §6.1 Data type ──────────────────────────────────────────────────────
@@ -1447,8 +1846,10 @@ static class HandSqlTokens
 			return at;
 		}
 
-		int Subquery(int i)
+		int Subquery(int i, out SqlNode? node)
 		{
+			node = null;
+
 			if (Kind(i) != Open)
 				return -1;
 
@@ -1462,9 +1863,15 @@ static class HandSqlTokens
 			for (var at = i + 1; at < _count; at++)
 			{
 				if (_kinds[at] == Open)
+				{
 					depth++;
+				}
 				else if (_kinds[at] == Close && --depth == 0)
+				{
+					node = new SqlSubquery(Cut(i, at + 1));
+
 					return at + 1;
+				}
 			}
 
 			return -1;

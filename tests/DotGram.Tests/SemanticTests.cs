@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -114,7 +113,7 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (',' & A)*" + '\n' +
-			"A = ['a'..'z']+", input));
+			"A = ['a'..'z']+".AsDotGram(), input));
 
 	/// <summary>
 	/// A repetition of one thing is a lexeme, and is not spaced.

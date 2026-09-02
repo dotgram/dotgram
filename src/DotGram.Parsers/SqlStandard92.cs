@@ -46,6 +46,7 @@ namespace DotGram.Parsers;
 /// </remarks>
 [Gram("""
 	@using System;
+	@using DotGram.Parsers;
 
 	using Lexical;
 
@@ -111,71 +112,121 @@ namespace DotGram.Parsers;
 	// Left recursive where the standard is left recursive, which §4.3 folds into a loop,
 	// so the operand at the head is read once however many operators follow it.
 
-	SearchCondition = SearchCondition & "OR"i & BooleanTerm
-	                | BooleanTerm
+	SearchCondition : @SqlNode
+	    = left: SearchCondition & "OR"i & right: BooleanTerm
+	      => @(new SqlBinary(SqlOperator.Or, left, right))
+	    | t: BooleanTerm => @(t)
 
-	BooleanTerm = BooleanTerm & "AND"i & BooleanFactor
-	            | BooleanFactor
+	BooleanTerm : @SqlNode
+	    = left: BooleanTerm & "AND"i & right: BooleanFactor
+	      => @(new SqlBinary(SqlOperator.And, left, right))
+	    | f: BooleanFactor => @(f)
 
-	BooleanFactor = "NOT"i? & BooleanTest
+	BooleanFactor : @SqlNode
+	    = negated: "NOT"i? & t: BooleanTest
+	      => @(negated is null ? t : new SqlUnary(SqlOperator.Not, t))
 
 	// §8.13 <boolean test>. `IS TRUE` and its fellows, and the standard allows them to
 	// stack — `x IS TRUE IS NOT FALSE` is legal — so this repeats rather than being one
 	// optional tail.
-	BooleanTest = BooleanPrimary & ("IS"i & "NOT"i? & TruthValue)*
+	// Left recursive rather than a repetition, so that §4.3 folds it and each test is
+	// built around what stood to its left. The two read the same language.
+	BooleanTest : @SqlNode
+	    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue
+	      => @(new SqlTruthTest(operand, negated is not null, SqlStandard92.Truth(truth)))
+	    | p: BooleanPrimary => @(p)
+
 	TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
-	BooleanPrimary = Predicate
-	               | '(' & SearchCondition & ')'
+	BooleanPrimary : @SqlNode
+	    = p: Predicate => @(p)
+	    | '(' & c: SearchCondition & ')' => @(c)
 
 	// §8.1. Written in the order the standard lists them, except that the ones sharing a
 	// left operand are gathered: <row value constructor> opens six of the nine, and
 	// reading it once for all of them is what §4.3's folding is for. The three that do
 	// not — EXISTS, UNIQUE and the LIKE whose operand is narrower — stand on their own.
-	Predicate = "EXISTS"i & TableSubquery
-	          | "UNIQUE"i & TableSubquery
-	          | RowValueConstructor & PredicateTail
+	Predicate : @SqlNode
+	    = "EXISTS"i & q: TableSubquery
+	      => @(new SqlPredicate(SqlPredicateKind.Exists, false, new SqlNode[] { q }))
+	    | "UNIQUE"i & q: TableSubquery
+	      => @(new SqlPredicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
+	    | row: RowValueConstructor & tail: PredicateTail
+	      => @(SqlStandard92.Predicated(row, tail))
 
 	// What may follow a row on the left of a predicate. One rule so that the row is read
 	// once: written as six alternatives of <predicate> each beginning with <row value
 	// constructor>, a row would be read six times before the parse found out which
 	// predicate it was in — and a row holds whole value expressions.
-	PredicateTail
+	//
+	// Every alternative leaves its first operand empty and `Predicated` writes the row
+	// into it, so a predicate is one record and one array however it was written.
+	PredicateTail : @SqlPredicate
 	          // §8.2 <comparison predicate> and §8.8 <quantified comparison predicate>
 	          // share their operator, and differ only in what stands on the right.
 	          // The two comparison forms share their operator, so it is read once and
 	          // what may follow it is the choice — which is the same grammar written the
 	          // way GRAM4016 asks for, and a row on the right is not cheap to read twice.
-	          = CompOp & (Quantifier & TableSubquery | RowValueConstructor)
+	          = op: CompOp
+	            & ( some: Quantifier & sub: TableSubquery
+	              | right: RowValueConstructor )
+	            => @(some is null
+	                 ? new SqlPredicate(
+	                     SqlPredicateKind.Comparison, false,
+	                     new SqlNode[] { null!, right! }, SqlStandard92.Compared(op))
+	                 : new SqlPredicate(
+	                     SqlPredicateKind.Quantified, false,
+	                     new SqlNode[] { null!, sub! }, SqlStandard92.Compared(op),
+	                     SqlStandard92.Quantified(some)))
 
 	          // §8.3 <between predicate>
-	          | "NOT"i? & "BETWEEN"i & RowValueConstructor
-	            & "AND"i & RowValueConstructor
+	          | negated: "NOT"i? & "BETWEEN"i & low: RowValueConstructor
+	            & "AND"i & high: RowValueConstructor
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.Between, negated is not null,
+	                   new SqlNode[] { null!, low, high }))
 
 	          // §8.4 <in predicate>
-	          | "NOT"i? & "IN"i & InPredicateValue
+	          | negated: "NOT"i? & "IN"i & values: InPredicateValue
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.In, negated is not null,
+	                   new SqlNode[] { null!, values }))
 
 	          // §8.5 <like predicate>. The standard narrows both sides to character
 	          // strings; that is a type rule and not a syntax one, so it is not written
 	          // here — see the note on the collapsed towers above.
-	          | "NOT"i? & "LIKE"i & ValueExpression
-	            & ("ESCAPE"i & ValueExpression)?
+	          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression
+	            & ("ESCAPE"i & escape: ValueExpression)?
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.Like, negated is not null,
+	                   escape is null
+	                     ? new SqlNode[] { null!, pattern }
+	                     : new SqlNode[] { null!, pattern, escape }))
 
 	          // §8.6 <null predicate>
-	          | "IS"i & "NOT"i? & "NULL"i
+	          | "IS"i & negated: "NOT"i? & "NULL"i
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.IsNull, negated is not null, new SqlNode[] { null! }))
 
 	          // §8.10 <match predicate>
-	          | "MATCH"i & "UNIQUE"i? & ("PARTIAL"i | "FULL"i)?
-	            & TableSubquery
+	          | "MATCH"i & unique: "UNIQUE"i? & kind: ("PARTIAL"i | "FULL"i)?
+	            & sub: TableSubquery
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.Match, false, new SqlNode[] { null!, sub },
+	                   null, SqlStandard92.Matched(unique, kind)))
 
 	          // §8.12 <overlaps predicate>
-	          | "OVERLAPS"i & RowValueConstructor
+	          | "OVERLAPS"i & right: RowValueConstructor
+	            => @(new SqlPredicate(
+	                   SqlPredicateKind.Overlaps, false, new SqlNode[] { null!, right }))
 
 	CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
 	Quantifier = "ALL"i | "SOME"i | "ANY"i
 
-	InPredicateValue = TableSubquery
-	                 | '(' & ValueExpression & (',' & ValueExpression)* & ')'
+	InPredicateValue : @SqlNode
+	    = q: TableSubquery => @(q)
+	    | '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+	      => @(new SqlRow(SqlStandard92.Listed(first, rest)))
 
 	// ── §7.1 Row value constructor ─────────────────────────────────────────────
 	//
@@ -188,12 +239,17 @@ namespace DotGram.Parsers;
 	// round, `(a + 1) * 2` was read to its end as the first element of a row, refused at
 	// the missing comma, and read again as a value — once per level of parentheses.
 
-	RowValueConstructor = RowValueConstructorElement
-	                    | '(' & RowValueConstructorElement
-	                          & (',' & RowValueConstructorElement)+ & ')'
-	                    | TableSubquery
+	RowValueConstructor : @SqlNode
+	    = e: RowValueConstructorElement => @(e)
+	    | '(' & first: RowValueConstructorElement
+	          & (',' & rest: RowValueConstructorElement)+ & ')'
+	      => @(new SqlRow(SqlStandard92.Listed(first, rest)))
+	    | q: TableSubquery => @(q)
 
-	RowValueConstructorElement = ValueExpression | "NULL"i | "DEFAULT"i
+	RowValueConstructorElement : @SqlNode
+	    = v: ValueExpression => @(v)
+	    | "NULL"i    => @(SqlStandard92.NullValue)
+	    | "DEFAULT"i => @(SqlStandard92.DefaultValue)
 
 	// ── §6.11 Value expression ─────────────────────────────────────────────────
 	//
@@ -211,59 +267,92 @@ namespace DotGram.Parsers;
 	// precedence, and `||` is simply admitted at the additive level where the standard
 	// gives it a ladder of its own.
 
-	ValueExpression = ValueExpression & ('+' | '-' | "||") & Term
-	                | Term
+	ValueExpression : @SqlNode
+	    = left: ValueExpression & op: ('+' | '-' | "||") & right: Term
+	      => @(new SqlBinary(SqlStandard92.Additive(op), left, right))
+	    | t: Term => @(t)
 
-	Term = Term & ('*' | '/') & Factor
-	     | Factor
+	Term : @SqlNode
+	    = left: Term & op: ('*' | '/') & right: Factor
+	      => @(new SqlBinary(SqlStandard92.Multiplicative(op), left, right))
+	    | f: Factor => @(f)
 
-	Factor = ['+' | '-']? & ValueExpressionPrimary
+	Factor : @SqlNode
+	    = sign: ['+' | '-']? & v: ValueExpressionPrimary
+	      => @(sign is null ? v : new SqlUnary(SqlStandard92.Signed(sign), v))
 
 	// §6.11 <value expression primary>, in the standard's order, plus the value functions
 	// §6.16 through §6.18 fold into <numeric primary>, <string value expression> and
 	// <datetime value expression>. Gathered here because they are all primaries once the
 	// towers are one.
-	ValueExpressionPrimary
-	    = '(' & ValueExpression & ')'
-	    | CaseExpression
-	    | CastSpecification
-	    | ValueFunction
-	    | SetFunctionSpecification
-	    | ScalarSubquery
-	    | UnsignedValueSpecification
-	    | ColumnReference
+	ValueExpressionPrimary : @SqlNode
+	    = '(' & v: ValueExpression & ')' => @(v)
+	    | c: CaseExpression              => @(c)
+	    | c: CastSpecification           => @(c)
+	    | f: ValueFunction               => @(f)
+	    | f: SetFunctionSpecification    => @(f)
+	    | q: ScalarSubquery              => @(q)
+	    | v: UnsignedValueSpecification  => @(v)
+	    | n: ColumnReference             => @(n)
 
 	// ── §6.9 Set function, §6.16-6.18 value functions ──────────────────────────
 
 	// COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
-	SetFunctionSpecification
+	SetFunctionSpecification : @SqlNode
 	    = "COUNT"i & '(' & '*' & ')'
-	    | SetFunctionType & '(' & SetQuantifier? & ValueExpression & ')'
+	      => @(new SqlCall("COUNT", SqlStandard92.None, "*"))
+	    | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
+	      => @(new SqlCall(
+	             SqlStandard92.Aggregate(name), new SqlNode[] { v },
+	             SqlStandard92.Distinctly(quantifier)))
 
 	SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
 	SetQuantifier   = "DISTINCT"i | "ALL"i
 
 	// The functions the standard spells out rather than leaving to <routine invocation>.
 	// Each is a keyword and a fixed shape, which is why they are here and not a call.
-	ValueFunction
-	    = "POSITION"i    & '(' & ValueExpression & "IN"i & ValueExpression & ')'
-	    | "EXTRACT"i     & '(' & ExtractField & "FROM"i & ValueExpression & ')'
-	    | "CHAR_LENGTH"i & '(' & ValueExpression & ')'
-	    | "CHARACTER_LENGTH"i & '(' & ValueExpression & ')'
-	    | "OCTET_LENGTH"i & '(' & ValueExpression & ')'
-	    | "BIT_LENGTH"i  & '(' & ValueExpression & ')'
-	    | "SUBSTRING"i   & '(' & ValueExpression & "FROM"i & ValueExpression
-	                     & ("FOR"i & ValueExpression)? & ')'
-	    | "UPPER"i       & '(' & ValueExpression & ')'
-	    | "LOWER"i       & '(' & ValueExpression & ')'
-	    | "CONVERT"i     & '(' & ValueExpression & "USING"i & QualifiedName & ')'
-	    | "TRANSLATE"i   & '(' & ValueExpression & "USING"i & QualifiedName & ')'
-	    | "TRIM"i        & '(' & TrimSpecification? & ValueExpression?
-	                     & "FROM"i & ValueExpression & ')'
-	    | "TRIM"i        & '(' & ValueExpression & ')'
+	ValueFunction : @SqlNode
+	    = "POSITION"i    & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'
+	      => @(new SqlCall("POSITION", new SqlNode[] { a, b }))
+	    | "EXTRACT"i     & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')'
+	      => @(new SqlCall("EXTRACT", new SqlNode[] { v }, field))
+	    | "CHAR_LENGTH"i & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("CHAR_LENGTH", new SqlNode[] { v }))
+	    | "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("CHARACTER_LENGTH", new SqlNode[] { v }))
+	    | "OCTET_LENGTH"i & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("OCTET_LENGTH", new SqlNode[] { v }))
+	    | "BIT_LENGTH"i  & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("BIT_LENGTH", new SqlNode[] { v }))
+	    | "SUBSTRING"i   & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
+	                     & ("FOR"i & length: ValueExpression)? & ')'
+	      => @(new SqlCall(
+	             "SUBSTRING",
+	             length is null
+	               ? new SqlNode[] { v, from }
+	               : new SqlNode[] { v, from, length }))
+	    | "UPPER"i       & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("UPPER", new SqlNode[] { v }))
+	    | "LOWER"i       & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("LOWER", new SqlNode[] { v }))
+	    | "CONVERT"i     & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')'
+	      => @(new SqlCall("CONVERT", new SqlNode[] { v }, name))
+	    | "TRANSLATE"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')'
+	      => @(new SqlCall("TRANSLATE", new SqlNode[] { v }, name))
+	    | "TRIM"i        & '(' & how: TrimSpecification? & what: ValueExpression?
+	                     & "FROM"i & v: ValueExpression & ')'
+	      => @(new SqlCall(
+	             "TRIM",
+	             what is null ? new SqlNode[] { v } : new SqlNode[] { what, v },
+	             how))
+	    | "TRIM"i        & '(' & v: ValueExpression & ')'
+	      => @(new SqlCall("TRIM", new SqlNode[] { v }))
 	    | "CURRENT_DATE"i
-	    | "CURRENT_TIME"i      & ('(' & Digits & ')')?
-	    | "CURRENT_TIMESTAMP"i & ('(' & Digits & ')')?
+	      => @(new SqlCall("CURRENT_DATE", SqlStandard92.None))
+	    | "CURRENT_TIME"i      & ('(' & digits: Digits & ')')?
+	      => @(new SqlCall("CURRENT_TIME", SqlStandard92.None, digits))
+	    | "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')?
+	      => @(new SqlCall("CURRENT_TIMESTAMP", SqlStandard92.None, digits))
 
 	ExtractField = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i
 	             | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
@@ -274,19 +363,32 @@ namespace DotGram.Parsers;
 	// The standard's <case abbreviation> — NULLIF and COALESCE — is part of <case
 	// expression>, not something beside it, and is written here where the standard puts
 	// it.
-	CaseExpression
-	    = "NULLIF"i   & '(' & ValueExpression & ',' & ValueExpression & ')'
-	    | "COALESCE"i & '(' & ValueExpression & (',' & ValueExpression)* & ')'
-	    | "CASE"i & ValueExpression & SimpleWhen+
-	              & ("ELSE"i & Result)? & "END"i
-	    | "CASE"i & SearchedWhen+ & ("ELSE"i & Result)? & "END"i
+	CaseExpression : @SqlNode
+	    = "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'
+	      => @(new SqlCall("NULLIF", new SqlNode[] { a, b }))
+	    | "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+	      => @(new SqlCall("COALESCE", SqlStandard92.Listed(first, rest)))
+	    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+
+	              & ("ELSE"i & otherwise: Result)? & "END"i
+	      => @(new SqlCase(operand, whens, otherwise))
+	    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i
+	      => @(new SqlCase(null, whens, otherwise))
 
-	SimpleWhen   = "WHEN"i & ValueExpression & "THEN"i & Result
-	SearchedWhen = "WHEN"i & SearchCondition  & "THEN"i & Result
-	Result       = ValueExpression | "NULL"i
+	SimpleWhen : @SqlWhen
+	    = "WHEN"i & test: ValueExpression & "THEN"i & result: Result
+	      => @(new SqlWhen(test, result))
 
-	CastSpecification = "CAST"i & '(' & CastOperand & "AS"i & DataType & ')'
-	CastOperand = ValueExpression | "NULL"i
+	SearchedWhen : @SqlWhen
+	    = "WHEN"i & test: SearchCondition & "THEN"i & result: Result
+	      => @(new SqlWhen(test, result))
+
+	Result : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlStandard92.NullValue)
+
+	CastSpecification : @SqlNode
+	    = "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')'
+	      => @(new SqlCall("CAST", new SqlNode[] { v }, type))
+
+	CastOperand : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlStandard92.NullValue)
 
 	// ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
 
@@ -312,17 +414,19 @@ namespace DotGram.Parsers;
 
 	// ── §6.3 Value specification, §6.4 Column reference ────────────────────────
 
-	UnsignedValueSpecification = UnsignedLiteral | GeneralValueSpecification
+	UnsignedValueSpecification : @SqlNode
+	    = v: UnsignedLiteral => @(v) | v: GeneralValueSpecification => @(v)
 
-	UnsignedLiteral = UnsignedNumericLiteral
-	                | CharacterStringLiteral
-	                | NationalCharacterStringLiteral
-	                | BitStringLiteral
-	                | HexStringLiteral
-	                | DateLiteral
-	                | TimeLiteral
-	                | TimestampLiteral
-	                | IntervalLiteral
+	UnsignedLiteral : @SqlNode
+	    = t: UnsignedNumericLiteral          => @(new SqlLiteral(SqlLiteralKind.Number,    t))
+	    | t: CharacterStringLiteral          => @(new SqlLiteral(SqlLiteralKind.Text,      t))
+	    | t: NationalCharacterStringLiteral  => @(new SqlLiteral(SqlLiteralKind.National,  t))
+	    | t: BitStringLiteral                => @(new SqlLiteral(SqlLiteralKind.Bit,       t))
+	    | t: HexStringLiteral                => @(new SqlLiteral(SqlLiteralKind.Hex,       t))
+	    | t: DateLiteral                     => @(new SqlLiteral(SqlLiteralKind.Date,      t))
+	    | t: TimeLiteral                     => @(new SqlLiteral(SqlLiteralKind.Time,      t))
+	    | t: TimestampLiteral                => @(new SqlLiteral(SqlLiteralKind.Timestamp, t))
+	    | t: IntervalLiteral                 => @(new SqlLiteral(SqlLiteralKind.Interval,  t))
 
 	// §5.3. The sign belongs to the literal here and not to <factor>, which is what lets
 	// `INTERVAL -'1' DAY` read.
@@ -331,15 +435,18 @@ namespace DotGram.Parsers;
 
 	// §6.3 <general value specification>: the parameters and the niladic functions that
 	// stand where a value does.
-	GeneralValueSpecification
-	    = ':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?
+	GeneralValueSpecification : @SqlNode
+	    = t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
+	      => @(new SqlLiteral(SqlLiteralKind.Parameter, t))
 	    | '?'
-	    | "USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i
+	      => @(new SqlLiteral(SqlLiteralKind.Parameter, "?"))
+	    | t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
+	      => @(new SqlLiteral(SqlLiteralKind.Special, t))
 
 	// §6.4. A column reference is a qualified name, and how many parts it has is a
 	// question about a catalogue rather than about syntax — so the syntax admits the
 	// depth the standard allows and says nothing about what the parts mean.
-	ColumnReference = QualifiedName
+	ColumnReference : @SqlNode = name: QualifiedName => @(new SqlName(name))
 
 	QualifiedName = Identifier & (('.' & Identifier))*
 
@@ -361,8 +468,8 @@ namespace DotGram.Parsers;
 	// of it. The opening word is what tells a subquery from a parenthesized expression at
 	// the second token, so the choice between them needs no way back; a query expression
 	// that is itself parenthesized, `((SELECT 1))`, is the one form this leaves out.
-	TableSubquery  = Subquery
-	ScalarSubquery = Subquery
+	TableSubquery  : @SqlNode = q: Subquery => @(new SqlSubquery(q))
+	ScalarSubquery : @SqlNode = q: Subquery => @(new SqlSubquery(q))
 
 	Subquery = '(' & ("SELECT"i | "VALUES"i | "TABLE"i) & (Balanced | [^ '(' | ')'])* & ')'
 	Balanced = '(' & (Balanced | [^ '(' | ')'])* & ')'
@@ -396,4 +503,112 @@ namespace DotGram.Parsers;
 	""", Lexical = true)]
 public static partial class SqlStandard92
 {
+	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
+	static readonly SqlNode[] None = [];
+
+	/// <summary>The two words that stand where a value does and are always the same node.</summary>
+	static readonly SqlNode NullValue    = new SqlLiteral(SqlLiteralKind.Null,    "NULL");
+	static readonly SqlNode DefaultValue = new SqlLiteral(SqlLiteralKind.Default, "DEFAULT");
+
+	/// <summary>A head and a tail as one array, which is what a separated list comes to.</summary>
+	static SqlNode[] Listed(SqlNode first, SqlNode[]? rest)
+	{
+		if (rest is null || rest.Length == 0)
+			return [first];
+
+		var all = new SqlNode[rest.Length + 1];
+
+		all[0] = first;
+		rest.CopyTo(all, 1);
+
+		return all;
+	}
+
+	/// <summary>
+	/// The left operand written into the tail the predicate was read as.
+	/// </summary>
+	/// <remarks>
+	/// The row is read once for all nine predicates (§8.1's note above), so the tail is
+	/// built without it and the slot it left is filled here. Written into the array rather
+	/// than copied onto a new record: the array is this predicate's own and nothing has
+	/// seen it yet.
+	/// </remarks>
+	static SqlPredicate Predicated(SqlNode left, SqlPredicate tail)
+	{
+		tail.Operands[0] = left;
+
+		return tail;
+	}
+
+	static SqlOperator Additive(string operatorText) => operatorText switch
+	{
+		"+" => SqlOperator.Add,
+		"-" => SqlOperator.Subtract,
+		_   => SqlOperator.Concatenate,
+	};
+
+	static SqlOperator Multiplicative(string operatorText) =>
+		operatorText == "*" ? SqlOperator.Multiply : SqlOperator.Divide;
+
+	static SqlOperator Signed(string sign) =>
+		sign == "-" ? SqlOperator.Negate : SqlOperator.Identity;
+
+	static SqlOperator Compared(string operatorText) => operatorText switch
+	{
+		"="  => SqlOperator.Equal,
+		"<>" => SqlOperator.NotEqual,
+		"<"  => SqlOperator.Less,
+		"<=" => SqlOperator.LessOrEqual,
+		">"  => SqlOperator.Greater,
+		_    => SqlOperator.GreaterOrEqual,
+	};
+
+	/// <summary>
+	/// A word the grammar matched, as the one constant that stands for it.
+	/// </summary>
+	/// <remarks>
+	/// The text is what the author wrote, in whatever case they wrote it; the tree says
+	/// the word. Told apart by length and first letter, which costs nothing and allocates
+	/// nothing — the alternative is the matched text, and a capture cuts a string.
+	/// </remarks>
+	static SqlTruth Truth(string word) =>
+		(word[0] | 0x20) switch
+		{
+			't' => SqlTruth.True,
+			'f' => SqlTruth.False,
+			_   => SqlTruth.Unknown,
+		};
+
+	static string Aggregate(string word) =>
+		(word[0] | 0x20) switch
+		{
+			'a' => "AVG",
+			's' => "SUM",
+			'c' => "COUNT",
+			'm' => (word[1] | 0x20) == 'a' ? "MAX" : "MIN",
+			_   => word,
+		};
+
+	static string? Quantified(string? word) =>
+		word is null
+			? null
+			: (word[0] | 0x20) switch
+			{
+				'a' => (word[1] | 0x20) == 'l' ? "ALL" : "ANY",
+				's' => "SOME",
+				_   => word,
+			};
+
+	static string? Distinctly(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'd' ? "DISTINCT" : "ALL";
+
+	/// <summary>What a match predicate was qualified by, as one word or two.</summary>
+	static string? Matched(string? unique, string? kind)
+	{
+		var partial = kind is not null && (kind[0] | 0x20) == 'p';
+
+		return unique is null
+			? kind is null ? null : partial ? "PARTIAL" : "FULL"
+			: kind is null ? "UNIQUE" : partial ? "UNIQUE PARTIAL" : "UNIQUE FULL";
+	}
 }

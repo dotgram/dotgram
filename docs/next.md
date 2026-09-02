@@ -11481,3 +11481,62 @@ A warning and not an error, because the parse is correct: it is ordered choice o
 characters, which is what the engine implements and what the notation meant everywhere
 until this week. What is not correct is the promise, and the promise is what the message
 is about.
+
+## Built: SQL builds a tree, and building is where the distance is
+
+Everything measured until now was recognition. Both sides answered yes or no, neither
+built anything, and the machinery that makes a value — the log a parse writes, and the
+walk over it afterwards — had never appeared in a number. That is most of what this
+generator is, and it was invisible.
+
+`SqlStandard92` builds now. Every production of §6 through §8 carries a construction,
+into a flat tree of nine records: one base, one level of descendants, what distinguishes
+an `OR` from a `*` written as a field rather than as a type. A predicate holds its
+operands in an array and says which predicate it is, so `x BETWEEN a AND b` is a kind and
+three operands rather than a record of its own — a visitor over forty productions is a
+thing a consumer regrets, and the fortieth production breaking every visitor already
+written is how it goes wrong.
+
+One shape in the grammar is worth naming. The row on the left of a predicate is read once
+for all nine of them (§8.1's note), so the tail is built without its first operand and
+`Predicated` writes the row into the slot the tail left empty. One record and one array
+per predicate, which is what a person writes; the alternative was a record built and then
+copied.
+
+`HandSqlTokens` builds the same tree, and `Agree` holds it to that: over all forty-two
+shapes the two answer the same *and* render identically. So the numbers below are two
+ways of making one tree, and nothing else.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 465 ns | 46 ns | 10.1 |
+| `(a + b) * c > d` | 803 | 101 | 7.9 |
+| `x = 1 AND y IS NOT NULL` | 789 | 121 | 6.5 |
+| 64 predicates joined by `AND` | 26,016 | 4,282 | 6.1 |
+| 64 operands joined by `+` | 8,177 | 1,933 | 4.2 |
+
+**Four to ten times, where recognition was one to two.** And it is not allocation: a
+parse of `a` allocates 72 bytes, the node and its string and nothing else; sixty-four
+operands allocate 9,176 bytes for a hundred and ninety objects, which is what the tree
+weighs to the byte. It is about thirty-five nanoseconds per node beyond what allocating
+that node costs, and it is spent in the materializer — sizing the value tables, clearing
+the built marks, listing every record the log holds, marking the live ones back to front,
+and then a switch per record to reach the factory.
+
+So the direction changes. Recognition was worth the last four entries and is now within
+a small factor of a person; building has never been looked at and is six times behind.
+Three things to weigh next, in the order they look worth it:
+
+- **The record a rule writes when it only forwards.** `ValueExpressionPrimary` reading a
+  column reference builds a node that is exactly the node its callee built, and writes a
+  record to say so. Every level of a ladder that hands its operand up does this. A
+  forwarding alternative could hand back the child's record rather than making one.
+- **The two passes.** The log is walked to list the records, walked back to mark what is
+  live, and walked again to build. A parse that commits — which every reader over kinds
+  now does — cannot have dead records in the log at all, so the liveness pass is
+  answering a question that no longer has two answers.
+- **The switch per record.** A record names a rule and a factory and is dispatched
+  through two nested switches. What a person writes is a call at the site that knew.
+
+None of that is measured yet, which is the same mistake this entry is about. The yardstick
+is in place now, so it will be.
