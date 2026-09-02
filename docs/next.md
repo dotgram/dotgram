@@ -11397,3 +11397,66 @@ syntactic half that cannot be read by methods — `find`, `stream`, `recover`, a
 still runs on the engine, which backtracks as it always did. Neither split grammar in
 the repository has such a rule, and the day one does is the day the engine learns to
 commit or the compiler learns to say no.
+
+## Measured: the ladder is not the cost, and collapsing it is a loss
+
+The plan after the tape was the ladder. Reading `a = 1`, the SQL recognizer walks
+thirteen rules from a search condition down to a column reference and walks them twice,
+once for each operand, where the hand-written parser climbs three levels of binding
+power. Two to one on the totals, and five to one on the reader alone once the lexer is
+subtracted from both. The obvious next move was to collapse a chain of `X = X op Y | Y`
+rules into one climbing loop, the way the hand-written parser is written.
+
+**Climbing had to reach the methods first**, since the direct rendering refused a rule
+of binding powers outright and refusing it put the whole grammar on the engine. A
+climbing reader now takes the strength it is read at, an alternative below that strength
+jumps to the choice's next without recording a refusal, and a call carries what `<<` or
+`>>` recorded against it. Nothing else changed shape: the fold that left recursion
+becomes is what the direct path already read. Three examples left the engine with it.
+
+**Then the experiment, before building the detection that would make it automatic.**
+`SqlStandard92`'s two ladders were rewritten by hand with binding powers — four boolean
+levels into one rule of `OR`, `AND`, prefix `NOT` and the `IS` tail, three value levels
+into one of `+ - ||`, `* /` and the sign. Same language, checked; the generated file
+fell from 41,143 lines to 15,619. And it is slower:
+
+| input | levels as rules | one climbing rule |
+| --- | --: | --: |
+| `a = 1` | 41 ns | 96 |
+| `(a + b) * c > d` | 75 | 122 |
+| 64 predicates joined by `AND` | 2,597 | 2,678 |
+| 64 operands joined by `+` | 950 | 1,285 |
+
+**Because the ladder was never thirteen calls.** The budget writes a rule in place
+wherever a method has room, so twelve of the thirteen levels are already inside one
+method, and what each contributes is its loop's test against a token already in a
+register. A climbing rule is the opposite: it cannot be written in place, because its
+alternatives are gated by a strength that is a parameter, and it cannot be split into
+parts for the same reason — so every operand becomes a real call with a prologue, and
+`a = 1` pays two of them where it paid none. Precedence climbing is what a person writes
+because a person is not going to write thirteen methods; it is not what is fastest once
+the thirteen are one method anyway.
+
+So the ladder collapse is not worth building, and the entry stands as the reason not to
+try it again.
+
+**What the experiment did find is a bug, and only over kinds.** The lexical split
+rewrites every node of the grammar into the kinds it will read, and it kept a map from
+what each node was to what it became. That map was keyed by structure, deliberately, on
+the argument that two nodes a grammar wrote the same way could not be told apart by the
+dictionaries being remapped. They can: the normalizer keys `Powers`, `Recoveries` and a
+fold's accumulators by the node object, so two calls to the same rule are two keys with
+two values. Collapsed to one, every call to a climbing rule took the strength of
+whichever call site was rewritten last — and `(a + b) * c` was read with the
+parenthesized operand at the strength of the `*` around it, which refuses the `+`. It
+had never shown because no split grammar had used binding powers until this experiment
+did. Keyed by identity now, both there and in the remapped dictionaries, with a theory
+that asks the same three shapes of both halves.
+
+**And a hypothesis for next time, from the same numbers.** Fitting the two ends: the
+difference on the sixty-four predicates is about 1.1 ns per token, and on `a = 1` it is
+22 ns over three tokens. Nineteen of those twenty-two are fixed — paid once per parse
+regardless of length — which is the whole of what the hand-written parser spends on that
+input. That is where to look: the tape rented and returned, the values table rented
+beside it, the try, the catch for a deep stack and the finally, and the failure struct.
+Not the reader.
