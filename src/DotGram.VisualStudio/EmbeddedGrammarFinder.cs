@@ -62,6 +62,40 @@ public static class EmbeddedGrammarFinder
 		return grammars;
 	}
 
+	/// <summary>
+	/// Finds source-spelled <c>Gram</c> attributes without requesting a semantic model.
+	/// The result is intentionally provisional and is used only to make initial editor
+	/// classification available while Roslyn finishes the authoritative analysis.
+	/// </summary>
+	public static IReadOnlyList<EmbeddedGrammar> FindSyntactic(
+		SyntaxNode root,
+		CancellationToken cancellationToken = default)
+	{
+		if (root is null)
+			throw new ArgumentNullException(nameof(root));
+
+		var grammars = new List<EmbeddedGrammar>();
+
+		foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>())
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			var name = attribute.Name.ToString();
+			if (name is not "Gram" and not "GramAttribute" &&
+				!name.EndsWith(".Gram", StringComparison.Ordinal) &&
+				!name.EndsWith(".GramAttribute", StringComparison.Ordinal) ||
+				attribute.ArgumentList?.Arguments.FirstOrDefault(
+					static argument => argument.NameEquals is null) is not
+						{ Expression: LiteralExpressionSyntax literal } ||
+				!CSharpStringMap.TryCreate(literal.Token, out var map))
+				continue;
+
+			grammars.Add(new EmbeddedGrammar(literal.Token.ValueText, literal.Token, map!));
+		}
+
+		return grammars;
+	}
+
 	static bool IsGramAttribute(
 		SemanticModel model, AttributeSyntax attribute, CancellationToken cancellationToken)
 	{

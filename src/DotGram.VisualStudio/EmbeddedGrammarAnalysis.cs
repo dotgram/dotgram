@@ -104,12 +104,20 @@ public sealed class EmbeddedGrammarAnalysis(
 /// <summary>Runs shared grammar intelligence and maps its answers into a C# document.</summary>
 public static class EmbeddedGrammarService
 {
+	public static IReadOnlyList<EmbeddedGrammarAnalysis> AnalyzeSyntactic(
+		SyntaxNode root, CancellationToken cancellationToken = default) =>
+		Analyze(EmbeddedGrammarFinder.FindSyntactic(root, cancellationToken), cancellationToken);
+
 	public static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
 		SemanticModel model, SyntaxNode root, CancellationToken cancellationToken = default)
+		=> Analyze(EmbeddedGrammarFinder.Find(model, root, cancellationToken), cancellationToken);
+
+	static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
+		IReadOnlyList<EmbeddedGrammar> grammars, CancellationToken cancellationToken)
 	{
 		var analyses = new List<EmbeddedGrammarAnalysis>();
 
-		foreach (var grammar in EmbeddedGrammarFinder.Find(model, root, cancellationToken))
+		foreach (var grammar in grammars)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 

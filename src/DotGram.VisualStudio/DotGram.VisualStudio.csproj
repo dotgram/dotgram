@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net472</TargetFramework>
-		<Version>0.1.31</Version>
+		<Version>0.1.32</Version>
 		<UseWPF>true</UseWPF>
 		<Description>Visual Studio tooling for .gram documents.</Description>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>

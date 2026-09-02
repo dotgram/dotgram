@@ -219,6 +219,7 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 sealed class EmbeddedGrammarBufferAnalysis
 {
 	const int AnalysisDelayMilliseconds = 200;
+	const int SemanticAnalysisDelayMilliseconds = 800;
 
 	readonly ITextBuffer                _buffer;
 	readonly VisualStudioWorkspace      _workspace;
@@ -518,9 +519,25 @@ sealed class EmbeddedGrammarBufferAnalysis
 			document = document.WithText(SourceText.From(snapshot.GetText(), Encoding.UTF8));
 
 			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-			if (root is null || model is null)
+			if (root is null)
+				return;
+
+			// Initial colors and structure need only C# syntax. Publish those before asking
+			// Roslyn for a semantic model: on large source files compilation can contend with
+			// the editor's own document-load work for several seconds.
+			var provisional = EmbeddedGrammarService.AnalyzeSyntactic(root, cancellationToken);
+			if (provisional.Count > 0)
+			{
+				if (!PublishProvisional(snapshot, provisional, cancellationToken))
+					return;
+
+				await NotifyChangedAsync(snapshot);
+				await Task.Delay(SemanticAnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
+			}
+
+			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+			if (model is null)
 				return;
 
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
@@ -610,6 +627,30 @@ sealed class EmbeddedGrammarBufferAnalysis
 			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
 			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
 		}
+	}
+
+	bool PublishProvisional(
+		ITextSnapshot snapshot,
+		IReadOnlyList<EmbeddedGrammarAnalysis> analyses,
+		CancellationToken cancellationToken)
+	{
+		var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
+		var braces = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
+		var foldingRanges = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
+
+		lock (_gate)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			if (_buffer.CurrentSnapshot != snapshot)
+				return false;
+
+			_snapshot = snapshot;
+			_classifications = classifications;
+			_braces = braces;
+			_foldingRanges = foldingRanges;
+		}
+
+		return true;
 	}
 
 	async Task NotifyChangedAsync(ITextSnapshot snapshot)

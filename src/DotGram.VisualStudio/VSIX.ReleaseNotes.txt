@@ -1,4 +1,4 @@
-DotGram language support 0.1.31
+DotGram language support 0.1.32
 
 Initial preview for Visual Studio 18.
 
@@ -13,3 +13,4 @@ Initial preview for Visual Studio 18.
 - The `@` C# transition marker now uses the theme's keyword color.
 - The `~` no-trivia sequence operator is classified and described in Quick Info.
 - Case-insensitive string and character literals use a distinct theme-derived style.
+- Large embedded grammars receive syntax colors before deferred semantic analysis.

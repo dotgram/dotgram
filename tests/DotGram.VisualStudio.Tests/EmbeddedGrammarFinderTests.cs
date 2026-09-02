@@ -62,6 +62,24 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
+	public void FindsSourceSpelledGramAttributeWithoutSemanticModel()
+	{
+		var source = """"
+			[DotGram.Gram("""
+				Start = "select"i
+				""")]
+			class Parser;
+			"""";
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var root = CSharpSyntaxTree.ParseText(source, cancellationToken: cancellationToken)
+			.GetRoot(cancellationToken);
+
+		var grammar = Assert.Single(EmbeddedGrammarFinder.FindSyntactic(root, cancellationToken));
+
+		Assert.Contains("Start = \"select\"i", grammar.Text, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void AcceptsNamedArgumentsAndSplicesEmbeddedBaseGrammars()
 	{
 		var source = """
