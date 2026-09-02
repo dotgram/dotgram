@@ -226,6 +226,52 @@ public sealed class SemanticTests
 		Assert.Equal(expected, match.IsSuccess);
 	}
 
+	// ── A split half the methods refuse is told it will backtrack ────────────
+
+	/// <summary>
+	/// Over kinds a rule's answer stands (§4), and it is the methods that say it. A
+	/// syntactic half the methods cannot write runs on the engine, which backtracks —
+	/// so the grammar is told, and told which rule cost it that.
+	/// </summary>
+	/// <remarks>
+	/// <c>recover</c> is the shape used here because it is the plainest of the several
+	/// the direct rendering still hands back. Over characters the same grammar says
+	/// nothing: backtracking is what reading characters means.
+	/// </remarks>
+	[Theory]
+	[InlineData(false, false)]
+	[InlineData(true,  true)]
+	public void A_split_half_the_methods_refuse_is_told_it_backtracks(bool lexical, bool warned)
+	{
+		var feed = string.Join(
+			"\n",
+			"trivia = { ' '* }",
+			"namespace Lexical",
+			"{",
+			"\ttrivia = none",
+			"\tName = ['a'..'z']+",
+			"}",
+			"Row   = Lexical.Name & ';'",
+			"Start = Row* recover ';' & eof",
+			"parse Start");
+
+		var result = GramCompiler.Compile(
+			feed,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));
+
+		var backtracks = result.Diagnostics.Where(one => one.Id == "GRAM5005").ToArray();
+
+		Assert.Equal(warned, backtracks.Length > 0);
+
+		if (warned)
+			Assert.Contains("recovers from a bad element", backtracks[0].Message, StringComparison.Ordinal);
+	}
+
 	// ── A split grammar keeps every call site's own strength ─────────────────
 
 	/// <summary>
@@ -252,17 +298,17 @@ public sealed class SemanticTests
 	{
 		var arithmetic = string.Join(
 			"\n",
-			"trivia = { \' \'* }",
+			"trivia = { ' '* }",
 			"namespace Lexical",
 			"{",
 			"\ttrivia = none",
-			"\tName = [\'a\'..\'z\']+",
+			"\tName = ['a'..'z']+",
 			"}",
 			"Start = Expr & eof",
-			"Expr = Expr & \'+\' & Expr << 1",
-			"     | Expr & \'*\' & Expr << 2",
+			"Expr = Expr & '+' & Expr << 1",
+			"     | Expr & '*' & Expr << 2",
 			"     | Prim",
-			"Prim = Lexical.Name | \'(\' & Expr & \')\'",
+			"Prim = Lexical.Name | '(' & Expr & ')'",
 			"parse Start");
 
 		var result = GramCompiler.Compile(

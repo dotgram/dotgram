@@ -57,19 +57,55 @@ sealed partial class Machine
 	/// </summary>
 	public bool CanDirect(IReadOnlyList<Publication> publications)
 	{
+		Refusal = null;
+
 		if (publications.Count == 0)
-			return false;
+			return Refused(null, "there is nothing published");
 
 		foreach (var publication in publications)
-			if (publication.Kind != PublishKind.Parse || !DirectReachable(publication.Rule))
+		{
+			if (publication.Kind != PublishKind.Parse)
+				return Refused(publication.Rule, $"it is published with '{Directive(publication.Kind)}'");
+
+			if (!DirectReachable(publication.Rule))
 				return false;
+		}
 
 		// A guard handed a value builds it from the log while the text is read, and a
 		// factory that asks for the input would have to be handed it there: not yet.
 		DirectGuardNeeds(DirectRules(publications));
 
-		return !(_directBuilds && UsesInput);
+		return !_directBuilds || !UsesInput ||
+			Refused(null, "a guard is handed a value whose factory asks for the input");
 	}
+
+	/// <summary>
+	/// Why the methods could not be written, where they could not: a rule and what about
+	/// it, in words a grammar's author can act on. Null where they were.
+	/// </summary>
+	/// <remarks>
+	/// Kept because the answer matters beyond the emitter's own choice. Over kinds the
+	/// language says a rule's answer stands (docs/syntax.md §4), and it is the methods
+	/// that say it: a machine that falls back to the engine backtracks as it always did,
+	/// so the grammar is told (GRAM5005) rather than left to differ silently.
+	/// </remarks>
+	public (RuleSymbol? Rule, string Why)? Refusal { get; private set; }
+
+	bool Refused(RuleSymbol? rule, string why)
+	{
+		Refusal ??= (rule, why);
+
+		return false;
+	}
+
+	static string Directive(PublishKind kind) => kind switch
+	{
+		PublishKind.Find => "find",
+		_                => kind.ToString().ToLowerInvariant(),
+	};
+
+	/// <summary>What a machine that could not be written as methods is refused for (§4, over kinds).</summary>
+	public const string Backtracks = "GRAM5005";
 
 	bool DirectReachable(RuleSymbol root)
 	{
@@ -85,11 +121,14 @@ sealed partial class Machine
 			if (!seen.Add(rule))
 				continue;
 
-			if (_graph.Externals.ContainsKey(rule) ||
-				!_graph.Bodies.TryGetValue(rule, out var body) || !DirectValuedRule(rule))
-			{
-				return false;
-			}
+			if (_graph.Externals.ContainsKey(rule))
+				return Refused(rule, "it is an external recognizer that keeps a value");
+
+			if (!_graph.Bodies.TryGetValue(rule, out var body))
+				return Refused(rule, "it has no body here");
+
+			if (!DirectValuedRule(rule))
+				return Refused(rule, "of what it builds");
 
 			var bodies = new List<Node> { body };
 
@@ -100,7 +139,7 @@ sealed partial class Machine
 				foreach (var node in NodeWalk.Descendants(one))
 				{
 					if (_graph.Recoveries.ContainsKey(node))
-						return false;
+						return Refused(rule, "it recovers from a bad element");
 
 					switch (node)
 					{
@@ -114,26 +153,26 @@ sealed partial class Machine
 						// What a lookahead saw is a capture the engine compiles as a machine
 						// of its own; not here yet.
 						case Node.Capture(_, Node.Lookahead):
-							return false;
+							return Refused(rule, "it captures what a lookahead saw");
 
 						case Node.Capture or Node.Construct or Node.Marked:
 							break;
 
 						case Node.Guard guard:
 							if (!DirectGuard(rule, guard))
-								return false;
+								return Refused(rule, "of what one of its guards is handed");
 
 							break;
 
 						case Node.Call(var called, var arguments):
 							if (arguments.Count > 0)
-								return false;
+								return Refused(rule, "it calls a rule with arguments");
 
 							pending.Push(called);
 							break;
 
 						default:
-							return false;
+							return Refused(rule, $"of a {node.GetType().Name.ToLowerInvariant()} in it");
 					}
 				}
 		}

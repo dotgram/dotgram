@@ -11460,3 +11460,24 @@ regardless of length — which is the whole of what the hand-written parser spen
 input. That is where to look: the tape rented and returned, the values table rented
 beside it, the try, the catch for a deep stack and the finally, and the failure struct.
 Not the reader.
+
+## Built: the gap over kinds says so out loud
+
+The entry that made a rule's answer stand over kinds named a gap and left it: the
+statement is about the language, the readers honour it, and a syntactic half the readers
+cannot write falls back to the engine, which backtracks as it always did. Neither split
+grammar in the repository has such a rule, so nothing was wrong — but a grammar that
+reads one way and runs the other is the kind of thing that is discovered years later by
+somebody debugging a parse.
+
+`GRAM5005` is that grammar being told. Over kinds, a machine written by neither the flat
+path nor the methods is a warning naming the rule and what about it was refused: a
+recovery, a stream, a `find`, a captured lookahead, a guard handed what a reader cannot
+hand it, or a rule called with arguments. The refusal was a bare `false` in seven places
+and is a reason now, which is worth having on its own — "cannot be read by methods" is
+not a thing an author can act on, and "`Row` recovers from a bad element" is.
+
+A warning and not an error, because the parse is correct: it is ordered choice over
+characters, which is what the engine implements and what the notation meant everywhere
+until this week. What is not correct is the promise, and the promise is what the message
+is about.

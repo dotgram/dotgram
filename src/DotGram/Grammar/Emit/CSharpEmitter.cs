@@ -497,6 +497,27 @@ public static partial class CSharpEmitter
 
 		if (diagnostics is not null)
 		{
+			// Over kinds the language says a rule's answer stands (§4), and it is the
+			// methods that say it. A machine the methods refused runs on the engine, which
+			// backtracks into a rule that already matched — so the grammar is told which
+			// rule cost it that, rather than reading one way and running the other.
+			if (lexical is not null)
+				foreach (var compiled in machines)
+					if (!compiled.Direct && !compiled.Flat && compiled.Machine.Refusal is var (rule, why))
+					{
+						var at = (rule ?? compiled.Publications[0].Rule).Declaration?.At ?? default;
+
+						diagnostics.Add(new GramDiagnostic(
+							Machine.Backtracks,
+							$"'{(rule ?? compiled.Publications[0].Rule).Name}' cannot be read by methods because " +
+							$"{why}, so this grammar's syntactic half runs on the shared engine. There a choice " +
+							"that has matched can be revisited when something later fails, which is what reading " +
+							"characters means and not what reading kinds means (docs/syntax.md §4). The parse is " +
+							"correct as ordered choice over characters; it is the committed reading the notation " +
+							"promises over kinds that is not what runs.",
+							at.Position, at.Length, GramSeverity.Warning));
+					}
+
 			foreach (var compiled in machines)
 				foreach (var warning in compiled.Machine.Oversized)
 					diagnostics.Add(warning);
