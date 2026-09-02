@@ -768,6 +768,9 @@ sealed partial class Machine
 
 	string TokensArgument => OverKinds ? ", parserSource, parserStarts, parserLengths" : "";
 
+	/// <summary>The tokens as locals a lambda may capture without hoisting the closure.</summary>
+	string TokensLocals => OverKinds ? ", lexedSource, lexedStarts, lexedLengths" : "";
+
 	/// <summary>
 	/// What a run of tokens came from: its text, and where in the input it stood.
 	/// </summary>

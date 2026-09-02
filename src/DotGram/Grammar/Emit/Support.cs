@@ -1186,6 +1186,54 @@ public static partial class CSharpEmitter
 		return runtime;
 	}
 
+	/// <summary>
+	/// The typed value tables a direct materialization writes into, one per type a rule
+	/// can produce and indexed by record — the same tables the engine keeps in its
+	/// <c>Parser</c>, kept here without the arena around them. Rented per parse and kept
+	/// per thread, cleared on the way back so a pooled table holds no document alive.
+	/// </summary>
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes)
+	{
+		var text = new StringBuilder();
+
+		text.Append("sealed class DirectValues\n{\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+		{
+			// An element type that is itself an array puts the count before its own brackets.
+			var bracket = valueTypes[i].IndexOf('[');
+			var created = bracket < 0
+				? valueTypes[i] + "[16]"
+				: valueTypes[i].Substring(0, bracket) + "[16]" + valueTypes[i].Substring(bracket);
+
+			text.Append("\tinternal ").Append(valueTypes[i]).Append("[] V").Append(i)
+				.Append(" = new ").Append(created).Append(";\n");
+		}
+
+		text.Append("\tinternal bool[] Live   = new bool[16];\n");
+		text.Append("\tinternal int[]  Starts = new int[16];\n");
+		text.Append("\tint _used;\n\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
+		text.Append("\tinternal static DirectValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new DirectValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
+
+		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
+		text.Append("\t/// <summary>Room for a value at every index below the count.</summary>\n");
+		text.Append("\tinternal void Room(int count)\n\t{\n\t\t_used = count;\n");
+		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
+				.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
+
+		text.Append("\t}\n}\n");
+
+		return text.ToString().Replace("\n", Lines.Ending);
+	}
+
 	/// <summary>The out-of-band channel a <c>recover</c> without a <c>=&gt;</c> reports on.</summary>
 	internal const string RecoveredMethod = "OnRecovered";
 
@@ -1300,6 +1348,30 @@ public static partial class CSharpEmitter
 			/// <summary>How many lookaheads are open, during which no refusal is recorded.</summary>
 			internal int Lookahead;
 
+			/// <summary>
+			/// What was recognized, for building values with once the parse has accepted: one
+			/// record per completed valued rule, written after its children, each starting
+			/// with its own length so that a walk from the front steps from record to record.
+			/// </summary>
+			internal int[] Log = new int[64];
+
+			/// <summary>How much of the log is written.</summary>
+			internal int LogCount;
+
+			/// <summary>Where the record most recently finished begins: the value a caller captures.</summary>
+			internal int Last = -1;
+
+			/// <summary>
+			/// Captures collected while a rule runs and gathered into its record at the end:
+			/// three integers each — the slot, and either a record and -1, or a start and end.
+			/// </summary>
+			internal int[] Refs = new int[48];
+
+			/// <summary>How much of the side stack is in use.</summary>
+			internal int RefsCount;
+
+			int _record;
+
 			[global::System.ThreadStatic]
 			static Ways? _spare;
 
@@ -1314,6 +1386,9 @@ public static partial class CSharpEmitter
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.Lookahead = 0;
+				spare.LogCount  = 0;
+				spare.RefsCount = 0;
+				spare.Last      = -1;
 
 				return spare;
 			}
@@ -1381,6 +1456,81 @@ public static partial class CSharpEmitter
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
+			}
+
+			/// <summary>Opens a record: its length is written when it ends.</summary>
+			internal void Begin(int rule, int factory, int start, int end)
+			{
+				if (LogCount + 5 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				_record = LogCount;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = rule;
+				Log[LogCount++] = factory;
+				Log[LogCount++] = start;
+				Log[LogCount++] = end;
+			}
+
+			internal void Put(int value)
+			{
+				if (LogCount + 1 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 1);
+
+				Log[LogCount++] = value;
+			}
+
+			internal void Put(int a, int b)
+			{
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
+
+				Log[LogCount++] = a;
+				Log[LogCount++] = b;
+			}
+
+			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			internal void End(int refs)
+			{
+				Log[_record] = LogCount - _record;
+				Last         = _record;
+				RefsCount    = refs;
+			}
+
+			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>
+			internal void Push(int slot, int a, int b)
+			{
+				if (RefsCount + 3 > Refs.Length)
+					global::System.Array.Resize(ref Refs, Refs.Length * 2 + 3);
+
+				Refs[RefsCount++] = slot;
+				Refs[RefsCount++] = a;
+				Refs[RefsCount++] = b;
+			}
+
+			/// <summary>
+			/// Writes what was pushed for the given slots since <paramref name="from"/>: how
+			/// many, then each one — the record alone where <paramref name="pairs"/> is false,
+			/// the start and end where it is true.
+			/// </summary>
+			internal void Collect(int from, long slots, bool pairs)
+			{
+				var count = 0;
+
+				for (var at = from; at < RefsCount; at += 3)
+					if ((slots & (1L << Refs[at])) != 0)
+						count++;
+
+				Put(count);
+
+				for (var at = from; at < RefsCount; at += 3)
+					if ((slots & (1L << Refs[at])) != 0)
+					{
+						if (pairs)
+							Put(Refs[at + 1], Refs[at + 2]);
+						else
+							Put(Refs[at + 1]);
+					}
 			}
 		}
 

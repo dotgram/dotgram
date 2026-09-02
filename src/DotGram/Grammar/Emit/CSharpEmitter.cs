@@ -195,7 +195,9 @@ public static partial class CSharpEmitter
 			// Methods where the flat path cannot go and the engine need not: the rules this
 			// machine reaches recognize and build nothing, and every publication reads the
 			// whole input (Machine.Direct.cs).
-			var asMethods = !lowered && directAllowed && made.CanDirect(group.Publications);
+			var asMethods = !lowered && directAllowed &&
+				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
+				made.CanDirect(group.Publications);
 
 			machines.Add(new Compiled(made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
 		}
@@ -459,6 +461,9 @@ public static partial class CSharpEmitter
 		if (machines.Exists(static compiled => compiled.Direct))
 		{
 			file.Write(DirectSupport);
+			file.Line();
+
+			file.Write(DirectValuesClass(tables));
 			file.Line();
 		}
 

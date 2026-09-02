@@ -10950,3 +10950,60 @@ and `find`. `CanDirect` refuses rather than guesses, `Direct = false` on the att
 the options keeps the automaton for every publication, and the engine's own tests say so
 to compile against it. An input nested past the thread's stack is read again on a thread
 with a deep one, the input copied once for the crossing.
+
+## Built: values through the methods, on a log beside the tape
+
+The first rendering left values to the engine, and that left every parser that builds
+anything on the automaton. This one records them, as §7.2 requires — nothing is built
+while matching, and a failure takes back what it recorded — but into a log of records
+rather than an arena of entries (`Machine.Direct.Values.cs`).
+
+**A record is what one rule matched, written when it ends.** Five words — length, rule,
+factory, start, end — and then the members: a text capture is its two positions, a
+captured rule is the index of that rule's record, a repeated capture is a count and the
+indexes, gathered from a side stack that the turns pushed on. Post-order, because a rule
+ends after everything it captured. The log and the side stack are two more counts on the
+tape, put back on every path that gives a reading up: a segment that runs again from its
+mark first drops what its first run recorded, exactly as it drops the ways decided after
+it. A capture local made inside the reading given up goes back to nothing for the same
+reason.
+
+**Only what the root reaches is built.** A valued rule that matched without being captured
+— an alternative tried and passed over, a rule read for its extent — is in the log too,
+and its factory must not run. So the materializer marks first, from the last record
+backwards: the root is live, and a live record's members are live. Then one pass forward
+builds the live ones, each into a typed table of its own kind, so a member is read as
+`values3[record]` and nothing is boxed. A terminal that builds — a lexical rule the lexer
+measured — is not walked at all: its record is a span, and the character machine the
+lexer already has builds the value from the text.
+
+**Measured** on the JSON example, interleaved with the automaton, allocation to the byte
+the same:
+
+    input                       automaton    methods
+    {"a": [1, true, null]}         413 ns     307 ns
+    99 characters, nested        1,582         996
+    200 objects, 14 KB         201,759     115,896
+
+Less than the recognizers gained, and the reasons are counted below. Three things were
+found on the way, each worth its line:
+
+- **a run is one way back, not one per character.** `[' ']*` before a separator is not
+  settled — the seam after the list can begin with a space too — and the first rendering
+  opened a way per turn and asked at every door, which for JSON meant a `List<string[]>`
+  of tied expectations allocated on every successful parse. The engine has always written
+  one `Run` entry for a repetition of one character test; now the methods scan the run,
+  open one way whose value is how many characters were handed back, and keep the door
+  quiet, as the engine's is. The dead-mark pass then had to learn that a mark a run
+  measures its length against is read, `p = m;` or not; and `p - m + 1` is not
+  `p - (m + 1)`, which the differential suite said within a seed;
+- **a lambda that captures a parameter costs at the entry of the method.** The deep-stack
+  fallback captured `pos`, so the closure's display class was allocated on every call, for
+  a `catch` that runs once in a lifetime. Sixty-four bytes on every parse, found by
+  counting what `"1"` allocated. The lambda now captures locals of the `catch` block only;
+- the differential suite reports the grammar when a generated parser throws, not just
+  when it answers wrongly.
+
+**What it hands back to the engine still**: folds, guards, marks, a context, externals
+with values, captured lookaheads, and `find` — which between them keep ExpressionLanguage
+on the automaton. Those are next, folds and guards first.
