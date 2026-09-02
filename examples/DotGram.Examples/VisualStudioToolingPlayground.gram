@@ -48,5 +48,10 @@ Shift = '>' ~ '>'
 // visually distinct from ordinary literals.
 Insensitive = "select"i | 'x'i
 
+// `?` immediately after a rule name marks a rule that may give back within its body.
+// It remains a special symbol, but its hover must describe rule backtracking rather
+// than an optional expression. The trailing `?` keeps the ordinary optional hint.
+Backtracking? = 'x'?
+
 // F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate

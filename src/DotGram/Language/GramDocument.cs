@@ -157,6 +157,7 @@ public static class GramLanguageService
 		var rules = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
 		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules);
 		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
+		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
 
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, out var kind))
@@ -187,7 +188,10 @@ public static class GramLanguageService
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
 						token.Length,
-						kind));
+						kind,
+						givesBackMarkers.Contains(token.Position)
+							? "DotGram rule backtracking marker: this rule may give back within its body"
+							: null));
 			}
 
 		ClassifyComments(text, tokens.Tokens, classifications);
@@ -217,6 +221,38 @@ public static class GramLanguageService
 			foldingRanges,
 			documentSymbols,
 			publishedApis);
+	}
+
+	static HashSet<int> GivesBackMarkers(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new HashSet<int>();
+		Collect(declarations);
+		return result;
+
+		void Collect(IReadOnlyList<Decl> items)
+		{
+			foreach (var declaration in items)
+				switch (declaration)
+				{
+					case Decl.Rule { GivesBack: true } rule:
+						for (var index = 0; index + 1 < tokens.Count; index++)
+							if (tokens[index].Kind == TokenKind.Identifier &&
+								tokens[index].Value == rule.Name &&
+								tokens[index].Position >= rule.At.Position &&
+								tokens[index].Position < rule.At.End &&
+								tokens[index + 1].Kind == TokenKind.Question)
+							{
+								result.Add(tokens[index + 1].Position);
+								break;
+							}
+						break;
+					case Decl.Namespace @namespace:
+						Collect(@namespace.Decls);
+						break;
+				}
+		}
 	}
 
 	static IReadOnlyList<GramPublishedApi> PublishedApis(

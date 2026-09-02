@@ -61,6 +61,18 @@ public sealed class EmbeddedGrammarAnalysisTests
 	}
 
 	[Fact]
+	public void MapsGivesBackRuleMarkerQuickInfo()
+	{
+		var source = Host("\"Backtracking? = 'a'\"");
+
+		var marker = Assert.Single(Assert.Single(Analyze(source)).Classifications, item =>
+			source.Substring(item.Span.Start, item.Span.Length) == "?");
+
+		Assert.Equal(GramSyntaxKind.SpecialSymbol, marker.Kind);
+		Assert.Contains("rule may give back", marker.QuickInfo, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void MapsLocalSymbolsAndTheirRuleScope()
 	{
 		var source = Host(""""

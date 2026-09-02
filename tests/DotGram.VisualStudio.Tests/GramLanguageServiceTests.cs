@@ -90,6 +90,24 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void DescribesQuestionAfterRuleNameAsGivesBackMarker()
+	{
+		const string source = "Backtracking? = 'a'?";
+
+		var questions = GramLanguageService.Analyze(source).Classifications
+			.Where(span => source.Substring(span.Position, span.Length) == "?")
+			.ToArray();
+
+		Assert.Empty(GramLanguageService.Analyze(source).Diagnostics);
+		Assert.Equal(2, questions.Length);
+		Assert.Equal(
+			"DotGram rule backtracking marker: this rule may give back within its body",
+			questions[0].QuickInfo);
+		Assert.Null(questions[1].QuickInfo);
+		Assert.All(questions, span => Assert.Equal(GramSyntaxKind.SpecialSymbol, span.Kind));
+	}
+
+	[Fact]
 	public void ClassifiesCaseInsensitiveLiteralsSeparately()
 	{
 		const string source = "Start = \"select\"i | 'x'i";

@@ -40,6 +40,10 @@ namespace DotGram.Examples;
 	Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)
 	                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
 
+	// Hover both question marks: the first describes a rule that may give back;
+	// the second remains an optional expression.
+	Backtracking? = 'x'?
+
 	// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should
 	// include its occurrence inside this C# expression and its capture definition.
 	Power   : @decimal = left: Primary & ('^' & right: Unary)?
