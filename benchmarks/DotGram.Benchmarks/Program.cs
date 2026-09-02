@@ -49,6 +49,19 @@ static class Program
 			return;
 		}
 
+		// `--hand [rounds] [iterations]` is not a benchmark either: it measures the SQL
+		// recognizer against the hand-written one in HandSql.cs, round-robin, after
+		// checking that the two read the same language. See SqlAgainst.cs.
+		if (args.Length >= 1 && args[0] == "--hand")
+		{
+			var rounds     = args.Length >= 2 && int.TryParse(args[1], out var turns) ? turns : 7;
+			var iterations = args.Length >= 3 && int.TryParse(args[2], out var runs)  ? runs  : 20_000;
+
+			SqlAgainst.Run(rounds, iterations);
+
+			return;
+		}
+
 		// `--against [rounds] [iterations]` is not a benchmark either: it measures the URL
 		// comparison round-robin instead of one method at a time, so that the ratios hold
 		// on a machine that is not idle. See Against.cs.
