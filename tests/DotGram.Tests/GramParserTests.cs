@@ -50,6 +50,21 @@ public sealed class GramParserTests
 	}
 
 	[Fact]
+	public void Rejects_case_insensitive_characters_as_range_bounds_and_recovers_the_set()
+	{
+		const string source = "Start = ['a'i .. 'z'i | '0']";
+		var parsed = GramParser.Parse(GramLexer.Tokenize(source));
+
+		Assert.Equal(2, parsed.Diagnostics.Count);
+		Assert.All(parsed.Diagnostics, diagnostic => Assert.Equal(GramParser.ExpectedExpression, diagnostic.Id));
+		Assert.Equal(
+			new[] { source.IndexOf("i", StringComparison.Ordinal), source.LastIndexOf("i", StringComparison.Ordinal) },
+			parsed.Diagnostics.Select(diagnostic => diagnostic.Position).ToArray());
+		Assert.All(parsed.Diagnostics, diagnostic => Assert.Equal(1, diagnostic.Length));
+		Assert.Contains("Char \"0\"", parsed.File.ToString(), StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void Parses_a_typed_rule_with_parameters()
 	{
 		Assert.Equal(

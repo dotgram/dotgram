@@ -47,6 +47,9 @@ Shift = '>' ~ '>'
 // Case-insensitive literals should retain a string-like theme color while remaining
 // visually distinct from ordinary literals.
 Insensitive = "select"i | 'x'i
+// Temporarily uncomment the next rule. Case-insensitive characters are literal
+// tokens, not character-set elements: only each `i` suffix should be underlined.
+//InvalidRange = ['a'i .. 'z'i]
 
 // `?` immediately after a rule name marks a rule that may give back within its body.
 // It remains a special symbol, but its hover must describe rule backtracking rather

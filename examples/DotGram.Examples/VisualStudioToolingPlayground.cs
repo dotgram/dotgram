@@ -44,6 +44,9 @@ namespace DotGram.Examples;
 	// the second remains an optional expression.
 	Backtracking? = 'x'?
 
+	// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.
+	//InvalidRange = ['a'i .. 'z'i]
+
 	// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should
 	// include its occurrence inside this C# expression and its capture definition.
 	Power   : @decimal = left: Primary & ('^' & right: Unary)?

@@ -959,16 +959,40 @@ public sealed class GramParser
 			switch (Current.Kind)
 			{
 				case TokenKind.Character:
-				{
-					var from = Take().Value!;
-					string? to = null;
+					{
+						var from = Take().Value!;
+						string? to = null;
 
-					if (TakeIf(TokenKind.DotDot))
-						to = At(TokenKind.Character) ? Take().Value : null;
+						if (TakeIf(TokenKind.DotDot))
+							to = At(TokenKind.Character) ? Take().Value : null;
 
-					items.Add(new Elem.Chars(from, to) { At = From(itemStart) });
-					break;
-				}
+						items.Add(new Elem.Chars(from, to) { At = From(itemStart) });
+						break;
+					}
+
+				case TokenKind.CaseInsensitiveCharacter:
+					{
+						var fromToken = Take();
+						ReportCaseInsensitiveElement(fromToken);
+						string? to = null;
+
+						if (TakeIf(TokenKind.DotDot))
+						{
+							if (At(TokenKind.CaseInsensitiveCharacter))
+							{
+								var toToken = Take();
+								ReportCaseInsensitiveElement(toToken);
+								to = toToken.Value;
+							}
+							else if (At(TokenKind.Character))
+								to = Take().Value;
+						}
+
+						// Keep the intended character/range in the recovery tree. Diagnostics still
+						// make the grammar invalid, while the following set items remain parseable.
+						items.Add(new Elem.Chars(fromToken.Value!, to) { At = From(itemStart) });
+						break;
+					}
 
 				case TokenKind.UnicodeCategory:
 					items.Add(new Elem.Category(Take().Value!) { At = From(itemStart) });
@@ -991,6 +1015,12 @@ public sealed class GramParser
 
 		return new Expr.ElementSet(negated, items) { At = From(start) };
 	}
+
+	void ReportCaseInsensitiveElement(Token token) =>
+		Report(
+			ExpectedExpression,
+			"A case-insensitive character is a literal token and cannot be a character-set element or range bound.",
+			new Location(token.Position + token.Length - 1, 1));
 
 	// ── Recovery ─────────────────────────────────────────────────────────────────
 

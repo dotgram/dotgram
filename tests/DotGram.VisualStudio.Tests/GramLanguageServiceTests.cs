@@ -121,6 +121,24 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void UnderlinesOnlyInvalidInsensitiveSuffixesInsideCharacterRange()
+	{
+		const string source = "Start = ['a'i .. 'z'i]";
+
+		var document = GramLanguageService.Analyze(source);
+
+		Assert.Equal(2, document.Diagnostics.Count);
+		Assert.All(document.Diagnostics, diagnostic =>
+		{
+			Assert.Equal("i", source.Substring(diagnostic.Position, diagnostic.Length));
+			Assert.Contains("cannot be a character-set element", diagnostic.Message, StringComparison.Ordinal);
+		});
+		Assert.Contains(document.Classifications, span =>
+			source.Substring(span.Position, span.Length) == ".." &&
+			span.Kind == GramSyntaxKind.SpecialSymbol);
+	}
+
+	[Fact]
 	public void ReportsBracePairsAndMultilineFoldingRanges()
 	{
 		const string source = "/* heading\n   text */\nStart(value) = (\n  ['a'] & value\n) => @(Call(value))";
