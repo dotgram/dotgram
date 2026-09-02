@@ -252,6 +252,61 @@ sealed partial class Machine
 		!NodeWalk.Descendants(_graph.Bodies[rule]).Any(static node => node is Node.Guard or Node.Marked);
 
 	/// <summary>
+	/// Whether a rule may be written in place wherever a method has room for it: one
+	/// that keeps no value and captures nothing, so that its body means the same thing
+	/// wherever it stands — the plan's rules, and the recursive ones the plan refuses
+	/// because the engine would need a frame for them.
+	/// </summary>
+	bool DirectCopyable(RuleSymbol rule)
+	{
+		if (_directCopyable.TryGetValue(rule, out var known))
+			return known;
+
+		var copyable =
+			!Valued(rule) && _graph.Results[rule].Count == 0 &&
+			!_graph.Climbing.ContainsKey(rule) && !_graph.Externals.ContainsKey(rule) &&
+			_graph.Bodies.TryGetValue(rule, out var body) &&
+			!NodeWalk.Descendants(body).Any(node =>
+				node is Node.Guard or Node.Marked or Node.Capture or Node.Construct or Node.Call { Arguments.Count: > 0 } ||
+				_graph.Recoveries.ContainsKey(node));
+
+		_directCopyable[rule] = copyable;
+
+		return copyable;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _directCopyable = [];
+
+	/// <summary>
+	/// What a rule's body costs in branches written with everything under it called — a
+	/// floor for what it costs written in place, so a body that cannot fit is not written
+	/// into a buffer at every site only to be thrown away.
+	/// </summary>
+	int DirectCost(RuleSymbol rule)
+	{
+		if (!_directCost.TryGetValue(rule, out var cost))
+		{
+			var seam = _seam;
+
+			_seam = FollowSets.SeamOf(rule, _graph);
+
+			// Measured and discarded: nothing this rendering registers is a reader wanted.
+			var wanted = new List<RuleSymbol>(_readersWanted);
+
+			cost = Branches(new DirectWriter(this) { Inline = false }.Render(_graph.Bodies[rule], FollowOf(rule), whole: false, rule));
+
+			_readersWanted.Clear();
+			_readersWanted.UnionWith(wanted);
+			_seam = seam;
+			_directCost[rule] = cost;
+		}
+
+		return cost;
+	}
+
+	readonly Dictionary<RuleSymbol, int> _directCost = [];
+
+	/// <summary>
 	/// The capture slots of a rule that a turn of a loop writes again — a fold's loop
 	/// excepted, whose turns are steps that each consume what they captured (§4.3).
 	/// </summary>
@@ -678,6 +733,27 @@ sealed partial class Machine
 		int _turns;
 		int _ways;
 		int _calls;
+
+		/// <summary>The rules being written in place above the point being written, innermost on top.</summary>
+		readonly Stack<RuleSymbol> _inlining = new();
+
+		/// <summary>How many branches this method has taken in from rules written in place.</summary>
+		int _copied;
+
+		/// <summary>
+		/// How much a method takes in before the rest is called, in the branches the JIT
+		/// counts: enough for a ladder of levels to collapse into the reader at its top,
+		/// and short of what the JIT declines to optimize (Machine.Sizes.cs) once the
+		/// method's own body is added.
+		/// </summary>
+		const int CopyBudget = 700;
+
+		/// <summary>
+		/// How large a rule may be to be written in place beyond what the plan already
+		/// copies: a level of a ladder, not a list of forty keywords. A large body gains
+		/// nothing by losing its call and costs the method it lands in its registers.
+		/// </summary>
+		const int CopyPiece = 120;
 		int _segments;
 		bool _character;
 
@@ -1157,21 +1233,60 @@ sealed partial class Machine
 
 				case Node.Call(var called, _):
 				{
-					if (Inline && machine.CanInline(called) && machine.DirectInlinable(called))
+					// Written in place where the plan says so, and also where the rule keeps
+					// nothing and this method has room: a ladder of levels is a call per level
+					// per operand otherwise, and each call is a frame, a prologue and a return
+					// for a body that is often one loop. A rule already being written in place
+					// above this point is called instead, which is what breaks every cycle;
+					// the budget is what keeps the method one the JIT will optimize.
+					if (Inline && machine.DirectCopyable(called) && !_inlining.Contains(called) &&
+						!ReferenceEquals(called, _owner) &&
+						(machine.CanInline(called) || machine.DirectCost(called) <= CopyPiece) &&
+						_copied + machine.DirectCost(called) <= CopyBudget &&
+						ReferenceEquals(FollowSets.SeamOf(called, _graph), machine._seam))
 					{
-						Emit(code, _graph.Bodies[called], fail, following, loaded);
+						// Written first and measured after, in the JIT's own units: what a
+						// body costs in branches is only known once it is written, and a rule
+						// written in place inside it has already been counted into the total.
+						// What a discarded rendering learned about the method is forgotten
+						// with it, or a local would be declared for a use that was thrown away.
+						var before    = _copied;
+						var character = _character;
+						var quiet     = _quiet;
+						var buffer    = new Writer(0);
 
-						break;
+						_inlining.Push(called);
+						Emit(buffer, _graph.Bodies[called], fail, following, loaded);
+						_inlining.Pop();
+
+						var copied = buffer.ToString();
+						var cost   = Branches(copied);
+
+						if (before + cost <= CopyBudget)
+						{
+							_copied = before + cost;
+							code.Write(copied);
+
+							break;
+						}
+
+						_copied    = before;
+						_character = character;
+						_quiet     = quiet;
 					}
 
-					// A rule that would have been written in place, called instead because
-					// the method it was going into was over the budget: it needs a reader.
-					if (machine.CanInline(called))
+					// A rule that could have been written in place, called instead: it needs
+					// a reader, and the queue only seeded the ones the plan calls.
+					if (machine.CanInline(called) || machine.DirectCopyable(called))
 						machine._readersWanted.Add(called);
 
 					var result = $"q{_calls++}";
 
-					if (_owner is not null && machine._backEdges.Contains((_owner, called)))
+					// The stack check goes on the edge that closes a cycle in the call graph,
+					// and inside a body written in place that edge is the inlined rule's.
+					var from = _inlining.Count > 0 ? _inlining.Peek() : _owner;
+
+					if (from is not null && machine._backEdges.Contains((from, called)))
 						code.Line("global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
 
 					code.Line($"{result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments});");

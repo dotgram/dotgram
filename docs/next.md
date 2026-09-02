@@ -11121,3 +11121,45 @@ class tables now reach 255, which is where the kinds of a token path live.
 What is left on `a = 1` is fixed cost: thirteen readers entered for two operands, a
 refusal at each door the hand-written parser walks past, and the lexer's thirteen
 nanoseconds. The next factor is in the calls, not in the ways.
+
+## A ladder written in place, under a budget the JIT counts
+
+`a = 1` entered thirteen readers for its two operands: the boolean ladder down to the
+predicate, the row, the element, the value ladder down to the primary. Each is a frame,
+a prologue and a return around a body that is often one loop, and none of them keeps a
+value. The plan writes a rule in place only where the engine could — small, valueless,
+and not on a cycle, because the engine would need a frame for the cycle — and the
+ladders are cycles by definition.
+
+A method has no such need. A rule already being written in place above the point
+being written is called instead, which breaks every cycle at its first re-entry, and
+that is the whole of what soundness asks. What it asks in return is a budget: the first
+attempt counted grammar nodes and gave the entry reader 2,700 basic blocks, past the
+2,000 the JIT stops optimizing at, and `a = 1` took three times as long. The budget is
+now in the JIT's units — a body is written into a buffer, measured with `Branches`,
+kept if the method has room and thrown away if not — with a floor per rule, measured
+once with everything under it called, so a body that cannot fit is not written at every
+site only to be discarded. What a discarded rendering learned about the method is
+forgotten with it, or `c` is declared for a use that was thrown away, which is the
+warning the differential suite found.
+
+**And only small rules.** Written without a size limit it made ExpressionLanguage a
+quarter slower: `Keyword`, forty alternatives and valueless, was copied into every
+reader that asks whether a word is one, and a large body gains nothing by losing its
+call and costs the method it lands in its registers. A level of a ladder is under a
+hundred branches; the limit sits there.
+
+Measured against the build before, alternating on the same run:
+
+    input                          before     after
+    a = 1                            78 ns     61 ns
+    (a + b) * c > d                 134       112
+    ((((a + 1) * 2) - 3) / 4) …     233       193
+    x = 1 AND y IS NOT NULL         148       122
+    a0 = 1 AND … (64 terms)       4,700     3,800
+    (a + b) * c >   refused         360       241
+
+ExpressionLanguage and JSON are where they were. The lexer emitter's tests have a race
+under the parallel runner — `A_kind_names_every_pattern_that_matched` failed once in a
+full run and passes alone, as `ProvenanceTests` did earlier with "collection was
+modified" — which is the emitter's static state and not this rendering's.
