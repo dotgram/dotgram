@@ -10750,28 +10750,79 @@ four or more. A table pays for itself by being stayed in, and there is nothing h
 in — the same answer the character machine gave, arrived at from further away and more
 sharply.
 
-**And the arena breaks down the same way in both.** Share of all steps, counted by which
-entry kind a state names — a state naming two is counted in both:
+Both figures above are of states classified by what their bodies can do, which is how the
+earlier entry counted and so what it can be held against. Counted as writes actually made,
+`SqlStandard92` writes the arena 0.30 times per step and `ExpressionLanguage` 0.51 — the
+same shape, and the honest denominator for what follows.
 
-    entry kind      SqlStandard92   ExpressionLanguage
-    Choice                    30%                  35%
-    Call                      20%                  15%
-    RuleCapture                 —                  15%
-    Completed                   —                  13%
-    Construct                   —                  11%
-    Repeat                    16%                   2%
-    LoopExit                   6%                   0%
-    Capture                     —                   4%
+**And then the arena, counted wrong the first time.** The first breakdown here counted
+*steps in states whose body names an entry kind*, and read `Choice` as a third of every
+parse in both machines. It is not: most of those names sit in a branch the visit does not
+take — `if (repeating.Value >= 1) entries.Add(Choice…)` is entered on every turn and writes
+on almost none. Counting the writes themselves, by putting a counter in front of each
+`entries.Add`, says something else entirely:
 
-`Choice` is a third of every parse in both machines, and a `Choice` entry is one thing: the
-way back that ordered choice needs in case the alternative it is about to try does not
-match. It is written before the alternative is tried and is dead the moment one succeeds.
+    SqlStandard92 — 702 writes over 2,315 steps    ExpressionLanguage — 3,315 over 6,545
+      Call              478   68.1%                  Call             1,115   33.6%
+      LoopExit          130   18.5%                  RuleCapture        941   28.4%
+      Repeat             54    7.7%                  Construct          746   22.5%
+      Choice             38    5.4%                  Choice             233    7.0%
+      TurnDone            2    0.3%                  Capture            151    4.6%
+                                                     Repeat              41    1.2%
+                                                     LoopExit            34    1.0%
+                                                     CaptureOpen         52    1.6%
 
-**Which is where the next piece is, and half of it is already written.**
-`CompileCheckpointChoice` keeps that way back in locals — `way{id}`, `alt{id}`, `over{id}` —
-instead of in the arena, and it is admitted only where `_checkpointsAllowed` is set, which is
-`CanLower` and `RenderFlat` and nowhere else. Inside the shared automaton every ordered
-choice still pays an entry. What stands in the way is that the class was defined against a
-method with one `Fail:` and no arena to unwind, and the engine's failure path is neither —
-so this is a design question about the engine's unwinding and not a switch to flip. It is
-the thing the measurement points at, and it is a different piece of work from the numbering.
+**`Choice` is five to seven per cent, and it is not waste either.** Of the 38 SQL writes 27
+are resumed and of `ExpressionLanguage`'s 233, 191 — 71% and 82%. The way back that ordered
+choice writes is a way back the parse actually takes; there is no speculation to remove and
+no cheaper place to put a record that is going to be read.
+
+So `CompileCheckpointChoice` is not the lever. Extending it to the engine means solving
+three things at once — the interleaving of a stack in locals with a stack in the arena, the
+four indices a resume restores beyond the position, and the truncation that unwinds captures
+made since the site opened — for at most seven per cent of the writes and five per cent of
+`SqlStandard92`'s. Not now. The mechanism keeps its place on the flat path, where there is
+no arena to interleave with and it removes the *only* records there are.
+
+**What the honest count points at is calls, and in `ExpressionLanguage` the value.**
+Two thirds of `SqlStandard92`'s arena traffic is `Call`, and it builds nothing at all: a
+`Call` entry there is pushed with `RuleIndex` −1 and popped again on return, and what it
+carried in between was a return state and five indices for an unwinding that mostly never
+happens. In `ExpressionLanguage` calls are a third and `RuleCapture` and `Construct` another
+half between them — that is the value being recorded, which is what the arena is for and not
+something to remove.
+
+Which makes the two questions worth asking next, and neither is about `Choice`:
+
+  * how many calls does `CanInline` decline that it could take — the threshold is a size
+    budget and the file has just lost 40% of `Rfc3986` and nothing of the others;
+  * whether a call that no open choice sits under needs an entry at all, or only a return
+    state, which is a much narrower record than a `ParserEntry`.
+
+## And a state most of them are reached from one place
+
+Asked while the profile was being read: if a state is jumped to from exactly one place, why
+is it a state at all rather than the next lines of the one that jumps? Counted over the
+labels in the two token parsers, and the answer is that most of them are:
+
+    parser              labelled   in-degree 1   2    3    4   5+
+    SqlStandard92            270      114 (42%) 134    8    9    5
+    ExpressionLanguage       579      387 (67%) 153   29    5    5
+
+What that does *not* buy is a jump. The layout already threads the states into chains and
+drops the trailing jump wherever the state it names is the one written next — which is why
+168 of `SqlStandard92`'s 438 states and 324 of `ExpressionLanguage`'s 972 carry no label at
+all. A state that still has a label with one thing naming it is one the chain could not
+reach that way: its namer's jump is inside an `if` rather than at its end. Splicing the body
+into that branch turns a taken jump into a fall-through, which is a thing the JIT's own
+block layout is already trying to do.
+
+What it does buy is size, and size is the constraint that forced `Budget`, `Part` and
+`PartSize` in the first place. Each splice removes a label, a brace pair, a blank line and a
+`goto` — call it four lines, times 387, on a file of 22,840. And fewer states means fewer
+parts, and every part boundary that disappears takes a set of departures with it, each of
+which is a real call. That is the part of it worth measuring.
+
+Against that: `Merge` collapses states whose bodies are the same text, and it has just been
+shown to be worth 40% of `Rfc3986`. Splicing makes bodies longer and more distinct, so it
+works against exactly that. Which way the file moves is not something to reason out.
