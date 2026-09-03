@@ -9,6 +9,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- The grammar this parser is a reading of. Not compiled: the point of the project
 		     is what a person writes when the generator is not there, so it takes no
 		     reference to the generator and the file is here to be read beside the code. -->

@@ -59,7 +59,7 @@ namespace DotGram.HandDeferred;
 /// times as much of it.
 /// </para>
 /// </remarks>
-sealed class Closures
+sealed class Closures : IReading
 {
 	readonly string _text;
 
@@ -118,10 +118,31 @@ sealed class Closures
 		}
 	}
 
-	/// <summary><c>Pair = name: Name &amp; '=' &amp; value: Digits</c>.</summary>
+	/// <summary><c>Pair</c>, the binding or a parenthesised <c>Sum</c>.</summary>
+	/// <remarks>
+	/// A <c>Func&lt;string&gt;</c> has forgotten what made it, so the recursion costs
+	/// nothing to write here — which is the one thing erasure is good for.
+	/// </remarks>
 	int Read_Pair(int at, out Func<string>? made)
 	{
 		made = null;
+
+		if (at < _text.Length && _text[at] == '(')
+		{
+			var inside = Read_Sum(Skip(at + 1), out var sum);
+
+			if (inside < 0)
+				return -1;
+
+			var close = Skip(inside);
+
+			if (close >= _text.Length || _text[close] != ')')
+				return -1;
+
+			made = () => Author.Nested(sum!());
+
+			return close + 1;
+		}
 
 		var end = Read_Name(at, out var name);
 

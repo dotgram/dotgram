@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace DotGram.HandDeferred;
 
@@ -16,13 +16,14 @@ namespace DotGram.HandDeferred;
 /// </para>
 /// <para>
 /// It is also the fairer of the two, in the one way that matters to a generator: a node
-/// keeps its children at their own types, so <c>Pair</c> holds a <c>Name</c> and a
-/// <c>Digits</c> and not two <c>Node</c>s, and the JIT sees a sealed type at the call. The
-/// only place the type has to be forgotten is the fold, where <c>Step</c> takes the sum so
-/// far — which is the same place, and the same reason, as everywhere else in this project.
+/// keeps its children at their own types wherever the grammar names them, so <c>Pair</c>
+/// holds a <c>Name</c> and a <c>Digits</c> and not two <c>Node</c>s, and the JIT sees a
+/// sealed type at the call. The places the type has to be forgotten are exactly the two
+/// the rest of this project keeps running into: the fold, where <c>Step</c> takes the sum
+/// so far, and the choice, where a <c>Pair</c> may have turned out to be a parenthesis.
 /// </para>
 /// </remarks>
-sealed class Classes
+sealed class Classes : IReading
 {
 	/// <summary>A shape, and what it will build when asked.</summary>
 	abstract class Node
@@ -72,11 +73,21 @@ sealed class Classes
 		public override string Build(string text) => Author.Pair(_name.Build(text), _value.Build(text));
 	}
 
+	/// <summary><c>Pair = '(' &amp; inner: Sum &amp; ')'</c>.</summary>
+	sealed class Nested : Node
+	{
+		readonly Node _inner;
+
+		public Nested(Node inner) => _inner = inner;
+
+		public override string Build(string text) => Author.Nested(_inner.Build(text));
+	}
+
 	sealed class Only : Node
 	{
-		readonly Pair _one;
+		readonly Node _one;
 
-		public Only(Pair one) => _one = one;
+		public Only(Node one) => _one = one;
 
 		public override string Build(string text) => Author.Only(_one.Build(text));
 	}
@@ -85,9 +96,9 @@ sealed class Classes
 	sealed class Step : Node
 	{
 		readonly Node _left;
-		readonly Pair _right;
+		readonly Node _right;
 
-		public Step(Node left, Pair right)
+		public Step(Node left, Node right)
 		{
 			_left  = left;
 			_right = right;
@@ -146,10 +157,27 @@ sealed class Classes
 		}
 	}
 
-	/// <summary><c>Pair = name: Name &amp; '=' &amp; value: Digits</c>.</summary>
-	int Read_Pair(int at, out Pair? made)
+	/// <summary><c>Pair</c>, the binding or a parenthesised <c>Sum</c>.</summary>
+	int Read_Pair(int at, out Node? made)
 	{
 		made = null;
+
+		if (at < _text.Length && _text[at] == '(')
+		{
+			var inside = Read_Sum(Skip(at + 1), out var sum);
+
+			if (inside < 0)
+				return -1;
+
+			var close = Skip(inside);
+
+			if (close >= _text.Length || _text[close] != ')')
+				return -1;
+
+			made = new Nested(sum!);
+
+			return close + 1;
+		}
 
 		var end = Read_Name(at, out var name);
 

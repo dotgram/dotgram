@@ -56,6 +56,9 @@ ref struct Reader
 		/// <summary><c>Pair : @string = name: Name &amp; '=' &amp; value: Digits =&gt; @(name + ":" + value)</c></summary>
 		Pair,
 
+		/// <summary><c>Pair = '(' &amp; inner: Sum &amp; ')' =&gt; @("(" + inner + ")")</c></summary>
+		Nested,
+
 		/// <summary><c>Sum = one: Pair =&gt; @(one)</c> — the base of the fold.</summary>
 		Only,
 
@@ -123,9 +126,41 @@ ref struct Reader
 		}
 	}
 
-	/// <summary><c>Pair = name: Name &amp; '=' &amp; value: Digits</c>.</summary>
+	/// <summary>
+	/// <c>Pair</c>, now a choice: the binding, or a parenthesised <c>Sum</c>.
+	/// </summary>
+	/// <remarks>
+	/// The recursion changes nothing here. A record is still pushed after its children,
+	/// however deep the children went, so the tape stays in an order that builds forwards
+	/// — which is the property the readings that name their types have to give up.
+	/// </remarks>
 	int Read_Pair(int at)
 	{
+		if (at < _text.Length && _text[at] == '(')
+		{
+			var opened = _count;
+			var inside = Read_Sum(Skip(at + 1));
+
+			if (inside >= 0)
+			{
+				var close = Skip(inside);
+
+				if (close < _text.Length && _text[close] == ')')
+				{
+					Push(Shape.Nested, _count - 1, 0);
+
+					return close + 1;
+				}
+			}
+
+			// The `Sum` inside read and wrote, and the `)` that would have accepted it is
+			// not there. Everything it wrote goes back, which is the invariant holding at
+			// a depth the tape never had to think about.
+			_count = opened;
+
+			return -1;
+		}
+
 		var mark = _count;
 		var end  = Read_Name(at);
 
@@ -238,6 +273,7 @@ ref struct Reader
 				Shape.Name   => Author.Name  (_text[a..b].ToString()),
 				Shape.Digits => Author.Digits(_text[a..b].ToString()),
 				Shape.Pair   => Author.Pair  (values[a], values[b]),
+				Shape.Nested => Author.Nested(values[a]),
 				Shape.Only   => Author.Only  (values[a]),
 				_            => Author.Step  (values[a], values[b]),
 			};
@@ -291,6 +327,10 @@ ref struct Reader
 					top--;
 					break;
 
+				case Shape.Nested:
+					values[top - 1] = Author.Nested(values[top - 1]);
+					break;
+
 				case Shape.Only:
 					values[top - 1] = Author.Only(values[top - 1]);
 					break;
@@ -319,9 +359,9 @@ ref struct Reader
 			written.Append('#').Append(i).Append('\t').Append(shape.ToString().PadRight(7));
 
 			written.Append(
-				shape is Shape.Name or Shape.Digits ? $"\"{_text[a..b]}\"" :
-				shape is Shape.Only                 ? $"#{a}" :
-				                                      $"#{a} #{b}");
+				shape is Shape.Name or Shape.Digits  ? $"\"{_text[a..b]}\"" :
+				shape is Shape.Only or Shape.Nested  ? $"#{a}" :
+				                                       $"#{a} #{b}");
 
 			written.AppendLine();
 		}

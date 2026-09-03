@@ -7,7 +7,13 @@ Sum : @string = l: Sum & '+' & r: Pair => @(l + "+" + r)
 
 // `name` is read and built before `'='`, which can fail: what `Name` built is
 // abandoned when it does. `value` is last, and cannot be.
+//
+// The second alternative is the recursion that is not a fold: `Sum` comes back
+// under `Pair`, nested as deep as the input parenthesises it. §4.3 has nothing to
+// say about it, and a representation that names a derivation's type cannot name
+// this one.
 Pair : @string = name: Name & '=' & value: Digits => @(name + ":" + value)
+                | '(' & inner: Sum & ')'          => @("(" + inner + ")")
 
 Name   : @string = t: ['a'..'z']+ => @(t)
 Digits : @string = t: ['0'..'9']+ => @(t)

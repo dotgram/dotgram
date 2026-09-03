@@ -8,7 +8,7 @@ namespace DotGram.HandDeferred;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the way out <see cref="Unboxed"/> has to refuse. There a step could not name
+/// This is the way out <see cref="Mixed"/> has to refuse. There a step could not name
 /// the sum it stands on, because the type would grow with the input; here a child is an
 /// <c>IBuilds</c>, its type is forgotten at the field, and <c>Step</c> can be written the
 /// way the grammar reads — the fold as a left-leaning tower, one node wrapping the last.
@@ -49,13 +49,13 @@ namespace DotGram.HandDeferred;
 /// one, and 154 KB against 45. Being on the heap is not what costs; being on it twice is.
 /// </para>
 /// <para>
-/// The leaves are shared with <see cref="Unboxed"/> deliberately: <c>Name</c> and
+/// The leaves are shared with <see cref="Mixed"/> deliberately: <c>Name</c> and
 /// <c>Digits</c> are the same two structs, and the only difference between the two
 /// readings is whether a parent keeps its children by value or by reference. That is the
 /// comparison, with everything else held still.
 /// </para>
 /// </remarks>
-sealed class Boxed
+sealed class Boxed : IReading
 {
 	/// <summary><c>Pair</c>, with its children behind the interface.</summary>
 	readonly struct Pair : IBuilds
@@ -82,8 +82,18 @@ sealed class Boxed
 		public string Build(string text) => Author.Only(_one.Build(text));
 	}
 
+	/// <summary><c>Pair = '(' &amp; inner: Sum &amp; ')'</c>.</summary>
+	readonly struct Nested : IBuilds
+	{
+		readonly IBuilds _inner;
+
+		public Nested(IBuilds inner) => _inner = inner;
+
+		public string Build(string text) => Author.Nested(_inner.Build(text));
+	}
+
 	/// <summary>
-	/// <c>Sum = l: Sum &amp; '+' &amp; r: Pair</c> — the shape <see cref="Unboxed"/> could
+	/// <c>Sum = l: Sum &amp; '+' &amp; r: Pair</c> — the shape <see cref="Mixed"/> could
 	/// not write down.
 	/// </summary>
 	readonly struct Step : IBuilds
@@ -152,10 +162,27 @@ sealed class Boxed
 		}
 	}
 
-	/// <summary><c>Pair = name: Name &amp; '=' &amp; value: Digits</c>.</summary>
+	/// <summary><c>Pair</c>, the binding or a parenthesised <c>Sum</c>.</summary>
 	int Read_Pair(int at, out IBuilds? made)
 	{
 		made = null;
+
+		if (at < _text.Length && _text[at] == '(')
+		{
+			var inside = Read_Sum(Skip(at + 1), out var sum);
+
+			if (inside < 0)
+				return -1;
+
+			var close = Skip(inside);
+
+			if (close >= _text.Length || _text[close] != ')')
+				return -1;
+
+			made = new Nested(sum!);
+
+			return close + 1;
+		}
 
 		var end = Read_Name(at, out var name);
 
@@ -179,7 +206,7 @@ sealed class Boxed
 		return end;
 	}
 
-	/// <summary><c>Name = t: ['a'..'z']+</c>, the same struct <see cref="Unboxed"/> uses.</summary>
+	/// <summary><c>Name = t: ['a'..'z']+</c>, the same struct <see cref="Mixed"/> uses.</summary>
 	int Read_Name(int at, out IBuilds? made)
 	{
 		var end = at;

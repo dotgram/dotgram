@@ -52,6 +52,14 @@ static class Author
 		return name + ":" + value;
 	}
 
+	/// <summary><c>Pair = '(' &amp; inner: Sum &amp; ')' =&gt; @("(" + inner + ")")</c></summary>
+	public static string Nested(string inner)
+	{
+		_constructions++;
+
+		return "(" + inner + ")";
+	}
+
 	/// <summary><c>Sum = one: Pair =&gt; @(one)</c></summary>
 	public static string Only(string one)
 	{
