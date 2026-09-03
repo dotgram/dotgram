@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.Composition;
+using System.Threading;
 
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
@@ -27,8 +28,18 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
+	[Import]
+	ITextBufferFactoryService Buffers { get; set; } = null!;
+
+	[Import]
+	IContentTypeRegistryService ContentTypes { get; set; } = null!;
+
+	[Import(typeof(SVsServiceProvider))]
+	System.IServiceProvider Services { get; set; } = null!;
+
 	public void TextViewCreated(IWpfTextView view)
 	{
+		ThreadHelper.ThrowIfNotOnUIThread();
 		var adapter = Adapters.GetViewAdapter(view);
 
 		if (adapter is null)
@@ -44,15 +55,48 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 					snapshot,
 					position,
 					EmbeddedGrammarBufferAnalysis.For(view.TextBuffer, Workspace, Documents));
-		var filter = new GramRenameCommandFilter(view, target);
+		Func<bool>? findReferences = view.TextBuffer.ContentType.IsOfType("CSharp")
+			? () => FindReferences(view)
+			: null;
+		var filter = new GramRenameCommandFilter(view, target, findReferences);
 		adapter.AddCommandFilter(filter, out var next);
 		filter.Next = next;
+	}
+
+	bool FindReferences(IWpfTextView view)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		try
+		{
+			var snapshot = view.TextSnapshot;
+			var position = view.Caret.Position.BufferPosition
+				.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
+			var references = ThreadHelper.JoinableTaskFactory.Run(() =>
+				new RoslynGramCompletion(view.TextBuffer, Workspace, Documents).FindReferencesAsync(
+					position,
+					CancellationToken.None,
+					message => ActivityLog.LogError("DotGram.VisualStudio", message)));
+			if (references is null)
+				return false;
+
+			ActivityLog.LogInformation(
+				"DotGram.VisualStudio",
+				$"Native C# Find All References found {references.References.Count} results for {references.Name}.");
+			GramFindReferencesCommandHandler.Show(references, Services, Buffers, ContentTypes);
+			return true;
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			return false;
+		}
 	}
 }
 
 sealed class GramRenameCommandFilter(
 	IWpfTextView view,
-	Func<ITextSnapshot, int, GramFindReferencesTarget?> target) : IOleCommandTarget
+	Func<ITextSnapshot, int, GramFindReferencesTarget?> target,
+	Func<bool>? findReferences) : IOleCommandTarget
 {
 	public IOleCommandTarget Next { get; set; } = null!;
 
@@ -61,6 +105,11 @@ sealed class GramRenameCommandFilter(
 		ThreadHelper.ThrowIfNotOnUIThread();
 
 		if (commandCount == 1 && IsRename(commandGroup, commands[0].cmdID) && Target() is not null)
+		{
+			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+			return VSConstants.S_OK;
+		}
+		if (commandCount == 1 && IsFindReferences(commandGroup, commands[0].cmdID) && findReferences is not null)
 		{
 			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
 			return VSConstants.S_OK;
@@ -75,6 +124,11 @@ sealed class GramRenameCommandFilter(
 
 		if (GramRenameAdornment.TryHandleCommand(view, commandGroup, commandId))
 			return VSConstants.S_OK;
+
+		if (IsFindReferences(commandGroup, commandId))
+			return findReferences?.Invoke() == true
+				? VSConstants.S_OK
+				: Next.Exec(ref commandGroup, commandId, options, input, output);
 
 		if (!IsRename(commandGroup, commandId))
 			return Next.Exec(ref commandGroup, commandId, options, input, output);
@@ -104,4 +158,7 @@ sealed class GramRenameCommandFilter(
 			 commandId == (uint)VSConstants.VSStd2KCmdID.ECMD_RENAMESYMBOL) ||
 		group == VSConstants.GUID_VSStandardCommandSet97 &&
 			commandId == (uint)VSConstants.VSStd97CmdID.Rename;
+
+	static bool IsFindReferences(Guid group, uint commandId) =>
+		group == VSConstants.GUID_VSStandardCommandSet97 && commandId == (uint)VSConstants.VSStd97CmdID.FindReferences;
 }

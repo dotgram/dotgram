@@ -137,7 +137,17 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 	void Show(CSharpFindReferences found)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
-		if (Services.GetService(typeof(SVsFindResults)) is not IFindResultsService findResults)
+		Show(found, Services, Buffers, ContentTypes);
+	}
+
+	internal static void Show(
+		CSharpFindReferences found,
+		System.IServiceProvider services,
+		ITextBufferFactoryService buffers,
+		IContentTypeRegistryService contentTypes)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (services.GetService(typeof(SVsFindResults)) is not IFindResultsService findResults)
 			return;
 
 		var window = (IFindResultsWindow2)findResults.StartSearch(
@@ -148,7 +158,7 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 
 		foreach (var file in found.References.GroupBy(static item => item.FilePath, StringComparer.OrdinalIgnoreCase))
 		{
-			var snapshot = Buffers.CreateTextBuffer(file.First().Text, ContentTypes.GetContentType("text")).CurrentSnapshot;
+			var snapshot = buffers.CreateTextBuffer(file.First().Text, contentTypes.GetContentType("text")).CurrentSnapshot;
 			var results = new List<FindResult>();
 			foreach (var reference in file)
 			{
