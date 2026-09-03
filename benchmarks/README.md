@@ -646,3 +646,48 @@ One grammar, one machine, and the hand-written half is the third version of it, 
 switch on the first token most of the distance from the first version to here and
 precedence climbing the rest. Read the table as what this generator leaves on the table
 for this grammar, not as a general claim about generated parsers.
+
+## How an alternative that begins like its siblings is written
+
+`AlternativeShape.cs`. Over kinds a choice is usually decided by the first token, and then
+nothing is tried in order at all. What is left is the minority the normalizer factors:
+alternatives that begin alike, whose shared head is read — and, if it is captured,
+captured — before the choice. Each of them then has to be able to say "not me, try the
+next" from halfway through, and there are three ways to write that without a jump: a
+method of its own that says it by returning a number, a local function that says the same
+and reaches the head by capturing it, or a staircase of nested `if`s written in place,
+where saying it is falling off the end of the staircase.
+
+Three alternatives of twelve tokens, two of which run to their last token and fail there,
+over a head of two or ten captured positions. `--filter *AlternativeShape*`, 2026-09-03:
+
+| | head of 2 | head of 10 |
+| --- | --: | --: |
+| a method of its own | 20.09 us | 28.11 us |
+| a local function | 20.07 us | 28.07 us |
+| written in place, a staircase | 24.95 us | 33.80 us |
+| a method the JIT may not compile in | 33.02 us | 44.33 us |
+
+**Writing it in place is the slowest of the three that anyone would write**, by 20–24%,
+and it is slower at both head widths. That is the opposite of what "a call costs
+something" suggests, and the last row says why: the call costs nothing because the JIT
+compiles the part into its caller, and a part it is forbidden to compile in costs 58–64%.
+So the question is not whether to extract but whether what is extracted stays small
+enough to be put back — which is the same fact `Machine.Sizes.cs` was built around,
+arriving from the other end.
+
+**How wide the shared head is turns out not to be the axis.** Ten captured positions cost
+more than two, but they cost the same more in all three shapes, so passing them as
+arguments is not what it costs. That is the thing this was built to find out, because it
+is the one argument against extracting: the parameters. There is no case against them.
+
+**A local function is not a third option.** Roslyn compiles it to an ordinary static
+method taking a struct closure by reference — it is the first shape with every captured
+local passed by reference rather than the read-only ones by value, and it cannot capture
+the input at all, because a `ReadOnlySpan` may not go into a closure (CS9108). It measures
+the same because it is the same, and it is kept in the table so that nobody has to ask
+again.
+
+One thing this does not measure: an alternative near the size where the JIT stops
+compiling it in. Both middle rows are well inside, so what the table shows is the two
+regimes and not the boundary between them.
