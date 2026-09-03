@@ -138,6 +138,25 @@ static class EmittedCode
 		return [.. values];
 	}
 
+	/// <summary>The parts a streaming publication hands back, or the whole array it does.</summary>
+	public static object?[] Streamed(
+		Assembly assembly, string className, string method, string input, Type? over = null)
+	{
+		var type   = assembly.GetType(className)!;
+		var taking = over ?? typeof(string);
+
+		var parts = (System.Collections.IEnumerable)type
+			.GetMethod(method, [taking])!
+			.Invoke(null, [over is null ? (object)input : new StringReader(input)])!;
+
+		var values = new System.Collections.Generic.List<object?>();
+
+		foreach (var part in parts)
+			values.Add(part);
+
+		return [.. values];
+	}
+
 	/// <summary>Where a generated <c>find</c> says each of its occurrences was.</summary>
 	public static long[] FoundAt(
 		Assembly assembly, string className, string method, string input, Type? over = null)

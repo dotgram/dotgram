@@ -3266,7 +3266,7 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					var scanned = Scan_eof_Sheet(text, p);
+					var scanned = Scan_eof_Sheet(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -3453,7 +3453,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>eof</c>, recognized with nothing written down.</summary>
-		static int Scan_eof_Sheet(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_eof_Sheet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var mark0 = 0;
@@ -3464,6 +3464,8 @@ namespace DotGram.Snapshots
 			p = mark0;
 			goto Refuse;
 			L0_absent: ;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 
@@ -3627,7 +3629,7 @@ namespace DotGram.Snapshots
 			var flat0_0End = 0;
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3673,7 +3675,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3701,7 +3703,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3752,7 +3754,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 				goto Accept;
 			}
 
@@ -3770,7 +3772,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>wordboundary</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3780,6 +3782,8 @@ namespace DotGram.Snapshots
 			if (!(((c >= 'a' && c <= 'z')))) goto Refuse;
 			p++;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3787,7 +3791,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>trivia</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3814,6 +3818,8 @@ namespace DotGram.Snapshots
 			goto L0_turn;
 			L1_done:
 			;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 		}

@@ -178,6 +178,13 @@ sealed partial class Machine
 	public string? Scanner(RuleSymbol rule) => ScannerOf(rule);
 
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
+	/// <summary>What a scanner takes beyond the input, where it has anything to say.</summary>
+	string ScannerParameters =>
+		_starves ? $", ref {CSharpEmitter.FailureType} failure" : "";
+
+	/// <summary>And what a call to one hands over.</summary>
+	string ScannerArguments => _starves ? ", ref failure" : "";
+
 	public string RenderScanners()
 	{
 		var file    = new Writer(0);
@@ -191,7 +198,7 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves);
 			var inner = scan.Render(body);
 
 			reaches |= scan.Reaches;
@@ -199,7 +206,7 @@ sealed partial class Machine
 			file.Line($"/// <summary><c>{rule.Name}</c>, recognized with nothing written down.</summary>");
 
 			using (file.Block(
-				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos)"))
+				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParameters})"))
 			{
 				file.Write(inner);
 			}
@@ -474,11 +481,15 @@ sealed partial class Machine
 	/// The checkpoint emitter. Every node's code either falls through with <c>p</c>
 	/// advanced past it, or jumps to its fail label with <c>p</c> exactly where it was.
 	/// </summary>
+	/// <param name="starves">
+	/// Whether the scanner is to say that its reading ran into the end of the input.
+	/// </param>
 	sealed class ScanWriter(
 		RecognitionGraph graph,
 		Func<IReadOnlyList<CharRange>, string?> tabulate,
 		Func<IReadOnlyList<CharRange>, string> ranges,
-		string tag = "")
+		string tag = "",
+		bool starves = false)
 	{
 		int _labels;
 		int _marks;
@@ -525,6 +536,26 @@ sealed partial class Machine
 			head.Line();
 			head.Write(written);
 			head.Line();
+
+			// A scan that succeeded still has to say whether it was cut short, and until
+			// this it did not: the furthest it reached was reported on a refusal and
+			// thrown away on a match. So a rule reading `18.25` out of a window that ends
+			// at `18.` matched `18`, and the caller's failure on the `.` that followed
+			// looked like an ordinary mismatch one short of the end rather than what it
+			// was — a record the window had cut in half. A stream then closed a repetition
+			// that had not ended and refused the input at the next thing (docs/next.md).
+			//
+			// Only where something streams, because only a stream can do anything with the
+			// answer, and asking costs a store on a path that is otherwise free.
+			if (starves)
+			{
+				head.Line(
+					written.Contains("furthest", StringComparison.Ordinal)
+						? "if (p >= text.Length || furthest >= text.Length) failure.Starved = true;"
+						: "if (p >= text.Length) failure.Starved = true;");
+				head.Line();
+			}
+
 			head.Line("return p;");
 
 			if (written.Contains("goto Refuse;", StringComparison.Ordinal))

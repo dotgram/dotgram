@@ -1504,7 +1504,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Amount_Row(text, p);
+					var scanned = Scan_Amount_Row(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1723,7 +1723,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Amount</c>, recognized with nothing written down.</summary>
-		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1791,6 +1791,8 @@ namespace DotGram.Snapshots
 			goto Refuse;
 			L1_on: ;
 
+			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -1800,7 +1802,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
-		static int Scan_Digit_Row(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Digit_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1809,6 +1811,8 @@ namespace DotGram.Snapshots
 			c = text[p];
 			if (!(((c >= '0' && c <= '9')))) goto Refuse;
 			p++;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 

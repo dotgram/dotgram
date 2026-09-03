@@ -12078,3 +12078,56 @@ through a log that wraps, so what they compare is register allocation and branch
 shape that is three times the code for the same reading could pay for that in the
 instruction cache on a megabyte of input, and `--big` is where that would be asked — once
 the reader can write the SQL parser.
+
+## Fixed: a scanner that matched threw away how far it had looked
+
+Running every benchmark at once turned up a parser that reads a feed of a hundred thousand
+records and stops after a hundred and fourteen. `Settlements.ParseFeed(TextReader)` threw
+`Input does not match 'Trailer'`; the string overload read the same file whole. Not a
+regression from anything recent — it reproduces as far back as the reader's own first
+commit — and not about size either: two hundred records fail at the same character as a
+hundred thousand.
+
+It is about alignment. Padding the header by 144 characters and the same feed reads
+through. The trace at the moment it gave up says the rest:
+
+```
+start=4055 len=4096 ended=False end=-1 pos=4095 starved=False outof=0
+```
+
+The window ends at 4096 and the record it holds ends `…|18.` — cut in the middle of
+`price: Money`, which is `Digits & ('.' & Digits)?`. `Money` is in braces and captured by
+nobody, so it compiles to a scanner: a recognizer with nothing written down, which follows
+the input, gives it back to itself as it tries the ways through, and returns one number.
+On a refusal that number carries the furthest it reached — `-1 - furthest`, and the
+comment above it says why: "what a refusal has to report is the furthest it reached and
+not the place it happened to stop". On a match it returns where it ended and **the furthest
+is thrown away**.
+
+So the scan matched `18`, having followed the input to 4096 inside the fraction it then
+abandoned, and reported 2. The caller failed on the `.` at 4095 — one short of the end —
+and `Failure.Position`, whose whole contract is "the furthest position the input was
+followed to", said 4095. The streaming driver reads "one short of the end" as a real
+refusal rather than a window that ran out, so it did not extend, closed `Row*` at a
+repetition that had not ended, and refused at the `Trailer` that was not there yet.
+
+**Which is the bad kind of bug.** A repetition ending is not an error. This grammar happens
+to have a trailer to fail on; one without would have handed back a feed silently cut to a
+hundred and fourteen records.
+
+The fix is where the loss is. A scanner now says whether its reading ran into the end of
+the input — `if (p >= text.Length || furthest >= text.Length) failure.Starved = true;`
+before it returns — and the driver already knew what to do with that. Only where something
+streams, because only a stream can use the answer, and asking costs a store on a path that
+is otherwise free. Positions and expectations are untouched, so no message anywhere
+changes; the URL benchmark is 96–196 ns against 97–199 before it.
+
+`A_record_the_window_cut_in_half_is_read_whole` is the test, over seven alignments because
+the defect needs the cut to land inside the fraction and which record that is depends on
+what pushed the rest along. One alignment fails on the old emitter and all seven pass on
+the new.
+
+**And the general lesson, which is the reason this sat here so long.** The thing that
+found it was not a test and not a review: it was running every benchmark in the repository
+at once, including the ones nobody runs. Two of the three bugs this week came out of
+measurements taken for another purpose entirely.

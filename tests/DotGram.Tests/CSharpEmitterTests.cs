@@ -984,6 +984,62 @@ public sealed class CSharpEmitterTests
 				typeof(TextReader)));
 	}
 
+	/// <summary>
+	/// A record the window cut in half is read whole, whatever it was cut in the middle of.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What this is for. A scanner reports how far it followed the input when it refuses
+	/// and used to throw that away when it matched — so a <c>Money</c> reading <c>18.25</c>
+	/// out of a window ending at <c>18.</c> matched <c>18</c>, and the caller's failure on
+	/// the <c>.</c> after it looked like an ordinary mismatch one short of the end. A
+	/// stream reads "one short of the end" as a real refusal, closed a repetition that had
+	/// not ended, and refused the input at whatever came next.
+	/// </para>
+	/// <para>
+	/// Every alignment, because the defect is one: it needs the cut to land inside the
+	/// fraction, and which record that is depends on how the header pushed the rest along.
+	/// A single input would have been a coin toss.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	public void A_record_the_window_cut_in_half_is_read_whole(int shift)
+	{
+		var text = "H" + new string('x', shift) + Line +
+			string.Concat(Enumerable.Repeat("R18.25" + Line, Buffer / 3)) + "T" + Line;
+
+		var assembly = EmittedCode.Compile(Emit(Feed));
+
+		Assert.Equal(
+			EmittedCode.Streamed(assembly, "Grammar", "ParseFeed", text),
+			EmittedCode.Streamed(assembly, "Grammar", "ParseFeed", text, typeof(TextReader)));
+	}
+
+	/// <summary>One line, written where a grammar string cannot carry an escape.</summary>
+	const string Line = "\n";
+
+	/// <summary>
+	/// A feed whose records end in a fraction the window can cut, read one part at a time.
+	/// </summary>
+	/// <remarks>
+	/// <c>Money</c> is in braces and captured by nobody, which is what makes it a scanner —
+	/// the shape that used to lose how far it had followed.
+	/// </remarks>
+	const string Feed =
+		"Feed : @string[] = Header & Row* & Trailer & eof" + Line +
+		"Header : @string = \"H\" & ['x']* & eol => @(\"H\")" + Line +
+		"Row : @string = \"R\" & Money & eol => @(\"R\")" + Line +
+		"Money = { ['0'..'9']+ & ('.' & ['0'..'9']+)? }" + Line +
+		"Trailer : @string = \"T\" & eol => @(\"T\")" + Line +
+		"parse Feed" + Line;
+
 	[Fact]
 	public void An_occurrence_longer_than_the_window_grows_it()
 	{

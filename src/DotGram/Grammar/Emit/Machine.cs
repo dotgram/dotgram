@@ -2048,13 +2048,13 @@ sealed partial class Machine
 							? inside
 							: _graph.Bodies[rule]))
 					{
-						atScan.Line($"p = {scanner}(text, p);");
+						atScan.Line($"p = {scanner}(text, p{ScannerArguments});");
 					}
 					else
 					{
 						var arrayName = DeclareExpected([rule.Name]);
 
-						atScan.Line($"var scanned = {scanner}(text, p);");
+						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments});");
 						atScan.Line("if (scanned < 0)");
 
 						using (atScan.Block(""))

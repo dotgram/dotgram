@@ -398,7 +398,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -458,7 +458,7 @@ namespace DotGram.Snapshots
 
 				S21:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -486,7 +486,7 @@ namespace DotGram.Snapshots
 
 				S23:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -499,7 +499,7 @@ namespace DotGram.Snapshots
 
 				S24:
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -514,7 +514,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -530,7 +530,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -558,7 +558,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -573,7 +573,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -589,7 +589,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -617,7 +617,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -632,7 +632,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -648,7 +648,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -676,7 +676,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -691,7 +691,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -707,7 +707,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -816,7 +816,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -909,7 +909,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -945,7 +945,7 @@ namespace DotGram.Snapshots
 
 				S70:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1015,7 +1015,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1060,7 +1060,7 @@ namespace DotGram.Snapshots
 
 				S80:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1089,7 +1089,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1179,7 +1179,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1224,7 +1224,7 @@ namespace DotGram.Snapshots
 
 				S95:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1253,7 +1253,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1326,7 +1326,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1364,7 +1364,7 @@ namespace DotGram.Snapshots
 
 				S107:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1393,7 +1393,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1477,7 +1477,7 @@ namespace DotGram.Snapshots
 
 				S117:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1506,7 +1506,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1590,7 +1590,7 @@ namespace DotGram.Snapshots
 
 				S127:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1619,7 +1619,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1693,7 +1693,7 @@ namespace DotGram.Snapshots
 
 				S136:
 				{
-					var scanned = Scan_H16(text, p);
+					var scanned = Scan_H16(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1722,7 +1722,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p);
+					var scanned = Scan_Group(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1864,7 +1864,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1932,7 +1932,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1947,7 +1947,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1963,7 +1963,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1991,7 +1991,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2006,7 +2006,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2022,7 +2022,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2050,7 +2050,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2065,7 +2065,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2081,7 +2081,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Digit(text, p);
+					var scanned = Scan_Digit(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2203,7 +2203,7 @@ namespace DotGram.Snapshots
 
 				S186:
 				{
-					var scanned = Scan_PctEncoded(text, p);
+					var scanned = Scan_PctEncoded(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2224,7 +2224,7 @@ namespace DotGram.Snapshots
 
 				S188:
 				{
-					var scanned = Scan_SubDelim(text, p);
+					var scanned = Scan_SubDelim(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2237,7 +2237,7 @@ namespace DotGram.Snapshots
 
 				S189:
 				{
-					var scanned = Scan_Unreserved(text, p);
+					var scanned = Scan_Unreserved(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2284,7 +2284,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_UserInfo(text, p);
+					var scanned = Scan_UserInfo(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2566,7 +2566,7 @@ namespace DotGram.Snapshots
 
 				S216:
 				{
-					var scanned = Scan_PctEncoded(text, p);
+					var scanned = Scan_PctEncoded(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2579,7 +2579,7 @@ namespace DotGram.Snapshots
 
 				S217:
 				{
-					var scanned = Scan_SubDelim(text, p);
+					var scanned = Scan_SubDelim(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2592,7 +2592,7 @@ namespace DotGram.Snapshots
 
 				S218:
 				{
-					var scanned = Scan_Unreserved(text, p);
+					var scanned = Scan_Unreserved(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2763,7 +2763,7 @@ namespace DotGram.Snapshots
 
 				S232:
 				{
-					var scanned = Scan_PctEncoded(text, p);
+					var scanned = Scan_PctEncoded(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2776,7 +2776,7 @@ namespace DotGram.Snapshots
 
 				S233:
 				{
-					var scanned = Scan_SubDelim(text, p);
+					var scanned = Scan_SubDelim(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2789,7 +2789,7 @@ namespace DotGram.Snapshots
 
 				S234:
 				{
-					var scanned = Scan_Unreserved(text, p);
+					var scanned = Scan_Unreserved(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2895,7 +2895,7 @@ namespace DotGram.Snapshots
 
 				S244:
 				{
-					var scanned = Scan_PctEncoded(text, p);
+					var scanned = Scan_PctEncoded(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2908,7 +2908,7 @@ namespace DotGram.Snapshots
 
 				S245:
 				{
-					var scanned = Scan_SubDelim(text, p);
+					var scanned = Scan_SubDelim(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2921,7 +2921,7 @@ namespace DotGram.Snapshots
 
 				S246:
 				{
-					var scanned = Scan_Unreserved(text, p);
+					var scanned = Scan_Unreserved(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -3117,7 +3117,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Unreserved</c>, recognized with nothing written down.</summary>
-		static int Scan_Unreserved(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3127,6 +3127,8 @@ namespace DotGram.Snapshots
 			if (!(c <= 255 && Recognize_DotGram_Class0[c] != 0)) goto Refuse;
 			p++;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3134,7 +3136,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>SubDelim</c>, recognized with nothing written down.</summary>
-		static int Scan_SubDelim(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3144,6 +3146,8 @@ namespace DotGram.Snapshots
 			if (!(c <= 255 && Recognize_DotGram_Class1[c] != 0)) goto Refuse;
 			p++;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3151,7 +3155,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>PctEncoded</c>, recognized with nothing written down.</summary>
-		static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3177,6 +3181,8 @@ namespace DotGram.Snapshots
 			goto Refuse;
 			L1_on: ;
 
+			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3186,7 +3192,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
-		static int Scan_Digit(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3196,6 +3202,8 @@ namespace DotGram.Snapshots
 			if (!(((c >= '0' && c <= '9')))) goto Refuse;
 			p++;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3203,7 +3211,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>UserInfo</c>, recognized with nothing written down.</summary>
-		static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3248,6 +3256,8 @@ namespace DotGram.Snapshots
 			L1_done:
 			if (turns0 < 1) goto Refuse;
 
+			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3257,7 +3267,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>H16</c>, recognized with nothing written down.</summary>
-		static int Scan_H16(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3275,6 +3285,8 @@ namespace DotGram.Snapshots
 			L1_done:
 			if (turns0 < 1) goto Refuse;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3282,7 +3294,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Group</c>, recognized with nothing written down.</summary>
-		static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3312,6 +3324,8 @@ namespace DotGram.Snapshots
 			goto Refuse;
 			L1_on: ;
 
+			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3321,7 +3335,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Hex</c>, recognized with nothing written down.</summary>
-		static int Scan_Hex(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3330,6 +3344,8 @@ namespace DotGram.Snapshots
 			c = text[p];
 			if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto Refuse;
 			p++;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 
