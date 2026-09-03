@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>DotGram.HandDeferred</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The grammar this parser is a reading of. Not compiled: the point of the project
+		     is what a person writes when the generator is not there, so it takes no
+		     reference to the generator and the file is here to be read beside the code. -->
+		<None Include="Deferred.gram" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,15 @@
+trivia = ' '*
+
+// The fold: `Sum` left-recursive over `Pair`, so a step's construction is the last
+// thing in its alternative and nothing after it can fail.
+Sum : @string = l: Sum & '+' & r: Pair => @(l + "+" + r)
+              | one: Pair              => @(one)
+
+// `name` is read and built before `'='`, which can fail: what `Name` built is
+// abandoned when it does. `value` is last, and cannot be.
+Pair : @string = name: Name & '=' & value: Digits => @(name + ":" + value)
+
+Name   : @string = t: ['a'..'z']+ => @(t)
+Digits : @string = t: ['0'..'9']+ => @(t)
+
+parse Sum
