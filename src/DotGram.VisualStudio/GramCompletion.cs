@@ -619,11 +619,85 @@ sealed class RoslynGramCompletion(
 		return await GrammarReferenceSourceAsync(method, document.Project, cancellationToken).ConfigureAwait(false);
 	}
 
+	public async Task<CSharpFindReferences?> FindReferencesAsync(
+		int position,
+		CancellationToken cancellationToken)
+	{
+		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
+			return null;
+
+		var solution = workspace.CurrentSolution;
+		var documentId = solution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
+		var document = documentId is null ? null : solution.GetDocument(documentId);
+		if (document is null)
+			return null;
+
+		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		if (model is null || root is null)
+			return null;
+
+		var boundedPosition = Math.Max(0, Math.Min(position, root.FullSpan.End - 1));
+		var symbol = root.FindToken(boundedPosition).Parent?.AncestorsAndSelf()
+			.Select(node => model.GetDeclaredSymbol(node, cancellationToken) ?? model.GetSymbolInfo(node, cancellationToken).Symbol)
+			.FirstOrDefault(static candidate => candidate is not null) ??
+			await SymbolFinder.FindSymbolAtPositionAsync(model, boundedPosition, workspace, cancellationToken).ConfigureAwait(false);
+		if (symbol is null)
+			return null;
+
+		var found = new List<CSharpFindReference>();
+		foreach (var location in symbol.Locations.Where(static location => location.IsInSource))
+			await AddSourceReferenceAsync(solution, location, found, cancellationToken).ConfigureAwait(false);
+
+		foreach (var referenced in await SymbolFinder.FindReferencesAsync(symbol, solution, cancellationToken).ConfigureAwait(false))
+			foreach (var location in referenced.Locations)
+				await AddSourceReferenceAsync(solution, location.Location, found, cancellationToken).ConfigureAwait(false);
+
+		found.AddRange(await GrammarReferencesAsync(symbol, document.Project, cancellationToken).ConfigureAwait(false));
+		return new CSharpFindReferences(
+			symbol.Name,
+			found.GroupBy(static item => (item.FilePath, item.Position))
+				.Select(static group => group.First())
+				.OrderBy(static item => item.FilePath, StringComparer.OrdinalIgnoreCase)
+				.ThenBy(static item => item.Position)
+				.ToArray());
+	}
+
+	static async Task AddSourceReferenceAsync(
+		Solution solution,
+		Location location,
+		ICollection<CSharpFindReference> found,
+		CancellationToken cancellationToken)
+	{
+		var document = location.SourceTree is null ? null : solution.GetDocument(location.SourceTree);
+		if (document?.FilePath is null)
+			return;
+
+		var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+		found.Add(new CSharpFindReference(document.FilePath, text.ToString(), location.SourceSpan.Start, location.SourceSpan.Length));
+	}
+
 	async Task<GeneratedApiSource?> GrammarReferenceSourceAsync(
 		ISymbol symbol,
 		Project project,
 		CancellationToken cancellationToken)
 	{
+		var references = await GrammarReferencesAsync(symbol, project, cancellationToken).ConfigureAwait(false);
+		if (references.Count == 0)
+			return null;
+
+		var reference = references[0];
+		var text = SourceText.From(reference.Text);
+		var location = text.Lines.GetLinePosition(reference.Position);
+		return new GeneratedApiSource(reference.FilePath, location.Line, location.Character);
+	}
+
+	async Task<IReadOnlyList<CSharpFindReference>> GrammarReferencesAsync(
+		ISymbol symbol,
+		Project project,
+		CancellationToken cancellationToken)
+	{
+		var found = new List<CSharpFindReference>();
 		foreach (var grammar in project.AdditionalDocuments.Where(document =>
 			document.FilePath?.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) == true))
 		{
@@ -650,14 +724,12 @@ sealed class RoslynGramCompletion(
 					!IsUnqualifiedHostMember(expression, position - expressionStart, symbol, grammarHost))
 					continue;
 
-				var location = text.Lines.GetLinePosition(position);
-				return grammar.FilePath is null
-					? null
-					: new GeneratedApiSource(grammar.FilePath, location.Line, location.Character);
+				if (grammar.FilePath is not null)
+					found.Add(new CSharpFindReference(grammar.FilePath, source, position, symbol.Name.Length));
 			}
 		}
 
-		return null;
+		return found;
 	}
 
 	internal static bool IsUnqualifiedHostMember(
@@ -796,6 +868,10 @@ sealed class RoslynGramCompletion(
 }
 
 readonly record struct GeneratedApiSource(string FilePath, int Line, int Column);
+
+readonly record struct CSharpFindReference(string FilePath, string Text, int Position, int Length);
+
+sealed record CSharpFindReferences(string Name, IReadOnlyList<CSharpFindReference> References);
 
 static class RoslynSymbolNavigation
 {

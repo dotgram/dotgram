@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Linq;
+using System.Threading;
 
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;
@@ -25,6 +27,12 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
+	[Import]
+	ITextBufferFactoryService Buffers { get; set; } = null!;
+
+	[Import]
+	IContentTypeRegistryService ContentTypes { get; set; } = null!;
+
 	[Import(typeof(SVsServiceProvider))]
 	System.IServiceProvider Services { get; set; } = null!;
 
@@ -32,6 +40,9 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 
 	public CommandState GetCommandState(FindReferencesCommandArgs args)
 	{
+		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
+			return CommandState.Available;
+
 		var found = Target(args);
 		return found is null ? CommandState.Unavailable : CommandState.Available;
 	}
@@ -39,6 +50,20 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 	public bool ExecuteCommand(FindReferencesCommandArgs args, CommandExecutionContext executionContext)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
+		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
+		{
+			var position = args.TextView.Caret.Position.BufferPosition
+				.TranslateTo(args.SubjectBuffer.CurrentSnapshot, PointTrackingMode.Negative).Position;
+			var references = ThreadHelper.JoinableTaskFactory.Run(() =>
+				new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
+					.FindReferencesAsync(position, CancellationToken.None));
+			if (references is null)
+				return false;
+
+			Show(references);
+			return true;
+		}
+
 		var found = Target(args);
 
 		if (found is null || !Documents.TryGetTextDocument(args.SubjectBuffer, out var document))
@@ -89,6 +114,36 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 			"DotGram.FindReferences");
 		window.Summary = $"{found.Positions.Length} references in 1 file";
 		window.AddResults(filePath, filePath, snapshot, results);
+		window.Complete();
+	}
+
+	void Show(CSharpFindReferences found)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (Services.GetService(typeof(SVsFindResults)) is not IFindResultsService findResults)
+			return;
+
+		var window = (IFindResultsWindow2)findResults.StartSearch(
+			$"{found.Name} references ({found.References.Count})",
+			"C# and DotGram references",
+			"DotGram.CSharpFindReferences");
+		window.Summary = $"{found.References.Count} references in {found.References.Select(static item => item.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()} files";
+
+		foreach (var file in found.References.GroupBy(static item => item.FilePath, StringComparer.OrdinalIgnoreCase))
+		{
+			var snapshot = Buffers.CreateTextBuffer(file.First().Text, ContentTypes.GetContentType("text")).CurrentSnapshot;
+			var results = new List<FindResult>();
+			foreach (var reference in file)
+			{
+				var line = snapshot.GetLineFromPosition(reference.Position);
+				var column = reference.Position - line.Start.Position;
+				results.Add(new FindResult(
+					line.GetText(), line.LineNumber, column, new Span(column, reference.Length)));
+			}
+
+			window.AddResults(file.Key, file.Key, snapshot, results);
+		}
+
 		window.Complete();
 	}
 }
