@@ -2987,9 +2987,20 @@ namespace DotGram.Snapshots
 				failure.Expected     = expected;
 				failure.ExpectedMore = null;
 			}
-			else if (at == failure.Position && expected != null)
+			else if (at == failure.Position && expected != null && !ReferenceEquals(expected, failure.Expected))
 			{
-				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				// The same set said twice is one thing wanted, not two. A rule refused at the
+				// furthest position by several of its alternatives says the same set from
+				// each, and a message listing it once is the message; a list holding it
+				// several times is a list that grew on a parse that went on to succeed.
+				var more = failure.ExpectedMore;
+
+				if (more == null)
+					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+				else if (ReferenceEquals(more[more.Count - 1], expected))
+					return;
+
+				more.Add(expected);
 			}
 		}
 
