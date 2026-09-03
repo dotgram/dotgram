@@ -12275,3 +12275,47 @@ compilation, and a grammar compiled on its own in a test has no symbol resolver 
 with — a standalone build of the SQL parser comes out with the arms subtly wrong and fails
 inside the author's own C#. The comparison wants the reader turned on for a real build,
 and that is next.
+
+## Measured: the reader reads SQL, builds the right tree, and is four times too slow
+
+`Reader` is a named argument on `[Gram]` now, beside `Direct` and `Lexical`, and off unless
+asked for — which is what let the question be asked properly. Turned on for
+`SqlStandard92`, the whole test suite passes: seventeen hundred and fifty-eight tests
+including every assertion about the SQL tree, and `SqlAgainst.Agree` — which compares the
+generated tree against the hand-written parser's, node for node, over the corpus — says
+nothing.
+
+**So the reader reads four hundred lines of somebody else's language and builds the same
+tree the rendering beside it does.** That is what this exercise was for, and it is done.
+
+**And it is four times slower than the rendering it replaces.** Against the hand-written
+parser the generated one was 2.2–3.4×; read by the reader it is 7.3–14.3×:
+
+| | by hand | the rendering beside | the reader |
+| --- | --: | --: | --: |
+| `a = 1` | 46.3 ns | 2.9× | 14.3× |
+| `(a + b) * c > d` | 103.1 ns | 3.2× | 11.1× |
+| `x = 1 AND y IS NOT NULL` | 121.0 ns | 2.4× | 8.8× |
+| 64 predicates | 4,237.8 ns | 2.4× | 8.2× |
+| 64 operands | 1,921.0 ns | 2.2× | 7.3× |
+
+The reason is in the emitted code and needs no profiler. `Read_PredicateTail` tries seven
+alternatives one after another, each a call; the rendering beside it dispatches on the
+token and goes straight to the one that could match. The reader has a dispatch and does not
+use it here: it is written for a choice where every group of the first-token division holds
+exactly one alternative, and in a real grammar most groups hold several. So the next thing
+is dispatch that switches to a group rather than to an alternative, which the machinery
+already computes (`Machine.Analysis.cs`) and only this rendering does not ask for.
+
+The flag is off again in `DotGram.Parsers`. It stays a proving ground, not a shipping
+decision, and four times slower is not a thing to ship while the reason for it is a piece
+of work rather than a mystery.
+
+**Two defects the SQL grammar found that seventy small ones had not.** A position handed
+to a part by reference is written by the part whether the part goes on to answer or not, so
+an alternative that failed left what it had written behind — and the alternative after it
+wrote a record naming that position and got the abandoned one. Every small test had one
+alternative that could write to a handed position; SQL has predicates with two. And a rule
+that folds declared the local for the value so far in every method of itself, including the
+ones that neither write a record nor hand it on — a local nothing reads, which is an error
+in a build that treats warnings as errors, and the first such build was the parsers project.

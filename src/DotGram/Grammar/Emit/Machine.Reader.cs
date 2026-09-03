@@ -419,7 +419,8 @@ sealed partial class Machine
 
 			code.Line("return p;");
 
-			var head = new Writer(0);
+			var written = code.ToString();
+			var head    = new Writer(0);
 
 			head.Line("var p = pos;");
 
@@ -429,7 +430,10 @@ sealed partial class Machine
 			if (_records)
 				head.Line("var rb = ways.RefsCount;");
 
-			if (_folds && !handed)
+			// Only where something in the method names it: a rule folds, but a method of it
+			// that neither writes a record nor hands the value on has nothing to do with it,
+			// and a local nothing reads is an error in somebody else's build.
+			if (_folds && !handed && written.Contains("fold", StringComparison.Ordinal))
 				head.Line("var fold = -1;");
 
 			foreach (var slot in _kept.OrderBy(static one => one))
@@ -457,7 +461,7 @@ sealed partial class Machine
 				}
 			}
 
-			head.Write(code.ToString());
+			head.Write(written);
 
 			return head.ToString();
 		}
@@ -748,26 +752,34 @@ sealed partial class Machine
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
-				var part = Calling(alternatives[i]);
+				var (part, undo) = Called(alternatives[i]);
 
 				using (code.Block($"if ({tried} < 0)"))
 				{
 					// What an alternative that failed pushed is not the rule's, and the
 					// record written after it collects everything pushed since it began.
-					if (_gathers)
-					{
-						var back = _ways++;
+					var back = _gathers ? _ways++ : -1;
 
+					if (back >= 0)
+					{
 						code.Line($"var rr{back} = ways.RefsCount;");
 						code.Line();
-						code.Line($"{tried} = {part};");
-						code.Line();
-						code.Line($"if ({tried} < 0)");
-						code.Then($"ways.RefsCount = rr{back};");
 					}
-					else
+
+					code.Line($"{tried} = {part};");
+
+					if (back >= 0 || undo.Length > 0)
 					{
-						code.Line($"{tried} = {part};");
+						code.Line();
+
+						using (code.Block($"if ({tried} < 0)"))
+						{
+							if (back >= 0)
+								code.Line($"ways.RefsCount = rr{back};");
+
+							if (undo.Length > 0)
+								code.Line(undo);
+						}
 					}
 				}
 			}
@@ -830,7 +842,7 @@ sealed partial class Machine
 					code.Line($"var rr{segment} = ways.RefsCount;");
 					code.Line();
 
-					var call = Calling(alternatives[i]);
+					var (call, undo) = Called(alternatives[i]);
 
 					using (code.Block("while (true)"))
 					{
@@ -841,6 +853,10 @@ sealed partial class Machine
 						code.Line();
 						code.Line($"ways.LogCount  = lm{segment};");
 						code.Line($"ways.RefsCount = rr{segment};");
+
+						if (undo.Length > 0)
+							code.Line(undo);
+
 						code.Line();
 						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
 						code.Then("continue;");
@@ -883,7 +899,18 @@ sealed partial class Machine
 		/// nothing at either width tried (benchmarks/README.md).
 		/// </para>
 		/// </remarks>
-		string Calling(Node part)
+		string Calling(Node part) => Called(part).Call;
+
+		/// <summary>
+		/// The call, and what has to be put back where it failed.
+		/// </summary>
+		/// <remarks>
+		/// A position handed over by reference is written by the part whether the part goes
+		/// on to answer or not, and a part that failed did not capture what it wrote there.
+		/// Leaving it is the defect this exists for: the alternative after it writes a
+		/// record naming the position, and gets the abandoned one.
+		/// </remarks>
+		(string Call, string Undo) Called(Node part)
 		{
 			var (captured, used) = Reaches(part);
 			var elsewhere        = Elsewhere(part);
@@ -903,8 +930,16 @@ sealed partial class Machine
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
 
-			return $"{name}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
-				$"{Handing(given, taken, "")})";
+			var undo = new System.Text.StringBuilder();
+
+			foreach (var slot in taken)
+				foreach (var name2 in Names(slot))
+					undo.Append(name2).Append(" = -1; ");
+
+			return (
+				$"{name}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
+					$"{Handing(given, taken, "")})",
+				undo.ToString().TrimEnd());
 		}
 
 		/// <summary>The positions handed over, as a signature or as a call.</summary>
@@ -1005,6 +1040,7 @@ sealed partial class Machine
 
 				var turn = $"q{_calls++}";
 				var back = _gathers ? _ways++ : -1;
+				var (call, undo) = Called(body);
 
 				if (back >= 0)
 				{
@@ -1012,13 +1048,16 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				code.Line($"var {turn} = {Calling(body)};");
+				code.Line($"var {turn} = {call};");
 				code.Line();
 
 				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
 				{
 					if (back >= 0)
 						code.Line($"ways.RefsCount = rr{back};");
+
+					if (undo.Length > 0)
+						code.Line(undo);
 
 					code.Line("break;");
 				}
@@ -1147,7 +1186,7 @@ sealed partial class Machine
 
 			var turn     = min > 0 || max is not null ? $"t{_turns++}" : null;
 			var nullable = FirstSets.Nullable(body, _graph);
-			var call     = Calling(body);
+			var (call, undo) = Called(body);
 
 			if (turn is not null)
 				code.Line($"var {turn} = 0;");
@@ -1223,6 +1262,12 @@ sealed partial class Machine
 
 				using (code.Block($"if ({took} < 0)"))
 				{
+					if (undo.Length > 0)
+					{
+						code.Line(undo);
+						code.Line();
+					}
+
 					if (stops is null)
 					{
 						code.Line($"ways.Next(w{way}, 1);");

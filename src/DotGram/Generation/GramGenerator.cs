@@ -379,6 +379,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Nought is what the attribute holds when nobody set it, and what somebody
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
+			Reader         = host.Reader,
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
 		});
@@ -641,7 +642,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      Direct     = true)
+		bool      Direct     = true,
+		bool      Reader     = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -736,6 +738,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? true;
 
+			// A request, like `Lexical`: a grammar the reader cannot write is written the
+			// way it was before the reader existed and told so (GRAM5006).
+			var reader = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Reader))
+				.Value.Value as bool? ?? false;
+
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
@@ -783,7 +791,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
-				Direct:     direct);
+				Direct:     direct,
+				Reader:     reader);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

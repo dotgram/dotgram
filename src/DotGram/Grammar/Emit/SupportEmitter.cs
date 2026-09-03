@@ -105,6 +105,20 @@ public static class SupportEmitter
 				public bool Direct { get; set; } = true;
 
 				/// <summary>
+				/// Write the methods the way a person would have written them, where the
+				/// generator can. Off unless set on.
+				/// </summary>
+				/// <remarks>
+				/// A second rendering by methods, grown from the notation rather than from
+				/// the automaton: a failure is a return and not a jump, and a construct is
+				/// a statement and not a labelled region. It is off by default because it
+				/// is younger than the one beside it and does not yet cover everything that
+				/// one does — where it cannot write a grammar it says so (GRAM5006) and the
+				/// older rendering writes it, so nothing set here can fail a build.
+				/// </remarks>
+				public bool Reader { get; set; }
+
+				/// <summary>
 				/// Read the input as tokens rather than as characters.
 				/// </summary>
 				/// <remarks>
