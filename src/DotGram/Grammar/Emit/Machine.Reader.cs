@@ -98,9 +98,11 @@ sealed partial class Machine
 		// arithmetic, where a repetition of anything longer needs a way for every turn.
 		if (OverKinds)
 		{
-			foreach (var publication in publications)
-				if (publication.Rule.GivesBack)
-					return Unreadable(publication.Rule, "it is marked '?' and gives back");
+			// Any rule of the reading and not only the published ones: a way back into a
+			// marked rule is the tape, and the tape is not written over kinds.
+			foreach (var rule in DirectRules(publications))
+				if (rule.GivesBack)
+					return Unreadable(rule, "it is marked '?' and gives back");
 
 			return true;
 		}
@@ -228,12 +230,15 @@ sealed partial class Machine
 	/// rather than a thing to assume.
 	/// </para>
 	/// </remarks>
-	void RenderWayBack(Writer file, RuleSymbol rule)
+	void RenderWayBack(Writer file, RuleSymbol rule) =>
+		RenderWayBack(file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>");
+
+	void RenderWayBack(Writer file, string name, string summary)
 	{
-		file.Line($"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>");
+		file.Line(summary);
 
 		using (file.Block(
-			$"static int {ReaderOf(rule)}(" +
+			$"static int {name}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
 		{
@@ -245,7 +250,7 @@ sealed partial class Machine
 			using (file.Block("while (true)"))
 			{
 				file.Line(
-					$"var q = {ReaderOf(rule)}_Body(text, pos, ref failure, ways{DirectReaderArguments});");
+					$"var q = {name}_Body(text, pos, ref failure, ways{DirectReaderArguments});");
 				file.Line();
 				file.Line("if (q >= 0)");
 				file.Then("return q;");
@@ -333,10 +338,18 @@ sealed partial class Machine
 		}
 
 		file.Line();
+
+		// Over characters the whole input is a reading like any other: the rule may have
+		// answered with less than all of it, and then it is asked for its next answer
+		// rather than refused. Without this the very first reading that reached the end
+		// short was the last, whatever the tape still had to offer.
+		if (!OverKinds)
+			RenderWayBack(file, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>");
+
 		file.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
 		using (file.Block(
-			$"static int {core}_Read(" +
+			$"static int {core}_Read{(OverKinds ? "" : "_Body")}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
 		{
@@ -381,6 +394,21 @@ sealed partial class Machine
 		readonly bool _folds = machine._graph.Folds.ContainsKey(owner);
 
 		/// <summary>
+		/// Whether a record carries where it stood, which the walk reads where a factory
+		/// asks for the text or the span and where a terminal is reread from its span.
+		/// </summary>
+		/// <remarks>
+		/// Where it does, the walk reads a four-word header and a record written with two
+		/// puts it two words out of step with every record after it. The start it carries
+		/// is the rule's, which in a part is not that method's own <c>pos</c>: it arrives
+		/// as <c>start</c>.
+		/// </remarks>
+		readonly bool _positions = machine._directRules is { } placed && machine.DirectPositions(placed);
+
+		/// <summary>Whether this method is a part of a rule rather than its body.</summary>
+		readonly bool _part = given is not null;
+
+		/// <summary>
 		/// Whether anything in this reading writes a record, and so a failed attempt can
 		/// leave records on the log that nothing will ever refer to.
 		/// </summary>
@@ -420,6 +448,13 @@ sealed partial class Machine
 			var code = new Writer(0);
 
 			Emit(code, body);
+
+			// A rule whose value is the record of its captures and nothing more has no
+			// construction to write that record at, so it is written where the rule ends —
+			// by the rule's body and not by a part of it, and not by the entry that reads
+			// the whole input through it.
+			if (!whole && !_part && machine.RecordsAtEnd(owner))
+				EmitRecord(code, -1);
 
 			if (whole)
 			{
@@ -490,7 +525,23 @@ sealed partial class Machine
 		{
 			switch (node)
 			{
-				case Node.Empty or Node.Glue:
+				case Node.Empty:
+					break;
+
+				// Two tokens with nothing between them (`~`): over kinds the next has to begin
+				// where the last ended, which the token positions say; over characters there
+				// is nothing between two characters to begin with.
+				case Node.Glue:
+					if (machine.OverKinds)
+					{
+						using (code.Block(
+							"if (p > 0 && p < text.Length && " +
+							"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])"))
+						{
+							Refused(code, machine.DeclareExpected([node.ToString()]));
+						}
+					}
+
 					break;
 
 				case Node.Literal(var text) { IgnoreCase: var folded }:
@@ -525,6 +576,43 @@ sealed partial class Machine
 
 				case Node.Capture(_, var held):
 					EmitCapture(code, node, held, loaded);
+					break;
+
+				// A look at the character behind, which reads into `c`: where the token in
+				// hand was in `c`, it is put back after.
+				case Node.Behind(var boundary):
+				{
+					var name = machine.DeclareExpected([node.ToString()]);
+
+					_character = true;
+
+					using (code.Block("if (p > 0)"))
+					{
+						code.Line("c = text[p - 1];");
+						code.Line();
+
+						using (code.Block($"if ({CSharpEmitter.Test(boundary, machine.Tabulate)})"))
+							Refused(code, name);
+
+						if (loaded)
+						{
+							code.Line();
+							code.Line("c = text[p];");
+						}
+					}
+
+					break;
+				}
+
+				// A recognizer the author wrote, handed the position by reference: it says
+				// yes or no, and where it said no is where it left the position.
+				case Node.External(var method):
+					using (code.Block($"if (!{method}(text, ref p))"))
+					{
+						code.Line($"{Refusing}(ref failure, p, null, ways);");
+						code.Line("return -1;");
+					}
+
 					break;
 
 				case Node.Construct(var built, _):
@@ -589,13 +677,30 @@ sealed partial class Machine
 				_kept.Add(slot);
 		}
 
+		/// <summary>
+		/// The one of a member's slots that was written: the same name in two alternatives is
+		/// one member with a slot per alternative, and the record takes whichever is set.
+		/// </summary>
+		static string First(string test, string take, IReadOnlyList<int> slots)
+		{
+			if (slots.Count == 1)
+				return $"{take}{slots[0]}";
+
+			var chain = "-1";
+
+			for (var i = slots.Count - 1; i >= 0; i--)
+				chain = $"{test}{slots[i]} >= 0 ? {take}{slots[i]} : {chain}";
+
+			return $"({chain})";
+		}
+
 		/// <summary>The rule's record: which arm wrote it, and each member the factory names.</summary>
 		void EmitRecord(Writer code, int factory)
 		{
 			// An alternative that only hands its operand up writes no record of its own, and
 			// the operand's is the value: for a folded rule that is what the step after it
 			// builds on, so the local still moves.
-			if (machine.DirectForwards(owner, factory))
+			if (factory >= 0 && machine.DirectForwards(owner, factory))
 			{
 				if (_folds)
 					code.Line("fold = ways.Last;");
@@ -605,7 +710,10 @@ sealed partial class Machine
 
 			_records = true;
 
-			code.Line($"ways.Begin({machine.DirectArm(owner, factory)});");
+			code.Line(
+				_positions
+					? $"ways.Begin({machine.DirectArm(owner, factory)}, {(_part ? "start" : "pos")}, p);"
+					: $"ways.Begin({machine.DirectArm(owner, factory)});");
 
 			// A fold step's first member is the value so far, and each of the rest is the
 			// one thing the step captured (§4.3).
@@ -615,10 +723,10 @@ sealed partial class Machine
 			foreach (var member in machine.DirectMembers(owner, factory))
 				code.Line(member.Shape switch
 				{
-					MemberShape.Text    => $"ways.Put(a{member.Slots[0]}, b{member.Slots[0]});",
+					MemberShape.Text    => $"ways.Put({First("a", "a", member.Slots)}, {First("a", "b", member.Slots)});",
 					MemberShape.Pieces  => $"ways.Collect(rb, {member.Mask}L, true);",
 					MemberShape.Records => $"ways.Collect(rb, {member.Mask}L, false);",
-					_                   => $"ways.Put(r{member.Slots[0]});",
+					_                   => $"ways.Put({First("r", "r", member.Slots)});",
 				});
 
 			code.Line("ways.End(rb);");
@@ -683,8 +791,11 @@ sealed partial class Machine
 				code.Line("c = text[p];");
 			}
 
-			using (code.Block($"if (!({machine.RangesTest(first.Ranges, machine.Tabulate)}))"))
-				Refused(code, name);
+			var test = CSharpEmitter.Test(element, machine.Tabulate);
+
+			if (!string.Equals(test, "true", StringComparison.Ordinal))
+				using (code.Block($"if (!({test}))"))
+					Refused(code, name);
 
 			code.Line("p++;");
 		}
@@ -795,6 +906,29 @@ sealed partial class Machine
 
 			var tried = $"q{_calls++}";
 
+			// Where the token in hand can begin none of the alternatives, the choice is
+			// refused here and as one thing — the expectation the rendering beside this one
+			// reports — rather than alternative by alternative, each recording its own
+			// refusal at the same place and the message listing them all.
+			if (alternatives[alternatives.Count - 1] is not Node.Empty && Door(alternatives) is { } gate)
+			{
+				var whole = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
+
+				if (!loaded)
+				{
+					using (code.Block("if ((uint)p >= (uint)text.Length)"))
+						Refused(code, whole);
+
+					code.Line("c = text[p];");
+					code.Line();
+				}
+
+				using (code.Block($"if (!({gate}))"))
+					Refused(code, whole);
+
+				code.Line();
+			}
+
 			if (!machine.OverKinds)
 			{
 				EmitChoiceOverCharacters(code, alternatives, tried);
@@ -815,10 +949,37 @@ sealed partial class Machine
 
 			if (door is not null)
 			{
-				opened = code.Block("if ((uint)p < (uint)text.Length)");
-				code.Line("c = text[p];");
-				code.Line();
-				opened = new Both(opened, code.Block($"if ({door})"));
+				// A door that does not open is still what the rule wanted here, and says so
+				// — the rendering beside this one records the first test of the alternative
+				// it did not take, and a message that leaves it out is a worse message —
+				// but it is a note and not a failure: the reading goes on with nothing.
+				var wanted = machine.DeclareExpected(
+					[machine.PredictedDisplay(alternatives.Take(alternatives.Count - 1).ToList())]);
+
+				if (!loaded)
+				{
+					code.Line("if ((uint)p >= (uint)text.Length)");
+					code.Then(Noted(wanted));
+					code.Line("else");
+
+					var outer = code.Block("");
+
+					code.Line("c = text[p];");
+					code.Line();
+					code.Line($"if (!({door}))");
+					code.Then(Noted(wanted));
+					code.Line("else");
+
+					opened = new Both(outer, code.Block(""));
+				}
+				else
+				{
+					code.Line($"if (!({door}))");
+					code.Then(Noted(wanted));
+					code.Line("else");
+
+					opened = code.Block("");
+				}
 			}
 
 			code.Line($"var {tried} = -1;");
@@ -1070,6 +1231,10 @@ sealed partial class Machine
 			if (_folds)
 				text.Append(", ref ").Append(type).Append("fold");
 
+			// The rule's start, for the records a part writes; the body's is its own `pos`.
+			if (_positions)
+				text.Append(", ").Append(type.Length > 0 ? "int start" : _part ? "start" : "pos");
+
 			foreach (var slot in given)
 				foreach (var name in Names(slot))
 					text.Append(", ").Append(type).Append(name);
@@ -1084,16 +1249,37 @@ sealed partial class Machine
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)
 		{
-			if (machine.MemberOfSlot(owner, slot)?.Shape == MemberShape.Text)
+			switch (machine.MemberOfSlot(owner, slot)?.Shape)
 			{
-				yield return "a" + slot;
-				yield return "b" + slot;
-			}
-			else
-			{
-				yield return "r" + slot;
+				case MemberShape.Text:
+					yield return "a" + slot;
+					yield return "b" + slot;
+					break;
+
+				case MemberShape.Pieces:
+					yield return "a" + slot;
+					break;
+
+				case MemberShape.Records:
+					break;
+
+				default:
+					yield return "r" + slot;
+					break;
 			}
 		}
+
+		/// <summary>
+		/// Whether a position is kept in a local that another method could need.
+		/// </summary>
+		/// <remarks>
+		/// What a repetition gathers is pushed onto the tape by the turn that captured it
+		/// and collected from the tape by the record, and the tape is shared by every
+		/// method of the rule: nothing about it crosses a method boundary in a local, so
+		/// nothing about it is handed over.
+		/// </remarks>
+		bool Handed(int slot) =>
+			machine.MemberOfSlot(owner, slot)?.Shape is MemberShape.Text or MemberShape.Record;
 
 		/// <summary>What a part captures, and what the records inside it read.</summary>
 		(HashSet<int> Captured, HashSet<int> Used) Reaches(Node part)
@@ -1103,12 +1289,16 @@ sealed partial class Machine
 
 			foreach (var one in NodeWalk.Descendants(part))
 			{
-				if (one is Node.Capture)
-					captured.Add(machine._captureSlots[one] - machine._captureOffsets[owner]);
+				if (one is Node.Capture &&
+					machine._captureSlots[one] - machine._captureOffsets[owner] is var slot && Handed(slot))
+				{
+					captured.Add(slot);
+				}
 
 				if (one is Node.Construct && !machine.DirectForwards(owner, machine._constructs[one]))
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
-						used.Add(member.Slots[0]);
+						if (Handed(member.Slots[0]))
+							used.Add(member.Slots[0]);
 			}
 
 			return (captured, used);
@@ -1120,12 +1310,21 @@ sealed partial class Machine
 			var mine = NodeWalk.ByIdentity(NodeWalk.Descendants(part));
 			var used = new HashSet<int>();
 
+			// A rule with no construction writes the record of its captures where it ends,
+			// which is outside every part of it.
+			if (machine.RecordsAtEnd(owner))
+				foreach (var member in machine.DirectMembers(owner, -1))
+					if (Handed(member.Slots[0]))
+						foreach (var slot in member.Slots)
+							used.Add(slot);
+
 			foreach (var one in NodeWalk.Descendants(_graph.Bodies[owner]))
 				if (!mine.Contains(one) && one is Node.Construct &&
 					!machine.DirectForwards(owner, machine._constructs[one]))
 				{
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
-						used.Add(member.Slots[0]);
+						if (Handed(member.Slots[0]))
+							used.Add(member.Slots[0]);
 				}
 
 			return used;
@@ -1262,9 +1461,15 @@ sealed partial class Machine
 				code.Line();
 				code.Line("c = text[p];");
 				code.Line();
-				code.Line($"if (!({machine.RangesTest(first.Ranges, machine.Tabulate)}))");
-				code.Then("break;");
-				code.Line();
+				var test = CSharpEmitter.Test(element, machine.Tabulate);
+
+				if (!string.Equals(test, "true", StringComparison.Ordinal))
+				{
+					code.Line($"if (!({test}))");
+					code.Then("break;");
+					code.Line();
+				}
+
 				code.Line("p++;");
 			}
 
@@ -1277,6 +1482,10 @@ sealed partial class Machine
 
 				code.Line();
 			}
+
+			// A run of a fixed count stops where it was told to, and has nothing to give.
+			if (max == min)
+				return;
 
 			var floor = min == 0 ? mark : $"({mark} + {min})";
 			var gave  = $"d{_ways++}";
@@ -1348,33 +1557,77 @@ sealed partial class Machine
 				var way   = _ways++;
 				var stops = min > 0 ? $"{turn} >= {min}" : null;
 
-				code.Line($"var w{way} = -1;");
-				code.Line($"var d{way} = 0;");
-				code.Line();
-
-				// Below the minimum there is nothing to offer: stopping there is not a
-				// reading the repetition has.
-				var offering = stops is null ? null : code.Block($"if ({stops})");
-
-				using (code.Block("if (ways.Cursor < ways.Count)"))
+				// The turn is not tried where the token in hand cannot begin it — the same
+				// door the reading over kinds has, and for the same two reasons: a turn that
+				// cannot begin is the loop ending and not a failure to record, and a turn not
+				// tried is a call not made.
+				if (Door([body]) is { } door)
 				{
-					code.Line($"w{way} = ways.Cursor;");
-					code.Line($"d{way} = ways.Items[w{way} * 2];");
-					code.Line("ways.Cursor++;");
+					var open = $"o{_ways++}";
+
+					code.Line($"var {open} = (uint)p < (uint)text.Length;");
+					code.Line();
+
+					using (code.Block($"if ({open})"))
+					{
+						code.Line("c = text[p];");
+						code.Line($"{open} = {door};");
+					}
+
+					code.Line();
+
+					using (code.Block($"if (!{open})"))
+					{
+						// A door that does not open below the minimum is not the loop ending
+						// but the rule failing, and says what it wanted.
+						if (min > 0)
+						{
+							using (code.Block($"if ({turn} < {min})"))
+								Refused(code, machine.DeclareExpected([body.ToString()]));
+
+							code.Line();
+						}
+
+						code.Line("break;");
+					}
+
+					code.Line();
 				}
 
-				code.Line("else");
+				// A count with no range in it has no turn to give back: it stops where it
+				// was told to and nowhere else, so there is no way to record.
+				var records = max != min;
 
-				using (code.Block(""))
-					code.Line($"w{way} = ways.Open(1);");
+				if (records)
+				{
+					code.Line($"var w{way} = -1;");
+					code.Line($"var d{way} = 0;");
+					code.Line();
 
-				code.Line();
-				code.Line($"if (d{way} == 1)");
-				code.Then("break;");
+					// Below the minimum there is nothing to offer: stopping there is not a
+					// reading the repetition has.
+					var offering = stops is null ? null : code.Block($"if ({stops})");
 
-				offering?.Dispose();
+					using (code.Block("if (ways.Cursor < ways.Count)"))
+					{
+						code.Line($"w{way} = ways.Cursor;");
+						code.Line($"d{way} = ways.Items[w{way} * 2];");
+						code.Line("ways.Cursor++;");
+					}
 
-				code.Line();
+					code.Line("else");
+
+					using (code.Block(""))
+						code.Line($"w{way} = ways.Open(1);");
+
+					code.Line();
+					code.Line($"if (d{way} == 1)");
+					code.Then("break;");
+
+					offering?.Dispose();
+
+					code.Line();
+				}
 
 				// The turn is asked for every reading it has before it is called spent,
 				// which is the alternative's rule (EmitChoiceOverCharacters) over again.
@@ -1415,16 +1668,21 @@ sealed partial class Machine
 
 					if (stops is null)
 					{
-						code.Line($"ways.Next(w{way}, 1);");
+						if (records)
+							code.Line($"ways.Next(w{way}, 1);");
 					}
 					else
 					{
 						// The turn is spent, so the way that offered it now says "stopped
 						// here" — and a turn short of the minimum is not a stop but a
 						// refusal, which the body has already said everything about.
-						code.Line($"if ({stops})");
-						code.Then($"ways.Next(w{way}, 1);");
-						code.Line();
+						if (records)
+						{
+							code.Line($"if ({stops})");
+							code.Then($"ways.Next(w{way}, 1);");
+							code.Line();
+						}
+
 						code.Line($"if ({turn} < {min})");
 						code.Then("return -1;");
 					}
@@ -1471,6 +1729,14 @@ sealed partial class Machine
 			code.Line();
 			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 			code.Then("return -1;");
+		}
+
+		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>
+		string Noted(string expected)
+		{
+			machine._expectedUsed.Add(expected);
+
+			return $"{Refusing}(ref failure, p, {expected}, ways);";
 		}
 
 		void Refused(Writer code, string expected)

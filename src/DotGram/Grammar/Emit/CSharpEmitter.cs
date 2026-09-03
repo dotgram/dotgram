@@ -145,7 +145,7 @@ public static partial class CSharpEmitter
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null, bool direct = true, bool reader = false)
+		LexicalSplit? lexical = null, bool direct = true, bool? reader = null)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -201,9 +201,9 @@ public static partial class CSharpEmitter
 
 			// The reader writes what it can, where it was asked for; everything else is
 			// written the way it was before it existed.
-			var asReader = asMethods && reader && made.CanRead(group.Publications);
+			var asReader = asMethods && reader != false && made.CanRead(group.Publications);
 
-			if (reader && !asReader && diagnostics is not null && made.Unread is var (why, said))
+			if (reader == true && !asReader && diagnostics is not null && made.Unread is var (why, said))
 				diagnostics.Add(new GramDiagnostic(
 					"GRAM5006",
 					$"The reader was asked for and could not write '{(why ?? group.Publications[0].Rule).Name}' " +
@@ -1901,7 +1901,7 @@ public static partial class CSharpEmitter
 		string Tag,
 		bool Flat,
 		bool Direct = false,
-		bool Reader = false);
+		bool Reader = true);
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.

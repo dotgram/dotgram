@@ -106,7 +106,7 @@ public static class SupportEmitter
 
 				/// <summary>
 				/// Write the methods the way a person would have written them, where the
-				/// generator can. Off unless set on.
+				/// generator can. On unless set off.
 				/// </summary>
 				/// <remarks>
 				/// A second rendering by methods, grown from the notation rather than from
@@ -116,7 +116,7 @@ public static class SupportEmitter
 				/// one does — where it cannot write a grammar it says so (GRAM5006) and the
 				/// older rendering writes it, so nothing set here can fail a build.
 				/// </remarks>
-				public bool Reader { get; set; }
+				public bool Reader { get; set; } = true;
 
 				/// <summary>
 				/// Read the input as tokens rather than as characters.

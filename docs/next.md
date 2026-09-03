@@ -12407,3 +12407,59 @@ reads a successful parse for its refusals.
 
 The flag is still off in `DotGram.Parsers`: turning it on for good is the moment the old
 rendering goes, and that is a decision and not a measurement.
+
+## Built: the reader is the rendering, and what turning it on for everyone found
+
+`Reader` on `[Gram]` has three states now and defaults to the one that was not there before:
+unset takes the reader wherever `CanRead` says yes and says nothing where it says no; `true`
+asks for it and is told where it declined (`GRAM5006`); `false` keeps the rendering the
+reader is replacing. Only a request is told, because a decline is not news when nobody
+asked — and with the reader the default, forty-seven tests that assert a clean grammar
+compiles with no diagnostic at all were suddenly being told.
+
+SQL is read by the reader without a word in its grammar, at 1.5–3.2× the hand-written
+parser against the 2.2–3.4× of the rendering beside it — better on the long inputs, within
+noise on the short. The old direct path is still there, and still runs wherever the reader
+declines: climbs, externals that build, extents, guards, marks, atomic groups, captured
+lookaheads, calls with arguments, and a rule marked `?` over kinds. That is the list between
+here and deleting it.
+
+**What the switch found, which seventy small grammars and one large one had not.** Every
+one of these was a real defect in the reader, and every one of them lived in a shape the
+targeted tests did not happen to have.
+
+- *A rule without a construction writes no record.* Its value is the record of its
+  captures, written where the rule ends — `RecordsAtEnd` — and the reader only wrote
+  records at constructions. The materializer walked from a root of −1. Every grammar in the
+  semantics tests that leaves the value implicit went that way.
+- *Records without positions where the walk reads them.* Where a factory asks for the text
+  or the span, or a terminal is reread from its span, the walk reads a four-word header, and
+  the reader wrote two. The rule's start is handed to a part as `start`, because a part's own
+  `pos` is not it.
+- *A member named in two alternatives is one member with two slots*, and the record takes
+  whichever was written. The reader read the first slot always.
+- *The end-of-rule record reads every member from outside every part*, which the analysis
+  of what a part has to hand back did not know, so a capture inside a part was never handed
+  out and the body named a local it did not have.
+- *No way back at the whole input.* Over characters the rule may answer with less than all
+  of it, and the entry then has to ask for the next answer rather than refuse. The reader's
+  entry refused, and the very first reading that came up short was the last — which is what
+  the differential test's seed 3 was saying.
+- *An element is more than its ranges.* Categories, the author's own predicates, negation:
+  the reader tested ranges alone and an element set of one predicate came out as `()`.
+- *`~` was nothing.* Over kinds the next token has to begin where the last one ended.
+- *A rule marked `?` anywhere in the reading, not only among the published ones*, needs the
+  tape the reader does not write over kinds.
+- *A door on a turn over characters that did not check the minimum*: `('a'+)+` on `b` left
+  the loop with no turns and went on as if it had one.
+
+And two things about messages rather than answers, because the semantics tests compare the
+reader's answer to the rendering beside it word for word. A choice whose alternatives the
+token in hand can begin none of is refused as one thing — the combined expectation the other
+rendering reports — rather than alternative by alternative. And a door that does not open on
+an optional still notes what it wanted, without failing: the other rendering records the
+first test of the alternative it did not take, and a message that leaves it out is a worse
+message.
+
+`Feed` and `Notation` are the two snapshots the reader now renders — 163 and 89 jumps before,
+62 and 24 after, and what is left is the lexer's own automaton.

@@ -643,7 +643,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       PartSize   = 0,
 		bool      Lexical    = false,
 		bool      Direct     = true,
-		bool      Reader     = false)
+		bool?     Reader     = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -740,9 +740,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
+			// Three states and not two: what was not written is not a request, and only a
+			// request is told where the reader declined (GRAM5006).
 			var reader = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Reader))
-				.Value.Value as bool? ?? false;
+				.Value.Value as bool?;
 
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
