@@ -5,12 +5,9 @@ namespace DotGram.HandDeferred;
 
 /// <summary>What a shape can do once the reading has been accepted.</summary>
 /// <remarks>
-/// Every shape below is a value type and every one of them holds its children by value,
-/// so a call through this interface is only ever made on a type parameter constrained to
-/// <c>struct</c>. That is what keeps it off the heap: the JIT compiles one copy of the
-/// caller for each shape it is used with, and the call becomes direct and inlinable
-/// instead of virtual. Call it on <c>IBuilds</c> itself and the struct is boxed, which is
-/// the whole thing undone.
+/// Only the two leaves implement it, and only so that <see cref="Boxed"/> can hold them
+/// where it holds everything — behind a reference. Nothing in <see cref="Unboxed"/> calls
+/// through it: there the types are known, the fields have them, and the calls are direct.
 /// </remarks>
 interface IBuilds
 {
@@ -49,16 +46,20 @@ readonly struct Digits : IBuilds
 
 /// <summary>
 /// <c>Pair : @string = name: Name &amp; '=' &amp; value: Digits =&gt; @(name + ":" + value)</c>,
-/// holding both children inside itself.
+/// holding both children inside itself. Sixteen bytes.
 /// </summary>
-readonly struct Pair<TName, TValue> : IBuilds
-	where TName  : struct, IBuilds
-	where TValue : struct, IBuilds
+/// <remarks>
+/// The children are named rather than parameters, because the grammar names them: a
+/// <c>Pair</c> is a <c>Name</c> and a <c>Digits</c> and can be nothing else. Written
+/// <c>Pair&lt;TName, TValue&gt;</c> it would compile to the same layout and the same
+/// instructions — the JIT gives a struct type argument its own copy — and say less.
+/// </remarks>
+readonly struct Pair
 {
-	readonly TName  _name;
-	readonly TValue _value;
+	readonly Name   _name;
+	readonly Digits _value;
 
-	public Pair(TName name, TValue value)
+	public Pair(Name name, Digits value)
 	{
 		_name  = name;
 		_value = value;
@@ -68,12 +69,11 @@ readonly struct Pair<TName, TValue> : IBuilds
 }
 
 /// <summary><c>Sum = one: Pair =&gt; @(one)</c>, the base of the fold.</summary>
-readonly struct Only<TPair> : IBuilds
-	where TPair : struct, IBuilds
+readonly struct Only
 {
-	readonly TPair _one;
+	readonly Pair _one;
 
-	public Only(TPair one) => _one = one;
+	public Only(Pair one) => _one = one;
 
 	public string Build(string text) => Author.Only(_one.Build(text));
 }
@@ -88,25 +88,24 @@ readonly struct Only<TPair> : IBuilds
 /// The idea is to keep <see cref="Closures"/>'s shape — a rule answers with the value it
 /// read, not yet built — and pay nothing for it: no display class, no delegate, no
 /// pointer to chase, and no rewind either, because a shape that is abandoned was a local
-/// and is simply not used. <c>Pair&lt;Name, Digits&gt;</c> is sixteen bytes with both
-/// children inside it, against the five records of twelve bytes the tape writes for the
-/// same pair.
+/// and is simply not used. <c>Pair</c> is sixteen bytes with both children inside it,
+/// against the five records of twelve bytes the tape writes for the same pair.
 /// </para>
 /// <para>
-/// <b>And here is the wall.</b> <c>Sum</c>'s step is
-/// <c>l: Sum &amp; '+' &amp; r: Pair</c>, so a <c>Step&lt;TLeft, TRight&gt;</c> would take
-/// the sum so far as its left child — by value, like everything else here. Two pairs make
-/// <c>Step&lt;Only&lt;Pair&lt;Name, Digits&gt;&gt;, Pair&lt;Name, Digits&gt;&gt;</c>, three
-/// make a <c>Step</c> of that, and the type grows with the input. There is no such family
-/// of types: what a program can name, it names at compile time. The way out is to box the
-/// left child behind <c>IBuilds</c> — and then it is on the heap with a header, which is
-/// the closure again and dearer.
+/// <b>And here is the wall.</b> Every shape above names its children, because the grammar
+/// does. <c>Step</c> cannot. <c>Sum</c>'s step is <c>l: Sum &amp; '+' &amp; r: Pair</c>, so
+/// its left child is the sum so far — <c>Only</c> for one pair, a <c>Step</c> of that for
+/// two, a <c>Step</c> of that for three. The type grows with the input, and no program can
+/// name a type whose depth it learns at run time. Making it <c>Step&lt;TLeft, TRight&gt;</c>
+/// does not help, it only moves the naming to the call site, which has the same problem:
+/// this is the one place a type parameter would have been reached for, and the one place it
+/// does not reach. The way out is to forget the left child's type and box it, which is
+/// <see cref="Boxed"/>.
 /// </para>
 /// <para>
 /// <b>The way round it.</b> A fold is a loop, and a loop is over one element type. The
-/// sum is not a right-leaning tower of <c>Step</c>s but a base and a run of
-/// <c>Pair&lt;Name, Digits&gt;</c> — all of one type, so an array of them, by value, with
-/// no boxing anywhere. That is the whole representation: one struct and one array of
+/// sum is not a leaning tower of <c>Step</c>s but a base and a run of <c>Pair</c> — all of
+/// one type, so an array of them, by value, with no boxing anywhere. That is the whole representation: one struct and one array of
 /// structs. It works because §4.3 already turned the left recursion into a loop, and the
 /// generator knows it did.
 /// </para>
@@ -145,10 +144,10 @@ sealed class Unboxed
 {
 	readonly string _text;
 
-	Only<Pair<Name, Digits>>? _base;
+	Only? _base;
 
-	Pair<Name, Digits>[] _steps = new Pair<Name, Digits>[8];
-	int                  _count;
+	Pair[] _steps = new Pair[8];
+	int    _count;
 
 	public Unboxed(string text) => _text = text;
 
@@ -180,7 +179,7 @@ sealed class Unboxed
 		if (end < 0)
 			return -1;
 
-		_base  = new Only<Pair<Name, Digits>>(one);
+		_base  = new Only(one);
 		_count = 0;
 
 		while (true)
@@ -204,7 +203,7 @@ sealed class Unboxed
 	}
 
 	/// <summary><c>Pair = name: Name &amp; '=' &amp; value: Digits</c>.</summary>
-	int Read_Pair(int at, out Pair<Name, Digits> made)
+	int Read_Pair(int at, out Pair made)
 	{
 		made = default;
 
@@ -227,7 +226,7 @@ sealed class Unboxed
 		if (end < 0)
 			return -1;
 
-		made = new Pair<Name, Digits>(name, value);
+		made = new Pair(name, value);
 
 		return end;
 	}
@@ -273,6 +272,6 @@ sealed class Unboxed
 	public static string Sizes() =>
 		$"Name {Unsafe.SizeOf<Name>()} B, " +
 		$"Digits {Unsafe.SizeOf<Digits>()} B, " +
-		$"Pair<Name, Digits> {Unsafe.SizeOf<Pair<Name, Digits>>()} B, " +
-		$"Only<Pair<Name, Digits>> {Unsafe.SizeOf<Only<Pair<Name, Digits>>>()} B";
+		$"Pair {Unsafe.SizeOf<Pair>()} B, " +
+		$"Only {Unsafe.SizeOf<Only>()} B";
 }
