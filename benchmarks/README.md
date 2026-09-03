@@ -733,3 +733,33 @@ KB of tokens read through a log that wraps, so what is being compared is registe
 allocation and branch layout. On a megabyte of input, a shape that is three times the code
 for the same reading may pay for it in the instruction cache, and that is a different
 question — `--big` is where it would be asked, once the reader can write the SQL parser.
+
+## A settlement feed, whole against a part at a time
+
+`WideFeedBenchmarks.cs`. Forty-seven fields a record, converted as they are read — `long`,
+`int`, `decimal`, `DateOnly`, `DateTime`, an enum and a good deal of text — so what is
+measured is the whole job and not a recognizer handing back substrings for somebody else to
+parse. Three doors: the whole file as one string, a `TextReader`, and `File.ReadLines`.
+`--filter *WideFeed* --job short`, 2026-09-03:
+
+| records | | mean | allocated |
+| --: | --- | --: | --: |
+| 100,000 | string | 265.1 ms | 592.76 MB |
+| | TextReader | 183.2 ms | 109.19 MB |
+| | File.ReadLines | 198.4 ms | 214.83 MB |
+| 1,000,000 | string | 3,161.5 ms | 5376.69 MB |
+| | TextReader | 1,878.2 ms | 1105.66 MB |
+| | File.ReadLines | 1,970.5 ms | 2174.62 MB |
+
+**Streaming is not the slower door.** It is 0.59-0.69× the time and a fifth of the
+allocation, and the allocation is the reason for the time: the whole-string parse collects
+in the second generation at both sizes (2,000 and 8,000 gen-2 collections) and the streamed
+one never leaves the first. Reading a feed a record at a time is what the window is for,
+and here it costs nothing to use — it pays.
+
+**These rows could not be produced until 2026-09-03**, which is the thing worth remembering
+about them. Both sizes failed in setup: a scanner that matched threw away how far it had
+followed the input, so a record the window cut in half looked like a record that did not
+match, and the stream closed a repetition that had not ended after a hundred and fourteen
+records of a hundred thousand (docs/next.md, "a scanner that matched threw away how far it
+had looked"). Nothing caught it until every benchmark in the repository was run at once.
