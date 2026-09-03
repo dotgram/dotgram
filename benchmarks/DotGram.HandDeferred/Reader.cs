@@ -235,11 +235,11 @@ ref struct Reader
 
 			values[i] = shape switch
 			{
-				Shape.Name   => Construct_Name  (_text[a..b].ToString()),
-				Shape.Digits => Construct_Digits(_text[a..b].ToString()),
-				Shape.Pair   => Construct_Pair  (values[a], values[b]),
-				Shape.Only   => Construct_Only  (values[a]),
-				_            => Construct_Step  (values[a], values[b]),
+				Shape.Name   => Author.Name  (_text[a..b].ToString()),
+				Shape.Digits => Author.Digits(_text[a..b].ToString()),
+				Shape.Pair   => Author.Pair  (values[a], values[b]),
+				Shape.Only   => Author.Only  (values[a]),
+				_            => Author.Step  (values[a], values[b]),
 			};
 		}
 
@@ -247,54 +247,62 @@ ref struct Reader
 		return values[_count - 1];
 	}
 
-	// ---- the author's half -------------------------------------------------------------
-	//
-	// One method per `=>`, which is what the generator emits and what the JIT wants: small
-	// enough to inline, and named after the rule so a profile says which construction cost
-	// what. The counter is not part of a parser — it is here so that Program can show the
-	// promise being kept rather than assert it.
-
-	static int _constructions;
-
-	/// <summary>How many of the author's constructions have run since <see cref="Forget"/>.</summary>
-	public static int Constructions => _constructions;
-
-	/// <summary>Sets the count back to nothing, so that one parse can be watched.</summary>
-	public static void Forget() => _constructions = 0;
-
-	static string Construct_Name(string t)
+	/// <summary>
+	/// The same constructions again, with the values on a stack instead of in a table as
+	/// long as the tape.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A record is pushed after its children, and a node's children occupy the records
+	/// immediately before it, so the tape is not merely ordered — it is a postfix program.
+	/// A leaf pushes a value, a node of one child replaces the top, a node of two replaces
+	/// the top two. Nothing is ever addressed by index, and the record's <c>A</c> and
+	/// <c>B</c> go unread except where a leaf keeps its span in them.
+	/// </para>
+	/// <para>
+	/// The stack is then as deep as the derivation, not as long as the tape. <c>Sum</c>
+	/// leans left, so for this grammar that is three slots whatever the input, where
+	/// <see cref="Construct"/> allocates five per pair and touches every one of them.
+	/// </para>
+	/// </remarks>
+	public readonly string ConstructOnAStack()
 	{
-		_constructions++;
+		var values = new string[8];
+		var top    = 0;
 
-		return t;
-	}
+		for (var i = 0; i < _count; i++)
+		{
+			var (shape, a, b) = _tape[i];
 
-	static string Construct_Digits(string t)
-	{
-		_constructions++;
+			switch (shape)
+			{
+				case Shape.Name:
+					if (top == values.Length) Array.Resize(ref values, top * 2);
+					values[top++] = Author.Name(_text[a..b].ToString());
+					break;
 
-		return t;
-	}
+				case Shape.Digits:
+					if (top == values.Length) Array.Resize(ref values, top * 2);
+					values[top++] = Author.Digits(_text[a..b].ToString());
+					break;
 
-	static string Construct_Pair(string name, string value)
-	{
-		_constructions++;
+				case Shape.Pair:
+					values[top - 2] = Author.Pair(values[top - 2], values[top - 1]);
+					top--;
+					break;
 
-		return name + ":" + value;
-	}
+				case Shape.Only:
+					values[top - 1] = Author.Only(values[top - 1]);
+					break;
 
-	static string Construct_Only(string one)
-	{
-		_constructions++;
+				default:
+					values[top - 2] = Author.Step(values[top - 2], values[top - 1]);
+					top--;
+					break;
+			}
+		}
 
-		return one;
-	}
-
-	static string Construct_Step(string l, string r)
-	{
-		_constructions++;
-
-		return l + "+" + r;
+		return values[0];
 	}
 
 	// ---- for reading over ---------------------------------------------------------------
