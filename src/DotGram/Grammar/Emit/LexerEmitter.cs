@@ -194,17 +194,30 @@ public static class LexerEmitter
 		text.Line();
 	}
 
-	static readonly List<string>             Bounds = [];
-	static readonly Dictionary<string, int>  Named  = [];
-	static readonly List<string>             Low    = [];
-	static readonly Dictionary<string, int>  Lows   = [];
-	static readonly List<string>             Edges  = [];
-	static readonly Dictionary<string, int>  Edged  = [];
+	// One scanner is written at a time and these are its scratch, held apart from the
+	// signatures of the two dozen methods that reach for them. They are per-thread and not
+	// per-process because a compiler runs generators over several compilations at once, and
+	// two scanners sharing one of these lists write each other's tables.
+	[ThreadStatic] static List<string>?            _bounds;
+	[ThreadStatic] static Dictionary<string, int>? _named;
+	[ThreadStatic] static List<string>?            _low;
+	[ThreadStatic] static Dictionary<string, int>? _lows;
+	[ThreadStatic] static List<string>?            _edges;
+	[ThreadStatic] static Dictionary<string, int>? _edged;
+
+	static List<string>            Bounds => _bounds ??= [];
+	static Dictionary<string, int> Named  => _named  ??= [];
+	static List<string>            Low    => _low    ??= [];
+	static Dictionary<string, int> Lows   => _lows   ??= [];
+	static List<string>            Edges  => _edges  ??= [];
+	static Dictionary<string, int> Edged  => _edged  ??= [];
+
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
-	static bool Wide;
+	[ThreadStatic] static bool Wide;
 
 	/// <summary>Whether a character below ASCII can reach the case being written.</summary>
-	static bool Reached = true;
+	/// <remarks><see cref="Emit"/> sets it, so the thread it is new on does not have to.</remarks>
+	[ThreadStatic] static bool Reached;
 
 	/// <summary>
 	/// How wide one state's row may be.
@@ -314,9 +327,11 @@ public static class LexerEmitter
 	/// </remarks>
 	const int Roomy = 131072;
 
-	static readonly List<(int Low, int[] Row)> Rows = [];
+	[ThreadStatic] static List<(int Low, int[] Row)>? _rows;
 
-	static byte[]? Class;
+	static List<(int Low, int[] Row)> Rows => _rows ??= [];
+
+	[ThreadStatic] static byte[]? Class;
 
 	static void Table(Writer text, string tag)
 	{
@@ -825,7 +840,13 @@ public static class LexerEmitter
 	/// <summary>How many ranges are worth writing out before a search is shorter.</summary>
 	const int Written = 4;
 
-	static string Tag = "";
+	[ThreadStatic] static string? _tag;
+
+	static string Tag
+	{
+		get => _tag ?? "";
+		set => _tag = value;
+	}
 
 	/// <summary>
 	/// A wide set, cut at the top of ASCII so that its halves can be shared apart.

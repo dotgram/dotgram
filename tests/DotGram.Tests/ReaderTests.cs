@@ -80,6 +80,56 @@ public sealed class ReaderTests
 	public void A_lookahead(string input) =>
 		Both("Start = ?!Lexical.Digits & Lexical.Name & eof", input);
 
+	/// <summary>A value built from a captured rule and captured text.</summary>
+	/// <remarks>
+	/// A capture gathered across the turns of a repetition lives on the side stack until
+	/// the rule ends, and the reader does not keep one yet, so there is none here. Neither
+	/// do the alternatives of <c>Value</c> begin alike: a head they shared would be read
+	/// and captured before the choice, and an alternative written as a method of its own
+	/// cannot see a local of the method that called it.
+	/// </remarks>
+	[Theory]
+	[InlineData("a b 1")]
+	[InlineData("22")]
+	[InlineData("a b")]
+	public void A_value_built_from_captures(string input) =>
+		Same(Valued, input);
+
+	/// <summary>Two rules that keep a value, one built out of the other.</summary>
+	const string Valued =
+		"Start : @string = only: Value & eof => @(only)\n" +
+		"Value : @string = a: Lexical.Name & b: Value => @(a + b) | c: Lexical.Digits => @(c)";
+
+	/// <summary>A value the alternative that failed had already begun to build.</summary>
+	/// <remarks>
+	/// <c>Pair</c> writes its record and then <c>Item</c>'s first alternative fails on what
+	/// follows, so the second one builds over a tape that is not empty. Nothing of the
+	/// abandoned record may reach the answer.
+	/// </remarks>
+	[Theory]
+	[InlineData("a 1")]
+	[InlineData("a")]
+	[InlineData("1")]
+	public void A_value_left_behind_by_an_alternative_that_failed(string input) =>
+		Same(
+			"Start : @string = only: Item & eof => @(only)" + Line +
+			"Item : @string = x: Pair & Lexical.Digits => @(x) | y: Lexical.Name => @(y)" + Line +
+			"Pair : @string = n: Lexical.Name => @(n)",
+			input);
+
+	/// <summary>One line of a grammar written as one string.</summary>
+	const string Line = "\n";
+
+	/// <summary>That the reader wrote the one that keeps a value too.</summary>
+	[Fact]
+	public void The_reader_writes_no_jumps_where_it_keeps_a_value()
+	{
+		var written = Written(Lexical + Valued + "\nparse Start", reader: true);
+
+		Assert.Contains("ways.Begin", Reading(written, "Read_Value"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "Read_Value"), StringComparison.Ordinal);
+	}
+
 	/// <summary>
 	/// That the reader wrote it, and not the rendering it stands beside.
 	/// </summary>
@@ -123,6 +173,28 @@ public sealed class ReaderTests
 		}
 
 		return source.Substring(at);
+	}
+
+	/// <summary>
+	/// The same grammar both ways, and the same value out of both.
+	/// </summary>
+	/// <remarks>
+	/// What two renderings agreeing actually means: not that they said yes to the same
+	/// inputs, but that they built the same thing out of them.
+	/// </remarks>
+	static void Same(string grammar, string input)
+	{
+		var whole = Lexical + grammar + "\nparse Start";
+
+		Assert.Equal(Built(whole, input, reader: false), Built(whole, input, reader: true));
+	}
+
+	static string Built(string grammar, string input, bool reader)
+	{
+		var match = EmittedCode.Match(
+			EmittedCode.Compile(Written(grammar, reader)), "Grammar", "TryParseStart", input);
+
+		return match.IsSuccess ? match.Value?.ToString() ?? "<null>" : "<refused>";
 	}
 
 	static void Both(string grammar, string input)

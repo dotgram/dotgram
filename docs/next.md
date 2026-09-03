@@ -11949,3 +11949,41 @@ comparison that actually proves two renderings agree — the same trick `Agree` 
 between the generated SQL parser and the hand-written one, and `SqlTree.Show` is already
 written. Then the tape, as a loop rather than a label, so that reading characters can move
 too. Then the rendering this replaces goes.
+
+## Built: the reader keeps a value, and a race it walked into on the way
+
+The reader records now. A capture over text writes the two positions it spans, a capture
+over a rule writes where its record landed, and a construction writes the record itself —
+the same tape and the same materializer the rendering beside it uses, so the two can be
+asked for the same tree and compared. `ReaderTests` does exactly that: a grammar compiled
+both ways, the same input, and the values equal rather than merely both accepted.
+
+One case in that file is there for the tape and not for the value. `Item = x: Pair &
+Digits => @(x) | y: Name => @(y)` builds `Pair`'s record, fails on the digits that do not
+follow, and then builds the second alternative over a tape that is not empty. Nothing of
+the abandoned record may reach the answer, and the count of references taken at the top of
+the method is what makes sure it does not.
+
+**Where the reader stops, and why it is the interesting place.** A rule whose alternatives
+begin alike is factored by the normalizer, so the head is read once before the choice — and
+if that head is captured, the record an alternative writes names something the alternative
+did not read. An alternative written as a method of its own cannot see a local of the
+method that called it. So `CanRead` refuses that shape and says so, and the way through is
+to hand those positions over as arguments, which is the next thing this rendering learns.
+It is not a corner: a grammar of any size is mostly rules like that, SQL first among them.
+
+`CanRead` says why now, in every case, and `GRAM5006` reports it. A gate that only returns
+false is a gate nobody can follow.
+
+**The race.** Adding seven tests turned another test red — a lexer that read one character
+where it should have read seven, and a different one each run. `LexerEmitter` is a static
+class, and the tables it builds while writing a scanner were lists belonging to the class.
+One scanner at a time was the assumption and nothing had ever broken it, but a compiler
+runs generators over several compilations at once and in one process, and two scanners
+overlapping take each other's rows. They are per-thread now. The test that proves it emits
+two scanners in parallel forty times and compares them to the two written apart; it fails
+on the old code with `Collection was modified` and passes on the new.
+
+That is the second bug the reader has found in code it does not touch, which is an argument
+for the exercise beyond what it is for. Two renderings of the same grammar are a test
+neither one could be alone.

@@ -37,6 +37,58 @@ public sealed class LexerEmitterTests
 		parse Start
 		""";
 
+	/// <summary>Two scanners written at once are the two that would have been written apart.</summary>
+	/// <remarks>
+	/// A compiler runs generators over several compilations at the same time and in one
+	/// process, so what one scanner writes down while writing has to be its own. It was not:
+	/// the tables were built in lists held by the class, and two scanners overlapping took
+	/// each other's rows. What the reading looked like afterwards was a machine that stopped
+	/// one character in.
+	/// </remarks>
+	[Fact]
+	public void Two_scanners_written_at_once_are_written_apart()
+	{
+		var machines = new[] { Machine(Sql), Machine(Other) };
+		var apart    = machines.Select(one => LexerEmitter.Emit(one)).ToArray();
+		var together = new string[machines.Length];
+
+		for (var round = 0; round < 40; round++)
+		{
+			System.Threading.Tasks.Parallel.For(
+				0, machines.Length, at => together[at] = LexerEmitter.Emit(machines[at]));
+
+			Assert.Equal(apart, together);
+		}
+	}
+
+	/// <summary>A second grammar, sharing nothing with the first but the alphabet.</summary>
+	const string Other =
+		"""
+		wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+		trivia = ' '*
+		namespace Lexical
+		{
+			trivia = none
+			Word = ['A'..'Z'] & ['A'..'Z']*
+		}
+		Start = ("begin" | "between" | "by") & Lexical.Word & "->" & '#'
+		parse Start
+		""";
+
+	static LexicalAutomaton Machine(string grammar)
+	{
+		var split = LexicalSplit.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+
+		Assert.NotNull(split);
+		Assert.NotNull(split.Inventory.Machine);
+
+		return split.Inventory.Machine;
+	}
+
 	static (TerminalInventory Inventory, Func<string, int, (int Kind, int End)> Scan) Built(string grammar)
 	{
 		var split = LexicalSplit.Of(

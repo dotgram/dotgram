@@ -46,19 +46,43 @@ sealed partial class Machine
 	/// <summary>Whether every publication in a group can be written as a reader.</summary>
 	public bool CanRead(IReadOnlyList<Publication> publications)
 	{
-		if (publications.Count == 0 || !CanDirect(publications))
-			return false;
+		Unread = null;
+
+		if (publications.Count == 0)
+			return Unreadable(null, "there is nothing published");
+
+		if (!CanDirect(publications))
+			return Unreadable(Refusal?.Rule, Refusal?.Why ?? "the methods refused it");
 
 		foreach (var rule in DirectRules(publications))
 		{
-			// A rule that keeps a value records it, and recording is the next thing this
-			// rendering learns rather than the first.
-			if (Valued(rule) || _graph.Results[rule].Count > 0 ||
-				_graph.Folds.ContainsKey(rule) || _graph.Climbing.ContainsKey(rule) ||
-				_graph.Externals.ContainsKey(rule))
-			{
-				return false;
-			}
+			// A fold accumulates across turns and a climb is entered at a strength; both
+			// are what the rendering beside this one learned last and this one has not.
+			if (_graph.Folds.ContainsKey(rule))
+				return Unreadable(rule, "it folds");
+
+			if (_graph.Climbing.ContainsKey(rule))
+				return Unreadable(rule, "it climbs");
+
+			if (_graph.Externals.ContainsKey(rule))
+				return Unreadable(rule, "it is an external recognizer");
+
+			if (IsExtent(rule))
+				return Unreadable(rule, "its value is the text it matched");
+
+			// A capture gathered across the turns of a repetition lives on the side stack
+			// until the rule ends, which is a second place to put things and not yet here.
+			foreach (var member in DirectMembers(rule))
+				if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+					return Unreadable(rule, $"'{member.Member.Name}' is gathered across turns");
+
+			// A head the alternatives share is read before the choice and captured there
+			// (GrammarNormalizer.Factoring.cs), so the record an alternative writes names
+			// something the alternative did not read. An alternative written as a method of
+			// its own cannot see it, and handing it over as an argument is the next thing
+			// this rendering learns.
+			if (Outside(_graph.Bodies[rule]))
+				return Unreadable(rule, "its alternatives share a head that is captured before them");
 
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
 				switch (node)
@@ -77,13 +101,75 @@ sealed partial class Machine
 					case Node.Call(_, { Count: 0 }):
 						break;
 
+					case Node.Capture or Node.Construct:
+						break;
+
 					default:
-						return false;
+						return Unreadable(rule, $"of a {node.GetType().Name.ToLowerInvariant()} in it");
 				}
 		}
 
 		// The way back is a loop over a tape, and the loop is written but the tape is not.
-		return OverKinds && !publications.Any(publication => publication.Rule.GivesBack);
+		if (!OverKinds)
+			return Unreadable(null, "it reads characters, where a rule's answer can be taken back");
+
+		foreach (var publication in publications)
+			if (publication.Rule.GivesBack)
+				return Unreadable(publication.Rule, "it is marked '?' and gives back");
+
+		return true;
+	}
+
+	/// <summary>
+	/// Whether anything the rule captures stands outside the construction that names it.
+	/// </summary>
+	/// <remarks>
+	/// Inside one, the capture and the record that reads it are written into the same
+	/// method whatever happens to that construction. Outside, they are not.
+	/// </remarks>
+	static bool Outside(Node body) => Loose(body, false);
+
+	static bool Loose(Node node, bool built)
+	{
+		switch (node)
+		{
+			case Node.Construct(var made, _):
+				return Loose(made, true);
+
+			case Node.Capture(_, var held):
+				return !built || Loose(held, built);
+
+			case Node.Sequence(var parts):
+				return parts.Any(part => Loose(part, built));
+
+			case Node.Choice(var alternatives):
+				return alternatives.Any(one => Loose(one, built));
+
+			case Node.Repeat(var repeated, _, _):
+				return Loose(repeated, built);
+
+			case Node.Atomic(var kept):
+				return Loose(kept, built);
+
+			case Node.Marked(var marked, _):
+				return Loose(marked, built);
+
+			case Node.Lookahead(_, var inside):
+				return Loose(inside, built);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Why the reader could not write a machine, where it could not.</summary>
+	public (RuleSymbol? Rule, string Why)? Unread { get; private set; }
+
+	bool Unreadable(RuleSymbol? rule, string why)
+	{
+		Unread ??= (rule, why);
+
+		return false;
 	}
 
 	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
@@ -94,6 +180,10 @@ sealed partial class Machine
 		var seen  = new HashSet<RuleSymbol>();
 
 		BackEdges(publications);
+		DirectGuardNeeds(rules);
+		DirectArms(rules);
+
+		_directRules = rules;
 
 		foreach (var publication in publications)
 		{
@@ -136,6 +226,12 @@ sealed partial class Machine
 			}
 		}
 
+		if (rules.Any(Valued))
+		{
+			file.Write(RenderDirectMaterializer(rules));
+			file.Line();
+		}
+
 		return file.ToString();
 	}
 
@@ -144,32 +240,84 @@ sealed partial class Machine
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
-		var core = CSharpEmitter.MethodOf(rule) + "_Whole";
+		var core   = CSharpEmitter.MethodOf(rule) + "_Whole";
+		var type   = _results.QualifiedOf(rule);
+		var valued = type is not null;
+		var value  = valued ? $", out {type} value" : "";
 
 		file.Line($"/// <summary>The whole input as <c>{rule.Name}</c>, read by methods.</summary>");
 
 		using (file.Block(
 			$"static int {core}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{InputParameter}{TokensParameter}{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
 				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
 				: (Node)new Node.Call(rule, []);
 
-			// The tape is what a refusal inside a lookahead is kept quiet by, and it is all
-			// the readers use it for while they keep no value.
+			// The tape is what a refusal inside a lookahead is kept quiet by, and what the
+			// records of a parse are written on; the tables are what the walk at the end
+			// builds into.
 			file.Line($"var ways = {WaysType}.Rent();");
+
+			if (valued)
+				file.Line("var values = DirectValues.Rent();");
+
 			file.Line();
 
 			using (file.Block("try"))
-				file.Write(reader.Render(body, whole: true));
+			{
+				file.Line($"var end = {core}_Read(text, pos, ref failure, ways{DirectReaderArguments});");
+				file.Line();
+
+				if (valued)
+				{
+					using (file.Block("if (end < 0)"))
+					{
+						file.Line("value = default!;");
+						file.Line();
+						file.Line("return end;");
+					}
+
+					file.Line();
+					file.Line(
+						$"{DirectMaterializer}(ways, text, values, ways.Last, 0" +
+						$"{InputArgument}{TokensArgument}{ContextArgument});");
+					file.Line(
+						$"value = {DirectFrom(type!, "ways.Last").Replace("values", "values.V")};");
+					file.Line();
+				}
+
+				file.Line("return end;");
+			}
 
 			file.Line("finally");
 
 			using (file.Block(""))
+			{
 				file.Line($"{WaysType}.Return(ways);");
+
+				if (valued)
+					file.Line("DirectValues.Return(values);");
+			}
+		}
+
+		file.Line();
+		file.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
+
+		using (file.Block(
+			$"static int {core}_Read(" +
+			$"global::System.ReadOnlySpan<char> text, int pos, " +
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+		{
+			var reader = new ReaderWriter(this, rule);
+			var body   = _graph.Trivia.TryGetValue(rule, out var around)
+				? new Node.Sequence([around, new Node.Call(rule, []), around])
+				: (Node)new Node.Call(rule, []);
+
+			file.Write(reader.Render(body, whole: true));
 		}
 
 		file.Line();
@@ -192,6 +340,9 @@ sealed partial class Machine
 
 		int _parts;
 		bool _character;
+
+		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
+		bool _records;
 
 		public string Render(Node body, bool whole = false)
 		{
@@ -216,6 +367,24 @@ sealed partial class Machine
 
 			if (_character)
 				head.Line("var c = '\\0';");
+
+			if (_records)
+				head.Line("var rb = ways.RefsCount;");
+
+			foreach (var slot in _kept.OrderBy(static one => one))
+			{
+				var member = machine.MemberOfSlot(owner, slot);
+
+				if (member?.Shape == MemberShape.Text)
+				{
+					head.Line($"var a{slot} = -1;");
+					head.Line($"var b{slot} = -1;");
+				}
+				else
+				{
+					head.Line($"var r{slot} = -1;");
+				}
+			}
 
 			head.Write(code.ToString());
 
@@ -259,11 +428,77 @@ sealed partial class Machine
 					EmitLookahead(code, positive, inside);
 					break;
 
+				case Node.Capture(_, var held):
+					EmitCapture(code, node, held);
+					break;
+
+				case Node.Construct(var built, _):
+					Emit(code, built);
+					EmitRecord(code, machine._constructs[node]);
+					break;
+
 				default:
 					throw new InvalidOperationException(
 						$"{node.GetType().Name} passed CanRead and the reader has no statement for it.");
 			}
 		}
+
+		/// <summary>What the rule keeps of what it read: a record it names, or the text.</summary>
+		void EmitCapture(Writer code, Node capture, Node held)
+		{
+			// Slots are numbered across the whole machine and members are numbered inside
+			// one rule, so the rule's first slot is where the two meet (Machine.Direct.cs).
+			var slot   = machine._captureSlots[capture] - machine._captureOffsets[owner];
+			var member = machine.MemberOfSlot(owner, slot);
+
+			if (member is null)
+			{
+				Emit(code, held);
+
+				return;
+			}
+
+			switch (member.Shape)
+			{
+				case MemberShape.Text:
+					code.Line($"a{slot} = p;");
+					Emit(code, held);
+					code.Line($"b{slot} = p;");
+					break;
+
+				case MemberShape.Record:
+					Emit(code, held);
+					code.Line($"r{slot} = ways.Last;");
+					break;
+
+				default:
+					throw new InvalidOperationException(
+						$"A {member.Shape} capture passed CanRead and the reader cannot keep it.");
+			}
+
+			_kept.Add(slot);
+		}
+
+		/// <summary>The rule's record: which arm wrote it, and each member the factory names.</summary>
+		void EmitRecord(Writer code, int factory)
+		{
+			if (machine.DirectForwards(owner, factory))
+				return;
+
+			_records = true;
+
+			code.Line($"ways.Begin({machine.DirectArm(owner, factory)});");
+
+			foreach (var member in machine.DirectMembers(owner, factory))
+				code.Line(
+					member.Shape == MemberShape.Text
+						? $"ways.Put(a{member.Slots[0]}, b{member.Slots[0]});"
+						: $"ways.Put(r{member.Slots[0]});");
+
+			code.Line("ways.End(rb);");
+		}
+
+		readonly HashSet<int> _kept = [];
 
 		void EmitLiteral(Writer code, Node node, string text, bool folded)
 		{

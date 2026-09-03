@@ -203,6 +203,13 @@ public static partial class CSharpEmitter
 			// written the way it was before it existed.
 			var asReader = asMethods && reader && made.CanRead(group.Publications);
 
+			if (reader && !asReader && diagnostics is not null && made.Unread is var (why, said))
+				diagnostics.Add(new GramDiagnostic(
+					"GRAM5006",
+					$"The reader was asked for and could not write '{(why ?? group.Publications[0].Rule).Name}' " +
+					$"because {said}.",
+					0, 0, GramSeverity.Info));
+
 			machines.Add(new Compiled(
 				made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods, asReader));
 		}
