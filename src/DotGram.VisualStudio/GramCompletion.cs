@@ -654,6 +654,7 @@ sealed class RoslynGramCompletion(
 				await AddSourceReferenceAsync(solution, location.Location, found, cancellationToken).ConfigureAwait(false);
 
 		found.AddRange(await GrammarReferencesAsync(symbol, document.Project, cancellationToken).ConfigureAwait(false));
+		found.AddRange(await EmbeddedGrammarReferencesAsync(symbol, document.Project, cancellationToken).ConfigureAwait(false));
 		return new CSharpFindReferences(
 			symbol.Name,
 			found.GroupBy(static item => (item.FilePath, item.Position))
@@ -732,6 +733,54 @@ sealed class RoslynGramCompletion(
 		return found;
 	}
 
+	internal static async Task<IReadOnlyList<CSharpFindReference>> EmbeddedGrammarReferencesAsync(
+		ISymbol symbol,
+		Project project,
+		CancellationToken cancellationToken)
+	{
+		var found = new List<CSharpFindReference>();
+		foreach (var document in project.Documents)
+		{
+			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+			if (root is null || model is null || document.FilePath is null)
+				continue;
+
+			var hostText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+			foreach (var grammar in EmbeddedGrammarFinder.Find(model, root, cancellationToken))
+			{
+				var grammarHost = grammar.Token.Parent?.AncestorsAndSelf()
+					.OfType<AttributeSyntax>()
+					.Select(static attribute => attribute.Parent?.Parent)
+					.OfType<TypeDeclarationSyntax>()
+					.Select(declaration => model.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol)
+					.FirstOrDefault(static candidate => candidate is not null);
+				var source = grammar.Text;
+				for (var position = source.IndexOf(symbol.Name, StringComparison.Ordinal);
+					position >= 0;
+					position = source.IndexOf(symbol.Name, position + symbol.Name.Length, StringComparison.Ordinal))
+				{
+					if (!IsIdentifier(source, position, symbol.Name.Length) ||
+						!GramCSharpCompletionContext.TryGetExpression(
+							source, position, out var expression, out var expressionStart, out _, out _) ||
+						!grammar.SourceMap.TryMap(position, symbol.Name.Length, out var mapped))
+						continue;
+
+					var referenced = await SymbolInExpressionAsync(
+						project, expression, position - expressionStart, cancellationToken).ConfigureAwait(false);
+					if (!SymbolEqualityComparer.Default.Equals(referenced?.OriginalDefinition, symbol.OriginalDefinition) &&
+						!IsUnqualifiedHostMember(expression, position - expressionStart, symbol, grammarHost))
+						continue;
+
+					found.Add(new CSharpFindReference(
+						document.FilePath, hostText.ToString(), mapped.Start, mapped.Length));
+				}
+			}
+		}
+
+		return found;
+	}
+
 	internal static bool IsUnqualifiedHostMember(
 		string expression,
 		int position,
@@ -763,7 +812,8 @@ sealed class RoslynGramCompletion(
 
 		var absolute = Before.Length + position;
 		var token = root.FindToken(Math.Max(0, Math.Min(absolute, root.FullSpan.End - 1)));
-		return token.Parent?.AncestorsAndSelf()
+		return await QualifiedMemberAsync(project, expression, position, cancellationToken).ConfigureAwait(false) ??
+			token.Parent?.AncestorsAndSelf()
 			.Select(node => model.GetSymbolInfo(node, cancellationToken))
 			.Select(info => info.Symbol ?? info.CandidateSymbols.FirstOrDefault())
 			.FirstOrDefault(static candidate => candidate is not null);

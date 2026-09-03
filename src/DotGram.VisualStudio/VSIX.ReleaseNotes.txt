@@ -1,4 +1,4 @@
-DotGram language support 0.1.41
+DotGram language support 0.1.42
 
 Initial preview for Visual Studio 18.
 
@@ -28,3 +28,4 @@ Initial preview for Visual Studio 18.
 - F12 on a C# host member finds its unqualified use in that host's standalone grammar.
 - Find All References from C# combines Roslyn references with exact references in
   standalone grammar C# expressions.
+- Find All References from C# also includes C# expressions in embedded grammars.

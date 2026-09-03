@@ -57,4 +57,40 @@ public sealed class RoslynGramCompletionTests
 		Assert.False(RoslynGramCompletion.IsUnqualifiedHostMember(expression, position, other, host));
 		Assert.False(RoslynGramCompletion.IsUnqualifiedHostMember("Other.Raise(value)", 7, member, host));
 	}
+
+	[Fact]
+	public async Task FindsHostMemberInsideEmbeddedGrammar()
+	{
+		using var workspace = new AdhocWorkspace();
+		const string source = """"
+			namespace DotGram
+			{
+				public sealed class GramAttribute : System.Attribute
+				{
+					public GramAttribute(string source) { }
+				}
+			}
+			namespace Example
+			{
+				[DotGram.Gram("""
+					Value : @decimal = number: '1' => @(Raise(number))
+					""")]
+				public static class GrammarHost
+				{
+					private static decimal Raise(decimal value) => value;
+				}
+			}
+			"""";
+		var project = workspace.AddProject("Navigation", LanguageNames.CSharp)
+			.AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+			.AddDocument("Host.cs", source, filePath: "P:\\Host.cs").Project;
+		var compilation = await project.GetCompilationAsync(TestContext.Current.CancellationToken);
+		var member = compilation!.GetTypeByMetadataName("Example.GrammarHost")!.GetMembers("Raise")[0];
+
+		var references = await RoslynGramCompletion.EmbeddedGrammarReferencesAsync(
+			member, project, TestContext.Current.CancellationToken);
+
+		var reference = Assert.Single(references);
+		Assert.Equal(source.IndexOf("Raise(number)", StringComparison.Ordinal), reference.Position);
+	}
 }
