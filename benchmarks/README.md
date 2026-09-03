@@ -567,6 +567,18 @@ are loaded only where some arm reads them, and an alternative that forwards need
 | 64 predicates joined by `AND` | 11,895 | 4,563 | 2.6 |
 | 64 operands joined by `+` | 4,802 | 2,020 | 2.4 |
 
+And a choice of many alternatives dispatches with a switch rather than a chain of tests —
+the engine had that and the methods did not. Twenty-nine data types, twenty-three value
+functions, fourteen predicate tails, one indexed jump each. Five to seven percent where
+those are on the path:
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 179 ns | 46 | 3.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 676 | 181 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 308 | 121 | 2.6 |
+| 64 predicates joined by `AND` | 11,098 | 4,271 | 2.6 |
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

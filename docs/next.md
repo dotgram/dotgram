@@ -11707,3 +11707,45 @@ it: the arms for those went too, and with them the rules all of whose alternativ
 Removing the two position loads on its own measured nothing, which is what said the cost
 was the branches rather than the reads: a load from an array the walk is already stepping
 through is very nearly free, and an indirect branch it cannot predict is not.
+
+## Built: the methods learned the switch the engine already had
+
+Asked whether the parser could be table-driven the way the lexer is, the answer divides.
+The lexical language is regular, so one state and one character decide the next state and
+a table is the whole machine. The syntactic language is not: nesting needs a stack, and
+the table-driven shape for that is LR, which is a different notation rather than a
+different implementation of this one. LR has no ordered choice — it has conflicts, which
+the author must resolve — where §12 promises the first alternative that matches. It has no
+place for an unbounded `?=` or `?!`, and none at all for a `when` that runs while the text
+is read and consults the world: `ExpressionLanguage` resolves a dotted name through real
+reflection as it reads and hands back a segment at a time until the type resolves. Both
+grammars in this repository would stop being expressible.
+
+What LR would genuinely give is that a reduce holds its children on the stack, so a factory
+is called with them in hand and there is no record and no second pass. That is an argument
+for building eagerly, not for LR, and it is kept for that.
+
+**What was available inside the shape we have was a switch, and the engine already had it.**
+`Machine.Analysis.cs` gathers a choice's alternatives by what they can begin with and, from
+four groups up, the engine dispatches into them with `switch (c)`. The methods never learned
+it: a choice of many alternatives was a chain of tests walked one at a time, and standard
+SQL's data types are twenty-nine of them, its value functions twenty-three, its predicate
+tails fourteen.
+
+They dispatch now. The groups partition — two first sets are the same set or share nothing
+— so an alternative outside the chosen group could not have matched here whatever order it
+was written in, and skipping it is the removal of alternatives that were going to fail
+rather than a reordering of the choice. Inside a group the written order stands, ways back
+and all. Over kinds a token is a small number, so the switch is a jump table: one indexed
+jump where there were up to twenty-nine comparisons.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 180 ns | 179 | 46 | 3.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 722 | 676 | 181 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 334 | 308 | 121 | 2.6 |
+| 64 predicates joined by `AND` | 11,895 | 11,098 | 4,271 | 2.6 |
+
+Five to seven percent where the wide dispatches are on the path, and nothing on `a = 1`,
+which does not reach one. The six widest readers took a switch each; what is left of their
+chains is the alternatives that begin the same way, which no switch can divide.

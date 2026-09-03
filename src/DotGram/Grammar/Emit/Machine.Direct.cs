@@ -1913,6 +1913,76 @@ sealed partial class Machine
 			var took = Label("took");
 			var mark = Mark();
 
+			// Many alternatives told apart by what they begin with: one switch on the token
+			// puts the parse into the right group, where a chain of tests walks the groups
+			// one at a time. Standard SQL's data types are twenty-nine alternatives and its
+			// value functions twenty-three, and over kinds a token is a small number, so the
+			// switch is a jump table. The groups partition — two first sets are the same set
+			// or share nothing — so an alternative outside the chosen group could not have
+			// matched here whatever order it was written in, and skipping it is not a
+			// reordering of the choice. Inside a group the written order stands.
+			if (machine.Dispatchable(alternatives) is { } groups)
+			{
+				var name  = Expected([machine.PredictedDisplay(alternatives)]);
+				var heads = groups.Select(_ => Label("group")).ToList();
+
+				_character = true;
+
+				code.Line($"{mark} = p;");
+
+				if (!loaded)
+				{
+					code.Line("if ((uint)p >= (uint)text.Length)");
+					using (code.Block(""))
+						Refused(code, "p", name, fail);
+					code.Line("c = text[p];");
+				}
+
+				using (code.Block("switch (c)"))
+					for (var i = 0; i < groups.Count; i++)
+					{
+						var labels = "";
+
+						foreach (var range in groups[i].Set.Ranges)
+							for (var one = range.From; ; one++)
+							{
+								labels += $"case {CSharpEmitter.Char(one)}: ";
+
+								if (one == range.To)
+									break;
+							}
+
+						code.Line($"{labels}goto {heads[i]};");
+					}
+
+				// No `default:` — falling out of the switch is the default, and it is here.
+				Refused(code, "p", name, fail);
+
+				var began  = Numbered;
+				var reached = began;
+
+				for (var i = 0; i < groups.Count; i++)
+				{
+					Numbered = began;
+
+					code.Line($"{heads[i]}:");
+
+					if (groups[i].Members.Count == 1)
+						EmitAlternative(code, groups[i].Members[0], mark, fail, following, loaded: true);
+					else
+						EmitChoice(code, groups[i].Members, fail, following, loaded: true);
+
+					code.Line($"goto {took};");
+
+					reached = Furthest(reached, Numbered);
+				}
+
+				Numbered = reached;
+				code.Line($"{took}: ;");
+
+				return;
+			}
+
 			if (machine.Predictive(alternatives) is { } predicted)
 			{
 				_character = true;
