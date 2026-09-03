@@ -688,6 +688,48 @@ the input at all, because a `ReadOnlySpan` may not go into a closure (CS9108). I
 the same because it is the same, and it is kept in the table so that nobody has to ask
 again.
 
-One thing this does not measure: an alternative near the size where the JIT stops
-compiling it in. Both middle rows are well inside, so what the table shows is the two
-regimes and not the boundary between them.
+`AlternativeLength.cs` below measures the boundary this does not: how long the alternative
+may be before the JIT stops compiling it in.
+
+## How long an alternative may be before a method of its own stops being free
+
+The table above leaves one thing open, and it is the thing that could have made extracting
+wrong. A method costs nothing while the JIT compiles it into its caller, and 58-64% where
+it may not. So: how long may the alternative be before it stops? Above that length the
+reader would be paying, and nothing would say so.
+
+The same alternative at five lengths, each as an ordinary method and as one the JIT is
+forbidden to compile in. While the two differ, the ordinary one is being compiled in.
+`--filter *AlternativeLength*`, 2026-09-03:
+
+| tokens in the alternative | a method of its own | one that may not be compiled in | ratio |
+| --: | --: | --: | --: |
+| 4 | 6.78 us | 15.81 us | 2.33 |
+| 8 | 10.24 us | 19.52 us | 1.91 |
+| 16 | 18.35 us | 26.72 us | 1.46 |
+| 32 | 37.44 us | 44.11 us | 1.18 |
+| 64 | 90.72 us | 90.74 us | 1.00 |
+
+**The line is between 32 and 64 tokens**, and at 64 the two are the same to within a
+fiftieth of a percent — the JIT has stopped, and there is nothing left to lose.
+
+**And the penalty for being past it is nothing, because it arrives already spent.** The
+call costs a constant — about 1 ns, the same at every length — while the alternative's own
+work grows with it. So the 58-64% of the first table is what a *short* alternative would
+pay if it were not compiled in, and a short alternative always is. By the time the JIT
+gives up, the call it will not remove has become a rounding error.
+
+Which closes the question the first table opened, and closes it by saying there is nothing
+to guard. There is no length at which writing the alternative in place becomes the better
+choice: below the line the call is free, above it the call is negligible, and the staircase
+is 20-24% worse throughout. The emitter needs no size check here, and this is the reason it
+has none.
+
+For scale: the longest alternative in the SQL grammar is around a dozen elements, so a real
+grammar is not near this at all.
+
+One thing neither table measures: a working set larger than a cache. Everything here is 48
+KB of tokens read through a log that wraps, so what is being compared is register
+allocation and branch layout. On a megabyte of input, a shape that is three times the code
+for the same reading may pay for it in the instruction cache, and that is a different
+question — `--big` is where it would be asked, once the reader can write the SQL parser.

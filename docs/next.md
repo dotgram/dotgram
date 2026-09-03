@@ -12043,3 +12043,38 @@ found a case that is.
 that extracts a part of its own — a choice inside an alternative, a repetition inside one —
 was numbered from a counter belonging to the writer, and a nested writer starts at zero. Two
 methods, one name. The counter belongs to the rule now.
+
+## Measured: there is no length at which extracting an alternative becomes wrong
+
+The shape table left one thing open, and it was the thing that could have made the whole
+decision wrong. A method of its own costs nothing while the JIT compiles it into its
+caller, and 58-64% where it may not. So how long may the alternative be before the JIT
+stops, and what does the reader do above that length?
+
+The same alternative at five lengths, each as an ordinary method and as one the JIT is
+forbidden to compile in:
+
+| tokens | a method of its own | one that may not be compiled in | ratio |
+| --: | --: | --: | --: |
+| 4 | 6.78 us | 15.81 us | 2.33 |
+| 8 | 10.24 us | 19.52 us | 1.91 |
+| 16 | 18.35 us | 26.72 us | 1.46 |
+| 32 | 37.44 us | 44.11 us | 1.18 |
+| 64 | 90.72 us | 90.74 us | 1.00 |
+
+The line is between 32 and 64 tokens. And the answer to the second half is: nothing, and
+that is not an oversight. The call costs a constant — about 1 ns, the same at every
+length — while the alternative's own work grows with it, so the 58-64% is what a *short*
+alternative would pay if it were not compiled in, and a short alternative always is. By
+the time the JIT gives up, the call has become a rounding error.
+
+So the emitter asks nothing about the size of a part, and this is the reason rather than
+an omission. Below the line the call is free; above it the call is negligible; and the
+staircase written in place is 20-24% worse throughout. The longest alternative in the SQL
+grammar is around a dozen elements, which is not near the line at all.
+
+What neither table measures is a working set larger than a cache. Both are 48 KB of tokens
+through a log that wraps, so what they compare is register allocation and branch layout. A
+shape that is three times the code for the same reading could pay for that in the
+instruction cache on a megabyte of input, and `--big` is where that would be asked — once
+the reader can write the SQL parser.
