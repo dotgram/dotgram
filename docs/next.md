@@ -11873,3 +11873,79 @@ marks, unused locals — and a fifth was wrong. The engine needed that shape, be
 machine with a thousand states is a graph and nothing else. Methods do not: a person
 writing this parser writes blocks and early returns, and the hand-written yardstick in
 `benchmarks/` is exactly that and is two to three times faster.
+
+## Built: the reader, and the first thing it is written in
+
+The rendering by methods was grown out of the automaton and kept its vocabulary: a rule is
+a method, but inside it a construct is a labelled region and a failure is a jump. That is
+the right shape for one machine of a thousand states, which is a graph and nothing else.
+For a method it is a graph nobody asked for, and the cost of it showed up as four passes
+that take dead jumps, dead labels, dead marks and unused locals back out — and a fifth that
+was written last week, was wrong, and was wrong because a question about one construct had
+to be asked of the whole method.
+
+So a second rendering, written as the thing itself rather than as the automaton in
+disguise. A sequence is statements one after another. A failure is `return -1`. A
+repetition is a `while`. A choice is a switch on what the alternatives begin with, or one
+attempt after another where the first token does not divide them — and an alternative that
+can fail halfway and has a sibling after it becomes a method of its own, because a number
+is how it tells its caller to try the next.
+
+That last is the part that decides what it costs, and it costs less than it sounds. Where
+a choice dispatches on the token, no alternative needs a method at all: failing the one the
+token chose is failing the choice, since no other could have matched there. Extraction is
+for alternatives that begin alike and must be tried in order, and over kinds those are the
+minority.
+
+What it writes for `Value = Digits & Name | Digits | Name`, which the normalizer has
+already factored into two:
+
+```csharp
+static int Read_Value(ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+{
+    var p = pos;
+    var q0 = -1;
+
+    if (q0 < 0)
+        q0 = Read_Value_Part0(text, p, ref failure, ways);
+
+    if (q0 < 0)
+    {
+        if ((uint)p >= (uint)text.Length || text[p] != '\u0003')
+        {
+            Refuse_DotGram(ref failure, p, Expected2, ways);
+
+            return -1;
+        }
+
+        p += 1;
+        q0 = p;
+    }
+
+    p = q0;
+
+    return p;
+}
+```
+
+It reads recognition over kinds and nothing else yet: no value kept, no guard, no mark, no
+fold, no climb, and no tape — over kinds a rule's answer stands (§4), so there is nothing
+to put back but the position and the position is the caller's own copy. `CanRead` is the
+gate and refuses rather than guesses. It is off unless asked for, and `ReaderTests` asks:
+every case is one grammar compiled both ways and asked the same question, with the answers
+compared rather than either being checked against what a test author expected. One case
+looks at the code instead, because a reader that quietly declined would pass all the
+others.
+
+**And it found a bug on its first day, in the rendering it is not replacing.** A grammar
+simple enough to lower, in a file split into a lexer and a syntactic half, emitted a
+whole-input entry taking the text and the failure and nothing else, while the publication
+calling it passed the source and the token positions too. It did not compile. Nothing had
+ever been both split and simple enough to lower, so nothing had asked.
+
+**What comes next, and the shape of the answer.** Values first: a reader that records what
+it read is a reader that can be held to the same tree as the one beside it, which is the
+comparison that actually proves two renderings agree — the same trick `Agree` already plays
+between the generated SQL parser and the hand-written one, and `SqlTree.Show` is already
+written. Then the tape, as a loop rather than a label, so that reading characters can move
+too. Then the rendering this replaces goes.

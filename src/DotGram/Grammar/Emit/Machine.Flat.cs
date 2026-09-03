@@ -50,7 +50,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 
@@ -393,7 +393,8 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, out {type} value{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure, out {type} value" +
+			$"{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 
