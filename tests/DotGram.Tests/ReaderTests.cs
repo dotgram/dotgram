@@ -83,10 +83,7 @@ public sealed class ReaderTests
 	/// <summary>A value built from a captured rule and captured text.</summary>
 	/// <remarks>
 	/// A capture gathered across the turns of a repetition lives on the side stack until
-	/// the rule ends, and the reader does not keep one yet, so there is none here. Neither
-	/// do the alternatives of <c>Value</c> begin alike: a head they shared would be read
-	/// and captured before the choice, and an alternative written as a method of its own
-	/// cannot see a local of the method that called it.
+	/// the rule ends, and the reader does not keep one yet, so there is none here.
 	/// </remarks>
 	[Theory]
 	[InlineData("a b 1")]
@@ -99,6 +96,52 @@ public sealed class ReaderTests
 	const string Valued =
 		"Start : @string = only: Value & eof => @(only)\n" +
 		"Value : @string = a: Lexical.Name & b: Value => @(a + b) | c: Lexical.Digits => @(c)";
+
+	/// <summary>A value built over a head the alternatives share.</summary>
+	/// <remarks>
+	/// <para>
+	/// The normalizer reads a head every alternative captures under one name once, before
+	/// the choice (<c>GrammarNormalizer.Factoring.cs</c>). What is left of each alternative
+	/// is then a tail, and a tail written as a method of its own cannot see that head:
+	/// it is a local of the method that called it. So the positions are handed over —
+	/// by value where the tail only reads them, by reference where the tail captures
+	/// something a construction after the choice reads.
+	/// </para>
+	/// <para>
+	/// A literal for the shared head rather than a rule, because sharing has to be shown
+	/// to be the same reading: a head that could match several lengths is not shared and
+	/// <c>GRAM4016</c> says so instead.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("let a let 1")]
+	[InlineData("let 1")]
+	[InlineData("let a")]
+	[InlineData("1")]
+	public void A_value_built_over_a_shared_head(string input) =>
+		Same(Shared, input);
+
+	/// <summary>Two alternatives that capture one head under one name, which is what lets it be shared.</summary>
+	const string Shared =
+		"Start : @string = only: Value & eof => @(only)" + Line +
+		"Value : @string = k: \"let\" & a: Lexical.Name & b: Value => @(k + a)" +
+		" | k: \"let\" & c: Lexical.Digits => @(k + c)";
+
+	/// <summary>That the head really was handed over, in both directions.</summary>
+	[Fact]
+	public void The_reader_hands_a_shared_head_to_the_alternative()
+	{
+		var written = Written(Lexical + Shared + Line + "parse Start", reader: true);
+		var head    = Reading(written, "Read_Value_Part0");
+
+		head = head.Substring(0, head.IndexOf(')'));
+
+		// What the head is read into, which the tail did not read and only uses.
+		Assert.Contains("int a0, int b0", head, StringComparison.Ordinal);
+
+		// What the tail captures and the construction after the choice reads.
+		Assert.Contains("ref int", head, StringComparison.Ordinal);
+	}
 
 	/// <summary>A value the alternative that failed had already begun to build.</summary>
 	/// <remarks>

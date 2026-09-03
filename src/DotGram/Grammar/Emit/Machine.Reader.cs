@@ -76,14 +76,6 @@ sealed partial class Machine
 				if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 					return Unreadable(rule, $"'{member.Member.Name}' is gathered across turns");
 
-			// A head the alternatives share is read before the choice and captured there
-			// (GrammarNormalizer.Factoring.cs), so the record an alternative writes names
-			// something the alternative did not read. An alternative written as a method of
-			// its own cannot see it, and handing it over as an argument is the next thing
-			// this rendering learns.
-			if (Outside(_graph.Bodies[rule]))
-				return Unreadable(rule, "its alternatives share a head that is captured before them");
-
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
 				switch (node)
 				{
@@ -105,7 +97,7 @@ sealed partial class Machine
 						break;
 
 					default:
-						return Unreadable(rule, $"of a {node.GetType().Name.ToLowerInvariant()} in it");
+						return Unreadable(rule, $"of a node it cannot write: {node.GetType().Name.ToLowerInvariant()}");
 				}
 		}
 
@@ -120,48 +112,6 @@ sealed partial class Machine
 		return true;
 	}
 
-	/// <summary>
-	/// Whether anything the rule captures stands outside the construction that names it.
-	/// </summary>
-	/// <remarks>
-	/// Inside one, the capture and the record that reads it are written into the same
-	/// method whatever happens to that construction. Outside, they are not.
-	/// </remarks>
-	static bool Outside(Node body) => Loose(body, false);
-
-	static bool Loose(Node node, bool built)
-	{
-		switch (node)
-		{
-			case Node.Construct(var made, _):
-				return Loose(made, true);
-
-			case Node.Capture(_, var held):
-				return !built || Loose(held, built);
-
-			case Node.Sequence(var parts):
-				return parts.Any(part => Loose(part, built));
-
-			case Node.Choice(var alternatives):
-				return alternatives.Any(one => Loose(one, built));
-
-			case Node.Repeat(var repeated, _, _):
-				return Loose(repeated, built);
-
-			case Node.Atomic(var kept):
-				return Loose(kept, built);
-
-			case Node.Marked(var marked, _):
-				return Loose(marked, built);
-
-			case Node.Lookahead(_, var inside):
-				return Loose(inside, built);
-
-			default:
-				return false;
-		}
-	}
-
 	/// <summary>Why the reader could not write a machine, where it could not.</summary>
 	public (RuleSymbol? Rule, string Why)? Unread { get; private set; }
 
@@ -171,6 +121,17 @@ sealed partial class Machine
 
 		return false;
 	}
+
+	/// <summary>
+	/// How many methods the rule being written has been cut into.
+	/// </summary>
+	/// <remarks>
+	/// One counter for the rule and not one per writer. A part may extract a part of its
+	/// own — a choice inside an alternative, a repetition inside one — and a counter
+	/// belonging to the writer numbered that one from zero again, giving two methods one
+	/// name.
+	/// </remarks>
+	int _readerPart;
 
 	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
 	public string RenderReader(IReadOnlyList<Publication> publications)
@@ -195,6 +156,8 @@ sealed partial class Machine
 		{
 			_seam = FollowSets.SeamOf(rule, _graph);
 
+			_readerPart = 0;
+
 			var reader = new ReaderWriter(this, rule);
 			var body   = reader.Render(_graph.Bodies[rule]);
 
@@ -210,14 +173,15 @@ sealed partial class Machine
 
 			file.Line();
 
-			foreach (var (name, part) in reader.Parts)
+			foreach (var (name, taken, part) in reader.Parts)
 			{
 				file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
 
 				using (file.Block(
 					$"static int {name}(" +
 					$"global::System.ReadOnlySpan<char> text, int pos, " +
-					$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+					$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways" +
+					$"{DirectReaderParameters}{taken})"))
 				{
 					file.Write(part);
 				}
@@ -331,14 +295,19 @@ sealed partial class Machine
 	/// carried: there is no tape while the readers commit, so a construct that fails has
 	/// nothing to put back but the position, and the position is the caller's own copy.
 	/// </remarks>
-	sealed class ReaderWriter(Machine machine, RuleSymbol owner)
+	/// <param name="given">Positions the rule captured before this part, which it only reads.</param>
+	/// <param name="taken">Positions this part captures and something after it reads.</param>
+	sealed class ReaderWriter(
+		Machine machine, RuleSymbol owner, IReadOnlyList<int>? given = null, IReadOnlyList<int>? taken = null)
 	{
 		readonly RecognitionGraph _graph = machine._graph;
 
-		/// <summary>The alternatives written as methods of their own, and their bodies.</summary>
-		public List<(string Name, string Body)> Parts { get; } = [];
+		/// <summary>What stands in this method already, and so is not declared in it.</summary>
+		readonly HashSet<int> _handed = [.. given ?? [], .. taken ?? []];
 
-		int _parts;
+		/// <summary>The alternatives written as methods of their own, and their bodies.</summary>
+		public List<(string Name, string Taken, string Body)> Parts { get; } = [];
+
 		bool _character;
 
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
@@ -373,6 +342,10 @@ sealed partial class Machine
 
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
+				// A position handed in is already a name in this method.
+				if (_handed.Contains(slot))
+					continue;
+
 				var member = machine.MemberOfSlot(owner, slot);
 
 				if (member?.Shape == MemberShape.Text)
@@ -636,11 +609,10 @@ sealed partial class Machine
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
-				var part = Extracted(alternatives[i]);
+				var part = Calling(alternatives[i]);
 
 				using (code.Block($"if ({tried} < 0)"))
-					code.Line(
-						$"{tried} = {part}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+					code.Line($"{tried} = {part};");
 			}
 
 			using (code.Block($"if ({tried} < 0)"))
@@ -652,18 +624,113 @@ sealed partial class Machine
 			code.Line($"p = {tried};");
 		}
 
-		/// <summary>One alternative as a method: the position it reached, or -1.</summary>
-		string Extracted(Node alternative)
+		/// <summary>
+		/// One part of a rule as a method, called: the position it reached, or -1.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A method cannot see a local of the method that called it, and the normalizer
+		/// makes that matter: alternatives that begin alike are factored, so a head they
+		/// share is read — and captured — before the choice, and the record an alternative
+		/// writes names something the alternative did not read. Those positions are handed
+		/// over, which is the only thing a method has to hand anything over with.
+		/// </para>
+		/// <para>
+		/// Two directions, told apart because the difference is worth an argument. A
+		/// position the part only reads goes by value. One the part captures and something
+		/// after it reads goes by reference, and is the same local seen from two methods.
+		/// Measured against writing the alternative in place, handing them over costs
+		/// nothing at either width tried (benchmarks/README.md).
+		/// </para>
+		/// </remarks>
+		string Calling(Node part)
 		{
-			var name  = machine.ReaderOf(owner) + "_Part" + _parts++;
-			var apart = new ReaderWriter(machine, owner);
+			var (captured, used) = Reaches(part);
+			var elsewhere        = Elsewhere(part);
 
-			Parts.Add((name, apart.Render(alternative)));
+			var taken = captured.Where(elsewhere.Contains).OrderBy(static one => one).ToList();
+			var given = used.Where(one => !captured.Contains(one)).OrderBy(static one => one).ToList();
+
+			// What the part hands back is a local of this method, so this method declares it.
+			foreach (var slot in taken)
+				_kept.Add(slot);
+
+			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
+			var apart = new ReaderWriter(machine, owner, given, taken);
+
+			Parts.Add((name, Handing(given, taken, "int "), apart.Render(part)));
 
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
 
-			return name;
+			return $"{name}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
+				$"{Handing(given, taken, "")})";
+		}
+
+		/// <summary>The positions handed over, as a signature or as a call.</summary>
+		string Handing(IReadOnlyList<int> given, IReadOnlyList<int> taken, string type)
+		{
+			var text = new System.Text.StringBuilder();
+
+			foreach (var slot in given)
+				foreach (var name in Names(slot))
+					text.Append(", ").Append(type).Append(name);
+
+			foreach (var slot in taken)
+				foreach (var name in Names(slot))
+					text.Append(", ref ").Append(type).Append(name);
+
+			return text.ToString();
+		}
+
+		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
+		IEnumerable<string> Names(int slot)
+		{
+			if (machine.MemberOfSlot(owner, slot)?.Shape == MemberShape.Text)
+			{
+				yield return "a" + slot;
+				yield return "b" + slot;
+			}
+			else
+			{
+				yield return "r" + slot;
+			}
+		}
+
+		/// <summary>What a part captures, and what the records inside it read.</summary>
+		(HashSet<int> Captured, HashSet<int> Used) Reaches(Node part)
+		{
+			var captured = new HashSet<int>();
+			var used     = new HashSet<int>();
+
+			foreach (var one in NodeWalk.Descendants(part))
+			{
+				if (one is Node.Capture)
+					captured.Add(machine._captureSlots[one] - machine._captureOffsets[owner]);
+
+				if (one is Node.Construct && !machine.DirectForwards(owner, machine._constructs[one]))
+					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
+						used.Add(member.Slots[0]);
+			}
+
+			return (captured, used);
+		}
+
+		/// <summary>What the records outside this part read.</summary>
+		HashSet<int> Elsewhere(Node part)
+		{
+			var mine = NodeWalk.ByIdentity(NodeWalk.Descendants(part));
+			var used = new HashSet<int>();
+
+			foreach (var one in NodeWalk.Descendants(_graph.Bodies[owner]))
+				if (!mine.Contains(one) && one is Node.Construct &&
+					!machine.DirectForwards(owner, machine._constructs[one]))
+				{
+					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
+						used.Add(member.Slots[0]);
+				}
+
+			return used;
 		}
 
 		void EmitRepeat(Writer code, Node.Repeat repeat)
@@ -685,7 +752,7 @@ sealed partial class Machine
 
 				var turn = $"q{_calls++}";
 
-				code.Line($"var {turn} = {Extracted(body)}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+				code.Line($"var {turn} = {Calling(body)};");
 				code.Line();
 				code.Line($"if ({turn} < 0 || {turn} == p)");
 				code.Then("break;");
@@ -708,7 +775,7 @@ sealed partial class Machine
 		{
 			var seen = $"q{_calls++}";
 
-			code.Line($"var {seen} = {Extracted(inside)}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+			code.Line($"var {seen} = {Calling(inside)};");
 			code.Line();
 			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 			code.Then("return -1;");

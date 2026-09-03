@@ -11987,3 +11987,59 @@ on the old code with `Collection was modified` and passes on the new.
 That is the second bug the reader has found in code it does not touch, which is an argument
 for the exercise beyond what it is for. Two renderings of the same grammar are a test
 neither one could be alone.
+
+## Built: a part is handed the head it did not read, and measured before it was
+
+The reader's remaining refusal was the shared head. A head every alternative captures under
+one name is read once, before the choice (`GrammarNormalizer.Factoring.cs`), and what is
+left of each alternative is a tail. A tail written as a method of its own cannot see that
+head — it is a local of the method that called it — so the record the tail writes named
+something the tail had not read, and `CanRead` refused the shape.
+
+It hands them over now, in two directions told apart because the difference is worth an
+argument. A position the tail only reads goes by value; one the tail captures and a
+construction after the choice reads goes by reference, and is the same local seen from two
+methods. `Read_Value_Part0(text, pos, ref failure, ways, int a0, int b0, ref int a1, ref
+int b1, ref int r2)` is what that comes to.
+
+**The measurement came first, because there was an argument against it.** Handing four or
+six positions to every alternative of every factored rule sounds like what a generated
+parser does that a person would not, and the obvious alternative — writing the alternative
+in place, as a staircase of nested `if`s — has no parameters at all. `AlternativeShape.cs`
+prices the three shapes over three alternatives of twelve tokens, two of which run to their
+end and fail there:
+
+| | head of 2 | head of 10 |
+| --- | --: | --: |
+| a method of its own | 20.09 us | 28.11 us |
+| a local function | 20.07 us | 28.07 us |
+| written in place, a staircase | 24.95 us | 33.80 us |
+| a method the JIT may not compile in | 33.02 us | 44.33 us |
+
+Writing it in place is the slowest of the three anyone would write, at both widths. The
+last row says why the call is free: the JIT compiles the part into its caller, and a part
+it may not compile in costs 58–64%. So the question was never whether to extract but
+whether what is extracted stays small enough to be put back — which is the fact
+`Machine.Sizes.cs` was built around, arriving from the other end.
+
+And the width of the head is not the axis. Ten positions cost more than two, but the same
+more in all three shapes, so passing them is not what costs. The one argument against
+handing them over is the one the table takes away.
+
+**A local function is not a third option**, which is worth writing down because it looks
+like one. Roslyn compiles it to an ordinary static method taking a struct closure by
+reference: it is the first shape with every captured local passed by reference rather than
+the read-only ones by value, and it cannot capture the input at all, because a
+`ReadOnlySpan` may not go into a closure (CS9108).
+
+**And an idea that measured to nothing.** Marking every `Construct_` method
+`AggressiveInlining` — they are one expression each, and the trivial ones are `=> t;` —
+moved seven SQL inputs by at most 3% over 21 rounds, mostly the wrong way. The JIT was
+already compiling them in. The attribute is a lever for a method that just misses the
+heuristic, and neither the constructions nor the reader's parts are that; nothing here
+found a case that is.
+
+**One bug found on the way, in code that has been right since before the reader.** A part
+that extracts a part of its own — a choice inside an alternative, a repetition inside one —
+was numbered from a counter belonging to the writer, and a nested writer starts at zero. Two
+methods, one name. The counter belongs to the rule now.
