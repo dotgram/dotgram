@@ -12319,3 +12319,39 @@ alternative that could write to a handed position; SQL has predicates with two. 
 that folds declared the local for the value so far in every method of itself, including the
 ones that neither write a record nor hand it on — a local nothing reads, which is an error
 in a build that treats warnings as errors, and the first such build was the parsers project.
+
+## Built: dispatch to a group, which was most of the reader's four times
+
+The reader had a dispatch and would not use it. `Dispatchable` divides a choice by what one
+token can tell apart and already puts several alternatives in a group where they begin
+alike; the reader asked for groups of exactly one and fell back to trying every alternative
+in order otherwise, which in a real grammar is almost always. `Read_PredicateTail` was
+seven calls where the rendering beside it was a jump table.
+
+A group is now what the switch reaches, and inside a group the members are tried in order —
+which is sound and worth writing down: no other group's first set holds the token that
+chose this one, so a group that fails fails the choice. The same code that tries a whole
+choice in order tries a group in order, and over characters it is the same code with the
+tape, so a group of several keeps its way back while a group of one needs none.
+
+Against the hand-written parser, read by the reader:
+
+| | the rendering beside | the reader, before | the reader, now |
+| --- | --: | --: | --: |
+| `a = 1` | 2.9× | 14.3× | 2.3× |
+| `(a + b) * c > d` | 3.2× | 11.1× | 4.8× |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.4× | 10.7× | 4.3× |
+| `x = 1 AND y IS NOT NULL` | 2.4× | 8.8× | 4.2× |
+| 64 predicates | 2.4× | 8.2× | 3.5× |
+| 64 operands | 2.2× | 7.3× | 3.1× |
+
+**Four times became one and a half.** What is left is a real gap and no longer an obvious
+one: the emitted code has no redundant call, no redundant test and no jump, and where the
+remaining third goes is a question for the profiler rather than for reading.
+
+**And one change that measured to nothing.** After the switch has read the token, the
+alternative it dispatched to was reading it again — its own bounds check and its own load
+of a character already in a register. Carrying "the token is in hand" into the alternative
+takes both out, and the seven inputs moved by less than the noise between runs. It is kept
+because the test it removes is one nobody would have written by hand, which is what this
+rendering is for; it is not kept for the speed, and there was none.

@@ -466,7 +466,14 @@ sealed partial class Machine
 			return head.ToString();
 		}
 
-		void Emit(Writer code, Node node)
+		/// <param name="loaded">
+		/// Whether <c>c</c> already holds <c>text[p]</c> and the position is known to be in
+		/// bounds — true right after a choice's dispatch, and carried only as far as
+		/// nothing has consumed. What it saves is what every alternative of a dispatched
+		/// choice used to do over again: its own bounds check and its own read of the
+		/// character the switch had just read.
+		/// </param>
+		void Emit(Writer code, Node node, bool loaded = false)
 		{
 			switch (node)
 			{
@@ -474,16 +481,16 @@ sealed partial class Machine
 					break;
 
 				case Node.Literal(var text) { IgnoreCase: var folded }:
-					EmitLiteral(code, node, text, folded);
+					EmitLiteral(code, node, text, folded, loaded);
 					break;
 
 				case Node.Element element:
-					EmitElement(code, element);
+					EmitElement(code, element, loaded);
 					break;
 
 				case Node.Sequence(var parts):
-					foreach (var part in parts)
-						Emit(code, part);
+					for (var i = 0; i < parts.Count; i++)
+						Emit(code, parts[i], loaded && i == 0);
 
 					break;
 
@@ -504,11 +511,11 @@ sealed partial class Machine
 					break;
 
 				case Node.Capture(_, var held):
-					EmitCapture(code, node, held);
+					EmitCapture(code, node, held, loaded);
 					break;
 
 				case Node.Construct(var built, _):
-					Emit(code, built);
+					Emit(code, built, loaded);
 					EmitRecord(code, machine._constructs[node]);
 					break;
 
@@ -519,7 +526,7 @@ sealed partial class Machine
 		}
 
 		/// <summary>What the rule keeps of what it read: a record it names, or the text.</summary>
-		void EmitCapture(Writer code, Node capture, Node held)
+		void EmitCapture(Writer code, Node capture, Node held, bool loaded = false)
 		{
 			// Slots are numbered across the whole machine and members are numbered inside
 			// one rule, so the rule's first slot is where the two meet (Machine.Direct.cs).
@@ -528,7 +535,7 @@ sealed partial class Machine
 
 			if (member is null)
 			{
-				Emit(code, held);
+				Emit(code, held, loaded);
 
 				return;
 			}
@@ -537,12 +544,12 @@ sealed partial class Machine
 			{
 				case MemberShape.Text:
 					code.Line($"a{slot} = p;");
-					Emit(code, held);
+					Emit(code, held, loaded);
 					code.Line($"b{slot} = p;");
 					break;
 
 				case MemberShape.Record:
-					Emit(code, held);
+					Emit(code, held, loaded);
 					code.Line($"r{slot} = ways.Last;");
 					break;
 
@@ -551,12 +558,12 @@ sealed partial class Machine
 				// rule shares, so nothing has to be handed between them.
 				case MemberShape.Pieces:
 					code.Line($"a{slot} = p;");
-					Emit(code, held);
+					Emit(code, held, loaded);
 					code.Line($"ways.Push({slot}, a{slot}, p);");
 					break;
 
 				case MemberShape.Records:
-					Emit(code, held);
+					Emit(code, held, loaded);
 					code.Line($"ways.Push({slot}, ways.Last, -1);");
 					break;
 
@@ -609,7 +616,7 @@ sealed partial class Machine
 
 		readonly HashSet<int> _kept = [];
 
-		void EmitLiteral(Writer code, Node node, string text, bool folded)
+		void EmitLiteral(Writer code, Node node, string text, bool folded, bool loaded = false)
 		{
 			if (text.Length == 0)
 				return;
@@ -618,10 +625,18 @@ sealed partial class Machine
 
 			if (text.Length == 1)
 			{
-				var read = folded ? "global::System.Char.ToUpperInvariant(text[p])" : "text[p]";
+				// The token the dispatch read is the one this wants, and is in a register:
+				// there is nothing to bound and nothing to read.
+				var read = loaded
+					? folded ? "global::System.Char.ToUpperInvariant(c)" : "c"
+					: folded ? "global::System.Char.ToUpperInvariant(text[p])" : "text[p]";
 				var want = CSharpEmitter.Char(folded ? char.ToUpperInvariant(text[0]) : text[0]);
+				var room = loaded ? "" : "(uint)p >= (uint)text.Length || ";
 
-				using (code.Block($"if ((uint)p >= (uint)text.Length || {read} != {want})"))
+				if (loaded)
+					_character = true;
+
+				using (code.Block($"if ({room}{read} != {want})"))
 					Refused(code, name);
 
 				code.Line($"p += {text.Length};");
@@ -640,17 +655,20 @@ sealed partial class Machine
 			code.Line($"p += {text.Length};");
 		}
 
-		void EmitElement(Writer code, Node.Element element)
+		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
 			var name  = machine.DeclareExpected([element.ToString()]);
 			var first = FirstSets.Of(element, _graph);
 
 			_character = true;
 
-			using (code.Block("if ((uint)p >= (uint)text.Length)"))
-				Refused(code, name);
+			if (!loaded)
+			{
+				using (code.Block("if ((uint)p >= (uint)text.Length)"))
+					Refused(code, name);
 
-			code.Line("c = text[p];");
+				code.Line("c = text[p];");
+			}
 
 			using (code.Block($"if (!({machine.RangesTest(first.Ranges, machine.Tabulate)}))"))
 				Refused(code, name);
@@ -692,7 +710,7 @@ sealed partial class Machine
 				return;
 			}
 
-			if (machine.Dispatchable(alternatives) is { } groups && groups.All(one => one.Members.Count == 1))
+			if (machine.Dispatchable(alternatives) is { } groups)
 			{
 				var name = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
 
@@ -723,7 +741,12 @@ sealed partial class Machine
 						using (code.Indent())
 						using (code.Block(""))
 						{
-							Emit(code, group.Members[0]);
+							// A group is what one token cannot tell apart. Reaching it is a
+							// jump table; inside it there is nothing to tell the members
+							// apart by, so they are tried in order — and a group that fails
+							// fails the choice, no other group's first set holding the token
+							// that chose this one.
+							EmitAmong(code, group.Members, loaded: true);
 							code.Line("break;");
 						}
 					}
@@ -737,8 +760,26 @@ sealed partial class Machine
 				return;
 			}
 
-			// One attempt after another. Each but the last is a method, so that its failure
-			// is a number rather than a jump out of the middle of this one.
+			EmitAmong(code, alternatives);
+		}
+
+		/// <summary>
+		/// Alternatives with nothing to tell them apart by: one attempt after another.
+		/// </summary>
+		/// <remarks>
+		/// Each but the last is a method, so that its failure is a number rather than a
+		/// jump out of the middle of this one. Called at the top of a choice nothing can
+		/// dispatch, and inside a group of one that can.
+		/// </remarks>
+		void EmitAmong(Writer code, IReadOnlyList<Node> alternatives, bool loaded = false)
+		{
+			if (alternatives.Count == 1)
+			{
+				Emit(code, alternatives[0], loaded);
+
+				return;
+			}
+
 			var tried = $"q{_calls++}";
 
 			if (!machine.OverKinds)
@@ -786,7 +827,9 @@ sealed partial class Machine
 
 			using (code.Block($"if ({tried} < 0)"))
 			{
-				Emit(code, alternatives[alternatives.Count - 1]);
+				// The one written in place, and the only one that can still use the token
+				// the dispatch read: what came before it was a method, which reads its own.
+				Emit(code, alternatives[alternatives.Count - 1], loaded);
 				code.Line($"{tried} = p;");
 			}
 
