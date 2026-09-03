@@ -1495,16 +1495,22 @@ public static partial class CSharpEmitter
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>Opens a record: its length is written when it ends.</summary>
-			internal void Begin(int rule, int factory, int start, int end)
+			/// <summary>
+			/// Opens a record: its length is written when it ends.
+			/// </summary>
+			/// <remarks>
+			/// One number says which rule wrote it and which of that rule's alternatives,
+			/// because the walk at the end wants both together and asking twice cost a
+			/// switch inside a switch — two jump tables where a record needs one.
+			/// </remarks>
+			internal void Begin(int arm, int start, int end)
 			{
-				if (LogCount + 5 > Log.Length)
-					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+				if (LogCount + 4 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
 
 				_record = LogCount;
 				Log[LogCount++] = 0;
-				Log[LogCount++] = rule;
-				Log[LogCount++] = factory;
+				Log[LogCount++] = arm;
 				Log[LogCount++] = start;
 				Log[LogCount++] = end;
 			}

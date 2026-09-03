@@ -11672,3 +11672,38 @@ eighteen.
 both sides building the same tree, node for node, checked over forty-two shapes before
 anything is timed. Sixty-six records are written where eighty-four were, and the eighteen
 that went were the ones whose only content was which rule wrote them.
+
+## Built: one number for the arm, and one jump table
+
+The walk over the log read a record's rule, switched on it, read the record's alternative,
+switched on that, and only then knew what the record held. Two jump tables per record,
+which is two indirect branches on a stream of records whose next kind the predictor has no
+way to guess.
+
+They are one now. A record carries a single number naming the rule and the alternative
+together, and the walk switches on it once. The number is handed out before a line is
+written, because the readers name an arm as they are rendered and the walk names the same
+arms afterwards, and two dictionaries filled on demand from two places would agree only by
+luck.
+
+The header shrank with it: length, arm, start, end, where it was length, rule, alternative,
+start, end. One integer less written per record and one less read.
+
+Two smaller things went at the same time. The positions a record stands on were loaded on
+every record and used by almost none — a factory that asks for the matched text or its
+span, and a terminal the lexer measured that a machine of its own rereads, and nothing
+else — so they are loaded only where some arm wants them, which in standard SQL is
+nowhere. And an alternative that forwards writes no record, so the walk needed no arm for
+it: the arms for those went too, and with them the rules all of whose alternatives forward.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 198 ns | 180 | 45 | 4.0 |
+| `(a + b) * c > d` | 378 | 345 | 105 | 3.3 |
+| `x = 1 AND y IS NOT NULL` | 380 | 334 | 129 | 2.6 |
+| 64 predicates joined by `AND` | 12,945 | 11,895 | 4,563 | 2.6 |
+| 64 operands joined by `+` | 5,364 | 4,802 | 2,020 | 2.4 |
+
+Removing the two position loads on its own measured nothing, which is what said the cost
+was the branches rather than the reads: a load from an array the walk is already stepping
+through is very nearly free, and an indirect branch it cannot predict is not.

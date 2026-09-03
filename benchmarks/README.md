@@ -551,6 +551,22 @@ there were eighty-four.
 and four now.** Both sides build the same tree, node for node, and `Agree()` says so over
 forty-two shapes before anything is timed.
 
+### 2026-09-04, and one jump table instead of two
+
+A record used to say which rule wrote it and which alternative of that rule, and the walk
+switched on the one and then on the other. It carries one number naming both now, and
+switches once: two indirect branches per record become one, on a stream whose next kind
+nothing can predict. The header lost an integer with it, the positions a record stands on
+are loaded only where some arm reads them, and an alternative that forwards needs no arm.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 180 ns | 45 | 4.0 |
+| `(a + b) * c > d` | 345 | 105 | 3.3 |
+| `x = 1 AND y IS NOT NULL` | 334 | 129 | 2.6 |
+| 64 predicates joined by `AND` | 11,895 | 4,563 | 2.6 |
+| 64 operands joined by `+` | 4,802 | 2,020 | 2.4 |
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

@@ -409,7 +409,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
 			goto Fail;
 			L2_on: ;
-			ways.Begin(0, -1, pos, p);
+			ways.Begin(0, pos, p);
 			ways.Put(r0);
 			ways.Collect(rb, 2L, false);
 			ways.Put(r2);
@@ -617,7 +617,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
 			goto Fail;
 			L2_on: ;
-			ways.Begin(10, -1, pos, p);
+			ways.Begin(1, pos, p);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -864,7 +864,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
 			goto Fail;
 			L2_on: ;
-			ways.Begin(7, -1, pos, p);
+			ways.Begin(2, pos, p);
 			ways.Put(a0, b0);
 			ways.Put(a1, b1);
 			ways.End(rb);
@@ -1017,7 +1017,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
 			goto Fail;
 			L2_on: ;
-			ways.Begin(2, -1, pos, p);
+			ways.Begin(3, pos, p);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -1050,7 +1050,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 5;
+				var read = at + 4;
 
 				switch (log[at + 1])
 				{
@@ -1065,18 +1065,18 @@ namespace DotGram.Snapshots
 						read++;
 						break;
 					}
-					case 10:
+					case 1:
 					{
-						read += 2;
-						break;
-					}
-					case 7:
-					{
-						read += 2;
 						read += 2;
 						break;
 					}
 					case 2:
+					{
+						read += 2;
+						read += 2;
+						break;
+					}
+					case 3:
 					{
 						read += 2;
 						break;
@@ -1092,10 +1092,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 4;
 
 				switch (log[at + 1])
 				{
@@ -1122,7 +1119,7 @@ namespace DotGram.Snapshots
 							captured2!);
 						break;
 					}
-					case 10:
+					case 1:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
@@ -1132,7 +1129,7 @@ namespace DotGram.Snapshots
 							captured0!);
 						break;
 					}
-					case 7:
+					case 2:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
@@ -1147,7 +1144,7 @@ namespace DotGram.Snapshots
 							captured1!);
 						break;
 					}
-					case 2:
+					case 3:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
@@ -2625,16 +2622,22 @@ namespace DotGram.Snapshots
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>Opens a record: its length is written when it ends.</summary>
-			internal void Begin(int rule, int factory, int start, int end)
+			/// <summary>
+			/// Opens a record: its length is written when it ends.
+			/// </summary>
+			/// <remarks>
+			/// One number says which rule wrote it and which of that rule's alternatives,
+			/// because the walk at the end wants both together and asking twice cost a
+			/// switch inside a switch — two jump tables where a record needs one.
+			/// </remarks>
+			internal void Begin(int arm, int start, int end)
 			{
-				if (LogCount + 5 > Log.Length)
-					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+				if (LogCount + 4 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
 
 				_record = LogCount;
 				Log[LogCount++] = 0;
-				Log[LogCount++] = rule;
-				Log[LogCount++] = factory;
+				Log[LogCount++] = arm;
 				Log[LogCount++] = start;
 				Log[LogCount++] = end;
 			}
