@@ -529,6 +529,28 @@ So the totals divide honestly now, each side by its own lexer:
 Which is where the distance is, and all of it: the lexical half of this generator is
 already at or past what a person writes, and what is behind is reading and building.
 
+### 2026-09-04, later: the levels that only forward
+
+Eighteen alternatives of the SQL grammar hand their operand up unchanged — a ladder is a
+rule per level, and every level but the top is written that way. Each cost a record, a
+slot, a read back and a call to a factory whose whole body is its argument. They write
+nothing now; the rule's value is the record its callee left. Sixty-six records where
+there were eighty-four.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 198 ns | 45 | 4.4 |
+| `(a + b) * c > d` | 378 | 102 | 3.7 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 792 | 194 | 4.1 |
+| `x = 1 AND y IS NOT NULL` | 380 | 128 | 3.0 |
+| 64 predicates joined by `AND` | 12,945 | 4,630 | 2.8 |
+| 64 operands joined by `+` | 5,364 | 2,136 | 2.5 |
+| `(a + b) * c >`, refused | 237 | 138 | 1.7 |
+
+**Ten times behind a person when building was first measured, and between two and a half
+and four now.** Both sides build the same tree, node for node, and `Agree()` says so over
+forty-two shapes before anything is timed.
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

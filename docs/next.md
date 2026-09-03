@@ -11630,3 +11630,45 @@ ahead; sixty-four names and sixty-three `AND`s and the automaton is.
 So the lexical half of this generator is at or past what a person writes, and the whole of
 the distance is in the other half: reading and building, five to seven times, each side
 divided by its own lexer.
+
+## Built: a level that only hands its operand up writes nothing
+
+A ladder is a rule per level, and every level but the top hands its operand up unchanged:
+
+```dotgram
+SearchCondition = left: SearchCondition & "OR"i & right: BooleanTerm => @(...)
+                | t: BooleanTerm                                     => @(t)
+```
+
+That second alternative used to cost a record saying which rule and which alternative,
+a slot holding the record below it, a walk that read the slot back, and a call to a
+factory whose entire body is `t`. Standard SQL has eighteen alternatives of that shape,
+and reading `a = 1` went through nine of them.
+
+They write nothing now. The rule's value is the record its callee left, which is what
+`ways.Last` already holds and what a caller capturing the rule already reads — so there
+is nothing to write down and nothing to read back. The test is on the alternative rather
+than the rule, because a rule can have one alternative that forwards and another that
+builds, and `Predicate` in this grammar has both. What it asks: the alternative is one
+capture of one call and the seam woven around it; the factory names that capture and
+nothing else, no text, no span, no context, no accumulator; and the two rules' value
+types are the same, which is what makes the callee's record answer for the caller's.
+
+Two spellings had to be allowed for. The C# a construction carries reaches the emitter as
+the text between `@(` and `)` from some places and with those parentheses still on it from
+others, so `t` and `(t)` both have to read as "hands back `t`". That was found by marking
+the sites the test fired at and counting them: four, where the grammar plainly has
+eighteen.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 272 ns | 198 | 45 | 4.4 |
+| `(a + b) * c > d` | 481 | 378 | 102 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 502 | 380 | 128 | 3.0 |
+| 64 predicates joined by `AND` | 18,180 | 12,945 | 4,630 | 2.8 |
+| 64 operands joined by `+` | 6,165 | 5,364 | 2,136 | 2.5 |
+
+**Ten times behind a person a week ago, and between two and a half and four now** — with
+both sides building the same tree, node for node, checked over forty-two shapes before
+anything is timed. Sixty-six records are written where eighty-four were, and the eighteen
+that went were the ones whose only content was which rule wrote them.

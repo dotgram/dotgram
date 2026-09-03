@@ -1491,9 +1491,24 @@ sealed partial class Machine
 					break;
 
 				case Node.Construct(var built, _):
+				{
 					Emit(code, built, fail, following, loaded);
-					EmitRecord(code, machine._constructs[node]);
+
+					var factory = machine._constructs[node];
+
+					// The value is the callee's, so the record is the callee's too.
+					if (machine.DirectForwards(_owner, factory))
+					{
+						if (_owner is not null && _graph.Folds.ContainsKey(_owner))
+							code.Line("fold = ways.Last;");
+					}
+					else
+					{
+						EmitRecord(code, factory);
+					}
+
 					break;
+				}
 
 				default:
 					throw new InvalidOperationException(

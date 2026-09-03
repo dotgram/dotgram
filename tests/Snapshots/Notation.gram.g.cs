@@ -1252,9 +1252,6 @@ namespace DotGram.Snapshots
 			if (q0 < 0) goto L5_failed;
 			p = q0;
 			r0 = ways.Last;
-			ways.Begin(0, 0, pos, p);
-			ways.Put(r0);
-			ways.End(rb);
 			goto L0_took;
 			L5_failed:
 			p = m0;
@@ -1279,9 +1276,6 @@ namespace DotGram.Snapshots
 			if (q0 < 0) goto L9_failed;
 			p = q0;
 			r1 = ways.Last;
-			ways.Begin(0, 1, pos, p);
-			ways.Put(r1);
-			ways.End(rb);
 			goto L0_took;
 			L9_failed:
 			p = m0;

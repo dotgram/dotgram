@@ -281,6 +281,118 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>
+	/// Whether an alternative's value is exactly the value of the one rule it called, so
+	/// that it needs no record of its own.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A ladder is written as a rule per level, and every level but the top hands its
+	/// operand up unchanged: <c>SearchCondition = … | t: BooleanTerm =&gt; @(t)</c>. Written
+	/// out, that was a record saying which rule and which alternative, a slot holding the
+	/// record below, and a walk that read the slot back and called a factory whose whole
+	/// body is <c>t</c>. Standard SQL has fourteen alternatives of that shape, and reading
+	/// <c>a = 1</c> went through nine of them.
+	/// </para>
+	/// <para>
+	/// Nothing is written now, and the rule's value is the record its callee left — which
+	/// is what <c>ways.Last</c> already holds, and what a caller capturing this rule
+	/// already reads. The types have to be the same for that to be true, so they are
+	/// checked rather than assumed.
+	/// </para>
+	/// </remarks>
+	bool DirectForwards(RuleSymbol? rule, int factory)
+	{
+		if (rule is null || factory < 0 || IsExtent(rule) || _reread is not null && _reread.Contains(rule))
+			return false;
+
+		var factories = _factories[rule];
+
+		if (factory >= factories.Count)
+			return false;
+
+		var made = factories[factory];
+
+		// A fold's step leads with the value so far, and an ambient argument is something
+		// the record's own positions answer. Neither is the callee's value.
+		if (made.Accumulator is not null ||
+			CSharpEmitter.WantsText(_graph, made) ||
+			CSharpEmitter.Asks(_graph, made, "parserSpan") ||
+			CSharpEmitter.Asks(_graph, made, "parserInput") ||
+			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
+			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
+		{
+			return false;
+		}
+
+		if (made.Of is not Node.Construct(var body, Construction.Expression(var text, _)))
+			return false;
+
+		if (Alone(body) is not Node.Capture(var name, Node.Call(var called, { Count: 0 })))
+			return false;
+
+		return Valued(called) &&
+			_results.QualifiedOf(called) == _results.QualifiedOf(rule) &&
+			Bare(text) == (Keywords.Contains(name) ? "@" + name : name);
+	}
+
+	/// <summary>
+	/// An expression with the parentheses around the whole of it taken off, which is how
+	/// <c>=&gt; @(v)</c> reaches here from some places and not others.
+	/// </summary>
+	static string Bare(string text)
+	{
+		text = text.Trim();
+
+		while (text.Length > 2 && text[0] == '(' && text[text.Length - 1] == ')')
+		{
+			var depth = 0;
+
+			for (var i = 0; i < text.Length - 1; i++)
+			{
+				depth += text[i] == '(' ? 1 : text[i] == ')' ? -1 : 0;
+
+				if (depth == 0)
+					return text;
+			}
+
+			text = text.Substring(1, text.Length - 2).Trim();
+		}
+
+		return text;
+	}
+
+	/// <summary>
+	/// The one operand an alternative is made of, where the seam woven around it is all
+	/// that stands beside it (§4.5) — or the node itself where it is not a sequence.
+	/// </summary>
+	Node? Alone(Node body)
+	{
+		if (body is not Node.Sequence(var parts))
+			return body;
+
+		Node? only = null;
+
+		foreach (var part in parts)
+		{
+			if (part is Node.Empty or Node.Glue or Node.Behind ||
+				part is Node.Call(var seam, { Count: 0 }) && ReferenceEquals(seam, _seam))
+			{
+				continue;
+			}
+
+			if (only is not null)
+				return null;
+
+			only = part;
+		}
+
+		return only;
+	}
+
+	/// <summary>C#'s reserved words, for the parameter a capture's name becomes.</summary>
+	static readonly HashSet<string> Keywords = ["base", "string", "object", "int", "value", "default", "params"];
+
 	/// <summary>Where a direct walk writes a rule's value: into the table's held slot.</summary>
 	string DirectInto(string type, string index) =>
 		ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
