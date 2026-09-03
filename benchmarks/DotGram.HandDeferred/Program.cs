@@ -53,6 +53,16 @@ static class Program
 		if (arranged)
 			Console.WriteLine($"            value \"{closures.Construct()}\", after {Author.Constructions} of them");
 
+		Author.Forget();
+
+		var unboxed = new Unboxed(input);
+		var held    = unboxed.Recognize();
+
+		Console.WriteLine($"  structs:  read {held}, and the author's code has run {Author.Constructions} times");
+
+		if (held)
+			Console.WriteLine($"            value \"{unboxed.Construct()}\", after {Author.Constructions} of them");
+
 		Console.WriteLine();
 	}
 
@@ -81,6 +91,9 @@ static class Program
 
 		var arranged = new Phase();
 		var called   = new Phase();
+
+		var held   = new Phase();
+		var folded = new Phase();
 
 		for (var round = 0; round < rounds + 200; round++)
 		{
@@ -129,17 +142,40 @@ static class Program
 
 				GC.KeepAlive(value);
 			}
+
+			{
+				var unboxed = new Unboxed(input);
+				var watch   = Phase.Start();
+
+				if (!unboxed.Recognize())
+					throw new InvalidOperationException("The struct reader did not read the input.");
+
+				if (measured) held.Add(watch);
+
+				watch = Phase.Start();
+
+				var value = unboxed.Construct();
+
+				if (measured) folded.Add(watch);
+
+				GC.KeepAlive(value);
+			}
 		}
+
+		Console.WriteLine(Unboxed.Sizes());
+		Console.WriteLine();
 
 		Console.WriteLine($"{"",-24}{"per parse",12}{"allocated",14}{"ratio",9}");
 		Console.WriteLine();
 
 		Row("recognize, tape",     read,     read);
 		Row("recognize, closures", arranged, read);
+		Row("recognize, structs",  held,     read);
 		Console.WriteLine();
 		Row("construct, table",    built,    built);
 		Row("construct, stack",    piled,    built);
 		Row("construct, closures", called,   built);
+		Row("construct, structs",  folded,   built);
 
 		void Row(string what, Phase phase, Phase against) =>
 			Console.WriteLine(
