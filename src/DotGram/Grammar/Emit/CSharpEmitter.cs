@@ -1050,6 +1050,13 @@ public static partial class CSharpEmitter
 		file.Line("/// cost over a character one on a short input — three allocations sized to the");
 		file.Line("/// input, against a parse that reads a dozen tokens.");
 		file.Line("/// </remarks>");
+		file.Line("/// <remarks>");
+		file.Line("/// Sized by the tokens there turn out to be rather than by the characters there");
+		file.Line("/// are. A token is several characters, so the input's length is a bound four or");
+		file.Line("/// more times what a document needs: three and three-quarter megabytes of SQL");
+		file.Line("/// asked for thirty-eight of arrays and used nine. The guess starts at a quarter");
+		file.Line("/// of the input and doubles, which for ordinary text never grows at all.");
+		file.Line("/// </remarks>");
 
 		using (file.Block("sealed class Tokens_DotGram"))
 		{
@@ -1068,6 +1075,21 @@ public static partial class CSharpEmitter
 				file.Line("Kinds   = new char[length];");
 				file.Line("Starts  = new int[length];");
 				file.Line("Lengths = new int[length];");
+			}
+
+			file.Line();
+			file.Line("/// <summary>Room for one more, keeping what is already written.</summary>");
+
+			using (file.Block("internal void Grow(int count)"))
+			{
+				file.Line("if (Kinds.Length > count)");
+				file.Then("return;");
+				file.Line();
+				file.Line("var size = Kinds.Length < 16 ? 16 : Kinds.Length * 2;");
+				file.Line();
+				file.Line("global::System.Array.Resize(ref Kinds,   size);");
+				file.Line("global::System.Array.Resize(ref Starts,  size);");
+				file.Line("global::System.Array.Resize(ref Lengths, size);");
 			}
 		}
 
@@ -1118,7 +1140,9 @@ public static partial class CSharpEmitter
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
-			file.Line("tokens.Room(input.Length + 1);");
+			// A quarter of the characters is a fair first guess at how many tokens there
+			// are, and being wrong costs a doubling rather than a document's worth of array.
+			file.Line("tokens.Room(input.Length / 4 + 16);");
 			file.Line();
 			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
 			file.Line("var kinds   = tokens.Kinds;");
@@ -1152,6 +1176,17 @@ public static partial class CSharpEmitter
 					file.Line("tokens.Stopped = p;");
 					file.Line();
 					file.Line("return tokens;");
+				}
+
+				file.Line();
+
+				using (file.Block("if (count == kinds.Length)"))
+				{
+					file.Line("tokens.Grow(count);");
+					file.Line();
+					file.Line("kinds   = tokens.Kinds;");
+					file.Line("starts  = tokens.Starts;");
+					file.Line("lengths = tokens.Lengths;");
 				}
 
 				file.Line();

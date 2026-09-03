@@ -334,6 +334,27 @@ static class HandSqlTokens
 			Starts  = new int[length];
 			Lengths = new int[length];
 		}
+
+		/// <summary>
+		/// Room for one more, keeping what is written.
+		/// </summary>
+		/// <remarks>
+		/// A token is several characters, so sizing these by the input's length asks for
+		/// four times what a document needs and more: four megabytes of SQL wanted
+		/// thirty-six of arrays and used nine. A quarter of the length is the guess, and
+		/// being wrong costs one doubling.
+		/// </remarks>
+		public void Grow(int count)
+		{
+			if (Kinds.Length > count)
+				return;
+
+			var size = Kinds.Length < 64 ? 64 : Kinds.Length * 2;
+
+			Array.Resize(ref Kinds,   size);
+			Array.Resize(ref Starts,  size);
+			Array.Resize(ref Lengths, size);
+		}
 	}
 
 	[ThreadStatic]
@@ -346,7 +367,7 @@ static class HandSqlTokens
 	{
 		var s = text.AsSpan();
 
-		into.Room(s.Length + 1);
+		into.Room(s.Length / 4 + 16);
 		into.Count   = 0;
 		into.Stopped = false;
 
@@ -571,11 +592,26 @@ static class HandSqlTokens
 					break;
 			}
 
+			if (count == kinds.Length)
+			{
+				into.Grow(count);
+
+				kinds   = into.Kinds;
+				starts  = into.Starts;
+				lengths = into.Lengths;
+			}
+
 			kinds  [count] = kind;
 			starts [count] = from;
 			lengths[count] = p - from;
 			count++;
 		}
+
+		into.Grow(count);
+
+		kinds   = into.Kinds;
+		starts  = into.Starts;
+		lengths = into.Lengths;
 
 		kinds[count]   = End;
 		starts[count]  = s.Length;

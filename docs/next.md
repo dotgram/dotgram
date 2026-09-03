@@ -11749,3 +11749,46 @@ jump where there were up to twenty-nine comparisons.
 Five to seven percent where the wide dispatches are on the path, and nothing on `a = 1`,
 which does not reach one. The six widest readers took a switch each; what is left of their
 chains is the alternatives that begin the same way, which no switch can divide.
+
+## Measured: what a huge input costs, and the array that was four times too big
+
+The lazy-lexer question was really a question about large documents, so `--big` reads one
+search condition at five sizes up to about four megabytes and says what each parse took and
+allocated. Neither lexer is lazy — the hand-written one calls `Lex` over the whole input
+before it reads a token, exactly as the generated one does — so what large means here is
+the same for both.
+
+What it found was not about laziness. **Both sized their token arrays by the number of
+characters in the input.** A token is several characters, so that is a bound four or more
+times what a document needs: three and three-quarter megabytes of SQL asked for
+thirty-eight megabytes of arrays and filled nine. The arrays are sized by the tokens there
+turn out to be now — a quarter of the length as the first guess, doubling where the guess
+was low, which for ordinary text never grows at all.
+
+| predicates | text | generated | allocated | by hand | allocated |
+| --- | --: | --: | --: | --: | --: |
+| 1,000 | 0.01 MB | 0.6 ms | 0.3 MB | 0.3 ms | 0.2 MB |
+| 10,000 | 0.16 | 4.9 | 2.6 | 2.3 | 2.4 |
+| 50,000 | 0.88 | 11.4 | 15.5 | 2.6 | 12.1 |
+| 100,000 | 1.79 | 21.8 | 31.1 | 5.4 | 24.3 |
+| 200,000 | 3.79 | 68.8 | 63.6 | 19.5 | 49.5 |
+
+The generated column allocated 4.2, 22.1, 44.5 and 92.0 megabytes before, and takes the
+same time as it did: the peak is a third smaller and nothing is slower for it.
+
+**Which is the answer to the lazy question, with numbers rather than an opinion.** On a
+four-megabyte input the generated parser now allocates sixty-four megabytes, and the token
+store is ten of them. The rest is the log a parse writes and the value tables it fills, both
+proportional to the records rather than the tokens, and both alive until the tree is built.
+A lazy lexer would cap the smaller half of the smaller half. If large documents are ever
+the thing to make cheap, the log is where the memory is.
+
+Two things worth writing down beside the numbers. **The ratio widens with size** — two
+times a person at a thousand predicates and three and a half at two hundred thousand — and
+the working set is the reason, not the reader: the log at that size is tens of megabytes
+and every walk over it is a walk out of cache. And **the two disagree about what to keep**.
+A generated parser lets go of a token store larger than sixty-five thousand entries so one
+outsized document does not leave every thread holding its buffers; the hand-written one
+keeps whatever it grew, for ever. That is most of the remaining difference in the allocated
+column, and it is a difference of policy rather than of efficiency. Neither is obviously
+right.

@@ -579,6 +579,33 @@ those are on the path:
 | `x = 1 AND y IS NOT NULL` | 308 | 121 | 2.6 |
 | 64 predicates joined by `AND` | 11,098 | 4,271 | 2.6 |
 
+### 2026-09-04: what a huge input costs
+
+`--big` reads one search condition at five sizes up to about four megabytes and prints
+what each parse took and allocated. Neither lexer is lazy: the hand-written one calls
+`Lex` over the whole input before it reads a token, exactly as the generated one does.
+
+| predicates | text | generated | allocated | by hand | allocated |
+| --- | --: | --: | --: | --: | --: |
+| 1,000 | 0.01 MB | 0.6 ms | 0.3 MB | 0.3 ms | 0.2 MB |
+| 10,000 | 0.16 | 4.9 | 2.6 | 2.3 | 2.4 |
+| 50,000 | 0.88 | 11.4 | 15.5 | 2.6 | 12.1 |
+| 100,000 | 1.79 | 21.8 | 31.1 | 5.4 | 24.3 |
+| 200,000 | 3.79 | 68.8 | 63.6 | 19.5 | 49.5 |
+
+Both used to size their token arrays by the number of characters in the input, which is a
+bound four or more times what a document needs: four megabytes of SQL asked for
+thirty-eight of arrays and filled nine. They are sized by the tokens there turn out to be
+now, and the generated column allocated 4.2, 22.1, 44.5 and 92.0 megabytes before.
+
+**The ratio widens with size** — two times a person at a thousand predicates, three and a
+half at two hundred thousand — and the working set is why: the log at that size is tens of
+megabytes and every walk over it is a walk out of cache. And the two disagree about what to
+keep. A generated parser lets go of a token store larger than sixty-five thousand entries,
+so one outsized document does not leave every thread holding its buffers; the hand-written
+one keeps whatever it grew. That is most of what remains in the allocated column, and it is
+a difference of policy rather than of efficiency.
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from

@@ -18,6 +18,64 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		// `--big` is not a benchmark either: it reads one search condition at five sizes,
+		// up to a few megabytes, and prints what each parse took and allocated. What it is
+		// for is the shape of the curve rather than the numbers — a ratio that holds at
+		// sixty-four predicates and does not at a hundred thousand is a different fact
+		// about the parser than either measurement alone. See benchmarks/README.md.
+		if (args.Length > 0 && args[0] == "--big")
+		{
+			foreach (var terms in new[] { 1_000, 10_000, 50_000, 100_000, 200_000 })
+			{
+				var text = string.Join(
+					" AND ", Enumerable.Range(0, terms).Select(i => "a" + i + " = " + i));
+
+				Console.WriteLine($"{terms:N0} predicates, {text.Length / 1024.0 / 1024.0:N2} MB of text");
+
+				foreach (var (name, what) in new (string Name, Func<string, bool> What)[]
+				{
+					("generated", static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess),
+					("by hand",   static one => HandSqlTokens.Parse(one)),
+				})
+				{
+					// Warmed, because the first parse on a thread builds the buffers it will
+					// then keep, and the best of several, because a collection lands where it
+					// lands.
+					for (var warm = 0; warm < 3; warm++)
+						what(text);
+
+					var best   = double.MaxValue;
+					var bytes  = 0L;
+					var passes = 0;
+					var read   = false;
+
+					for (var round = 0; round < 5; round++)
+					{
+						var collected = GC.CollectionCount(0);
+						var before    = GC.GetAllocatedBytesForCurrentThread();
+						var watch     = System.Diagnostics.Stopwatch.StartNew();
+
+						read = what(text);
+
+						watch.Stop();
+
+						if (watch.Elapsed.TotalMilliseconds >= best)
+							continue;
+
+						best   = watch.Elapsed.TotalMilliseconds;
+						bytes  = GC.GetAllocatedBytesForCurrentThread() - before;
+						passes = GC.CollectionCount(0) - collected;
+					}
+
+					Console.WriteLine(
+						$"  {name,-10} {best,8:N1} ms  {bytes / 1024.0 / 1024.0,8:N1} MB  " +
+						$"{passes,3} gen0  {(read ? "read" : "REFUSED")}");
+				}
+			}
+
+			return;
+		}
+
 		// `--lexers [rounds] [iterations]` is the two lexers alone, the generated one
 		// measured by refusing the parse at its first token. See SqlAgainst.Lexers.
 		if (args.Length > 0 && args[0] == "--lexers")
